@@ -48,7 +48,11 @@ Plans:
   2. The pill stays above other windows and remains visible across all Spaces / desktops
   3. With an external monitor connected and in clamshell mode, the pill stays on the built-in notch screen (or hides when the lid is closed) and never lands on the wrong display, recovering after plug/unplug and resolution changes
   4. When nothing is happening, the collapsed pill is near-invisible and not animating
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Wave 0: IsletTests target + pure geometry/display-selection seam (RED→GREEN unit tests for ISL-01/ISL-06)
+- [ ] 01-02-PLAN.md — Wave 1: NSPanel overlay shell + NotchShape/pill view + NSScreen wiring + screen-change controller into AppDelegate
+- [ ] 01-03-PLAN.md — Wave 2: on-device manual verification (A2 window level, A3 clamshell) + the four visual sign-offs
 **UI hint**: yes
 
 ### Phase 2: Hover, Expand & Fullscreen Hardening
@@ -115,7 +119,7 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Foundations & Notarization Dry Run | 0/4 | Not started | - |
-| 1. The Empty Island (Window + Geometry) | 0/TBD | Not started | - |
+| 1. The Empty Island (Window + Geometry) | 0/3 | Not started | - |
 | 2. Hover, Expand & Fullscreen Hardening | 0/TBD | Not started | - |
 | 3. Charging Activity | 0/TBD | Not started | - |
 | 4. Now Playing | 0/TBD | Not started | - |
