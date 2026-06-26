@@ -9,11 +9,13 @@
 /* Begin PBXBuildFile section */
 		01168B5EC7AF98EE1ADA34D8 /* IsletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 143DD03B59EE64AE773112BD /* IsletApp.swift */; };
 		0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C074399453E7F8439A9CD2 /* SettingsView.swift */; };
+		1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		143DD03B59EE64AE773112BD /* IsletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsletApp.swift; sourceTree = "<group>"; };
 		46B181CF063D1999E055DD9B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		99C074399453E7F8439A9CD2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -28,6 +30,7 @@
 				F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */,
 				46B181CF063D1999E055DD9B /* Assets.xcassets */,
 				143DD03B59EE64AE773112BD /* IsletApp.swift */,
+				0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */,
 				99C074399453E7F8439A9CD2 /* SettingsView.swift */,
 			);
 			path = Islet;
@@ -121,6 +124,7 @@
 			files = (
 				2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */,
 				01168B5EC7AF98EE1ADA34D8 /* IsletApp.swift in Sources */,
+				1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */,
 				0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -133,6 +137,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -143,6 +148,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lippi304.islet;
 				PRODUCT_NAME = Islet;
 				SDKROOT = macosx;
@@ -282,6 +288,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -292,6 +299,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lippi304.islet;
 				PRODUCT_NAME = Islet;
 				SDKROOT = macosx;
