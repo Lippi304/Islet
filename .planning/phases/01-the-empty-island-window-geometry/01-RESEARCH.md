@@ -455,12 +455,12 @@ struct NotchPillView: View {
 |--------|----------|-----------|-------------------|--------------|
 | ISL-01 | Notch width = `frame.width − auxLeft − auxRight`; height = `safeAreaInsets.top`; frame centered (`midX − w/2`, `maxY − h`) | unit | `xcodebuild test -scheme Islet -destination 'platform=macOS' -only-testing:IsletTests/NotchGeometryTests/testNotchFrameMath` | ❌ Wave 0 |
 | ISL-01 | `NotchShape.path(in:)` produces a closed path of expected bounds for given radii | unit | `…-only-testing:IsletTests/NotchShapeTests/testPathBounds` | ❌ Wave 0 |
-| ISL-01 | Pill renders **black** in release config, tinted in DEBUG | unit (config-conditional) + manual | `…-only-testing:IsletTests/NotchPillViewTests/testFillColorByConfig` | ❌ Wave 0 |
-| ISL-06 | Built-in notched screen selected; external never chosen | unit (mock screens) | `…-only-testing:IsletTests/DisplaySelectionTests/testPicksBuiltinNotched` | ❌ Wave 0 |
-| ISL-06 | No built-in notched screen (clamshell/non-notch) → resolver returns nil → panel hidden | unit (mock) | `…-only-testing:IsletTests/DisplaySelectionTests/testHidesWhenNoBuiltinNotch` | ❌ Wave 0 |
-| ISL-06 | Re-resolve is idempotent and repositions on changed frame | unit | `…-only-testing:IsletTests/DisplaySelectionTests/testRepositionOnResolutionChange` | ❌ Wave 0 |
+| ISL-01/ISL-07 | Pill renders **black** in release config, tinted in DEBUG | **grep** (compiled-out `#else` branch) + manual | grep: 01-02 Task 2 asserts `NotchPillView.swift` contains both the `#if DEBUG` tinted branch and a `Color.black` release branch. The release `Color.black` fill cannot be asserted from a DEBUG-config test bundle (the branch is compiled out), so it is verified by the 01-02 grep acceptance criterion and the 01-03 Task 4 release-config manual checkpoint. | created by 01-02 Task 2 (`NotchPillView.swift`) |
+| ISL-06 | Built-in notched screen selected; external never chosen | unit (mock screens) | `…-only-testing:IsletTests/DisplayResolverTests` | created by 01-01 Task 3 |
+| ISL-06 | No built-in notched screen (clamshell/non-notch) → resolver returns nil → panel hidden | unit (mock) | `…-only-testing:IsletTests/DisplayResolverTests` | created by 01-01 Task 3 |
+| ISL-06 | Re-resolve is idempotent and repositions on changed frame | unit (selection by property, not index) + manual | `…-only-testing:IsletTests/DisplayResolverTests` covers index-independent selection; live reposition-on-resolution-change is the 01-03 Task 3 manual checkpoint (needs an external monitor). | created by 01-01 Task 3 (selection) |
 | ISL-02 | Panel configured: `.nonactivatingPanel` in styleMask, `canBecomeKey==false`, level above normal, `collectionBehavior` ⊇ `[.canJoinAllSpaces, .fullScreenAuxiliary]` | unit (inspect panel) | `…-only-testing:IsletTests/NotchPanelTests/testPanelConfiguration` | ❌ Wave 0 |
-| ISL-07 | Idle pill is static (no animation driver/timer wired in Phase 1) | unit/structural | `…-only-testing:IsletTests/NotchPillViewTests/testNoAnimationState` | ❌ Wave 0 |
+| ISL-07 | Idle pill is static (no animation driver/timer wired in Phase 1) | **grep** (structural) | grep: 01-02 Task 2 acceptance criterion asserts `NotchPillView.swift` contains NO `withAnimation`, `.animation(`, `Timer`, `TimelineView`, or `repeatForever`. No `NotchPillViewTests` unit test is created — a compiled-out/absent animation cannot be meaningfully asserted by a unit test, so the grep is the honest check (also re-greped at the 01-03 Task 4 release checkpoint). | grep over `NotchPillView.swift` (01-02 Task 2) |
 | ISL-01 (visual) | Pill visually hugs the physical notch (width, radius, position) | **manual** | Run app with DEBUG tint; eyeball over notch. Not automatable — pixel-over-hardware. | manual |
 | ISL-02 (visual) | Stays above other windows & visible across Spaces | **manual** | Switch Spaces / open fullscreen app; confirm pill persists. | manual |
 | ISL-06 (visual) | Plug/unplug external + clamshell: stays on built-in, hides in clamshell, recovers | **manual** | Connect monitor, change resolution, close lid; observe. Needs external monitor. | manual |
@@ -477,9 +477,9 @@ struct NotchPillView: View {
 - [ ] `IsletTests` test target added to `project.yml` (+ `xcodegen generate`) — none exists today.
 - [ ] `IsletTests/NotchGeometryTests.swift` — covers ISL-01 frame math (pure function).
 - [ ] `IsletTests/NotchShapeTests.swift` — covers ISL-01 shape path.
-- [ ] `IsletTests/DisplaySelectionTests.swift` — covers ISL-06 selection + hide-when-absent (mock `ScreenInfo`).
+- [ ] `IsletTests/DisplayResolverTests.swift` — covers ISL-06 selection + hide-when-absent (mock `ScreenDescriptor`).
 - [ ] `IsletTests/NotchPanelTests.swift` — covers ISL-02 panel configuration.
-- [ ] `IsletTests/NotchPillViewTests.swift` — covers ISL-07 static + DEBUG/release fill.
+- [ ] `NotchPillView.swift` static + DEBUG/release fill — verified by **grep** (01-02 Task 2 acceptance criteria), not a unit test: the release `Color.black` `#else` branch is compiled out of a DEBUG test bundle and "no animation" is the absence of modifiers, so a grep is the honest check (re-greped at the 01-03 release checkpoint). No `NotchPillViewTests.swift` is created.
 - [ ] Source seam: extract geometry + display-selection into pure, injectable functions (no live `NSScreen` in tests).
 - [ ] Manual-verification checklist captured in VALIDATION.md for the four visual criteria.
 
