@@ -368,21 +368,34 @@ wc.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: 
 | A5 | `.spring(response: 0.35, dampingFraction: 0.65)` is a good Alcove-snappy starting point | Pattern 4 | Purely a tuning seed — expected to be adjusted on-device. LOW. |
 | A6 | `NSWorkspace.activeSpaceDidChangeNotification` fires on fullscreen enter/exit (fullscreen apps occupy their own Space) | Pattern 6 / examples | If a fullscreen kind doesn't take a Space, the safe-area poll on `didActivateApplicationNotification` still catches it. LOW-MEDIUM. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does the mouse-moved global monitor need Accessibility on Tahoe? (A1)**
-   - What we know: keyboard global monitors need it; mouse behavior is version-dependent and disputed.
-   - What's unclear: exact Tahoe behavior for `.mouseMoved`.
-   - Recommendation: early on-device probe (log a hover tick); plan the `NSTrackingArea` fallback as a ready branch.
+> All three open questions were resolved during planning by routing them to concrete plan seams /
+> on-device checkpoints. None remains blocking.
 
-2. **Exact fullscreen safe-area behavior per kind on Tahoe (A2/A3)**
-   - What we know: native fullscreen reliably collapses the band; un-sandboxed AX flag is readable.
-   - What's unclear: fullscreen video / QuickLook specifics under Tahoe's floating menu bar.
-   - Recommendation: verify all three kinds on-device; keep AX corroboration so detection is multi-signal.
+1. **Does the mouse-moved global monitor need Accessibility on Tahoe? (A1) — RESOLVED**
+   - Resolution: handled by **Plan 02-03**. The controller installs a DEBUG hover-tick probe on the
+     first hover so the monitor's firing can be confirmed on-device, and the permission-free
+     `NSTrackingArea` fallback (Pattern 1b) is documented as the ready branch if the global monitor
+     proves to be gated. No Accessibility request is made; the fallback is pre-decided.
+   - Original notes: keyboard global monitors need Accessibility; mouse behavior is version-dependent
+     and disputed; exact Tahoe `.mouseMoved` behavior is the unknown the on-device probe settles.
 
-3. **Does AX corroboration trigger an Accessibility permission prompt the user must accept?**
-   - What we know: AX reads of other apps' windows generally require the Accessibility grant.
-   - Recommendation: prefer the safe-area signal as primary (no prompt); only fall to AX where safe-area is ambiguous, and decide in planning whether a one-time prompt is acceptable for v1 or deferred.
+2. **Exact fullscreen safe-area behavior per kind on Tahoe (A2/A3) — RESOLVED**
+   - Resolution: converted into the **on-device manual-verify checkpoint in Plan 02-04** (Task 2),
+     which exercises native fullscreen, fullscreen video, and QuickLook, records whether the
+     no-prompt safe-area-collapse signal caught each kind, and feeds the result into the 02-04 SUMMARY.
+   - Original notes: native fullscreen reliably collapses the band; the per-kind behavior for
+     fullscreen video / QuickLook under Tahoe's floating menu bar needed real-hardware confirmation.
+
+3. **Does AX corroboration trigger an Accessibility permission prompt the user must accept? — RESOLVED**
+   - Resolution: **Plan 02-04 wires NO AX path** — the no-prompt safe-area signal is the sole runtime
+     fullscreen signal for v1 (avoiding any TCC prompt). The 02-04 on-device checkpoint records whether
+     any fullscreen kind fails the safe-area signal; AX corroboration is added in a follow-up ONLY if a
+     kind provably fails, and only after its one-time-prompt cost is documented. Q3 is therefore
+     deferred-by-design, not open: the prompt is avoided unless on-device evidence forces it.
+   - Original notes: AX reads of other apps' windows generally require the Accessibility grant; prefer
+     the safe-area signal as primary and fall to AX only where safe-area is ambiguous.
 
 ## Environment Availability
 
