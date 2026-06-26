@@ -9,13 +9,13 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 
 ### Island (ISL)
 
-- [ ] **ISL-01**: A black, rounded island renders over the physical notch on the built-in display, matching the notch's width and corner radius
-- [ ] **ISL-02**: The island stays above other windows and is visible across all Spaces / desktops
+- [x] **ISL-01**: A black, rounded island renders over the physical notch on the built-in display, matching the notch's width and corner radius
+- [x] **ISL-02**: The island stays above other windows and is visible across all Spaces / desktops
 - [ ] **ISL-03**: Hovering the notch expands the island; moving the pointer away collapses it back to a quiet pill
 - [ ] **ISL-04**: Expanding and collapsing animate with a smooth spring morph (Alcove-quality), with no flicker or jump
 - [ ] **ISL-05**: The island hides/yields correctly when an app enters true fullscreen (video playback, native fullscreen)
-- [ ] **ISL-06**: The island positions on the correct screen when external displays are connected and in clamshell mode (never lands on the wrong display)
-- [ ] **ISL-07**: When no activity is happening, the collapsed island is unobtrusive (near-invisible, not animating)
+- [x] **ISL-06**: The island positions on the correct screen when external displays are connected and in clamshell mode (never lands on the wrong display)
+- [x] **ISL-07**: When no activity is happening, the collapsed island is unobtrusive (near-invisible, not animating)
 
 ### Now Playing (NOW)
 
@@ -99,10 +99,10 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 | APP-01 | Phase 0 | Pending |
 | APP-02 | Phase 0 | Pending |
 | APP-04 | Phase 0 | Complete |
-| ISL-01 | Phase 1 | Pending |
-| ISL-02 | Phase 1 | Pending |
-| ISL-06 | Phase 1 | Pending |
-| ISL-07 | Phase 1 | Pending |
+| ISL-01 | Phase 1 | Complete |
+| ISL-02 | Phase 1 | Complete |
+| ISL-06 | Phase 1 | Complete |
+| ISL-07 | Phase 1 | Complete |
 | ISL-03 | Phase 2 | Pending |
 | ISL-04 | Phase 2 | Pending |
 | ISL-05 | Phase 2 | Pending |
@@ -123,4 +123,4 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-26 after roadmap creation (traceability populated)*
+*Last updated: 2026-06-26 — Phase 1 complete (ISL-01, ISL-02, ISL-06, ISL-07 verified)*

@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 context gathered
+stopped_at: Phase 1 complete
 last_updated: "2026-06-26T21:15:38.403Z"
 last_activity: 2026-06-26
 progress:
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 01 — the-empty-island-window-geometry
+**Current focus:** Phase 2 — hover, expand & fullscreen hardening
 
 ## Current Position
 
 Phase: 2
 Plan: Not started
-Status: Executing Phase 01
-Last activity: 2026-06-26
+Status: Phase 01 complete — ready to plan Phase 2
+Last activity: 2026-06-26 -- Phase 1 executed + verified (4/4 must-haves)
 
 Progress: [░░░░░░░░░░] 0%
 
