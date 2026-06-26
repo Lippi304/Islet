@@ -9,10 +9,17 @@ struct SettingsView: View {
             Toggle("Launch Islet at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, on in
                     do {
-                        // Apply the change; reflect the TRUE resulting state.
-                        launchAtLogin = try LaunchAtLogin.set(on)
-                        if LaunchAtLogin.requiresApproval {
+                        let result = try LaunchAtLogin.set(on)
+                        if on && LaunchAtLogin.requiresApproval {
+                            // macOS needs the user to approve the login item:
+                            // keep the toggle ON (pending) to match the System
+                            // Settings deep-link we open, instead of snapping it
+                            // back OFF.
+                            launchAtLogin = true
                             LaunchAtLogin.openLoginItemsSettings()
+                        } else {
+                            // Reflect the TRUE resulting system state.
+                            launchAtLogin = result
                         }
                     } catch {
                         // Revert the UI to the real system state on failure.

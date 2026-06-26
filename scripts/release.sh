@@ -49,6 +49,7 @@ mkdir -p "${EXPORT_DIR}" "${DIST_DIR}"
 # `xcodebuild archive` compiles a Release build and bundles it (plus debug
 # symbols) into an .xcarchive — the same thing Xcode's Product > Archive makes.
 xcodebuild -scheme "${SCHEME}" -configuration Release \
+  -destination 'generic/platform=macOS' -allowProvisioningUpdates \
   archive -archivePath "${ARCHIVE_PATH}"
 
 # ----------------------------------------------------------------------------
@@ -70,7 +71,10 @@ ditto "${ARCHIVE_PATH}/Products/Applications/${APP_NAME}.app" "${APP_PATH}"
 # MANDATORY for notarization to succeed later (Pitfall 4).
 if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ]; then
   echo "-> No Developer ID set: AD-HOC signing for local dry-run (D-03)."
-  codesign --force --deep --sign - "${APP_PATH}"
+  # NOTE: no `--deep` — it is deprecated and mis-signs nested code once we embed
+  # frameworks (MediaRemoteAdapter, Sparkle) in later phases. codesign signs the
+  # app bundle correctly without it.
+  codesign --force --sign - "${APP_PATH}"
 else
   echo "-> Signing with Developer ID + hardened runtime."
   codesign --force --options runtime --timestamp \

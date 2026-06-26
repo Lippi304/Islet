@@ -3,6 +3,7 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
+    private var didHideSettingsAtLaunch = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the menu-bar status item. variableLength = sized to its content.
@@ -38,11 +39,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func hideSettingsWindowOnLaunch() {
-        for window in NSApp.windows where window.identifier?.rawValue == "settings" {
+    // The SwiftUI Window(id:) NSWindow may not exist yet on the first run-loop
+    // pass after launch, so a single orderOut can match nothing and let the
+    // window flash on screen. Retry briefly until the window appears, hide it
+    // once, then stop (so a window the user later opens is never re-hidden).
+    private func hideSettingsWindowOnLaunch(attempt: Int = 0) {
+        guard !didHideSettingsAtLaunch else { return }
+        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "settings" }) {
             window.isRestorable = false          // don't let macOS restore it next launch
             window.isReleasedWhenClosed = false  // keep the window alive after a close
             window.orderOut(nil)                 // hide without destroying the window
+            didHideSettingsAtLaunch = true
+        } else if attempt < 50 {                 // ~1s of 20ms retries until it exists
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
+                self?.hideSettingsWindowOnLaunch(attempt: attempt + 1)
+            }
         }
     }
 
