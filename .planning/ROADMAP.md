@@ -36,7 +36,7 @@ Plans:
 - [x] 00-01-PLAN.md — App shell: Islet Xcode project + menu-bar agent (no Dock) + status menu (Settings…, Quit)
 - [x] 00-02-PLAN.md — Settings window: Launch-at-Login toggle (SMAppService) + version label
 - [x] 00-03-PLAN.md — Release pipeline: commented scripts/release.sh (sign→dmg→notarize→staple) with placeholders + .gitignore + docs/RELEASE.md
-- [ ] 00-04-PLAN.md — Run the pipeline → dist/Islet.dmg + local Gatekeeper block demo (no second Mac)
+- [x] 00-04-PLAN.md — Run the pipeline → dist/Islet.dmg + local Gatekeeper block demo (no second Mac)
 **UI hint**: yes
 
 ### Phase 1: The Empty Island (Window + Geometry)
