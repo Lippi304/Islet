@@ -42,7 +42,7 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 - [ ] **APP-01**: The app runs as a menu-bar / background agent with no Dock icon, with a menu to open settings and quit
 - [ ] **APP-02**: User can enable "launch at login" from settings
 - [ ] **APP-03**: A minimal settings window lets the user choose which activities are shown and set an accent/theme
-- [ ] **APP-04**: The app ships as a Developer-ID signed + notarized + stapled download that opens on a clean Mac without Gatekeeper warnings
+- [x] **APP-04**: The app ships as a Developer-ID signed + notarized + stapled download that opens on a clean Mac without Gatekeeper warnings
 
 ## v2 Requirements
 
@@ -98,7 +98,7 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 |-------------|-------|--------|
 | APP-01 | Phase 0 | Pending |
 | APP-02 | Phase 0 | Pending |
-| APP-04 | Phase 0 | Pending |
+| APP-04 | Phase 0 | Complete |
 | ISL-01 | Phase 1 | Pending |
 | ISL-02 | Phase 1 | Pending |
 | ISL-06 | Phase 1 | Pending |

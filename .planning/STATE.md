@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 0 context gathered
-last_updated: "2026-06-26T12:59:02.973Z"
-last_activity: 2026-06-26 — Roadmap created (7 phases, 19/19 v1 requirements mapped)
+status: executing
+stopped_at: Completed 00-03-PLAN.md
+last_updated: "2026-06-26T13:44:14.598Z"
+last_activity: 2026-06-26
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 0 — Foundations & Notarization Dry Run
+**Current focus:** Phase 00 — foundations-notarization-dry-run
 
 ## Current Position
 
-Phase: 0 of 6 (Foundations & Notarization Dry Run)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-06-26 — Roadmap created (7 phases, 19/19 v1 requirements mapped)
+Phase: 00 (foundations-notarization-dry-run) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-06-26
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 00 P03 | 3 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - [Roadmap] Notarization toolchain proven in Phase 0 on a hello-world build, not deferred to release — the single biggest first-timer footgun.
 - [Roadmap] Fullscreen-hide (ISL-05) and multi-display/clamshell correctness (ISL-06) are CORE success criteria in Phases 1–2, not polish.
 - [Roadmap] All MediaRemote access isolated behind one NowPlayingService with a launch-time health check (Phase 4); a future Apple change is a one-file fix.
+- [Phase 00]: [00-03] Release script uses hdiutil (UDZO) for the DMG; create-dmg noted as Phase-6 polish (not installed).
+- [Phase 00]: [00-03] release.sh placeholder-gates Developer-ID/notary steps; ad-hoc fallback exits 0 with a loud SKIP banner — runs unchanged at Phase 6 (D-01/D-02/D-03).
 
 ### Pending Todos
 
@@ -82,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-26T12:59:02.971Z
-Stopped at: Phase 0 context gathered
-Resume file: .planning/phases/00-foundations-notarization-dry-run/00-CONTEXT.md
+Last session: 2026-06-26T13:44:05.810Z
+Stopped at: Completed 00-03-PLAN.md
+Resume file: None
