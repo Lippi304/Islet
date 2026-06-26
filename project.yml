@@ -1,0 +1,54 @@
+# XcodeGen recipe for the Islet app.
+# This is the single source of truth for the Xcode project: regenerate the
+# .xcodeproj at any time with `xcodegen generate`. Source files are discovered
+# from the `Islet/` folder, so adding a new .swift file there and regenerating
+# automatically includes it in the build.
+name: Islet
+options:
+  bundleIdPrefix: com.lippi304
+  deploymentTarget:
+    macOS: "14.0"          # D-06: macOS 14.0 floor (notch Macs are recent)
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+# Build settings applied to every target.
+settings:
+  base:
+    SWIFT_VERSION: "5.0"             # D/Pitfall 2: Swift 5 LANGUAGE MODE (avoid Swift 6 strict concurrency)
+    MACOSX_DEPLOYMENT_TARGET: "14.0" # D-06
+    ENABLE_HARDENED_RUNTIME: YES     # required later for notarization — keep on
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"          # ad-hoc "Sign to Run Locally" (no Team yet — D-03)
+    DEAD_CODE_STRIPPING: YES
+
+targets:
+  Islet:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Islet
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lippi304.islet  # D-08: exact lowercase bundle id
+        PRODUCT_NAME: Islet
+        INFOPLIST_KEY_LSUIElement: YES                 # APP-01: menu-bar agent, no Dock icon
+        INFOPLIST_KEY_CFBundleDisplayName: Islet       # D-07: display name
+        GENERATE_INFOPLIST_FILE: YES                   # modern Xcode: synthesize Info.plist from build settings
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_APP_SANDBOX: NO                         # un-sandboxed (needed for later MediaRemote/IOKit work)
+        SWIFT_VERSION: "5.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        ENABLE_HARDENED_RUNTIME: YES
+
+# An explicit, SHARED scheme so `xcodebuild -scheme Islet` resolves
+# (written to Islet.xcodeproj/xcshareddata/xcschemes/Islet.xcscheme).
+schemes:
+  Islet:
+    build:
+      targets:
+        Islet: all
+    run:
+      config: Debug
+    archive:
+      config: Release
