@@ -1,0 +1,18 @@
+# .gitignore — files git should never track.
+#
+# Everything listed here is a GENERATED output: Xcode rebuilds it from the
+# source, and scripts/release.sh rebuilds the release artifacts. Committing
+# these would bloat the repo and cause endless merge noise, so we ignore them.
+
+# Xcode build products and per-user state
+build/              # xcodebuild archive/export output (scripts/release.sh writes here)
+DerivedData/        # Xcode's intermediate build cache
+*.xcuserstate       # per-user UI state (open files, breakpoints) inside .xcodeproj
+*.xcuserdatad/      # per-user Xcode data directories
+xcuserdata/         # per-user project/workspace settings
+
+# Release artifacts (built by scripts/release.sh)
+dist/               # the distributable .dmg ends up here
+
+# macOS
+.DS_Store           # Finder folder-metadata files
