@@ -50,9 +50,9 @@ Plans:
   4. When nothing is happening, the collapsed pill is near-invisible and not animating
 **Plans**: 3 plans
 Plans:
-- [ ] 01-01-PLAN.md — Wave 0: IsletTests target + pure geometry/display-selection seam (RED→GREEN unit tests for ISL-01/ISL-06)
-- [ ] 01-02-PLAN.md — Wave 1: NSPanel overlay shell + NotchShape/pill view + NSScreen wiring + screen-change controller into AppDelegate
-- [ ] 01-03-PLAN.md — Wave 2: on-device manual verification (A2 window level, A3 clamshell) + the four visual sign-offs
+- [x] 01-01-PLAN.md — Wave 0: IsletTests target + pure geometry/display-selection seam (RED→GREEN unit tests for ISL-01/ISL-06)
+- [x] 01-02-PLAN.md — Wave 1: NSPanel overlay shell + NotchShape/pill view + NSScreen wiring + screen-change controller into AppDelegate
+- [x] 01-03-PLAN.md — Wave 2: on-device manual verification (A2 window level, A3 clamshell) + the four visual sign-offs
 **UI hint**: yes
 
 ### Phase 2: Hover, Expand & Fullscreen Hardening
