@@ -11,8 +11,8 @@
 		0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C074399453E7F8439A9CD2 /* SettingsView.swift */; };
 		1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
-		CD81B8D5155346AD15434DAC /* PlaceholderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0631F4832B51E4586AD60E /* PlaceholderTests.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
+		EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984325CC40BE13B07D21477D /* NotchGeometryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -28,9 +28,9 @@
 /* Begin PBXFileReference section */
 		0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		143DD03B59EE64AE773112BD /* IsletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsletApp.swift; sourceTree = "<group>"; };
-		1E0631F4832B51E4586AD60E /* PlaceholderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderTests.swift; sourceTree = "<group>"; };
 		46B181CF063D1999E055DD9B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		984325CC40BE13B07D21477D /* NotchGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometryTests.swift; sourceTree = "<group>"; };
 		99C074399453E7F8439A9CD2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9CE81E9432BCF90C884078EA /* Islet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Islet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -40,7 +40,7 @@
 		2A6EFEBFBF547E6277E6C69F /* IsletTests */ = {
 			isa = PBXGroup;
 			children = (
-				1E0631F4832B51E4586AD60E /* PlaceholderTests.swift */,
+				984325CC40BE13B07D21477D /* NotchGeometryTests.swift */,
 			);
 			path = IsletTests;
 			sourceTree = "<group>";
@@ -178,7 +178,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CD81B8D5155346AD15434DAC /* PlaceholderTests.swift in Sources */,
+				EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
