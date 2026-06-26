@@ -24,7 +24,14 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 - [x] Launch-at-login — SMAppService.mainApp toggle in Settings, driven by the live system state. (Phase 0)
 - [x] Release/notarization toolchain proven end-to-end as a re-runnable `scripts/release.sh` (ad-hoc dry run; the real Developer-ID notarize/staple + clean-Mac open is the documented Phase-6 carry-over). (Phase 0)
 
-_The v1 core feature hypotheses below remain unvalidated — they ship in Phases 1–6._
+**The Empty Island (Phase 1 — ISL-01, ISL-02, ISL-06, ISL-07):**
+
+- [x] Static black pill rendered exactly over the physical notch (matching width + corner radius) by a borderless, non-activating, click-through `NSPanel` hosting a SwiftUI pill — `.statusBar` level confirmed to win over the macOS 26 menu bar; verified on-device. (Phase 1)
+- [x] Stays above all windows and across all Spaces; never steals focus; clicks pass through. (Phase 1)
+- [x] Positions on the correct built-in display through external-monitor / resolution / clamshell changes — hides in clamshell, recovers on lid-open. (Phase 1)
+- [x] Idle pill is near-invisible and completely static in release config. (Phase 1)
+
+_The remaining v1 core feature hypotheses below ship in Phases 2–6 (hover/expand interaction, now-playing, charging, devices)._
 
 ### Active
 
@@ -32,7 +39,7 @@ _The v1 core feature hypotheses below remain unvalidated — they ship in Phases
 
 **v1 — Focused core (first milestone):**
 
-- [ ] Notch island overlay: a borderless, always-on-top window rendered over the physical notch that expands on hover/click and collapses when idle, with smooth animations
+- [ ] Notch island interaction: hover/click expands the already-shipped static notch overlay and collapses it when idle with a smooth spring morph, plus correct hide/yield in true fullscreen (Phase 2 — ISL-03/04/05)
 - [ ] Now Playing: detect current media (Apple Music, Spotify, browser, etc.), show album art + title/artist in the island, and control play/pause/skip from it
 - [ ] Charging activity: when the power cable is connected, show a charging animation + battery-level notification in the island
 - [ ] Device-connected activity: when a Bluetooth device / AirPods connects or disconnects, show a brief notification in the island
@@ -103,4 +110,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-26 — Phase 0 (Foundations & Notarization Dry Run) complete: menu-bar agent shell, launch-at-login, and the end-to-end release toolchain proven.*
+*Last updated: 2026-06-26 — Phase 1 (The Empty Island) complete: a static black pill renders exactly on the notch, above all windows, on the correct display through monitor/clamshell changes (ISL-01, ISL-02, ISL-06, ISL-07), verified on-device.*
