@@ -11,19 +11,40 @@
 		0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C074399453E7F8439A9CD2 /* SettingsView.swift */; };
 		1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
+		CD81B8D5155346AD15434DAC /* PlaceholderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0631F4832B51E4586AD60E /* PlaceholderTests.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		97E8017AD9939BFEDA6987A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8D26EA4585E3E2A0AF056E47 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1E37B5761C97A84D0C08985;
+			remoteInfo = Islet;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		143DD03B59EE64AE773112BD /* IsletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsletApp.swift; sourceTree = "<group>"; };
+		1E0631F4832B51E4586AD60E /* PlaceholderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderTests.swift; sourceTree = "<group>"; };
 		46B181CF063D1999E055DD9B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		99C074399453E7F8439A9CD2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9CE81E9432BCF90C884078EA /* Islet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Islet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		2A6EFEBFBF547E6277E6C69F /* IsletTests */ = {
+			isa = PBXGroup;
+			children = (
+				1E0631F4832B51E4586AD60E /* PlaceholderTests.swift */,
+			);
+			path = IsletTests;
+			sourceTree = "<group>";
+		};
 		887CF6BBB34ACF144B73EC29 /* Islet */ = {
 			isa = PBXGroup;
 			children = (
@@ -40,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				9CE81E9432BCF90C884078EA /* Islet.app */,
+				503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,6 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				887CF6BBB34ACF144B73EC29 /* Islet */,
+				2A6EFEBFBF547E6277E6C69F /* IsletTests */,
 				C177373778F579B56E86969A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -73,6 +96,24 @@
 			productReference = 9CE81E9432BCF90C884078EA /* Islet.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C01E8954EF80BB42EE9F46CE /* IsletTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1613E481DA5052E2183537BF /* Build configuration list for PBXNativeTarget "IsletTests" */;
+			buildPhases = (
+				E264CB91B06C71778999BCBB /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F82D379B472EAD98E3B3A03E /* PBXTargetDependency */,
+			);
+			name = IsletTests;
+			packageProductDependencies = (
+			);
+			productName = IsletTests;
+			productReference = 503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -83,6 +124,9 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					A1E37B5761C97A84D0C08985 = {
+						ProvisioningStyle = Automatic;
+					};
+					C01E8954EF80BB42EE9F46CE = {
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -102,6 +146,7 @@
 			projectRoot = "";
 			targets = (
 				A1E37B5761C97A84D0C08985 /* Islet */,
+				C01E8954EF80BB42EE9F46CE /* IsletTests */,
 			);
 		};
 /* End PBXProject section */
@@ -129,7 +174,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E264CB91B06C71778999BCBB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD81B8D5155346AD15434DAC /* PlaceholderTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F82D379B472EAD98E3B3A03E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1E37B5761C97A84D0C08985 /* Islet */;
+			targetProxy = 97E8017AD9939BFEDA6987A7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		312C1CF12F3F2D988CF0B9E0 /* Debug */ = {
@@ -307,9 +368,56 @@
 			};
 			name = Release;
 		};
+		BFADF68718A9D4A786544A44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lippi304.IsletTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Islet.app/Contents/MacOS/Islet";
+			};
+			name = Debug;
+		};
+		CC1E439B43DBBA06FD2A76BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lippi304.IsletTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Islet.app/Contents/MacOS/Islet";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1613E481DA5052E2183537BF /* Build configuration list for PBXNativeTarget "IsletTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BFADF68718A9D4A786544A44 /* Debug */,
+				CC1E439B43DBBA06FD2A76BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		381E4B6B537864FE6387E85B /* Build configuration list for PBXNativeTarget "Islet" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
