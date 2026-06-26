@@ -12,6 +12,9 @@
 		1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */; };
 		2586E152318B70467587E51C /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
+		344AC320C82085AB24E1F3EC /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */; };
+		A532C893CA28FEBC8B8F87A8 /* NotchPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B2D92BF83095959068F293 /* NotchPanelTests.swift */; };
+		B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72C119AE687341C28E9786C /* NSScreen+Notch.swift */; };
 		C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
 		EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984325CC40BE13B07D21477D /* NotchGeometryTests.swift */; };
@@ -34,10 +37,13 @@
 		1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
 		46B181CF063D1999E055DD9B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayResolverTests.swift; sourceTree = "<group>"; };
+		4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		83B2D92BF83095959068F293 /* NotchPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanelTests.swift; sourceTree = "<group>"; };
 		984325CC40BE13B07D21477D /* NotchGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometryTests.swift; sourceTree = "<group>"; };
 		99C074399453E7F8439A9CD2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9CE81E9432BCF90C884078EA /* Islet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Islet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E72C119AE687341C28E9786C /* NSScreen+Notch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+Notch.swift"; sourceTree = "<group>"; };
 		F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayResolver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -48,6 +54,7 @@
 			children = (
 				46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */,
 				984325CC40BE13B07D21477D /* NotchGeometryTests.swift */,
+				83B2D92BF83095959068F293 /* NotchPanelTests.swift */,
 			);
 			path = IsletTests;
 			sourceTree = "<group>";
@@ -88,6 +95,8 @@
 			children = (
 				FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */,
 				1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */,
+				4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */,
+				E72C119AE687341C28E9786C /* NSScreen+Notch.swift */,
 			);
 			path = Notch;
 			sourceTree = "<group>";
@@ -188,7 +197,9 @@
 				C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */,
 				01168B5EC7AF98EE1ADA34D8 /* IsletApp.swift in Sources */,
 				1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */,
+				B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */,
 				2586E152318B70467587E51C /* NotchGeometry.swift in Sources */,
+				344AC320C82085AB24E1F3EC /* NotchPanel.swift in Sources */,
 				0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -199,6 +210,7 @@
 			files = (
 				FD503D3A7D28F74B8D86C930 /* DisplayResolverTests.swift in Sources */,
 				EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */,
+				A532C893CA28FEBC8B8F87A8 /* NotchPanelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
