@@ -420,16 +420,16 @@ codesign --verify --verbose build/export/Islet.app
 | A1 | `SMAppService.mainApp` login-item registration behaves correctly only for a signed app run from a stable location (not reliably from a raw Xcode DerivedData "Run") | Pattern 3 caveat | If wrong: toggle "works" in Xcode and the planner skips a "test from a built .app in /Applications" verification step — but this is the safe assumption; worst case is an extra, harmless verification step. Low risk. |
 | A2 | On this host, `sw_vers` reporting `27.0` corresponds to the macOS 26 "Tahoe" generation for which the menu-bar Settings breakage is documented | Summary / Pitfall 1 | If wrong (host behaves like 15): the `Window`+`openWindow` pattern still works fine — it's the robust superset. Low risk; the recommendation holds either way. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Exact "open window" wiring (Notification bridge vs. NSWindow lookup)**
+1. **Exact "open window" wiring (Notification bridge vs. NSWindow lookup)** — RESOLVED: Notification-bridge wiring (per Plan 01).
    - What we know: both work on macOS 26; TahoeMenuDemo uses `openWindow(id:)` from a SwiftUI button after `NSApp.activate`.
    - What's unclear: cleanest way to call `openWindow` from an AppKit AppDelegate selector (SwiftUI's `openWindow` is environment-scoped).
-   - Recommendation: planner picks the Notification-bridge variant (AppDelegate posts notification → a SwiftUI view with `@Environment(\.openWindow)` opens it). Documented in Pattern 2.
+   - Recommendation: planner picks the Notification-bridge variant (AppDelegate posts notification → a SwiftUI view with `@Environment(\.openWindow)` opens it). Documented in Pattern 2. **Resolved in Plan 01 Task 2: the AppDelegate posts `.openIsletSettings`; a `OpenSettingsOnNotification` view modifier on the settings-window content calls `openWindow(id:"settings")` after `NSApp.activate`, with an `NSApp.windows` lookup as a first-launch fallback.**
 
-2. **Whether to install `create-dmg` now or stay on `hdiutil`**
+2. **Whether to install `create-dmg` now or stay on `hdiutil`** — RESOLVED: `hdiutil` for Phase 0 (per Plan 03).
    - What we know: `hdiutil` is present and sufficient; `create-dmg` (not installed) gives a prettier DMG with built-in codesign/notarize flags.
-   - Recommendation: use `hdiutil` for Phase 0 (zero deps, matches D-05's "build a .dmg" minimally); note `create-dmg` as an easy Phase-6 upgrade. User can confirm preference at plan-check.
+   - Recommendation: use `hdiutil` for Phase 0 (zero deps, matches D-05's "build a .dmg" minimally); note `create-dmg` as an easy Phase-6 upgrade. User can confirm preference at plan-check. **Resolved in Plan 03 Task 2: the release script uses `hdiutil create … -format UDZO`; `create-dmg` is left as a documented Phase-6 polish option.**
 
 ## Environment Availability
 
