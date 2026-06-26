@@ -92,17 +92,35 @@ Explicitly excluded. Documented to prevent scope creep. Anti-features carry a wa
 
 ## Traceability
 
-Populated during roadmap creation (each requirement maps to exactly one phase).
+Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ISL-01 … APP-04 | TBD | Pending |
+| APP-01 | Phase 0 | Pending |
+| APP-02 | Phase 0 | Pending |
+| APP-04 | Phase 0 | Pending |
+| ISL-01 | Phase 1 | Pending |
+| ISL-02 | Phase 1 | Pending |
+| ISL-06 | Phase 1 | Pending |
+| ISL-07 | Phase 1 | Pending |
+| ISL-03 | Phase 2 | Pending |
+| ISL-04 | Phase 2 | Pending |
+| ISL-05 | Phase 2 | Pending |
+| CHG-01 | Phase 3 | Pending |
+| CHG-02 | Phase 3 | Pending |
+| NOW-01 | Phase 4 | Pending |
+| NOW-02 | Phase 4 | Pending |
+| NOW-03 | Phase 4 | Pending |
+| DEV-01 | Phase 5 | Pending |
+| DEV-02 | Phase 5 | Pending |
+| COORD-01 | Phase 6 | Pending |
+| APP-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 19 ⚠️ (resolved by roadmapper)
+- Mapped to phases: 19 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-26 after initial definition*
+*Last updated: 2026-06-26 after roadmap creation (traceability populated)*
