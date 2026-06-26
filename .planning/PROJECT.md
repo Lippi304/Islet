@@ -18,7 +18,13 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 <!-- Shipped and confirmed valuable. -->
 
-(None yet — ship to validate)
+**Foundation (Phase 0 — APP-01, APP-02, APP-04):**
+
+- [x] Menu-bar background agent shell — Islet runs as an LSUIElement agent (no Dock icon) with a status-item menu (Settings…, Quit Islet) and a Settings window. (Phase 0)
+- [x] Launch-at-login — SMAppService.mainApp toggle in Settings, driven by the live system state. (Phase 0)
+- [x] Release/notarization toolchain proven end-to-end as a re-runnable `scripts/release.sh` (ad-hoc dry run; the real Developer-ID notarize/staple + clean-Mac open is the documented Phase-6 carry-over). (Phase 0)
+
+_The v1 core feature hypotheses below remain unvalidated — they ship in Phases 1–6._
 
 ### Active
 
@@ -97,4 +103,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-26 after initialization*
+*Last updated: 2026-06-26 — Phase 0 (Foundations & Notarization Dry Run) complete: menu-bar agent shell, launch-at-login, and the end-to-end release toolchain proven.*
