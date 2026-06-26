@@ -31,7 +31,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. The user can toggle "launch at login" and the app actually starts (or stops starting) on next login
   3. A signed → notarized → stapled build of this hello-world app opens on a *second* clean Mac with no Gatekeeper warning
   4. The whole sign/notarize/staple flow is captured as a repeatable script the user can re-run, not hand-typed commands
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 00-01-PLAN.md — App shell: Islet Xcode project + menu-bar agent (no Dock) + status menu (Settings…, Quit)
+- [ ] 00-02-PLAN.md — Settings window: Launch-at-Login toggle (SMAppService) + version label
+- [ ] 00-03-PLAN.md — Release pipeline: commented scripts/release.sh (sign→dmg→notarize→staple) with placeholders + .gitignore + docs/RELEASE.md
+- [ ] 00-04-PLAN.md — Run the pipeline → dist/Islet.dmg + local Gatekeeper block demo (no second Mac)
 **UI hint**: yes
 
 ### Phase 1: The Empty Island (Window + Geometry)
@@ -109,7 +114,7 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Foundations & Notarization Dry Run | 0/TBD | Not started | - |
+| 0. Foundations & Notarization Dry Run | 0/4 | Not started | - |
 | 1. The Empty Island (Window + Geometry) | 0/TBD | Not started | - |
 | 2. Hover, Expand & Fullscreen Hardening | 0/TBD | Not started | - |
 | 3. Charging Activity | 0/TBD | Not started | - |
