@@ -4,6 +4,10 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var didHideSettingsAtLaunch = false
+    // Phase 1: owns the notch overlay panel. Retained for the app's lifetime so the
+    // panel and its screen-change observer stay alive (a dropped controller would
+    // tear down the overlay). Parallel to `statusItem`.
+    private var notchController: NotchWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the menu-bar status item. variableLength = sized to its content.
@@ -28,6 +32,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu items send their actions to this delegate.
         for item in menu.items { item.target = self }
         statusItem.menu = menu
+
+        // Phase 1: build and show the notch overlay on the built-in notched display.
+        // The controller resolves the correct screen, positions the panel on the
+        // notch, and re-positions on every screen-configuration change.
+        let controller = NotchWindowController()
+        controller.start()
+        self.notchController = controller
 
         // A menu-bar agent must NOT show its Settings window on launch — once
         // "Launch at login" is enabled it would otherwise pop up on every login.
