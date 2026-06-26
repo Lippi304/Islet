@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# `set -euo pipefail` makes the script SAFE for a beginner:
+#   -e  exit immediately if any command fails (don't barrel on after an error)
+#   -u  treat use of an unset variable as an error (catches typos)
+#   -o pipefail  if any command in a pipe fails, the whole pipe fails
+
+# ============================================================================
+# Islet release pipeline:  archive -> sign -> dmg -> notarize -> staple
+# ----------------------------------------------------------------------------
+# PHASE 0: runs end-to-end EXCEPT real notarization (Apple Developer account is
+# deferred — D-01). With the placeholders below unfilled, the script signs
+# AD-HOC for local testing and SKIPS notarize/staple with a clear message.
+#
+# PHASE 6: fill in the two PLACEHOLDER variables below, then re-run this script
+# UNCHANGED to produce a real notarized + stapled DMG.
+#
+# See docs/RELEASE.md for a plain-language walkthrough of every step.
+# ============================================================================
+
+# >>> FILL THESE IN AT PHASE 6 (leave as-is for the Phase-0 dry run) >>>
+DEVELOPER_ID="__DEVELOPER_ID__"     # e.g. "Developer ID Application: Your Name (TEAMID)"
+NOTARY_PROFILE="__NOTARY_PROFILE__" # e.g. "islet-notary"  (see docs/RELEASE.md)
+# <<< FILL THESE IN AT PHASE 6 <<<
+#
+# SECURITY: NOTARY_PROFILE is just a NAME that points at credentials stored in
+# your macOS keychain (created once via `xcrun notarytool store-credentials`).
+# No Apple ID, password, or app-specific password ever appears in this file or
+# in the repo. See docs/RELEASE.md.
+
+# --- Configuration: names and output paths the pipeline uses -----------------
+SCHEME="Islet"                            # the Xcode scheme created in Plan 01
+APP_NAME="Islet"                          # the app/product display name (D-07)
+VOL_NAME="Islet"                          # the name of the mounted DMG volume
+ARCHIVE_PATH="build/${APP_NAME}.xcarchive"  # where xcodebuild puts the archive
+EXPORT_DIR="build/export"                  # where we copy the exported .app
+APP_PATH="${EXPORT_DIR}/${APP_NAME}.app"   # the .app we sign and ship
+DMG_DIR="build/dmgroot"                    # a clean staging folder for the DMG
+DIST_DIR="dist"                            # final distributable artifacts live here
+DMG_PATH="${DIST_DIR}/${APP_NAME}.dmg"     # the disk image users download (D-05)
+
+# ----------------------------------------------------------------------------
+# Step 1: Clean previous output, then archive a Release build.
+# ----------------------------------------------------------------------------
+# Start from a clean slate so stale files can't sneak into the release.
+rm -rf build dist
+mkdir -p "${EXPORT_DIR}" "${DIST_DIR}"
+
+# `xcodebuild archive` compiles a Release build and bundles it (plus debug
+# symbols) into an .xcarchive — the same thing Xcode's Product > Archive makes.
+xcodebuild -scheme "${SCHEME}" -configuration Release \
+  archive -archivePath "${ARCHIVE_PATH}"
+
+# ----------------------------------------------------------------------------
+# Step 2: Pull the built .app out of the archive.
+# ----------------------------------------------------------------------------
+# The finished .app lives inside the archive at Products/Applications. We copy
+# it out with `ditto` (NOT a recursive copy): ditto preserves the symlinks
+# inside an .app/.framework bundle, which a plain recursive copy would corrupt
+# and thereby break the code signature.
+ditto "${ARCHIVE_PATH}/Products/Applications/${APP_NAME}.app" "${APP_PATH}"
+
+# ----------------------------------------------------------------------------
+# Step 3: Sign the .app.
+# ----------------------------------------------------------------------------
+# If DEVELOPER_ID is still the placeholder, we AD-HOC sign ("Sign to Run
+# Locally", identity "-") — fine for local testing but NOT Gatekeeper-valid
+# (D-03). Once a real Developer ID is set, we sign for distribution with the
+# Hardened Runtime (`--options runtime`) and a secure `--timestamp`; both are
+# MANDATORY for notarization to succeed later (Pitfall 4).
+if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ]; then
+  echo "-> No Developer ID set: AD-HOC signing for local dry-run (D-03)."
+  codesign --force --deep --sign - "${APP_PATH}"
+else
+  echo "-> Signing with Developer ID + hardened runtime."
+  codesign --force --options runtime --timestamp \
+    --sign "${DEVELOPER_ID}" "${APP_PATH}"
+fi
+# Sanity-check the signature is well-formed before we package it.
+codesign --verify --verbose "${APP_PATH}"
+
+# ----------------------------------------------------------------------------
+# Step 4: Build the .dmg with hdiutil.
+# ----------------------------------------------------------------------------
+# hdiutil ships with macOS (no extra install needed — we deliberately avoid the
+# uninstalled `create-dmg`). We first stage the signed .app into a clean folder
+# with `ditto` (again, to keep the bundle's internal symlinks intact), then turn
+# that folder into a compressed (UDZO) read-only disk image. `-ov` overwrites
+# any existing image from a previous run.
+rm -rf "${DMG_DIR}" && mkdir -p "${DMG_DIR}"
+ditto "${APP_PATH}" "${DMG_DIR}/${APP_NAME}.app"
+hdiutil create -volname "${VOL_NAME}" \
+  -srcfolder "${DMG_DIR}" -ov -format UDZO "${DMG_PATH}"
+
+# ----------------------------------------------------------------------------
+# Step 5: Sign the .dmg itself (only when a real Developer ID is set).
+# ----------------------------------------------------------------------------
+# The disk image is a separate file from the app inside it, so it gets its own
+# signature. Ad-hoc signing the DMG adds no value, so we skip it in dry-run.
+if [ "${DEVELOPER_ID}" != "__DEVELOPER_ID__" ]; then
+  codesign --force --options runtime --timestamp \
+    --sign "${DEVELOPER_ID}" "${DMG_PATH}"
+fi
+
+# ----------------------------------------------------------------------------
+# Step 6: Notarize + staple — DEFERRED to Phase 6 (D-01/D-02).
+# ----------------------------------------------------------------------------
+# If EITHER placeholder is still unfilled, we cannot notarize, so we STOP here
+# cleanly (exit 0 = success) with a loud, unmistakable message. This guarantees
+# a Phase-0 dry-run DMG can never be confused with a real shippable release.
+if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ] || [ "${NOTARY_PROFILE}" = "__NOTARY_PROFILE__" ]; then
+  echo "--------------------------------------------------------------"
+  echo "SKIPPING notarize + staple — placeholders not filled (Phase 6 step)."
+  echo "Phase-0 dry run complete: ${DMG_PATH} (ad-hoc signed, NOT notarized)."
+  echo "To finish at Phase 6: fill DEVELOPER_ID + NOTARY_PROFILE, re-run this script."
+  echo "--------------------------------------------------------------"
+  exit 0
+fi
+
+# ---- Phase 6 real run (these execute only once placeholders are filled) ----
+# Upload the DMG to Apple's notary service and WAIT for the verdict. The
+# credentials come from the keychain profile NAME — never from this file.
+xcrun notarytool submit "${DMG_PATH}" --keychain-profile "${NOTARY_PROFILE}" --wait
+# Attach ("staple") the notarization ticket to the DMG so Gatekeeper accepts it
+# even offline, without re-contacting Apple.
+xcrun stapler staple "${DMG_PATH}"
+# Confirm Gatekeeper's verdict — expect: accepted, "Notarized Developer ID".
+spctl --assess -vvv --type install "${DMG_PATH}"
+echo "-> Notarized + stapled DMG ready: ${DMG_PATH}"
