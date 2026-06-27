@@ -30,6 +30,7 @@
 		C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */; };
 		CBFEA4D08C31BD0C3602E177 /* NotchInteractionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE98C0240E35D702BEA0DBA /* NotchInteractionState.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
+		EB0A6293AAD242E76B254033 /* PowerSourceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */; };
 		EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984325CC40BE13B07D21477D /* NotchGeometryTests.swift */; };
 		FD503D3A7D28F74B8D86C930 /* DisplayResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */; };
 /* End PBXBuildFile section */
@@ -72,6 +73,7 @@
 		ECC50D5D14612F7A3B39F683 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayResolver.swift; sourceTree = "<group>"; };
+		FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSourceMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -136,6 +138,7 @@
 				0C997928190396DADC0ADA29 /* NotchWindowController.swift */,
 				E72C119AE687341C28E9786C /* NSScreen+Notch.swift */,
 				76ADF16C067A181F295BA4C5 /* PowerActivity.swift */,
+				FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */,
 			);
 			path = Notch;
 			sourceTree = "<group>";
@@ -247,6 +250,7 @@
 				91F81FE03A457F64032081F8 /* NotchShape.swift in Sources */,
 				2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */,
 				921F5385399CF08B36043288 /* PowerActivity.swift in Sources */,
+				EB0A6293AAD242E76B254033 /* PowerSourceMonitor.swift in Sources */,
 				0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
