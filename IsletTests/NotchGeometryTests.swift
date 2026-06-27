@@ -151,4 +151,46 @@ final class NotchGeometryTests: XCTestCase {
         let frame = expandedNotchFrame(collapsed: collapsed, expandedSize: collapsed.size)
         XCTAssertEqual(frame, collapsed)
     }
+
+    // MARK: wingsFrame (CHG-01)
+
+    func testWingsFrameCentersOnMidXAndPinsTop() {
+        // CHG-01 / D-01 — the WINGS (sideways/Alcove) frame uses the IDENTICAL contract
+        // as expandedNotchFrame: centered on the collapsed pill's midX and pinned to the
+        // same top edge (AppKit bottom-left origin → top edge is maxY).
+        // collapsed pill at origin-screen: x 610, y 944, 292x38 (== notchFrame output),
+        // midX 756, maxY 982. wingsSize 360x40 (wide + flat, sideways):
+        //   x = 756 - 180 = 576, y = 982 - 40 = 942.
+        let collapsed = CGRect(x: 610, y: 944, width: 292, height: 38)
+        let wingsSize = CGSize(width: 360, height: 40)
+        let frame = wingsFrame(collapsed: collapsed, wingsSize: wingsSize)
+        XCTAssertEqual(frame.midX, collapsed.midX, accuracy: 0.0001)
+        XCTAssertEqual(frame.midX, 756, accuracy: 0.0001)
+        XCTAssertEqual(frame.maxY, collapsed.maxY, accuracy: 0.0001)
+        XCTAssertEqual(frame.maxY, 982, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.x, 576, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.y, 942, accuracy: 0.0001)
+        XCTAssertEqual(frame.width, 360, accuracy: 0.0001)
+        XCTAssertEqual(frame.height, 40, accuracy: 0.0001)
+    }
+
+    func testWingsFrameOnNonZeroOriginScreen() {
+        // Built-in screen placed to the right in the arrangement: collapsed pill at
+        // x 2530 (midX 2676). The wings frame keeps that midX and the same top edge.
+        //   x = 2676 - 180 = 2496, y = 982 - 40 = 942.
+        let collapsed = CGRect(x: 2530, y: 944, width: 292, height: 38)
+        let wingsSize = CGSize(width: 360, height: 40)
+        let frame = wingsFrame(collapsed: collapsed, wingsSize: wingsSize)
+        XCTAssertEqual(frame.midX, 2676, accuracy: 0.0001)
+        XCTAssertEqual(frame.midX, collapsed.midX, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.x, 2496, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.y, 942, accuracy: 0.0001)
+    }
+
+    func testWingsFrameDegenerateEqualsCollapsedWhenSameSize() {
+        // Degenerate case: wingsSize == collapsed.size → no jump, frame == collapsed.
+        let collapsed = CGRect(x: 610, y: 944, width: 292, height: 38)
+        let frame = wingsFrame(collapsed: collapsed, wingsSize: collapsed.size)
+        XCTAssertEqual(frame, collapsed)
+    }
 }

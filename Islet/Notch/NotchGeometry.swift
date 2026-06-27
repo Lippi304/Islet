@@ -66,3 +66,14 @@ func expandedNotchFrame(collapsed: CGRect, expandedSize: CGSize) -> CGRect {
     let y = collapsed.maxY - expandedSize.height
     return CGRect(x: x, y: y, width: expandedSize.width, height: expandedSize.height)
 }
+
+// CHG-01 — the WINGS frame (sideways/Alcove layout, D-01). Same contract as
+// expandedNotchFrame: centered on the collapsed pill's midX and pinned to the top
+// edge (AppKit bottom-left origin, so the top edge is maxY). The panel is sized to
+// the UNION of this and expandedNotchFrame up front (Pattern 4) so neither the
+// Phase-2 downward expand nor the Phase-3 sideways wings is ever resized mid-animation.
+func wingsFrame(collapsed: CGRect, wingsSize: CGSize) -> CGRect {
+    let x = collapsed.midX - wingsSize.width / 2
+    let y = collapsed.maxY - wingsSize.height
+    return CGRect(x: x, y: y, width: wingsSize.width, height: wingsSize.height)
+}
