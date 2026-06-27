@@ -47,6 +47,13 @@ final class NotchWindowController {
     // monitor/timer/click callbacks mutate `phase` inside withAnimation(.spring(...)).
     private let interaction = NotchInteractionState()
 
+    // CHG-01 / Pattern 2 — the SEPARATE charging-splash model the wings layout observes.
+    // Held here so NotchPillView has a non-nil `charging:` input. Its `.activity` stays nil
+    // for now (the view renders the collapsed/expanded branches exactly as before); Plan 03
+    // wires the IOKit power-source events that set `.activity` inside withAnimation(.spring)
+    // and the ~3s auto-dismiss. No IOKit / Timer here — purely the published holder.
+    private let chargingState = ChargingActivityState()
+
     // The global pointer monitor + the pending grace-delay collapse (Pattern 1 / Pattern 3).
     private var mouseMonitor: Any?
     private var graceWorkItem: DispatchWorkItem?
@@ -195,7 +202,8 @@ final class NotchWindowController {
         if self.panel == nil {
             panel.contentView = NSHostingView(
                 rootView: NotchPillView(interaction: interaction,
-                                        onClick: { [weak self] in self?.handleClick() })
+                                        onClick: { [weak self] in self?.handleClick() },
+                                        charging: chargingState)
             )
             self.panel = panel
         }
