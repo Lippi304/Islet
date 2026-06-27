@@ -81,7 +81,11 @@ Plans:
   2. Unplugging shows a brief "on battery" indication
   3. The splash distinguishes actively-charging from plugged-in-but-full, and behaves sanely on a Mac with no charging state to read
   4. Power state is driven by event/notification sources with no long-lived polling timer, keeping idle CPU near 0%
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 03-01-PLAN.md — Wave 0: pure power→presentation seam (PowerReading/ChargingActivity/powerActivity + shouldTriggerSplash) + ChargingActivityState + wingsFrame, with RED→GREEN unit tests (CHG-01/CHG-02)
+- [ ] 03-02-PLAN.md — Wings/Alcove sideways layout in NotchPillView (one filling battery glyph + %, D-01/D-03/D-04/D-05) + D-11 precedence ordering
+- [ ] 03-03-PLAN.md — PowerSourceMonitor IOKit notification source + controller wiring (transition-gated splash, ~3s one-shot dismiss, fullscreen-safe updateVisibility, deinit teardown) + on-device UAT
 
 ### Phase 4: Now Playing
 **Goal**: The core install driver — current media from any app shows album art, title, and artist in the island with working transport controls, built entirely behind one isolated service that fails gracefully when the system API is blocked.
@@ -126,7 +130,7 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 0. Foundations & Notarization Dry Run | 0/4 | Not started | - |
 | 1. The Empty Island (Window + Geometry) | 0/3 | Not started | - |
 | 2. Hover, Expand & Fullscreen Hardening | 4/4 | Complete | 2026-06-27 |
-| 3. Charging Activity | 0/TBD | Not started | - |
+| 3. Charging Activity | 0/3 | Planned | - |
 | 4. Now Playing | 0/TBD | Not started | - |
 | 5. Device-Connected Activity | 0/TBD | Not started | - |
 | 6. Priority Resolver, Settings & v1 Ship | 0/TBD | Not started | - |
