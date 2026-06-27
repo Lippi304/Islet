@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-06-27T00:36:11.401Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-06-27T01:09:32.461Z"
 last_activity: 2026-06-27
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 11
-  completed_plans: 8
-  percent: 73
+  completed_plans: 9
+  percent: 82
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-26)
 ## Current Position
 
 Phase: 02 (hover-expand-fullscreen-hardening) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-27
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 00 P03 | 3 | 3 tasks | 3 files |
 | Phase 02 P01 | 4 | 3 tasks | 8 files |
+| Phase 02 P02 | 4 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Recent decisions affecting current work:
 - [Phase 00]: [00-03] release.sh placeholder-gates Developer-ID/notary steps; ad-hoc fallback exits 0 with a loud SKIP banner — runs unchanged at Phase 6 (D-01/D-02/D-03).
 - [Phase 02]: [02-01] isTrueFullscreen maps nil built-in to false: clamshell is NOT fullscreen; the no-target path is owned by shouldShow's hasTarget term, keeping the two concerns untangled.
 - [Phase 02]: [02-01] shouldShow = hasTarget && !(hideInFullscreen && isFullscreen): single D-10 gating flag so a future Phase-6 fullscreen toggle is a one-flag change, no logic edit.
+- [Phase 02]: [02-02] NotchPillView morph: collapsed+expanded share one matchedGeometryEffect(id: "island") on a single @Namespace; view holds no animation driver (D-08), Plan 03 wraps state mutation in withAnimation(.spring).
+- [Phase 02]: [02-02] Expanded size seed 360×72 / collapsed 200×38 exposed as NotchPillView.expandedSize/.collapsedSize so Plan 03 passes the SAME expandedSize to expandedNotchFrame (no view/panel drift).
 
 ### Pending Todos
 
@@ -89,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-27T00:36:03.005Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-06-27T01:09:32.459Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
