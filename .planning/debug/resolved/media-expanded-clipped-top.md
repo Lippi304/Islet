@@ -1,8 +1,8 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "media-expanded-clipped-top: expanded Now-Playing media view top (album art + title) clipped above screen top edge; confirmed on-device via screenshot in 04-04 UAT"
 created: 2026-06-27T21:34:02Z
-updated: 2026-06-27T21:34:02Z
+updated: 2026-06-28T00:20:00Z
 ---
 
 ## Current Focus
@@ -57,3 +57,5 @@ root_cause: TWO related layout faults, same single source of truth. (1) NotchPil
 fix: Two edits, both in NotchPillView.swift. (a) expandedSize.height 72 → 112 → 128: 128 = 32 (top notch/camera clearance, == wingsSize.height = the measured notch height on this machine) + 84 (content: HStack art 40 + spacing 6 + seek spacer 4 + spacing 6 + transport row 28) + 12 (bottom inset for the bottomCornerRadius:20 curve). The panel window (expandedNotchFrame) and the SwiftUI content frame both derive from this one constant, so the island actually grows taller (expands further), not just shifts content. (b) mediaExpanded overlay: .overlay(...) → .overlay(alignment: .top){...} and vertical padding 10/10 → .padding(.top,32) + .padding(.bottom,12) (+ unchanged .horizontal,14). Top-pinning makes the 32pt clearance exact instead of re-centering content into a gap, so the media content begins exactly below the camera band.
 verification: Build SUCCEEDED (xcodegen generate && xcodebuild -scheme Islet -destination platform=macOS build). IsletTests 77/77 pass, 0 failures (geometry tests use local CGSize literals, unaffected by the constant). Awaiting human on-device confirm: expand island while music plays → island taller, art + title start below the camera (nothing cut off), transport row fully visible, bottom curve doesn't clip it.
 files_changed: [Islet/Notch/NotchPillView.swift]
+human_confirmed: 2026-06-28 — user verified on-device ("passt"): expanded media island grows taller, album art + title start below the camera band (nothing clipped), transport row fully visible. RESOLVED.
+followup_refinements: During the same on-device UAT loop the user requested further now-playing polish, applied as separate commits (not part of this clipping root cause): 04903cf (equalizer bars random + bottom-anchored, wings 300pt) and eb1a929 (5 center-out bars, media wings 290pt split from charging 305pt, expanded-island keep-open hot-zone so the grace timer no longer collapses the island while the pointer is on the transport controls). All build green (77/77 tests) and user-confirmed ("passt").
