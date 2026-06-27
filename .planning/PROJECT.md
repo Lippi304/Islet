@@ -37,7 +37,12 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 - [x] Focus-safe interaction: a CLICK expands the island, hovering gives a haptic + bounce affordance without expanding (D-02 Alcove model), and pointer-away collapses after a ~0.4s grace; the non-activating panel never steals focus. (Phase 2 — ISL-03)
 - [x] Hides/yields in true fullscreen via the private CGS managed-display-spaces signal — the NSScreen safe-area heuristic proved unusable from a background agent; native fullscreen verified on-device (8 further on-device UAT items tracked in 02-HUMAN-UAT.md; a 1-frame enter-transition flash is a deferred polish item). (Phase 2 — ISL-05)
 
-_The remaining v1 core feature hypotheses below ship in Phases 3–6 (now-playing, charging, devices)._
+**Charging Activity (Phase 3 — CHG-01):**
+
+- [x] Live charging splash — plugging in the power cable shows the Alcove-style "wings" splash (a filling battery glyph + %) beside the notch for ~3s then collapses, driven by an event-driven IOKit power-source notification (no polling clock); routed through the single visibility gate so it stays hidden in true fullscreen; on-device verified. (Phase 3 — CHG-01)
+  - **Connect-only (CHG-02 descoped):** by on-device decision the activity fires only on plug-in; unplugging deliberately shows nothing. CHG-02's original "brief on-battery indication on unplug" is intentionally dropped. (Phase 3)
+
+_The remaining v1 core feature hypotheses below ship in Phases 4–6 (now-playing, devices)._
 
 ### Active
 
@@ -46,7 +51,6 @@ _The remaining v1 core feature hypotheses below ship in Phases 3–6 (now-playin
 **v1 — Focused core (first milestone):**
 
 - [ ] Now Playing: detect current media (Apple Music, Spotify, browser, etc.), show album art + title/artist in the island, and control play/pause/skip from it
-- [ ] Charging activity: when the power cable is connected, show a charging animation + battery-level notification in the island
 - [ ] Device-connected activity: when a Bluetooth device / AirPods connects or disconnects, show a brief notification in the island
 - [ ] Polished, native look — animations and visual quality on par with Alcove
 
@@ -98,6 +102,8 @@ _The remaining v1 core feature hypotheses below ship in Phases 3–6 (now-playin
 | Product name TBD | "Notch" is a working title only; real name decided closer to release | — Pending |
 | Island opens on CLICK; hover only gives a haptic + bounce affordance (D-02) | Alcove model — prevents accidental expansion when the pointer merely passes over the notch | ✓ Phase 2 |
 | Fullscreen detected via private CGS managed-display-spaces (current-space type==4), not NSScreen safe-area | A background agent's safe area never reflects another app's fullscreen; CGS Spaces is permission-free and reference-app-proven | ✓ Phase 2 |
+| Charging activity is connect-only (plug-in animates; unplug shows nothing) | On-device UAT call — only the connect moment should animate; an unplug cue felt unnecessary | ✓ Phase 3 (CHG-02 descoped) |
+| Charging "wings" sized to the measured notch (179×32 pt → wings 305×32, flush height) | Notch measured live via NSScreen safeAreaInsets + auxiliary top areas; matching the height avoids overhang, width tuned on-device | ✓ Phase 3 |
 
 ## Evolution
 
@@ -117,4 +123,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-27 — Phase 2 (Hover, Expand & Fullscreen Hardening) complete: the pill morphs collapsed↔expanded on CLICK with an Alcove-quality spring (ISL-04), is focus-safe with a haptic/bounce hover affordance (ISL-03, D-02), and hides in true fullscreen via the private CGS Spaces signal (ISL-05); native fullscreen verified on-device — 8 on-device UAT items + a deferred 1-frame enter-flash tracked in 02-HUMAN-UAT.md.*
+*Last updated: 2026-06-27 — Phase 3 (Charging Activity) complete: plugging in shows the live, IOKit-driven Alcove "wings" charging splash (CHG-01) — event-driven with no polling, hidden in true fullscreen, on-device verified. Charging is connect-only by user decision, so CHG-02's unplug indication is descoped; the wings are sized to the measured notch (305×32). Next: Phase 4 (Now Playing).*
