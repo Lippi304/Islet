@@ -7,6 +7,10 @@ import SwiftUI
 // hardware corner radius, so these constants approximate it (prior-art defaults:
 // top ≈ 6, bottom ≈ 14). They are tunable in dev (D-01/D-02) via a visible tint.
 struct NotchShape: Shape {
+    // Plain CGFloat stored properties → SwiftUI's Shape animation INTERPOLATES these
+    // across the Phase-2 collapsed↔expanded morph (ISL-04). NotchPillView passes a
+    // larger bottom radius for the expanded blob via this same initializer; the path
+    // math below is unchanged, so the silhouette stays valid at every interpolated step.
     var topCornerRadius: CGFloat = 6
     var bottomCornerRadius: CGFloat = 14
     func path(in rect: CGRect) -> Path {

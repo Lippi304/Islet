@@ -95,3 +95,28 @@ struct NotchPillView: View {
         #endif
     }
 }
+
+#if DEBUG
+// Build-time correctness artifact: proves BOTH layouts compile and render without
+// running the app. Each preview constructs a NotchInteractionState, sets the phase,
+// and shows the view at the EXPANDED container size (Pitfall 4: an expanded-sized
+// container so nothing clips mid-morph) over a light background so the black blob is
+// visible. DEBUG-guarded so it never ships in release.
+#Preview("Collapsed") {
+    let state = NotchInteractionState()
+    state.phase = .collapsed
+    return NotchPillView(interaction: state)
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
+#Preview("Expanded") {
+    let state = NotchInteractionState()
+    state.phase = .expanded
+    return NotchPillView(interaction: state)
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+#endif
