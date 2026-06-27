@@ -62,12 +62,21 @@ struct NotchPillView: View {
     // morph never clips mid-animation, and passes the SAME expandedSize so the
     // window matches this content. Tunable on-device in Plan 05.
     static let collapsedSize = CGSize(width: 200, height: 38)
-    // Height fits the tallest expanded content — the mediaExpanded layout (~104pt:
-    // art 40 + VStack spacing 12 + seek spacer 4 + transport row 28 + vertical padding 20)
-    // plus a little breathing room for the bottomCornerRadius:20 curve. The panel window
-    // (expandedNotchFrame) and the SwiftUI content frame both derive from THIS one value,
-    // so they grow together; previously 72pt clipped the media layout's top off-screen.
-    static let expandedSize = CGSize(width: 360, height: 112)
+    // Height fits the tallest expanded content WITH a top notch-clearance band. The island
+    // is pinned top-flush to the screen edge, so the top 32pt sits UNDER the physical camera/
+    // notch band (== wingsSize.height, the measured notch height on this machine). The
+    // mediaExpanded content must therefore START below that band or the camera cuts off the
+    // title (on-device UAT). Height math:
+    //   32 (top notch clearance — nothing renders under the camera)
+    // + 84 (mediaExpanded content: HStack art 40 + spacing 6 + seek spacer 4 + spacing 6
+    //        + transport row 28)
+    // + 12 (bottom inset — room for the bottomCornerRadius:20 curve)
+    // = 128.
+    // The panel window (expandedNotchFrame) and the SwiftUI content frame both derive from
+    // THIS one value, so the island actually GROWS taller (expands further), not just shifts
+    // content in a fixed box. mediaExpanded pins its content to the top with .padding(.top,32)
+    // so the clearance lands exactly at the camera band.
+    static let expandedSize = CGSize(width: 360, height: 128)
 
     // CHG-01 / Pattern 4 — the flat wings (Alcove sideways) seed. Single source of truth:
     // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
@@ -279,7 +288,11 @@ struct NotchPillView: View {
             .fill(Color.black)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
-            .overlay(
+            // .top alignment + .padding(.top, 32) pins the content to the camera-clearance
+            // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
+            // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
+            // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
+            .overlay(alignment: .top) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
                     HStack(alignment: .top, spacing: 10) {
@@ -314,9 +327,10 @@ struct NotchPillView: View {
                         Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
                     }
                 }
+                .padding(.top, 32)        // notch/camera clearance — content starts below the band
+                .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve
                 .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-            )
+            }
     }
 
     // A single transport button (NOW-02). `.buttonStyle(.plain)` so the tap fires without
