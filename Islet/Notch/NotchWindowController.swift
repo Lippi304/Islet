@@ -51,6 +51,13 @@ final class NotchWindowController {
     private var mouseMonitor: Any?
     private var graceWorkItem: DispatchWorkItem?
 
+    // WR-01: the pointer-in-hot-zone edge, tracked from RAW geometry — NOT derived from
+    // `interaction.isHovering` (which is true for BOTH .hovering AND .expanded, so a
+    // re-entry while expanded would never read as an enter edge and never cancel the
+    // pending grace collapse, letting the island collapse out from under the pointer).
+    // Reset in updateVisibility's hide branch so it can't go stale across a hide/show cycle.
+    private var pointerInZone = false
+
     // The pill hot-zone in GLOBAL screen coords. It is the COLLAPSED pill frame padded a
     // few px so the tiny notch band is easy to target. Recomputed on every resolve so it
     // tracks display/resolution/clamshell changes. nil until the first successful resolve.
@@ -159,6 +166,10 @@ final class NotchWindowController {
             // (no target → D-04 never relocate) AND true fullscreen (D-09 hide, no ghost bar).
             panel?.orderOut(nil)
             hotZone = nil
+            // WR-01: the hot-zone is gone, so the pointer is by definition no longer in it.
+            // Clearing this here prevents a stale `true` from suppressing the next enter edge
+            // after a show, which would skip the haptic + grace-cancel on re-entry.
+            pointerInZone = false
         }
     }
 
@@ -197,12 +208,16 @@ final class NotchWindowController {
     private func handlePointer(at point: CGPoint) {
         guard let zone = hotZone else { return }
         let inside = zone.contains(point)
-        // `isHovering` is true while .hovering OR .expanded; the enter/exit transitions are
-        // about the POINTER being in the zone, so track that explicitly against the phase.
-        let wasInside = interaction.isHovering
-        if inside && !wasInside {
-            handleHoverEnter()
-        } else if !inside && wasInside {
+        // WR-01: the enter/exit edge is about the POINTER being in the zone, so track it
+        // against an explicit `pointerInZone` flag — NOT against `interaction.isHovering`,
+        // which is true for BOTH .hovering AND .expanded. Deriving the edge from the phase
+        // hid re-entries while .expanded (the cancel-on-re-entry guarantee then only held
+        // while .hovering), letting the grace timer collapse the island under the pointer.
+        if inside && !pointerInZone {
+            pointerInZone = true
+            handleHoverEnter()          // cancels the pending grace collapse inside
+        } else if !inside && pointerInZone {
+            pointerInZone = false
             handleHoverExit()
         }
     }
@@ -221,9 +236,6 @@ final class NotchWindowController {
         // no-ops on non-Force-Touch trackpads.
         NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
 
-        // Make the pill interactive so the SwiftUI content can receive the expand click.
-        panel?.ignoresMouseEvents = false
-
         // A quick re-entry cancels a pending grace-delay collapse (Pattern 3).
         graceWorkItem?.cancel()
         graceWorkItem = nil
@@ -233,6 +245,24 @@ final class NotchWindowController {
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             interaction.phase = nextState(interaction.phase, .pointerEntered)
         }
+
+        // Pitfall 3: make the pill hit-testable so the follow-up click can land. Centralised
+        // so the click-through state always reflects pointerInZone + phase (WR-02).
+        syncClickThrough()
+    }
+
+    // WR-02 (Pitfall 3 / D-07): the SINGLE place that decides `ignoresMouseEvents`. The
+    // window must swallow clicks (be interactive) while the pointer is in the hot-zone OR
+    // the island is expanded, and pass them through otherwise. Centralising this means no
+    // transition can leave the flag stale — previously only the grace work item restored
+    // `true`, so a toggle-shut click followed by a pointer-exit (which schedules no grace
+    // timer) left the collapsed/idle window swallowing clicks over the notch band until the
+    // next hover cycle. Called after EVERY phase/pointer mutation (enter, grace-elapsed,
+    // click). The panel stays `.nonactivatingPanel` + never-key (D-04); `ignoresMouseEvents`
+    // is the ONLY flag toggled at runtime.
+    private func syncClickThrough() {
+        let interactive = pointerInZone || interaction.isExpanded
+        panel?.ignoresMouseEvents = !interactive
     }
 
     // D-03 hover-EXIT: feed `.pointerExited` (the pure machine DEFERS — it stays hovering/
@@ -249,9 +279,7 @@ final class NotchWindowController {
                 self.interaction.phase = nextState(self.interaction.phase, .graceElapsed)
             }
             // Pitfall 3: restore click-through deterministically once collapsed + pointer out.
-            if !self.interaction.isHovering && !self.interaction.isExpanded {
-                self.panel?.ignoresMouseEvents = true
-            }
+            self.syncClickThrough()
         }
         graceWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + graceDelay, execute: work)
@@ -264,6 +292,12 @@ final class NotchWindowController {
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             interaction.phase = nextState(interaction.phase, .clicked)
         }
+        // WR-02: a toggle-shut click (.expanded → .collapsed) schedules NO grace timer, so
+        // without this the window would keep swallowing clicks until the next hover cycle.
+        // Re-deriving from pointerInZone + phase keeps click-through correct on every click
+        // (expand → interactive, toggle-shut while still in zone → still interactive until
+        // exit, toggle-shut already out → pass-through).
+        syncClickThrough()
     }
 
     deinit {
