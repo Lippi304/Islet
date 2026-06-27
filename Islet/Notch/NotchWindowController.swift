@@ -20,15 +20,28 @@ import SwiftUI
 //
 // FOCUS-SAFE (D-04, carries Phase-1 D-07 / threat T-02-06): the panel stays
 // `.nonactivatingPanel` + `canBecomeKey/Main == false` (set once in NotchPanel.init) and is
-// shown ONLY via `orderFrontRegardless()`. This file uses NO focus-stealing show/activate
-// call (no key-and-order-front, no app activation, no make-key), so clicking the island
-// never activates Islet or steals focus from the foreground app.
+// shown ONLY via the single focus-safe order-front-regardless call. This file uses NO
+// focus-stealing show/activate call (no key-and-order-front, no app activation, no make-key),
+// so clicking the island never activates Islet or steals focus from the foreground app.
 //
 // @MainActor because it touches AppKit windows + the global monitor handler runs on main.
 @MainActor
 final class NotchWindowController {
     private var panel: NotchPanel?
     private var observer: NSObjectProtocol?
+
+    // Pattern 6 (ISL-05) — fullscreen lives on its OWN Space, so entering/exiting true
+    // fullscreen fires activeSpaceDidChange; didActivateApplication catches the fullscreen
+    // kinds (fullscreen video / QuickLook) that may not take a dedicated Space (A6). Both
+    // re-run the ONE visibility decision. Stored as tokens so deinit can remove them from
+    // NSWorkspace.shared.notificationCenter (NOT the default center — that would no-op).
+    private var spaceObserver: NSObjectProtocol?
+    private var appActivateObserver: NSObjectProtocol?
+
+    // D-10 (ISL-05) — the SINGLE fullscreen-hide gating flag. Default true ships the hide.
+    // Phase 6 (APP-03) will flip `let`→`var` and wire a preferences toggle to THIS property —
+    // it is the only seam, so build NO preferences UI / stored-defaults read here.
+    private let hideInFullscreen = true
 
     // ISL-03/04 — the SwiftUI-facing interaction state. This controller DRIVES it: the
     // monitor/timer/click callbacks mutate `phase` inside withAnimation(.spring(...)).
@@ -71,7 +84,7 @@ final class NotchWindowController {
     #endif
 
     func start() {
-        resolveAndPosition()
+        updateVisibility()
 
         // ISL-06 / D-05: re-evaluate on EVERY screen-config change (plug/unplug, resolution,
         // lid open/close). One notification covers all four.
@@ -82,8 +95,24 @@ final class NotchWindowController {
             // Pitfall 6: this can fire several times / mid-transition. Hop to the next
             // main-loop turn so NSScreen.screens has fully settled; the routine is
             // idempotent so extra calls are harmless.
-            DispatchQueue.main.async { self?.resolveAndPosition() }
+            DispatchQueue.main.async { self?.updateVisibility() }
         }
+
+        // Pattern 6 (ISL-05): fullscreen enter/exit and Space switches feed the SAME single
+        // visibility decision. activeSpaceDidChange fires when an app takes/leaves its
+        // fullscreen Space; didActivateApplication catches fullscreen-video / QuickLook kinds
+        // that may not migrate Spaces (A6). NSWorkspace notifications already arrive on the
+        // main queue settled, so no next-run-loop hop is needed here (updateVisibility is
+        // idempotent regardless). Removed from the workspace center in deinit.
+        let wc = NSWorkspace.shared.notificationCenter
+        spaceObserver = wc.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in self?.updateVisibility() }
+        appActivateObserver = wc.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in self?.updateVisibility() }
 
         // Pattern 1 (focus-safe core): a GLOBAL monitor observes COPIES of .mouseMoved
         // events posted to OTHER apps — it never consumes them, never activates Islet, and
@@ -94,23 +123,49 @@ final class NotchWindowController {
         }
     }
 
-    private func resolveAndPosition() {
+    // The built-in display's CURRENT descriptor, or nil when the built-in has dropped out
+    // (clamshell). nil is NOT fullscreen — isTrueFullscreen maps nil→false and the no-target
+    // branch of shouldShow owns the clamshell hide. Rebuilt on EVERY visibility re-eval so a
+    // fullscreen-induced safe-area collapse on the built-in is observed live (Pattern 6).
+    private func currentBuiltin() -> ScreenDescriptor? {
+        NSScreen.screens.map { $0.descriptor }.first { $0.isBuiltin }
+    }
+
+    // Pattern 7 (ISL-05) — the ONE visibility decision and the SOLE show/hide site. The
+    // Phase-1 clamshell/display-target signal (selectTargetScreen) AND the Phase-2 fullscreen
+    // signal (isTrueFullscreen) converge through the single shouldShow AND; there is no second
+    // hide/show call anywhere in the file (Pitfall 5 — a double show/hide site would race
+    // the clamshell and fullscreen observers into flicker / stuck state). Idempotent: every
+    // observer (didChangeScreenParameters, activeSpaceDidChange, didActivateApplication) calls
+    // ONLY this; safe to call repeatedly.
+    private func updateVisibility() {
         // Build descriptors from live screens, then pick via the pure resolver.
         let descriptors = NSScreen.screens.map { $0.descriptor }
-        guard
-            let target = selectTargetScreen(from: descriptors),
-            let collapsedFrame = notchFrame(screenFrame: target.frame,
-                                            safeAreaTop: target.safeAreaTop,
-                                            auxLeftWidth: target.auxLeftWidth,
-                                            auxRightWidth: target.auxRightWidth,
-                                            widthFudge: 4)
-        else {
-            // No built-in notched screen → clamshell / external-only / non-notch.
-            // D-04: HIDE entirely; NEVER relocate to an external display.
+        let target = selectTargetScreen(from: descriptors)               // Phase-1: built-in present + notched
+        let fullscreen = isTrueFullscreen(builtin: currentBuiltin())     // Phase-2: built-in present but safe area collapsed
+
+        if shouldShow(hasTarget: target != nil,
+                      hideInFullscreen: hideInFullscreen,
+                      isFullscreen: fullscreen),
+           let target {
+            positionAndShow(on: target)
+        } else {
+            // The ONLY hide call in the file (single path). Covers BOTH clamshell/external-only
+            // (no target → D-04 never relocate) AND true fullscreen (D-09 hide, no ghost bar).
             panel?.orderOut(nil)
             hotZone = nil
-            return
         }
+    }
+
+    // The frame + show body, extracted from the old resolveAndPosition. Makes NO hide
+    // decision (that is updateVisibility's job alone); it only computes the frame and shows.
+    private func positionAndShow(on target: ScreenDescriptor) {
+        guard let collapsedFrame = notchFrame(screenFrame: target.frame,
+                                              safeAreaTop: target.safeAreaTop,
+                                              auxLeftWidth: target.auxLeftWidth,
+                                              auxRightWidth: target.auxRightWidth,
+                                              widthFudge: 4)
+        else { return }
 
         // Pattern 4 / Pitfall 4: size the PANEL to the EXPANDED frame UP FRONT (the extra
         // area is transparent → invisible) so the SwiftUI spring morph never clips or jumps
@@ -207,7 +262,13 @@ final class NotchWindowController {
     }
 
     deinit {
+        // The screen-parameters observer lives on the DEFAULT center; the two fullscreen
+        // observers live on NSWorkspace's OWN center — removing a workspace observer from the
+        // default center is a silent no-op leak, so each is removed from its respective center.
         if let o = observer { NotificationCenter.default.removeObserver(o) }
+        let wc = NSWorkspace.shared.notificationCenter
+        if let o = spaceObserver { wc.removeObserver(o) }
+        if let o = appActivateObserver { wc.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
         graceWorkItem?.cancel()
     }
