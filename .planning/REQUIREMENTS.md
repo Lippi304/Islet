@@ -11,7 +11,7 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 
 - [x] **ISL-01**: A black, rounded island renders over the physical notch on the built-in display, matching the notch's width and corner radius
 - [x] **ISL-02**: The island stays above other windows and is visible across all Spaces / desktops
-- [x] **ISL-03**: Hovering the notch expands the island; moving the pointer away collapses it back to a quiet pill
+- [x] **ISL-03**: Clicking the notch expands the island; hovering gives a haptic + subtle bounce affordance without expanding (D-02 Alcove model); moving the pointer away collapses it back to a quiet pill
 - [x] **ISL-04**: Expanding and collapsing animate with a smooth spring morph (Alcove-quality), with no flicker or jump
 - [x] **ISL-05**: The island hides/yields correctly when an app enters true fullscreen (video playback, native fullscreen)
 - [x] **ISL-06**: The island positions on the correct screen when external displays are connected and in clamshell mode (never lands on the wrong display)

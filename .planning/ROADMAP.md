@@ -56,11 +56,11 @@ Plans:
 **UI hint**: yes
 
 ### Phase 2: Hover, Expand & Fullscreen Hardening
-**Goal**: The island feels like a Dynamic Island — it expands on hover with a smooth spring morph, collapses back to a quiet pill, and correctly yields the notch region to true fullscreen apps.
+**Goal**: The island feels like a Dynamic Island — it expands on click with a smooth spring morph (hovering gives a haptic/bounce affordance, no expand — D-02), collapses back to a quiet pill, and correctly yields the notch region to true fullscreen apps.
 **Depends on**: Phase 1
 **Requirements**: ISL-03, ISL-04, ISL-05
 **Success Criteria** (what must be TRUE):
-  1. Hovering the notch expands the island; moving the pointer away collapses it back to the quiet pill
+  1. Clicking the notch expands the island; hovering gives a haptic + bounce affordance without expanding (D-02 Alcove model); moving the pointer away collapses it back to the quiet pill
   2. Expand and collapse animate as a smooth spring morph (Alcove-quality) with no flicker, jump, or cross-fade
   3. When an app enters true fullscreen (native fullscreen, fullscreen video, QuickLook), the island hides and leaves no ghost control bar, then restores when fullscreen exits
   4. Clicking the desktop or menu bar *around* the island passes through, and interacting with the island never steals focus from the active app
