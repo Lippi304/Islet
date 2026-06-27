@@ -142,7 +142,12 @@ final class NotchWindowController {
         // Build descriptors from live screens, then pick via the pure resolver.
         let descriptors = NSScreen.screens.map { $0.descriptor }
         let target = selectTargetScreen(from: descriptors)               // Phase-1: built-in present + notched
-        let fullscreen = isTrueFullscreen(builtin: currentBuiltin())     // Phase-2: built-in present but safe area collapsed
+        // Phase-2 (Q3 fix): the RUNTIME fullscreen signal now comes from CGS managed
+        // display spaces — it reports the built-in's CURRENT space type, so it observes
+        // ANOTHER app's fullscreen (which a background agent's safe area never reflects).
+        // The old safe-area predicate isTrueFullscreen(builtin:) is superseded as the live
+        // signal (kept only as a pure heuristic / its tests); see FullscreenSpaceProbe.swift.
+        let fullscreen = isBuiltinDisplayInFullscreenSpace(builtinUUID: currentBuiltin()?.uuid)
 
         if shouldShow(hasTarget: target != nil,
                       hideInFullscreen: hideInFullscreen,

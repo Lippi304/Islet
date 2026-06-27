@@ -1,15 +1,22 @@
 import CoreGraphics
 
-// ISL-05 — PURE fullscreen detection (Pattern 6). AppKit observers (NSWorkspace
-// activeSpaceDidChange / didActivateApplication) + AX corroboration are wired in
-// Plan 02-04; this file is the testable predicate they feed.
+// ISL-05 — SUPERSEDED safe-area heuristic, kept ONLY as a pure predicate (+ its
+// FullscreenDetectorTests) to document the original idea and keep the suite green.
 //
-// Signal: on a notched built-in display, a TRUE-fullscreen app reclaims the
-// menu-bar/notch band, so the built-in stops reporting its notch safe area while
-// the display is STILL present. A merely maximized window leaves the safe area
-// intact (the D-09 maximized-vs-fullscreen discriminator). An ABSENT built-in is
-// clamshell, NOT fullscreen — selectTargetScreen returns nil for that case, so we
-// map nil → false here and let the visibility AND handle the no-target path.
+// IT IS NO LONGER THE RUNTIME SIGNAL. The live fullscreen signal is now
+// `isBuiltinDisplayInFullscreenSpace(builtinUUID:)` in FullscreenSpaceProbe.swift
+// (CGS managed display spaces). Reason this heuristic failed on-device (RESEARCH
+// Open Question Q3): it infers fullscreen from the built-in's safe area / notch band,
+// but the safe area is a PHYSICAL-DISPLAY property that does NOT change when ANOTHER
+// app enters fullscreen. Islet is a background agent (LSUIElement) that never goes
+// fullscreen itself, so from its process the safe area is constant → this predicate
+// is always false at runtime and the island never hid. The CGS probe observes the
+// built-in's CURRENT space type instead, which DOES reflect another app's fullscreen.
+//
+// Original heuristic (for reference): on a notched built-in, a TRUE-fullscreen app
+// reclaims the menu-bar/notch band, so the built-in would stop reporting its notch
+// safe area while still present; a merely maximized window leaves the safe area
+// intact; an ABSENT built-in is clamshell (nil → false).
 func isTrueFullscreen(builtin: ScreenDescriptor?) -> Bool {
     guard let builtin = builtin else { return false } // absent = clamshell, not fullscreen
     return !builtin.hasNotch                            // present but safe area collapsed = fullscreen
