@@ -11,9 +11,9 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 
 - [x] **ISL-01**: A black, rounded island renders over the physical notch on the built-in display, matching the notch's width and corner radius
 - [x] **ISL-02**: The island stays above other windows and is visible across all Spaces / desktops
-- [ ] **ISL-03**: Hovering the notch expands the island; moving the pointer away collapses it back to a quiet pill
-- [ ] **ISL-04**: Expanding and collapsing animate with a smooth spring morph (Alcove-quality), with no flicker or jump
-- [ ] **ISL-05**: The island hides/yields correctly when an app enters true fullscreen (video playback, native fullscreen)
+- [x] **ISL-03**: Hovering the notch expands the island; moving the pointer away collapses it back to a quiet pill
+- [x] **ISL-04**: Expanding and collapsing animate with a smooth spring morph (Alcove-quality), with no flicker or jump
+- [x] **ISL-05**: The island hides/yields correctly when an app enters true fullscreen (video playback, native fullscreen)
 - [x] **ISL-06**: The island positions on the correct screen when external displays are connected and in clamshell mode (never lands on the wrong display)
 - [x] **ISL-07**: When no activity is happening, the collapsed island is unobtrusive (near-invisible, not animating)
 
@@ -103,9 +103,9 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 | ISL-02 | Phase 1 | Complete |
 | ISL-06 | Phase 1 | Complete |
 | ISL-07 | Phase 1 | Complete |
-| ISL-03 | Phase 2 | Pending |
-| ISL-04 | Phase 2 | Pending |
-| ISL-05 | Phase 2 | Pending |
+| ISL-03 | Phase 2 | Complete |
+| ISL-04 | Phase 2 | Complete |
+| ISL-05 | Phase 2 | Complete |
 | CHG-01 | Phase 3 | Pending |
 | CHG-02 | Phase 3 | Pending |
 | NOW-01 | Phase 4 | Pending |

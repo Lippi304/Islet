@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 2 context gathered
-last_updated: "2026-06-26T22:35:26.327Z"
-last_activity: 2026-06-26 -- Phase 1 executed + verified (4/4 must-haves)
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-06-27T00:36:11.401Z"
+last_activity: 2026-06-27
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_plans: 11
+  completed_plans: 8
+  percent: 73
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 2 — hover, expand & fullscreen hardening
+**Current focus:** Phase 02 — hover-expand-fullscreen-hardening
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
-Status: Phase 01 complete — ready to plan Phase 2
-Last activity: 2026-06-26 -- Phase 1 executed + verified (4/4 must-haves)
+Phase: 02 (hover-expand-fullscreen-hardening) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-06-27
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 00 P03 | 3 | 3 tasks | 3 files |
+| Phase 02 P01 | 4 | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - [Roadmap] All MediaRemote access isolated behind one NowPlayingService with a launch-time health check (Phase 4); a future Apple change is a one-file fix.
 - [Phase 00]: [00-03] Release script uses hdiutil (UDZO) for the DMG; create-dmg noted as Phase-6 polish (not installed).
 - [Phase 00]: [00-03] release.sh placeholder-gates Developer-ID/notary steps; ad-hoc fallback exits 0 with a loud SKIP banner — runs unchanged at Phase 6 (D-01/D-02/D-03).
+- [Phase 02]: [02-01] isTrueFullscreen maps nil built-in to false: clamshell is NOT fullscreen; the no-target path is owned by shouldShow's hasTarget term, keeping the two concerns untangled.
+- [Phase 02]: [02-01] shouldShow = hasTarget && !(hideInFullscreen && isFullscreen): single D-10 gating flag so a future Phase-6 fullscreen toggle is a one-flag change, no logic edit.
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-26T22:35:26.325Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-hover-expand-fullscreen-hardening/02-CONTEXT.md
+Last session: 2026-06-27T00:36:03.005Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None
