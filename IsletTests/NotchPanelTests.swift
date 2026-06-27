@@ -43,10 +43,10 @@ final class NotchPanelTests: XCTestCase {
                       "ISL-02: the island must sit above fullscreen-auxiliary content.")
     }
 
-    func testPanelIsClickThrough() {
+    func testPanelStartsClickThrough() {
         let panel = makePanel()
         XCTAssertTrue(panel.ignoresMouseEvents,
-                      "Phase 1 is fully click-through (D-07) — clicks pass through to the UI beneath.")
+                      "Phase 2: ignoresMouseEvents is now CONDITIONAL — the controller flips it false only while the pointer is in the pill hot-zone (Plan 03). A freshly constructed panel starts click-through (true).")
     }
 
     func testPanelIsTransparentWithoutShadow() {
