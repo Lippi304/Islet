@@ -47,3 +47,13 @@ func notchFrame(screenFrame: CGRect,
     let y = screenFrame.maxY - size.height
     return CGRect(x: x, y: y, width: size.width, height: size.height)
 }
+
+// ISL-04 — the EXPANDED island frame. Same contract as notchFrame: centered on the
+// collapsed pill's midX and pinned to the top edge (AppKit bottom-left origin, so the
+// top edge is maxY). The panel is sized to THIS up front (Plan 02) so the SwiftUI spring
+// can morph the content without the window clipping or jumping mid-animation.
+func expandedNotchFrame(collapsed: CGRect, expandedSize: CGSize) -> CGRect {
+    let x = collapsed.midX - expandedSize.width / 2
+    let y = collapsed.maxY - expandedSize.height
+    return CGRect(x: x, y: y, width: expandedSize.width, height: expandedSize.height)
+}
