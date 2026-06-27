@@ -44,6 +44,15 @@ struct NotchPillView: View {
     // (and any unit construction) build without a controller.
     var onClick: () -> Void = {}
 
+    // NOW-02 — the transport callbacks, plain closures mirroring `onClick`. The view stays
+    // AppKit-free + focus-safe: a button tap only REPORTS the intent; NotchWindowController
+    // (Plan 04) owns the closures and forwards them to NowPlayingMonitor.togglePlayPause()/
+    // nextTrack()/previousTrack() (which ride the existing persistent perl child's stdin).
+    // Defaulted to no-ops so the DEBUG #Previews build without a controller.
+    var onTogglePlayPause: () -> Void = {}
+    var onNext: () -> Void = {}
+    var onPrevious: () -> Void = {}
+
     // The single shared morph identity (D-07): the collapsed and expanded blobs both
     // morph against this one geometry group via matchedGeometryEffect(id: "island").
     @Namespace private var ns
@@ -74,12 +83,26 @@ struct NotchPillView: View {
             // the user has the island expanded — show the feedback, then return to the
             // ambient state (the controller clears `.activity` after ~3s). This is the whole
             // multi-activity arbitration for Phase 3: a one-line if-ordering, no resolver.
+            // D-14 precedence: charging > expanded > media-wings > collapsed. A one-line
+            // if-ordering (NOT a general resolver — that is Phase 6). The charging
+            // dismissWorkItem clears `charging.activity` after ~3s, so the body then falls
+            // through to the media wings AUTOMATICALLY — "returns to the now-playing wings,
+            // NOT to empty" (D-14) with no new resolver. The EXPANDED branch internally picks
+            // media-controls vs date-time(D-11) vs unavailable(D-12) from isHealthy + presentation.
             if let activity = charging.activity {
-                wings(for: activity)            // NEW sideways branch — D-11: charging wins
+                wings(for: activity)            // D-14: charging splash briefly wins (~3s)
             } else if interaction.isExpanded {
-                expandedIsland                  // existing Phase-2 downward expand
+                if !nowPlaying.isHealthy {
+                    mediaUnavailable                                              // D-12 "nicht verfügbar"
+                } else if nowPlaying.presentation != .none {
+                    mediaExpanded(nowPlaying.presentation, art: nowPlaying.artwork)  // NOW-01/02 controls
+                } else {
+                    expandedIsland                                               // D-11 date/time (healthy, no media)
+                }
+            } else if nowPlaying.presentation != .none {
+                mediaWings(nowPlaying.presentation, art: nowPlaying.artwork)     // D-02 collapsed media glance
             } else {
-                collapsedIsland                 // existing idle pill
+                collapsedIsland                 // idle pill
             }
         }
         .frame(width: Self.expandedSize.width,
@@ -221,6 +244,105 @@ struct NotchPillView: View {
         return false
     }
 
+    // Unpacks the title/artist carried by .playing/.paused; .none yields empty (never
+    // rendered — the body only calls this for non-.none presentations).
+    private func titleArtist(_ presentation: NowPlayingPresentation) -> (title: String, artist: String) {
+        switch presentation {
+        case .playing(let t, let a), .paused(let t, let a): return (t, a)
+        case .none: return ("", "")
+        }
+    }
+
+    // NOW-01/NOW-02 / D-08/D-09/D-10 — the EXPANDED media controls layout. Same downward
+    // blob shape + shared morph identity + expandedSize as `expandedIsland`, so the island
+    // MORPHS into this view (no cross-fade). Layout (matches assets/expanded-layout.png):
+    //   • Album art LEFT (rounded square; nil → music.note placeholder).
+    //   • Title (bold) + Artist (grey) stacked to the RIGHT of the art — D-10: title+artist
+    //     ONLY (no album, no source-app icon). Both are .lineLimit(1)+.truncationMode(.tail)
+    //     to BOUND untrusted metadata (T-04-09) — SwiftUI Text is already inert to format
+    //     strings, this just stops over-long strings from breaking layout.
+    //   • EqualizerBars in the TOP-RIGHT corner.
+    //   • A reserved-height spacer ABOVE the controls where the future seek bar (NOW-04 v2)
+    //     will go — D-09: room reserved, bar NOT built.
+    //   • A centered control row: a reserved LEFT slot (future Shuffle — D-09, not built),
+    //     ⏪ ⏯ ⏩, and a reserved RIGHT slot (future Repeat — D-09, not built). The
+    //     Star/favorite is DROPPED entirely (no slot — D-09).
+    private func mediaExpanded(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
+        let isPlaying = isPlayingFor(presentation)
+        let meta = titleArtist(presentation)
+        return NotchShape(topCornerRadius: 6, bottomCornerRadius: 20)
+            .fill(Color.black)
+            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
+            .overlay(
+                VStack(spacing: 6) {
+                    // Top: art LEFT · title/artist · bars TOP-RIGHT
+                    HStack(alignment: .top, spacing: 10) {
+                        artThumbnail(art, side: 40, corner: 8)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(meta.title)
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Text(meta.artist)
+                                .font(.system(size: 12, design: .rounded))
+                                .foregroundStyle(.secondary)   // grey (D-10)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                        Spacer(minLength: 6)
+                        EqualizerBars(isPlaying: isPlaying)    // TOP-RIGHT corner
+                    }
+                    // D-09: reserved vertical room for the future seek bar (NOT built — NOW-04 v2).
+                    Spacer(minLength: 0).frame(height: 4)
+                    // Bottom: centered control row.
+                    HStack(spacing: 0) {
+                        Color.clear.frame(width: 28, height: 28)   // reserved Shuffle slot (D-09, not built)
+                        Spacer()
+                        transportButton("backward.fill", action: onPrevious)        // ⏪
+                        Spacer()
+                        transportButton("playpause.fill", action: onTogglePlayPause) // ⏯
+                        Spacer()
+                        transportButton("forward.fill", action: onNext)             // ⏩
+                        Spacer()
+                        Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+            )
+    }
+
+    // A single transport button (NOW-02). `.buttonStyle(.plain)` so the tap fires without
+    // system chrome; the closure is the only thing that leaves the view (focus-safe).
+    private func transportButton(_ systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // D-12 — the "Now Playing nicht verfügbar" health state (adapter blocked/dead). Same
+    // expanded blob shape so the island still morphs; a single centered message. Distinct
+    // from D-11 (.none + healthy → date/time): isHealthy is the orthogonal axis.
+    private var mediaUnavailable: some View {
+        NotchShape(topCornerRadius: 6, bottomCornerRadius: 20)
+            .fill(Color.black)
+            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
+            .overlay(
+                Text("Now Playing nicht verfügbar")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+            )
+    }
+
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
     // D-02 shows a visible tint during development so a first-time builder can
     // confirm width / radius / position over the real notch.
@@ -344,6 +466,35 @@ struct EqualizerBars: View {
     state.phase = .collapsed
     let np = NowPlayingState()
     np.presentation = .paused(title: "New Rules", artist: "Dua Lipa")
+    return NotchPillView(interaction: state,
+                         charging: ChargingActivityState(),
+                         nowPlaying: np)
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
+// Media Expanded — D-08 controls layout: art LEFT · title/artist · bars top-right · ⏪⏯⏩.
+// Expanded + healthy + non-.none → the mediaExpanded branch. nil art → music.note placeholder.
+#Preview("Media Expanded") {
+    let state = NotchInteractionState()
+    state.phase = .expanded
+    let np = NowPlayingState()
+    np.presentation = .playing(title: "New Rules", artist: "Dua Lipa")
+    return NotchPillView(interaction: state,
+                         charging: ChargingActivityState(),
+                         nowPlaying: np)
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
+// Unavailable — D-12: expanded + isHealthy=false → "Now Playing nicht verfügbar".
+#Preview("Unavailable") {
+    let state = NotchInteractionState()
+    state.phase = .expanded
+    let np = NowPlayingState()
+    np.isHealthy = false
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: np)
