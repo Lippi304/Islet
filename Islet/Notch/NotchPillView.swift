@@ -18,6 +18,14 @@ struct NotchPillView: View {
     // `NSHostingView(rootView: NotchPillView(interaction: state))`.
     @ObservedObject var interaction: NotchInteractionState
 
+    // D-02 — the CLICK-to-expand callback. The view stays AppKit-free: it only reports
+    // "the pill was tapped" via this plain closure. NotchWindowController owns the
+    // closure and runs the focus-safe `nextState(_, .clicked)` mutation inside
+    // `withAnimation(.spring(...))`, so the expand path + the spring tuning live in one
+    // place (the controller), not scattered in the view. Defaults to a no-op so the
+    // DEBUG #Previews (and any unit construction) build without a controller.
+    var onClick: () -> Void = {}
+
     // The single shared morph identity (D-07): the collapsed and expanded blobs both
     // morph against this one geometry group via matchedGeometryEffect(id: "island").
     @Namespace private var ns
@@ -43,6 +51,11 @@ struct NotchPillView: View {
         .frame(width: Self.expandedSize.width,
                height: Self.expandedSize.height,
                alignment: .top)
+        // D-02: a CLICK on the pill expands it (the controller runs nextState(_, .clicked)
+        // inside withAnimation). The controller only makes the panel hit-testable
+        // (ignoresMouseEvents = false) while the pointer is in the pill hot-zone, so the
+        // only taps that reach here are taps on the island itself.
+        .onTapGesture { onClick() }
     }
 
     // COLLAPSED — the existing black notch pill (D-08 idle-static). Keeps the
