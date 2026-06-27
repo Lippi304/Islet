@@ -46,11 +46,14 @@ struct NotchPillView: View {
     static let collapsedSize = CGSize(width: 200, height: 38)
     static let expandedSize = CGSize(width: 360, height: 72)
 
-    // CHG-01 / Pattern 4 — the flat, WIDE wings (Alcove sideways) seed. Single source of
-    // truth: Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame
-    // matches this content (no runtime resize), and it matches the 360×40 seed the Plan-01
-    // wingsFrame tests assert against.
-    static let wingsSize = CGSize(width: 360, height: 40)
+    // CHG-01 / Pattern 4 — the flat wings (Alcove sideways) seed. Single source of truth:
+    // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
+    // this content (no runtime resize). Width tuned DOWN on-device (was 360) so the strip
+    // sits snug at the notch instead of splaying too far sideways; the panel is sized to the
+    // UNION with the 360-wide expanded frame, so narrowing this only shrinks the visible
+    // black strip, never the window. The pure wingsFrame tests build their own size, so this
+    // constant tunes freely.
+    static let wingsSize = CGSize(width: 300, height: 40)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
