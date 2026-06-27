@@ -42,7 +42,14 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 - [x] Live charging splash — plugging in the power cable shows the Alcove-style "wings" splash (a filling battery glyph + %) beside the notch for ~3s then collapses, driven by an event-driven IOKit power-source notification (no polling clock); routed through the single visibility gate so it stays hidden in true fullscreen; on-device verified. (Phase 3 — CHG-01)
   - **Connect-only (CHG-02 descoped):** by on-device decision the activity fires only on plug-in; unplugging deliberately shows nothing. CHG-02's original "brief on-battery indication on unplug" is intentionally dropped. (Phase 3)
 
-_The remaining v1 core feature hypotheses below ship in Phases 4–6 (now-playing, devices)._
+**Now Playing (Phase 4 — NOW-01, NOW-02, NOW-03):**
+
+- [x] Live media in the island — album art, title, and artist for the playing app (Spotify / Apple Music allowlist) as a collapsed glance (art + animated equalizer wings) and an expanded view; on-device verified. (Phase 4 — NOW-01)
+- [x] Working transport from the expanded island — play/pause, next, previous act on the live session via the persistent adapter child, focus-safe (non-activating panel, no re-spawn). (Phase 4 — NOW-02)
+- [x] Survives restart and degrades gracefully — launch-time health check; when the MediaRemote API is blocked or the source drops, the island clears state and shows "Now Playing nicht verfügbar" instead of crashing or sitting empty. All MediaRemote access is isolated behind a single `NowPlayingMonitor` (one-file swap if Apple breaks it), consuming the streamed output (not re-spawning) with main-thread callbacks. (Phase 4 — NOW-03)
+  - **On-device UAT polish:** expanded layout reserves a 32pt notch/camera top-clearance; 5 random center-out equalizer bars (idle-CPU-gated); media glance wings 290pt (narrower than the 305pt charging wings); the expanded island stays open while the pointer is on the transport controls. (Phase 4)
+
+_The remaining v1 core feature hypotheses below ship in Phases 5–6 (devices)._
 
 ### Active
 
@@ -50,7 +57,6 @@ _The remaining v1 core feature hypotheses below ship in Phases 4–6 (now-playin
 
 **v1 — Focused core (first milestone):**
 
-- [ ] Now Playing: detect current media (Apple Music, Spotify, browser, etc.), show album art + title/artist in the island, and control play/pause/skip from it
 - [ ] Device-connected activity: when a Bluetooth device / AirPods connects or disconnects, show a brief notification in the island
 - [ ] Polished, native look — animations and visual quality on par with Alcove
 
@@ -123,4 +129,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-27 — Phase 3 (Charging Activity) complete: plugging in shows the live, IOKit-driven Alcove "wings" charging splash (CHG-01) — event-driven with no polling, hidden in true fullscreen, on-device verified. Charging is connect-only by user decision, so CHG-02's unplug indication is descoped; the wings are sized to the measured notch (305×32). Next: Phase 4 (Now Playing).*
+*Last updated: 2026-06-28 — Phase 4 (Now Playing) complete: live media (art + title/artist) in the island with working transport, all behind a single isolated MediaRemote service with a launch health check and a graceful "nicht verfügbar" fallback (NOW-01/02/03) — on-device UAT confirmed. Next: Phase 5 (Device-Connected Activity).*

@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: The Empty Island (Window + Geometry)** - A static black pill rendered exactly on the notch, above all windows, on the correct display through monitor/clamshell changes
 - [x] **Phase 2: Hover, Expand & Fullscreen Hardening** - Spring morph expand/collapse on hover, quiet when idle, and reliable hide for true fullscreen
 - [x] **Phase 3: Charging Activity** - Plugging in shows a charging splash with battery %, proving the activity→island loop on the safest API (connect-only per UAT; CHG-02 descoped)
-- [ ] **Phase 4: Now Playing** - Album art + title/artist + play/pause/skip via the isolated MediaRemote adapter, with a graceful "unavailable" fallback
+- [x] **Phase 4: Now Playing** - Album art + title/artist + play/pause/skip via the isolated MediaRemote adapter, with a graceful "unavailable" fallback
 - [ ] **Phase 5: Device-Connected Activity** - AirPods/Bluetooth connect and disconnect splashes reusing the transient pattern
 - [ ] **Phase 6: Priority Resolver, Settings & v1 Ship** - Activities coexist by sensible priority; minimal settings + accent theme; production notarized release
 
@@ -98,10 +98,10 @@ Plans:
   4. All MediaRemote access lives behind a single service with a launch-time health check, consuming the adapter's streamed output (not re-spawning it) and hopping callbacks to the main thread
 **Plans**: 4 plans
 Plans:
-- [ ] 04-01-PLAN.md — Wave 0: MediaRemoteAdapter SPM wiring (project.yml, Embed&Sign, pinned revision) + pure NowPlayingPresentation seam (D-01 allowlist, playing/paused/none) with RED→GREEN unit tests (NOW-01/NOW-03)
-- [ ] 04-02-PLAN.md — Wave 1: NowPlayingState @Published model + thin NowPlayingMonitor wrapping MediaController (persistent stream, transport, synthesized launch health check, deinit teardown) (NOW-01/02/03)
-- [ ] 04-03-PLAN.md — Wave 2: NotchPillView media wings glance + expanded layout (art/title/artist/⏪⏯⏩) + isPlaying-gated EqualizerBars + D-11/D-12/D-14 branches (NOW-01/NOW-02)
-- [ ] 04-04-PLAN.md — Wave 3: NotchWindowController handleNowPlaying + health check + transport wiring + D-06/D-07/D-13 one-shot dismiss + deinit teardown + on-device UAT (NOW-01/02/03)
+- [x] 04-01-PLAN.md — Wave 0: MediaRemoteAdapter SPM wiring (project.yml, Embed&Sign, pinned revision) + pure NowPlayingPresentation seam (D-01 allowlist, playing/paused/none) with RED→GREEN unit tests (NOW-01/NOW-03)
+- [x] 04-02-PLAN.md — Wave 1: NowPlayingState @Published model + thin NowPlayingMonitor wrapping MediaController (persistent stream, transport, synthesized launch health check, deinit teardown) (NOW-01/02/03)
+- [x] 04-03-PLAN.md — Wave 2: NotchPillView media wings glance + expanded layout (art/title/artist/⏪⏯⏩) + isPlaying-gated EqualizerBars + D-11/D-12/D-14 branches (NOW-01/NOW-02)
+- [x] 04-04-PLAN.md — Wave 3: NotchWindowController handleNowPlaying + health check + transport wiring + D-06/D-07/D-13 one-shot dismiss + deinit teardown + on-device UAT (NOW-01/02/03)
 **UI hint**: yes
 
 ### Phase 5: Device-Connected Activity
@@ -136,6 +136,6 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 1. The Empty Island (Window + Geometry) | 0/3 | Not started | - |
 | 2. Hover, Expand & Fullscreen Hardening | 4/4 | Complete | 2026-06-27 |
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
-| 4. Now Playing | 0/4 | Not started | - |
+| 4. Now Playing | 4/4 | Complete | 2026-06-28 |
 | 5. Device-Connected Activity | 0/TBD | Not started | - |
 | 6. Priority Resolver, Settings & v1 Ship | 0/TBD | Not started | - |

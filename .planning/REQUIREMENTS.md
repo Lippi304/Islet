@@ -19,9 +19,9 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 
 ### Now Playing (NOW)
 
-- [ ] **NOW-01**: When media plays in any app (Apple Music, Spotify, a browser, etc.), the island shows the album art, title, and artist
-- [ ] **NOW-02**: User can play/pause, skip to next, and go to previous track from the expanded island
-- [ ] **NOW-03**: Now Playing survives app restart and degrades gracefully (clears state, no crash) when the media source is unavailable or the system API is blocked
+- [x] **NOW-01**: When media plays in any app (Apple Music, Spotify, a browser, etc.), the island shows the album art, title, and artist
+- [x] **NOW-02**: User can play/pause, skip to next, and go to previous track from the expanded island
+- [x] **NOW-03**: Now Playing survives app restart and degrades gracefully (clears state, no crash) when the media source is unavailable or the system API is blocked
 
 ### Charging Activity (CHG)
 
@@ -108,9 +108,9 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 | ISL-05 | Phase 2 | Complete |
 | CHG-01 | Phase 3 | Complete |
 | CHG-02 | Phase 3 | Descoped (connect-only, UAT 2026-06-27) |
-| NOW-01 | Phase 4 | Pending |
-| NOW-02 | Phase 4 | Pending |
-| NOW-03 | Phase 4 | Pending |
+| NOW-01 | Phase 4 | Complete |
+| NOW-02 | Phase 4 | Complete |
+| NOW-03 | Phase 4 | Complete |
 | DEV-01 | Phase 5 | Pending |
 | DEV-02 | Phase 5 | Pending |
 | COORD-01 | Phase 6 | Pending |
@@ -123,4 +123,4 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-27 — Phase 3 complete (CHG-01 verified; CHG-02 descoped to connect-only per on-device UAT)*
+*Last updated: 2026-06-28 — Phase 4 complete (NOW-01/02/03 verified; on-device UAT confirmed)*
