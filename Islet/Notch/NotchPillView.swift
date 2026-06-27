@@ -62,7 +62,12 @@ struct NotchPillView: View {
     // morph never clips mid-animation, and passes the SAME expandedSize so the
     // window matches this content. Tunable on-device in Plan 05.
     static let collapsedSize = CGSize(width: 200, height: 38)
-    static let expandedSize = CGSize(width: 360, height: 72)
+    // Height fits the tallest expanded content — the mediaExpanded layout (~104pt:
+    // art 40 + VStack spacing 12 + seek spacer 4 + transport row 28 + vertical padding 20)
+    // plus a little breathing room for the bottomCornerRadius:20 curve. The panel window
+    // (expandedNotchFrame) and the SwiftUI content frame both derive from THIS one value,
+    // so they grow together; previously 72pt clipped the media layout's top off-screen.
+    static let expandedSize = CGSize(width: 360, height: 112)
 
     // CHG-01 / Pattern 4 — the flat wings (Alcove sideways) seed. Single source of truth:
     // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
