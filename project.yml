@@ -11,6 +11,14 @@ options:
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
+# Phase-4 (Now Playing): the MediaRemote bridge. The repo has ZERO git tags, so
+# `from:`/`majorVersion:` will NOT resolve (Pitfall 4) — pin a known-good commit by
+# `revision:` for a reproducible, supply-chain-safe build (T-04-01).
+packages:
+  MediaRemoteAdapter:
+    url: https://github.com/ejbills/mediaremote-adapter
+    revision: cf30c4f1af29b5829d859f088f8dbdf12611a046   # no tags exist — pin a known-good commit
+
 # Build settings applied to every target.
 settings:
   base:
@@ -28,6 +36,11 @@ targets:
     deploymentTarget: "14.0"
     sources:
       - path: Islet
+    dependencies:
+      - package: MediaRemoteAdapter
+        product: MediaRemoteAdapter
+        embed: true        # Embed & Sign — the framework is a RUNTIME resource (run.pl lives inside it), not just link-time. Pitfall 3: omitting → Bundle.module/run.pl resolve to nothing → silent no-op.
+        codeSign: true     # codeSignOnCopy — required for hardened-runtime + later notarization
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lippi304.islet  # D-08: exact lowercase bundle id

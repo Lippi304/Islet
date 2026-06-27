@@ -18,10 +18,12 @@
 		2586E152318B70467587E51C /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */; };
 		2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C997928190396DADC0ADA29 /* NotchWindowController.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
+		34071739EA3C6FAD089AEA67 /* MediaRemoteAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */; };
 		344AC320C82085AB24E1F3EC /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */; };
 		4EBD25B8C54F6A68250153F4 /* NotchShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F635228C4261E9EECEC41F /* NotchShapeTests.swift */; };
 		62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */; };
 		6E7588C0E74ED25E45E3F1AE /* FullscreenSpaceProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */; };
+		78E654D36EEE2891E43D8957 /* MediaRemoteAdapter in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8CEEBDB51AC0041BDC1306AC /* FullscreenDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 885DB8C610716B7530D89BDB /* FullscreenDetector.swift */; };
 		91F81FE03A457F64032081F8 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC50D5D14612F7A3B39F683 /* NotchShape.swift */; };
 		921F5385399CF08B36043288 /* PowerActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76ADF16C067A181F295BA4C5 /* PowerActivity.swift */; };
@@ -44,6 +46,20 @@
 			remoteInfo = Islet;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E21BD8C4B2ECE3BCBFB7F2EE /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				78E654D36EEE2891E43D8957 /* MediaRemoteAdapter in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
@@ -75,6 +91,17 @@
 		FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayResolver.swift; sourceTree = "<group>"; };
 		FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSourceMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2B4E2E7EC8F67970757B6F45 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34071739EA3C6FAD089AEA67 /* MediaRemoteAdapter in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		2A6EFEBFBF547E6277E6C69F /* IsletTests */ = {
@@ -152,6 +179,8 @@
 			buildPhases = (
 				990BC17A77347B07C89113AB /* Sources */,
 				449F05D2898C80051C5AEFB8 /* Resources */,
+				2B4E2E7EC8F67970757B6F45 /* Frameworks */,
+				E21BD8C4B2ECE3BCBFB7F2EE /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -159,6 +188,7 @@
 			);
 			name = Islet;
 			packageProductDependencies = (
+				D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */,
 			);
 			productName = Islet;
 			productReference = 9CE81E9432BCF90C884078EA /* Islet.app */;
@@ -208,6 +238,9 @@
 			);
 			mainGroup = CD5CDA7B0E3E84CD742CC3BA;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8DD604879E4D768C7539449C /* XCRemoteSwiftPackageReference "mediaremote-adapter" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C177373778F579B56E86969A /* Products */;
 			projectDirPath = "";
@@ -525,6 +558,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8DD604879E4D768C7539449C /* XCRemoteSwiftPackageReference "mediaremote-adapter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ejbills/mediaremote-adapter";
+			requirement = {
+				kind = revision;
+				revision = cf30c4f1af29b5829d859f088f8dbdf12611a046;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8DD604879E4D768C7539449C /* XCRemoteSwiftPackageReference "mediaremote-adapter" */;
+			productName = MediaRemoteAdapter;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8D26EA4585E3E2A0AF056E47 /* Project object */;
 }
