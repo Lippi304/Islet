@@ -416,7 +416,7 @@ controller.setTime(seconds:) // ["set_time", n]         (seek — v2)
 | A5 | Pinning to commit `cf30c4f` (master head 2026-06-02) is the right reproducibility choice vs `branch: master` | Standard Stack / Pitfall 4 | LOW — verified no tags exist; a pinned commit is strictly safer than tracking head. Re-verify commit currency at plan time. |
 | A6 | macOS 26 (Tahoe) on this build machine still honors the `com.apple.perl` MediaRemote entitlement bypass | Don't Hand-Roll / Sources | MEDIUM — community-confirmed for 15.4–26 betas, but Apple can break it any release (STATE.md standing blocker). **On-device launch probe is the real proof — must pass UAT.** |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does the adapter READ BACK shuffle/repeat reliably (for v2 NOW-04 toggles)?**
    - What we know: `payload.shuffleMode`/`repeatMode` exist and decode (`ShuffleMode`/`RepeatMode` enums verified); `toggleShuffle()`/`setRepeatMode()` exist to SEND.
