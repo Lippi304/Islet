@@ -16,7 +16,14 @@ func hasNotch(safeAreaTop: CGFloat, auxLeftWidth: CGFloat?, auxRightWidth: CGFlo
 // Notch width = full screen width minus the two side strips. We add a small
 // `widthFudge` (default 4) so the pill overlaps the hardware edges with no seam.
 // Notch height = the top safe-area inset (NOT the menu-bar height — they differ).
-// Returns nil when the screen has no notch.
+// Returns nil when the screen has no notch — OR when the computed width is not
+// positive. `hasNotch` only guarantees a non-zero safe-area top and both aux
+// widths being present; it does NOT guarantee `left + right < screenWidth`. On
+// malformed / transitional NSScreen data (mid display reconfiguration, the exact
+// window where didChangeScreenParameters can fire), the side strips could
+// momentarily sum to ≥ screenWidth, yielding a zero/negative width. Fail safe to
+// nil there — same nil-propagating contract as notchFrame, so the panel simply
+// isn't repositioned that frame rather than fed a degenerate NSRect.
 func notchSize(screenWidth: CGFloat,
                safeAreaTop: CGFloat,
                auxLeftWidth: CGFloat?,
@@ -24,7 +31,9 @@ func notchSize(screenWidth: CGFloat,
                widthFudge: CGFloat = 4) -> CGSize? {
     guard hasNotch(safeAreaTop: safeAreaTop, auxLeftWidth: auxLeftWidth, auxRightWidth: auxRightWidth),
           let left = auxLeftWidth, let right = auxRightWidth else { return nil }
-    return CGSize(width: screenWidth - left - right + widthFudge, height: safeAreaTop)
+    let width = screenWidth - left - right + widthFudge
+    guard width > 0 else { return nil }
+    return CGSize(width: width, height: safeAreaTop)
 }
 
 // AppKit windows use a BOTTOM-LEFT origin with y increasing upward, so the TOP

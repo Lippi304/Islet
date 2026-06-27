@@ -47,6 +47,29 @@ final class NotchGeometryTests: XCTestCase {
         XCTAssertNil(size)
     }
 
+    func testNotchSizeNilWhenAuxWidthsExceedScreenWidth() {
+        // WR-03: malformed / transitional screen data — the two side strips sum to
+        // MORE than the screen width (e.g. mid display reconfiguration). The computed
+        // width 1512 - 800 - 800 + 4 = -84 is non-positive, so notchSize must fail
+        // safe to nil rather than emit a degenerate negative-width CGSize.
+        let size = notchSize(screenWidth: 1512,
+                             safeAreaTop: 38,
+                             auxLeftWidth: 800,
+                             auxRightWidth: 800,
+                             widthFudge: 4)
+        XCTAssertNil(size)
+    }
+
+    func testNotchSizeNilWhenComputedWidthExactlyZero() {
+        // WR-03 boundary: width = 1512 - 754 - 762 + 4 = 0 is not positive → nil.
+        let size = notchSize(screenWidth: 1512,
+                             safeAreaTop: 38,
+                             auxLeftWidth: 754,
+                             auxRightWidth: 762,
+                             widthFudge: 4)
+        XCTAssertNil(size)
+    }
+
     // MARK: notchFrame
 
     func testNotchFrameCenteringAndCoordinateFlipAtOrigin() throws {
