@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 0: Foundations & Notarization Dry Run** - Menu-bar agent skeleton + launch-at-login + a proven sign→notarize→staple pipeline on a hello-world build
 - [ ] **Phase 1: The Empty Island (Window + Geometry)** - A static black pill rendered exactly on the notch, above all windows, on the correct display through monitor/clamshell changes
 - [x] **Phase 2: Hover, Expand & Fullscreen Hardening** - Spring morph expand/collapse on hover, quiet when idle, and reliable hide for true fullscreen
-- [ ] **Phase 3: Charging Activity** - Plug/unplug shows a charging splash with battery %, proving the activity→island loop on the safest API
+- [x] **Phase 3: Charging Activity** - Plugging in shows a charging splash with battery %, proving the activity→island loop on the safest API (connect-only per UAT; CHG-02 descoped)
 - [ ] **Phase 4: Now Playing** - Album art + title/artist + play/pause/skip via the isolated MediaRemote adapter, with a graceful "unavailable" fallback
 - [ ] **Phase 5: Device-Connected Activity** - AirPods/Bluetooth connect and disconnect splashes reusing the transient pattern
 - [ ] **Phase 6: Priority Resolver, Settings & v1 Ship** - Activities coexist by sensible priority; minimal settings + accent theme; production notarized release
@@ -130,7 +130,7 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 0. Foundations & Notarization Dry Run | 0/4 | Not started | - |
 | 1. The Empty Island (Window + Geometry) | 0/3 | Not started | - |
 | 2. Hover, Expand & Fullscreen Hardening | 4/4 | Complete | 2026-06-27 |
-| 3. Charging Activity | 0/3 | Planned | - |
+| 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 0/TBD | Not started | - |
 | 5. Device-Connected Activity | 0/TBD | Not started | - |
 | 6. Priority Resolver, Settings & v1 Ship | 0/TBD | Not started | - |

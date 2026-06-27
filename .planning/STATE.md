@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 3 context gathered
-last_updated: "2026-06-27T14:30:09.418Z"
+status: executing
+stopped_at: Phase 3 complete & verified
+last_updated: "2026-06-27T17:36:58.884Z"
 last_activity: 2026-06-27
 progress:
   total_phases: 7
-  completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
+  completed_phases: 4
+  total_plans: 14
+  completed_plans: 14
   percent: 100
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 3 — charging-activity (Phase 2 complete & verified; 8 on-device UAT items tracked in 02-HUMAN-UAT.md)
+**Current focus:** Phase 4 — now-playing (next). Phase 3 complete & verified: connect-only charging activity (CHG-01); CHG-02 descoped to connect-only per on-device UAT.
 
 ## Current Position
 
-Phase: 3
+Phase: 4
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Phase 3 complete & verified — ready to plan Phase 4
 Last activity: 2026-06-27
 
 Progress: [██████████] 100%
@@ -36,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 11
+- Total plans completed: 14
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -47,6 +47,7 @@ Progress: [██████████] 100%
 | 00 | 4 | - | - |
 | 01 | 3 | - | - |
 | 02 | 4 | - | - |
+| 03 | 3 | - | - |
 
 **Recent Trend:**
 
