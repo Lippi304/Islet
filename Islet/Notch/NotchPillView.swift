@@ -82,11 +82,11 @@ struct NotchPillView: View {
     // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
     // this content (no runtime resize). Tuned on-device against the MEASURED notch (179×32 pt
     // on this machine): the 32 pt height matches the notch so the strip sits flush and never
-    // overhangs below it, and the 305 pt width extends just past the notch on each side. The
+    // overhangs below it, and the 300 pt width extends just past the notch on each side. The
     // panel is sized to the UNION with the 360-wide expanded frame, so this only sizes the
     // visible black strip, never the window. The pure wingsFrame tests build their own size,
     // so this constant tunes freely.
-    static let wingsSize = CGSize(width: 305, height: 32)
+    static let wingsSize = CGSize(width: 300, height: 32)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -275,7 +275,7 @@ struct NotchPillView: View {
     //     ONLY (no album, no source-app icon). Both are .lineLimit(1)+.truncationMode(.tail)
     //     to BOUND untrusted metadata (T-04-09) — SwiftUI Text is already inert to format
     //     strings, this just stops over-long strings from breaking layout.
-    //   • EqualizerBars in the TOP-RIGHT corner.
+    //   • EqualizerBars on the RIGHT, vertically centered against the art row (like the collapsed wing).
     //   • A reserved-height spacer ABOVE the controls where the future seek bar (NOW-04 v2)
     //     will go — D-09: room reserved, bar NOT built.
     //   • A centered control row: a reserved LEFT slot (future Shuffle — D-09, not built),
@@ -310,7 +310,8 @@ struct NotchPillView: View {
                                 .truncationMode(.tail)
                         }
                         Spacer(minLength: 6)
-                        EqualizerBars(isPlaying: isPlaying)    // TOP-RIGHT corner
+                        EqualizerBars(isPlaying: isPlaying)
+                            .frame(height: 40)    // center the bars vertically against the art row (like the collapsed wing) — not top-hanging
                     }
                     // D-09: reserved vertical room for the future seek bar (NOT built — NOW-04 v2).
                     Spacer(minLength: 0).frame(height: 4)
@@ -395,21 +396,49 @@ struct NotchPillView: View {
 struct EqualizerBars: View {
     let isPlaying: Bool                 // D-04: the SINGLE gate
     var tint: Color = .white
-    private let barCount = 4            // discretion: 3–5
+    private static let barCount = 4     // discretion: 3–5
     @State private var animate = false
 
+    // Per-bar RANDOM profile, generated ONCE at init and held stable for the view's
+    // lifetime (re-renders don't reshuffle it). Each bar oscillates between its OWN random
+    // low/high height on its OWN random duration + start delay, so the bars pulse
+    // INDEPENDENTLY (random-looking) instead of a uniform left-to-right sweep.
+    private let profiles: [(low: CGFloat, high: CGFloat, duration: Double, delay: Double)]
+
+    // Fixed baseline box: bars are BOTTOM-anchored and grow UPWARD from a stable baseline
+    // (like a real equalizer), so the group never resizes/jumps as bars animate and the bars
+    // read the SAME in the expanded view as in the collapsed wing.
+    private let boxHeight: CGFloat = 16
+
+    init(isPlaying: Bool, tint: Color = .white) {
+        self.isPlaying = isPlaying
+        self.tint = tint
+        self.profiles = (0..<Self.barCount).map { _ in
+            (low: CGFloat.random(in: 3...6),
+             high: CGFloat.random(in: 10...16),
+             duration: Double.random(in: 0.30...0.60),
+             delay: Double.random(in: 0...0.35))
+        }
+    }
+
     var body: some View {
-        HStack(spacing: 2) {
-            ForEach(0..<barCount, id: \.self) { i in
+        HStack(alignment: .bottom, spacing: 2) {
+            ForEach(0..<Self.barCount, id: \.self) { i in
                 Capsule()
                     .fill(tint)
-                    .frame(width: 2.5, height: animate ? 12 : 4)
+                    .frame(width: 2.5, height: animate ? profiles[i].high : profiles[i].low)
+                    // ⚠️ IDLE-CPU TRAP (D-04 / Pitfall 5): the repeatForever is attached ONLY
+                    // while isPlaying. When not playing a FINITE .default runs once and leaves
+                    // NO repeating clock → idle CPU returns to ~0.
                     .animation(isPlaying
-                        ? .easeInOut(duration: 0.4).repeatForever(autoreverses: true).delay(Double(i) * 0.12)
-                        : .default,            // finite, non-repeating when stopping → no clock left attached
+                        ? .easeInOut(duration: profiles[i].duration)
+                            .repeatForever(autoreverses: true)
+                            .delay(profiles[i].delay)
+                        : .default,
                         value: animate)
             }
         }
+        .frame(height: boxHeight, alignment: .bottom)
         .onChange(of: isPlaying) { playing in animate = playing }
         .onAppear { animate = isPlaying }
     }
