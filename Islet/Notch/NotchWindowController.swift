@@ -51,6 +51,12 @@ final class NotchWindowController {
     private var mouseMonitor: Any?
     private var graceWorkItem: DispatchWorkItem?
 
+    // ISL-05 flicker guard: the SHOW is debounced + re-checked so a transient non-fullscreen
+    // CGS reading during the fullscreen-enter transition burst never actually flashes the panel
+    // on. HIDE stays eager. One place for Plan 05 to tune the settle window.
+    private var showDebounce: DispatchWorkItem?
+    private let showSettle: TimeInterval = 0.2
+
     // The pill hot-zone in GLOBAL screen coords. It is the COLLAPSED pill frame padded a
     // few px so the tiny notch band is easy to target. Recomputed on every resolve so it
     // tracks display/resolution/clamshell changes. nil until the first successful resolve.
@@ -139,27 +145,45 @@ final class NotchWindowController {
     // observer (didChangeScreenParameters, activeSpaceDidChange, didActivateApplication) calls
     // ONLY this; safe to call repeatedly.
     private func updateVisibility() {
-        // Build descriptors from live screens, then pick via the pure resolver.
-        let descriptors = NSScreen.screens.map { $0.descriptor }
-        let target = selectTargetScreen(from: descriptors)               // Phase-1: built-in present + notched
-        // Phase-2 (Q3 fix): the RUNTIME fullscreen signal now comes from CGS managed
-        // display spaces — it reports the built-in's CURRENT space type, so it observes
-        // ANOTHER app's fullscreen (which a background agent's safe area never reflects).
-        // The old safe-area predicate isTrueFullscreen(builtin:) is superseded as the live
-        // signal (kept only as a pure heuristic / its tests); see FullscreenSpaceProbe.swift.
-        let fullscreen = isBuiltinDisplayInFullscreenSpace(builtinUUID: currentBuiltin()?.uuid)
-
-        if shouldShow(hasTarget: target != nil,
-                      hideInFullscreen: hideInFullscreen,
-                      isFullscreen: fullscreen),
-           let target {
-            positionAndShow(on: target)
+        if resolveVisibility() != nil {
+            // Debounce the show: a transient non-fullscreen blip during the fullscreen-enter
+            // burst will be superseded by the next eager hide (which cancels this) OR will
+            // fail the re-check at fire time, so it never flashes the panel on. A genuine
+            // fullscreen-exit persists, so the show fires normally after `showSettle`.
+            let work = DispatchWorkItem { [weak self] in
+                guard let self, let target = self.resolveVisibility() else { return }
+                self.positionAndShow(on: target)
+            }
+            showDebounce?.cancel()
+            showDebounce = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + showSettle, execute: work)
         } else {
-            // The ONLY hide call in the file (single path). Covers BOTH clamshell/external-only
-            // (no target → D-04 never relocate) AND true fullscreen (D-09 hide, no ghost bar).
+            // HIDE is eager and cancels any pending show (single hide path — Pitfall 5).
+            // Covers BOTH clamshell/external-only (no target → D-04 never relocate) AND true
+            // fullscreen (D-09 hide, no ghost bar).
+            showDebounce?.cancel()
+            showDebounce = nil
             panel?.orderOut(nil)
             hotZone = nil
         }
+    }
+
+    // The single visibility decision as a value: the screen to show on, or nil = hide now.
+    // Re-reads NSScreen + the CGS fullscreen signal on every call (idempotent), so it is safe
+    // to call again at debounce fire time to confirm a transient non-fullscreen reading really
+    // persisted before the panel is shown.
+    private func resolveVisibility() -> ScreenDescriptor? {
+        let descriptors = NSScreen.screens.map { $0.descriptor }
+        guard let target = selectTargetScreen(from: descriptors) else { return nil }
+        // Phase-2 (Q3 fix): the RUNTIME fullscreen signal comes from CGS managed display
+        // spaces — it reports the built-in's CURRENT space type, so it observes ANOTHER app's
+        // fullscreen (which a background agent's safe area never reflects). The old safe-area
+        // predicate isTrueFullscreen(builtin:) is superseded as the live signal (kept only as a
+        // pure heuristic / its tests); see FullscreenSpaceProbe.swift.
+        let fullscreen = isBuiltinDisplayInFullscreenSpace(builtinUUID: currentBuiltin()?.uuid)
+        return shouldShow(hasTarget: true,
+                          hideInFullscreen: hideInFullscreen,
+                          isFullscreen: fullscreen) ? target : nil
     }
 
     // The frame + show body, extracted from the old resolveAndPosition. Makes NO hide
@@ -276,5 +300,6 @@ final class NotchWindowController {
         if let o = appActivateObserver { wc.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
         graceWorkItem?.cancel()
+        showDebounce?.cancel()
     }
 }
