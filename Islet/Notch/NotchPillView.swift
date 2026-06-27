@@ -48,12 +48,13 @@ struct NotchPillView: View {
 
     // CHG-01 / Pattern 4 — the flat wings (Alcove sideways) seed. Single source of truth:
     // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
-    // this content (no runtime resize). Width tuned DOWN on-device (was 360) so the strip
-    // sits snug at the notch instead of splaying too far sideways; the panel is sized to the
-    // UNION with the 360-wide expanded frame, so narrowing this only shrinks the visible
-    // black strip, never the window. The pure wingsFrame tests build their own size, so this
-    // constant tunes freely.
-    static let wingsSize = CGSize(width: 300, height: 40)
+    // this content (no runtime resize). Tuned on-device against the MEASURED notch (179×32 pt
+    // on this machine): the 32 pt height matches the notch so the strip sits flush and never
+    // overhangs below it, and the 305 pt width extends just past the notch on each side. The
+    // panel is sized to the UNION with the 360-wide expanded frame, so this only sizes the
+    // visible black strip, never the window. The pure wingsFrame tests build their own size,
+    // so this constant tunes freely.
+    static let wingsSize = CGSize(width: 305, height: 32)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
