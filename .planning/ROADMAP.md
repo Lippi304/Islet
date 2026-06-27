@@ -83,9 +83,9 @@ Plans:
   4. Power state is driven by event/notification sources with no long-lived polling timer, keeping idle CPU near 0%
 **Plans**: 3 plans
 Plans:
-- [ ] 03-01-PLAN.md — Wave 0: pure power→presentation seam (PowerReading/ChargingActivity/powerActivity + shouldTriggerSplash) + ChargingActivityState + wingsFrame, with RED→GREEN unit tests (CHG-01/CHG-02)
-- [ ] 03-02-PLAN.md — Wings/Alcove sideways layout in NotchPillView (one filling battery glyph + %, D-01/D-03/D-04/D-05) + D-11 precedence ordering
-- [ ] 03-03-PLAN.md — PowerSourceMonitor IOKit notification source + controller wiring (transition-gated splash, ~3s one-shot dismiss, fullscreen-safe updateVisibility, deinit teardown) + on-device UAT
+- [x] 03-01-PLAN.md — Wave 0: pure power→presentation seam (PowerReading/ChargingActivity/powerActivity + shouldTriggerSplash) + ChargingActivityState + wingsFrame, with RED→GREEN unit tests (CHG-01/CHG-02)
+- [x] 03-02-PLAN.md — Wings/Alcove sideways layout in NotchPillView (one filling battery glyph + %, D-01/D-03/D-04/D-05) + D-11 precedence ordering
+- [x] 03-03-PLAN.md — PowerSourceMonitor IOKit notification source + controller wiring (transition-gated splash, ~3s one-shot dismiss, fullscreen-safe updateVisibility, deinit teardown) + on-device UAT
 
 ### Phase 4: Now Playing
 **Goal**: The core install driver — current media from any app shows album art, title, and artist in the island with working transport controls, built entirely behind one isolated service that fails gracefully when the system API is blocked.

@@ -25,8 +25,8 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 
 ### Charging Activity (CHG)
 
-- [ ] **CHG-01**: Plugging in the power cable shows a charging animation plus battery percentage in the island for a few seconds, then collapses
-- [ ] **CHG-02**: Unplugging shows a brief "on battery" indication
+- [x] **CHG-01**: Plugging in the power cable shows a charging animation plus battery percentage in the island for a few seconds, then collapses
+- [x] **CHG-02** *(descoped → connect-only)*: ~~Unplugging shows a brief "on battery" indication~~ — by user decision during Phase 3 on-device UAT (2026-06-27) the charging activity is **connect-only**: plugging in animates, unplugging deliberately shows nothing. The `.onBattery` state is still classified in the model but never triggers a splash.
 
 ### Device Activity (DEV)
 
@@ -106,8 +106,8 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 | ISL-03 | Phase 2 | Complete |
 | ISL-04 | Phase 2 | Complete |
 | ISL-05 | Phase 2 | Complete |
-| CHG-01 | Phase 3 | Pending |
-| CHG-02 | Phase 3 | Pending |
+| CHG-01 | Phase 3 | Complete |
+| CHG-02 | Phase 3 | Descoped (connect-only, UAT 2026-06-27) |
 | NOW-01 | Phase 4 | Pending |
 | NOW-02 | Phase 4 | Pending |
 | NOW-03 | Phase 4 | Pending |
@@ -123,4 +123,4 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-26 — Phase 1 complete (ISL-01, ISL-02, ISL-06, ISL-07 verified)*
+*Last updated: 2026-06-27 — Phase 3 complete (CHG-01 verified; CHG-02 descoped to connect-only per on-device UAT)*
