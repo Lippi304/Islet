@@ -31,7 +31,13 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 - [x] Positions on the correct built-in display through external-monitor / resolution / clamshell changes — hides in clamshell, recovers on lid-open. (Phase 1)
 - [x] Idle pill is near-invisible and completely static in release config. (Phase 1)
 
-_The remaining v1 core feature hypotheses below ship in Phases 2–6 (hover/expand interaction, now-playing, charging, devices)._
+**Hover, Expand & Fullscreen Hardening (Phase 2 — ISL-03, ISL-04, ISL-05):**
+
+- [x] The pill morphs collapsed↔expanded via a single `matchedGeometryEffect` spring (Alcove-quality, no cross-fade); the idle pill drives no animation. (Phase 2 — ISL-04)
+- [x] Focus-safe interaction: a CLICK expands the island, hovering gives a haptic + bounce affordance without expanding (D-02 Alcove model), and pointer-away collapses after a ~0.4s grace; the non-activating panel never steals focus. (Phase 2 — ISL-03)
+- [x] Hides/yields in true fullscreen via the private CGS managed-display-spaces signal — the NSScreen safe-area heuristic proved unusable from a background agent; native fullscreen verified on-device (8 further on-device UAT items tracked in 02-HUMAN-UAT.md; a 1-frame enter-transition flash is a deferred polish item). (Phase 2 — ISL-05)
+
+_The remaining v1 core feature hypotheses below ship in Phases 3–6 (now-playing, charging, devices)._
 
 ### Active
 
@@ -39,7 +45,6 @@ _The remaining v1 core feature hypotheses below ship in Phases 2–6 (hover/expa
 
 **v1 — Focused core (first milestone):**
 
-- [ ] Notch island interaction: hover/click expands the already-shipped static notch overlay and collapses it when idle with a smooth spring morph, plus correct hide/yield in true fullscreen (Phase 2 — ISL-03/04/05)
 - [ ] Now Playing: detect current media (Apple Music, Spotify, browser, etc.), show album art + title/artist in the island, and control play/pause/skip from it
 - [ ] Charging activity: when the power cable is connected, show a charging animation + battery-level notification in the island
 - [ ] Device-connected activity: when a Bluetooth device / AirPods connects or disconnects, show a brief notification in the island
@@ -91,6 +96,8 @@ _The remaining v1 core feature hypotheses below ship in Phases 2–6 (hover/expa
 | Direct notarized distribution, not Mac App Store | MediaRemote is a private API → App Store rejection; direct sale is the proven path (Alcove/DynamicLake) | — Pending |
 | Design = polished (Alcove) + functional (DynamicLake) blend | User likes both and wants to match their quality | — Pending |
 | Product name TBD | "Notch" is a working title only; real name decided closer to release | — Pending |
+| Island opens on CLICK; hover only gives a haptic + bounce affordance (D-02) | Alcove model — prevents accidental expansion when the pointer merely passes over the notch | ✓ Phase 2 |
+| Fullscreen detected via private CGS managed-display-spaces (current-space type==4), not NSScreen safe-area | A background agent's safe area never reflects another app's fullscreen; CGS Spaces is permission-free and reference-app-proven | ✓ Phase 2 |
 
 ## Evolution
 
@@ -110,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-26 — Phase 1 (The Empty Island) complete: a static black pill renders exactly on the notch, above all windows, on the correct display through monitor/clamshell changes (ISL-01, ISL-02, ISL-06, ISL-07), verified on-device.*
+*Last updated: 2026-06-27 — Phase 2 (Hover, Expand & Fullscreen Hardening) complete: the pill morphs collapsed↔expanded on CLICK with an Alcove-quality spring (ISL-04), is focus-safe with a haptic/bounce hover affordance (ISL-03, D-02), and hides in true fullscreen via the private CGS Spaces signal (ISL-05); native fullscreen verified on-device — 8 on-device UAT items + a deferred 1-frame enter-flash tracked in 02-HUMAN-UAT.md.*
