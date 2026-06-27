@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-06-27T01:18:32.414Z"
+status: verifying
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-06-27T02:42:04.913Z"
 last_activity: 2026-06-27
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 10
-  percent: 91
+  completed_plans: 11
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-06-26)
 
 ## Current Position
 
-Phase: 02 (hover-expand-fullscreen-hardening) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
+Phase: 02 (hover-expand-fullscreen-hardening) — COMPLETE (ready for verification)
+Plan: 4 of 4 (all complete)
+Status: Phase complete — ready for verification
 Last activity: 2026-06-27
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P01 | 4 | 3 tasks | 8 files |
 | Phase 02 P02 | 4 | 2 tasks | 3 files |
 | Phase 02 P03 | 4 | 2 tasks | 3 files |
+| Phase 02 P04 | 180 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase 02]: [02-02] Expanded size seed 360×72 / collapsed 200×38 exposed as NotchPillView.expandedSize/.collapsedSize so Plan 03 passes the SAME expandedSize to expandedNotchFrame (no view/panel drift).
 - [Phase 02]: [02-03] Focus-safe ISL-03: global NSEvent .mouseMoved monitor drives nextState; hover fires haptic+bounce (no expand), click expands with the spring, 0.4s grace-delay collapse; ignoresMouseEvents flipped false only in the hot-zone, restored true when collapsed (Pitfall 3); shown only via orderFrontRegardless (no focus-stealing call).
 - [Phase 02]: [02-03] Tuning seeds single-sourced in NotchWindowController for Plan 05: graceDelay 0.4s, spring response 0.35/damping 0.65, hotZonePadding 6, expandedSize from NotchPillView.expandedSize (360×72). A1 DEBUG hover-tick probe ready; NSTrackingArea (Pattern 1b) documented as the permission-free fallback.
+- [Phase 02]: [02-04] ISL-05 runtime fullscreen signal pivoted from the safe-area heuristic to a CGS managed-display-spaces probe (built-in current-space type==4): a background agent (LSUIElement) can never observe another app's fullscreen from its own physical display's safe area, so the safe-area predicate is superseded (kept only as a pure test-covered heuristic). No AX/TCC prompt; fails safe to false.
+- [Phase 02]: [02-04] Native fullscreen ISL-05 on-device VERIFIED (Tahoe); a ~1-frame island flash at the END of the fullscreen-ENTER transition is product-deferred — root-caused as window-server compositing the all-Spaces panel onto the activating fullscreen Space (our orderOut is reactive, can't pre-empt it); a show-debounce was tried and reverted (f706f66, nothing to debounce). Q2 items (FS video, QuickLook, maximized-stays, clamshell, focus-safe restore) remain pending UAT.
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-27T01:18:23.089Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-06-27T02:41:54.723Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
