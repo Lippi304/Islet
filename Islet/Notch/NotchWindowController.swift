@@ -67,6 +67,19 @@ final class NotchWindowController {
     // nonisolated deinit can call powerMonitor?.stop() (mirroring graceWorkItem teardown).
     private var powerMonitor: PowerSourceMonitor?
 
+    // Phase 4 / NOW-01/02/03 (Plan 04) — the LIVE MediaRemote bridge that drives
+    // nowPlayingState. Constructed + started in start() (so the [weak self] callbacks bind a
+    // fully-initialised self) and held as a plain stored property so the nonisolated deinit can
+    // call nowPlayingMonitor?.stop() — terminating the persistent perl child (no orphaned
+    // process, T-04-12), mirroring powerMonitor's lifecycle exactly.
+    private var nowPlayingMonitor: NowPlayingMonitor?
+
+    // D-06 (15s paused linger) / D-07 (stop cue) — the one-shot media auto-dismiss. A single
+    // DispatchWorkItem mirroring dismissWorkItem (NOT a recurring timer): one wake-up then idle,
+    // so CPU stays ~0% while a paused/stopped glance lingers. Resuming playback cancels it.
+    private var mediaDismissWorkItem: DispatchWorkItem?
+    private let pausedTimeout: TimeInterval = 15.0   // D-06 single tuning seed
+
     // D-09 / Pattern 5 — the ~3s one-shot auto-dismiss. A single DispatchWorkItem mirroring
     // graceWorkItem (NOT a recurring timer): one wake-up then idle, so CPU stays ~0% while a
     // splash stands. Hover cancels it; pointer-leave reschedules it.
@@ -176,6 +189,20 @@ final class NotchWindowController {
         let monitor = PowerSourceMonitor { [weak self] reading in self?.handlePower(reading) }
         powerMonitor = monitor
         monitor.start()
+
+        // Phase 4 / NOW-01/02/03 (Plan 04): construct + start the LIVE MediaRemote bridge,
+        // mirroring the powerMonitor construction. start() opens ONE persistent `loop` child
+        // that emits the current session immediately (NOW-03 restart survival: a relaunch
+        // re-reads whatever is playing right now). Every track update hops to main inside the
+        // wrapper and lands in handleNowPlaying; a mid-session child death lands in
+        // handleAdapterTerminated (D-13). runHealthCheck is the D-12 launch probe that flips
+        // isHealthy=false if the private-MediaRemote bridge is blocked on THIS macOS.
+        let np = NowPlayingMonitor(
+            onSnapshot: { [weak self] snap, art in self?.handleNowPlaying(snap, art) },
+            onTerminated: { [weak self] in self?.handleAdapterTerminated() })   // D-13
+        nowPlayingMonitor = np
+        np.start()
+        np.runHealthCheck { [weak self] healthy in self?.nowPlayingState.isHealthy = healthy }   // D-12
     }
 
     // The built-in display's CURRENT descriptor, or nil when the built-in has dropped out
@@ -251,7 +278,12 @@ final class NotchWindowController {
             panel.contentView = NSHostingView(
                 rootView: NotchPillView(interaction: interaction, charging: chargingState,
                                         nowPlaying: nowPlayingState,
-                                        onClick: { [weak self] in self?.handleClick() })
+                                        onClick: { [weak self] in self?.handleClick() },
+                                        // NOW-02: transport rides the EXISTING persistent child's
+                                        // stdin via the monitor — no re-spawn, no focus steal.
+                                        onTogglePlayPause: { [weak self] in self?.nowPlayingMonitor?.togglePlayPause() },
+                                        onNext: { [weak self] in self?.nowPlayingMonitor?.nextTrack() },
+                                        onPrevious: { [weak self] in self?.nowPlayingMonitor?.previousTrack() })
             )
             self.panel = panel
         }
@@ -419,6 +451,77 @@ final class NotchWindowController {
         DispatchQueue.main.asyncAfter(deadline: .now() + activityDuration, execute: work)
     }
 
+    // Phase 4 / NOW-01/02/03 — a live media update lands here (already on main; the wrapper
+    // hopped → A2: no second hop). Mirrors handlePower: maps the raw snapshot through the PURE
+    // Plan-01 seam, publishes presentation + artwork inside the spring (Pitfall 6 — the
+    // animation is attached AT the mutation; the view drives no animation except the gated
+    // bars), routes show/hide through the SINGLE updateVisibility() gate (so media inherits the
+    // fullscreen + clamshell hide for free), and arms/cancels the D-06/D-07 one-shot dismiss.
+    private func handleNowPlaying(_ snapshot: TrackSnapshot?, _ art: NSImage?) {
+        let p = nowPlayingPresentation(from: snapshot)   // pure (Plan 01) — D-01 allowlist + .playing/.paused/.none
+
+        // A healthy stream callback means the bridge is alive — a successful emission after a
+        // prior drop restores the D-12 flag so the next expand shows media, not "nicht verfügbar".
+        nowPlayingState.isHealthy = true
+
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            nowPlayingState.presentation = p
+            nowPlayingState.artwork = art   // nil → Plan 03 placeholder; async art fills on a later callback
+        }
+        updateVisibility()   // Pattern 7 — the SOLE show/hide site (inherits fullscreen / clamshell)
+
+        // D-06 / D-07 timeout scheduling via the one-shot helper (no recurring timer):
+        switch p {
+        case .playing:
+            // The glance stands while playing — cancel any pending paused/stop dismiss.
+            mediaDismissWorkItem?.cancel()
+        case .paused:
+            // D-06: a paused glance lingers, then exits to the idle pill after ~15s. A resume
+            // (.playing) before then cancels this via the .playing branch above.
+            scheduleMediaDismiss(after: pausedTimeout)
+        case .none:
+            // D-07: stop / no media. The pure seam has no distinct "stopping" state (only
+            // .playing/.paused/.none), so the prompt exit IS the just-applied spring-out above
+            // (the glance collapses to the idle pill in one ~0.35s spring — distinct from, and
+            // far faster than, the 15s pause linger). Nothing further to schedule; just cancel
+            // any pending paused-dismiss so a leftover 15s timer can't fire over the idle pill.
+            // (Chosen over a redundant 0.5s work item that would re-clear an already-cleared
+            // presentation — documented in 04-04-SUMMARY.)
+            mediaDismissWorkItem?.cancel()
+        }
+    }
+
+    // D-06 / D-07 — schedule the one-shot media dismiss. Mirrors scheduleActivityDismiss
+    // exactly: cancel any pending item, create a SINGLE DispatchWorkItem that clears the media
+    // glance inside the spring then re-runs the single visibility gate, and asyncAfter it. One
+    // wake-up then idle — NO recurring timer (idle CPU ~0%).
+    private func scheduleMediaDismiss(after seconds: TimeInterval) {
+        mediaDismissWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                self.nowPlayingState.presentation = .none   // collapse the media glance
+                self.nowPlayingState.artwork = nil
+            }
+            self.updateVisibility()   // re-evaluate the single show/hide site
+        }
+        mediaDismissWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
+    }
+
+    // D-13 mid-session child death (already on main). The adapter emitted at least once and
+    // then died — clear the glance to idle and flip the health flag so the NEXT expand shows
+    // "nicht verfügbar" (no mid-session splash, no crash, no empty render).
+    private func handleAdapterTerminated() {
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            nowPlayingState.presentation = .none
+            nowPlayingState.artwork = nil
+        }
+        nowPlayingState.isHealthy = false   // D-13: "nicht verfügbar" only on the NEXT expand
+        mediaDismissWorkItem?.cancel()
+        updateVisibility()
+    }
+
     deinit {
         // The screen-parameters observer lives on the DEFAULT center; the two fullscreen
         // observers live on NSWorkspace's OWN center — removing a workspace observer from the
@@ -435,5 +538,11 @@ final class NotchWindowController {
         // dismiss. Mirrors the observer-removal + graceWorkItem?.cancel() discipline above.
         if let powerMonitor { powerMonitor.stop() }
         dismissWorkItem?.cancel()
+
+        // Phase 4 (security T-04-12): terminate the persistent MediaRemote child so no orphaned
+        // perl / MediaRemoteAdapter process leaks after the controller dies, and cancel the
+        // pending D-06/D-07 dismiss. Mirrors the powerMonitor.stop() + dismissWorkItem discipline.
+        nowPlayingMonitor?.stop()
+        mediaDismissWorkItem?.cancel()
     }
 }

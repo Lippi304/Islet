@@ -34,7 +34,12 @@ import AppKit
 
 @MainActor
 final class NowPlayingMonitor {
-    private let controller = MediaController()
+    // nonisolated(unsafe) so stop() can run from NotchWindowController's nonisolated deinit
+    // (T-04-12 child teardown), mirroring PowerSourceMonitor's nonisolated(unsafe) runLoopSource.
+    // The controller is constructed + driven on main for the whole app lifetime; the deinit
+    // teardown at app-quit is the sole nonisolated reader, calling only stopListening() (child
+    // process termination), so there is no concurrent access.
+    private nonisolated(unsafe) let controller = MediaController()
     // nil snapshot = "no media now" (the engine emitted NIL → D-11). Non-nil = a track
     // update. The NSImage is the pre-decoded artwork (decoded inside the wrapper).
     private let onSnapshot: (TrackSnapshot?, NSImage?) -> Void
@@ -63,9 +68,10 @@ final class NowPlayingMonitor {
         controller.startListening()   // ONE persistent `loop` child — emits the current session immediately
     }
 
-    // Mirror PowerSourceMonitor.stop(): terminate the child + clear the handler. Called from
-    // the controller's deinit (Plan 04) — no orphaned perl (T-04-04).
-    func stop() { controller.stopListening() }
+    // Mirror PowerSourceMonitor.stop(): terminate the child. nonisolated so the controller's
+    // nonisolated deinit can call it (Plan 04) — no orphaned perl (T-04-04 / T-04-12). The body
+    // is a thread-safe child-process termination on the nonisolated(unsafe) controller.
+    nonisolated func stop() { controller.stopListening() }
 
     // NOW-02 — transport rides the EXISTING child's stdin (no re-spawn):
     func togglePlayPause() { controller.togglePlayPause() }
