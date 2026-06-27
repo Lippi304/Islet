@@ -13,6 +13,12 @@ import SwiftUI
 final class NotchWindowController {
     private var panel: NotchPanel?
     private var observer: NSObjectProtocol?
+    // ISL-03/04 — the SwiftUI-facing interaction state injected into NotchPillView.
+    // Plan 03 owns DRIVING this (the global mouse monitor + grace timer + click →
+    // expand mutate `phase` inside withAnimation(.spring(...))). Here it is only
+    // constructed + injected so the morph view has its ObservableObject; it stays
+    // `.collapsed`, so the pill renders exactly as the Phase-1 static pill did.
+    private let interaction = NotchInteractionState()
 
     func start() {
         resolveAndPosition()
@@ -47,7 +53,7 @@ final class NotchWindowController {
         }
         let panel = self.panel ?? NotchPanel(contentRect: frame)
         if self.panel == nil {
-            panel.contentView = NSHostingView(rootView: NotchPillView())
+            panel.contentView = NSHostingView(rootView: NotchPillView(interaction: interaction))
             self.panel = panel
         }
         panel.setFrame(frame, display: true)   // reposition for resolution / display changes
