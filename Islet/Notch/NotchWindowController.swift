@@ -47,12 +47,39 @@ final class NotchWindowController {
     // monitor/timer/click callbacks mutate `phase` inside withAnimation(.spring(...)).
     private let interaction = NotchInteractionState()
 
-    // CHG-01 / Pattern 2 — the SEPARATE charging-splash model the wings layout observes.
-    // Held here so NotchPillView has a non-nil `charging:` input. Its `.activity` stays nil
-    // for now (the view renders the collapsed/expanded branches exactly as before); Plan 03
-    // wires the IOKit power-source events that set `.activity` inside withAnimation(.spring)
-    // and the ~3s auto-dismiss. No IOKit / Timer here — purely the published holder.
+    // CHG-01 / Pattern 2 — the SEPARATE charging-splash model the wings layout observes
+    // (NOT a NotchInteractionState phase, so the Phase-2 gesture machine stays untouched).
+    // Plan 03 drives it: the IOKit power-source events below set `.activity` inside
+    // withAnimation(.spring) and the ~3s dismissWorkItem clears it.
     private let chargingState = ChargingActivityState()
+
+    // CHG-01 / CHG-02 (Plan 03) — the LIVE IOKit power-source monitor. Event-driven
+    // (IOPSNotificationCreateRunLoopSource), no polling clock. Each plug/unplug hops to
+    // main and lands in handlePower. Constructed + started in start() (so the [weak self]
+    // closure binds a fully-initialised self) and held as a plain stored property so the
+    // nonisolated deinit can call powerMonitor?.stop() (mirroring graceWorkItem teardown).
+    private var powerMonitor: PowerSourceMonitor?
+
+    // D-09 / Pattern 5 — the ~3s one-shot auto-dismiss. A single DispatchWorkItem mirroring
+    // graceWorkItem (NOT a recurring timer): one wake-up then idle, so CPU stays ~0% while a
+    // splash stands. Hover cancels it; pointer-leave reschedules it.
+    private var dismissWorkItem: DispatchWorkItem?
+    private let activityDuration: TimeInterval = 3.0   // D-09 single tuning seed
+
+    // Pitfall 4 — the last classified activity, for the category-transition debounce
+    // (shouldTriggerSplash). A pure % tick within the same category updates a standing
+    // splash WITHOUT re-firing / restarting the dismiss timer.
+    private var lastActivity: ChargingActivity?
+
+    // The launch reading seeds lastActivity WITHOUT firing a splash (the user did not just
+    // plug in). The first handlePower call sets this flag + lastActivity and returns; only
+    // subsequent calls run the transition logic — "no splash unless a change".
+    private var didSeedInitialPower = false
+
+    // CHG-01 / Pattern 4 — the flat, wide wings seed (single-sourced from the view, matching
+    // the Plan-01 wingsFrame test seed). The panel is sized to the UNION of the expanded
+    // (downward) and wings (sideways) frames so neither is ever resized mid-animation.
+    private let wingsSize = NotchPillView.wingsSize
 
     // The global pointer monitor + the pending grace-delay collapse (Pattern 1 / Pattern 3).
     private var mouseMonitor: Any?
@@ -135,6 +162,13 @@ final class NotchWindowController {
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             self?.handlePointer(at: NSEvent.mouseLocation)
         }
+
+        // CHG-01 / CHG-02 (Plan 03): register the LIVE IOKit power-source notification. It
+        // emits the initial reading once (seeded WITHOUT a splash via didSeedInitialPower)
+        // and then fires on every plug/unplug → handlePower on main. Event-driven, no poll.
+        let monitor = PowerSourceMonitor { [weak self] reading in self?.handlePower(reading) }
+        powerMonitor = monitor
+        monitor.start()
     }
 
     // The built-in display's CURRENT descriptor, or nil when the built-in has dropped out
@@ -195,19 +229,25 @@ final class NotchWindowController {
         // mid-animation. The collapsed pill sits flush at the top of this larger window.
         let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: expandedSize)
 
+        // CHG-01 / Pattern 4: the wings extend SIDEWAYS, so the panel must also cover the
+        // flat wings strip. Size the panel ONCE to the UNION of the downward-expanded and the
+        // sideways-wings frames so BOTH the Phase-2 expand AND the Phase-3 wings fit without
+        // any runtime panel resize (resizing mid-activity would race the morph + hot-zone math).
+        let wings = wingsFrame(collapsed: collapsedFrame, wingsSize: wingsSize)
+        let panelFrame = expandedFrame.union(wings)
+
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
 
-        let panel = self.panel ?? NotchPanel(contentRect: expandedFrame)
+        let panel = self.panel ?? NotchPanel(contentRect: panelFrame)
         if self.panel == nil {
             panel.contentView = NSHostingView(
-                rootView: NotchPillView(interaction: interaction,
-                                        onClick: { [weak self] in self?.handleClick() },
-                                        charging: chargingState)
+                rootView: NotchPillView(interaction: interaction, charging: chargingState,
+                                        onClick: { [weak self] in self?.handleClick() })
             )
             self.panel = panel
         }
-        panel.setFrame(expandedFrame, display: true) // reposition for resolution / display changes
+        panel.setFrame(panelFrame, display: true) // reposition for resolution / display changes
         panel.orderFrontRegardless()                 // show WITHOUT activating the app — focus-safe (D-07)
     }
 
@@ -247,6 +287,10 @@ final class NotchWindowController {
         // A quick re-entry cancels a pending grace-delay collapse (Pattern 3).
         graceWorkItem?.cancel()
         graceWorkItem = nil
+
+        // D-10: hover PAUSES the charging-splash auto-dismiss. While the pointer sits on the
+        // wings the ~3s is cancelled; handleHoverExit reschedules it once the pointer leaves.
+        dismissWorkItem?.cancel()
 
         // D-01: hover gives an affordance but NEVER expands — nextState turns .collapsed
         // into .hovering only. The spring drives the bounce/scale in NotchPillView.
@@ -291,6 +335,14 @@ final class NotchWindowController {
         }
         graceWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + graceDelay, execute: work)
+
+        // D-10: once the pointer leaves a STANDING charging splash, resume the ~3s
+        // auto-dismiss (handleHoverEnter cancelled it on entry). No-op when no splash stands.
+        // Click stays informational (D-10): the existing handleClick → expand is untouched and
+        // .clicked is never routed into the activity model.
+        if chargingState.activity != nil {
+            scheduleActivityDismiss()
+        }
     }
 
     // D-02 CLICK-to-expand: the ONLY path to `.expanded`. Wired from NotchPillView's
@@ -308,6 +360,57 @@ final class NotchWindowController {
         syncClickThrough()
     }
 
+    // CHG-01 / CHG-02 — the live power event lands here (already on main; the monitor's
+    // callback hopped). Maps the raw reading to a presentation via the PURE Plan-01 seam,
+    // gates re-display to category transitions (Pitfall 4), and routes the splash through the
+    // SINGLE updateVisibility() so it inherits the fullscreen / clamshell hide for free.
+    private func handlePower(_ reading: PowerReading) {
+        let next = powerActivity(from: reading)   // pure (Plan 01); nil on no-battery → no splash
+
+        // The launch reading must NOT pop a splash (the user did not just plug in). Seed
+        // lastActivity from the very first callback and return before the transition logic.
+        guard didSeedInitialPower else {
+            didSeedInitialPower = true
+            lastActivity = next
+            return
+        }
+
+        let fire = shouldTriggerSplash(previous: lastActivity, next: next)   // Pitfall 4 — category change only
+        lastActivity = next
+
+        if fire, let activity = next {
+            // D-07: the spring is attached AT the mutation (the view drives no animation, D-08).
+            // D-11 precedence (charging briefly wins over a user-expanded island) is rendered
+            // by the view's if-ordering; here we only publish the activity.
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                chargingState.activity = activity
+            }
+            updateVisibility()           // Pattern 6 — the SOLE show/hide site (fullscreen gate)
+            scheduleActivityDismiss()    // D-09 — the ~3s one-shot collapse
+        } else if next != nil, chargingState.activity != nil {
+            // A pure % tick while a splash already stands: update the % WITHOUT restarting the
+            // ~3s timer or re-triggering the entrance (Pitfall 4). No animation wrapper — the
+            // number just refreshes inside the standing splash.
+            chargingState.activity = next
+        }
+    }
+
+    // D-09 / Pattern 5 — schedule the ~3s one-shot collapse. Mirrors handleHoverExit's
+    // DispatchWorkItem exactly: a single wake-up that clears the activity inside the spring,
+    // then idles (no recurring timer → idle CPU ~0%). Re-scheduling cancels any pending one.
+    private func scheduleActivityDismiss() {
+        dismissWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                self.chargingState.activity = nil    // collapse the wings
+            }
+            self.updateVisibility()                  // re-evaluate the single show/hide site
+        }
+        dismissWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + activityDuration, execute: work)
+    }
+
     deinit {
         // The screen-parameters observer lives on the DEFAULT center; the two fullscreen
         // observers live on NSWorkspace's OWN center — removing a workspace observer from the
@@ -318,5 +421,11 @@ final class NotchWindowController {
         if let o = appActivateObserver { wc.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
         graceWorkItem?.cancel()
+
+        // CHG-01 (security T-03-06): remove the IOPS run-loop source so the context pointer
+        // (which holds this controller) can't be used after free, and cancel the pending ~3s
+        // dismiss. Mirrors the observer-removal + graceWorkItem?.cancel() discipline above.
+        if let powerMonitor { powerMonitor.stop() }
+        dismissWorkItem?.cancel()
     }
 }

@@ -18,6 +18,15 @@ struct NotchPillView: View {
     // `NSHostingView(rootView: NotchPillView(interaction: state))`.
     @ObservedObject var interaction: NotchInteractionState
 
+    // CHG-01 / Pattern 2 — the SEPARATE charging-splash model (Plan 01). The controller
+    // (Plan 03) reads IOPS, maps via powerActivity(from:), and sets `.activity` inside its
+    // spring animation wrapper; this view only RENDERS whatever activity is published.
+    // It is deliberately NOT a NotchInteractionState phase, so the Phase-2 gesture machine
+    // stays untouched and D-11 precedence is a one-line `if` in the body below.
+    // Declared BEFORE onClick (a non-defaulted parameter ahead of a defaulted one) so the
+    // controller call reads `NotchPillView(interaction:charging:onClick:)`.
+    @ObservedObject var charging: ChargingActivityState
+
     // D-02 — the CLICK-to-expand callback. The view stays AppKit-free: it only reports
     // "the pill was tapped" via this plain closure. NotchWindowController owns the
     // closure and runs the focus-safe `nextState(_, .clicked)` mutation inside its spring
@@ -25,13 +34,6 @@ struct NotchPillView: View {
     // controller), not scattered in the view. Defaults to a no-op so the DEBUG #Previews
     // (and any unit construction) build without a controller.
     var onClick: () -> Void = {}
-
-    // CHG-01 / Pattern 2 — the SEPARATE charging-splash model (Plan 01). The controller
-    // (Plan 03) reads IOPS, maps via powerActivity(from:), and sets `.activity` inside its
-    // spring animation wrapper; this view only RENDERS whatever activity is published.
-    // It is deliberately NOT a NotchInteractionState phase, so the Phase-2 gesture machine
-    // stays untouched and D-11 precedence is a one-line `if` in the body below.
-    @ObservedObject var charging: ChargingActivityState
 
     // The single shared morph identity (D-07): the collapsed and expanded blobs both
     // morph against this one geometry group via matchedGeometryEffect(id: "island").

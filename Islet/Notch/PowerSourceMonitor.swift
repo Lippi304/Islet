@@ -59,7 +59,10 @@ func readCurrentPower() -> PowerReading {
 // before touching onChange (which the controller uses to mutate @Published/AppKit).
 @MainActor
 final class PowerSourceMonitor {
-    private var runLoopSource: CFRunLoopSource?
+    // nonisolated(unsafe) so stop() can run from NotchWindowController's nonisolated deinit.
+    // This is only ever written on main (start/stop), and CFRunLoopRemoveSource is itself
+    // thread-safe — the deinit teardown at app-quit is the sole nonisolated reader.
+    private nonisolated(unsafe) var runLoopSource: CFRunLoopSource?
     // The controller passes a closure that is already on main and hops the @Published
     // mutation through handlePower (so this glue never touches SwiftUI/AppKit itself).
     private let onChange: (PowerReading) -> Void
@@ -89,7 +92,9 @@ final class PowerSourceMonitor {
         onChange(readCurrentPower())
     }
 
-    func stop() {
+    // nonisolated so the controller's nonisolated deinit can call it. The body is pure
+    // thread-safe CF source removal on the nonisolated(unsafe) runLoopSource.
+    nonisolated func stop() {
         // Remove the source (it holds the context pointer) so the pointer can't be used
         // after the owner is freed (security T-03-06).
         if let src = runLoopSource {
