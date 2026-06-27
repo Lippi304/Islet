@@ -82,11 +82,15 @@ struct NotchPillView: View {
     // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
     // this content (no runtime resize). Tuned on-device against the MEASURED notch (179×32 pt
     // on this machine): the 32 pt height matches the notch so the strip sits flush and never
-    // overhangs below it, and the 300 pt width extends just past the notch on each side. The
-    // panel is sized to the UNION with the 360-wide expanded frame, so this only sizes the
+    // overhangs below it, and the 305 pt CHARGING width leaves room for the battery glyph + %.
+    // The panel is sized to the UNION with the 360-wide expanded frame, so this only sizes the
     // visible black strip, never the window. The pure wingsFrame tests build their own size,
     // so this constant tunes freely.
-    static let wingsSize = CGSize(width: 300, height: 32)
+    static let wingsSize = CGSize(width: 305, height: 32)
+    // The MEDIA glance carries smaller content (art + tiny bars, NO % text), so it sits
+    // NARROWER than the charging wings. Width-only difference; same 32 pt notch-flush height.
+    // The panel union uses the wider `wingsSize`, so this narrower value never affects the window.
+    static let mediaWingsSize = CGSize(width: 290, height: 32)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -214,16 +218,16 @@ struct NotchPillView: View {
         return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flat strip, matches charging wings
             .fill(Color.black)
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            .frame(width: Self.mediaWingsSize.width, height: Self.mediaWingsSize.height)
             .overlay(
                 HStack(spacing: 0) {
-                    artThumbnail(art, side: Self.wingsSize.height - 8, corner: 6)  // LEFT wing
+                    artThumbnail(art, side: Self.mediaWingsSize.height - 8, corner: 6)  // LEFT wing
                         .padding(.leading, 10)
                     Spacer()                                            // clears the physical camera bridge
                     EqualizerBars(isPlaying: isPlaying)                 // RIGHT wing — D-02 bars
                         .padding(.trailing, 14)
                 }
-                .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+                .frame(width: Self.mediaWingsSize.width, height: Self.mediaWingsSize.height)
             )
     }
 
@@ -396,7 +400,7 @@ struct NotchPillView: View {
 struct EqualizerBars: View {
     let isPlaying: Bool                 // D-04: the SINGLE gate
     var tint: Color = .white
-    private static let barCount = 4     // discretion: 3–5
+    private static let barCount = 5     // discretion: 3–5
     @State private var animate = false
 
     // Per-bar RANDOM profile, generated ONCE at init and held stable for the view's
@@ -405,9 +409,10 @@ struct EqualizerBars: View {
     // INDEPENDENTLY (random-looking) instead of a uniform left-to-right sweep.
     private let profiles: [(low: CGFloat, high: CGFloat, duration: Double, delay: Double)]
 
-    // Fixed baseline box: bars are BOTTOM-anchored and grow UPWARD from a stable baseline
-    // (like a real equalizer), so the group never resizes/jumps as bars animate and the bars
-    // read the SAME in the expanded view as in the collapsed wing.
+    // Fixed box, CENTER-anchored: each bar is vertically centered and grows OUTWARD from the
+    // middle (both up AND down) as its height changes — not pinned to a bottom baseline. The
+    // fixed height keeps the group from resizing/jumping, and reads the SAME in the expanded
+    // view as in the collapsed wing.
     private let boxHeight: CGFloat = 16
 
     init(isPlaying: Bool, tint: Color = .white) {
@@ -422,7 +427,7 @@ struct EqualizerBars: View {
     }
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 2) {
+        HStack(alignment: .center, spacing: 2) {
             ForEach(0..<Self.barCount, id: \.self) { i in
                 Capsule()
                     .fill(tint)
@@ -438,7 +443,7 @@ struct EqualizerBars: View {
                         value: animate)
             }
         }
-        .frame(height: boxHeight, alignment: .bottom)
+        .frame(height: boxHeight)
         .onChange(of: isPlaying) { playing in animate = playing }
         .onAppear { animate = isPlaying }
     }

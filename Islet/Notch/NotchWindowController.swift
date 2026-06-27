@@ -117,6 +117,13 @@ final class NotchWindowController {
     // tracks display/resolution/clamshell changes. nil until the first successful resolve.
     private var hotZone: CGRect?
 
+    // While EXPANDED the keep-open region is the WHOLE expanded island, NOT the tiny collapsed
+    // pill — otherwise moving the pointer DOWN onto the transport controls reads as "left the
+    // hot-zone" and the grace timer collapses the island out from under the pointer (no time to
+    // press pause/skip). Set alongside hotZone on every resolve; handlePointer uses this while
+    // the island is expanded. nil until the first successful resolve.
+    private var expandedZone: CGRect?
+
     // The expanded island size seed. Read from the view so the window frame and the SwiftUI
     // content can never drift to different expanded sizes (Plan 05 tunes it in one place).
     private let expandedSize = NotchPillView.expandedSize
@@ -241,6 +248,7 @@ final class NotchWindowController {
             // (no target → D-04 never relocate) AND true fullscreen (D-09 hide, no ghost bar).
             panel?.orderOut(nil)
             hotZone = nil
+            expandedZone = nil
             // WR-01: the hot-zone is gone, so the pointer is by definition no longer in it.
             // Clearing this here prevents a stale `true` from suppressing the next enter edge
             // after a show, which would skip the haptic + grace-cancel on re-entry.
@@ -272,6 +280,9 @@ final class NotchWindowController {
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
+        // While expanded, the WHOLE expanded island (the panel union, padded) keeps it open so
+        // the pointer can reach the transport controls without tripping the grace-collapse.
+        expandedZone = panelFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
 
         let panel = self.panel ?? NotchPanel(contentRect: panelFrame)
         if self.panel == nil {
@@ -294,7 +305,11 @@ final class NotchWindowController {
     // Pattern 1: every .mouseMoved tick hit-tests the GLOBAL pointer against the hot-zone.
     // No coordinate conversion — both `point` and `hotZone` are global bottom-left (Pitfall 6).
     private func handlePointer(at point: CGPoint) {
-        guard let zone = hotZone else { return }
+        // While expanded, the keep-open region is the full expanded island so the pointer can
+        // travel down to the transport controls without reading as a hot-zone exit (which would
+        // collapse the island after the grace delay). Collapsed/hovering use the small pill zone.
+        let activeZone = interaction.isExpanded ? (expandedZone ?? hotZone) : hotZone
+        guard let zone = activeZone else { return }
         let inside = zone.contains(point)
         // WR-01: the enter/exit edge is about the POINTER being in the zone, so track it
         // against an explicit `pointerInZone` flag — NOT against `interaction.isHovering`,
