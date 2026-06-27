@@ -27,6 +27,15 @@ struct NotchPillView: View {
     // controller call reads `NotchPillView(interaction:charging:onClick:)`.
     @ObservedObject var charging: ChargingActivityState
 
+    // Phase 4 / NOW-01/02 — the SEPARATE @Published media model (Plan 02). The controller
+    // (Plan 04) owns it: the monitor lifts MediaRemote payloads → presentation/artwork and
+    // drives `isHealthy` from the D-12 launch probe + D-13 mid-death. This view only RENDERS
+    // whatever is published — no MediaRemote, no animation of its own EXCEPT the deliberately
+    // isPlaying-gated equalizer bars below. Declared BEFORE onClick (non-defaulted ahead of a
+    // defaulted parameter) so the controller call reads
+    // `NotchPillView(interaction:charging:nowPlaying:onClick:...)`.
+    @ObservedObject var nowPlaying: NowPlayingState
+
     // D-02 — the CLICK-to-expand callback. The view stays AppKit-free: it only reports
     // "the pill was tapped" via this plain closure. NotchWindowController owns the
     // closure and runs the focus-safe `nextState(_, .clicked)` mutation inside its spring
@@ -156,6 +165,62 @@ struct NotchPillView: View {
             )
     }
 
+    // D-02/D-03/D-04/D-05 — the MEDIA glance WINGS: the collapsed now-playing peek.
+    // Same flat strip shape + shared morph identity + wingsSize as the charging wings, so
+    // SwiftUI morphs the ONE black island between the charging/media/expanded/collapsed
+    // states (no cross-fade). Album art on the LEFT wing, the animated equalizer bars on
+    // the RIGHT wing. `isPlaying` is derived from the presentation: `.playing` → bars bounce,
+    // `.paused` → bars freeze static (D-05). The bars are the ONLY continuous animation in
+    // the app and are isPlaying-gated for the idle-CPU guarantee (D-04, see EqualizerBars).
+    private func mediaWings(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
+        let isPlaying = isPlayingFor(presentation)
+        return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flat strip, matches charging wings
+            .fill(Color.black)
+            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            .overlay(
+                HStack(spacing: 0) {
+                    artThumbnail(art, side: Self.wingsSize.height - 8, corner: 6)  // LEFT wing
+                        .padding(.leading, 10)
+                    Spacer()                                            // clears the physical camera bridge
+                    EqualizerBars(isPlaying: isPlaying)                 // RIGHT wing — D-02 bars
+                        .padding(.trailing, 14)
+                }
+                .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            )
+    }
+
+    // Album art thumbnail with the nil → music-note placeholder (Open Question 3 / T-04-11).
+    // Non-nil → the pre-decoded NSImage (Plan 02) scaled to fill a rounded square; nil → a
+    // neutral-fill rounded square with an SF music.note glyph. Async art fills in for free:
+    // when `nowPlaying.artwork` flips from nil to an image, SwiftUI re-renders this branch.
+    @ViewBuilder
+    private func artThumbnail(_ art: NSImage?, side: CGFloat, corner: CGFloat) -> some View {
+        if let art {
+            Image(nsImage: art)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: side, height: side)
+                .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+        } else {
+            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                .fill(Color.white.opacity(0.12))
+                .frame(width: side, height: side)
+                .overlay(
+                    Image(systemName: "music.note")
+                        .font(.system(size: side * 0.45))
+                        .foregroundStyle(.white.opacity(0.7))
+                )
+        }
+    }
+
+    // Derives the bars' single gate from the presentation: only `.playing` animates.
+    // `.paused` and `.none` freeze the bars static (D-05) — no clock runs (D-04).
+    private func isPlayingFor(_ presentation: NowPlayingPresentation) -> Bool {
+        if case .playing = presentation { return true }
+        return false
+    }
+
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
     // D-02 shows a visible tint during development so a first-time builder can
     // confirm width / radius / position over the real notch.
@@ -175,6 +240,40 @@ struct NotchPillView: View {
     }
 }
 
+// D-02/D-03/D-04/D-05 — the decorative equalizer bars (the FIRST and ONLY continuous
+// animation in the app). Synthetic/decorative, NOT audio-reactive (D-03). The heights
+// animate up/down on a repeatForever autoreversing animation driven by a single `animate`
+// flag bound to `isPlaying`.
+//
+// ⚠️ THE IDLE-CPU TRAP (D-04 / Pitfall 5): the `.animation(...)` MUST be CONDITIONAL on
+// `isPlaying`. When not playing it passes a FINITE `.default` animation — NOT a left-on
+// `.repeatForever`. A `.repeatForever` left attached keeps SwiftUI's render loop / display
+// link alive even when the bars look static, so idle CPU never returns to ~0. Swapping to a
+// finite animation when paused removes the repeating clock entirely (verified on-device in
+// Plan 04 UAT via `sample` / Energy idle).
+struct EqualizerBars: View {
+    let isPlaying: Bool                 // D-04: the SINGLE gate
+    var tint: Color = .white
+    private let barCount = 4            // discretion: 3–5
+    @State private var animate = false
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(0..<barCount, id: \.self) { i in
+                Capsule()
+                    .fill(tint)
+                    .frame(width: 2.5, height: animate ? 12 : 4)
+                    .animation(isPlaying
+                        ? .easeInOut(duration: 0.4).repeatForever(autoreverses: true).delay(Double(i) * 0.12)
+                        : .default,            // finite, non-repeating when stopping → no clock left attached
+                        value: animate)
+            }
+        }
+        .onChange(of: isPlaying) { playing in animate = playing }
+        .onAppear { animate = isPlaying }
+    }
+}
+
 #if DEBUG
 // Build-time correctness artifact: proves BOTH layouts compile and render without
 // running the app. Each preview constructs a NotchInteractionState, sets the phase,
@@ -184,8 +283,11 @@ struct NotchPillView: View {
 #Preview("Collapsed") {
     let state = NotchInteractionState()
     state.phase = .collapsed
-    // Fresh ChargingActivityState with a nil activity → the collapsed branch shows.
-    return NotchPillView(interaction: state, charging: ChargingActivityState())
+    // Fresh ChargingActivityState with a nil activity + a .none NowPlayingState → the
+    // collapsed branch shows (no charging, not expanded, no media).
+    return NotchPillView(interaction: state,
+                         charging: ChargingActivityState(),
+                         nowPlaying: NowPlayingState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -194,22 +296,57 @@ struct NotchPillView: View {
 #Preview("Expanded") {
     let state = NotchInteractionState()
     state.phase = .expanded
-    // Fresh ChargingActivityState with a nil activity → the expanded branch shows.
-    return NotchPillView(interaction: state, charging: ChargingActivityState())
+    // Fresh ChargingActivityState with a nil activity; .none + healthy NowPlayingState → the
+    // expanded branch shows the D-11 date/time (healthy, no media).
+    return NotchPillView(interaction: state,
+                         charging: ChargingActivityState(),
+                         nowPlaying: NowPlayingState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
 }
 
 // Charging Wings — proves the new sideways branch compiles and renders. A non-nil
-// activity makes the D-11 precedence `if` take the wings branch (here regardless of
+// activity makes the D-14 precedence `if` take the wings branch (here regardless of
 // the interaction phase). 47% charging → the filling `battery.100percent.bolt` glyph.
 #Preview("Charging Wings") {
     let state = NotchInteractionState()
     state.phase = .collapsed
     let cs = ChargingActivityState()
     cs.activity = .charging(percent: 47)
-    return NotchPillView(interaction: state, charging: cs)
+    return NotchPillView(interaction: state,
+                         charging: cs,
+                         nowPlaying: NowPlayingState())
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
+// Media Wings (playing) — collapsed glance, art LEFT / animated bars RIGHT (D-02). The
+// nil artwork falls to the music.note placeholder (Open Q3); `.playing` animates the bars.
+#Preview("Media Wings (playing)") {
+    let state = NotchInteractionState()
+    state.phase = .collapsed
+    let np = NowPlayingState()
+    np.presentation = .playing(title: "New Rules", artist: "Dua Lipa")
+    return NotchPillView(interaction: state,
+                         charging: ChargingActivityState(),
+                         nowPlaying: np)
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
+// Media Wings (paused) — same glance, bars frozen static (D-05): `.paused` removes the
+// repeating animation (idle-CPU guarantee, D-04).
+#Preview("Media Wings (paused)") {
+    let state = NotchInteractionState()
+    state.phase = .collapsed
+    let np = NowPlayingState()
+    np.presentation = .paused(title: "New Rules", artist: "Dua Lipa")
+    return NotchPillView(interaction: state,
+                         charging: ChargingActivityState(),
+                         nowPlaying: np)
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))

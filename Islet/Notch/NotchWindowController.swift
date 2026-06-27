@@ -53,6 +53,13 @@ final class NotchWindowController {
     // withAnimation(.spring) and the ~3s dismissWorkItem clears it.
     private let chargingState = ChargingActivityState()
 
+    // Phase 4 / NOW-01/02 — the SEPARATE @Published media model the media wings + expanded
+    // controls observe (Plan 02). Created here so the view has a live instance to bind to;
+    // Plan 04 wires the NowPlayingMonitor to drive its presentation/artwork/isHealthy
+    // (start() + runHealthCheck + onSnapshot/onTerminated) and applies the spring on mutation.
+    // Until then it stays .none/healthy → the view shows the existing collapsed/date-time states.
+    let nowPlayingState = NowPlayingState()
+
     // CHG-01 / CHG-02 (Plan 03) — the LIVE IOKit power-source monitor. Event-driven
     // (IOPSNotificationCreateRunLoopSource), no polling clock. Each plug/unplug hops to
     // main and lands in handlePower. Constructed + started in start() (so the [weak self]
@@ -243,6 +250,7 @@ final class NotchWindowController {
         if self.panel == nil {
             panel.contentView = NSHostingView(
                 rootView: NotchPillView(interaction: interaction, charging: chargingState,
+                                        nowPlaying: nowPlayingState,
                                         onClick: { [weak self] in self?.handleClick() })
             )
             self.panel = panel
