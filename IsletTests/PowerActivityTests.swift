@@ -56,16 +56,37 @@ final class PowerActivityTests: XCTestCase {
         XCTAssertEqual(powerActivity(from: r), .charging(percent: 100))
     }
 
-    // MARK: shouldTriggerSplash(previous:next:) — category-transition debounce (Pitfall 4)
+    // MARK: shouldTriggerSplash(previous:next:) — CONNECT-only edge (on-device UAT decision)
+    //
+    // Product decision after on-device testing: the splash fires ONLY when the charger is
+    // plugged in (not-on-AC → on-AC). Unplugging shows NOTHING, and topping off while still
+    // plugged (charging → full) shows nothing. Only the connect moment animates.
 
-    func testTransitionTriggersSplash() {
-        // Plug-in: onBattery → charging is a category change → fire the splash.
+    func testPlugInWhileDischargingTriggers() {
+        // Connect: onBattery → charging (not-AC → AC) → fire the splash.
         XCTAssertTrue(shouldTriggerSplash(previous: .onBattery(percent: 50), next: .charging(percent: 51)))
     }
 
-    func testUnplugTransitionTriggersSplash() {
-        // CHG-02 unplug: charging → onBattery is a category change → fire the splash.
-        XCTAssertTrue(shouldTriggerSplash(previous: .charging(percent: 80), next: .onBattery(percent: 80)))
+    func testPlugInAlreadyFullTriggers() {
+        // Connect at 100%: onBattery → full (not-AC → AC) → fire the splash.
+        XCTAssertTrue(shouldTriggerSplash(previous: .onBattery(percent: 100), next: .full(percent: 100)))
+    }
+
+    func testUnplugDoesNotTrigger() {
+        // Unplug: charging → onBattery (AC → not-AC). Per the UAT decision the unplug shows
+        // NO splash (CHG-02's on-battery indication intentionally dropped — connect-only).
+        XCTAssertFalse(shouldTriggerSplash(previous: .charging(percent: 80), next: .onBattery(percent: 80)))
+    }
+
+    func testUnplugWhileFullDoesNotTrigger() {
+        // Unplug at full: full → onBattery (AC → not-AC) → no splash.
+        XCTAssertFalse(shouldTriggerSplash(previous: .full(percent: 100), next: .onBattery(percent: 100)))
+    }
+
+    func testTopOffChargingToFullDoesNotTrigger() {
+        // Still plugged, battery reaches full: charging → full (AC → AC, no new connect) →
+        // no splash (only the connect moment animates, never the top-off).
+        XCTAssertFalse(shouldTriggerSplash(previous: .charging(percent: 99), next: .full(percent: 100)))
     }
 
     func testSameCategoryTickDoesNotTrigger() {
@@ -73,9 +94,15 @@ final class PowerActivityTests: XCTestCase {
         XCTAssertFalse(shouldTriggerSplash(previous: .charging(percent: 46), next: .charging(percent: 47)))
     }
 
-    func testNilToActivityTriggers() {
-        // First reading after launch that resolves to a real activity → fire.
+    func testNilToOnACTriggers() {
+        // First reading after launch that resolves to an on-AC activity → fire (the controller
+        // separately suppresses the launch reading via didSeedInitialPower).
         XCTAssertTrue(shouldTriggerSplash(previous: nil, next: .charging(percent: 20)))
+    }
+
+    func testNilToOnBatteryDoesNotTrigger() {
+        // Launch on battery: nil → onBattery (not-AC) → no splash.
+        XCTAssertFalse(shouldTriggerSplash(previous: nil, next: .onBattery(percent: 60)))
     }
 
     func testActivityToNilDoesNotTrigger() {

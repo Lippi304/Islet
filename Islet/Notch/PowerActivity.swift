@@ -38,25 +38,22 @@ func powerActivity(from r: PowerReading) -> ChargingActivity? {
     return .onBattery(percent: p)
 }
 
-// Category of an activity, IGNORING the percent number. nil maps to .none so the
-// debounce can compare "kind of splash" without re-firing on every percent tick.
-private enum SplashCategory: Equatable { case none, charging, full, onBattery }
-
-private func splashCategory(_ activity: ChargingActivity?) -> SplashCategory {
-    switch activity {
-    case .none:           return .none
-    case .charging:       return .charging
-    case .full:           return .full
-    case .onBattery:      return .onBattery
-    }
+// Pure CONNECT-edge predicate: true ONLY when the device transitions from not-on-AC
+// (no reading or on battery) to on-AC (charging or full) — i.e. the user just plugged in
+// the charger. Product decision from on-device UAT: the splash fires ONLY on connect, NOT
+// on unplug, and NOT on within-AC changes (charging↔full as the battery tops off). So:
+//   onBattery / none  → charging / full  → fire   (connect — the only animated moment)
+//   charging / full   → onBattery        → no fire (unplug — CHG-02's on-battery cue dropped)
+//   charging ↔ full   → no fire (still plugged; reaching/leaving full is not a new connect)
+//   activity → nil    → no fire (clearing a standing splash is not a new splash)
+func shouldTriggerSplash(previous: ChargingActivity?, next: ChargingActivity?) -> Bool {
+    isOnAC(next) && !isOnAC(previous)
 }
 
-// Pure splash-debounce predicate (Pitfall 4): true only when the CATEGORY changed
-// (charging/full/onBattery, ignoring the percent number), so a pure % tick within the
-// same category does NOT re-fire a splash. A nil→activity edge fires (first real
-// reading); an activity→nil edge does NOT (clearing the splash is not a new splash).
-func shouldTriggerSplash(previous: ChargingActivity?, next: ChargingActivity?) -> Bool {
-    let prev = splashCategory(previous)
-    let nextCat = splashCategory(next)
-    return prev != nextCat && nextCat != .none
+// A charging/full presentation means the adapter is connected; onBattery / no reading is not.
+private func isOnAC(_ activity: ChargingActivity?) -> Bool {
+    switch activity {
+    case .charging, .full: return true
+    case .onBattery, .none: return false
+    }
 }
