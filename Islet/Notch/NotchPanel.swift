@@ -20,7 +20,14 @@ final class NotchPanel: NSPanel {
         isMovable = false
         isMovableByWindowBackground = false
         isReleasedWhenClosed = false      // keep the object alive across show/hide
-        ignoresMouseEvents = true         // Phase 1: fully click-through (D-07); Phase 2 makes this conditional
+        // Phase 2: ignoresMouseEvents is now CONDITIONAL (RESEARCH Pattern 1). It STARTS
+        // true (idle = fully click-through, D-07), and NotchWindowController flips it to
+        // false ONLY while the pointer is inside the pill hot-zone so the SwiftUI content
+        // can receive the expand click WITHOUT activating Islet (.nonactivatingPanel +
+        // canBecomeKey==false makes that focus-safe). It is restored to true whenever the
+        // island is collapsed and the pointer is out (Pitfall 3). The style mask is NEVER
+        // toggled at runtime — only this single flag is.
+        ignoresMouseEvents = true
         level = .statusBar                // above normal windows; see A2 — Plan 03 tunes vs the Tahoe menu bar
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary] // ISL-02: all Spaces, above fullscreen-aux
     }
