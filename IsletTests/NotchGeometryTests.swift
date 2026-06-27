@@ -88,4 +88,44 @@ final class NotchGeometryTests: XCTestCase {
                                widthFudge: 4)
         XCTAssertNil(frame)
     }
+
+    // MARK: expandedNotchFrame (ISL-04)
+
+    func testExpandedNotchFrameCentersOnMidXAndPinsTop() {
+        // collapsed pill at origin-screen: x 610, y 944, 292x38 (== notchFrame output).
+        // expandedSize 360x72. The expanded frame stays centered on the collapsed
+        // midX (756) and pinned to the same top edge (maxY 982, bottom-left origin):
+        //   x = 756 - 180 = 576, y = 982 - 72 = 910.
+        let collapsed = CGRect(x: 610, y: 944, width: 292, height: 38)
+        let expandedSize = CGSize(width: 360, height: 72)
+        let frame = expandedNotchFrame(collapsed: collapsed, expandedSize: expandedSize)
+        XCTAssertEqual(frame.midX, collapsed.midX, accuracy: 0.0001)
+        XCTAssertEqual(frame.midX, 756, accuracy: 0.0001)
+        XCTAssertEqual(frame.maxY, collapsed.maxY, accuracy: 0.0001)
+        XCTAssertEqual(frame.maxY, 982, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.x, 576, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.y, 910, accuracy: 0.0001)
+        XCTAssertEqual(frame.width, 360, accuracy: 0.0001)
+        XCTAssertEqual(frame.height, 72, accuracy: 0.0001)
+    }
+
+    func testExpandedNotchFrameOnNonZeroOriginScreen() {
+        // Built-in screen placed to the right in the arrangement: collapsed pill at
+        // x 2530 (midX 2676). Expanding keeps that midX and the same top edge.
+        //   x = 2676 - 180 = 2496, y = 982 - 72 = 910.
+        let collapsed = CGRect(x: 2530, y: 944, width: 292, height: 38)
+        let expandedSize = CGSize(width: 360, height: 72)
+        let frame = expandedNotchFrame(collapsed: collapsed, expandedSize: expandedSize)
+        XCTAssertEqual(frame.midX, 2676, accuracy: 0.0001)
+        XCTAssertEqual(frame.midX, collapsed.midX, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.x, 2496, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.y, 910, accuracy: 0.0001)
+    }
+
+    func testExpandedNotchFrameDegenerateEqualsCollapsed() {
+        // Degenerate case: expandedSize == collapsed.size → no jump, frame == collapsed.
+        let collapsed = CGRect(x: 610, y: 944, width: 292, height: 38)
+        let frame = expandedNotchFrame(collapsed: collapsed, expandedSize: collapsed.size)
+        XCTAssertEqual(frame, collapsed)
+    }
 }
