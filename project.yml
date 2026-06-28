@@ -54,7 +54,7 @@ targets:
         # German string to match the app's user-facing locale (cf. "Now Playing nicht verfügbar").
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird."
         GENERATE_INFOPLIST_FILE: YES                   # modern Xcode: synthesize Info.plist from build settings
-        MARKETING_VERSION: "1.0"                       # -> CFBundleShortVersionString (Settings version label, D-09)
+        MARKETING_VERSION: "0.1"                       # -> CFBundleShortVersionString (D-14: private first release; 1.0 reserved for public launch)
         CURRENT_PROJECT_VERSION: "1"                   # -> CFBundleVersion (build number)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_APP_SANDBOX: NO                         # un-sandboxed (needed for later MediaRemote/IOKit work)
