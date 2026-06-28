@@ -109,11 +109,11 @@ struct NotchPillView: View {
     // The panel is sized to the UNION with the 360-wide expanded frame, so this only sizes the
     // visible black strip, never the window. The pure wingsFrame tests build their own size,
     // so this constant tunes freely.
-    // Post-checkpoint (user request): ONE uniform 295 pt width across all three wing glances
+    // Post-checkpoint (user request): ONE uniform 290 pt width across all three wing glances
     // (charging, media, device) so the island reads consistently regardless of activity.
-    static let wingsSize = CGSize(width: 295, height: 32)
-    static let mediaWingsSize = CGSize(width: 295, height: 32)
-    static let deviceWingsSize = CGSize(width: 295, height: 32)
+    static let wingsSize = CGSize(width: 290, height: 32)
+    static let mediaWingsSize = CGSize(width: 290, height: 32)
+    static let deviceWingsSize = CGSize(width: 290, height: 32)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
