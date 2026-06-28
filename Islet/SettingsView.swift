@@ -4,6 +4,16 @@ struct SettingsView: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @Environment(\.appearsActive) private var appearsActive   // refocus → re-sync
 
+    // APP-03 activity preferences — app-owned, so @AppStorage IS the source of
+    // truth (D-09). All three default ON (D-06/D-07): `@AppStorage(key) var x =
+    // true` returns `true` when the key is ABSENT, so a fresh install reads ON
+    // without writing anything. Keys + palette come from ActivitySettings so the
+    // controller (Plan 04) reads the identical values.
+    @AppStorage(ActivitySettings.chargingKey)   private var chargingEnabled = true
+    @AppStorage(ActivitySettings.nowPlayingKey) private var nowPlayingEnabled = true
+    @AppStorage(ActivitySettings.deviceKey)     private var deviceEnabled = true
+    @AppStorage(ActivitySettings.accentIndexKey) private var accentIndex = ActivitySettings.defaultAccentIndex
+
     var body: some View {
         Form {
             Toggle("Launch Islet at login", isOn: $launchAtLogin)
@@ -26,6 +36,32 @@ struct SettingsView: View {
                         launchAtLogin = LaunchAtLogin.isEnabled
                     }
                 }
+
+            // APP-03: three independent activity on/off toggles (D-06/D-07),
+            // pure on/off — no master switch, no per-activity duration (D-08).
+            Section("Activities") {
+                Toggle("Charging", isOn: $chargingEnabled)
+                Toggle("Now Playing", isOn: $nowPlayingEnabled)
+                Toggle("Devices", isOn: $deviceEnabled)
+
+                // D-12: a curated swatch palette (a fixed preset row, not a free
+                // color wheel) with a selected ring. Tapping persists the index
+                // via @AppStorage and
+                // (once Plan 04 wires it) live-applies the accent.
+                LabeledContent("Accent") {
+                    HStack(spacing: 10) {
+                        ForEach(ActivitySettings.palette.indices, id: \.self) { i in
+                            Circle()
+                                .fill(ActivitySettings.palette[i])
+                                .frame(width: 22, height: 22)
+                                .overlay(
+                                    Circle().strokeBorder(.primary, lineWidth: accentIndex == i ? 2 : 0)
+                                )
+                                .onTapGesture { accentIndex = i }
+                        }
+                    }
+                }
+            }
 
             LabeledContent("Version") {
                 Text(Self.versionString)   // D-09: version/build label
