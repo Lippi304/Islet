@@ -91,6 +91,10 @@ struct NotchPillView: View {
     // NARROWER than the charging wings. Width-only difference; same 32 pt notch-flush height.
     // The panel union uses the wider `wingsSize`, so this narrower value never affects the window.
     static let mediaWingsSize = CGSize(width: 290, height: 32)
+    // The DEVICE-connected glance carries an icon + a (bounded) device name, so it matches the
+    // charging-wings WIDTH (it can hold a longer name than the media bars). Same 32 pt notch-flush
+    // height. The panel union uses `wingsSize` (== this width), so it never affects the window.
+    static let deviceWingsSize = CGSize(width: 305, height: 32)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -229,6 +233,73 @@ struct NotchPillView: View {
                 }
                 .frame(width: Self.mediaWingsSize.width, height: Self.mediaWingsSize.height)
             )
+    }
+
+    // DEV-01 / DEV-02 / D-02 / D-03 — the DEVICE-connected glance WINGS: the connect/disconnect
+    // splash. Same flat strip shape + shared morph identity as the charging/media wings, so SwiftUI
+    // MORPHS the ONE black island between the device/charging/media/expanded/collapsed states (no
+    // cross-fade). Device glyph on the LEFT wing, the device NAME on the RIGHT wing. D-03: ONE layout,
+    // two distinguished states — `.connected` renders full-opacity, `.disconnected` dims the icon and
+    // adds a "Disconnected" treatment. The view drives NO animation (D-08); the controller (Plan 04)
+    // wraps the activity mutation in its spring wrapper and clears it after ~3s (D-04 dismiss).
+    //
+    // SECURITY (T-05-01 / T-06-03): the device `name` is UNTRUSTED external input. It is rendered in a
+    // SwiftUI Text (inert to format strings) and BOUNDED with `.lineLimit(1) + .truncationMode(.tail)`
+    // so an over-long/hostile name can't break layout. Plan 04 threads the accent tint (D-11); here the
+    // icon defaults to white so this branch compiles standalone and Plan 04 only passes a colour.
+    private func deviceWings(for activity: DeviceActivity) -> some View {
+        let name: String
+        let glyph: DeviceGlyph
+        let isConnected: Bool
+        switch activity {
+        case .connected(let n, let g):    name = n; glyph = g; isConnected = true
+        case .disconnected(let n, let g): name = n; glyph = g; isConnected = false
+        }
+        let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
+        return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flat strip, matches charging/media wings
+            .fill(Color.black)
+            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.deviceWingsSize.width, height: Self.deviceWingsSize.height)
+            .overlay(
+                HStack(spacing: 0) {
+                    Image(systemName: deviceSymbol(for: glyph))   // LEFT wing — device glyph (D-02)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.white.opacity(iconOpacity))
+                        .padding(.leading, 10)
+                    Spacer()                                      // clears the physical camera bridge
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text(name)                                // RIGHT wing — UNTRUSTED, bounded (T-05-01)
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        if !isConnected {
+                            Text("Disconnected")                  // D-03 disconnect treatment
+                                .font(.system(size: 9, weight: .medium, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.5))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
+                    .padding(.trailing, 12)
+                    .padding(.leading, 6)
+                }
+                .frame(width: Self.deviceWingsSize.width, height: Self.deviceWingsSize.height)
+            )
+    }
+
+    // D-02 — map the device glyph to an SF Symbol name. All chosen names are valid SF Symbols; a
+    // wrong name would only fall back gracefully (cosmetic — Pitfall 7). `.generic` covers mice,
+    // keyboards, controllers, and unknown devices with a neutral radiowaves glyph.
+    private func deviceSymbol(for glyph: DeviceGlyph) -> String {
+        switch glyph {
+        case .airpods:    return "airpods"
+        case .airpodsPro: return "airpodspro"
+        case .airpodsMax: return "airpods.max"
+        case .headphones: return "headphones"
+        case .beats:      return "beats.headphones"
+        case .generic:    return "dot.radiowaves.left.and.right"
+        }
     }
 
     // Album art thumbnail with the nil → music-note placeholder (Open Question 3 / T-04-11).
