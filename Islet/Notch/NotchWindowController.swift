@@ -102,6 +102,10 @@ final class NotchWindowController {
     private var bluetoothStartedAt: Date?
     private let deviceLaunchGrace: TimeInterval = 4.0
 
+    // The one-shot post-connect battery re-read (the HFP battery can arrive after the connect
+    // edge). A single DispatchWorkItem — cancelled/replaced per connect, torn down in deinit.
+    private var deviceBatteryWork: DispatchWorkItem?
+
     // Phase 6 / APP-03 — the last accent index applied to the hosting view. UserDefaults posts
     // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
     // the controller only re-hosts the view (to re-inject the Environment accent) when THIS value
@@ -685,7 +689,33 @@ final class NotchWindowController {
             }
             updateVisibility()                            // Pattern 6 — the SOLE show/hide site
             scheduleActivityDismiss()                     // shared ~3s one-shot (advances the queue)
+            // The HFP battery indicator can arrive a beat after the connect notification, so the
+            // splash may open with the connection sign; refresh it shortly after so the battery
+            // appears within the ~3s glance (no-op if the battery was already present / unchanged).
+            if reading.connected { scheduleDeviceBatteryRefresh(address: addr) }
         }
+    }
+
+    // One short delayed re-read of the just-connected device's battery (the HFP AT+IPHONEACCEV
+    // value often lands after the connect edge). If it now reports a level and the device is still
+    // the standing head, update the head in place (no re-arm of the ~3s dismiss — like a charging %
+    // tick) so the BatteryIndicator replaces the connection sign live. Bounded to ONE work item.
+    private func scheduleDeviceBatteryRefresh(address: String) {
+        deviceBatteryWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, let monitor = self.bluetoothMonitor,
+                  case .device(.connected(let name, let glyph, let old))? = self.transientQueue.head,
+                  let fresh = monitor.battery(forAddress: address), fresh != old
+            else { return }
+            let updated = DeviceActivity.connected(name: name, glyph: glyph, battery: fresh)
+            self.deviceState.activity = updated
+            self.transientQueue.updateHead(.device(updated))
+            withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                self.renderPresentation()
+            }
+        }
+        deviceBatteryWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: work)
     }
 
     // MARK: - Phase 6: hosting view + live settings application (APP-03 / D-09 / D-11)
@@ -877,6 +907,7 @@ final class NotchWindowController {
         // class connect token + every per-device disconnect token so no OS-held token outlives
         // the owner. Mirrors powerMonitor.stop()'s owner-driven teardown.
         bluetoothMonitor?.stop()
+        deviceBatteryWork?.cancel()
 
         // Phase 4 (security T-04-12): terminate the persistent MediaRemote child so no orphaned
         // perl / MediaRemoteAdapter process leaks after the controller dies, and cancel the

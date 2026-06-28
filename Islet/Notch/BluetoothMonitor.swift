@@ -128,6 +128,19 @@ final class BluetoothMonitor: NSObject {
         return buds.min()
     }
 
+    // Re-read a connected device's battery by address. The HFP battery indicator
+    // (AT+IPHONEACCEV) can arrive a beat AFTER the connect notification fires, so the device
+    // splash may show the connection sign at the connect instant and the controller refreshes it
+    // shortly after via this lookup. Returns nil if the device is gone / reports no battery.
+    func battery(forAddress address: String) -> Int? {
+        guard let devs = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice],
+              let d = devs.first(where: {
+                  $0.isConnected() && ($0.addressString?.caseInsensitiveCompare(address) == .orderedSame)
+              })
+        else { return nil }
+        return Self.batteryPercent(d)
+    }
+
     // Full teardown (Pitfall 5 / T-06-04): unregister the connect token AND every per-device
     // disconnect token so no OS-held token outlives the owner. Mirrors PowerSourceMonitor.stop()'s
     // owner-driven teardown; the unregister() calls are safe to invoke during the owner's deinit.
