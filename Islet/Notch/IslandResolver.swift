@@ -48,3 +48,36 @@ func resolve(activeTransient: ActiveTransient?,
     if nowPlaying != .none { return .nowPlayingWings(nowPlaying) }   // D-02 ambient yield (rank 3)
     return .idle
 }
+
+// D-03 — the bounded, de-duped, SEQUENTIAL transient queue. When two transients collide
+// (e.g. plug in the charger while AirPods connect), the first shows, then the second —
+// they never overlap. Pure value: `advance()` is called by the controller (Plan 04) when
+// the current splash's ~3s elapses; there is NO Timer/clock inside (Pitfall: no-polling,
+// keeps the queue deterministically testable). The depth is bounded and duplicates are
+// dropped so a flapping device can never back the queue up (T-06-01).
+struct TransientQueue {
+    private(set) var head: ActiveTransient?
+    private var pending: [ActiveTransient] = []
+    let maxDepth = 2
+
+    // Read-only depth accessor so tests assert the bound/dedup without exposing `pending`.
+    var pendingCount: Int { pending.count }
+
+    // Returns true iff `t` becomes the head NOW (show immediately); false if it was
+    // enqueued behind the current head, de-duped, or dropped on overflow.
+    mutating func enqueue(_ t: ActiveTransient) -> Bool {
+        if head == nil { head = t; return true }
+        if head == t || pending.contains(t) { return false }   // D-03 dedup (head + pending)
+        pending.append(t)
+        if pending.count > maxDepth { pending.removeFirst() }   // D-03 bound (drop oldest pending)
+        return false
+    }
+
+    // Promote the next pending transient to head; if none, clear head (back to ambient).
+    // Returns true always (a state change occurred). Called when the current splash elapses.
+    mutating func advance() -> Bool {
+        guard !pending.isEmpty else { head = nil; return true } // back to ambient
+        head = pending.removeFirst()
+        return true
+    }
+}
