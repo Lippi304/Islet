@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: paused
+status: executing
 stopped_at: Phase 6 context gathered
-last_updated: "2026-06-28T01:05:24.425Z"
-last_activity: 2026-06-28 -- Phase 05 Plan 01 paused at human-verify checkpoint
+last_updated: "2026-06-28T01:37:06.331Z"
+last_activity: 2026-06-28 -- Phase 06 execution started
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 21
+  total_plans: 26
   completed_plans: 18
-  percent: 86
+  percent: 69
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 05 — device-connected-activity
+**Current focus:** Phase 06 — priority-resolver-settings-v1-ship
 
 ## Current Position
 
-Phase: 05 (device-connected-activity) — PAUSED at checkpoint
-Plan: 1 of 3 (Tasks 1-2 done, Task 3 blocked)
-Status: Paused — Plan 05-01 awaiting on-device Bluetooth spike (no test device available)
-Last activity: 2026-06-28 -- Phase 05 Plan 01 paused at human-verify checkpoint
+Phase: 06 (priority-resolver-settings-v1-ship) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 06
+Last activity: 2026-06-28 -- Phase 06 execution started
 
 ### Resume Point: Phase 05 Plan 01 (BT permission spike)
 

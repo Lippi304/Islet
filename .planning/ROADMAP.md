@@ -128,9 +128,9 @@ Plans:
   3. The Now Playing launch-time health check is re-verified and the production build is signed, notarized, and stapled, opening cleanly on a second Mac
 **Plans**: 5 plans
 Plans:
-- [ ] 06-01-PLAN.md — Wave 0: pure IslandResolver ranked reducer + bounded de-duped TransientQueue (RED→GREEN unit tests for COORD-01)
-- [ ] 06-02-PLAN.md — Finish device quartet: DeviceActivityState + thin BluetoothMonitor + deviceWings branch + remove the BT spike (DEV-01/DEV-02, code-complete)
-- [ ] 06-03-PLAN.md — Settings: three activity toggles + curated accent palette + @AppStorage persistence + activityAccent env key (APP-03)
+- [x] 06-01-PLAN.md — Wave 0: pure IslandResolver ranked reducer + bounded de-duped TransientQueue (RED→GREEN unit tests for COORD-01)
+- [x] 06-02-PLAN.md — Finish device quartet: DeviceActivityState + thin BluetoothMonitor + deviceWings branch + remove the BT spike (DEV-01/DEV-02, code-complete)
+- [x] 06-03-PLAN.md — Settings: three activity toggles + curated accent palette + @AppStorage persistence + activityAccent env key (APP-03)
 - [ ] 06-04-PLAN.md — Wire resolver+queue+device monitor+toggles+accent into NotchWindowController/NotchPillView; on-device coexistence checkpoint (COORD-01/DEV/APP-03)
 - [ ] 06-05-PLAN.md — v1 ship: version 0.1 + release.sh dry-run DMG + on-device Now Playing health re-check (APP-04, real notarize deferred)
 **UI hint**: yes
