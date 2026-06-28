@@ -8,6 +8,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // panel and its screen-change observer stay alive (a dropped controller would
     // tear down the overlay). Parallel to `statusItem`.
     private var notchController: NotchWindowController?
+    #if DEBUG_BT_SPIKE
+    // Phase 5 / Plan 01 Task 3 — THROWAWAY IOBluetooth permission spike. Retained so its
+    // connect/disconnect registrations stay alive while the user tests connect/disconnect.
+    // Gated behind DEBUG_BT_SPIKE — NOT in a normal build. Removed before Plan 02.
+    private var bluetoothSpike: BluetoothSpike?
+    #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the menu-bar status item. variableLength = sized to its content.
@@ -39,6 +45,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = NotchWindowController()
         controller.start()
         self.notchController = controller
+
+        #if DEBUG_BT_SPIKE
+        // Phase 5 / Plan 01 Task 3 spike: register the IOBluetooth connect/disconnect
+        // observers (no pairedDevices()/scanning) so the user can settle the macOS-26
+        // permission question (A1). Throwaway — gated behind DEBUG_BT_SPIKE.
+        let spike = BluetoothSpike()
+        spike.start()
+        self.bluetoothSpike = spike
+        #endif
 
         // A menu-bar agent must NOT show its Settings window on launch — once
         // "Launch at login" is enabled it would otherwise pop up on every login.

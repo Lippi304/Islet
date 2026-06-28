@@ -37,6 +37,7 @@
 		C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */; };
 		CBFEA4D08C31BD0C3602E177 /* NotchInteractionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE98C0240E35D702BEA0DBA /* NotchInteractionState.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
+		E2A179D11785C441922B905C /* BluetoothSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67BE768B6AB665AB2D0159AD /* BluetoothSpike.swift */; };
 		EB0A6293AAD242E76B254033 /* PowerSourceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */; };
 		EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984325CC40BE13B07D21477D /* NotchGeometryTests.swift */; };
 		FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28316551B58651959797184D /* DeviceActivity.swift */; };
@@ -85,6 +86,7 @@
 		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5D869CDF80317230429414E1 /* PowerActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivityTests.swift; sourceTree = "<group>"; };
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
+		67BE768B6AB665AB2D0159AD /* BluetoothSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothSpike.swift; sourceTree = "<group>"; };
 		71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSpaceProbe.swift; sourceTree = "<group>"; };
 		76ADF16C067A181F295BA4C5 /* PowerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivity.swift; sourceTree = "<group>"; };
 		77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityDecisionTests.swift; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 		EA504E63C5387A70CEC3745D /* Notch */ = {
 			isa = PBXGroup;
 			children = (
+				67BE768B6AB665AB2D0159AD /* BluetoothSpike.swift */,
 				279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */,
 				28316551B58651959797184D /* DeviceActivity.swift */,
 				FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */,
@@ -287,6 +290,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */,
+				E2A179D11785C441922B905C /* BluetoothSpike.swift in Sources */,
 				62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */,
 				FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */,
 				C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */,
