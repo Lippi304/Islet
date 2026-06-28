@@ -27,12 +27,17 @@ import AppKit
 @MainActor
 final class BluetoothMonitor: NSObject {
     // The class-wide connect notification token (retained so it stays live — Pitfall 4).
-    private var connectToken: IOBluetoothUserNotification?
+    // nonisolated(unsafe) so the nonisolated stop() can run from NotchWindowController's
+    // nonisolated deinit (mirroring PowerSourceMonitor.runLoopSource / NowPlayingMonitor). These
+    // are only ever written on main (start/connect/disconnect/stop) and IOBluetoothUserNotification
+    // .unregister() is itself thread-safe — the deinit teardown at app-quit is the sole nonisolated
+    // reader, so there is no concurrent access.
+    private nonisolated(unsafe) var connectToken: IOBluetoothUserNotification?
     // Per-device disconnect tokens, keyed by address so the disconnect callback / stop() can
     // drop them individually. Retained (Pitfall 4: a dropped token stops firing).
-    private var disconnectTokens: [String: IOBluetoothUserNotification] = [:]
+    private nonisolated(unsafe) var disconnectTokens: [String: IOBluetoothUserNotification] = [:]
     // Pitfall 5: idempotent start() — guards against a second registration of the class token.
-    private var running = false
+    private nonisolated(unsafe) var running = false
     // The controller (Plan 04) passes a closure already on main; this glue lifts a DeviceReading
     // out of each callback and hands it over (so this file never touches @Published / SwiftUI).
     private let onReading: (DeviceReading) -> Void
@@ -82,7 +87,10 @@ final class BluetoothMonitor: NSObject {
     // Full teardown (Pitfall 5 / T-06-04): unregister the connect token AND every per-device
     // disconnect token so no OS-held token outlives the owner. Mirrors PowerSourceMonitor.stop()'s
     // owner-driven teardown; the unregister() calls are safe to invoke during the owner's deinit.
-    func stop() {
+    // nonisolated so the controller's nonisolated deinit can call it (Plan 04 / T-06-12), mirroring
+    // PowerSourceMonitor.stop() / NowPlayingMonitor.stop(). The body is thread-safe token
+    // unregistration on the nonisolated(unsafe) tokens.
+    nonisolated func stop() {
         connectToken?.unregister()
         connectToken = nil
         disconnectTokens.values.forEach { $0.unregister() }

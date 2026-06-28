@@ -47,6 +47,12 @@ targets:
         PRODUCT_NAME: Islet
         INFOPLIST_KEY_LSUIElement: YES                 # APP-01: menu-bar agent, no Dock icon
         INFOPLIST_KEY_CFBundleDisplayName: Islet       # D-07: display name
+        # Phase 6 / DEV-01 — A1 VERDICT RESOLVED: on macOS 26 the FIRST IOBluetooth API call
+        # (register(forConnectNotifications:)) requires this usage key — without it the app HARD
+        # CRASHES ("attempted to access privacy-sensitive data without a usage description"),
+        # which also took down the test runner. The key is therefore REQUIRED (not speculative).
+        # German string to match the app's user-facing locale (cf. "Now Playing nicht verfügbar").
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird."
         GENERATE_INFOPLIST_FILE: YES                   # modern Xcode: synthesize Info.plist from build settings
         MARKETING_VERSION: "1.0"                       # -> CFBundleShortVersionString (Settings version label, D-09)
         CURRENT_PROJECT_VERSION: "1"                   # -> CFBundleVersion (build number)

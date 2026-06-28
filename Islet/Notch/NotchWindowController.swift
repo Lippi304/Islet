@@ -51,7 +51,53 @@ final class NotchWindowController {
     // (NOT a NotchInteractionState phase, so the Phase-2 gesture machine stays untouched).
     // Plan 03 drives it: the IOKit power-source events below set `.activity` inside
     // withAnimation(.spring) and the ~3s dismissWorkItem clears it.
+    //
+    // Phase 6 note: charging is no longer the RENDER driver — the resolver's TransientQueue is.
+    // chargingState is kept as the model the standing-% tick mutates (and so the view's
+    // @ObservedObject still re-renders an in-place % update inside the same wings case).
     private let chargingState = ChargingActivityState()
+
+    // Phase 6 / DEV-01/DEV-02 (Plan 04) — the SEPARATE device-splash model (clone of
+    // chargingState). The BluetoothMonitor lifts a DeviceReading, the pure deviceActivity(from:)
+    // maps it, and handleDevice publishes it here for the view to bind to; the RENDER decision
+    // still comes from the resolver's queue head.
+    private let deviceState = DeviceActivityState()
+
+    // Phase 6 / COORD-01 / D-05 — the @Published carrier of the resolver's verdict. The view
+    // observes this; the controller writes it (inside the spring) on every state change via
+    // renderPresentation(). This is the ONE place the rendered presentation is set.
+    private let presentationState = IslandPresentationState()
+
+    // Phase 6 / COORD-01 / D-03 — the bounded, de-duped SEQUENTIAL transient queue (pure value
+    // from IslandResolver.swift). Its `head` feeds `resolve(activeTransient:)`; charging + device
+    // splashes enqueue here and play one-after-another off the SINGLE one-shot dismiss below.
+    private var transientQueue = TransientQueue()
+
+    // Phase 6 / DEV-01 — the LIVE IOBluetooth connect/disconnect monitor (clone of powerMonitor).
+    // Constructed + started in start() ONLY when the device toggle is on (D-09 prefer stop);
+    // held as a plain optional so toggle-off / deinit can stop() + release it.
+    private var bluetoothMonitor: BluetoothMonitor?
+
+    // Phase 6 / 05 D-04 — the device-splash debounce/burst-suppression state threaded into the
+    // PURE shouldShowDeviceSplash(...) predicate (no clock inside it; the controller passes `now`
+    // + these dictionaries). deviceLastShown debounces reconnect flaps; deviceSuppressedAtLaunch
+    // would hold the at-launch/wake connect burst (left empty for v1 — the on-device A2 verdict
+    // that would seed it is a deferred carry-over; the debounce alone already bounds the queue).
+    private var deviceLastShown: [String: TimeInterval] = [:]
+    private var deviceSuppressedAtLaunch: Set<String> = []
+    private let deviceDebounce: TimeInterval = 3.0   // mirror activityDuration (discretion seed)
+
+    // Phase 6 / APP-03 — the last accent index applied to the hosting view. UserDefaults posts
+    // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
+    // the controller only re-hosts the view (to re-inject the Environment accent) when THIS value
+    // actually changed — avoids needless re-hosting churn. Seeded lazily on the first apply.
+    private var appliedAccentIndex: Int?
+
+    // Phase 6 / APP-03 / D-09 — the UserDefaults observer token. Flipping an activity toggle (or
+    // the accent swatch) posts UserDefaults.didChangeNotification; the controller re-reads the
+    // keys to start/stop the matching monitor, flush any standing/queued transient of a disabled
+    // category, and re-inject the accent. Removed in deinit.
+    private var defaultsObserver: NSObjectProtocol?
 
     // Phase 4 / NOW-01/02 — the SEPARATE @Published media model the media wings + expanded
     // controls observe (Plan 02). Created here so the view has a live instance to bind to;
@@ -190,26 +236,76 @@ final class NotchWindowController {
             self?.handlePointer(at: NSEvent.mouseLocation)
         }
 
-        // CHG-01 / CHG-02 (Plan 03): register the LIVE IOKit power-source notification. It
-        // emits the initial reading once (seeded WITHOUT a splash via didSeedInitialPower)
+        // CHG-01 / CHG-02 (Plan 03 / Phase 6 D-09): register the LIVE IOKit power-source
+        // notification ONLY if the Charging toggle is on (prefer stop → idle CPU ~0% when off).
+        // It emits the initial reading once (seeded WITHOUT a splash via didSeedInitialPower)
         // and then fires on every plug/unplug → handlePower on main. Event-driven, no poll.
+        if activityEnabled(ActivitySettings.chargingKey) { startPowerMonitor() }
+
+        // Phase 4 / NOW-01/02/03 (Plan 04 / Phase 6 D-09): construct + start the LIVE MediaRemote
+        // bridge ONLY if the Now Playing toggle is on. start() opens ONE persistent `loop` child
+        // that emits the current session immediately (NOW-03 restart survival). runHealthCheck is
+        // the D-12 launch probe. When the toggle is off the perl child is never spawned (idle CPU).
+        if activityEnabled(ActivitySettings.nowPlayingKey) { startNowPlayingMonitor() }
+
+        // Phase 6 / DEV-01 (D-09): register the LIVE IOBluetooth connect/disconnect monitor ONLY
+        // if the Devices toggle is on. Mirrors the power monitor's construction; handleDevice
+        // feeds the pure device seam → the transient queue. (On-device BT UAT is the deferred
+        // carry-over; the wiring is code-complete.)
+        if activityEnabled(ActivitySettings.deviceKey) { startBluetoothMonitor() }
+
+        // Phase 6 / APP-03 / D-09: observe UserDefaults so flipping a toggle (or the accent
+        // swatch) live-applies — start/stop the affected monitor, flush its standing/queued
+        // transient, re-inject the accent, and re-render. UserDefaults posts on the thread that
+        // mutated it; @AppStorage from the SettingsView runs on main, so hop to main to be safe.
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in self?.handleSettingsChanged() }
+
+        // Phase 6: seed the first rendered presentation from the resolver (idle until an
+        // activity fires) so the view starts from the single-arbiter verdict, not a stale value.
+        renderPresentation()
+    }
+
+    // MARK: - Phase 6: toggle-gated monitor lifecycle (D-09 prefer stop, Pitfall 5 idempotent)
+
+    // Read an activity toggle from UserDefaults. Defaults to TRUE (D-07 all default ON) when the
+    // key is absent — the SettingsView @AppStorage uses the same default, so a fresh install
+    // shows everything.
+    private func activityEnabled(_ key: String) -> Bool {
+        UserDefaults.standard.object(forKey: key) as? Bool ?? true
+    }
+
+    // Idempotent start: only constructs/starts if not already running (Pitfall 5 — never
+    // double-register an IOPS source on a fast toggle on/off/on).
+    private func startPowerMonitor() {
+        guard powerMonitor == nil else { return }
+        didSeedInitialPower = false              // re-seed: the re-enable reading must not splash
         let monitor = PowerSourceMonitor { [weak self] reading in self?.handlePower(reading) }
         powerMonitor = monitor
         monitor.start()
+    }
 
-        // Phase 4 / NOW-01/02/03 (Plan 04): construct + start the LIVE MediaRemote bridge,
-        // mirroring the powerMonitor construction. start() opens ONE persistent `loop` child
-        // that emits the current session immediately (NOW-03 restart survival: a relaunch
-        // re-reads whatever is playing right now). Every track update hops to main inside the
-        // wrapper and lands in handleNowPlaying; a mid-session child death lands in
-        // handleAdapterTerminated (D-13). runHealthCheck is the D-12 launch probe that flips
-        // isHealthy=false if the private-MediaRemote bridge is blocked on THIS macOS.
+    private func startNowPlayingMonitor() {
+        guard nowPlayingMonitor == nil else { return }
         let np = NowPlayingMonitor(
             onSnapshot: { [weak self] snap, art in self?.handleNowPlaying(snap, art) },
             onTerminated: { [weak self] in self?.handleAdapterTerminated() })   // D-13
         nowPlayingMonitor = np
         np.start()
-        np.runHealthCheck { [weak self] healthy in self?.nowPlayingState.isHealthy = healthy }   // D-12
+        np.runHealthCheck { [weak self] healthy in
+            guard let self else { return }
+            self.nowPlayingState.isHealthy = healthy   // D-12
+            self.renderPresentation()
+        }
+    }
+
+    private func startBluetoothMonitor() {
+        guard bluetoothMonitor == nil else { return }
+        let bt = BluetoothMonitor { [weak self] reading in self?.handleDevice(reading) }
+        bluetoothMonitor = bt
+        bt.start()
     }
 
     // The built-in display's CURRENT descriptor, or nil when the built-in has dropped out
@@ -218,6 +314,29 @@ final class NotchWindowController {
     // fullscreen-induced safe-area collapse on the built-in is observed live (Pattern 6).
     private func currentBuiltin() -> ScreenDescriptor? {
         NSScreen.screens.map { $0.descriptor }.first { $0.isBuiltin }
+    }
+
+    // MARK: - Phase 6: the single arbiter (resolver) + its render
+
+    // COORD-01 / D-05 — compute what the island should render via the PURE resolver. Settings
+    // are applied BEFORE the resolver (D-09): a disabled Now Playing forces `.none` so the
+    // ambient glance disappears live; charging/device are excluded by stopping their monitors
+    // (so they never enqueue a transient). The queue's `head` is the active transient (rank 1/2);
+    // the resolver falls through to the now-playing wings / idle pill when no transient stands.
+    private func currentPresentation() -> IslandPresentation {
+        let npEnabled = activityEnabled(ActivitySettings.nowPlayingKey)
+        let np = npEnabled ? nowPlayingState.presentation : .none   // D-09 disabled NP → forced .none
+        return resolve(activeTransient: transientQueue.head,
+                       nowPlaying: np,
+                       nowPlayingHealthy: nowPlayingState.isHealthy,
+                       isExpanded: interaction.isExpanded)
+    }
+
+    // Write the resolver's verdict to the @Published carrier the view observes. The CALLER owns
+    // the spring wrapper (so the morph is attached AT the originating mutation, D-08) — this just
+    // assigns. Every head/expanded/now-playing mutation ends by calling this + updateVisibility().
+    private func renderPresentation() {
+        presentationState.presentation = currentPresentation()
     }
 
     // Pattern 7 (ISL-05) — the ONE visibility decision and the SOLE show/hide site. The
@@ -286,16 +405,12 @@ final class NotchWindowController {
 
         let panel = self.panel ?? NotchPanel(contentRect: panelFrame)
         if self.panel == nil {
-            panel.contentView = NSHostingView(
-                rootView: NotchPillView(interaction: interaction, charging: chargingState,
-                                        nowPlaying: nowPlayingState,
-                                        onClick: { [weak self] in self?.handleClick() },
-                                        // NOW-02: transport rides the EXISTING persistent child's
-                                        // stdin via the monitor — no re-spawn, no focus steal.
-                                        onTogglePlayPause: { [weak self] in self?.nowPlayingMonitor?.togglePlayPause() },
-                                        onNext: { [weak self] in self?.nowPlayingMonitor?.nextTrack() },
-                                        onPrevious: { [weak self] in self?.nowPlayingMonitor?.previousTrack() })
-            )
+            // Phase 6 / D-11 — host the view with the persisted accent injected on the
+            // `\.activityAccent` Environment value (read by the 3 lively leaf elements). The view
+            // observes presentationState (the resolver's verdict) for the single-arbiter render.
+            let index = UserDefaults.standard.integer(forKey: ActivitySettings.accentIndexKey)
+            appliedAccentIndex = index
+            panel.contentView = NSHostingView(rootView: makeRootView(accentIndex: index))
             self.panel = panel
         }
         panel.setFrame(panelFrame, display: true) // reposition for resolution / display changes
@@ -384,6 +499,9 @@ final class NotchWindowController {
             // Only collapse if the pointer is STILL outside (re-entry would have cancelled).
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                 self.interaction.phase = nextState(self.interaction.phase, .graceElapsed)
+                // Phase 6: a grace-collapse from .expanded flips `isExpanded` false — re-resolve
+                // inside the spring so an expanded-media island morphs back to the ambient glance.
+                self.renderPresentation()
             }
             // Pitfall 3: restore click-through deterministically once collapsed + pointer out.
             self.syncClickThrough()
@@ -406,6 +524,9 @@ final class NotchWindowController {
     private func handleClick() {
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             interaction.phase = nextState(interaction.phase, .clicked)
+            // Phase 6: expand/collapse flips `isExpanded`, a resolver input — re-resolve inside
+            // the SAME spring so the island morphs between the wings/expanded presentation cases.
+            renderPresentation()
         }
         // WR-02: a toggle-shut click (.expanded → .collapsed) schedules NO grace timer, so
         // without this the window would keep swallowing clicks until the next hover cycle.
@@ -434,36 +555,190 @@ final class NotchWindowController {
         lastActivity = next
 
         if fire, let activity = next {
-            // D-07: the spring is attached AT the mutation (the view drives no animation, D-08).
-            // D-11 precedence (charging briefly wins over a user-expanded island) is rendered
-            // by the view's if-ordering; here we only publish the activity.
-            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-                chargingState.activity = activity
+            // Phase 6 / D-02 rank 1: ENQUEUE the charging transient instead of setting the model
+            // directly as the render driver. If it becomes the head NOW, re-resolve (inside the
+            // spring, D-08) → render + the SINGLE updateVisibility() (fullscreen gate) + arm the
+            // ~3s one-shot dismiss that advances the queue. If a transient already stands it is
+            // enqueued behind it (D-03 sequential) and plays when the head's ~3s elapses.
+            chargingState.activity = activity   // keep the model in sync (the % tick mutates it)
+            let changed = transientQueue.enqueue(.charging(activity))
+            if changed {
+                withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                    renderPresentation()
+                }
+                updateVisibility()           // Pattern 6 — the SOLE show/hide site (fullscreen gate)
+                scheduleActivityDismiss()    // D-09 — the ~3s one-shot that advances the queue
             }
-            updateVisibility()           // Pattern 6 — the SOLE show/hide site (fullscreen gate)
-            scheduleActivityDismiss()    // D-09 — the ~3s one-shot collapse
-        } else if next != nil, chargingState.activity != nil {
-            // A pure % tick while a splash already stands: update the % WITHOUT restarting the
-            // ~3s timer or re-triggering the entrance (Pitfall 4). No animation wrapper — the
-            // number just refreshes inside the standing splash.
+        } else if next != nil, case .charging = transientQueue.head {
+            // A pure % tick while a CHARGING splash already stands: update the standing head's %
+            // WITHOUT restarting the ~3s timer or re-enqueuing (Pitfall 4). Refresh both the
+            // queue head and the model, then re-render so the number updates inside the splash.
             chargingState.activity = next
+            if let activity = next { transientQueue.updateHead(.charging(activity)) }
+            renderPresentation()
         }
     }
 
-    // D-09 / Pattern 5 — schedule the ~3s one-shot collapse. Mirrors handleHoverExit's
-    // DispatchWorkItem exactly: a single wake-up that clears the activity inside the spring,
-    // then idles (no recurring timer → idle CPU ~0%). Re-scheduling cancels any pending one.
+    // D-09 / Pattern 5 / Phase 6 D-03 — the ONE one-shot dismiss, generalized from a single
+    // charging splash to the transient QUEUE. A single wake-up that ADVANCES the queue inside the
+    // spring, then idles (no recurring timer → idle CPU ~0%). On advance:
+    //   • head changed to a NEW transient → re-render + re-arm for the next ~3s (D-03 sequential);
+    //   • head cleared (queue empty) → re-render to the ambient state (the resolver falls through
+    //     to .nowPlayingWings if playing, else .idle — Pitfall 2 yield-to-wings, NOT to empty).
+    // Re-scheduling cancels any pending one. Clears the per-category @Published model when its
+    // transient leaves the head so a later in-place % tick can't touch a dismissed splash.
     private func scheduleActivityDismiss() {
         dismissWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            _ = self.transientQueue.advance()             // D-03 — promote next pending or clear
+            self.syncActivityModels()                     // drop the model for whatever left the head
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
-                self.chargingState.activity = nil    // collapse the wings
+                self.renderPresentation()                 // next splash, or ambient (Pitfall 2)
             }
-            self.updateVisibility()                  // re-evaluate the single show/hide site
+            self.updateVisibility()                       // the SOLE show/hide site (fullscreen gate)
+            if self.transientQueue.head != nil {
+                self.scheduleActivityDismiss()            // re-arm the ~3s for the next transient
+            }
         }
         dismissWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + activityDuration, execute: work)
+    }
+
+    // Keep the per-category @Published models in step with the queue head: whichever category is
+    // NOT the current head has no standing splash, so clear its model (so a stale % tick or a
+    // view binding can't resurrect a dismissed splash). The head's own model is left as-is.
+    private func syncActivityModels() {
+        switch transientQueue.head {
+        case .charging: deviceState.activity = nil
+        case .device:   chargingState.activity = nil
+        case nil:       chargingState.activity = nil; deviceState.activity = nil
+        }
+    }
+
+    // Phase 6 / DEV-01 / DEV-02 — a live IOBluetooth connect/disconnect lands here (already on
+    // main; BluetoothMonitor's callback runs on the main run loop). It mirrors handlePower:
+    //   1. The PURE shouldShowDeviceSplash(...) predicate gates BEFORE the queue (05 D-04
+    //      reconnect-flap debounce + at-launch burst suppression) — T-06-09 DoS mitigation: a
+    //      flapping device can't flood the queue because this gate drops repeats within `debounce`.
+    //   2. The PURE deviceActivity(from:) maps the (UNTRUSTED, T-05-01) reading → a bounded
+    //      DeviceActivity (name already clamped to a plain String by deviceLabel).
+    //   3. ENQUEUE as a rank-2 transient (D-02): show immediately if no transient stands, else
+    //      play after the current one (D-03 sequential). On a head change → render (in the spring)
+    //      + the SINGLE updateVisibility() (fullscreen gate) + arm the shared ~3s dismiss.
+    private func handleDevice(_ reading: DeviceReading) {
+        let now = Date().timeIntervalSinceReferenceDate
+        guard shouldShowDeviceSplash(address: reading.address,
+                                     connected: reading.connected,
+                                     now: now,
+                                     lastShown: deviceLastShown,
+                                     debounce: deviceDebounce,
+                                     suppressedAtLaunch: deviceSuppressedAtLaunch)
+        else { return }                                   // 05 D-04 — debounced/suppressed
+        if let addr = reading.address { deviceLastShown[addr] = now }
+
+        guard let activity = deviceActivity(from: reading) else { return }
+        deviceState.activity = activity                   // keep the model in sync with the head
+        let changed = transientQueue.enqueue(.device(activity))   // D-02 rank 2 / D-03 sequential
+        if changed {
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                renderPresentation()
+            }
+            updateVisibility()                            // Pattern 6 — the SOLE show/hide site
+            scheduleActivityDismiss()                     // shared ~3s one-shot (advances the queue)
+        }
+    }
+
+    // MARK: - Phase 6: hosting view + live settings application (APP-03 / D-09 / D-11)
+
+    // Build the SwiftUI root with the accent injected on the Environment (D-11). Extracted so the
+    // initial host AND the live accent re-apply (applyAccentIfChanged) share ONE construction.
+    // accent(for:) clamps an out-of-range index to the neutral default (T-06-11 — never crashes).
+    private func makeRootView(accentIndex: Int) -> some View {
+        NotchPillView(interaction: interaction, charging: chargingState,
+                      nowPlaying: nowPlayingState,
+                      presentationState: presentationState,
+                      onClick: { [weak self] in self?.handleClick() },
+                      // NOW-02: transport rides the EXISTING persistent child's stdin via the
+                      // monitor — no re-spawn, no focus steal.
+                      onTogglePlayPause: { [weak self] in self?.nowPlayingMonitor?.togglePlayPause() },
+                      onNext: { [weak self] in self?.nowPlayingMonitor?.nextTrack() },
+                      onPrevious: { [weak self] in self?.nowPlayingMonitor?.previousTrack() })
+            .environment(\.activityAccent, ActivitySettings.accent(for: accentIndex))
+    }
+
+    // APP-03 / D-09 — a UserDefaults write (toggle flip or accent swatch) lands here on main.
+    // It (1) starts/stops each monitor to match its toggle (prefer stop, idle CPU), flushing any
+    // standing/queued transient of a category turned off (Pitfall 3), (2) re-injects the accent if
+    // it changed (D-11), then (3) re-renders + routes through the single updateVisibility().
+    private func handleSettingsChanged() {
+        // Charging
+        if activityEnabled(ActivitySettings.chargingKey) {
+            startPowerMonitor()
+        } else if powerMonitor != nil {
+            powerMonitor?.stop(); powerMonitor = nil
+            lastActivity = nil; didSeedInitialPower = false
+            flushTransients(.charging)
+        }
+
+        // Devices
+        if activityEnabled(ActivitySettings.deviceKey) {
+            startBluetoothMonitor()
+        } else if bluetoothMonitor != nil {
+            bluetoothMonitor?.stop(); bluetoothMonitor = nil
+            deviceLastShown.removeAll()
+            flushTransients(.device)
+        }
+
+        // Now Playing — stop the perl child on disable (RESEARCH Open Q3: prefer a clean restart);
+        // re-enabling start()s + re-runs the health check, mirroring launch. While disabled,
+        // currentPresentation() forces nowPlaying → .none so the ambient glance disappears live.
+        if activityEnabled(ActivitySettings.nowPlayingKey) {
+            startNowPlayingMonitor()
+        } else if nowPlayingMonitor != nil {
+            nowPlayingMonitor?.stop(); nowPlayingMonitor = nil
+            mediaDismissWorkItem?.cancel()
+            nowPlayingState.presentation = .none
+            nowPlayingState.artwork = nil
+        }
+
+        applyAccentIfChanged()
+
+        // Re-render the resolver verdict (a forced-.none Now-Playing or a flushed transient may
+        // have changed it) and route through the SOLE show/hide site.
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+        updateVisibility()
+    }
+
+    // Pitfall 3 — drop a category's standing head AND any pending copy from the queue when its
+    // activity is toggled off, then clear its @Published model. Rebuilds the queue without that
+    // category so a disabled splash can't keep showing or wake up later. The shared dismiss
+    // timer keeps running for whatever head remains (or is cancelled by the empty-head render).
+    private enum TransientCategory { case charging, device }
+    private func flushTransients(_ category: TransientCategory) {
+        let matches: (ActiveTransient) -> Bool = { t in
+            switch (t, category) {
+            case (.charging, .charging), (.device, .device): return true
+            default: return false
+            }
+        }
+        transientQueue.removeAll(where: matches)
+        switch category {
+        case .charging: chargingState.activity = nil
+        case .device:   deviceState.activity = nil
+        }
+        if transientQueue.head == nil { dismissWorkItem?.cancel() }
+    }
+
+    // D-11 — re-host the view (re-injecting the Environment accent) only when the persisted index
+    // actually changed, so unrelated defaults writes don't churn the hosting view.
+    private func applyAccentIfChanged() {
+        let index = UserDefaults.standard.integer(forKey: ActivitySettings.accentIndexKey)
+        guard index != appliedAccentIndex else { return }
+        appliedAccentIndex = index
+        if let panel { panel.contentView = NSHostingView(rootView: makeRootView(accentIndex: index)) }
     }
 
     // Phase 4 / NOW-01/02/03 — a live media update lands here (already on main; the wrapper
@@ -482,6 +757,7 @@ final class NotchWindowController {
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             nowPlayingState.presentation = p
             nowPlayingState.artwork = art   // nil → Plan 03 placeholder; async art fills on a later callback
+            renderPresentation()            // Phase 6: now-playing is a resolver input — re-resolve
         }
         updateVisibility()   // Pattern 7 — the SOLE show/hide site (inherits fullscreen / clamshell)
 
@@ -517,6 +793,7 @@ final class NotchWindowController {
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                 self.nowPlayingState.presentation = .none   // collapse the media glance
                 self.nowPlayingState.artwork = nil
+                self.renderPresentation()                   // Phase 6: re-resolve to ambient/idle
             }
             self.updateVisibility()   // re-evaluate the single show/hide site
         }
@@ -528,11 +805,12 @@ final class NotchWindowController {
     // then died — clear the glance to idle and flip the health flag so the NEXT expand shows
     // "nicht verfügbar" (no mid-session splash, no crash, no empty render).
     private func handleAdapterTerminated() {
+        nowPlayingState.isHealthy = false   // D-13: "nicht verfügbar" only on the NEXT expand
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             nowPlayingState.presentation = .none
             nowPlayingState.artwork = nil
+            renderPresentation()            // Phase 6: re-resolve (isHealthy already flipped)
         }
-        nowPlayingState.isHealthy = false   // D-13: "nicht verfügbar" only on the NEXT expand
         mediaDismissWorkItem?.cancel()
         updateVisibility()
     }
@@ -545,6 +823,8 @@ final class NotchWindowController {
         let wc = NSWorkspace.shared.notificationCenter
         if let o = spaceObserver { wc.removeObserver(o) }
         if let o = appActivateObserver { wc.removeObserver(o) }
+        // Phase 6 / APP-03: the UserDefaults toggle/accent observer lives on the DEFAULT center.
+        if let o = defaultsObserver { NotificationCenter.default.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
         graceWorkItem?.cancel()
 
@@ -553,6 +833,11 @@ final class NotchWindowController {
         // dismiss. Mirrors the observer-removal + graceWorkItem?.cancel() discipline above.
         if let powerMonitor { powerMonitor.stop() }
         dismissWorkItem?.cancel()
+
+        // Phase 6 / DEV-01 (security T-06-12): tear the IOBluetooth monitor down — unregister the
+        // class connect token + every per-device disconnect token so no OS-held token outlives
+        // the owner. Mirrors powerMonitor.stop()'s owner-driven teardown.
+        bluetoothMonitor?.stop()
 
         // Phase 4 (security T-04-12): terminate the persistent MediaRemote child so no orphaned
         // perl / MediaRemoteAdapter process leaks after the controller dies, and cancel the

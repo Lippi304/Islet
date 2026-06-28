@@ -80,4 +80,30 @@ struct TransientQueue {
         head = pending.removeFirst()
         return true
     }
+
+    // In-place refresh of the standing head WITHOUT re-arming the dismiss or touching `pending`.
+    // Used for a charging % tick (Pitfall 4): the splash already stands and its ~3s timer keeps
+    // running; only the displayed value changes. No-op unless the new transient is the SAME
+    // category as the current head (a different category must go through enqueue, not replace
+    // the head out from under its running timer). The bounded/de-duped pending list is untouched.
+    mutating func updateHead(_ t: ActiveTransient) {
+        guard let h = head else { return }
+        switch (h, t) {
+        case (.charging, .charging): head = t
+        case (.device, .device):     head = t
+        default: break   // different category — ignore (use enqueue)
+        }
+    }
+
+    // Remove EVERY transient matching `predicate` from both the head and the pending list. Used
+    // when an activity is toggled off live (Phase 6 D-09 / Pitfall 3): the disabled category's
+    // standing splash AND any queued copy must vanish at once. If the head matched, the next
+    // surviving pending entry (if any) is promoted; otherwise the head clears (back to ambient).
+    // The pending list keeps its order minus the matches.
+    mutating func removeAll(where predicate: (ActiveTransient) -> Bool) {
+        pending.removeAll(where: predicate)
+        if let h = head, predicate(h) {
+            head = pending.isEmpty ? nil : pending.removeFirst()
+        }
+    }
 }

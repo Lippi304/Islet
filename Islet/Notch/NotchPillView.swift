@@ -43,12 +43,14 @@ struct NotchPillView: View {
     // so an artwork/standing-% mutation re-renders the same case. The PRECEDENCE decision is gone.
     @ObservedObject var nowPlaying: NowPlayingState
 
-    // Phase 6 / COORD-01 / D-05 — the SINGLE arbiter's verdict. The controller computes this
-    // via `resolve(activeTransient:nowPlaying:nowPlayingHealthy:isExpanded:)` (the pure
-    // IslandResolver) and re-hosts the view when it changes. `body` is now ONE `switch` over
-    // this enum — no precedence `if`-chain. Defaults to `.idle` so the DEBUG #Previews / any
-    // unit construction render the collapsed pill without a controller.
-    var presentation: IslandPresentation = .idle
+    // Phase 6 / COORD-01 / D-05 — the SINGLE arbiter's verdict, published. The controller
+    // computes it via `resolve(activeTransient:nowPlaying:nowPlayingHealthy:isExpanded:)` (the
+    // pure IslandResolver) and writes `presentationState.presentation` inside its spring; this
+    // @ObservedObject re-renders the body — ONE `switch` over the enum, no precedence `if`-chain.
+    // A small published model (mirroring charging/nowPlaying) avoids re-hosting on every change.
+    @ObservedObject var presentationState: IslandPresentationState
+    // Convenience so the body + previews read a plain enum.
+    private var presentation: IslandPresentation { presentationState.presentation }
 
     // Phase 6 / D-11 / Pattern 4 — the persisted accent the controller injects on the hosting
     // view via `.environment(\.activityAccent, …)`. It tints ONLY the three lively leaf
@@ -561,7 +563,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
-                         presentation: .idle)
+                         presentationState: IslandPresentationState(.idle))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -574,7 +576,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
-                         presentation: .expandedIdle)
+                         presentationState: IslandPresentationState(.expandedIdle))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -590,7 +592,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
-                         presentation: .charging(.charging(percent: 47)))
+                         presentationState: IslandPresentationState(.charging(.charging(percent: 47))))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -604,7 +606,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
-                         presentation: .device(.connected(name: "AirPods Pro", glyph: .airpodsPro)))
+                         presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro))))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -620,7 +622,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: np,
-                         presentation: .nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa")))
+                         presentationState: IslandPresentationState(.nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa"))))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -636,7 +638,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: np,
-                         presentation: .nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa")))
+                         presentationState: IslandPresentationState(.nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa"))))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -652,7 +654,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: np,
-                         presentation: .nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true))
+                         presentationState: IslandPresentationState(.nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true)))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -667,7 +669,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: np,
-                         presentation: .nowPlayingExpanded(.none, healthy: false))
+                         presentationState: IslandPresentationState(.nowPlayingExpanded(.none, healthy: false)))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
