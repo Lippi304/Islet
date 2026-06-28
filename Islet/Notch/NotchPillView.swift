@@ -236,10 +236,10 @@ struct NotchPillView: View {
             .overlay(
                 HStack(spacing: 0) {
                     artThumbnail(art, side: Self.mediaWingsSize.height - 8, corner: 6)  // LEFT wing
-                        .padding(.leading, 10)
+                        .padding(.leading, 22)   // inset from the outer notch edge (user request)
                     Spacer()                                            // clears the physical camera bridge
                     EqualizerBars(isPlaying: isPlaying, tint: accent)  // RIGHT wing — D-02 bars (D-11 accent)
-                        .padding(.trailing, 14)
+                        .padding(.trailing, 24)  // inset from the outer notch edge (user request)
                 }
                 .frame(width: Self.mediaWingsSize.width, height: Self.mediaWingsSize.height)
             )
@@ -484,7 +484,6 @@ struct EqualizerBars: View {
     let isPlaying: Bool                 // D-04: the SINGLE gate
     var tint: Color = .white
     private static let barCount = 5     // discretion: 3–5
-    @State private var animate = false
 
     // Per-bar RANDOM profile, generated ONCE at init and held stable for the view's
     // lifetime (re-renders don't reshuffle it). Each bar oscillates between its OWN random
@@ -512,23 +511,43 @@ struct EqualizerBars: View {
     var body: some View {
         HStack(alignment: .center, spacing: 2) {
             ForEach(0..<Self.barCount, id: \.self) { i in
-                Capsule()
-                    .fill(tint)
-                    .frame(width: 2.5, height: animate ? profiles[i].high : profiles[i].low)
-                    // ⚠️ IDLE-CPU TRAP (D-04 / Pitfall 5): the repeatForever is attached ONLY
-                    // while isPlaying. When not playing a FINITE .default runs once and leaves
-                    // NO repeating clock → idle CPU returns to ~0.
-                    .animation(isPlaying
-                        ? .easeInOut(duration: profiles[i].duration)
-                            .repeatForever(autoreverses: true)
-                            .delay(profiles[i].delay)
-                        : .default,
-                        value: animate)
+                Bar(profile: profiles[i], isPlaying: isPlaying, tint: tint)
             }
         }
         .frame(height: boxHeight)
-        .onChange(of: isPlaying) { playing in animate = playing }
-        .onAppear { animate = isPlaying }
+    }
+
+    // One bar drives its OWN repeating animation via EXPLICIT withAnimation(.repeatForever) —
+    // the reliable SwiftUI idiom for a continuous loop. The previous implicit
+    // `.animation(.repeatForever, value:)` form frequently fails to actually loop (the value is
+    // set once and the repeat never engages), which is why the bars looked static. isPlaying gates
+    // it: when false the bar settles to its low height with a short finite animation and NO
+    // repeating clock remains → idle CPU returns to ~0 (D-04 / Pitfall 5).
+    private struct Bar: View {
+        let profile: (low: CGFloat, high: CGFloat, duration: Double, delay: Double)
+        let isPlaying: Bool
+        let tint: Color
+        @State private var up = false
+
+        var body: some View {
+            Capsule()
+                .fill(tint)
+                .frame(width: 2.5, height: up ? profile.high : profile.low)
+                .onAppear { apply(isPlaying) }
+                .onChange(of: isPlaying) { playing in apply(playing) }
+        }
+
+        private func apply(_ playing: Bool) {
+            if playing {
+                withAnimation(.easeInOut(duration: profile.duration)
+                    .repeatForever(autoreverses: true)
+                    .delay(profile.delay)) {
+                    up = true
+                }
+            } else {
+                withAnimation(.easeInOut(duration: 0.2)) { up = false }
+            }
+        }
     }
 }
 
