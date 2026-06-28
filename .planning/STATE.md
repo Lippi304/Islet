@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 5 Plan 01 paused at human-verify checkpoint (BT spike — no test device available)
-last_updated: "2026-06-28T00:37:08.444Z"
-last_activity: 2026-06-28 -- Phase 05 execution started
+status: paused
+stopped_at: Phase 6 context gathered
+last_updated: "2026-06-28T01:05:24.425Z"
+last_activity: 2026-06-28 -- Phase 05 Plan 01 paused at human-verify checkpoint
 progress:
   total_phases: 7
   completed_phases: 5
@@ -43,6 +43,7 @@ populated at connect (A3). The throwaway spike (`Islet/Notch/BluetoothSpike.swif
 committed (3652b92) and ready to run.
 
 **To resume when a BT device is available:**
+
 1. Build/launch spike: `xcodebuild build -scheme Islet OTHER_SWIFT_FLAGS="-DDEBUG_BT_SPIKE"` then open the app.
 2. In Console.app filter `BT connect`/`BT disconnect`/`BT spike`; connect+disconnect AirPods and a mouse/keyboard; sleep/wake.
 3. Record verdicts A1 (prompt? key needed?), A2 (burst on wake?), A3 (name populated? + example), non-audio connect fired?
@@ -119,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-28T00:01:50.557Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-device-connected-activity/05-CONTEXT.md
+Last session: 2026-06-28T01:05:24.423Z
+Stopped at: Phase 6 context gathered
+Resume file: .planning/phases/06-priority-resolver-settings-v1-ship/06-CONTEXT.md
