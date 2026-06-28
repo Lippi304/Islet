@@ -696,26 +696,33 @@ final class NotchWindowController {
         }
     }
 
-    // One short delayed re-read of the just-connected device's battery (the HFP AT+IPHONEACCEV
-    // value often lands after the connect edge). If it now reports a level and the device is still
-    // the standing head, update the head in place (no re-arm of the ~3s dismiss — like a charging %
-    // tick) so the BatteryIndicator replaces the connection sign live. Bounded to ONE work item.
-    private func scheduleDeviceBatteryRefresh(address: String) {
+    // Bounded POLL for the just-connected device's battery: the HFP AT+IPHONEACCEV value often
+    // lands a second or two AFTER the connect notification, so a single re-read can miss it. Re-read
+    // every ~0.6s; the moment a level arrives (and the device is still the standing head) update the
+    // head in place (no dismiss re-arm — like a charging % tick) so the BatteryIndicator replaces the
+    // connection sign live, then stop. Bounded to ~6 attempts (~3.6s) and naturally ends when the
+    // device splash advances off the head. ONE work item, cancelled/replaced per connect + in deinit.
+    private func scheduleDeviceBatteryRefresh(address: String, attempt: Int = 0) {
         deviceBatteryWork?.cancel()
+        guard attempt < 6 else { return }
         let work = DispatchWorkItem { [weak self] in
-            guard let self, let monitor = self.bluetoothMonitor,
-                  case .device(.connected(let name, let glyph, let old))? = self.transientQueue.head,
-                  let fresh = monitor.battery(forAddress: address), fresh != old
-            else { return }
-            let updated = DeviceActivity.connected(name: name, glyph: glyph, battery: fresh)
-            self.deviceState.activity = updated
-            self.transientQueue.updateHead(.device(updated))
-            withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
-                self.renderPresentation()
+            guard let self else { return }
+            // Stop once the device is no longer the standing splash (advanced / dismissed).
+            guard case .device(.connected(let name, let glyph, let old))? = self.transientQueue.head else { return }
+            if let monitor = self.bluetoothMonitor,
+               let fresh = monitor.battery(forAddress: address), fresh != old {
+                let updated = DeviceActivity.connected(name: name, glyph: glyph, battery: fresh)
+                self.deviceState.activity = updated
+                self.transientQueue.updateHead(.device(updated))
+                withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                    self.renderPresentation()
+                }
+                return   // got a level — stop polling
             }
+            self.scheduleDeviceBatteryRefresh(address: address, attempt: attempt + 1)   // retry
         }
         deviceBatteryWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
     }
 
     // MARK: - Phase 6: hosting view + live settings application (APP-03 / D-09 / D-11)
