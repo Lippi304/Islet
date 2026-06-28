@@ -26,8 +26,9 @@ struct BatteryIndicator: View {
     }
 
     var body: some View {
-        let w: CGFloat = 42, h: CGFloat = 18, corner: CGFloat = 4.5, inset: CGFloat = 1.5
-        return HStack(spacing: 1.5) {
+        // Compact (~27pt body) so it sits small in the notch wing — the % rides INSIDE the body.
+        let w: CGFloat = 27, h: CGFloat = 13, corner: CGFloat = 3.5, inset: CGFloat = 1.2
+        return HStack(spacing: 1.2) {
             ZStack(alignment: .leading) {
                 // Faint empty-track so the unfilled part still reads as a battery.
                 RoundedRectangle(cornerRadius: corner)
@@ -46,16 +47,16 @@ struct BatteryIndicator: View {
                 // The % number centered INSIDE the body — a small shadow keeps it legible over
                 // both the bright fill and the dark empty track.
                 Text("\(clamped)%")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .font(.system(size: 7.5, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.4), radius: 0.5)
                     .frame(width: w, height: h)
             }
             // The terminal nub.
-            RoundedRectangle(cornerRadius: 1.2)
+            RoundedRectangle(cornerRadius: 1)
                 .fill(Color.white.opacity(0.5))
-                .frame(width: 2.5, height: h * 0.4)
+                .frame(width: 1.8, height: h * 0.4)
         }
     }
 }
