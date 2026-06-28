@@ -21,6 +21,7 @@
 		34071739EA3C6FAD089AEA67 /* MediaRemoteAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */; };
 		344AC320C82085AB24E1F3EC /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */; };
 		3A5F1F3C8D2C451435E0A5BB /* NowPlayingPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09022AEB4178AE45BE2F65BE /* NowPlayingPresentation.swift */; };
+		3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */; };
 		40A19305FE709A3C8F605C3B /* NowPlayingPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */; };
 		4EBD25B8C54F6A68250153F4 /* NotchShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F635228C4261E9EECEC41F /* NotchShapeTests.swift */; };
 		62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */; };
@@ -91,6 +92,7 @@
 		99C074399453E7F8439A9CD2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9CE81E9432BCF90C884078EA /* Islet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Islet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9EE98C0240E35D702BEA0DBA /* NotchInteractionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchInteractionState.swift; sourceTree = "<group>"; };
+		AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivityTests.swift; sourceTree = "<group>"; };
 		E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDetectorTests.swift; sourceTree = "<group>"; };
 		E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingPresentationTests.swift; sourceTree = "<group>"; };
 		E72C119AE687341C28E9786C /* NSScreen+Notch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+Notch.swift"; sourceTree = "<group>"; };
@@ -115,6 +117,7 @@
 		2A6EFEBFBF547E6277E6C69F /* IsletTests */ = {
 			isa = PBXGroup;
 			children = (
+				AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */,
 				46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */,
 				E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */,
 				406030D1395E35FB24681FE8 /* InteractionStateTests.swift */,
@@ -307,6 +310,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */,
 				FD503D3A7D28F74B8D86C930 /* DisplayResolverTests.swift in Sources */,
 				21D3560AA4C7B91581AA5272 /* FullscreenDetectorTests.swift in Sources */,
 				0B5D7C9F97587BFE2049F7D7 /* InteractionStateTests.swift in Sources */,
