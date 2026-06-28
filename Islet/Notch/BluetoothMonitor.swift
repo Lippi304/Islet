@@ -17,7 +17,12 @@ import AppKit
 //     prompt-sensitive calls; passively observing notifications avoids them (A1 deferred).
 //
 // LIFECYCLE (mirrors PowerSourceMonitor):
-//   - @MainActor: registrations land on the main run loop, callbacks already arrive on main.
+//   - @MainActor: start()/stop() land on the main run loop. NOTE: IOBluetooth delivers the
+//     connect/disconnect @objc callbacks on its OWN coordinator queue (NOT main) — the ObjC
+//     runtime ignores Swift actor isolation — so connected/disconnected EXPLICITLY hop to main
+//     via DispatchQueue.main.async before touching the token dict or onReading (exactly like
+//     PowerSourceMonitor's notification callback). Without this, onReading → handleDevice →
+//     updateVisibility → NSWindow.setFrame/orderFront ran off-main and corrupted the overlay.
 //   - start() is IDEMPOTENT (Pitfall 5: a `running` guard so a re-entrant start can't
 //     double-register the class connect token).
 //   - stop() is FULL teardown: it unregisters the connect token AND every retained per-device
@@ -57,21 +62,35 @@ final class BluetoothMonitor: NSObject {
     }
 
     @objc private func connected(_ n: IOBluetoothUserNotification, device: IOBluetoothDevice) {
-        // Register + retain the per-device disconnect token (Pitfall 4 — it must outlive the
-        // registration). Keyed by address so the disconnect callback / stop() can drop it.
-        if let addr = device.addressString, disconnectTokens[addr] == nil {
-            disconnectTokens[addr] = device.register(forDisconnectNotification: self,
-                                                     selector: #selector(disconnected(_:device:)))
+        // CRITICAL: IOBluetooth delivers this @objc selector on its OWN dispatch queue
+        // (com.apple.bluetooth.iobluetooth.coordinatorQueue) — NOT the main thread. The
+        // @MainActor annotation does NOT make an ObjC-runtime selector callback main-isolated,
+        // so we MUST hop to main ourselves before touching the retained-token dict or calling
+        // onReading (which drives @Published / AppKit via handleDevice → updateVisibility →
+        // NSWindow). Mirrors PowerSourceMonitor's DispatchQueue.main.async discipline.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            // Register + retain the per-device disconnect token (Pitfall 4 — it must outlive the
+            // registration). Keyed by address so the disconnect callback / stop() can drop it.
+            if let addr = device.addressString, self.disconnectTokens[addr] == nil {
+                self.disconnectTokens[addr] = device.register(forDisconnectNotification: self,
+                                                              selector: #selector(self.disconnected(_:device:)))
+            }
+            self.emit(device, connected: true)
         }
-        emit(device, connected: true)
     }
 
     @objc private func disconnected(_ n: IOBluetoothUserNotification, device: IOBluetoothDevice) {
-        if let addr = device.addressString {
-            disconnectTokens[addr]?.unregister()   // drop the now-spent token (no leak).
-            disconnectTokens[addr] = nil
+        // Same off-main delivery as connected(_:device:) — hop to main before mutating the
+        // token dict or calling onReading.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if let addr = device.addressString {
+                self.disconnectTokens[addr]?.unregister()   // drop the now-spent token (no leak).
+                self.disconnectTokens[addr] = nil
+            }
+            self.emit(device, connected: false)
         }
-        emit(device, connected: false)
     }
 
     // Lift the minimal raw reading out of the IOBluetooth device and hand it to the pure seam.
