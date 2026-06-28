@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-06-28T00:01:50.559Z"
-last_activity: 2026-06-28
+status: executing
+stopped_at: Phase 5 Plan 01 paused at human-verify checkpoint (BT spike — no test device available)
+last_updated: "2026-06-28T00:37:08.444Z"
+last_activity: 2026-06-28 -- Phase 05 execution started
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 18
+  total_plans: 21
   completed_plans: 18
-  percent: 100
+  percent: 86
 ---
 
 # Project State
@@ -21,14 +21,32 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 4 complete — ready to plan Phase 5 (device-connected-activity)
+**Current focus:** Phase 05 — device-connected-activity
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Status: Phase 4 complete (verified) — ready to plan Phase 5
-Last activity: 2026-06-28
+Phase: 05 (device-connected-activity) — PAUSED at checkpoint
+Plan: 1 of 3 (Tasks 1-2 done, Task 3 blocked)
+Status: Paused — Plan 05-01 awaiting on-device Bluetooth spike (no test device available)
+Last activity: 2026-06-28 -- Phase 05 Plan 01 paused at human-verify checkpoint
+
+### Resume Point: Phase 05 Plan 01 (BT permission spike)
+
+Tasks 1-2 of Plan 05-01 are complete and merged to this branch (commits c08b61e, 61c24e7):
+the pure `DeviceActivity.swift` seam + 25 GREEN tests (full suite 102 tests, no regressions).
+
+Task 3 is a BLOCKING human-verify gating spike: needs a real Bluetooth device on the
+build machine to settle whether an Info.plist permission key is required (A1), whether a
+connect-burst fires on wake (A2 → D-04 suppression target), and whether `device.name` is
+populated at connect (A3). The throwaway spike (`Islet/Notch/BluetoothSpike.swift` +
+`AppDelegate.swift`, gated behind `#if DEBUG_BT_SPIKE`, normal builds unaffected) is
+committed (3652b92) and ready to run.
+
+**To resume when a BT device is available:**
+1. Build/launch spike: `xcodebuild build -scheme Islet OTHER_SWIFT_FLAGS="-DDEBUG_BT_SPIKE"` then open the app.
+2. In Console.app filter `BT connect`/`BT disconnect`/`BT spike`; connect+disconnect AirPods and a mouse/keyboard; sleep/wake.
+3. Record verdicts A1 (prompt? key needed?), A2 (burst on wake?), A3 (name populated? + example), non-audio connect fired?
+4. Re-run `/gsd-execute-phase 5` — it resumes from Plan 01 finishing steps: record verdicts in 05-01-SUMMARY.md, add `NSBluetoothAlwaysUsageDescription` to project.yml ONLY if A1 requires it, remove the spike, then continue Waves 2-3.
 
 Progress: [██████████] 100%
 
