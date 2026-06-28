@@ -487,9 +487,9 @@ struct EqualizerBars: View {
 
     // Per-bar RANDOM profile, generated ONCE at init and held stable for the view's
     // lifetime (re-renders don't reshuffle it). Each bar oscillates between its OWN random
-    // low/high height on its OWN random duration + start delay, so the bars pulse
+    // low/high height on its OWN random period + phase offset, so the bars pulse
     // INDEPENDENTLY (random-looking) instead of a uniform left-to-right sweep.
-    private let profiles: [(low: CGFloat, high: CGFloat, duration: Double, delay: Double)]
+    private let profiles: [(low: CGFloat, high: CGFloat, period: Double, phase: Double)]
 
     // Fixed box, CENTER-anchored: each bar is vertically centered and grows OUTWARD from the
     // middle (both up AND down) as its height changes — not pinned to a bottom baseline. The
@@ -503,51 +503,38 @@ struct EqualizerBars: View {
         self.profiles = (0..<Self.barCount).map { _ in
             (low: CGFloat.random(in: 3...6),
              high: CGFloat.random(in: 10...16),
-             duration: Double.random(in: 0.30...0.60),
-             delay: Double.random(in: 0...0.35))
+             period: Double.random(in: 0.55...1.05),   // seconds per full up-down cycle
+             phase: Double.random(in: 0...1))          // 0..1 of a cycle → bars out of sync
         }
     }
 
+    // TIME-DRIVEN (not @State-driven) so the loop is IMMUNE to ambient withAnimation(.spring)
+    // transactions — e.g. the hover spring the controller runs, which previously overrode the
+    // state-based repeatForever and FROZE the bars on hover. TimelineView(.animation, paused:
+    // !isPlaying) ticks each frame while playing and STOPS entirely when paused (no clock → idle
+    // CPU ~0, D-04 / Pitfall 5). Each bar's height is a sine of the frame time, so a hover
+    // re-render can't interrupt it.
     var body: some View {
-        HStack(alignment: .center, spacing: 2) {
-            ForEach(0..<Self.barCount, id: \.self) { i in
-                Bar(profile: profiles[i], isPlaying: isPlaying, tint: tint)
+        TimelineView(.animation(paused: !isPlaying)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            HStack(alignment: .center, spacing: 2) {
+                ForEach(0..<Self.barCount, id: \.self) { i in
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: 2.5, height: height(i, at: t))
+                }
             }
+            .frame(height: boxHeight)
         }
-        .frame(height: boxHeight)
     }
 
-    // One bar drives its OWN repeating animation via EXPLICIT withAnimation(.repeatForever) —
-    // the reliable SwiftUI idiom for a continuous loop. The previous implicit
-    // `.animation(.repeatForever, value:)` form frequently fails to actually loop (the value is
-    // set once and the repeat never engages), which is why the bars looked static. isPlaying gates
-    // it: when false the bar settles to its low height with a short finite animation and NO
-    // repeating clock remains → idle CPU returns to ~0 (D-04 / Pitfall 5).
-    private struct Bar: View {
-        let profile: (low: CGFloat, high: CGFloat, duration: Double, delay: Double)
-        let isPlaying: Bool
-        let tint: Color
-        @State private var up = false
-
-        var body: some View {
-            Capsule()
-                .fill(tint)
-                .frame(width: 2.5, height: up ? profile.high : profile.low)
-                .onAppear { apply(isPlaying) }
-                .onChange(of: isPlaying) { playing in apply(playing) }
-        }
-
-        private func apply(_ playing: Bool) {
-            if playing {
-                withAnimation(.easeInOut(duration: profile.duration)
-                    .repeatForever(autoreverses: true)
-                    .delay(profile.delay)) {
-                    up = true
-                }
-            } else {
-                withAnimation(.easeInOut(duration: 0.2)) { up = false }
-            }
-        }
+    // Per-bar height from the frame time: an independent sine (own period + phase) between low and
+    // high while playing; the settled low height when paused (so paused bars are flat + clock-free).
+    private func height(_ i: Int, at t: TimeInterval) -> CGFloat {
+        let p = profiles[i]
+        guard isPlaying else { return p.low }
+        let frac = sin((t / p.period + p.phase) * 2 * .pi) * 0.5 + 0.5   // 0...1
+        return p.low + (p.high - p.low) * frac
     }
 }
 
