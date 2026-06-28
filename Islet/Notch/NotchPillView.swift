@@ -417,7 +417,7 @@ struct NotchPillView: View {
                 }
                 .padding(.top, 32)        // notch/camera clearance — content starts below the band
                 .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 19) // +5pt inset (user request): art/bars off the outer edge
             }
     }
 
