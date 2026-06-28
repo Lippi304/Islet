@@ -20,14 +20,14 @@ final class DeviceActivityTests: XCTestCase {
         // DEV-01 / D-01: an audio-class connected device → .connected; D-02: AirPods name → a
         // specific (non-generic) glyph.
         let r = DeviceReading(name: "AirPods Pro", classMajor: 0x04, address: "00-11-22-33-44-55", connected: true)
-        XCTAssertEqual(deviceActivity(from: r), .connected(name: "AirPods Pro", glyph: .airpodsPro))
+        XCTAssertEqual(deviceActivity(from: r), .connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil))
     }
 
     func testPeripheralConnectedMapsToConnectedGenericGlyph() {
         // DEV-01 / D-01: a peripheral-class (mouse) connect ALSO splashes (no class gate);
         // D-02: an unmatched non-audio name → .generic fallback glyph.
         let r = DeviceReading(name: "Magic Mouse", classMajor: 0x05, address: "AA-BB-CC-DD-EE-FF", connected: true)
-        XCTAssertEqual(deviceActivity(from: r), .connected(name: "Magic Mouse", glyph: .generic))
+        XCTAssertEqual(deviceActivity(from: r), .connected(name: "Magic Mouse", glyph: .generic, battery: nil))
     }
 
     func testDisconnectedMapsToDisconnected() {
@@ -40,21 +40,49 @@ final class DeviceActivityTests: XCTestCase {
         // DEV-01/02 / Pitfall 3: nil name + non-nil address → the label falls back to the
         // address string; the glyph still resolves (audio class → .headphones).
         let r = DeviceReading(name: nil, classMajor: 0x04, address: "00-11-22-33-44-55", connected: true)
-        XCTAssertEqual(deviceActivity(from: r), .connected(name: "00-11-22-33-44-55", glyph: .headphones))
+        XCTAssertEqual(deviceActivity(from: r), .connected(name: "00-11-22-33-44-55", glyph: .headphones, battery: nil))
     }
 
     func testNilNameAndNilAddressFallsBackToPlaceholder() {
         // Pitfall 3 worst case: nil name AND nil address → a non-empty placeholder label,
         // never empty/crash; an unknown peripheral → .generic glyph.
         let r = DeviceReading(name: nil, classMajor: 0x05, address: nil, connected: true)
-        XCTAssertEqual(deviceActivity(from: r), .connected(name: "Bluetooth Device", glyph: .generic))
+        XCTAssertEqual(deviceActivity(from: r), .connected(name: "Bluetooth Device", glyph: .generic, battery: nil))
     }
 
     func testEmptyNameFallsBackToAddress() {
         // Pitfall 3: an empty (non-nil) name string must still fall back to the address,
         // never present an empty label.
         let r = DeviceReading(name: "", classMajor: 0x05, address: "AA-BB-CC-DD-EE-FF", connected: true)
-        XCTAssertEqual(deviceActivity(from: r), .connected(name: "AA-BB-CC-DD-EE-FF", glyph: .generic))
+        XCTAssertEqual(deviceActivity(from: r), .connected(name: "AA-BB-CC-DD-EE-FF", glyph: .generic, battery: nil))
+    }
+
+    // MARK: deviceActivity(from:) — battery threading (post-checkpoint, DEV-01)
+
+    func testConnectedThreadsValidBattery() {
+        // A connect carrying a valid battery % → it rides onto the .connected case for the wing's
+        // BatteryIndicator (this is the Jabra path: IOBluetoothDevice.batteryPercentSingle).
+        let r = DeviceReading(name: "Jabra Elite 8 Active", classMajor: 0x04,
+                              address: "50-c2-75-65-8a-a4", connected: true, battery: 50)
+        XCTAssertEqual(deviceActivity(from: r), .connected(name: "Jabra Elite 8 Active", glyph: .headphones, battery: 50))
+    }
+
+    func testConnectedDropsSentinelBatteryToNil() {
+        // 0 / out-of-range is the common "no data" value for non-reporting devices — it must map to
+        // nil so the view falls back to the connection sign, never renders a bogus 0%.
+        for sentinel in [0, -1, 255, 1000] {
+            let r = DeviceReading(name: "Mouse", classMajor: 0x05, address: "AA", connected: true, battery: sentinel)
+            XCTAssertEqual(deviceActivity(from: r), .connected(name: "Mouse", glyph: .generic, battery: nil),
+                           "battery \(sentinel) should be dropped to nil")
+        }
+    }
+
+    func testBatteryBoundaryValuesKept() {
+        // 1 and 100 are the inclusive valid bounds — both kept.
+        let lo = DeviceReading(name: "X", classMajor: 0x04, address: "A", connected: true, battery: 1)
+        let hi = DeviceReading(name: "X", classMajor: 0x04, address: "A", connected: true, battery: 100)
+        XCTAssertEqual(deviceActivity(from: lo), .connected(name: "X", glyph: .headphones, battery: 1))
+        XCTAssertEqual(deviceActivity(from: hi), .connected(name: "X", glyph: .headphones, battery: 100))
     }
 
     // MARK: deviceGlyph(name:classMajor:) — the D-02 name/class → glyph table

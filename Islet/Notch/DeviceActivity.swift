@@ -23,6 +23,11 @@ struct DeviceReading: Equatable {
     let classMajor: UInt32   // device.deviceClassMajor — 0x04 audio / 0x05 peripheral (glyph only)
     let address: String?     // device.addressString — the debounce/identity key
     let connected: Bool      // true = connect notification, false = disconnect (DEV-02)
+    // Phase 6 (post-checkpoint): the connected device's battery %, lifted from
+    // IOBluetoothDevice.batteryPercentSingle by BluetoothMonitor. nil when the device does not
+    // report a battery (most non-Apple HID; many HFP devices DO report it, e.g. Jabra) — the
+    // view falls back to a plain connection sign. Only meaningful when `connected == true`.
+    var battery: Int? = nil
 }
 
 // The device glyph the wings splash renders. D-02: as specific as the device allows,
@@ -38,8 +43,8 @@ enum DeviceGlyph: Equatable {
 
 // The presentation the splash renders (D-03: one layout, two distinguished states).
 enum DeviceActivity: Equatable {
-    case connected(name: String, glyph: DeviceGlyph)     // active/colored icon
-    case disconnected(name: String, glyph: DeviceGlyph)  // dimmed/"Disconnected" state (DEV-02)
+    case connected(name: String, glyph: DeviceGlyph, battery: Int?)  // active icon + optional battery %
+    case disconnected(name: String, glyph: DeviceGlyph)              // dimmed/"Disconnected" state (DEV-02)
 }
 
 // The nil-name fallback chain (Pitfall 3): name → address → "Bluetooth Device".
@@ -68,8 +73,11 @@ func deviceGlyph(name: String?, classMajor: UInt32) -> DeviceGlyph {
 func deviceActivity(from r: DeviceReading) -> DeviceActivity? {
     let label = deviceLabel(name: r.name, address: r.address)
     let glyph = deviceGlyph(name: r.name, classMajor: r.classMajor)
+    // A battery reading is only meaningful on connect; a sentinel/out-of-range value is dropped
+    // to nil here so the view's "has battery?" check is a simple optional test (DEV-01).
+    let battery = (r.battery.map { (1...100).contains($0) } == true) ? r.battery : nil
     return r.connected
-        ? .connected(name: label, glyph: glyph)
+        ? .connected(name: label, glyph: glyph, battery: battery)
         : .disconnected(name: label, glyph: glyph)
 }
 

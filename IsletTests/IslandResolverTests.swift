@@ -27,11 +27,11 @@ final class IslandResolverTests: XCTestCase {
 
     func testDeviceOutranksAmbientMedia() {
         // D-02 rank 2: a device transient beats ambient now-playing wings (not expanded).
-        let r = resolve(activeTransient: .device(.connected(name: "AirPods Pro", glyph: .airpodsPro)),
+        let r = resolve(activeTransient: .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)),
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
                         isExpanded: false)
-        XCTAssertEqual(r, .device(.connected(name: "AirPods Pro", glyph: .airpodsPro)))
+        XCTAssertEqual(r, .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)))
     }
 
     func testNoTransientWhilePlayingReturnsToWings() {
@@ -86,7 +86,7 @@ final class IslandResolverTests: XCTestCase {
     // MARK: TransientQueue — D-03 bounded, de-duped, sequential coexistence
 
     private let charging = ActiveTransient.charging(.charging(percent: 50))
-    private let device = ActiveTransient.device(.connected(name: "AirPods Pro", glyph: .airpodsPro))
+    private let device = ActiveTransient.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil))
 
     func testEnqueueIntoEmptyShowsImmediately() {
         // D-03: the first transient into an empty queue becomes the head and shows now.

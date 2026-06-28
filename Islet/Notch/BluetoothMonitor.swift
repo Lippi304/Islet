@@ -100,7 +100,32 @@ final class BluetoothMonitor: NSObject {
         onReading(DeviceReading(name: d.name,
                                 classMajor: d.deviceClassMajor,
                                 address: d.addressString,
-                                connected: connected))
+                                connected: connected,
+                                battery: connected ? Self.batteryPercent(d) : nil))
+    }
+
+    // Phase 6 (post-checkpoint) — the connected device's battery %, read from IOBluetoothDevice's
+    // PRIVATE battery properties (confirmed on macOS 26: a Jabra Elite 8 Active returns
+    // batteryPercentSingle=50; the public APIs / IORegistry / plist / system_profiler are all
+    // empty for HFP devices). This is the same source the reference apps (Alcove, Hammerspoon) use —
+    // not the dead BluetoothManager.framework (which reported powered=0 even inside the app). We read
+    // it off the device object we ALREADY hold here, so there is no extra framework/handshake.
+    //
+    // Read via KVC, guarded by responds(to:) so a future SDK that drops a key can't throw. Priority:
+    // single-battery (headsets like the Jabra) → combined → the lower of the two AirPods buds
+    // (worst-case). 0 / 255 / out-of-range are treated as "no data" → nil (the common non-reporting
+    // value), so the view falls back to the connection sign rather than rendering a bogus 0%.
+    private static func batteryPercent(_ device: IOBluetoothDevice) -> Int? {
+        let o = device as NSObject
+        func read(_ key: String) -> Int? {
+            guard o.responds(to: NSSelectorFromString(key)),
+                  let n = o.value(forKey: key) as? Int, (1...100).contains(n) else { return nil }
+            return n
+        }
+        if let v = read("batteryPercentSingle") { return v }
+        if let v = read("batteryPercentCombined") { return v }
+        let buds = [read("batteryPercentLeft"), read("batteryPercentRight")].compactMap { $0 }
+        return buds.min()
     }
 
     // Full teardown (Pitfall 5 / T-06-04): unregister the connect token AND every per-device

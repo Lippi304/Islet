@@ -109,15 +109,11 @@ struct NotchPillView: View {
     // The panel is sized to the UNION with the 360-wide expanded frame, so this only sizes the
     // visible black strip, never the window. The pure wingsFrame tests build their own size,
     // so this constant tunes freely.
-    static let wingsSize = CGSize(width: 305, height: 32)
-    // The MEDIA glance carries smaller content (art + tiny bars, NO % text), so it sits
-    // NARROWER than the charging wings. Width-only difference; same 32 pt notch-flush height.
-    // The panel union uses the wider `wingsSize`, so this narrower value never affects the window.
-    static let mediaWingsSize = CGSize(width: 290, height: 32)
-    // The DEVICE-connected glance carries an icon + a (bounded) device name, so it matches the
-    // charging-wings WIDTH (it can hold a longer name than the media bars). Same 32 pt notch-flush
-    // height. The panel union uses `wingsSize` (== this width), so it never affects the window.
-    static let deviceWingsSize = CGSize(width: 305, height: 32)
+    // Post-checkpoint (user request): ONE uniform 295 pt width across all three wing glances
+    // (charging, media, device) so the island reads consistently regardless of activity.
+    static let wingsSize = CGSize(width: 295, height: 32)
+    static let mediaWingsSize = CGSize(width: 295, height: 32)
+    static let deviceWingsSize = CGSize(width: 295, height: 32)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -193,45 +189,32 @@ struct NotchPillView: View {
             )
     }
 
-    // CHG-01 / D-01 / D-03 / D-04 / D-05 — the WINGS / Alcove sideways layout: a flat, wide
-    // strip flanking the notch. Status symbol LEFT, a single filling battery glyph + numeric %
-    // RIGHT. ONE consistent glyph encodes all three states (bolt = charging, full/green at 100%,
-    // plain = on battery — D-04), NOT three mini-scenes. The view drives NO animation (D-08); the
-    // controller (Plan 03) wraps the activity mutation in its spring animation wrapper.
+    // CHG-01 / D-01 / D-03 / D-04 / D-05 — the WINGS / Alcove sideways layout: a flat, wide strip
+    // flanking the notch. Status symbol LEFT (a bolt — yellow while charging, dim otherwise), the
+    // SAME horizontal BatteryIndicator as the device glance on the RIGHT (post-checkpoint user
+    // request: one consistent battery element across charging + device). The view drives NO
+    // animation (D-08); the controller (Plan 03) wraps the activity mutation in its spring wrapper.
     private func wings(for activity: ChargingActivity) -> some View {
         let isCharging: Bool
         let percent: Int
-        let tint: Color
         switch activity {
-        // D-11 (Phase 6): the FILLING battery glyph picks up the persisted accent. The
-        // green-at-full semantic is preserved (it overrides the accent at 100% as a deliberate
-        // "done" cue, D-04); charging / on-battery use the accent (neutral `.white` by default
-        // until the user picks a swatch, so today's look is unchanged).
-        case .charging(let p): isCharging = true;  percent = p; tint = accent
-        case .full(let p):     isCharging = false; percent = p; tint = .green   // D-04 green at full (overrides accent)
-        case .onBattery(let p):isCharging = false; percent = p; tint = accent   // CHG-02 plain → accent
+        case .charging(let p): isCharging = true;  percent = p
+        case .full(let p):     isCharging = false; percent = p
+        case .onBattery(let p):isCharging = false; percent = p
         }
-        let symbol = isCharging ? "battery.100percent.bolt" : "battery.100percent"
         return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flatter than the downward blob
             .fill(Color.black)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             .overlay(
                 HStack(spacing: 0) {
-                    Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (discretion)
+                    Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (charging cue)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(isCharging ? Color.yellow : Color.white.opacity(0.6))
-                        .padding(.leading, 10)
+                        .padding(.leading, 12)
                     Spacer()                                             // clears the physical camera bridge
-                    Image(systemName: symbol, variableValue: Double(percent) / 100.0)  // D-03 filling glyph
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(tint)
-                    Text("\(percent)%")                                  // D-06 percent only — no time/wattage
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .padding(.trailing, 10)
-                        .padding(.leading, 4)
+                    BatteryIndicator(level: percent)                     // RIGHT — same indicator as the device glance
+                        .padding(.trailing, 14)
                 }
                 .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             )
@@ -266,18 +249,19 @@ struct NotchPillView: View {
     // shape + shared morph identity as the charging/media wings, so SwiftUI MORPHS the ONE black
     // island between the device/charging/media/expanded/collapsed states (no cross-fade).
     //
-    // LAYOUT (user request, post-checkpoint): the device GLYPH on the LEFT wing and a small
-    // CONNECTION SIGN on the RIGHT wing — NO device name. D-03: ONE layout, two distinguished
-    // states — `.connected` shows a checkmark in the accent at full opacity; `.disconnected`
-    // shows an xmark dimmed and dims the glyph. This also drops the untrusted-name render surface
-    // (T-05-01) entirely — the name is never displayed. The view drives NO animation (D-08); the
-    // controller wraps the mutation in its spring and clears it after ~3s (D-04 dismiss).
+    // LAYOUT (user request, post-checkpoint): the device GLYPH on the LEFT wing; on the RIGHT a
+    // green battery indicator with % when the device reports one (Jabra etc., via
+    // IOBluetoothDevice.batteryPercentSingle), else a small CONNECTION SIGN (accent checkmark
+    // connected / dimmed xmark on disconnect — D-03). NO device name (drops the untrusted-name
+    // render surface, T-05-01). The view drives NO animation (D-08); the controller wraps the
+    // mutation in its spring and clears it after ~3s (D-04 dismiss).
     private func deviceWings(for activity: DeviceActivity) -> some View {
         let glyph: DeviceGlyph
         let isConnected: Bool
+        let battery: Int?
         switch activity {
-        case .connected(_, let g):    glyph = g; isConnected = true
-        case .disconnected(_, let g): glyph = g; isConnected = false
+        case .connected(_, let g, let b): glyph = g; isConnected = true;  battery = b
+        case .disconnected(_, let g):     glyph = g; isConnected = false; battery = nil
         }
         let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
         return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flat strip, matches charging/media wings
@@ -294,15 +278,26 @@ struct NotchPillView: View {
                         .foregroundStyle(accent.opacity(iconOpacity))
                         .padding(.leading, 12)
                     Spacer()                                      // clears the physical camera bridge
-                    // RIGHT wing — the connection SIGN (no name). Connected → accent checkmark;
-                    // disconnected → dimmed xmark (D-03 two distinguished states).
-                    Image(systemName: isConnected ? "checkmark" : "xmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(isConnected ? accent : Color.white.opacity(0.5))
-                        .padding(.trailing, 16)
+                    deviceTrailing(isConnected: isConnected, battery: battery)   // RIGHT wing
+                        .padding(.trailing, 14)
                 }
                 .frame(width: Self.deviceWingsSize.width, height: Self.deviceWingsSize.height)
             )
+    }
+
+    // RIGHT wing of the device glance: the battery indicator when the device reports a level
+    // (DEV-01), otherwise the connection sign. Battery is rendered GREEN (with the indicator's
+    // amber/red low-battery cue) regardless of the accent — a battery reads as a battery; the
+    // accent still tints the device GLYPH on the left.
+    @ViewBuilder
+    private func deviceTrailing(isConnected: Bool, battery: Int?) -> some View {
+        if isConnected, let battery {
+            BatteryIndicator(level: battery)
+        } else {
+            Image(systemName: isConnected ? "checkmark" : "xmark")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(isConnected ? accent : Color.white.opacity(0.5))
+        }
     }
 
     // D-02 — map the device glyph to an SF Symbol name. All chosen names are valid SF Symbols; a
@@ -593,7 +588,7 @@ struct EqualizerBars: View {
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
-                         presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro))))
+                         presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
