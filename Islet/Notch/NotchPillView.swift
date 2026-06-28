@@ -262,25 +262,22 @@ struct NotchPillView: View {
             )
     }
 
-    // DEV-01 / DEV-02 / D-02 / D-03 — the DEVICE-connected glance WINGS: the connect/disconnect
-    // splash. Same flat strip shape + shared morph identity as the charging/media wings, so SwiftUI
-    // MORPHS the ONE black island between the device/charging/media/expanded/collapsed states (no
-    // cross-fade). Device glyph on the LEFT wing, the device NAME on the RIGHT wing. D-03: ONE layout,
-    // two distinguished states — `.connected` renders full-opacity, `.disconnected` dims the icon and
-    // adds a "Disconnected" treatment. The view drives NO animation (D-08); the controller (Plan 04)
-    // wraps the activity mutation in its spring wrapper and clears it after ~3s (D-04 dismiss).
+    // DEV-01 / DEV-02 / D-02 / D-03 — the DEVICE connect/disconnect glance WINGS. Same flat strip
+    // shape + shared morph identity as the charging/media wings, so SwiftUI MORPHS the ONE black
+    // island between the device/charging/media/expanded/collapsed states (no cross-fade).
     //
-    // SECURITY (T-05-01 / T-06-03): the device `name` is UNTRUSTED external input. It is rendered in a
-    // SwiftUI Text (inert to format strings) and BOUNDED with `.lineLimit(1) + .truncationMode(.tail)`
-    // so an over-long/hostile name can't break layout. Plan 04 threads the accent tint (D-11); here the
-    // icon defaults to white so this branch compiles standalone and Plan 04 only passes a colour.
+    // LAYOUT (user request, post-checkpoint): the device GLYPH on the LEFT wing and a small
+    // CONNECTION SIGN on the RIGHT wing — NO device name. D-03: ONE layout, two distinguished
+    // states — `.connected` shows a checkmark in the accent at full opacity; `.disconnected`
+    // shows an xmark dimmed and dims the glyph. This also drops the untrusted-name render surface
+    // (T-05-01) entirely — the name is never displayed. The view drives NO animation (D-08); the
+    // controller wraps the mutation in its spring and clears it after ~3s (D-04 dismiss).
     private func deviceWings(for activity: DeviceActivity) -> some View {
-        let name: String
         let glyph: DeviceGlyph
         let isConnected: Bool
         switch activity {
-        case .connected(let n, let g):    name = n; glyph = g; isConnected = true
-        case .disconnected(let n, let g): name = n; glyph = g; isConnected = false
+        case .connected(_, let g):    glyph = g; isConnected = true
+        case .disconnected(_, let g): glyph = g; isConnected = false
         }
         let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
         return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flat strip, matches charging/media wings
@@ -295,24 +292,14 @@ struct NotchPillView: View {
                         // D-03 disconnected-dimming rides on top as opacity, so a disconnected
                         // device still reads as dimmed regardless of the accent hue.
                         .foregroundStyle(accent.opacity(iconOpacity))
-                        .padding(.leading, 10)
+                        .padding(.leading, 12)
                     Spacer()                                      // clears the physical camera bridge
-                    VStack(alignment: .trailing, spacing: 0) {
-                        Text(name)                                // RIGHT wing — UNTRUSTED, bounded (T-05-01)
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        if !isConnected {
-                            Text("Disconnected")                  // D-03 disconnect treatment
-                                .font(.system(size: 9, weight: .medium, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.5))
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                        }
-                    }
-                    .padding(.trailing, 12)
-                    .padding(.leading, 6)
+                    // RIGHT wing — the connection SIGN (no name). Connected → accent checkmark;
+                    // disconnected → dimmed xmark (D-03 two distinguished states).
+                    Image(systemName: isConnected ? "checkmark" : "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(isConnected ? accent : Color.white.opacity(0.5))
+                        .padding(.trailing, 16)
                 }
                 .frame(width: Self.deviceWingsSize.width, height: Self.deviceWingsSize.height)
             )

@@ -87,6 +87,21 @@ final class NotchWindowController {
     private var deviceSuppressedAtLaunch: Set<String> = []
     private let deviceDebounce: TimeInterval = 3.0   // mirror activityDuration (discretion seed)
 
+    // Phase 6 fix (post-checkpoint) — the set of addresses we currently believe are CONNECTED.
+    // IOBluetooth re-delivers connection events for an already-connected device (the
+    // CoreBluetooth connectionEventDidOccur bridge fires repeatedly), which made a stable
+    // headphone splash perpetually instead of once. We splash ONLY on a genuine connect/disconnect
+    // EDGE: a connect for an address already in this set is ignored; a disconnect only splashes if
+    // the address was tracked as connected. Mirrors a debounced "is this a new state" gate.
+    private var connectedDeviceAddresses: Set<String> = []
+
+    // The instant the BluetoothMonitor started. Devices already connected at launch fire a connect
+    // BURST the moment we register; within this grace window those are RECORDED as connected but NOT
+    // splashed (the user did not just connect them — 05 D-04 at-launch suppression). A genuine
+    // connect after the window splashes normally. Reset whenever the monitor (re)starts.
+    private var bluetoothStartedAt: Date?
+    private let deviceLaunchGrace: TimeInterval = 4.0
+
     // Phase 6 / APP-03 — the last accent index applied to the hosting view. UserDefaults posts
     // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
     // the controller only re-hosts the view (to re-inject the Environment accent) when THIS value
@@ -303,6 +318,10 @@ final class NotchWindowController {
 
     private func startBluetoothMonitor() {
         guard bluetoothMonitor == nil else { return }
+        // Reset the edge-tracking state and stamp the start so the at-launch connect burst of
+        // already-connected devices is recorded-but-not-splashed (deviceLaunchGrace window).
+        connectedDeviceAddresses.removeAll()
+        bluetoothStartedAt = Date()
         let bt = BluetoothMonitor { [weak self] reading in self?.handleDevice(reading) }
         bluetoothMonitor = bt
         bt.start()
@@ -628,14 +647,34 @@ final class NotchWindowController {
     //      + the SINGLE updateVisibility() (fullscreen gate) + arm the shared ~3s dismiss.
     private func handleDevice(_ reading: DeviceReading) {
         let now = Date().timeIntervalSinceReferenceDate
-        guard shouldShowDeviceSplash(address: reading.address,
+
+        // EDGE detection (post-checkpoint fix): IOBluetooth re-fires connection events for an
+        // already-connected device (the CoreBluetooth bridge fires connectionEventDidOccur
+        // repeatedly), which previously made a stable headphone splash perpetually. Splash ONLY on
+        // a genuine connect/disconnect EDGE, keyed by address. Without an address we cannot dedup,
+        // so a nameless/addressless phantom event is dropped (it must not splash).
+        guard let addr = reading.address else { return }
+        if reading.connected {
+            guard !connectedDeviceAddresses.contains(addr) else { return }   // already connected → no repeat splash
+            connectedDeviceAddresses.insert(addr)
+            // 05 D-04 at-launch suppression: a device already connected when the monitor started is
+            // recorded as connected above but does NOT splash (the user did not just connect it).
+            if let started = bluetoothStartedAt,
+               Date().timeIntervalSince(started) < deviceLaunchGrace { return }
+        } else {
+            // Disconnect edge: only splash if we actually had it tracked as connected.
+            guard connectedDeviceAddresses.remove(addr) != nil else { return }
+        }
+
+        // Secondary flap debounce (05 D-04): drop a repeat edge for the same address within ~3s.
+        guard shouldShowDeviceSplash(address: addr,
                                      connected: reading.connected,
                                      now: now,
                                      lastShown: deviceLastShown,
                                      debounce: deviceDebounce,
                                      suppressedAtLaunch: deviceSuppressedAtLaunch)
-        else { return }                                   // 05 D-04 — debounced/suppressed
-        if let addr = reading.address { deviceLastShown[addr] = now }
+        else { return }                                   // 05 D-04 — debounced
+        deviceLastShown[addr] = now
 
         guard let activity = deviceActivity(from: reading) else { return }
         deviceState.activity = activity                   // keep the model in sync with the head
