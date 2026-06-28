@@ -112,7 +112,11 @@ Plans:
   1. Connecting AirPods or a Bluetooth audio device shows a connect activity (device name + icon) in the island
   2. Disconnecting a device shows a brief disconnect activity
   3. Device events are event-driven (no polling) and arrive without requiring intrusive permission prompts
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 05-01-PLAN.md — Wave 0: pure DeviceActivity seam (DeviceReading→DeviceActivity + glyph mapping + burst/debounce predicate) RED→GREEN + the gating IOBluetooth permission spike (DEV-01/DEV-02)
+- [ ] 05-02-PLAN.md — DeviceActivityState @Published model + thin @MainActor BluetoothMonitor (connect class-notif + per-device disconnect tokens, main-hop, nonisolated teardown) (DEV-01/DEV-02)
+- [ ] 05-03-PLAN.md — NotchPillView deviceWings branch + NotchWindowController wiring (handleDevice, D-04 burst/debounce, ~3s dismiss via updateVisibility, D-05 yield, deinit teardown) + on-device UAT (DEV-01/DEV-02)
 
 ### Phase 6: Priority Resolver, Settings & v1 Ship
 **Goal**: All three activity sources coexist gracefully under one priority resolver, the user can configure which activities show and pick an accent/theme, and the app ships as a production notarized release.
@@ -137,5 +141,5 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 2. Hover, Expand & Fullscreen Hardening | 4/4 | Complete | 2026-06-27 |
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 4/4 | Complete | 2026-06-28 |
-| 5. Device-Connected Activity | 0/TBD | Not started | - |
+| 5. Device-Connected Activity | 0/3 | Not started | - |
 | 6. Priority Resolver, Settings & v1 Ship | 0/TBD | Not started | - |
