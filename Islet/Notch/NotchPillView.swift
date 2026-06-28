@@ -34,7 +34,28 @@ struct NotchPillView: View {
     // isPlaying-gated equalizer bars below. Declared BEFORE onClick (non-defaulted ahead of a
     // defaulted parameter) so the controller call reads
     // `NotchPillView(interaction:charging:nowPlaying:onClick:...)`.
+    //
+    // NOTE (Phase 6 / D-05): the view no longer READS `charging.activity` /
+    // `interaction.isExpanded` / `nowPlaying.presentation` to DECIDE which branch to render —
+    // the controller's resolver does that and hands the answer in via `presentation` below.
+    // `nowPlaying.artwork` is still read for the media cases (the resolver passes only the
+    // presentation enum, not the NSImage), and `charging`/`nowPlaying` are still @ObservedObject
+    // so an artwork/standing-% mutation re-renders the same case. The PRECEDENCE decision is gone.
     @ObservedObject var nowPlaying: NowPlayingState
+
+    // Phase 6 / COORD-01 / D-05 — the SINGLE arbiter's verdict. The controller computes this
+    // via `resolve(activeTransient:nowPlaying:nowPlayingHealthy:isExpanded:)` (the pure
+    // IslandResolver) and re-hosts the view when it changes. `body` is now ONE `switch` over
+    // this enum — no precedence `if`-chain. Defaults to `.idle` so the DEBUG #Previews / any
+    // unit construction render the collapsed pill without a controller.
+    var presentation: IslandPresentation = .idle
+
+    // Phase 6 / D-11 / Pattern 4 — the persisted accent the controller injects on the hosting
+    // view via `.environment(\.activityAccent, …)`. It tints ONLY the three lively leaf
+    // elements (charging filling glyph, equalizer bars, device icon); the black island and the
+    // expanded chrome stay untinted (D-10). Defaults to `.white` (the EnvironmentKey default)
+    // so previews render the neutral look before the controller wires a swatch.
+    @Environment(\.activityAccent) private var accent
 
     // D-02 — the CLICK-to-expand callback. The view stays AppKit-free: it only reports
     // "the pill was tapped" via this plain closure. NotchWindowController owns the
@@ -101,30 +122,30 @@ struct NotchPillView: View {
         // expanded content grows DOWNWARD from the notch (RESEARCH Pattern 4: panel is
         // sized to the expanded frame so the morph never clips).
         ZStack(alignment: .top) {
-            // D-11 precedence: when a charging splash is published it briefly WINS, even if
-            // the user has the island expanded — show the feedback, then return to the
-            // ambient state (the controller clears `.activity` after ~3s). This is the whole
-            // multi-activity arbitration for Phase 3: a one-line if-ordering, no resolver.
-            // D-14 precedence: charging > expanded > media-wings > collapsed. A one-line
-            // if-ordering (NOT a general resolver — that is Phase 6). The charging
-            // dismissWorkItem clears `charging.activity` after ~3s, so the body then falls
-            // through to the media wings AUTOMATICALLY — "returns to the now-playing wings,
-            // NOT to empty" (D-14) with no new resolver. The EXPANDED branch internally picks
-            // media-controls vs date-time(D-11) vs unavailable(D-12) from isHealthy + presentation.
-            if let activity = charging.activity {
-                wings(for: activity)            // D-14: charging splash briefly wins (~3s)
-            } else if interaction.isExpanded {
-                if !nowPlaying.isHealthy {
-                    mediaUnavailable                                              // D-12 "nicht verfügbar"
-                } else if nowPlaying.presentation != .none {
-                    mediaExpanded(nowPlaying.presentation, art: nowPlaying.artwork)  // NOW-01/02 controls
-                } else {
-                    expandedIsland                                               // D-11 date/time (healthy, no media)
-                }
-            } else if nowPlaying.presentation != .none {
-                mediaWings(nowPlaying.presentation, art: nowPlaying.artwork)     // D-02 collapsed media glance
-            } else {
-                collapsedIsland                 // idle pill
+            // Phase 6 / COORD-01 / D-05 — the SINGLE arbiter. The view no longer DECIDES
+            // precedence (the old `charging > expanded > media-wings > collapsed` if-chain is
+            // gone); the controller's pure `resolve(...)` reducer picks ONE `IslandPresentation`
+            // and the body just renders it with this switch, mapping each case to the existing
+            // private helper. Charging/Device are the rank-1/2 transient splashes (D-02); the
+            // controller's queue advances off the single ~3s one-shot dismiss and the resolver
+            // falls through to `.nowPlayingWings`/`.idle` so a transient "returns to the wings,
+            // not to empty" (D-02 yield-to-ambient). The expanded media-health axis (D-12) rides
+            // on the `.nowPlayingExpanded(_, healthy:)` flag.
+            switch presentation {
+            case .charging(let a):
+                wings(for: a)                                                    // D-02 rank 1 transient
+            case .device(let d):
+                deviceWings(for: d)                                              // D-02 rank 2 transient
+            case .nowPlayingWings(let p):
+                mediaWings(p, art: nowPlaying.artwork)                           // D-02 collapsed media glance
+            case .nowPlayingExpanded(let p, true):
+                mediaExpanded(p, art: nowPlaying.artwork)                        // NOW-01/02 controls (healthy)
+            case .nowPlayingExpanded(_, false):
+                mediaUnavailable                                                 // D-12 "nicht verfügbar"
+            case .expandedIdle:
+                expandedIsland                                                   // D-11 date/time (healthy, no media)
+            case .idle:
+                collapsedIsland                                                  // idle pill
             }
         }
         .frame(width: Self.expandedSize.width,
@@ -180,9 +201,13 @@ struct NotchPillView: View {
         let percent: Int
         let tint: Color
         switch activity {
-        case .charging(let p): isCharging = true;  percent = p; tint = .white
-        case .full(let p):     isCharging = false; percent = p; tint = .green   // D-04 green at full (discretion)
-        case .onBattery(let p):isCharging = false; percent = p; tint = .white   // CHG-02 plain
+        // D-11 (Phase 6): the FILLING battery glyph picks up the persisted accent. The
+        // green-at-full semantic is preserved (it overrides the accent at 100% as a deliberate
+        // "done" cue, D-04); charging / on-battery use the accent (neutral `.white` by default
+        // until the user picks a swatch, so today's look is unchanged).
+        case .charging(let p): isCharging = true;  percent = p; tint = accent
+        case .full(let p):     isCharging = false; percent = p; tint = .green   // D-04 green at full (overrides accent)
+        case .onBattery(let p):isCharging = false; percent = p; tint = accent   // CHG-02 plain → accent
         }
         let symbol = isCharging ? "battery.100percent.bolt" : "battery.100percent"
         return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flatter than the downward blob
@@ -228,7 +253,7 @@ struct NotchPillView: View {
                     artThumbnail(art, side: Self.mediaWingsSize.height - 8, corner: 6)  // LEFT wing
                         .padding(.leading, 10)
                     Spacer()                                            // clears the physical camera bridge
-                    EqualizerBars(isPlaying: isPlaying)                 // RIGHT wing — D-02 bars
+                    EqualizerBars(isPlaying: isPlaying, tint: accent)  // RIGHT wing — D-02 bars (D-11 accent)
                         .padding(.trailing, 14)
                 }
                 .frame(width: Self.mediaWingsSize.width, height: Self.mediaWingsSize.height)
@@ -264,7 +289,10 @@ struct NotchPillView: View {
                 HStack(spacing: 0) {
                     Image(systemName: deviceSymbol(for: glyph))   // LEFT wing — device glyph (D-02)
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Color.white.opacity(iconOpacity))
+                        // D-11 (Phase 6): the device glyph picks up the persisted accent. The
+                        // D-03 disconnected-dimming rides on top as opacity, so a disconnected
+                        // device still reads as dimmed regardless of the accent hue.
+                        .foregroundStyle(accent.opacity(iconOpacity))
                         .padding(.leading, 10)
                     Spacer()                                      // clears the physical camera bridge
                     VStack(alignment: .trailing, spacing: 0) {
@@ -385,7 +413,7 @@ struct NotchPillView: View {
                                 .truncationMode(.tail)
                         }
                         Spacer(minLength: 6)
-                        EqualizerBars(isPlaying: isPlaying)
+                        EqualizerBars(isPlaying: isPlaying, tint: accent)   // D-11 accent on the bars
                             .frame(height: 40)    // center the bars vertically against the art row (like the collapsed wing) — not top-hanging
                     }
                     // D-09: reserved vertical room for the future seek bar (NOT built — NOW-04 v2).
@@ -529,11 +557,11 @@ struct EqualizerBars: View {
 #Preview("Collapsed") {
     let state = NotchInteractionState()
     state.phase = .collapsed
-    // Fresh ChargingActivityState with a nil activity + a .none NowPlayingState → the
-    // collapsed branch shows (no charging, not expanded, no media).
+    // Phase 6: the view renders the supplied `presentation` — `.idle` → the collapsed pill.
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
-                         nowPlaying: NowPlayingState())
+                         nowPlaying: NowPlayingState(),
+                         presentation: .idle)
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -542,11 +570,11 @@ struct EqualizerBars: View {
 #Preview("Expanded") {
     let state = NotchInteractionState()
     state.phase = .expanded
-    // Fresh ChargingActivityState with a nil activity; .none + healthy NowPlayingState → the
-    // expanded branch shows the D-11 date/time (healthy, no media).
+    // Phase 6: `.expandedIdle` → the D-11 date/time (expanded, healthy, no media).
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
-                         nowPlaying: NowPlayingState())
+                         nowPlaying: NowPlayingState(),
+                         presentation: .expandedIdle)
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -558,11 +586,25 @@ struct EqualizerBars: View {
 #Preview("Charging Wings") {
     let state = NotchInteractionState()
     state.phase = .collapsed
-    let cs = ChargingActivityState()
-    cs.activity = .charging(percent: 47)
+    // Phase 6: `.charging(...)` → the wings splash regardless of interaction phase.
     return NotchPillView(interaction: state,
-                         charging: cs,
-                         nowPlaying: NowPlayingState())
+                         charging: ChargingActivityState(),
+                         nowPlaying: NowPlayingState(),
+                         presentation: .charging(.charging(percent: 47)))
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
+// Device Wings — proves the device splash branch renders. A connected AirPods reading →
+// the glyph + name layout (D-02/D-03). Phase 6 added this case to the single switch.
+#Preview("Device Wings") {
+    let state = NotchInteractionState()
+    state.phase = .collapsed
+    return NotchPillView(interaction: state,
+                         charging: ChargingActivityState(),
+                         nowPlaying: NowPlayingState(),
+                         presentation: .device(.connected(name: "AirPods Pro", glyph: .airpodsPro)))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -577,7 +619,8 @@ struct EqualizerBars: View {
     np.presentation = .playing(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
-                         nowPlaying: np)
+                         nowPlaying: np,
+                         presentation: .nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa")))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -592,7 +635,8 @@ struct EqualizerBars: View {
     np.presentation = .paused(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
-                         nowPlaying: np)
+                         nowPlaying: np,
+                         presentation: .nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa")))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -607,7 +651,8 @@ struct EqualizerBars: View {
     np.presentation = .playing(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
-                         nowPlaying: np)
+                         nowPlaying: np,
+                         presentation: .nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -621,7 +666,8 @@ struct EqualizerBars: View {
     np.isHealthy = false
     return NotchPillView(interaction: state,
                          charging: ChargingActivityState(),
-                         nowPlaying: np)
+                         nowPlaying: np,
+                         presentation: .nowPlayingExpanded(.none, healthy: false))
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
