@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 06-priority-resolver-settings-v1-ship
 source: [06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md, 06-04-SUMMARY.md, 06-05-SUMMARY.md]
 started: 2026-07-01T00:41:22Z
-updated: 2026-07-01T00:55:00Z
+updated: 2026-07-01T03:20:00Z
 ---
 
 ## Current Test
@@ -60,22 +60,38 @@ blocked: 0
   reason: "User reported: Die Beiden breiten passen nicht also es ist nicht so schön das quasi beide Musik Symbole verschwinden und das dann halt die notch breiter wird und dann tauchen da die Symbole auf also kein smoother übergang."
   severity: minor
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "In NotchWindowController.scheduleActivityDismiss(), syncActivityModels() sets chargingState.activity = nil BEFORE entering the withAnimation(.spring) block that animates renderPresentation(). This un-animated mutation forces an un-animated intermediate SwiftUI commit sandwiched between the last .charging(...) render and the animated switch to .nowPlayingWings(...), breaking matchedGeometryEffect frame interpolation. Only the yield-back/dismiss path is affected (not entrance), since syncActivityModels() is only called there. A secondary factor: updateVisibility()'s panel.setFrame(_, display: true) runs synchronously outside the SwiftUI animation on every transition."
+  artifacts:
+    - path: "Islet/Notch/NotchWindowController.swift"
+      issue: "scheduleActivityDismiss() clears chargingState.activity outside the withAnimation(.spring) block"
+  missing:
+    - "Move the chargingState.activity = nil (and device equivalent) mutation inside the withAnimation(.spring) block in scheduleActivityDismiss() so the state change and the render transition commit as one animated transaction"
+    - "Verify panel.setFrame's synchronous call in updateVisibility() doesn't need to be coordinated with the SwiftUI animation for both directions"
+  debug_session: ".planning/debug/charging-yield-width-jump.md"
 
 - truth: "Picking a different accent swatch in Settings should tint the charging battery indicator's color, same as it tints the Now-Playing equalizer bars"
   status: failed
   reason: "User reported: equalizer bars pass aber beim Akku nix geändert an Farbe."
   severity: major
   test: 4
-  artifacts: []
-  missing: []
+  root_cause: "BatteryIndicator (Islet/Notch/BatteryIndicator.swift:16-26) has a working accent: Color = .green parameter, but neither call site in NotchPillView.swift passes it — line 216 (charging wings) and line 295 (device wings) both omit the accent argument, so they always fall back to the hardcoded default. Contrast with EqualizerBars(isPlaying:tint: accent) at line 241, which correctly forwards the environment-read accent. The environment injection point itself is correct (.environment(\\.activityAccent, ...) wraps NotchPillView in NotchWindowController.swift:743)."
+  artifacts:
+    - path: "Islet/Notch/NotchPillView.swift"
+      issue: "BatteryIndicator(level: percent) at line 216 (charging) and BatteryIndicator(level: battery) at line 295 (device) both omit the accent: argument"
+  missing:
+    - "Pass accent: accent to BatteryIndicator at NotchPillView.swift:216 (charging wings) — looks like a plain oversight from when BatteryIndicator was wired up post-checkpoint in 06-04, after the 06-03 accent work"
+    - "CONFIRM WITH USER before changing the device wings indicator (line 295): NotchPillView.swift:288-291 has an explicit comment stating it's intentionally kept green/amber/red regardless of accent, with only the device glyph tinted — may be working as designed"
+  debug_session: ".planning/debug/battery-indicator-accent-not-tinted.md"
 
 - truth: "Entering true fullscreen while an activity would splash should hide the island with no visible flash"
   status: failed
   reason: "User reported: immernoch der kleien mini flash wenn man mit der Slide animaiton zum Fullscreen kommt das dann der kurze nochmal flash kommt."
   severity: cosmetic
   test: 5
-  artifacts: []
-  missing: []
-  root_cause: "Likely the known Phase-2 (02-04) window-server compositing flash at the end of the fullscreen-ENTER transition — previously product-deferred, a show-debounce fix was tried and reverted since there was nothing to debounce. Re-diagnose to confirm before assuming it's identical."
+  root_cause: "Confirmed identical to the pre-existing Phase-2 (02-04) root cause, not a new Phase-6 regression. NotchPanel carries .canJoinAllSpaces in its collectionBehavior (NotchPanel.swift:32). When another app enters true fullscreen, the window server composites this all-Spaces panel onto the activating fullscreen Space during the transition itself, before any app-level notification fires — the app's reactive orderOut(nil) in updateVisibility() cannot pre-empt an already-rendered compositor frame. A 0.2s show-debounce was tried (cc7f3c1) and reverted (f706f66) since there's no blip on our side to debounce. Verified via git history that Phase 6 touched none of FullscreenSpaceProbe.swift, FullscreenDetector.swift, NotchPanel.swift, or the updateVisibility() fullscreen-gate logic."
+  artifacts:
+    - path: "Islet/Notch/NotchPanel.swift"
+      issue: ".canJoinAllSpaces collectionBehavior causes the window server to composite the panel onto an activating fullscreen Space before any app-level notification can hide it"
+  missing:
+    - "No fix currently known at the application layer — would require a proactive (non-reactive) pre-transition hide signal that doesn't currently exist on macOS. Product-deferred, same verdict as Phase 2."
+  debug_session: ".planning/debug/fullscreen-enter-flash.md"
