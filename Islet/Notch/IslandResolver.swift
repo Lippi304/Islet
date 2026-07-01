@@ -57,6 +57,38 @@ func nowPlayingHealthGate(enabled: Bool, isHealthy: Bool) -> Bool {
     enabled ? isHealthy : true
 }
 
+// Gap-closure fix (WR-1) — the address-keyed side data for a device's post-connect battery
+// poll. Controller-owned "address-keyed side table, pure enum stays address-free" discipline
+// (mirrors NotchWindowController's own `deviceLastShown: [String: TimeInterval]` convention):
+// `activity` carries the SAME DeviceActivity payload that was enqueued into TransientQueue for
+// this device, so matchPendingBatteryPoll can find the right entry by IDENTITY, not by FIFO
+// position (see below).
+struct PendingBatteryPoll: Equatable {
+    let address: String
+    let activity: DeviceActivity
+}
+
+// Gap-closure fix (WR-1) — TOTAL pure helper: triggerDeviceBatteryRefreshIfPromoted() must match
+// the ACTUALLY-promoted device's identity (its DeviceActivity payload), not trust FIFO position.
+// The old `pendingDeviceAddresses.first` FIFO pop could desync from TransientQueue's own pending
+// list — a disconnect transient for a DIFFERENT device can evict the queue's corresponding pending
+// entry via maxDepth without ever touching the FIFO (disconnects are never appended to it), so the
+// FIFO head could point at the wrong device once one was promoted. Matching by `.activity ==`
+// instead of position closes that gap: only a `.device(.connected)` promotion can ever consume an
+// entry, and only the entry whose payload the promoted head equals.
+func matchPendingBatteryPoll(_ pending: [PendingBatteryPoll],
+                              promoted: ActiveTransient?) -> (match: PendingBatteryPoll?, remaining: [PendingBatteryPoll]) {
+    guard case .device(let activity)? = promoted, case .connected = activity else {
+        return (nil, pending)
+    }
+    guard let index = pending.firstIndex(where: { $0.activity == activity }) else {
+        return (nil, pending)
+    }
+    var remaining = pending
+    let match = remaining.remove(at: index)
+    return (match, remaining)
+}
+
 // D-03 — the bounded, de-duped, SEQUENTIAL transient queue. When two transients collide
 // (e.g. plug in the charger while AirPods connect), the first shows, then the second —
 // they never overlap. Pure value: `advance()` is called by the controller (Plan 04) when
