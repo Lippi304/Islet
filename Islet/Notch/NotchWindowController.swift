@@ -109,13 +109,17 @@ final class NotchWindowController {
     // existing deviceLastShown convention.
     private var pollingAddress: String?
 
-    // Gap-closure fix (Finding 4 — missed battery-refresh for a promoted device): a best-effort
-    // FIFO mirroring the TransientQueue's own pending order for `.device` entries ONLY. Exists
-    // solely so a device promoted to head LATER (not immediately, via scheduleActivityDismiss's
-    // advance() or a flushTransients promotion) still gets its post-connect battery poll scheduled
-    // — handleDevice's immediate `if changed` path only covers a device that becomes head RIGHT
-    // AWAY. Capped at 2 to mirror TransientQueue.maxDepth.
-    private var pendingDeviceAddresses: [String] = []
+    // Gap-closure fix (WR-1 — battery-poll identity desync): address-keyed side data mirroring
+    // TransientQueue's own pending order for `.device` entries ONLY, so a device promoted to head
+    // LATER (not immediately, via scheduleActivityDismiss's advance() or a flushTransients
+    // promotion) still gets its post-connect battery poll scheduled — handleDevice's immediate
+    // `if changed` path only covers a device that becomes head RIGHT AWAY. No longer a plain
+    // best-effort FIFO: it is matched by DeviceActivity IDENTITY via matchPendingBatteryPoll, not
+    // by insertion order, because the old FIFO could desync from TransientQueue's own pending list
+    // (a disconnect transient for a DIFFERENT device can evict the queue's corresponding entry via
+    // maxDepth without ever touching this list) and poll the wrong device's battery under a
+    // different device's name. Capped at 2 to mirror TransientQueue.maxDepth.
+    private var pendingDeviceBatteryPolls: [PendingBatteryPoll] = []
 
     // Phase 6 / APP-03 — the last accent index applied to the hosting view. UserDefaults posts
     // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
@@ -752,12 +756,13 @@ final class NotchWindowController {
         } else if reading.connected {
             // Gap-closure fix (Finding 4 — missed battery-refresh for a promoted device): this
             // connect was enqueued BEHIND the current head (or deduped), so it did NOT get a
-            // battery-refresh scheduled above. Remember its address (best-effort FIFO, capped at
-            // maxDepth) so triggerDeviceBatteryRefreshIfPromoted() can schedule it once it is
+            // battery-refresh scheduled above. Remember it (address + the SAME DeviceActivity
+            // payload just enqueued above, capped at maxDepth) so
+            // triggerDeviceBatteryRefreshIfPromoted() can identity-match it (WR-1) once it is
             // eventually promoted to head.
             if let addr = reading.address {
-                pendingDeviceAddresses.append(addr)
-                if pendingDeviceAddresses.count > 2 { pendingDeviceAddresses.removeFirst() }
+                pendingDeviceBatteryPolls.append(PendingBatteryPoll(address: addr, activity: activity))
+                if pendingDeviceBatteryPolls.count > 2 { pendingDeviceBatteryPolls.removeFirst() }
             }
         }
     }
@@ -765,11 +770,16 @@ final class NotchWindowController {
     // Called whenever the queue head may have just changed to a freshly-promoted `.device`
     // transient (from scheduleActivityDismiss's advance() or flushTransients's promotion). If the
     // new head is a connected device we still owe a battery refresh for, schedule it now.
+    //
+    // Gap-closure fix (WR-1): matched by the promoted device's actual DeviceActivity IDENTITY via
+    // matchPendingBatteryPoll, not by FIFO position — the old address-only FIFO's `.first` pop
+    // could poll a stale/mismatched device once it desynced from TransientQueue's own pending
+    // list.
     private func triggerDeviceBatteryRefreshIfPromoted() {
-        guard case .device(.connected) = transientQueue.head, let addr = pendingDeviceAddresses.first
-        else { return }
-        pendingDeviceAddresses.removeFirst()
-        scheduleDeviceBatteryRefresh(address: addr)
+        let (match, remaining) = matchPendingBatteryPoll(pendingDeviceBatteryPolls, promoted: transientQueue.head)
+        pendingDeviceBatteryPolls = remaining
+        guard let match else { return }
+        scheduleDeviceBatteryRefresh(address: match.address)
     }
 
     // Bounded POLL for the just-connected device's battery: the HFP AT+IPHONEACCEV value often
@@ -879,8 +889,16 @@ final class NotchWindowController {
     // timer first, then re-arm a FRESH ~3s window if removeAll(where:) promoted a survivor to head
     // — the old code only cancelled when the head went to nil, so a promoted survivor silently
     // inherited the flushed transient's stale, partially-elapsed timer instead of a full window.
+    //
+    // Gap-closure fix (WR-2 — over-eager dismiss-timer reset): the above (Finding 3) over-corrected
+    // by ALWAYS cancelling/re-arming whenever any head remained — even when the surviving head was
+    // never touched by this category's removal at all (e.g. flushing Charging while an unrelated
+    // Device splash already stands). `oldHead` is captured BEFORE removeAll(where:) runs; the
+    // dismiss-timer cancel/re-arm block below is now gated on `transientQueue.head != oldHead`, so
+    // an untouched standing splash's already-running ~3s countdown is left exactly as it was.
     private enum TransientCategory { case charging, device }
     private func flushTransients(_ category: TransientCategory) {
+        let oldHead = transientQueue.head
         let matches: (ActiveTransient) -> Bool = { t in
             switch (t, category) {
             case (.charging, .charging), (.device, .device): return true
@@ -891,8 +909,9 @@ final class NotchWindowController {
         switch category {
         case .charging: chargingState.activity = nil
         case .device:
-            pendingDeviceAddresses.removeAll()   // Finding 4 — drop any best-effort pending addresses too
+            pendingDeviceBatteryPolls.removeAll()   // Finding 4 — drop any pending battery polls too
         }
+        guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
         if transientQueue.head != nil {
             triggerDeviceBatteryRefreshIfPromoted()   // Finding 4 — cover a device promoted here

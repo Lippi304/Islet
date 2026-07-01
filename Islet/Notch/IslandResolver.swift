@@ -70,7 +70,7 @@ struct PendingBatteryPoll: Equatable {
 
 // Gap-closure fix (WR-1) — TOTAL pure helper: triggerDeviceBatteryRefreshIfPromoted() must match
 // the ACTUALLY-promoted device's identity (its DeviceActivity payload), not trust FIFO position.
-// The old `pendingDeviceAddresses.first` FIFO pop could desync from TransientQueue's own pending
+// The old address-only FIFO's `.first` pop could desync from TransientQueue's own pending
 // list — a disconnect transient for a DIFFERENT device can evict the queue's corresponding pending
 // entry via maxDepth without ever touching the FIFO (disconnects are never appended to it), so the
 // FIFO head could point at the wrong device once one was promoted. Matching by `.activity ==`
