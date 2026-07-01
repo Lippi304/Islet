@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 6 context gathered
-last_updated: "2026-06-28T01:37:06.331Z"
-last_activity: 2026-06-28 -- Phase 06 execution started
+stopped_at: Phase 6 complete (06-05 ship gate closed out)
+last_updated: "2026-07-01T00:38:41Z"
+last_activity: 2026-07-01 -- Phase 06 closed out (06-05 SUMMARY written from existing commits)
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 26
-  completed_plans: 18
-  percent: 69
+  completed_plans: 23
+  percent: 88
 ---
 
 # Project State
@@ -21,33 +21,26 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 06 — priority-resolver-settings-v1-ship
+**Current focus:** v1.0 milestone wrap-up — Phase 5's remaining scope is a deferred carry-over (see below)
 
 ## Current Position
 
-Phase: 06 (priority-resolver-settings-v1-ship) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 06
-Last activity: 2026-06-28 -- Phase 06 execution started
+Phase: 06 (priority-resolver-settings-v1-ship) — COMPLETE (5/5 plans)
+Status: Phase 06 closed out. Milestone v1.0 feature-complete; one carry-over remains (below).
+Last activity: 2026-07-01 -- 06-05 SUMMARY written from pre-existing commits (version bump, release dry-run, on-device D-16 re-check + UI fixes), ROADMAP/STATE updated to match.
 
-### Resume Point: Phase 05 Plan 01 (BT permission spike)
+### Phase 5 status note (not a resume point — informational)
 
-Tasks 1-2 of Plan 05-01 are complete and merged to this branch (commits c08b61e, 61c24e7):
-the pure `DeviceActivity.swift` seam + 25 GREEN tests (full suite 102 tests, no regressions).
-
-Task 3 is a BLOCKING human-verify gating spike: needs a real Bluetooth device on the
-build machine to settle whether an Info.plist permission key is required (A1), whether a
-connect-burst fires on wake (A2 → D-04 suppression target), and whether `device.name` is
-populated at connect (A3). The throwaway spike (`Islet/Notch/BluetoothSpike.swift` +
-`AppDelegate.swift`, gated behind `#if DEBUG_BT_SPIKE`, normal builds unaffected) is
-committed (3652b92) and ready to run.
-
-**To resume when a BT device is available:**
-
-1. Build/launch spike: `xcodebuild build -scheme Islet OTHER_SWIFT_FLAGS="-DDEBUG_BT_SPIKE"` then open the app.
-2. In Console.app filter `BT connect`/`BT disconnect`/`BT spike`; connect+disconnect AirPods and a mouse/keyboard; sleep/wake.
-3. Record verdicts A1 (prompt? key needed?), A2 (burst on wake?), A3 (name populated? + example), non-audio connect fired?
-4. Re-run `/gsd-execute-phase 5` — it resumes from Plan 01 finishing steps: record verdicts in 05-01-SUMMARY.md, add `NSBluetoothAlwaysUsageDescription` to project.yml ONLY if A1 requires it, remove the spike, then continue Waves 2-3.
+Phase 5 (device-connected-activity) still shows 0/3 plans executed in ROADMAP.md, but per
+`06-CONTEXT.md`: "Phase 5 device wiring is finished INSIDE this phase" — Phase 6 built the
+remaining device pieces (`DeviceActivityState`, `BluetoothMonitor`, device wings) that Phase 5
+left blocked on Waves 2-3. DEV-01/DEV-02 are code-complete and on-device verified (see
+06-02-SUMMARY.md, 06-04-SUMMARY.md). The only actual carry-over is the **on-device Bluetooth
+permission spike** from 05-01 Task 3 (needs a real BT test device — see git history around
+commit 3652b92 for the throwaway spike, `#if DEBUG_BT_SPIKE`). This is a deliberate scope
+merge (like the D-15 Developer-ID carry-over), not neglected work. Whether to formally close
+Phase 5 in ROADMAP.md (as superseded) or leave it open pending the BT hardware spike is a
+call for the user — not made automatically here.
 
 Progress: [██████████] 100%
 

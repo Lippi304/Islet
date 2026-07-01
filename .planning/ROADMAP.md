@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Charging Activity** - Plugging in shows a charging splash with battery %, proving the activity→island loop on the safest API (connect-only per UAT; CHG-02 descoped)
 - [x] **Phase 4: Now Playing** - Album art + title/artist + play/pause/skip via the isolated MediaRemote adapter, with a graceful "unavailable" fallback
 - [ ] **Phase 5: Device-Connected Activity** - AirPods/Bluetooth connect and disconnect splashes reusing the transient pattern
-- [ ] **Phase 6: Priority Resolver, Settings & v1 Ship** - Activities coexist by sensible priority; minimal settings + accent theme; production notarized release
+- [x] **Phase 6: Priority Resolver, Settings & v1 Ship** - Activities coexist by sensible priority; minimal settings + accent theme; production notarized release (completed 2026-07-01)
 
 ## Phase Details
 
@@ -132,7 +132,7 @@ Plans:
 - [x] 06-02-PLAN.md — Finish device quartet: DeviceActivityState + thin BluetoothMonitor + deviceWings branch + remove the BT spike (DEV-01/DEV-02, code-complete)
 - [x] 06-03-PLAN.md — Settings: three activity toggles + curated accent palette + @AppStorage persistence + activityAccent env key (APP-03)
 - [x] 06-04-PLAN.md — Wire resolver+queue+device monitor+toggles+accent into NotchWindowController/NotchPillView; on-device coexistence checkpoint (COORD-01/DEV/APP-03)
-- [ ] 06-05-PLAN.md — v1 ship: version 0.1 + release.sh dry-run DMG + on-device Now Playing health re-check (APP-04, real notarize deferred)
+- [x] 06-05-PLAN.md — v1 ship: version 0.1 + release.sh dry-run DMG + on-device Now Playing health re-check (APP-04, real notarize deferred)
 **UI hint**: yes
 
 ## Progress
@@ -148,4 +148,4 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 4/4 | Complete | 2026-06-28 |
 | 5. Device-Connected Activity | 0/3 | Not started | - |
-| 6. Priority Resolver, Settings & v1 Ship | 0/TBD | Not started | - |
+| 6. Priority Resolver, Settings & v1 Ship | 5/5 | Complete   | 2026-07-01 |
