@@ -60,8 +60,7 @@ final class NowPlayingMonitor {
             let snap = TrackSnapshot(bundleIdentifier: p.bundleIdentifier,
                                      isPlaying: p.isPlaying,
                                      title: p.title,
-                                     artist: p.artist,
-                                     hasArtwork: p.artwork != nil)
+                                     artist: p.artist)
             self.onSnapshot(snap, p.artwork)   // artwork already off-thread-decoded by the wrapper
         }
         controller.onListenerTerminated = { [weak self] in self?.onTerminated() }   // D-13
