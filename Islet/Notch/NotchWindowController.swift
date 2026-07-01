@@ -106,6 +106,15 @@ final class NotchWindowController {
     // edge). A single DispatchWorkItem — cancelled/replaced per connect, torn down in deinit.
     private var deviceBatteryWork: DispatchWorkItem?
 
+    // Gap-closure fix (Finding 2 — battery-poll identity race): the address the CURRENT
+    // scheduleDeviceBatteryRefresh poll chain is running for. `deviceBatteryWork?.cancel()`
+    // cannot stop a closure that has ALREADY started executing (its body may be mid-flight when
+    // a newer connect for a DIFFERENT device supersedes it), so this side table lets that stale
+    // closure detect it has been superseded before it applies a (possibly wrong) battery result
+    // to whatever is now the standing head. Controller-owned, non-persisted — mirrors the
+    // existing deviceLastShown convention.
+    private var pollingAddress: String?
+
     // Phase 6 / APP-03 — the last accent index applied to the hosting view. UserDefaults posts
     // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
     // the controller only re-hosts the view (to re-inject the Environment accent) when THIS value
@@ -657,30 +666,44 @@ final class NotchWindowController {
         // EDGE detection (post-checkpoint fix): IOBluetooth re-fires connection events for an
         // already-connected device (the CoreBluetooth bridge fires connectionEventDidOccur
         // repeatedly), which previously made a stable headphone splash perpetually. Splash ONLY on
-        // a genuine connect/disconnect EDGE, keyed by address. Without an address we cannot dedup,
-        // so a nameless/addressless phantom event is dropped (it must not splash).
-        guard let addr = reading.address else { return }
-        if reading.connected {
-            guard !connectedDeviceAddresses.contains(addr) else { return }   // already connected → no repeat splash
-            connectedDeviceAddresses.insert(addr)
-            // 05 D-04 at-launch suppression: a device already connected when the monitor started is
-            // recorded as connected above but does NOT splash (the user did not just connect it).
-            if let started = bluetoothStartedAt,
-               Date().timeIntervalSince(started) < deviceLaunchGrace { return }
-        } else {
-            // Disconnect edge: only splash if we actually had it tracked as connected.
-            guard connectedDeviceAddresses.remove(addr) != nil else { return }
+        // a genuine connect/disconnect EDGE, keyed by address — this Set-based dedup genuinely
+        // needs an address to work, so it is scoped to the `if let addr` branch below.
+        //
+        // Gap-closure fix (Finding 1): an ADDRESSLESS reading must NOT be dropped here — it just
+        // can't be deduped by this Set. It falls through to the shared splash-gate/deviceActivity
+        // call below unconditionally, mirroring shouldShowDeviceSplash's own documented "nil
+        // address → can't dedup, but still show" contract (the previous blanket early-return on a
+        // nil address silently dropped every addressless reading BEFORE that pure seam ever ran).
+        if let addr = reading.address {
+            if reading.connected {
+                guard !connectedDeviceAddresses.contains(addr) else { return }   // already connected → no repeat splash
+                connectedDeviceAddresses.insert(addr)
+                // 05 D-04 at-launch suppression: a device already connected when the monitor started is
+                // recorded as connected above but does NOT splash (the user did not just connect it).
+                if let started = bluetoothStartedAt,
+                   Date().timeIntervalSince(started) < deviceLaunchGrace { return }
+            } else {
+                // Disconnect edge: only splash if we actually had it tracked as connected.
+                guard connectedDeviceAddresses.remove(addr) != nil else { return }
+            }
+        } else if reading.connected, let started = bluetoothStartedAt,
+                  Date().timeIntervalSince(started) < deviceLaunchGrace {
+            // Symmetry with the addressed path above: an addressless connect during the at-launch
+            // burst window is still suppressed, even though it can't be tracked in the Set (no key).
+            return
         }
 
         // Secondary flap debounce (05 D-04): drop a repeat edge for the same address within ~3s.
-        guard shouldShowDeviceSplash(address: addr,
+        // Passes reading.address DIRECTLY (may be nil) — shouldShowDeviceSplash's own contract
+        // falls through to true when it has no address to dedup against.
+        guard shouldShowDeviceSplash(address: reading.address,
                                      connected: reading.connected,
                                      now: now,
                                      lastShown: deviceLastShown,
                                      debounce: deviceDebounce,
                                      suppressedAtLaunch: deviceSuppressedAtLaunch)
         else { return }                                   // 05 D-04 — debounced
-        deviceLastShown[addr] = now
+        if let addr = reading.address { deviceLastShown[addr] = now }   // only stamp when there IS a key
 
         guard let activity = deviceActivity(from: reading) else { return }
         deviceState.activity = activity                   // keep the model in sync with the head
@@ -694,7 +717,8 @@ final class NotchWindowController {
             // The HFP battery indicator can arrive a beat after the connect notification, so the
             // splash may open with the connection sign; refresh it shortly after so the battery
             // appears within the ~3s glance (no-op if the battery was already present / unchanged).
-            if reading.connected { scheduleDeviceBatteryRefresh(address: addr) }
+            // Requires an address to poll by — an addressless connect can't be battery-refreshed.
+            if reading.connected, let addr = reading.address { scheduleDeviceBatteryRefresh(address: addr) }
         }
     }
 
@@ -705,10 +729,18 @@ final class NotchWindowController {
     // connection sign live, then stop. Bounded to ~6 attempts (~3.6s) and naturally ends when the
     // device splash advances off the head. ONE work item, cancelled/replaced per connect + in deinit.
     private func scheduleDeviceBatteryRefresh(address: String, attempt: Int = 0) {
+        // Finding 2: stamp the address BEFORE cancel/schedule, on every call including the
+        // internal retry recursion (same address → unchanged through the chain) and whenever a
+        // genuinely NEW connect starts a NEW chain (a different address supersedes the old one).
+        pollingAddress = address
         deviceBatteryWork?.cancel()
         guard attempt < 6 else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            // Finding 2: abort if a NEWER poll (for a different device) has superseded this one —
+            // closes the race even when .cancel() above arrived too late to stop an already-running
+            // closure body from applying its result to the wrong (now-current) head.
+            guard self.pollingAddress == address else { return }
             // Stop once the device is no longer the standing splash (advanced / dismissed).
             guard case .device(.connected(let name, let glyph, let old))? = self.transientQueue.head else { return }
             if let monitor = self.bluetoothMonitor,
