@@ -94,3 +94,7 @@ Both Finding 13 (dead `hasArtwork` field) and Finding 14 (missing `NowPlayingSer
 ---
 *Phase: 06-priority-resolver-settings-v1-ship*
 *Completed: 2026-07-02*
+
+## Self-Check: PASSED
+
+All modified files confirmed present on disk; all task commits (`bf502a4`, `fb7eeb7`) and the SUMMARY commit (`53e15dd`) confirmed present in git log.
