@@ -177,7 +177,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 06-05-PLAN.md — v1 ship: version 0.1 + release.sh dry-run DMG + on-device Now Playing health re-check (APP-04, real notarize deferred)
-- [ ] 06-09-PLAN.md — Gap closure: cleanup — delete dead DeviceActivityState + redundant charging view subscription; extract presentTransientChange()/wingsShape() helpers (COORD-01)
+- [x] 06-09-PLAN.md — Gap closure: cleanup — delete dead DeviceActivityState + redundant charging view subscription; extract presentTransientChange()/wingsShape() helpers (COORD-01)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -202,4 +202,4 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 4/4 | Complete | 2026-06-28 |
 | 5. Device-Connected Activity | 0/3 | Not started | - |
-| 6. Priority Resolver, Settings & v1 Ship | 9/12 | In Progress|  |
+| 6. Priority Resolver, Settings & v1 Ship | 10/12 | In Progress|  |
