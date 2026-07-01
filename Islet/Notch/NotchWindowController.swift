@@ -515,7 +515,11 @@ final class NotchWindowController {
 
         // D-10: hover PAUSES the charging-splash auto-dismiss. While the pointer sits on the
         // wings the ~3s is cancelled; handleHoverExit reschedules it once the pointer leaves.
+        // Finding 7: mediaDismissWorkItem below mirrors the SAME hover-pause discipline for the
+        // D-06 paused-media linger — safe to call unconditionally (a no-op via optional
+        // chaining when nothing is pending).
         dismissWorkItem?.cancel()
+        mediaDismissWorkItem?.cancel()
 
         // D-01: hover gives an affordance but NEVER expands — nextState turns .collapsed
         // into .hovering only. The spring drives the bounce/scale in NotchPillView.
@@ -570,6 +574,11 @@ final class NotchWindowController {
         // .clicked is never routed into the activity model.
         if chargingState.activity != nil {
             scheduleActivityDismiss()
+        }
+        // Finding 7: symmetric resume for the D-06 paused-media linger — only re-arm when a
+        // paused glance is genuinely standing (mirrors handleNowPlaying's own .paused gating).
+        if case .paused = nowPlayingState.presentation {
+            scheduleMediaDismiss(after: pausedTimeout)
         }
     }
 
@@ -911,6 +920,10 @@ final class NotchWindowController {
     // fullscreen + clamshell hide for free), and arms/cancels the D-06/D-07 one-shot dismiss.
     private func handleNowPlaying(_ snapshot: TrackSnapshot?, _ art: NSImage?) {
         let p = nowPlayingPresentation(from: snapshot)   // pure (Plan 01) — D-01 allowlist + .playing/.paused/.none
+        // Finding 8: capture the OUTGOING presentation before it's overwritten below, so the
+        // .paused branch can debounce a repeated identical emission (the documented artwork-
+        // latency re-emission case) instead of restarting the 15s countdown on every callback.
+        let previous = nowPlayingState.presentation
 
         // A healthy stream callback means the bridge is alive — a successful emission after a
         // prior drop restores the D-12 flag so the next expand shows media, not "nicht verfügbar".
@@ -931,7 +944,12 @@ final class NotchWindowController {
         case .paused:
             // D-06: a paused glance lingers, then exits to the idle pill after ~15s. A resume
             // (.playing) before then cancels this via the .playing branch above.
-            scheduleMediaDismiss(after: pausedTimeout)
+            // Finding 8: only (re)arm on a GENUINE transition into paused (or a paused→paused
+            // change to a different track) — a repeat emission of the identical .paused value
+            // must not restart the countdown, or the glance could stick on-screen indefinitely.
+            if previous != p {
+                scheduleMediaDismiss(after: pausedTimeout)
+            }
         case .none:
             // D-07: stop / no media. The pure seam has no distinct "stopping" state (only
             // .playing/.paused/.none), so the prompt exit IS the just-applied spring-out above
