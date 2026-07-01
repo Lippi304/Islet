@@ -1,223 +1,241 @@
 ---
-status: issues_found
-files_reviewed: 8
+phase: 06-priority-resolver-settings-v1-ship
+reviewed: 2026-07-02T01:12:00Z
+depth: standard
+files_reviewed: 16
+files_reviewed_list:
+  - Islet.xcodeproj/project.pbxproj
+  - Islet/ActivitySettings.swift
+  - Islet/AppDelegate.swift
+  - Islet/Notch/BatteryIndicator.swift
+  - Islet/Notch/BluetoothMonitor.swift
+  - Islet/Notch/DeviceActivity.swift
+  - Islet/Notch/IslandPresentationState.swift
+  - Islet/Notch/IslandResolver.swift
+  - Islet/Notch/NotchPillView.swift
+  - Islet/Notch/NotchWindowController.swift
+  - Islet/Notch/NowPlayingMonitor.swift
+  - Islet/Notch/NowPlayingPresentation.swift
+  - Islet/SettingsView.swift
+  - IsletTests/DeviceActivityTests.swift
+  - IsletTests/IslandResolverTests.swift
+  - IsletTests/NowPlayingPresentationTests.swift
+  - scripts/release.sh
 findings:
   critical: 0
-  warning: 2
+  warning: 4
   info: 3
-  total: 5
+  total: 7
+status: issues_found
 ---
 
-# Code Review: Phase 06 (gap closure 06-07..06-12)
+# Phase 06: Code Review Report
 
-Scope: fresh standard-depth review of the 06-07..06-12 gap-closure fixes only, diffed
-against `b591530` (the commit immediately preceding the first gap-closure fix, `8300bdc`).
-The originally-supplied diff base (`dff3fafc...`) turned out to be an orphaned checkpoint
-commit unrelated to this branch's history (not an ancestor of HEAD), so it produced a
-useless "everything is a new file" diff; `b591530..HEAD` was used instead to isolate the
-actual gap-closure changes.
-
-Files reviewed in full:
-- Islet/Notch/NotchWindowController.swift
-- Islet/Notch/IslandResolver.swift
-- IsletTests/IslandResolverTests.swift
-- Islet/Notch/NotchPillView.swift
-- Islet/Notch/NowPlayingPresentation.swift
-- IsletTests/NowPlayingPresentationTests.swift
-- Islet/Notch/NowPlayingMonitor.swift
-- scripts/release.sh
+**Reviewed:** 2026-07-02T01:12:00Z
+**Depth:** standard
+**Files Reviewed:** 16
+**Status:** issues_found
 
 ## Summary
 
-The gap-closure fixes are largely correct and each addressed a real, previously-reported
-defect:
+This is a fresh, full-scope standard-depth review of the complete file list supplied for this
+phase (superseding the narrower 06-07..06-12-diff-only review previously written to this path).
+It covers the pure `IslandResolver`/`TransientQueue` seam, `DeviceActivity`/`BluetoothMonitor`, the
+`NotchWindowController` orchestration (toggle-gated monitor lifecycle, transient queue wiring,
+device battery-poll gap-closure fixes), `NotchPillView`, `SettingsView`/`ActivitySettings`, the
+three pure-seam test files, the Xcode project file, and `scripts/release.sh`.
 
-- **NowPlayingService protocol extraction (fb7eeb7)**: sound. `NotchWindowController` holds
-  `nowPlayingMonitor` typed as `NowPlayingService`, not the concrete class; the protocol
-  surface matches exactly what the controller calls; `nonisolated func stop()` is correctly
-  mirrored in both the protocol and the conformer. No leaked implementation details.
-- **`TrackSnapshot.hasArtwork` deletion (bf502a4)**: verified dead — it was written in
-  `NowPlayingMonitor.swift` but never read anywhere in the pre-gap-closure codebase. No
-  behavior change; deletion is clean (no leftover references anywhere in the tree).
-- **`isSameTrack` / artwork retention (d2f3d32 / cb849f8)**: the comparison logic is correct
-  (ignores the playing/paused axis, requires both sides non-`.none`, requires exact
-  title+artist equality) and `handleNowPlaying`'s gating (`if let art { ... } else if p ==
-  .none || !isSameTrack(previous, p) { artwork = nil }`) is correct for all four traced
-  cases (art arrives, same-track nil, different-track nil, stop). Test coverage in
-  `NowPlayingPresentationTests.swift` actually exercises the four meaningful branches.
-- **Tap-gesture rescoping (ee1df46)**: traced every `IslandPresentation` case in the `body`
-  switch against the `wingsShape`/per-case `.onTapGesture` additions — all seven cases have
-  a working tap-to-toggle, none are dead zones, and the transport button row inside
-  `mediaExpanded` is provably outside any tap gesture's hit area (own `.onTapGesture` is
-  scoped to the top HStack only, never the enclosing VStack or the button row).
-- **`presentTransientChange()` / `wingsShape()` extraction (0e05213)**: behavior-preserving;
-  correctly excluded from `scheduleActivityDismiss`'s own work-item body as documented.
-- **Dead `DeviceActivityState.swift` deletion (3690e77 / ae2dfa4)**: verified dead — no
-  references remain anywhere in the tree.
-- **`scripts/release.sh`**: `set -euo pipefail`, all variables quoted, no untrusted input,
-  no injection surface. The Step 3b / Step 6 two-staple flow and the ad-hoc-vs-real-cert
-  banner logic are internally consistent with Step 3's signing branch.
+Verified: the previously-reported gap-closure defects (the FIFO/identity battery-poll desync and
+the always-reset dismiss timer on `flushTransients`) are present and correctly fixed in the current
+code (`matchPendingBatteryPoll` / `PendingBatteryPoll` matching by `DeviceActivity` identity, and
+`flushTransients`'s `oldHead != transientQueue.head` guard) — no regression found there.
 
-Two real logic defects were found in the Finding 3 / Finding 4 gap-closure fixes
-themselves (see Warnings below), plus three lower-severity documentation/coverage gaps.
+No Critical/security issues were found: no injection, no hardcoded secrets, no force-unwraps or
+obvious crash paths, `release.sh` handles the placeholder/notarize branches safely, and the
+project file's target-membership wiring for every new source/test file checks out. The pure seams
+(`IslandResolver.swift`, `DeviceActivity.swift`, `NowPlayingPresentation.swift`) are well-tested and
+internally consistent with their test suites.
+
+The issues found below are concentrated in `NotchWindowController.swift`'s live-state plumbing (an
+animation-consistency gap in the health-check callback, a full view-tree rehost on accent change
+that undermines the `matchedGeometryEffect` morph it's built around, a documented-but-theoretical
+Bluetooth token data race) and a genuine visual inconsistency in `NotchPillView.swift` where the
+charging/device wings tint the opposite element from what the code's own D-11 design comment says
+should be tinted. Several smaller dead-parameter / magic-number / asymmetric-cleanup findings round
+out the list.
 
 ## Warnings
 
-### WR-1: Device battery-refresh FIFO can desync from the transient queue, polling the wrong device's battery
+### WR-01: Charging/device wings tint the wrong element relative to the documented D-11 spec
 
-**File:** `Islet/Notch/NotchWindowController.swift:112-118, 752-773, 883-901`
+**File:** `Islet/Notch/NotchPillView.swift:223-229` (charging wing) and `Islet/Notch/NotchPillView.swift:275-302` (device wing)
 
-**Issue:** The Finding 4 fix tracks devices that need a deferred post-connect battery poll
-in `pendingDeviceAddresses: [String]`, described as a "best-effort FIFO mirroring the
-TransientQueue's own pending order for `.device` entries ONLY." `triggerDeviceBatteryRefreshIfPromoted()`
-blindly takes `pendingDeviceAddresses.first` and polls that address for whatever device is
-now `transientQueue.head` — it never checks that the address actually belongs to the
-promoted device (there is no way to check: `ActiveTransient.device` carries no address, only
-`name`/`glyph`/`battery`).
+**Issue:** `ActivitySettings.swift` and `NotchPillView.swift`'s own header comment both state the
+D-11 invariant: the persisted accent tints exactly **three lively leaf elements** — "charging
+filling glyph, equalizer bars, device icon" — and nothing else. The implementation does the
+opposite of that for the two battery-adjacent glances:
 
-The two lists can legitimately fall out of sync: `pendingDeviceAddresses` is appended to
-**only** on a `reading.connected == true` reading that got enqueued-behind-head (line 758),
-but `transientQueue`'s own `pending` array also accepts **disconnect** transients for a
-different device via the exact same `enqueue()` call, and its `maxDepth`-bound eviction
-(`removeAll(where:)`/`enqueue`'s `if pending.count > maxDepth { pending.removeFirst() }`)
-can silently drop the *queue's* oldest pending entry without ever touching
-`pendingDeviceAddresses`. Concrete repro:
+- In `wings(for:)` (charging), the **glyph** (`bolt.fill`) is hardcoded to
+  `isCharging ? Color.green : Color.white.opacity(0.6)` — it does **not** use `accent` at all,
+  even though "charging filling glyph" is explicitly one of the three elements the accent is
+  supposed to tint. Meanwhile the charging wing's `BatteryIndicator(level: percent, accent: accent)`
+  *does* receive the accent — an element the spec never lists.
+- In `deviceWings(for:)` / `deviceTrailing(...)`, the **device glyph** correctly receives
+  `accent.opacity(iconOpacity)` (matches the spec), but its `BatteryIndicator(level: battery)` is
+  called with no `accent` argument (defaults to `.green`), which is explicitly called out in a
+  comment as intentional ("Battery is rendered GREEN … regardless of the accent").
 
-1. Charging is head (some other transient owns the splash).
-2. Device A connects → enqueued behind charging → `pendingDeviceAddresses = [A]`,
-   `queue.pending = [device(A-connected)]`.
-3. Device B connects → enqueued behind charging → `pendingDeviceAddresses = [A, B]`,
-   `queue.pending = [device(A-connected), device(B-connected)]` (at `maxDepth`).
-4. Device A disconnects → this is a **new, distinct** `ActiveTransient` value
-   (`.device(.disconnected(...))` ≠ `.device(.connected(...))`), so it is not deduped; it
-   is appended and the queue evicts its now-oldest pending entry
-   (`device(A-connected)`) to stay within `maxDepth`. The disconnect append does **not**
-   touch `pendingDeviceAddresses` (its append site is gated on `reading.connected`, a
-   disconnect reading is `false`). Result: `queue.pending = [device(B-connected),
-   device(A-disconnected)]` but `pendingDeviceAddresses` is still `[A, B]`.
-5. Charging's ~3s elapses → `advance()` promotes `device(B-connected)` to head.
-   `triggerDeviceBatteryRefreshIfPromoted()` sees `.device(.connected)` at head (true) and
-   pops `pendingDeviceAddresses.first == "A"` — polling **A's** battery and, if a fresh
-   reading differs from B's old cached battery, applying it to the head under **B's**
-   `name`/`glyph`. The splash now shows device B's name with device A's battery percentage.
+So the two wings are inconsistent with each other and with the documented spec: charging tints its
+battery bar but not its glyph; device tints its glyph but not its battery bar. A user who picks a
+non-default accent (e.g. purple) will see the charging wing's percentage bar turn purple while the
+bolt glyph stays green/white — the opposite of the "device icon" precedent set two paragraphs
+below it in the same file.
 
-**Fix:** Give `ActiveTransient.device` (or a wrapper) an address so promotion can be
-verified against the actual promoted device, e.g. carry the address alongside
-`DeviceActivity` in the queue, or key `pendingDeviceAddresses` off of matching against the
-currently-promoted head's identity instead of FIFO position:
+**Fix:** Make the charging glyph accent-driven like the device glyph, and drop the accent from the
+charging `BatteryIndicator` call to match the device wing's (documented) precedent:
 ```swift
-// e.g. store (address, DeviceActivity) pairs and match by comparing the promoted
-// DeviceActivity value, not by trusting FIFO order:
-private var pendingDeviceBatteryPolls: [(address: String, activity: DeviceActivity)] = []
-
-private func triggerDeviceBatteryRefreshIfPromoted() {
-    guard case .device(let promoted) = transientQueue.head, case .connected = promoted,
-          let idx = pendingDeviceBatteryPolls.firstIndex(where: { $0.activity == promoted })
-    else { return }
-    let addr = pendingDeviceBatteryPolls.remove(at: idx).address
-    scheduleDeviceBatteryRefresh(address: addr)
-}
+Image(systemName: "bolt.fill")
+    .symbolRenderingMode(.hierarchical)
+    .foregroundStyle(isCharging ? accent : Color.white.opacity(0.6))   // was: Color.green
+    .padding(.leading, 12)
+Spacer()
+BatteryIndicator(level: percent)   // was: BatteryIndicator(level: percent, accent: accent)
+    .padding(.trailing, 14)
 ```
-
-### WR-2: `flushTransients` unconditionally resets the shared dismiss timer even when the surviving head is unchanged
-
-**File:** `Islet/Notch/NotchWindowController.swift:874-901`
-
-**Issue:** The Finding 3 fix changed `flushTransients` to always `dismissWorkItem?.cancel()`
-then, if any head remains, unconditionally call `scheduleActivityDismiss()` for a fresh
-~3s window. This correctly fixes the original bug (a *promoted* survivor inheriting a
-stale, partially-elapsed timer), but it does not distinguish "the head was just promoted by
-this removal" from "the head was never touched by this removal at all." If the disabled
-category's queue entries were only in `pending` (never the head) — e.g. toggling Charging
-off while a Device splash is currently standing with no charging entries queued — the
-still-standing, **unaffected** Device splash has its dismiss timer cancelled and restarted
-from a full 3s, silently extending its on-screen time by however much of its original
-window had already elapsed. This is a real (if cosmetic) behavior change: an unrelated
-settings toggle now perturbs the timing of a splash that has nothing to do with it.
-
-**Fix:** Only re-arm when the head actually changed as a result of the removal:
-```swift
-let oldHead = transientQueue.head
-transientQueue.removeAll(where: matches)
-...
-dismissWorkItem?.cancel()
-if transientQueue.head != oldHead, transientQueue.head != nil {
-    triggerDeviceBatteryRefreshIfPromoted()
-    scheduleActivityDismiss()
-} else if transientQueue.head != nil {
-    // head unchanged — nothing to reschedule; but we already cancelled the
-    // in-flight timer above, so it must still be re-armed for the surviving head,
-    // just without resetting elapsed time (or restructure to avoid the
-    // cancel in this branch in the first place).
-}
-```
-(The minimal fix is to only `dismissWorkItem?.cancel()` + `scheduleActivityDismiss()` when
-`transientQueue.head` differs from what it was before `removeAll`, and otherwise leave the
-existing timer running untouched.)
-
-## Info
-
-### IN-1: Stale comment claims `NotchPillView` still observes `chargingState` for rendering
-
-**File:** `Islet/Notch/NotchWindowController.swift:50-58`
-
-**Issue:** The comment on `chargingState` says "the wings layout observes" it and that
-"the view's @ObservedObject still re-renders an in-place % update inside the same wings
-case." This was true before this gap-closure wave, but commit `3690e77` (bundled with
-this same gap-closure effort) removed `NotchPillView`'s `charging: ChargingActivityState`
-parameter entirely (confirmed: `NotchPillView.swift` no longer declares or accepts a
-`charging` property). Percent-tick rendering now flows exclusively through
-`presentationState` (the resolver's verdict). `chargingState.activity` is written in
-several places but the **only** remaining read is `if chargingState.activity != nil` in
-`handleHoverExit()` (line 583) to decide whether to resume the dismiss timer — it no
-longer drives any view rendering. The comment should be updated to avoid misleading future
-maintainers (this is a first-time-programmer project per CLAUDE.md, where comments carry
-real teaching weight) into thinking the view observes this model.
-
-**Fix:** Update the comment, e.g.:
-```swift
-// Phase 6 note: charging is no longer the RENDER driver — the resolver's TransientQueue is,
-// and NotchPillView no longer observes this model at all (its `charging` parameter was
-// removed in 3690e77). chargingState is kept only as a "is a charging splash currently
-// standing" signal for handleHoverExit's dismiss-timer resume check.
-```
-
-### IN-2: `TransientQueue.removeAll(where:)` has no direct unit test
-
-**File:** `IsletTests/IslandResolverTests.swift`
-
-**Issue:** `IslandResolverTests.swift` thoroughly covers `resolve(...)`, `nowPlayingHealthGate(...)`,
-`enqueue`, `advance`, and the bound/dedup behavior, but `TransientQueue.removeAll(where:)` —
-the pure reducer that `flushTransients` depends on, and whose promotion semantics are exactly
-what Finding 3's bug (WR-2 above) interacts with — has no test at all. Given the pure
-seam is specifically designed to make this kind of coordination logic "verified
-deterministically... in milliseconds" (per the file's own header), this is a real coverage
-gap for a function that gap-closure work depends on.
-
-**Fix:** Add tests for `removeAll(where:)` covering: removing a non-matching category
-leaves the head untouched, removing a matching head promotes the next pending entry,
-removing a matching head with no pending clears to `nil`, and removing matches from
-`pending` only (head untouched) leaves the head as-is.
-
-### IN-3: `mediaExpanded`'s transport-row spacers and reserved corners are now non-interactive dead zones
-
-**File:** `Islet/Notch/NotchPillView.swift:404-423`
-
-**Issue:** The Finding 15 fix intentionally scopes the tap-to-toggle gesture on
-`mediaExpanded` to only the top (art/title/artist/bars) HStack, explicitly to keep it off
-the transport `Button`s. The tradeoff is documented in the code comment, but its effect is
-that the bottom control row's `Spacer()`s and the two reserved `Color.clear` Shuffle/Repeat
-placeholder boxes are now dead-to-tap regions that previously (pre-fix) collapsed the
-island on tap. This is a correct and reasonable tradeoff (better than the alternative
-ambiguity bug), but flagging per the review's explicit "no dead zones" check — worth a
-deliberate product decision rather than an incidental side effect, since a user tapping
-near (but not on) a transport button in the bottom row will now get no response at all.
-No fix required if this is the intended UX; otherwise consider giving the `Spacer` regions
-their own `.onTapGesture { onClick() }` (they are provably not `Button`s, so no ambiguity
-risk).
 
 ---
 
-_Reviewed: 2026-07-02T00:00:00Z_
+### WR-02: Live accent change re-hosts the entire SwiftUI view tree instead of updating in place
+
+**File:** `Islet/Notch/NotchWindowController.swift:922-929` (`applyAccentIfChanged`), also `:471-480`
+
+**Issue:** Every other live-state mutation in this controller (charging/device/now-playing
+transients, expand/collapse) updates an existing `@Published` model that the already-hosted
+`NotchPillView` observes, so SwiftUI animates the change in place via the shared
+`matchedGeometryEffect` namespace. Accent changes instead do this:
+```swift
+if let panel { panel.contentView = NSHostingView(rootView: makeRootView(accentIndex: index)) }
+```
+This discards the existing `NSHostingView` and constructs a **brand-new** `NotchPillView` (with a
+brand-new `@Namespace private var ns`, and brand-new `EqualizerBars` — whose per-bar random
+`profiles` are generated once at `init` and would reshuffle). If the user changes the accent swatch
+while a splash is standing, mid-morph, or while expanded, the entire island will visibly
+flash/reset instead of live-updating, and the `matchedGeometryEffect` continuity the rest of the
+file is carefully built around is broken exactly at this one mutation site.
+
+**Fix:** Thread the accent through a small `@Published`/`ObservableObject` holder (mirroring
+`IslandPresentationState`) that `NotchPillView` observes via `@ObservedObject`, instead of an
+`EnvironmentValue` fixed at hosting time; update that holder's value in `applyAccentIfChanged()`
+instead of rebuilding `NSHostingView`.
+
+---
+
+### WR-03: Health-check-driven presentation update is not wrapped in `withAnimation`
+
+**File:** `Islet/Notch/NotchWindowController.swift:331-343`
+
+**Issue:** In `startNowPlayingMonitor()`, the `runHealthCheck` completion does:
+```swift
+guard healthy || !self.nowPlayingState.isHealthy else { return }
+self.nowPlayingState.isHealthy = healthy   // D-12
+self.renderPresentation()
+```
+Every other call site that mutates `nowPlayingState`/`transientQueue`/`interaction` and then calls
+`renderPresentation()` (`handleNowPlaying`, `handleAdapterTerminated`, `scheduleActivityDismiss`,
+`handleClick`, `handleHoverExit`'s grace branch, `handleSettingsChanged`) wraps the mutation in
+`withAnimation(.spring(response:dampingFraction:))`. This one does not. If the island happens to be
+expanded when the launch health probe settles (flipping between the "nicht verfügbar" state and
+normal media), the transition will snap instantly instead of springing like every other transition
+in the app — an inconsistent, jarring one-off.
+
+**Fix:**
+```swift
+guard healthy || !self.nowPlayingState.isHealthy else { return }
+withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+    self.nowPlayingState.isHealthy = healthy   // D-12
+    self.renderPresentation()
+}
+```
+
+---
+
+### WR-04: `BluetoothMonitor` token dictionaries can be mutated from two threads without synchronization
+
+**File:** `Islet/Notch/BluetoothMonitor.swift:40-45, 150-156`
+
+**Issue:** `connectToken`, `disconnectTokens`, and `running` are declared
+`nonisolated(unsafe)` and are written only inside `DispatchQueue.main.async` blocks scheduled from
+the (off-main) IOBluetooth callbacks. `stop()` is `nonisolated` and is called from
+`NotchWindowController`'s `deinit` (itself `nonisolated` because the class is `@MainActor`). Swift
+does **not** guarantee that a class's `deinit` runs on any particular thread/queue — it runs on
+whichever thread drops the last strong reference. If `deinit` happens to run on a background thread
+at the exact moment a previously-scheduled `connected(_:device:)`/`disconnected(_:device:)`
+`DispatchQueue.main.async` closure is executing on main, `disconnectTokens` (a `Dictionary`, not
+thread-safe for concurrent mutation) can be read/written from two threads at once — undefined
+behavior, up to and including a corrupted dictionary or a double-unregister of an
+`IOBluetoothUserNotification` token. The in-file comment acknowledges the pattern is "mirrored"
+from `PowerSourceMonitor`, so this is a pre-existing project-wide pattern rather than something
+newly introduced here, but it is a real (if low-probability, exercised mainly at app-quit) data
+race worth closing rather than carrying forward into new monitors.
+
+**Fix:** Either hop `stop()`'s body onto main explicitly (`DispatchQueue.main.async { ... }` inside
+`stop()`, accepting the token teardown may complete after `deinit` returns) or protect the token
+state with an `NSLock`/serial queue shared between the callback closures and `stop()`.
+
+## Info
+
+### IN-01: `deviceSuppressedAtLaunch` is dead state — always empty, never populated
+
+**File:** `Islet/Notch/NotchWindowController.swift:81, 738-744`
+
+**Issue:** `private var deviceSuppressedAtLaunch: Set<String> = []` is declared and threaded into
+every `shouldShowDeviceSplash(...)` call as the `suppressedAtLaunch:` argument, but nothing in the
+file ever inserts into it — confirmed by search, it is permanently empty. The actual at-launch
+burst suppression is implemented separately (and correctly) via `bluetoothStartedAt` /
+`deviceLaunchGrace` a few lines above. The header comment acknowledges this is "left empty for v1"
+as a deferred carry-over, but as shipped it is dead weight: a reader has to trace both mechanisms
+to realize only one of them is live.
+
+**Fix:** Either remove `deviceSuppressedAtLaunch` (and the corresponding pure-function parameter
+support, or leave the pure function's parameter for future use but stop threading an always-empty
+set through it) until it is actually wired from `IOBluetoothDevice.pairedDevices()`, or seed it at
+`startBluetoothMonitor()` time and drop the separate `bluetoothStartedAt`/`deviceLaunchGrace`
+mechanism so there is a single suppression path instead of two.
+
+### IN-02: Magic-number duplication for queue/debounce bounds
+
+**File:** `Islet/Notch/NotchWindowController.swift:82, 167, 765`
+
+**Issue:** `pendingDeviceBatteryPolls` is capped with a hardcoded literal
+(`if pendingDeviceBatteryPolls.count > 2 { pendingDeviceBatteryPolls.removeFirst() }`) that is
+meant to mirror `TransientQueue.maxDepth` (also `2`), and `deviceDebounce: TimeInterval = 3.0` is a
+separate literal meant to mirror `activityDuration: TimeInterval = 3.0`. Both relationships are
+called out only in comments ("capped at 2 to mirror TransientQueue.maxDepth", "mirror
+activityDuration"). If either source value changes later, these dependent literals will silently
+drift out of sync.
+
+**Fix:** Reference the source of truth directly, e.g.
+`if pendingDeviceBatteryPolls.count > transientQueue.maxDepth { pendingDeviceBatteryPolls.removeFirst() }`,
+and/or derive `deviceDebounce` from `activityDuration`.
+
+### IN-03: Disabling "Devices" doesn't cancel the in-flight battery-poll work item
+
+**File:** `Islet/Notch/NotchWindowController.swift:853-860` vs. `:791-819`
+
+**Issue:** `handleSettingsChanged()` explicitly cancels `mediaDismissWorkItem` when Now Playing is
+disabled, and resets `lastActivity`/`didSeedInitialPower` when Charging is disabled, but the
+Devices-disable branch does not cancel `deviceBatteryWork` or reset `pollingAddress`. This is
+harmless only because `scheduleDeviceBatteryRefresh`'s work-item body separately guards on
+`transientQueue.head` still being the matching connected device (which `flushTransients(.device)`
+will have already cleared) — so it happens to no-op safely today, but it's inconsistent cleanup
+discipline compared to the other two toggles and leaves a scheduled `DispatchWorkItem` dangling
+until it fires and self-aborts.
+
+**Fix:** Add `deviceBatteryWork?.cancel(); pollingAddress = nil` alongside the other Devices-disable
+cleanup in `handleSettingsChanged()`, mirroring the Now Playing branch's `mediaDismissWorkItem?.cancel()`.
+
+---
+
+_Reviewed: 2026-07-02T01:12:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
