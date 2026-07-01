@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: executing
 stopped_at: Completed 06-06-PLAN.md — Phase 6 fully closed (6/6 plans), COORD-01/APP-03 requirements complete
-last_updated: "2026-07-01T13:07:14.932Z"
-last_activity: 2026-07-01
+last_updated: "2026-07-01T21:09:03.995Z"
+last_activity: 2026-07-01 -- Phase 06 planning complete
 progress:
   total_phases: 7
-  completed_phases: 6
-  total_plans: 27
+  completed_phases: 5
+  total_plans: 33
   completed_plans: 24
-  percent: 86
+  percent: 71
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-06-26)
 
 Phase: 06 (priority-resolver-settings-v1-ship) — COMPLETE (6/6 plans)
 Plan: 6 of 6 (06-06 gap closure, checkpoint APPROVED)
-Status: Phase complete — ready for verification
-Last activity: 2026-07-01
+Status: Ready to execute
+Last activity: 2026-07-01 -- Phase 06 planning complete
 
 ### Phase 5 status note (not a resume point — informational)
 
@@ -116,6 +116,7 @@ None yet.
 - [Phase 1] Open decision: DynamicNotchKit vs. a custom NSPanel for the overlay. Decide at Phase-1 planning (prototype-with-it then graduate, or roll the panel directly).
 - [Phase 0] Confirm the macOS deployment floor (14.0 recommended for reach vs 15.0) before starting.
 - [Phase 4] No Apple Developer account yet — only needed for notarization. Phase 0's dry run and Phase 6's release both require it ($99/yr).
+- [Phase 6] Decision Coverage Gate override (2026-07-01): planning 06-07..06-12 flagged D-01–D-05, D-07–D-12 as uncovered by `must_haves`/`truths` YAML citations. These decisions are already implemented and shipped in the executed 06-01/06-03/06-04 plans (cited 17-27x in prose) — the gate only scans the structured YAML field, so this is a citation-format artifact in the original plans, not a missing feature. User chose to proceed without editing the already-executed plans. Re-surface if `/gsd:verify-work 6` also flags this.
 
 ## Session Continuity
 
