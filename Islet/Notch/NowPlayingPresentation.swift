@@ -49,3 +49,21 @@ func nowPlayingPresentation(from s: TrackSnapshot?) -> NowPlayingPresentation {
     return (s.isPlaying == true) ? .playing(title: title, artist: artist)       // A4: nil isPlaying → paused
                                  : .paused(title: title, artist: artist)
 }
+
+// 06-10 Finding 16 — pure same-track comparison so NotchWindowController.handleNowPlaying
+// can retain previously-loaded artwork across a callback that carries no image for the SAME
+// track (the documented artwork-latency case: album art can arrive a beat after metadata),
+// while still clearing it on a genuine track change or a stop. `true` only when BOTH sides
+// have a non-nil (title, artist) pair AND those pairs are equal — a play↔pause transition on
+// the same track is "same track" (the playing/paused axis is deliberately ignored), a title
+// change or a transition to/from `.none` is not.
+func isSameTrack(_ a: NowPlayingPresentation, _ b: NowPlayingPresentation) -> Bool {
+    func titleArtist(_ p: NowPlayingPresentation) -> (title: String, artist: String)? {
+        switch p {
+        case .playing(let t, let a), .paused(let t, let a): return (t, a)
+        case .none: return nil
+        }
+    }
+    guard let ta = titleArtist(a), let tb = titleArtist(b) else { return false }
+    return ta == tb
+}

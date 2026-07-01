@@ -85,4 +85,29 @@ final class NowPlayingPresentationTests: XCTestCase {
                                          isPlaying: nil, title: "Track", artist: "Band", hasArtwork: true)
         XCTAssertEqual(nowPlayingPresentation(from: unknownState), .paused(title: "Track", artist: "Band"))
     }
+
+    // MARK: 06-10 Finding 16 — isSameTrack(_:_:): retain artwork across a same-track nil
+    // callback (album art can arrive a beat after metadata), clear it on a genuine track
+    // change or a stop.
+
+    func testIsSameTrackAcrossPlayPause() {
+        // Same title+artist, only the playing/paused axis differs — a play<->pause
+        // transition on the SAME track must read as "same track" (retain artwork).
+        XCTAssertTrue(isSameTrack(.playing(title: "A", artist: "B"), .paused(title: "A", artist: "B")))
+    }
+
+    func testIsSameTrackDifferentTitle() {
+        // Different title -> different track -> artwork must clear.
+        XCTAssertFalse(isSameTrack(.playing(title: "A", artist: "B"), .playing(title: "C", artist: "B")))
+    }
+
+    func testIsSameTrackStopClears() {
+        // Playback stopped (-> .none) -> artwork must clear.
+        XCTAssertFalse(isSameTrack(.playing(title: "A", artist: "B"), .none))
+    }
+
+    func testIsSameTrackBothNoneIsFalse() {
+        // No track on either side -> nothing to retain.
+        XCTAssertFalse(isSameTrack(.none, .none))
+    }
 }

@@ -928,7 +928,16 @@ final class NotchWindowController {
 
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             nowPlayingState.presentation = p
-            nowPlayingState.artwork = art   // nil → Plan 03 placeholder; async art fills on a later callback
+            // 06-10 Finding 16: a nil `art` no longer unconditionally overwrites the artwork.
+            // Album art can arrive a beat after metadata (documented latency), so a nil
+            // callback for the SAME track (isSameTrack(previous, p)) retains whatever's
+            // already showing instead of flickering back to the placeholder. A genuine track
+            // change or a stop (p == .none) still clears it, exactly as before.
+            if let art {
+                nowPlayingState.artwork = art
+            } else if p == .none || !isSameTrack(previous, p) {
+                nowPlayingState.artwork = nil
+            }
             renderPresentation()            // Phase 6: now-playing is a resolver input — re-resolve
         }
         updateVisibility()   // Pattern 7 — the SOLE show/hide site (inherits fullscreen / clamshell)

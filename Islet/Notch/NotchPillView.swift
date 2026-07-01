@@ -138,11 +138,17 @@ struct NotchPillView: View {
         .frame(width: Self.expandedSize.width,
                height: Self.expandedSize.height,
                alignment: .top)
-        // D-02: a CLICK on the pill expands it (the controller runs nextState(_, .clicked)
-        // inside its spring animation wrapper). The controller only makes the panel hit-testable
-        // (ignoresMouseEvents = false) while the pointer is in the pill hot-zone, so the
-        // only taps that reach here are taps on the island itself.
-        .onTapGesture { onClick() }
+        // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
+        // container level. A single ancestor .onTapGesture here would sit ABOVE the
+        // transport Buttons nested inside mediaExpanded, and SwiftUI's gesture
+        // resolution between an ancestor TapGesture and a descendant Button is not
+        // guaranteed — tapping play/pause/skip could also toggle collapse/expand.
+        // Instead, .onTapGesture { onClick() } is scoped INDIVIDUALLY onto every
+        // case except mediaExpanded's button row: collapsedIsland, expandedIsland,
+        // mediaUnavailable each carry their own, and all three wing glances get it
+        // "for free" via the shared wingsShape(content:) helper. mediaExpanded adds
+        // it ONLY to its top (non-button) HStack. This eliminates the ambiguity by
+        // construction rather than relying on undocumented SwiftUI gesture priority.
     }
 
     // COLLAPSED — the existing black notch pill (D-08 idle-static). Keeps the
@@ -159,6 +165,7 @@ struct NotchPillView: View {
             // state mutation. The haptic + the real pointer monitor are Plan 03.
             .scaleEffect(interaction.isHovering && !interaction.isExpanded ? 1.06 : 1.0)
             .offset(y: devOffset)
+            .onTapGesture { onClick() }
     }
 
     // EXPANDED — the same black blob grown to the compact expanded size, with a
@@ -176,6 +183,7 @@ struct NotchPillView: View {
                     .monospacedDigit()
                     .foregroundStyle(.white)
             )
+            .onTapGesture { onClick() }
     }
 
     // Finding 12 — the shared flat-strip skeleton `wings(for:)`, `mediaWings(_:art:)`, and
@@ -192,6 +200,9 @@ struct NotchPillView: View {
                 content()
                     .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             )
+            // Finding 15 (06-10): all three wing glances (wings(for:), mediaWings(_:art:),
+            // deviceWings(for:)) share this one tap-to-toggle through the shared helper.
+            .onTapGesture { onClick() }
     }
 
     // CHG-01 / D-01 / D-03 / D-04 / D-05 — the WINGS / Alcove sideways layout: a flat, wide strip
@@ -390,6 +401,12 @@ struct NotchPillView: View {
                         EqualizerBars(isPlaying: isPlaying, tint: accent)   // D-11 accent on the bars
                             .frame(height: 40)    // center the bars vertically against the art row (like the collapsed wing) — not top-hanging
                     }
+                    // Finding 15 (06-10): tap-to-toggle scoped ONLY to this non-button top row
+                    // (art/title/artist/bars) — never to the enclosing VStack or the bottom
+                    // HStack below, which holds the transport Buttons. This guarantees no tap
+                    // gesture recognizer sits above the transport buttons' region. Tradeoff:
+                    // the reserved Shuffle/Repeat placeholder corners no longer toggle collapse.
+                    .onTapGesture { onClick() }
                     // D-09: reserved vertical room for the future seek bar (NOT built — NOW-04 v2).
                     Spacer(minLength: 0).frame(height: 4)
                     // Bottom: centered control row.
@@ -438,6 +455,7 @@ struct NotchPillView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
             )
+            .onTapGesture { onClick() }
     }
 
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
