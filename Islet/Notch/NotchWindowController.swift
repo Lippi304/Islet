@@ -386,6 +386,20 @@ final class NotchWindowController {
         presentationState.presentation = currentPresentation()
     }
 
+    // Finding 11 — consolidates the identical enqueue-render-dismiss triplet that handlePower
+    // and handleDevice each hand-rolled: spring-wrap renderPresentation(), call the sole
+    // updateVisibility(), (re)arm the shared ~3s dismiss. Not used by scheduleActivityDismiss's
+    // own DispatchWorkItem body — its advance-branch conditionally re-arms rather than
+    // unconditionally scheduling, so it correctly stays distinct (calling this here would
+    // double-arm the dismiss).
+    private func presentTransientChange() {
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+        updateVisibility()
+        scheduleActivityDismiss()
+    }
+
     // Pattern 7 (ISL-05) — the ONE visibility decision and the SOLE show/hide site. The
     // Phase-1 clamshell/display-target signal (selectTargetScreen) AND the Phase-2 fullscreen
     // signal (isTrueFullscreen) converge through the single shouldShow AND; there is no second
@@ -621,11 +635,7 @@ final class NotchWindowController {
             chargingState.activity = activity   // keep the model in sync (the % tick mutates it)
             let changed = transientQueue.enqueue(.charging(activity))
             if changed {
-                withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-                    renderPresentation()
-                }
-                updateVisibility()           // Pattern 6 — the SOLE show/hide site (fullscreen gate)
-                scheduleActivityDismiss()    // D-09 — the ~3s one-shot that advances the queue
+                presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
             }
         } else if next != nil, case .charging = transientQueue.head {
             // A pure % tick while a CHARGING splash already stands: update the standing head's %
@@ -733,11 +743,7 @@ final class NotchWindowController {
         guard let activity = deviceActivity(from: reading) else { return }
         let changed = transientQueue.enqueue(.device(activity))   // D-02 rank 2 / D-03 sequential
         if changed {
-            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-                renderPresentation()
-            }
-            updateVisibility()                            // Pattern 6 — the SOLE show/hide site
-            scheduleActivityDismiss()                     // shared ~3s one-shot (advances the queue)
+            presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
             // The HFP battery indicator can arrive a beat after the connect notification, so the
             // splash may open with the connection sign; refresh it shortly after so the battery
             // appears within the ~3s glance (no-op if the battery was already present / unchanged).

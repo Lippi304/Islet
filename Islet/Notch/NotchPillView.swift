@@ -103,8 +103,6 @@ struct NotchPillView: View {
     // Post-checkpoint (user request): ONE uniform 290 pt width across all three wing glances
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
-    static let mediaWingsSize = CGSize(width: 290, height: 32)
-    static let deviceWingsSize = CGSize(width: 290, height: 32)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -180,6 +178,22 @@ struct NotchPillView: View {
             )
     }
 
+    // Finding 12 — the shared flat-strip skeleton `wings(for:)`, `mediaWings(_:art:)`, and
+    // `deviceWings(for:)` each repeated: NotchShape → .fill → .matchedGeometryEffect → .frame
+    // → .overlay(content sized the same). Their size constants were already numerically
+    // identical (290×32, the post-checkpoint "one uniform width" decision), so this collapses
+    // them into the single `wingsSize`. Each caller supplies only its own distinct HStack content.
+    private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flatter than the downward blob
+            .fill(Color.black)
+            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            .overlay(
+                content()
+                    .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            )
+    }
+
     // CHG-01 / D-01 / D-03 / D-04 / D-05 — the WINGS / Alcove sideways layout: a flat, wide strip
     // flanking the notch. Status symbol LEFT (a bolt — yellow while charging, dim otherwise), the
     // SAME horizontal BatteryIndicator as the device glance on the RIGHT (post-checkpoint user
@@ -193,22 +207,17 @@ struct NotchPillView: View {
         case .full(let p):     isCharging = false; percent = p
         case .onBattery(let p):isCharging = false; percent = p
         }
-        return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flatter than the downward blob
-            .fill(Color.black)
-            .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
-            .overlay(
-                HStack(spacing: 0) {
-                    Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (charging cue)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isCharging ? Color.green : Color.white.opacity(0.6))
-                        .padding(.leading, 12)
-                    Spacer()                                             // clears the physical camera bridge
-                    BatteryIndicator(level: percent, accent: accent)     // RIGHT — same indicator as the device glance
-                        .padding(.trailing, 14)
-                }
-                .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
-            )
+        return wingsShape {
+            HStack(spacing: 0) {
+                Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (charging cue)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(isCharging ? Color.green : Color.white.opacity(0.6))
+                    .padding(.leading, 12)
+                Spacer()                                             // clears the physical camera bridge
+                BatteryIndicator(level: percent, accent: accent)     // RIGHT — same indicator as the device glance
+                    .padding(.trailing, 14)
+            }
+        }
     }
 
     // D-02/D-03/D-04/D-05 — the MEDIA glance WINGS: the collapsed now-playing peek.
@@ -220,20 +229,15 @@ struct NotchPillView: View {
     // the app and are isPlaying-gated for the idle-CPU guarantee (D-04, see EqualizerBars).
     private func mediaWings(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
         let isPlaying = isPlayingFor(presentation)
-        return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flat strip, matches charging wings
-            .fill(Color.black)
-            .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.mediaWingsSize.width, height: Self.mediaWingsSize.height)
-            .overlay(
-                HStack(spacing: 0) {
-                    artThumbnail(art, side: Self.mediaWingsSize.height - 8, corner: 6)  // LEFT wing
-                        .padding(.leading, 22)   // inset from the outer notch edge (user request)
-                    Spacer()                                            // clears the physical camera bridge
-                    EqualizerBars(isPlaying: isPlaying, tint: accent)  // RIGHT wing — D-02 bars (D-11 accent)
-                        .padding(.trailing, 24)  // inset from the outer notch edge (user request)
-                }
-                .frame(width: Self.mediaWingsSize.width, height: Self.mediaWingsSize.height)
-            )
+        return wingsShape {
+            HStack(spacing: 0) {
+                artThumbnail(art, side: Self.wingsSize.height - 8, corner: 6)  // LEFT wing
+                    .padding(.leading, 22)   // inset from the outer notch edge (user request)
+                Spacer()                                            // clears the physical camera bridge
+                EqualizerBars(isPlaying: isPlaying, tint: accent)  // RIGHT wing — D-02 bars (D-11 accent)
+                    .padding(.trailing, 24)  // inset from the outer notch edge (user request)
+            }
+        }
     }
 
     // DEV-01 / DEV-02 / D-02 / D-03 — the DEVICE connect/disconnect glance WINGS. Same flat strip
@@ -255,25 +259,20 @@ struct NotchPillView: View {
         case .disconnected(_, let g):     glyph = g; isConnected = false; battery = nil
         }
         let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
-        return NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flat strip, matches charging/media wings
-            .fill(Color.black)
-            .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.deviceWingsSize.width, height: Self.deviceWingsSize.height)
-            .overlay(
-                HStack(spacing: 0) {
-                    Image(systemName: deviceSymbol(for: glyph))   // LEFT wing — device glyph (D-02)
-                        .symbolRenderingMode(.hierarchical)
-                        // D-11 (Phase 6): the device glyph picks up the persisted accent. The
-                        // D-03 disconnected-dimming rides on top as opacity, so a disconnected
-                        // device still reads as dimmed regardless of the accent hue.
-                        .foregroundStyle(accent.opacity(iconOpacity))
-                        .padding(.leading, 12)
-                    Spacer()                                      // clears the physical camera bridge
-                    deviceTrailing(isConnected: isConnected, battery: battery)   // RIGHT wing
-                        .padding(.trailing, 14)
-                }
-                .frame(width: Self.deviceWingsSize.width, height: Self.deviceWingsSize.height)
-            )
+        return wingsShape {
+            HStack(spacing: 0) {
+                Image(systemName: deviceSymbol(for: glyph))   // LEFT wing — device glyph (D-02)
+                    .symbolRenderingMode(.hierarchical)
+                    // D-11 (Phase 6): the device glyph picks up the persisted accent. The
+                    // D-03 disconnected-dimming rides on top as opacity, so a disconnected
+                    // device still reads as dimmed regardless of the accent hue.
+                    .foregroundStyle(accent.opacity(iconOpacity))
+                    .padding(.leading, 12)
+                Spacer()                                      // clears the physical camera bridge
+                deviceTrailing(isConnected: isConnected, battery: battery)   // RIGHT wing
+                    .padding(.trailing, 14)
+            }
+        }
     }
 
     // RIGHT wing of the device glance: the battery indicator when the device reports a level
