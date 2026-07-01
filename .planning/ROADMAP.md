@@ -172,7 +172,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 06-04-PLAN.md — Wire resolver+queue+device monitor+toggles+accent into NotchWindowController/NotchPillView; on-device coexistence checkpoint (COORD-01/DEV/APP-03)
-- [ ] 06-08-PLAN.md — Gap closure: Now Playing reliability — health-check race, hover-pause the paused-media dismiss, debounce duplicate .paused emissions (COORD-01/NOW-01/02/03)
+- [x] 06-08-PLAN.md — Gap closure: Now Playing reliability — health-check race, hover-pause the paused-media dismiss, debounce duplicate .paused emissions (COORD-01/NOW-01/02/03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -202,4 +202,4 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 4/4 | Complete | 2026-06-28 |
 | 5. Device-Connected Activity | 0/3 | Not started | - |
-| 6. Priority Resolver, Settings & v1 Ship | 8/12 | In Progress|  |
+| 6. Priority Resolver, Settings & v1 Ship | 9/12 | In Progress|  |
