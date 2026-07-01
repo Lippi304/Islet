@@ -24,7 +24,6 @@ struct TrackSnapshot: Equatable {
     let isPlaying: Bool?           // nil → state unknown (A4: treat as paused)
     let title: String?             // nil / empty → nothing to show → .none
     let artist: String?            // nil → "" so the title still renders
-    let hasArtwork: Bool           // presence only; the image itself is a Plan-02 @Published concern
 }
 
 // The presentation the media view renders. `.unavailable` (D-12 health) is intentionally

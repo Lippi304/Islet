@@ -32,8 +32,22 @@ import AppKit
 // and "no callback within the timeout" as unavailable. This probe is what covers the
 // blocked-at-launch case; mid-session death is covered separately by onListenerTerminated.
 
+// CLAUDE.md's "Now Playing — the MediaRemote reality" mandate: "isolate all now-playing
+// code behind one Swift protocol/service so swapping the implementation is a one-file
+// change." NotchWindowController holds its stored property typed against this protocol,
+// not the concrete NowPlayingMonitor class below — a future MediaRemote break is a
+// one-file swap of the concrete conformer.
+protocol NowPlayingService: AnyObject {
+    func start()
+    nonisolated func stop()
+    func togglePlayPause()
+    func nextTrack()
+    func previousTrack()
+    func runHealthCheck(then setHealthy: @escaping (Bool) -> Void)
+}
+
 @MainActor
-final class NowPlayingMonitor {
+final class NowPlayingMonitor: NowPlayingService {
     // nonisolated(unsafe) so stop() can run from NotchWindowController's nonisolated deinit
     // (T-04-12 child teardown), mirroring PowerSourceMonitor's nonisolated(unsafe) runLoopSource.
     // The controller is constructed + driven on main for the whole app lifetime; the deinit
@@ -60,8 +74,7 @@ final class NowPlayingMonitor {
             let snap = TrackSnapshot(bundleIdentifier: p.bundleIdentifier,
                                      isPlaying: p.isPlaying,
                                      title: p.title,
-                                     artist: p.artist,
-                                     hasArtwork: p.artwork != nil)
+                                     artist: p.artist)
             self.onSnapshot(snap, p.artwork)   // artwork already off-thread-decoded by the wrapper
         }
         controller.onListenerTerminated = { [weak self] in self?.onTerminated() }   // D-13

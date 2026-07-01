@@ -148,7 +148,7 @@ final class NotchWindowController {
     // fully-initialised self) and held as a plain stored property so the nonisolated deinit can
     // call nowPlayingMonitor?.stop() — terminating the persistent perl child (no orphaned
     // process, T-04-12), mirroring powerMonitor's lifecycle exactly.
-    private var nowPlayingMonitor: NowPlayingMonitor?
+    private var nowPlayingMonitor: NowPlayingService?
 
     // D-06 (15s paused linger) / D-07 (stop cue) — the one-shot media auto-dismiss. A single
     // DispatchWorkItem mirroring dismissWorkItem (NOT a recurring timer): one wake-up then idle,
