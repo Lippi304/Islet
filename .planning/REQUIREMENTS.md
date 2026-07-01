@@ -35,13 +35,13 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 
 ### Activity Coordination (COORD)
 
-- [ ] **COORD-01**: When several activities occur close together (e.g. charging + track change), the island shows them by a sensible priority without overlapping or glitching
+- [x] **COORD-01**: When several activities occur close together (e.g. charging + track change), the island shows them by a sensible priority without overlapping or glitching
 
 ### App & Distribution (APP)
 
 - [ ] **APP-01**: The app runs as a menu-bar / background agent with no Dock icon, with a menu to open settings and quit
 - [ ] **APP-02**: User can enable "launch at login" from settings
-- [ ] **APP-03**: A minimal settings window lets the user choose which activities are shown and set an accent/theme
+- [x] **APP-03**: A minimal settings window lets the user choose which activities are shown and set an accent/theme
 - [x] **APP-04**: The app ships as a Developer-ID signed + notarized + stapled download that opens on a clean Mac without Gatekeeper warnings
 
 ## v2 Requirements
@@ -113,8 +113,8 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 | NOW-03 | Phase 4 | Complete |
 | DEV-01 | Phase 5 | Pending |
 | DEV-02 | Phase 5 | Pending |
-| COORD-01 | Phase 6 | Pending |
-| APP-03 | Phase 6 | Pending |
+| COORD-01 | Phase 6 | Complete |
+| APP-03 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total

@@ -133,7 +133,7 @@ Plans:
 - [x] 06-03-PLAN.md — Settings: three activity toggles + curated accent palette + @AppStorage persistence + activityAccent env key (APP-03)
 - [x] 06-04-PLAN.md — Wire resolver+queue+device monitor+toggles+accent into NotchWindowController/NotchPillView; on-device coexistence checkpoint (COORD-01/DEV/APP-03)
 - [x] 06-05-PLAN.md — v1 ship: version 0.1 + release.sh dry-run DMG + on-device Now Playing health re-check (APP-04, real notarize deferred)
-- [ ] 06-06-PLAN.md — Gap closure: charging-yield-back width-jump fix (animate model clear with presentation switch) + charging battery indicator accent fix (UAT gaps 1 + 4; gap 5 fullscreen-enter flash confirmed pre-existing Phase-2 limitation, no code change)
+- [x] 06-06-PLAN.md — Gap closure: charging-yield-back width-jump fix (animate model clear with presentation switch) + charging battery indicator accent fix (UAT gaps 1 + 4; gap 5 fullscreen-enter flash confirmed pre-existing Phase-2 limitation, no code change)
 **UI hint**: yes
 
 ## Progress
@@ -149,4 +149,4 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 4/4 | Complete | 2026-06-28 |
 | 5. Device-Connected Activity | 0/3 | Not started | - |
-| 6. Priority Resolver, Settings & v1 Ship | 5/5 | Complete   | 2026-07-01 |
+| 6. Priority Resolver, Settings & v1 Ship | 6/6 | Complete   | 2026-07-01 |

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 6 complete (06-05 ship gate closed out)
-last_updated: "2026-07-01T00:38:41Z"
-last_activity: 2026-07-01 -- Phase 06 closed out (06-05 SUMMARY written from existing commits)
+status: verifying
+stopped_at: Completed 06-06-PLAN.md — Phase 6 fully closed (6/6 plans), COORD-01/APP-03 requirements complete
+last_updated: "2026-07-01T13:07:14.932Z"
+last_activity: 2026-07-01
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 26
-  completed_plans: 23
-  percent: 88
+  total_plans: 27
+  completed_plans: 24
+  percent: 86
 ---
 
 # Project State
@@ -21,13 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** v1.0 milestone wrap-up — Phase 5's remaining scope is a deferred carry-over (see below)
+**Current focus:** Phase 06 — priority-resolver-settings-v1-ship (complete, ready for /gsd-verify-work)
 
 ## Current Position
 
-Phase: 06 (priority-resolver-settings-v1-ship) — COMPLETE (5/5 plans)
-Status: Phase 06 closed out. Milestone v1.0 feature-complete; one carry-over remains (below).
-Last activity: 2026-07-01 -- 06-05 SUMMARY written from pre-existing commits (version bump, release dry-run, on-device D-16 re-check + UI fixes), ROADMAP/STATE updated to match.
+Phase: 06 (priority-resolver-settings-v1-ship) — COMPLETE (6/6 plans)
+Plan: 6 of 6 (06-06 gap closure, checkpoint APPROVED)
+Status: Phase complete — ready for verification
+Last activity: 2026-07-01
 
 ### Phase 5 status note (not a resume point — informational)
 
@@ -42,7 +43,7 @@ merge (like the D-15 Developer-ID carry-over), not neglected work. Whether to fo
 Phase 5 in ROADMAP.md (as superseded) or leave it open pending the BT hardware spike is a
 call for the user — not made automatically here.
 
-Progress: [██████████] 100%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -73,6 +74,7 @@ Progress: [██████████] 100%
 | Phase 02 P02 | 4 | 2 tasks | 3 files |
 | Phase 02 P03 | 4 | 2 tasks | 3 files |
 | Phase 02 P04 | 180 | 2 tasks | 3 files |
+| Phase 06 P06 | 20min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -95,6 +97,10 @@ Recent decisions affecting current work:
 - [Phase 02]: [02-03] Tuning seeds single-sourced in NotchWindowController for Plan 05: graceDelay 0.4s, spring response 0.35/damping 0.65, hotZonePadding 6, expandedSize from NotchPillView.expandedSize (360×72). A1 DEBUG hover-tick probe ready; NSTrackingArea (Pattern 1b) documented as the permission-free fallback.
 - [Phase 02]: [02-04] ISL-05 runtime fullscreen signal pivoted from the safe-area heuristic to a CGS managed-display-spaces probe (built-in current-space type==4): a background agent (LSUIElement) can never observe another app's fullscreen from its own physical display's safe area, so the safe-area predicate is superseded (kept only as a pure test-covered heuristic). No AX/TCC prompt; fails safe to false.
 - [Phase 02]: [02-04] Native fullscreen ISL-05 on-device VERIFIED (Tahoe); a ~1-frame island flash at the END of the fullscreen-ENTER transition is product-deferred — root-caused as window-server compositing the all-Spaces panel onto the activating fullscreen Space (our orderOut is reactive, can't pre-empt it); a show-debounce was tried and reverted (f706f66, nothing to debounce). Q2 items (FS video, QuickLook, maximized-stays, clamshell, focus-safe restore) remain pending UAT.
+- [Phase 06]: scheduleActivityDismiss() commits syncActivityModels() and renderPresentation() inside one withAnimation(.spring) transaction (was two back-to-back transactions) — an un-animated model clear immediately before an animated presentation switch broke matchedGeometryEffect's frame interpolation on the charging-yield-back, causing a width snap
+- [Phase 06]: positionAndShow() guards panel.setFrame(_, display: true) with if panel.frame != panelFrame — an unconditional forced AppKit redisplay on every activity switch could compound the SwiftUI animation interpolation issue
+- [Phase 06]: Charging wings BatteryIndicator forwards accent: accent; device wings BatteryIndicator stays untinted (user-confirmed scope exclusion) — 06-04 wired BatteryIndicator's accent parameter end-to-end but missed this one call site; the device battery's fixed green/amber/red is an intentional design decision, not a bug
+- [Phase 06]: Charging-cue bolt icon color changed from Color.yellow to Color.green while charging (post-checkpoint deviation) — user reported the yellow was too washed out/hard to see during on-device human-verify; requested live during the checkpoint, not in original plan scope
 
 ### Pending Todos
 
@@ -113,6 +119,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-28T01:05:24.423Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-priority-resolver-settings-v1-ship/06-CONTEXT.md
+Last session: 2026-07-01T13:07:14.927Z
+Stopped at: Completed 06-06-PLAN.md — Phase 6 fully closed (6/6 plans), COORD-01/APP-03 requirements complete
+Resume file: None
