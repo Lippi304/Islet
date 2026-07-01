@@ -213,7 +213,7 @@ struct NotchPillView: View {
                         .foregroundStyle(isCharging ? Color.yellow : Color.white.opacity(0.6))
                         .padding(.leading, 12)
                     Spacer()                                             // clears the physical camera bridge
-                    BatteryIndicator(level: percent)                     // RIGHT — same indicator as the device glance
+                    BatteryIndicator(level: percent, accent: accent)     // RIGHT — same indicator as the device glance
                         .padding(.trailing, 14)
                 }
                 .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
