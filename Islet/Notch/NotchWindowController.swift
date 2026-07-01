@@ -57,12 +57,6 @@ final class NotchWindowController {
     // @ObservedObject still re-renders an in-place % update inside the same wings case).
     private let chargingState = ChargingActivityState()
 
-    // Phase 6 / DEV-01/DEV-02 (Plan 04) — the SEPARATE device-splash model (clone of
-    // chargingState). The BluetoothMonitor lifts a DeviceReading, the pure deviceActivity(from:)
-    // maps it, and handleDevice publishes it here for the view to bind to; the RENDER decision
-    // still comes from the resolver's queue head.
-    private let deviceState = DeviceActivityState()
-
     // Phase 6 / COORD-01 / D-05 — the @Published carrier of the resolver's verdict. The view
     // observes this; the controller writes it (inside the spring) on every state change via
     // renderPresentation(). This is the ONE place the rendered presentation is set.
@@ -392,6 +386,20 @@ final class NotchWindowController {
         presentationState.presentation = currentPresentation()
     }
 
+    // Finding 11 — consolidates the identical enqueue-render-dismiss triplet that handlePower
+    // and handleDevice each hand-rolled: spring-wrap renderPresentation(), call the sole
+    // updateVisibility(), (re)arm the shared ~3s dismiss. Not used by scheduleActivityDismiss's
+    // own DispatchWorkItem body — its advance-branch conditionally re-arms rather than
+    // unconditionally scheduling, so it correctly stays distinct (calling this here would
+    // double-arm the dismiss).
+    private func presentTransientChange() {
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+        updateVisibility()
+        scheduleActivityDismiss()
+    }
+
     // Pattern 7 (ISL-05) — the ONE visibility decision and the SOLE show/hide site. The
     // Phase-1 clamshell/display-target signal (selectTargetScreen) AND the Phase-2 fullscreen
     // signal (isTrueFullscreen) converge through the single shouldShow AND; there is no second
@@ -627,11 +635,7 @@ final class NotchWindowController {
             chargingState.activity = activity   // keep the model in sync (the % tick mutates it)
             let changed = transientQueue.enqueue(.charging(activity))
             if changed {
-                withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-                    renderPresentation()
-                }
-                updateVisibility()           // Pattern 6 — the SOLE show/hide site (fullscreen gate)
-                scheduleActivityDismiss()    // D-09 — the ~3s one-shot that advances the queue
+                presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
             }
         } else if next != nil, case .charging = transientQueue.head {
             // A pure % tick while a CHARGING splash already stands: update the standing head's %
@@ -675,9 +679,9 @@ final class NotchWindowController {
     // view binding can't resurrect a dismissed splash). The head's own model is left as-is.
     private func syncActivityModels() {
         switch transientQueue.head {
-        case .charging: deviceState.activity = nil
+        case .charging: break
         case .device:   chargingState.activity = nil
-        case nil:       chargingState.activity = nil; deviceState.activity = nil
+        case nil:       chargingState.activity = nil
         }
     }
 
@@ -737,14 +741,9 @@ final class NotchWindowController {
         if let addr = reading.address { deviceLastShown[addr] = now }   // only stamp when there IS a key
 
         guard let activity = deviceActivity(from: reading) else { return }
-        deviceState.activity = activity                   // keep the model in sync with the head
         let changed = transientQueue.enqueue(.device(activity))   // D-02 rank 2 / D-03 sequential
         if changed {
-            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-                renderPresentation()
-            }
-            updateVisibility()                            // Pattern 6 — the SOLE show/hide site
-            scheduleActivityDismiss()                     // shared ~3s one-shot (advances the queue)
+            presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
             // The HFP battery indicator can arrive a beat after the connect notification, so the
             // splash may open with the connection sign; refresh it shortly after so the battery
             // appears within the ~3s glance (no-op if the battery was already present / unchanged).
@@ -797,7 +796,6 @@ final class NotchWindowController {
             if let monitor = self.bluetoothMonitor,
                let fresh = monitor.battery(forAddress: address), fresh != old {
                 let updated = DeviceActivity.connected(name: name, glyph: glyph, battery: fresh)
-                self.deviceState.activity = updated
                 self.transientQueue.updateHead(.device(updated))
                 withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                     self.renderPresentation()
@@ -816,7 +814,7 @@ final class NotchWindowController {
     // initial host AND the live accent re-apply (applyAccentIfChanged) share ONE construction.
     // accent(for:) clamps an out-of-range index to the neutral default (T-06-11 — never crashes).
     private func makeRootView(accentIndex: Int) -> some View {
-        NotchPillView(interaction: interaction, charging: chargingState,
+        NotchPillView(interaction: interaction,
                       nowPlaying: nowPlayingState,
                       presentationState: presentationState,
                       onClick: { [weak self] in self?.handleClick() },
@@ -893,7 +891,6 @@ final class NotchWindowController {
         switch category {
         case .charging: chargingState.activity = nil
         case .device:
-            deviceState.activity = nil
             pendingDeviceAddresses.removeAll()   // Finding 4 — drop any best-effort pending addresses too
         }
         dismissWorkItem?.cancel()
