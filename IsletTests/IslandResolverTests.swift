@@ -154,6 +154,90 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(q.pendingCount, 0)
     }
 
+    // MARK: matchPendingBatteryPoll(...) — WR-1 gap-closure regression coverage
+
+    func testMatchPendingBatteryPollFindsByIdentityNotFIFOPosition() {
+        // WR-1: the match must be found by IDENTITY (the promoted device's DeviceActivity
+        // payload), not by FIFO position — "B" is promoted while "A" is first in the list, so a
+        // naive `.first` pop would wrongly return "A".
+        let pollA = PendingBatteryPoll(address: "A",
+                                        activity: .connected(name: "A", glyph: .generic, battery: nil))
+        let pollB = PendingBatteryPoll(address: "B",
+                                        activity: .connected(name: "B", glyph: .generic, battery: nil))
+        let promoted = ActiveTransient.device(.connected(name: "B", glyph: .generic, battery: nil))
+        let (match, remaining) = matchPendingBatteryPoll([pollA, pollB], promoted: promoted)
+        XCTAssertEqual(match, pollB)
+        XCTAssertEqual(remaining, [pollA])
+    }
+
+    func testMatchPendingBatteryPollNilPromotedReturnsUnchanged() {
+        // No promoted transient at all → no match, pending list untouched.
+        let pollA = PendingBatteryPoll(address: "A",
+                                        activity: .connected(name: "A", glyph: .generic, battery: nil))
+        let (match, remaining) = matchPendingBatteryPoll([pollA], promoted: nil)
+        XCTAssertNil(match)
+        XCTAssertEqual(remaining, [pollA])
+    }
+
+    func testMatchPendingBatteryPollChargingPromotedReturnsUnchanged() {
+        // A charging transient promoted (not a device) → no match, pending list untouched.
+        let pollA = PendingBatteryPoll(address: "A",
+                                        activity: .connected(name: "A", glyph: .generic, battery: nil))
+        let promoted = ActiveTransient.charging(.charging(percent: 50))
+        let (match, remaining) = matchPendingBatteryPoll([pollA], promoted: promoted)
+        XCTAssertNil(match)
+        XCTAssertEqual(remaining, [pollA])
+    }
+
+    func testMatchPendingBatteryPollDisconnectedPromotedReturnsUnchanged() {
+        // A .device(.disconnected) promotion never owes a battery poll → no match, unchanged.
+        let pollA = PendingBatteryPoll(address: "A",
+                                        activity: .connected(name: "A", glyph: .generic, battery: nil))
+        let promoted = ActiveTransient.device(.disconnected(name: "A", glyph: .generic))
+        let (match, remaining) = matchPendingBatteryPoll([pollA], promoted: promoted)
+        XCTAssertNil(match)
+        XCTAssertEqual(remaining, [pollA])
+    }
+
+    func testMatchPendingBatteryPollNoMatchingEntryReturnsUnchanged() {
+        // Promoted device has no corresponding pending entry at all → no match, unchanged.
+        let pollA = PendingBatteryPoll(address: "A",
+                                        activity: .connected(name: "A", glyph: .generic, battery: nil))
+        let promoted = ActiveTransient.device(.connected(name: "C", glyph: .generic, battery: nil))
+        let (match, remaining) = matchPendingBatteryPoll([pollA], promoted: promoted)
+        XCTAssertNil(match)
+        XCTAssertEqual(remaining, [pollA])
+    }
+
+    // MARK: TransientQueue.removeAll(where:) — WR-2 head-unchanged invariant regression coverage
+
+    func testRemoveAllLeavesUnrelatedHeadUnchanged() {
+        // WR-2: when the predicate only matches entries in `pending` (never the head), `head` must
+        // stay BYTE-FOR-BYTE unchanged — this is the invariant flushTransients' `oldHead` guard
+        // depends on to skip an unnecessary dismiss-timer reset.
+        var q = TransientQueue()
+        _ = q.enqueue(device)          // head = device
+        _ = q.enqueue(charging)        // pending: [charging]
+        let oldHead = q.head
+        q.removeAll(where: { if case .charging = $0 { return true }; return false })
+        XCTAssertEqual(q.head, oldHead)   // unchanged — proves the WR-2 guard would read false (no re-arm)
+        XCTAssertEqual(q.pendingCount, 0) // the pending charging entry WAS removed
+    }
+
+    func testRemoveAllMatchingHeadPromotesAndChangesHead() {
+        // WR-2 counterpart: when the predicate DOES match the current head, `head` must change
+        // (promote the next pending entry, or clear to nil) — proving the `oldHead` guard correctly
+        // re-arms only when the head was actually touched.
+        var q = TransientQueue()
+        _ = q.enqueue(charging)        // head = charging
+        _ = q.enqueue(device)          // pending: [device]
+        let oldHead = q.head
+        q.removeAll(where: { if case .charging = $0 { return true }; return false })
+        XCTAssertNotEqual(q.head, oldHead)   // changed — promoted "device"
+        XCTAssertEqual(q.head, device)
+        XCTAssertEqual(q.pendingCount, 0)
+    }
+
     func testQueueBoundedDropsOldestPending() {
         // D-03 bound (T-06-01): enqueuing 4 distinct transients after the head caps pending
         // at maxDepth (2), dropping the OLDEST pending; the head is never dropped.
