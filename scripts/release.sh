@@ -84,12 +84,29 @@ fi
 codesign --verify --verbose "${APP_PATH}"
 
 # ----------------------------------------------------------------------------
+# Step 3b: Notarize + staple the .app itself (only when both placeholders are
+# filled) — Apple's standard two-staple flow for DMG distribution.
+# ----------------------------------------------------------------------------
+# `stapler` does not recurse into disk images: stapling only the DMG (Step 6
+# below) leaves NO local ticket on the .app once a user drags it out of the
+# DMG, which can block/delay Gatekeeper on first launch while offline. So we
+# notarize + staple the .app HERE, before Step 4 copies it into the DMG
+# staging folder — the STAPLED .app is what ends up inside the DMG. The DMG
+# itself still gets its own separate notarize+staple pass in Step 6 (a DMG is
+# a distinct artifact from the .app it contains).
+if [ "${DEVELOPER_ID}" != "__DEVELOPER_ID__" ] && [ "${NOTARY_PROFILE}" != "__NOTARY_PROFILE__" ]; then
+  xcrun notarytool submit "${APP_PATH}" --keychain-profile "${NOTARY_PROFILE}" --wait
+  xcrun stapler staple "${APP_PATH}"
+fi
+
+# ----------------------------------------------------------------------------
 # Step 4: Build the .dmg with hdiutil.
 # ----------------------------------------------------------------------------
 # hdiutil ships with macOS (no extra install needed — we deliberately avoid the
-# uninstalled `create-dmg`). We first stage the signed .app into a clean folder
-# with `ditto` (again, to keep the bundle's internal symlinks intact), then turn
-# that folder into a compressed (UDZO) read-only disk image. `-ov` overwrites
+# uninstalled `create-dmg`). We first stage the signed (and, once real
+# credentials exist, already-stapled) .app into a clean folder with `ditto`
+# (again, to keep the bundle's internal symlinks intact), then turn that
+# folder into a compressed (UDZO) read-only disk image. `-ov` overwrites
 # any existing image from a previous run.
 rm -rf "${DMG_DIR}" && mkdir -p "${DMG_DIR}"
 ditto "${APP_PATH}" "${DMG_DIR}/${APP_NAME}.app"
@@ -107,8 +124,12 @@ if [ "${DEVELOPER_ID}" != "__DEVELOPER_ID__" ]; then
 fi
 
 # ----------------------------------------------------------------------------
-# Step 6: Notarize + staple — DEFERRED to Phase 6 (D-01/D-02).
+# Step 6: Notarize + staple the DMG — DEFERRED to Phase 6 (D-01/D-02).
 # ----------------------------------------------------------------------------
+# This is the second half of Apple's standard two-staple flow (the .app was
+# already notarized+stapled in Step 3b above): the DMG is a distinct artifact
+# and needs its own ticket so Gatekeeper accepts the downloaded disk image
+# itself, not just the app inside it.
 # If EITHER placeholder is still unfilled, we cannot notarize, so we STOP here
 # cleanly (exit 0 = success) with a loud, unmistakable message. This guarantees
 # a Phase-0 dry-run DMG can never be confused with a real shippable release.
