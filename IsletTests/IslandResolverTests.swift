@@ -65,6 +65,17 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .nowPlayingExpanded(.none, healthy: false))
     }
 
+    // MARK: nowPlayingHealthGate(...) — Finding 5 gap-closure regression coverage
+
+    func testNowPlayingHealthGateForcesNeutralWhenDisabled() {
+        // Regression: a disabled Now Playing must be forced NEUTRAL (true) regardless of a stale
+        // `false` left over from before the toggle — never silently degraded to "nicht verfügbar"
+        // for a feature the user turned off.
+        XCTAssertTrue(nowPlayingHealthGate(enabled: false, isHealthy: false))
+        // Enabled must still pass the real flag through unchanged.
+        XCTAssertFalse(nowPlayingHealthGate(enabled: true, isHealthy: false))
+    }
+
     func testExpandedHealthyNoMediaIsExpandedIdle() {
         // D-12: expanded, healthy API, nothing playing → the expanded idle (date/time) view.
         let r = resolve(activeTransient: nil,
