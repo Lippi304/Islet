@@ -126,7 +126,7 @@ Plans:
   1. When several activities occur close together (e.g. charging while music plays, then a device connects), the island shows them by a sensible priority without overlapping or glitching, and transient events yield back to the ambient state
   2. A minimal settings window lets the user choose which activities are shown and set an accent/theme, with choices persisting across restarts
   3. The Now Playing launch-time health check is re-verified and the production build is signed, notarized, and stapled, opening cleanly on a second Mac
-**Plans**: 6 plans
+**Plans**: 12 plans
 Plans:
 - [x] 06-01-PLAN.md — Wave 0: pure IslandResolver ranked reducer + bounded de-duped TransientQueue (RED→GREEN unit tests for COORD-01)
 - [x] 06-02-PLAN.md — Finish device quartet: DeviceActivityState + thin BluetoothMonitor + deviceWings branch + remove the BT spike (DEV-01/DEV-02, code-complete)
@@ -134,6 +134,12 @@ Plans:
 - [x] 06-04-PLAN.md — Wire resolver+queue+device monitor+toggles+accent into NotchWindowController/NotchPillView; on-device coexistence checkpoint (COORD-01/DEV/APP-03)
 - [x] 06-05-PLAN.md — v1 ship: version 0.1 + release.sh dry-run DMG + on-device Now Playing health re-check (APP-04, real notarize deferred)
 - [x] 06-06-PLAN.md — Gap closure: charging-yield-back width-jump fix (animate model clear with presentation switch) + charging battery indicator accent fix (UAT gaps 1 + 4; gap 5 fullscreen-enter flash confirmed pre-existing Phase-2 limitation, no code change)
+- [ ] 06-07-PLAN.md — Gap closure: transient-queue/device correctness — nil-address splash regression, battery-poll identity race, dismiss-timer re-arm on promotion, missed battery refresh on promotion, stale isHealthy gate (COORD-01)
+- [ ] 06-08-PLAN.md — Gap closure: Now Playing reliability — health-check race, hover-pause the paused-media dismiss, debounce duplicate .paused emissions (COORD-01/NOW-01/02/03)
+- [ ] 06-09-PLAN.md — Gap closure: cleanup — delete dead DeviceActivityState + redundant charging view subscription; extract presentTransientChange()/wingsShape() helpers (COORD-01)
+- [ ] 06-10-PLAN.md — Gap closure: scope the tap-to-toggle gesture off the transport buttons; retain artwork across a same-track nil callback (COORD-01/NOW-01/02)
+- [ ] 06-11-PLAN.md — Gap closure: delete dead TrackSnapshot.hasArtwork; extract NowPlayingService protocol per CLAUDE.md's isolation mandate (NOW-01/03)
+- [ ] 06-12-PLAN.md — Gap closure: release.sh notarizes+staples the .app before DMG packaging; dry-run banner reflects actual placeholder state (APP-04)
 **UI hint**: yes
 
 ## Progress
