@@ -436,7 +436,9 @@ final class NotchWindowController {
             panel.contentView = NSHostingView(rootView: makeRootView(accentIndex: index))
             self.panel = panel
         }
-        panel.setFrame(panelFrame, display: true) // reposition for resolution / display changes
+        if panel.frame != panelFrame {
+            panel.setFrame(panelFrame, display: true) // reposition for resolution / display changes
+        }
         panel.orderFrontRegardless()                 // show WITHOUT activating the app — focus-safe (D-07)
     }
 
@@ -615,8 +617,8 @@ final class NotchWindowController {
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             _ = self.transientQueue.advance()             // D-03 — promote next pending or clear
-            self.syncActivityModels()                     // drop the model for whatever left the head
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                self.syncActivityModels()                 // drop the model for whatever left the head
                 self.renderPresentation()                 // next splash, or ambient (Pitfall 2)
             }
             self.updateVisibility()                       // the SOLE show/hide site (fullscreen gate)
