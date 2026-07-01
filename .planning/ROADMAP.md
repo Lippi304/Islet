@@ -185,7 +185,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 06-11-PLAN.md — Gap closure: delete dead TrackSnapshot.hasArtwork; extract NowPlayingService protocol per CLAUDE.md's isolation mandate (NOW-01/03)
+- [x] 06-11-PLAN.md — Gap closure: delete dead TrackSnapshot.hasArtwork; extract NowPlayingService protocol per CLAUDE.md's isolation mandate (NOW-01/03)
 
 **UI hint**: yes
 
@@ -202,4 +202,4 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 4/4 | Complete | 2026-06-28 |
 | 5. Device-Connected Activity | 0/3 | Not started | - |
-| 6. Priority Resolver, Settings & v1 Ship | 11/12 | In Progress|  |
+| 6. Priority Resolver, Settings & v1 Ship | 12/12 | Complete   | 2026-07-01 |
