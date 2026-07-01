@@ -115,6 +115,14 @@ final class NotchWindowController {
     // existing deviceLastShown convention.
     private var pollingAddress: String?
 
+    // Gap-closure fix (Finding 4 — missed battery-refresh for a promoted device): a best-effort
+    // FIFO mirroring the TransientQueue's own pending order for `.device` entries ONLY. Exists
+    // solely so a device promoted to head LATER (not immediately, via scheduleActivityDismiss's
+    // advance() or a flushTransients promotion) still gets its post-connect battery poll scheduled
+    // — handleDevice's immediate `if changed` path only covers a device that becomes head RIGHT
+    // AWAY. Capped at 2 to mirror TransientQueue.maxDepth.
+    private var pendingDeviceAddresses: [String] = []
+
     // Phase 6 / APP-03 — the last accent index applied to the hosting view. UserDefaults posts
     // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
     // the controller only re-hosts the view (to re-inject the Environment accent) when THIS value
@@ -358,9 +366,14 @@ final class NotchWindowController {
     private func currentPresentation() -> IslandPresentation {
         let npEnabled = activityEnabled(ActivitySettings.nowPlayingKey)
         let np = npEnabled ? nowPlayingState.presentation : .none   // D-09 disabled NP → forced .none
+        // Gap-closure fix (Finding 5): gate the health flag through the same npEnabled switch as
+        // `np` above — a disabled Now Playing must be INVISIBLE to the resolver (forced neutral),
+        // not silently degraded to "nicht verfügbar" from a stale `false` left over from before
+        // the toggle.
+        let healthy = nowPlayingHealthGate(enabled: npEnabled, isHealthy: nowPlayingState.isHealthy)
         return resolve(activeTransient: transientQueue.head,
                        nowPlaying: np,
-                       nowPlayingHealthy: nowPlayingState.isHealthy,
+                       nowPlayingHealthy: healthy,
                        isExpanded: interaction.isExpanded)
     }
 
@@ -632,6 +645,7 @@ final class NotchWindowController {
             }
             self.updateVisibility()                       // the SOLE show/hide site (fullscreen gate)
             if self.transientQueue.head != nil {
+                self.triggerDeviceBatteryRefreshIfPromoted()  // Finding 4 — cover a device promoted here
                 self.scheduleActivityDismiss()            // re-arm the ~3s for the next transient
             }
         }
@@ -719,7 +733,27 @@ final class NotchWindowController {
             // appears within the ~3s glance (no-op if the battery was already present / unchanged).
             // Requires an address to poll by — an addressless connect can't be battery-refreshed.
             if reading.connected, let addr = reading.address { scheduleDeviceBatteryRefresh(address: addr) }
+        } else if reading.connected {
+            // Gap-closure fix (Finding 4 — missed battery-refresh for a promoted device): this
+            // connect was enqueued BEHIND the current head (or deduped), so it did NOT get a
+            // battery-refresh scheduled above. Remember its address (best-effort FIFO, capped at
+            // maxDepth) so triggerDeviceBatteryRefreshIfPromoted() can schedule it once it is
+            // eventually promoted to head.
+            if let addr = reading.address {
+                pendingDeviceAddresses.append(addr)
+                if pendingDeviceAddresses.count > 2 { pendingDeviceAddresses.removeFirst() }
+            }
         }
+    }
+
+    // Called whenever the queue head may have just changed to a freshly-promoted `.device`
+    // transient (from scheduleActivityDismiss's advance() or flushTransients's promotion). If the
+    // new head is a connected device we still owe a battery refresh for, schedule it now.
+    private func triggerDeviceBatteryRefreshIfPromoted() {
+        guard case .device(.connected) = transientQueue.head, let addr = pendingDeviceAddresses.first
+        else { return }
+        pendingDeviceAddresses.removeFirst()
+        scheduleDeviceBatteryRefresh(address: addr)
     }
 
     // Bounded POLL for the just-connected device's battery: the HFP AT+IPHONEACCEV value often
@@ -824,8 +858,12 @@ final class NotchWindowController {
 
     // Pitfall 3 — drop a category's standing head AND any pending copy from the queue when its
     // activity is toggled off, then clear its @Published model. Rebuilds the queue without that
-    // category so a disabled splash can't keep showing or wake up later. The shared dismiss
-    // timer keeps running for whatever head remains (or is cancelled by the empty-head render).
+    // category so a disabled splash can't keep showing or wake up later.
+    //
+    // Gap-closure fix (Finding 3 — dismiss-timer not re-armed on promotion): ALWAYS cancel the old
+    // timer first, then re-arm a FRESH ~3s window if removeAll(where:) promoted a survivor to head
+    // — the old code only cancelled when the head went to nil, so a promoted survivor silently
+    // inherited the flushed transient's stale, partially-elapsed timer instead of a full window.
     private enum TransientCategory { case charging, device }
     private func flushTransients(_ category: TransientCategory) {
         let matches: (ActiveTransient) -> Bool = { t in
@@ -837,9 +875,15 @@ final class NotchWindowController {
         transientQueue.removeAll(where: matches)
         switch category {
         case .charging: chargingState.activity = nil
-        case .device:   deviceState.activity = nil
+        case .device:
+            deviceState.activity = nil
+            pendingDeviceAddresses.removeAll()   // Finding 4 — drop any best-effort pending addresses too
         }
-        if transientQueue.head == nil { dismissWorkItem?.cancel() }
+        dismissWorkItem?.cancel()
+        if transientQueue.head != nil {
+            triggerDeviceBatteryRefreshIfPromoted()   // Finding 4 — cover a device promoted here
+            scheduleActivityDismiss()                 // Finding 3 — fresh window for the promoted transient
+        }
     }
 
     // D-11 — re-host the view (re-injecting the Environment accent) only when the persisted index

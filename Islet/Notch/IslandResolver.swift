@@ -49,6 +49,14 @@ func resolve(activeTransient: ActiveTransient?,
     return .idle
 }
 
+// Gap-closure fix (Finding 5) — TOTAL pure helper: a disabled Now Playing must be INVISIBLE to
+// the resolver, not silently degraded to "nicht verfügbar" (D-12) for a feature the user turned
+// off. When disabled, forces a neutral/healthy `true` regardless of the (possibly stale) real
+// flag; when enabled, passes the real flag through unchanged.
+func nowPlayingHealthGate(enabled: Bool, isHealthy: Bool) -> Bool {
+    enabled ? isHealthy : true
+}
+
 // D-03 — the bounded, de-duped, SEQUENTIAL transient queue. When two transients collide
 // (e.g. plug in the charger while AirPods connect), the first shows, then the second —
 // they never overlap. Pure value: `advance()` is called by the controller (Plan 04) when
