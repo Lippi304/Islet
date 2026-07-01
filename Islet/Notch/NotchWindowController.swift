@@ -332,6 +332,14 @@ final class NotchWindowController {
         np.start()
         np.runHealthCheck { [weak self] healthy in
             guard let self else { return }
+            // Finding 6: this one-shot probe races the PERSISTENT stream (handleNowPlaying sets
+            // isHealthy = true on every real emission). If the stream already proved the bridge
+            // alive before this probe's own 3s timeout settles false, the stale timeout must
+            // never overwrite that true — handleNowPlaying/handleAdapterTerminated remain the
+            // SOLE authority for flipping the flag back to false on an ACTUAL stream death
+            // (mirrors PowerSourceMonitor's single-source-of-truth discipline: no second,
+            // independently-racing probe for the same state).
+            guard healthy || !self.nowPlayingState.isHealthy else { return }
             self.nowPlayingState.isHealthy = healthy   // D-12
             self.renderPresentation()
         }
