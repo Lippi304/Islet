@@ -126,13 +126,14 @@ Plans:
   1. When several activities occur close together (e.g. charging while music plays, then a device connects), the island shows them by a sensible priority without overlapping or glitching, and transient events yield back to the ambient state
   2. A minimal settings window lets the user choose which activities are shown and set an accent/theme, with choices persisting across restarts
   3. The Now Playing launch-time health check is re-verified and the production build is signed, notarized, and stapled, opening cleanly on a second Mac
-**Plans**: 5 plans
+**Plans**: 6 plans
 Plans:
 - [x] 06-01-PLAN.md — Wave 0: pure IslandResolver ranked reducer + bounded de-duped TransientQueue (RED→GREEN unit tests for COORD-01)
 - [x] 06-02-PLAN.md — Finish device quartet: DeviceActivityState + thin BluetoothMonitor + deviceWings branch + remove the BT spike (DEV-01/DEV-02, code-complete)
 - [x] 06-03-PLAN.md — Settings: three activity toggles + curated accent palette + @AppStorage persistence + activityAccent env key (APP-03)
 - [x] 06-04-PLAN.md — Wire resolver+queue+device monitor+toggles+accent into NotchWindowController/NotchPillView; on-device coexistence checkpoint (COORD-01/DEV/APP-03)
 - [x] 06-05-PLAN.md — v1 ship: version 0.1 + release.sh dry-run DMG + on-device Now Playing health re-check (APP-04, real notarize deferred)
+- [ ] 06-06-PLAN.md — Gap closure: charging-yield-back width-jump fix (animate model clear with presentation switch) + charging battery indicator accent fix (UAT gaps 1 + 4; gap 5 fullscreen-enter flash confirmed pre-existing Phase-2 limitation, no code change)
 **UI hint**: yes
 
 ## Progress
