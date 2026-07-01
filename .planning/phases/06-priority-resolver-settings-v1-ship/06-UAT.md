@@ -79,8 +79,8 @@ blocked: 0
     - path: "Islet/Notch/NotchPillView.swift"
       issue: "BatteryIndicator(level: percent) at line 216 (charging) and BatteryIndicator(level: battery) at line 295 (device) both omit the accent: argument"
   missing:
-    - "Pass accent: accent to BatteryIndicator at NotchPillView.swift:216 (charging wings) — looks like a plain oversight from when BatteryIndicator was wired up post-checkpoint in 06-04, after the 06-03 accent work"
-    - "CONFIRM WITH USER before changing the device wings indicator (line 295): NotchPillView.swift:288-291 has an explicit comment stating it's intentionally kept green/amber/red regardless of accent, with only the device glyph tinted — may be working as designed"
+    - "Pass accent: accent to BatteryIndicator at NotchPillView.swift:216 (charging wings) — plain oversight from when BatteryIndicator was wired up post-checkpoint in 06-04, after the 06-03 accent work"
+    - "DECIDED (user, 2026-07-01): do NOT change the device wings indicator (line 295) — its green/amber/red-regardless-of-accent behavior at NotchPillView.swift:288-291 is an intentional design decision, out of scope for this fix. Only the charging indicator (line 216) is a bug."
   debug_session: ".planning/debug/battery-indicator-accent-not-tinted.md"
 
 - truth: "Entering true fullscreen while an activity would splash should hide the island with no visible flash"
