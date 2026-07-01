@@ -57,12 +57,6 @@ final class NotchWindowController {
     // @ObservedObject still re-renders an in-place % update inside the same wings case).
     private let chargingState = ChargingActivityState()
 
-    // Phase 6 / DEV-01/DEV-02 (Plan 04) — the SEPARATE device-splash model (clone of
-    // chargingState). The BluetoothMonitor lifts a DeviceReading, the pure deviceActivity(from:)
-    // maps it, and handleDevice publishes it here for the view to bind to; the RENDER decision
-    // still comes from the resolver's queue head.
-    private let deviceState = DeviceActivityState()
-
     // Phase 6 / COORD-01 / D-05 — the @Published carrier of the resolver's verdict. The view
     // observes this; the controller writes it (inside the spring) on every state change via
     // renderPresentation(). This is the ONE place the rendered presentation is set.
@@ -675,9 +669,9 @@ final class NotchWindowController {
     // view binding can't resurrect a dismissed splash). The head's own model is left as-is.
     private func syncActivityModels() {
         switch transientQueue.head {
-        case .charging: deviceState.activity = nil
+        case .charging: break
         case .device:   chargingState.activity = nil
-        case nil:       chargingState.activity = nil; deviceState.activity = nil
+        case nil:       chargingState.activity = nil
         }
     }
 
@@ -737,7 +731,6 @@ final class NotchWindowController {
         if let addr = reading.address { deviceLastShown[addr] = now }   // only stamp when there IS a key
 
         guard let activity = deviceActivity(from: reading) else { return }
-        deviceState.activity = activity                   // keep the model in sync with the head
         let changed = transientQueue.enqueue(.device(activity))   // D-02 rank 2 / D-03 sequential
         if changed {
             withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
@@ -797,7 +790,6 @@ final class NotchWindowController {
             if let monitor = self.bluetoothMonitor,
                let fresh = monitor.battery(forAddress: address), fresh != old {
                 let updated = DeviceActivity.connected(name: name, glyph: glyph, battery: fresh)
-                self.deviceState.activity = updated
                 self.transientQueue.updateHead(.device(updated))
                 withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                     self.renderPresentation()
@@ -816,7 +808,7 @@ final class NotchWindowController {
     // initial host AND the live accent re-apply (applyAccentIfChanged) share ONE construction.
     // accent(for:) clamps an out-of-range index to the neutral default (T-06-11 — never crashes).
     private func makeRootView(accentIndex: Int) -> some View {
-        NotchPillView(interaction: interaction, charging: chargingState,
+        NotchPillView(interaction: interaction,
                       nowPlaying: nowPlayingState,
                       presentationState: presentationState,
                       onClick: { [weak self] in self?.handleClick() },
@@ -893,7 +885,6 @@ final class NotchWindowController {
         switch category {
         case .charging: chargingState.activity = nil
         case .device:
-            deviceState.activity = nil
             pendingDeviceAddresses.removeAll()   // Finding 4 — drop any best-effort pending addresses too
         }
         dismissWorkItem?.cancel()

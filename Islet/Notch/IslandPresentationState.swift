@@ -2,7 +2,7 @@ import Foundation
 
 // Phase 6 / COORD-01 / D-05 — the @Published carrier for the resolver's verdict.
 //
-// Mirrors ChargingActivityState / DeviceActivityState exactly: a plain published holder, no
+// Mirrors ChargingActivityState exactly: a plain published holder, no
 // methods, no timers, no system frameworks. The controller (Plan 04) is the SINGLE arbiter —
 // it computes the IslandPresentation via the pure `resolve(...)` reducer and writes it here
 // inside its spring animation wrapper; NotchPillView observes this and re-renders its one

@@ -18,29 +18,20 @@ struct NotchPillView: View {
     // `NSHostingView(rootView: NotchPillView(interaction: state))`.
     @ObservedObject var interaction: NotchInteractionState
 
-    // CHG-01 / Pattern 2 — the SEPARATE charging-splash model (Plan 01). The controller
-    // (Plan 03) reads IOPS, maps via powerActivity(from:), and sets `.activity` inside its
-    // spring animation wrapper; this view only RENDERS whatever activity is published.
-    // It is deliberately NOT a NotchInteractionState phase, so the Phase-2 gesture machine
-    // stays untouched and D-11 precedence is a one-line `if` in the body below.
-    // Declared BEFORE onClick (a non-defaulted parameter ahead of a defaulted one) so the
-    // controller call reads `NotchPillView(interaction:charging:onClick:)`.
-    @ObservedObject var charging: ChargingActivityState
-
     // Phase 4 / NOW-01/02 — the SEPARATE @Published media model (Plan 02). The controller
     // (Plan 04) owns it: the monitor lifts MediaRemote payloads → presentation/artwork and
     // drives `isHealthy` from the D-12 launch probe + D-13 mid-death. This view only RENDERS
     // whatever is published — no MediaRemote, no animation of its own EXCEPT the deliberately
     // isPlaying-gated equalizer bars below. Declared BEFORE onClick (non-defaulted ahead of a
     // defaulted parameter) so the controller call reads
-    // `NotchPillView(interaction:charging:nowPlaying:onClick:...)`.
+    // `NotchPillView(interaction:nowPlaying:onClick:...)`.
     //
-    // NOTE (Phase 6 / D-05): the view no longer READS `charging.activity` /
-    // `interaction.isExpanded` / `nowPlaying.presentation` to DECIDE which branch to render —
-    // the controller's resolver does that and hands the answer in via `presentation` below.
-    // `nowPlaying.artwork` is still read for the media cases (the resolver passes only the
-    // presentation enum, not the NSImage), and `charging`/`nowPlaying` are still @ObservedObject
-    // so an artwork/standing-% mutation re-renders the same case. The PRECEDENCE decision is gone.
+    // NOTE (Phase 6 / D-05): the view no longer READS `nowPlaying.presentation` /
+    // `interaction.isExpanded` to DECIDE which branch to render — the controller's resolver
+    // does that and hands the answer in via `presentation` below. `nowPlaying.artwork` is still
+    // read for the media cases (the resolver passes only the presentation enum, not the NSImage),
+    // so `nowPlaying` stays @ObservedObject so an artwork mutation re-renders the same case. The
+    // PRECEDENCE decision is gone.
     @ObservedObject var nowPlaying: NowPlayingState
 
     // Phase 6 / COORD-01 / D-05 — the SINGLE arbiter's verdict, published. The controller
@@ -549,7 +540,6 @@ struct EqualizerBars: View {
     state.phase = .collapsed
     // Phase 6: the view renders the supplied `presentation` — `.idle` → the collapsed pill.
     return NotchPillView(interaction: state,
-                         charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.idle))
         .frame(width: NotchPillView.expandedSize.width,
@@ -562,7 +552,6 @@ struct EqualizerBars: View {
     state.phase = .expanded
     // Phase 6: `.expandedIdle` → the D-11 date/time (expanded, healthy, no media).
     return NotchPillView(interaction: state,
-                         charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.expandedIdle))
         .frame(width: NotchPillView.expandedSize.width,
@@ -578,7 +567,6 @@ struct EqualizerBars: View {
     state.phase = .collapsed
     // Phase 6: `.charging(...)` → the wings splash regardless of interaction phase.
     return NotchPillView(interaction: state,
-                         charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.charging(.charging(percent: 47))))
         .frame(width: NotchPillView.expandedSize.width,
@@ -592,7 +580,6 @@ struct EqualizerBars: View {
     let state = NotchInteractionState()
     state.phase = .collapsed
     return NotchPillView(interaction: state,
-                         charging: ChargingActivityState(),
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))))
         .frame(width: NotchPillView.expandedSize.width,
@@ -608,7 +595,6 @@ struct EqualizerBars: View {
     let np = NowPlayingState()
     np.presentation = .playing(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
-                         charging: ChargingActivityState(),
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa"))))
         .frame(width: NotchPillView.expandedSize.width,
@@ -624,7 +610,6 @@ struct EqualizerBars: View {
     let np = NowPlayingState()
     np.presentation = .paused(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
-                         charging: ChargingActivityState(),
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa"))))
         .frame(width: NotchPillView.expandedSize.width,
@@ -640,7 +625,6 @@ struct EqualizerBars: View {
     let np = NowPlayingState()
     np.presentation = .playing(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
-                         charging: ChargingActivityState(),
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true)))
         .frame(width: NotchPillView.expandedSize.width,
@@ -655,7 +639,6 @@ struct EqualizerBars: View {
     let np = NowPlayingState()
     np.isHealthy = false
     return NotchPillView(interaction: state,
-                         charging: ChargingActivityState(),
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.none, healthy: false)))
         .frame(width: NotchPillView.expandedSize.width,
