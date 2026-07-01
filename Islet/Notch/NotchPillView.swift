@@ -210,7 +210,7 @@ struct NotchPillView: View {
                 HStack(spacing: 0) {
                     Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (charging cue)
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isCharging ? Color.yellow : Color.white.opacity(0.6))
+                        .foregroundStyle(isCharging ? Color.green : Color.white.opacity(0.6))
                         .padding(.leading, 12)
                     Spacer()                                             // clears the physical camera bridge
                     BatteryIndicator(level: percent, accent: accent)     // RIGHT — same indicator as the device glance
