@@ -158,7 +158,7 @@ Plans:
   2. A minimal settings window lets the user choose which activities are shown and set an accent/theme, with choices persisting across restarts
   3. The Now Playing launch-time health check is re-verified and the production build is signed, notarized, and stapled, opening cleanly on a second Mac
 
-**Plans**: 12 plans
+**Plans**: 13 plans
 Plans:
 **Wave 1**
 
@@ -186,6 +186,10 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 06-11-PLAN.md — Gap closure: delete dead TrackSnapshot.hasArtwork; extract NowPlayingService protocol per CLAUDE.md's isolation mandate (NOW-01/03)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 06-13-PLAN.md — Gap closure: device battery-poll identity match (WR-1) + skip redundant dismiss-timer resets on unrelated toggle-off (WR-2) (COORD-01)
 
 **UI hint**: yes
 
