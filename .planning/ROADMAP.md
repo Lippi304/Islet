@@ -181,7 +181,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 06-10-PLAN.md — Gap closure: scope the tap-to-toggle gesture off the transport buttons; retain artwork across a same-track nil callback (COORD-01/NOW-01/02)
+- [x] 06-10-PLAN.md — Gap closure: scope the tap-to-toggle gesture off the transport buttons; retain artwork across a same-track nil callback (COORD-01/NOW-01/02)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -202,4 +202,4 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 4/4 | Complete | 2026-06-28 |
 | 5. Device-Connected Activity | 0/3 | Not started | - |
-| 6. Priority Resolver, Settings & v1 Ship | 10/12 | In Progress|  |
+| 6. Priority Resolver, Settings & v1 Ship | 11/12 | In Progress|  |
