@@ -134,9 +134,19 @@ fi
 # cleanly (exit 0 = success) with a loud, unmistakable message. This guarantees
 # a Phase-0 dry-run DMG can never be confused with a real shippable release.
 if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ] || [ "${NOTARY_PROFILE}" = "__NOTARY_PROFILE__" ]; then
+  # The signing-state description depends on which placeholder(s) are still
+  # unfilled: if DEVELOPER_ID itself is unset, the app was only ad-hoc signed;
+  # if DEVELOPER_ID IS set but NOTARY_PROFILE is not, the app was actually
+  # signed with the real Developer-ID certificate (Step 3 branches on this
+  # already) — the banner must not claim "ad-hoc" in that case.
+  if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ]; then
+    SIGN_DESC="ad-hoc signed, NOT notarized"
+  else
+    SIGN_DESC="signed with Developer ID ${DEVELOPER_ID}, NOT notarized — NOTARY_PROFILE still unfilled"
+  fi
   echo "--------------------------------------------------------------"
   echo "SKIPPING notarize + staple — placeholders not filled (Phase 6 step)."
-  echo "Phase-0 dry run complete: ${DMG_PATH} (ad-hoc signed, NOT notarized)."
+  echo "Phase-0 dry run complete: ${DMG_PATH} (${SIGN_DESC})."
   echo "To finish at Phase 6: fill DEVELOPER_ID + NOTARY_PROFILE, re-run this script."
   echo "--------------------------------------------------------------"
   exit 0
