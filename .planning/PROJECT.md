@@ -4,7 +4,7 @@
 
 ## What This Is
 
-A native macOS app that turns the MacBook's notch into an interactive "Dynamic Island" — the same idea Apple ships on the iPhone, brought to the Mac. A black, rounded island sits around the camera/notch and expands on hover/click to show live activities: now-playing media controls, a charging/device-connected animation, a drag-and-drop file shelf, system HUDs, and a timer.
+A native macOS app that turns the MacBook's notch into an interactive "Dynamic Island" — the same idea Apple ships on the iPhone, brought to the Mac. A black, rounded island sits around the camera/notch and expands on hover/click to show live activities. **Shipped in v1.0:** now-playing media controls with working transport, a charging activity, a Bluetooth/AirPods device-connected activity, and a minimal settings window with three activity toggles + accent theming — all arbitrated by a single priority resolver so activities coexist gracefully. A drag-and-drop file shelf, system HUD replacement, and a countdown timer are planned for a future milestone, not yet built.
 
 It is for Mac users who love the iPhone Dynamic Island and want it on their MacBook without paying for the existing closed-source apps (Alcove, DynamicLake). Built by a first-time programmer with the goal of a polished, possibly sellable product down the line.
 
@@ -52,11 +52,11 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 **Priority Resolver, Settings & v1 Ship (Phase 6 — COORD-01, DEV-01, DEV-02, APP-03, APP-04):**
 
 - [x] Single priority arbiter — a pure `IslandResolver` ranks Charging > Device > Now Playing through a bounded, de-duped `TransientQueue`; activities enqueue and play sequentially without overlap or glitching (WR-1/WR-2 identity-match and dismiss-timer defects closed in gap-closure plan 06-13, confirmed by code read + 131/131 tests + independent code review). (Phase 6 — COORD-01)
-- [x] Device-connected activity — Bluetooth device / AirPods connect/disconnect splash with battery %, event-driven via a thin `BluetoothMonitor`; folded in from Phase 5's blocked device quartet. (Phase 6 — DEV-01, DEV-02; on-device confirmation of two edge-case checks still pending, see 06-HUMAN-UAT.md)
+- [x] Device-connected activity — Bluetooth device / AirPods connect/disconnect splash with battery %, event-driven via a thin `BluetoothMonitor`; folded in from Phase 5's blocked device quartet (Phase 5 formally marked superseded by Phase 6 at v1.0 close). (Phase 6 — DEV-01, DEV-02)
 - [x] Settings window — three independent activity toggles (Charging/Device/Now Playing, default ON) + curated accent palette, persisted via `@AppStorage`, survives restart. (Phase 6 — APP-03)
 - [x] Release pipeline dry run — `scripts/release.sh` archive→sign→dmg→notarize→staple proven end-to-end in dry-run mode; real notarize/staple gated behind a paid Apple Developer account (not yet purchased, documented override). (Phase 6 — APP-04)
 
-_v1 core feature set is now code-complete; 4 on-device human-verification items remain open (see 06-HUMAN-UAT.md) before the milestone can be considered fully closed._
+_v1.0 core feature set is code-complete and fully human-verified — all 4 on-device checks in `06-HUMAN-UAT.md` passed 2026-07-02, no issues. Milestone shipped._
 
 ### Active
 
@@ -86,6 +86,11 @@ _v1 core feature set is now code-complete; 4 on-device human-verification items 
   - **Free/open-source references to study:** TheBoringNotch (open source, theboring.name) and Notchy (notchy.dev) — useful for seeing how the notch overlay + MediaRemote integration is done.
 - **Design north star:** A mix of both — as polished as Alcove, as functional/tidy as DynamicLake.
 - **Setup status:** MacBook with notch + Xcode already installed. No Apple Developer account yet (only needed later for notarization/selling).
+- **v1.0 codebase state (shipped 2026-07-02):** ~4,500 LOC Swift across 7 phases (176 files touched total), 131 passing unit tests (`IsletTests`). Every threat register across the project's plans is dispositioned (mitigate/accept), verified in `06-SECURITY.md`.
+- **Known technical debt carried into v1.1 planning:**
+  - Four non-blocking code-review findings from `06-REVIEW.md`: inconsistent charging/device wing accent-tinting (WR-01), accent-change view-tree rehost breaking `matchedGeometryEffect` continuity (WR-02), a missing `withAnimation` wrapper on the Now-Playing health-check callback (WR-03), and a low-probability `BluetoothMonitor` data race (WR-04).
+  - A ~1-frame island flash at the end of the fullscreen-ENTER transition — root-caused since Phase 2, confirmed not fixable at the application layer (window-server compositor timing), accepted as permanent polish debt.
+  - Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised — pre-existing, unrelated to v1.0's Phase 6 close; tracked in `STATE.md` Deferred Items.
 
 ## Constraints
 
@@ -102,16 +107,20 @@ _v1 core feature set is now code-complete; 4 on-device human-verification items 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Native Swift (SwiftUI/AppKit), not Electron/web | Only native can render a borderless notch overlay + use MediaRemote + replace HUDs; both reference apps are native | — Pending |
-| Target only notch Macs in v1 | Removes simulated-island/non-notch complexity; user has a notch MacBook | — Pending |
-| Focused v1 (island + Now Playing + charging/device activity) before shelf/HUDs/timer | Beginner project — get something polished and working early, then expand | — Pending |
-| Direct notarized distribution, not Mac App Store | MediaRemote is a private API → App Store rejection; direct sale is the proven path (Alcove/DynamicLake) | — Pending |
-| Design = polished (Alcove) + functional (DynamicLake) blend | User likes both and wants to match their quality | — Pending |
-| Product name TBD | "Notch" is a working title only; real name decided closer to release | — Pending |
+| Native Swift (SwiftUI/AppKit), not Electron/web | Only native can render a borderless notch overlay + use MediaRemote + replace HUDs; both reference apps are native | ✓ v1.0 shipped — validated, no framework wall hit |
+| Target only notch Macs in v1 | Removes simulated-island/non-notch complexity; user has a notch MacBook | ✓ v1.0 shipped |
+| Focused v1 (island + Now Playing + charging/device activity) before shelf/HUDs/timer | Beginner project — get something polished and working early, then expand | ✓ v1.0 shipped — scope held, file shelf/HUDs/timer correctly deferred to v1.1+ |
+| Direct notarized distribution, not Mac App Store | MediaRemote is a private API → App Store rejection; direct sale is the proven path (Alcove/DynamicLake) | ✓ Pipeline proven (dry-run) — real notarization blocked on Apple Developer account purchase |
+| Design = polished (Alcove) + functional (DynamicLake) blend | User likes both and wants to match their quality | ✓ v1.0 shipped — spring morph + accent theming delivered |
+| Product name TBD | "Notch" is a working title only; real name decided closer to release | — Still pending — decide before public release |
 | Island opens on CLICK; hover only gives a haptic + bounce affordance (D-02) | Alcove model — prevents accidental expansion when the pointer merely passes over the notch | ✓ Phase 2 |
 | Fullscreen detected via private CGS managed-display-spaces (current-space type==4), not NSScreen safe-area | A background agent's safe area never reflects another app's fullscreen; CGS Spaces is permission-free and reference-app-proven | ✓ Phase 2 |
 | Charging activity is connect-only (plug-in animates; unplug shows nothing) | On-device UAT call — only the connect moment should animate; an unplug cue felt unnecessary | ✓ Phase 3 (CHG-02 descoped) |
 | Charging "wings" sized to the measured notch (179×32 pt → wings 305×32, flush height) | Notch measured live via NSScreen safeAreaInsets + auxiliary top areas; matching the height avoids overhang, width tuned on-device | ✓ Phase 3 |
+| All MediaRemote access isolated behind one `NowPlayingMonitor`/`NowPlayingService` protocol, with a launch-time health check | The private-API bridge (`mediaremote-adapter`) is the single most likely thing Apple disrupts; isolation makes a future break a one-file swap | ✓ Phase 4, hardened in Phase 6 (06-11 protocol extraction) |
+| Phase 5 (device-connected activity) scope folded into Phase 6 rather than executed standalone | Phase 6's priority-resolver work needed the device input anyway; building it once inside Phase 6 avoided rework | ✓ v1.0 shipped — DEV-01/DEV-02 delivered via 06-02/06-04; Phase 5 formally marked superseded |
+| Single pure `IslandResolver` (ranked reduce) + bounded `TransientQueue` as the ONE arbiter for all activity priority | Prevents scattered if-chains across the view/controller layer; keeps priority logic testable in isolation | ✓ Phase 6 — 14+ unit tests, WR-1/WR-2 defects found and closed in gap-closure |
+| Real Developer-ID notarization deferred until a paid Apple Developer account exists ($99/yr) | Explicit budget constraint (CLAUDE.md); dry-run pipeline proves the mechanics without the cost | Accepted, formally overridden in `06-VERIFICATION.md` — revisit before any public v1.0 release |
 
 ## Evolution
 
@@ -131,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-02 — Phase 6 (Priority Resolver, Settings & v1 Ship) complete, gap-closure plan 06-13 closed the last two code-level defects (WR-1/WR-2) in the transient queue. This was the final phase of the v1.0 milestone. 4 on-device human-verification items remain open (06-HUMAN-UAT.md) before the milestone is fully closed.*
+*Last updated: 2026-07-02 — v1.0 milestone shipped and archived. All 7 phases complete (Phase 5 superseded by Phase 6), all 19 v1 requirements satisfied and verified, all 4 on-device human-verification items passed, security threat register closed (0 open). See `.planning/milestones/v1.0-ROADMAP.md` for full history. Next: define v1.1 scope via `/gsd:new-milestone`.*

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: milestone_complete
-stopped_at: Milestone complete (Phase 06 was final phase)
-last_updated: 2026-07-02T02:28:22.117Z
-last_activity: 2026-07-01 -- Phase 06 execution started
+status: Awaiting next milestone
+stopped_at: Completed 06-06-PLAN.md — Phase 6 fully closed (6/6 plans), COORD-01/APP-03 requirements complete
+last_updated: "2026-07-02T02:46:21.074Z"
+last_activity: 2026-07-02 — Milestone v1.0 completed and archived
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 7
   total_plans: 34
   completed_plans: 31
-  percent: 71
+  percent: 100
 ---
 
 # Project State
@@ -25,25 +25,23 @@ See: .planning/PROJECT.md (updated 2026-06-26)
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-07-02
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-02 — Milestone v1.0 completed and archived
 
-### Phase 5 status note (not a resume point — informational)
+### Phase 5 status note (resolved at v1.0 milestone close)
 
-Phase 5 (device-connected-activity) still shows 0/3 plans executed in ROADMAP.md, but per
-`06-CONTEXT.md`: "Phase 5 device wiring is finished INSIDE this phase" — Phase 6 built the
-remaining device pieces (`DeviceActivityState`, `BluetoothMonitor`, device wings) that Phase 5
-left blocked on Waves 2-3. DEV-01/DEV-02 are code-complete and on-device verified (see
-06-02-SUMMARY.md, 06-04-SUMMARY.md). The only actual carry-over is the **on-device Bluetooth
-permission spike** from 05-01 Task 3 (needs a real BT test device — see git history around
-commit 3652b92 for the throwaway spike, `#if DEBUG_BT_SPIKE`). This is a deliberate scope
-merge (like the D-15 Developer-ID carry-over), not neglected work. Whether to formally close
-Phase 5 in ROADMAP.md (as superseded) or leave it open pending the BT hardware spike is a
-call for the user — not made automatically here.
+Phase 5 (device-connected-activity) was formally marked **superseded by Phase 6** in
+ROADMAP.md at v1.0 milestone close (2026-07-02, user decision). Its scope — device
+connect/disconnect activity, `DeviceActivityState`, `BluetoothMonitor`, device wings —
+shipped inside Phase 6 (06-02/06-04); DEV-01/DEV-02 are code-complete and verified (see
+`06-VERIFICATION.md`, `REQUIREMENTS.md`). Phase 5's own 3 plans were never executed. The
+on-device Bluetooth permission spike from 05-01 Task 3 was superseded by the actual A1
+finding in 06-04 (NSBluetoothAlwaysUsageDescription IS required on macOS 26 — see project
+memory `a1-bluetooth-usage-key-required`), so no further action is needed there either.
 
-Progress: [█████████░] 89%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -119,8 +117,23 @@ None yet.
 - [Phase 4] No Apple Developer account yet — only needed for notarization. Phase 0's dry run and Phase 6's release both require it ($99/yr).
 - [Phase 6] Decision Coverage Gate override (2026-07-01): planning 06-07..06-12 flagged D-01–D-05, D-07–D-12 as uncovered by `must_haves`/`truths` YAML citations. These decisions are already implemented and shipped in the executed 06-01/06-03/06-04 plans (cited 17-27x in prose) — the gate only scans the structured YAML field, so this is a citation-format artifact in the original plans, not a missing feature. User chose to proceed without editing the already-executed plans. Re-surface if `/gsd:verify-work 6` also flags this.
 
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-07-02:
+
+| Category | Item | Status |
+|----------|------|--------|
+| uat_gaps | Phase 02: 02-HUMAN-UAT.md | partial (8 pending on-device scenarios) |
+| verification_gaps | Phase 02: 02-VERIFICATION.md | human_needed |
+
+Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening), unrelated to Phase 6 gap-closure work this session. Not blocking v1.0 close per user decision — revisit before v1.1 planning or run `/gsd:verify-work 2` to close out.
+
 ## Session Continuity
 
 Last session: 2026-07-01T13:07:14.927Z
 Stopped at: Completed 06-06-PLAN.md — Phase 6 fully closed (6/6 plans), COORD-01/APP-03 requirements complete
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
