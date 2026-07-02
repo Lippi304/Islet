@@ -12,6 +12,16 @@ It is for Mac users who love the iPhone Dynamic Island and want it on their MacB
 
 The notch becomes a beautiful, reliable "island" that shows now-playing media and reacts when you plug in the charger or connect a device — it must feel native, smooth, and as polished as the iPhone Dynamic Island. If everything else is cut, that core island experience must work.
 
+## Current Milestone: v1.0.1 Pre-Release Polish
+
+**Goal:** Close the two remaining polish gaps before Islet's first real release — a Now Playing progress bar and eliminating the fullscreen-enter flash.
+
+**Target features:**
+- Now Playing progress/seek bar — display-only (elapsed time / total duration / playback position), expanded view only, no drag-to-seek
+- Fullscreen-enter flash fix — fresh root-cause investigation for alternative detection signals (v1.0's diagnosis found no viable app-layer fix using the reactive `orderOut` approach)
+
+**Why v1.0.1, not v1.1:** The app has not been publicly released yet — user's explicit call to keep continuing under the v1.0 line rather than bump to v1.1 until an actual release happens. Rest of the v1.0 backlog (file shelf, HUDs, timer, real notarization) stays deferred.
+
 ## Requirements
 
 ### Validated
@@ -140,4 +150,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-02 — v1.0 milestone shipped and archived. All 7 phases complete (Phase 5 superseded by Phase 6), all 19 v1 requirements satisfied and verified, all 4 on-device human-verification items passed, security threat register closed (0 open). See `.planning/milestones/v1.0-ROADMAP.md` for full history. Next: define v1.1 scope via `/gsd:new-milestone`.*
+*Last updated: 2026-07-02 — Started milestone v1.0.1 (Pre-Release Polish): Now Playing progress bar + fullscreen-enter flash fix, ahead of the app's first real release.*

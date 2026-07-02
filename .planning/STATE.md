@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: Awaiting next milestone
-stopped_at: Completed 06-06-PLAN.md — Phase 6 fully closed (6/6 plans), COORD-01/APP-03 requirements complete
-last_updated: "2026-07-02T02:46:21.074Z"
-last_activity: 2026-07-02 — Milestone v1.0 completed and archived
+milestone: v1.0.1
+milestone_name: Pre-Release Polish
+status: planning
+last_updated: "2026-07-02T02:59:02.013Z"
+last_activity: 2026-07-02
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 34
-  completed_plans: 31
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Milestone complete
+**Current focus:** v1.0.1 Pre-Release Polish — defining requirements
 
 ## Current Position
 
-Phase: Milestone v1.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-02 — Milestone v1.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-02 — Milestone v1.0.1 started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
