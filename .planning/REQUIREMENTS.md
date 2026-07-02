@@ -30,8 +30,8 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 
 ### Device Activity (DEV)
 
-- [ ] **DEV-01**: Connecting AirPods or a Bluetooth audio device shows a connect activity (device name + icon) in the island
-- [ ] **DEV-02**: Disconnecting a device shows a brief disconnect activity
+- [x] **DEV-01**: Connecting AirPods or a Bluetooth audio device shows a connect activity (device name + icon) in the island — *(delivered in Phase 6, 06-02/06-04; originally traced to Phase 5, which was folded into Phase 6's device quartet and never separately executed — see STATE.md Phase 5 status note)*
+- [x] **DEV-02**: Disconnecting a device shows a brief disconnect activity — *(delivered in Phase 6, 06-02/06-04, same note as DEV-01)*
 
 ### Activity Coordination (COORD)
 
@@ -39,8 +39,8 @@ Focused core. Match Alcove's polish on a small, solid feature set. Each maps to 
 
 ### App & Distribution (APP)
 
-- [ ] **APP-01**: The app runs as a menu-bar / background agent with no Dock icon, with a menu to open settings and quit
-- [ ] **APP-02**: User can enable "launch at login" from settings
+- [x] **APP-01**: The app runs as a menu-bar / background agent with no Dock icon, with a menu to open settings and quit — *(delivered in Phase 0; checkbox was never synced — confirmed by `INFOPLIST_KEY_LSUIElement` in project.yml and `AppDelegate.swift`'s status-item menu)*
+- [x] **APP-02**: User can enable "launch at login" from settings — *(delivered in Phase 0, `Islet/LaunchAtLogin.swift` via `SMAppService`; checkbox was never synced)*
 - [x] **APP-03**: A minimal settings window lets the user choose which activities are shown and set an accent/theme
 - [x] **APP-04**: The app ships as a Developer-ID signed + notarized + stapled download that opens on a clean Mac without Gatekeeper warnings
 
@@ -96,8 +96,8 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| APP-01 | Phase 0 | Pending |
-| APP-02 | Phase 0 | Pending |
+| APP-01 | Phase 0 | Complete |
+| APP-02 | Phase 0 | Complete |
 | APP-04 | Phase 0 | Complete |
 | ISL-01 | Phase 1 | Complete |
 | ISL-02 | Phase 1 | Complete |
@@ -111,8 +111,8 @@ Each v1 requirement maps to exactly one phase. See ROADMAP.md for phase detail.
 | NOW-01 | Phase 4 | Complete |
 | NOW-02 | Phase 4 | Complete |
 | NOW-03 | Phase 4 | Complete |
-| DEV-01 | Phase 5 | Pending |
-| DEV-02 | Phase 5 | Pending |
+| DEV-01 | Phase 5 (folded into Phase 6) | Complete |
+| DEV-02 | Phase 5 (folded into Phase 6) | Complete |
 | COORD-01 | Phase 6 | Complete |
 | APP-03 | Phase 6 | Complete |
 
