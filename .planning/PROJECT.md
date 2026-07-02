@@ -49,16 +49,18 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 - [x] Survives restart and degrades gracefully — launch-time health check; when the MediaRemote API is blocked or the source drops, the island clears state and shows "Now Playing nicht verfügbar" instead of crashing or sitting empty. All MediaRemote access is isolated behind a single `NowPlayingMonitor` (one-file swap if Apple breaks it), consuming the streamed output (not re-spawning) with main-thread callbacks. (Phase 4 — NOW-03)
   - **On-device UAT polish:** expanded layout reserves a 32pt notch/camera top-clearance; 5 random center-out equalizer bars (idle-CPU-gated); media glance wings 290pt (narrower than the 305pt charging wings); the expanded island stays open while the pointer is on the transport controls. (Phase 4)
 
-_The remaining v1 core feature hypotheses below ship in Phases 5–6 (devices)._
+**Priority Resolver, Settings & v1 Ship (Phase 6 — COORD-01, DEV-01, DEV-02, APP-03, APP-04):**
+
+- [x] Single priority arbiter — a pure `IslandResolver` ranks Charging > Device > Now Playing through a bounded, de-duped `TransientQueue`; activities enqueue and play sequentially without overlap or glitching (WR-1/WR-2 identity-match and dismiss-timer defects closed in gap-closure plan 06-13, confirmed by code read + 131/131 tests + independent code review). (Phase 6 — COORD-01)
+- [x] Device-connected activity — Bluetooth device / AirPods connect/disconnect splash with battery %, event-driven via a thin `BluetoothMonitor`; folded in from Phase 5's blocked device quartet. (Phase 6 — DEV-01, DEV-02; on-device confirmation of two edge-case checks still pending, see 06-HUMAN-UAT.md)
+- [x] Settings window — three independent activity toggles (Charging/Device/Now Playing, default ON) + curated accent palette, persisted via `@AppStorage`, survives restart. (Phase 6 — APP-03)
+- [x] Release pipeline dry run — `scripts/release.sh` archive→sign→dmg→notarize→staple proven end-to-end in dry-run mode; real notarize/staple gated behind a paid Apple Developer account (not yet purchased, documented override). (Phase 6 — APP-04)
+
+_v1 core feature set is now code-complete; 4 on-device human-verification items remain open (see 06-HUMAN-UAT.md) before the milestone can be considered fully closed._
 
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
-
-**v1 — Focused core (first milestone):**
-
-- [ ] Device-connected activity: when a Bluetooth device / AirPods connects or disconnects, show a brief notification in the island
-- [ ] Polished, native look — animations and visual quality on par with Alcove
 
 **Later phases (still in scope, after the core lands):**
 
@@ -129,4 +131,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-28 — Phase 4 (Now Playing) complete: live media (art + title/artist) in the island with working transport, all behind a single isolated MediaRemote service with a launch health check and a graceful "nicht verfügbar" fallback (NOW-01/02/03) — on-device UAT confirmed. Next: Phase 5 (Device-Connected Activity).*
+*Last updated: 2026-07-02 — Phase 6 (Priority Resolver, Settings & v1 Ship) complete, gap-closure plan 06-13 closed the last two code-level defects (WR-1/WR-2) in the transient queue. This was the final phase of the v1.0 milestone. 4 on-device human-verification items remain open (06-HUMAN-UAT.md) before the milestone is fully closed.*
