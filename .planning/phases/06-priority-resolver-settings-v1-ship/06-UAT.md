@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 06-priority-resolver-settings-v1-ship
 source: [06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md, 06-04-SUMMARY.md, 06-05-SUMMARY.md]
 started: 2026-07-01T00:41:22Z
-updated: 2026-07-01T03:20:00Z
+updated: 2026-07-02T04:40:00Z
 ---
 
 ## Current Test
@@ -67,7 +67,8 @@ blocked: 0
   missing:
     - "Move the chargingState.activity = nil (and device equivalent) mutation inside the withAnimation(.spring) block in scheduleActivityDismiss() so the state change and the render transition commit as one animated transaction"
     - "Verify panel.setFrame's synchronous call in updateVisibility() doesn't need to be coordinated with the SwiftUI animation for both directions"
-  debug_session: ".planning/debug/charging-yield-width-jump.md"
+  debug_session: ".planning/debug/resolved/charging-yield-width-jump.md"
+  resolved_by: "06-06-PLAN.md (moved syncActivityModels()+renderPresentation() into one withAnimation(.spring) transaction)"
 
 - truth: "Picking a different accent swatch in Settings should tint the charging battery indicator's color, same as it tints the Now-Playing equalizer bars"
   status: failed
@@ -81,7 +82,8 @@ blocked: 0
   missing:
     - "Pass accent: accent to BatteryIndicator at NotchPillView.swift:216 (charging wings) — plain oversight from when BatteryIndicator was wired up post-checkpoint in 06-04, after the 06-03 accent work"
     - "DECIDED (user, 2026-07-01): do NOT change the device wings indicator (line 295) — its green/amber/red-regardless-of-accent behavior at NotchPillView.swift:288-291 is an intentional design decision, out of scope for this fix. Only the charging indicator (line 216) is a bug."
-  debug_session: ".planning/debug/battery-indicator-accent-not-tinted.md"
+  debug_session: ".planning/debug/resolved/battery-indicator-accent-not-tinted.md"
+  resolved_by: "06-06-PLAN.md (charging BatteryIndicator now forwards accent: accent; device wing stays untinted by design)"
 
 - truth: "Entering true fullscreen while an activity would splash should hide the island with no visible flash"
   status: failed
@@ -94,4 +96,5 @@ blocked: 0
       issue: ".canJoinAllSpaces collectionBehavior causes the window server to composite the panel onto an activating fullscreen Space before any app-level notification can hide it"
   missing:
     - "No fix currently known at the application layer — would require a proactive (non-reactive) pre-transition hide signal that doesn't currently exist on macOS. Product-deferred, same verdict as Phase 2."
-  debug_session: ".planning/debug/fullscreen-enter-flash.md"
+  debug_session: ".planning/debug/resolved/fullscreen-enter-flash.md"
+  resolved_by: "accepted as deferred technical debt — no application-layer fix exists (pre-existing Phase-2 issue, not a regression)"

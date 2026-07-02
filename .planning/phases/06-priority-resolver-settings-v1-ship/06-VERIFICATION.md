@@ -1,7 +1,8 @@
 ---
 phase: 06-priority-resolver-settings-v1-ship
 verified: 2026-07-01T23:22:00Z
-status: human_needed
+status: passed
+human_verification_resolved: "All 4 items confirmed passing on-device 2026-07-02, see 06-HUMAN-UAT.md (status: complete, 4/4 passed, 0 issues)"
 score: 6/6 must-haves verified (includes 1 override)
 overrides_applied: 1
 overrides:
@@ -37,7 +38,7 @@ human_verification:
 
 **Phase Goal:** All three activity sources coexist gracefully under one priority resolver, the user can configure which activities show and pick an accent/theme, and the app ships as a production notarized release.
 **Verified:** 2026-07-01T23:22:00Z
-**Status:** human_needed
+**Status:** passed (human verification resolved 2026-07-02 — see 06-HUMAN-UAT.md, 4/4 passed)
 **Re-verification:** Yes — after gap-closure plan 06-13 (WR-1/WR-2 transient-queue fixes)
 
 ## Goal Achievement
