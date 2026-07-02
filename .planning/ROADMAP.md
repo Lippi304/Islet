@@ -13,12 +13,12 @@ This roadmap takes a complete-beginner programmer from an empty Xcode project to
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 0: Foundations & Notarization Dry Run** - Menu-bar agent skeleton + launch-at-login + a proven sign→notarize→staple pipeline on a hello-world build
-- [ ] **Phase 1: The Empty Island (Window + Geometry)** - A static black pill rendered exactly on the notch, above all windows, on the correct display through monitor/clamshell changes
+- [x] **Phase 0: Foundations & Notarization Dry Run** - Menu-bar agent skeleton + launch-at-login + a proven sign→notarize→staple pipeline on a hello-world build (completed 2026-06-26)
+- [x] **Phase 1: The Empty Island (Window + Geometry)** - A static black pill rendered exactly on the notch, above all windows, on the correct display through monitor/clamshell changes (completed 2026-06-26)
 - [x] **Phase 2: Hover, Expand & Fullscreen Hardening** - Spring morph expand/collapse on hover, quiet when idle, and reliable hide for true fullscreen
 - [x] **Phase 3: Charging Activity** - Plugging in shows a charging splash with battery %, proving the activity→island loop on the safest API (connect-only per UAT; CHG-02 descoped)
 - [x] **Phase 4: Now Playing** - Album art + title/artist + play/pause/skip via the isolated MediaRemote adapter, with a graceful "unavailable" fallback
-- [ ] **Phase 5: Device-Connected Activity** - AirPods/Bluetooth connect and disconnect splashes reusing the transient pattern
+- [x] **Phase 5: Device-Connected Activity** *(superseded by Phase 6)* - AirPods/Bluetooth connect and disconnect splashes reusing the transient pattern — scope folded into Phase 6's device quartet (DEV-01/DEV-02 delivered via 06-02/06-04), Phase 5's own plans were never separately executed
 - [x] **Phase 6: Priority Resolver, Settings & v1 Ship** - Activities coexist by sensible priority; minimal settings + accent theme; production notarized release (completed 2026-07-01)
 
 ## Phase Details
@@ -129,9 +129,11 @@ Plans:
 
 **UI hint**: yes
 
-### Phase 5: Device-Connected Activity
+### Phase 5: Device-Connected Activity — SUPERSEDED BY PHASE 6
 
-**Goal**: The "reacts to my life" feel is completed — connecting or disconnecting AirPods / a Bluetooth audio device shows a brief activity, reusing the proven transient pattern from charging.
+**Status**: Superseded — this phase's own plans (05-01/05-02/05-03) were never executed. Its full scope (DEV-01/DEV-02: device connect/disconnect activity, `DeviceActivityState`, `BluetoothMonitor`, `deviceWings` view branch) was deliberately folded into Phase 6 instead and delivered there via plans 06-02 and 06-04. This was a documented scope merge (see `.planning/STATE.md`), not neglected work. DEV-01/DEV-02 are code-complete and verified — see `06-02-SUMMARY.md`, `06-04-SUMMARY.md`, `06-VERIFICATION.md`.
+
+**Goal** (achieved via Phase 6): The "reacts to my life" feel is completed — connecting or disconnecting AirPods / a Bluetooth audio device shows a brief activity, reusing the proven transient pattern from charging.
 **Depends on**: Phase 4
 **Requirements**: DEV-01, DEV-02
 **Success Criteria** (what must be TRUE):
@@ -140,12 +142,12 @@ Plans:
   2. Disconnecting a device shows a brief disconnect activity
   3. Device events are event-driven (no polling) and arrive without requiring intrusive permission prompts
 
-**Plans**: 3 plans
+**Plans**: 3 plans (superseded, never executed as their own phase)
 Plans:
 
-- [ ] 05-01-PLAN.md — Wave 0: pure DeviceActivity seam (DeviceReading→DeviceActivity + glyph mapping + burst/debounce predicate) RED→GREEN + the gating IOBluetooth permission spike (DEV-01/DEV-02)
-- [ ] 05-02-PLAN.md — DeviceActivityState @Published model + thin @MainActor BluetoothMonitor (connect class-notif + per-device disconnect tokens, main-hop, nonisolated teardown) (DEV-01/DEV-02)
-- [ ] 05-03-PLAN.md — NotchPillView deviceWings branch + NotchWindowController wiring (handleDevice, D-04 burst/debounce, ~3s dismiss via updateVisibility, D-05 yield, deinit teardown) + on-device UAT (DEV-01/DEV-02)
+- [ ] ~~05-01-PLAN.md — Wave 0: pure DeviceActivity seam (DeviceReading→DeviceActivity + glyph mapping + burst/debounce predicate) RED→GREEN + the gating IOBluetooth permission spike (DEV-01/DEV-02)~~ *(superseded by 06-02)*
+- [ ] ~~05-02-PLAN.md — DeviceActivityState @Published model + thin @MainActor BluetoothMonitor (connect class-notif + per-device disconnect tokens, main-hop, nonisolated teardown) (DEV-01/DEV-02)~~ *(superseded by 06-02)*
+- [ ] ~~05-03-PLAN.md — NotchPillView deviceWings branch + NotchWindowController wiring (handleDevice, D-04 burst/debounce, ~3s dismiss via updateVisibility, D-05 yield, deinit teardown) + on-device UAT (DEV-01/DEV-02)~~ *(superseded by 06-04)*
 
 ### Phase 6: Priority Resolver, Settings & v1 Ship
 
@@ -200,10 +202,10 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Foundations & Notarization Dry Run | 0/4 | Not started | - |
-| 1. The Empty Island (Window + Geometry) | 0/3 | Not started | - |
+| 0. Foundations & Notarization Dry Run | 4/4 | Complete | 2026-06-26 |
+| 1. The Empty Island (Window + Geometry) | 3/3 | Complete | 2026-06-26 |
 | 2. Hover, Expand & Fullscreen Hardening | 4/4 | Complete | 2026-06-27 |
 | 3. Charging Activity | 3/3 | Complete | 2026-06-27 |
 | 4. Now Playing | 4/4 | Complete | 2026-06-28 |
-| 5. Device-Connected Activity | 0/3 | Not started | - |
+| 5. Device-Connected Activity | 0/3 | Superseded by Phase 6 | 2026-07-01 |
 | 6. Priority Resolver, Settings & v1 Ship | 13/13 | Complete   | 2026-07-01 |
