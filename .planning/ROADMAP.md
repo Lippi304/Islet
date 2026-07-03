@@ -51,7 +51,9 @@ Scope not yet defined — run `/gsd:new-milestone` to start requirements definit
   2. Elapsed and remaining/total time labels are visible next to the bar (e.g. "1:23 / 3:45").
   3. The bar and labels update smoothly while a track is playing, and hold perfectly still (no drift) while paused.
   4. The bar is strictly display-only — clicking or dragging it does not seek or change playback in any way.
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 07-01-PLAN.md — Extend pure seam + monitor + state to carry playback position; render ProgressBar in expanded Now Playing view; on-device UAT
 **UI hint**: yes
 
 ### Phase 8: Fullscreen-Enter Flash Elimination
@@ -74,5 +76,5 @@ Scope not yet defined — run `/gsd:new-milestone` to start requirements definit
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Now Playing Progress Bar | 0/TBD | Not started | - |
+| 7. Now Playing Progress Bar | 0/1 | Planned | - |
 | 8. Fullscreen-Enter Flash Elimination | 0/TBD | Not started | - |
