@@ -565,10 +565,12 @@ struct ProgressBar: View {
             // 2001-epoch reference date EqualizerBars' own arbitrary sine-phase clock uses.
             // timestampEpochMicros is Unix-epoch-based, so using the other epoch here
             // would offset the elapsed computation by decades.
-            let elapsed = position.map {
+            let rawElapsed = position.map {
                 currentElapsedSeconds($0, isPlaying: isPlaying, now: context.date.timeIntervalSince1970)
             } ?? 0
-            let total = position?.duration ?? 0
+            let elapsed = rawElapsed.isFinite ? rawElapsed : 0
+            let rawTotal = position?.duration ?? 0
+            let total = rawTotal.isFinite ? rawTotal : 0
             // Defensive clamp (T-07-02): a zero/negative duration or an out-of-range
             // elapsed value can never produce a NaN width or an overflowing Capsule frame.
             let fraction = total > 0 ? min(max(elapsed / total, 0), 1) : 0
@@ -598,6 +600,7 @@ struct ProgressBar: View {
 
     // Hand-rolled m:ss (no DateComponentsFormatter, per RESEARCH.md's Standard Stack).
     private static func formatTime(_ seconds: TimeInterval) -> String {
+        guard seconds.isFinite else { return "0:00" }
         let s = max(0, Int(seconds.rounded()))
         return String(format: "%d:%02d", s / 60, s % 60)
     }
