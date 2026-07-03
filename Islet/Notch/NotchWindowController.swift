@@ -869,6 +869,7 @@ final class NotchWindowController {
             mediaDismissWorkItem?.cancel()
             nowPlayingState.presentation = .none
             nowPlayingState.artwork = nil
+            nowPlayingState.position = nil
         }
 
         applyAccentIfChanged()
@@ -1011,6 +1012,7 @@ final class NotchWindowController {
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                 self.nowPlayingState.presentation = .none   // collapse the media glance
                 self.nowPlayingState.artwork = nil
+                self.nowPlayingState.position = nil
                 self.renderPresentation()                   // Phase 6: re-resolve to ambient/idle
             }
             self.updateVisibility()   // re-evaluate the single show/hide site
@@ -1027,6 +1029,7 @@ final class NotchWindowController {
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             nowPlayingState.presentation = .none
             nowPlayingState.artwork = nil
+            nowPlayingState.position = nil
             renderPresentation()            // Phase 6: re-resolve (isHealthy already flipped)
         }
         mediaDismissWorkItem?.cancel()
