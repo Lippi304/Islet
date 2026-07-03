@@ -947,6 +947,9 @@ final class NotchWindowController {
 
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             nowPlayingState.presentation = p
+            // PBAR-01: lift the raw duration/elapsed/timestamp/rate fields into the pure
+            // PlaybackPosition value inside the SAME spring block as `presentation`.
+            nowPlayingState.position = playbackPosition(from: snapshot)
             // 06-10 Finding 16: a nil `art` no longer unconditionally overwrites the artwork.
             // Album art can arrive a beat after metadata (documented latency), so a nil
             // callback for the SAME track (isSameTrack(previous, p)) retains whatever's

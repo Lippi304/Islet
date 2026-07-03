@@ -82,15 +82,15 @@ struct NotchPillView: View {
     // mediaExpanded content must therefore START below that band or the camera cuts off the
     // title (on-device UAT). Height math:
     //   32 (top notch clearance — nothing renders under the camera)
-    // + 84 (mediaExpanded content: HStack art 40 + spacing 6 + seek spacer 4 + spacing 6
-    //        + transport row 28)
+    // + 100 (mediaExpanded content: HStack art 40 + spacing 6 + progress row 20 + spacing 6
+    //         + transport row 28)
     // + 12 (bottom inset — room for the bottomCornerRadius:20 curve)
-    // = 128.
+    // = 144.
     // The panel window (expandedNotchFrame) and the SwiftUI content frame both derive from
     // THIS one value, so the island actually GROWS taller (expands further), not just shifts
     // content in a fixed box. mediaExpanded pins its content to the top with .padding(.top,32)
     // so the clearance lands exactly at the camera band.
-    static let expandedSize = CGSize(width: 360, height: 128)
+    static let expandedSize = CGSize(width: 360, height: 144)
 
     // CHG-01 / Pattern 4 — the flat wings (Alcove sideways) seed. Single source of truth:
     // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
@@ -407,8 +407,9 @@ struct NotchPillView: View {
                     // gesture recognizer sits above the transport buttons' region. Tradeoff:
                     // the reserved Shuffle/Repeat placeholder corners no longer toggle collapse.
                     .onTapGesture { onClick() }
-                    // D-09: reserved vertical room for the future seek bar (NOT built — NOW-04 v2).
-                    Spacer(minLength: 0).frame(height: 4)
+                    // PBAR-01: the D-09 reserved seek-bar spacer is now the real display-only
+                    // progress bar (elapsed/total labels + accent-filled track).
+                    ProgressBar(position: nowPlaying.position, isPlaying: isPlaying, tint: accent)
                     // Bottom: centered control row.
                     HStack(spacing: 0) {
                         Color.clear.frame(width: 28, height: 28)   // reserved Shuffle slot (D-09, not built)
@@ -543,6 +544,62 @@ struct EqualizerBars: View {
         guard isPlaying else { return p.low }
         let frac = sin((t / p.period + p.phase) * 2 * .pi) * 0.5 + 0.5   // 0...1
         return p.low + (p.high - p.low) * frac
+    }
+}
+
+// PBAR-01 — the display-only playback progress bar rendered inside mediaExpanded. Mirrors
+// EqualizerBars' TimelineView(.animation(paused:)) gate discipline (the load-bearing
+// idle-CPU precedent): a ticking clock runs ONLY while playing AND a position is known,
+// so a paused or media-less island stays at zero idle CPU. Elapsed/duration text uses the
+// SAME secondary-grey styling as the artist text (D-05, never accent-tinted); only the
+// filled portion of the bar itself picks up the accent (D-03/D-04). Strictly inert — no
+// gesture recognizers anywhere (UI-SPEC.md Interaction Contract, T-07-04).
+struct ProgressBar: View {
+    let position: PlaybackPosition?
+    let isPlaying: Bool
+    var tint: Color = .white
+
+    var body: some View {
+        TimelineView(.animation(paused: !(isPlaying && position != nil))) { context in
+            // CRITICAL: Unix-epoch time (context.date.timeIntervalSince1970) — NOT the
+            // 2001-epoch reference date EqualizerBars' own arbitrary sine-phase clock uses.
+            // timestampEpochMicros is Unix-epoch-based, so using the other epoch here
+            // would offset the elapsed computation by decades.
+            let elapsed = position.map {
+                currentElapsedSeconds($0, isPlaying: isPlaying, now: context.date.timeIntervalSince1970)
+            } ?? 0
+            let total = position?.duration ?? 0
+            // Defensive clamp (T-07-02): a zero/negative duration or an out-of-range
+            // elapsed value can never produce a NaN width or an overflowing Capsule frame.
+            let fraction = total > 0 ? min(max(elapsed / total, 0), 1) : 0
+
+            HStack(spacing: 6) {
+                Text(Self.formatTime(elapsed))
+                    .frame(minWidth: 28, alignment: .trailing)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.25))          // unfilled track (D-03)
+                        Capsule().fill(tint).frame(width: geo.size.width * fraction)  // filled (D-03/D-04)
+                    }
+                }
+                .frame(height: 3)   // D-04: thin 3pt line
+                Text(Self.formatTime(total))
+                    .frame(minWidth: 28, alignment: .leading)
+            }
+            .font(.system(size: 11, design: .rounded))
+            .foregroundStyle(.secondary)   // D-05: same grey as the artist text, never accent-tinted
+            .monospacedDigit()
+            // UI-SPEC.md Copywriting Contract: reserve the row's height, fade the content —
+            // never a "--:--" placeholder or a layout jump when position is unavailable.
+            .opacity(position != nil ? 1 : 0)
+        }
+        .frame(height: 20)   // UI-SPEC.md Spacing Scale: progress row height
+    }
+
+    // Hand-rolled m:ss (no DateComponentsFormatter, per RESEARCH.md's Standard Stack).
+    private static func formatTime(_ seconds: TimeInterval) -> String {
+        let s = max(0, Int(seconds.rounded()))
+        return String(format: "%d:%02d", s / 60, s % 60)
     }
 }
 

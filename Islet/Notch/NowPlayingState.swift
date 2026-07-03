@@ -18,4 +18,8 @@ final class NowPlayingState: ObservableObject {
     // "Now Playing nicht verfügbar". Default true (assume healthy until the launch
     // probe says otherwise).
     @Published var isHealthy: Bool = true
+    // PBAR-01 — the live playback-position snapshot (duration/elapsed/timestamp/rate),
+    // nil when any raw field is missing. The ProgressBar view derives the drift-corrected
+    // elapsed time from this via currentElapsedSeconds(...), never storing a ticking value.
+    @Published var position: PlaybackPosition?
 }

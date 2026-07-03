@@ -24,6 +24,16 @@ struct TrackSnapshot: Equatable {
     let isPlaying: Bool?           // nil → state unknown (A4: treat as paused)
     let title: String?             // nil / empty → nothing to show → .none
     let artist: String?            // nil → "" so the title still renders
+    // PBAR-01 — raw playback-position fields lifted from TrackInfo.Payload (all Optional,
+    // default nil so every existing hand-built TrackSnapshot(...) call site keeps compiling).
+    // `var` (not `let`) is required here: Swift's synthesized memberwise init only treats a
+    // stored property's initializer as a default *parameter* value for `var` properties —
+    // for `let` properties with an initializer, the memberwise init drops the parameter
+    // entirely (verified against the toolchain), which would break every 4-arg call site.
+    var durationMicros: Double? = nil
+    var elapsedTimeMicros: Double? = nil
+    var timestampEpochMicros: Double? = nil
+    var playbackRate: Double? = nil
 }
 
 // The presentation the media view renders. `.unavailable` (D-12 health) is intentionally
@@ -65,4 +75,41 @@ func isSameTrack(_ a: NowPlayingPresentation, _ b: NowPlayingPresentation) -> Bo
     }
     guard let ta = titleArtist(a), let tb = titleArtist(b) else { return false }
     return ta == tb
+}
+
+// PBAR-01 — the pure playback-position seam (Plan 07-01). Mirrors the file's existing
+// discipline: plain values + total functions, Foundation only, no SwiftUI/AppKit. Ported
+// VERBATIM from the vendored TrackInfo.Payload.currentElapsedTime formula (pinned commit
+// cf30c4f1af29b5829d859f088f8dbdf12611a046) so the drift-correction math has one source of
+// truth, unit-tested here instead of only exercised on-device.
+struct PlaybackPosition: Equatable {
+    let duration: TimeInterval          // seconds
+    let elapsedAtSnapshot: TimeInterval // seconds, as of timestampAtSnapshot
+    let timestampAtSnapshot: TimeInterval // Unix epoch seconds
+    let rate: Double
+}
+
+// TOTAL pure mapping. nil unless ALL 4 raw TrackSnapshot fields are present — per
+// UI-SPEC.md's Copywriting Contract, a nil result is what later makes the view render the
+// progress row at opacity(0), never a "--:--" placeholder string.
+func playbackPosition(from snapshot: TrackSnapshot?) -> PlaybackPosition? {
+    guard let snapshot,
+          let durationMicros = snapshot.durationMicros,
+          let elapsedTimeMicros = snapshot.elapsedTimeMicros,
+          let timestampEpochMicros = snapshot.timestampEpochMicros,
+          let playbackRate = snapshot.playbackRate
+    else { return nil }
+    return PlaybackPosition(duration: durationMicros / 1_000_000,
+                             elapsedAtSnapshot: elapsedTimeMicros / 1_000_000,
+                             timestampAtSnapshot: timestampEpochMicros / 1_000_000,
+                             rate: playbackRate)
+}
+
+// TOTAL pure formula, ported VERBATIM from TrackInfo.Payload.currentElapsedTime (RESEARCH.md
+// Pattern 2). The paused guard MUST come first — RESEARCH.md Pitfall 1 documents that
+// reordering this (computing the `now`-based drift correction before checking isPlaying)
+// causes a paused track to silently drift forward every time the view re-renders.
+func currentElapsedSeconds(_ position: PlaybackPosition, isPlaying: Bool, now: TimeInterval) -> TimeInterval {
+    guard isPlaying else { return position.elapsedAtSnapshot }
+    return position.elapsedAtSnapshot + ((now - position.timestampAtSnapshot) * position.rate)
 }
