@@ -110,4 +110,44 @@ final class NowPlayingPresentationTests: XCTestCase {
         // No track on either side -> nothing to retain.
         XCTAssertFalse(isSameTrack(.none, .none))
     }
+
+    // MARK: PBAR-01 — PlaybackPosition mapping + drift-corrected elapsed formula
+
+    func testPlaybackPositionAllFieldsPresent() {
+        let snapshot = TrackSnapshot(bundleIdentifier: "com.spotify.client",
+                                     isPlaying: true, title: "Track", artist: "Band",
+                                     durationMicros: 225_000_000,
+                                     elapsedTimeMicros: 83_000_000,
+                                     timestampEpochMicros: 1_700_000_000_000_000,
+                                     playbackRate: 1.0)
+        XCTAssertEqual(playbackPosition(from: snapshot),
+                        PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 83.0,
+                                          timestampAtSnapshot: 1_700_000_000.0, rate: 1.0))
+    }
+
+    func testPlaybackPositionNilWhenAnyFieldMissing() {
+        // Missing durationMicros (the other 3 present) -> nil, never a partial value.
+        let missingDuration = TrackSnapshot(bundleIdentifier: "com.spotify.client",
+                                            isPlaying: true, title: "Track", artist: "Band",
+                                            durationMicros: nil,
+                                            elapsedTimeMicros: 83_000_000,
+                                            timestampEpochMicros: 1_700_000_000_000_000,
+                                            playbackRate: 1.0)
+        XCTAssertNil(playbackPosition(from: missingDuration))
+    }
+
+    func testCurrentElapsedSecondsWhilePlaying() {
+        let position = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 10.0,
+                                        timestampAtSnapshot: 1000.0, rate: 1.0)
+        XCTAssertEqual(currentElapsedSeconds(position, isPlaying: true, now: 1005.0), 15.0)
+    }
+
+    func testCurrentElapsedSecondsPausedFreezesAtSnapshot() {
+        // Same position, but paused with a far-future `now` — deliberately provoking drift
+        // if the guard were missing (RESEARCH.md Pitfall 1). The paused branch must ignore
+        // `now` entirely.
+        let position = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 10.0,
+                                        timestampAtSnapshot: 1000.0, rate: 1.0)
+        XCTAssertEqual(currentElapsedSeconds(position, isPlaying: false, now: 999_999.0), 10.0)
+    }
 }
