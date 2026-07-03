@@ -568,9 +568,12 @@ struct ProgressBar: View {
             let rawElapsed = position.map {
                 currentElapsedSeconds($0, isPlaying: isPlaying, now: context.date.timeIntervalSince1970)
             } ?? 0
-            let elapsed = rawElapsed.isFinite ? rawElapsed : 0
+            let finiteElapsed = rawElapsed.isFinite ? rawElapsed : 0
             let rawTotal = position?.duration ?? 0
             let total = rawTotal.isFinite ? rawTotal : 0
+            // Clamp elapsed to total (WR-01): a live extrapolation can briefly exceed the
+            // real duration near the end of a track; keep the label in sync with the fill.
+            let elapsed = total > 0 ? min(finiteElapsed, total) : finiteElapsed
             // Defensive clamp (T-07-02): a zero/negative duration or an out-of-range
             // elapsed value can never produce a NaN width or an overflowing Capsule frame.
             let fraction = total > 0 ? min(max(elapsed / total, 0), 1) : 0
