@@ -68,6 +68,10 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 _v1.0 core feature set is code-complete and fully human-verified — all 4 on-device checks in `06-HUMAN-UAT.md` passed 2026-07-02, no issues. Milestone shipped._
 
+**Now Playing Progress Bar (Phase 7 — PBAR-01):**
+
+- [x] Display-only playback progress bar in the expanded Now Playing view — elapsed/total m:ss labels flanking an accent-filled capsule track, gliding continuously while playing and frozen while paused, zero tap-to-seek. On-device UAT caught and fixed a pause-transition backward-flash bug (stale MediaRemote sample corrected via a drift-extrapolated freeze); a post-execution code review then closed a NaN/Infinity crash risk in the same view. 141/141 tests green, on-device re-verified and approved. (Phase 7 — PBAR-01)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
@@ -150,4 +154,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-02 — Started milestone v1.0.1 (Pre-Release Polish): Now Playing progress bar + fullscreen-enter flash fix, ahead of the app's first real release.*
+*Last updated: 2026-07-04 — Phase 7 (Now Playing Progress Bar, PBAR-01) complete. One phase remains in v1.0.1: Phase 8, fullscreen-enter flash fix.*
