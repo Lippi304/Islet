@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.1
 milestone_name: Pre-Release Polish
-status: executing
-stopped_at: Phase 07 UI-SPEC approved
-last_updated: "2026-07-03T22:34:26.475Z"
+status: ready_to_plan
+stopped_at: Phase 07 complete (1/1) — ready to discuss Phase 8
+last_updated: 2026-07-03T23:34:16.214Z
 last_activity: 2026-07-03 -- Phase 07 execution started
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 1
-  completed_plans: 0
+  completed_plans: 32
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 07 — now-playing-progress-bar
+**Current focus:** Phase 8 — fullscreen enter flash elimination
 
 ## Current Position
 
-Phase: 07 (now-playing-progress-bar) — EXECUTING
-Plan: 1 of 1
-Status: Executing Phase 07
-Last activity: 2026-07-03 -- Phase 07 execution started
+Phase: 8
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-03
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,7 +47,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 31
+- Total plans completed: 32
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -61,6 +61,7 @@ Progress: [██████████] 100%
 | 03 | 3 | - | - |
 | 04 | 4 | - | - |
 | 06 | 13 | - | - |
+| 07 | 1 | - | - |
 
 **Recent Trend:**
 

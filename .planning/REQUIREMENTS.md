@@ -9,7 +9,7 @@ Pre-release polish for the still-unreleased v1.0 build. Each maps to roadmap pha
 
 ### Now Playing Progress Bar (PBAR)
 
-- [ ] **PBAR-01**: User sees a horizontal progress bar in the expanded Now Playing view showing playback position, with elapsed/remaining time labels (e.g. "1:23 / 3:45"); updates smoothly while playing, holds still while paused; no tap-to-seek
+- [x] **PBAR-01**: User sees a horizontal progress bar in the expanded Now Playing view showing playback position, with elapsed/remaining time labels (e.g. "1:23 / 3:45"); updates smoothly while playing, holds still while paused; no tap-to-seek
 
 ### Fullscreen Stability (FS)
 
@@ -41,7 +41,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PBAR-01 | Phase 7 | Pending |
+| PBAR-01 | Phase 7 | Complete |
 | FS-01 | Phase 8 | Pending |
 
 **Coverage:**
