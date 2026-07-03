@@ -26,7 +26,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 **Milestone Goal:** Close the two remaining polish gaps before Islet's first real release — a Now Playing progress bar and eliminating the fullscreen-enter flash.
 
-- [ ] **Phase 7: Now Playing Progress Bar** - Display-only elapsed/remaining playback progress bar in the expanded Now Playing view
+- [x] **Phase 7: Now Playing Progress Bar** - Display-only elapsed/remaining playback progress bar in the expanded Now Playing view (completed 2026-07-03)
 - [ ] **Phase 8: Fullscreen-Enter Flash Elimination** - Root-cause investigation and fix for the ~1-frame island flash on fullscreen entry
 
 ### 📋 v1.1 (Planned)
@@ -53,7 +53,7 @@ Scope not yet defined — run `/gsd:new-milestone` to start requirements definit
   4. The bar is strictly display-only — clicking or dragging it does not seek or change playback in any way.
 **Plans**: 1 plan
 Plans:
-- [ ] 07-01-PLAN.md — Extend pure seam + monitor + state to carry playback position; render ProgressBar in expanded Now Playing view; on-device UAT
+- [x] 07-01-PLAN.md — Extend pure seam + monitor + state to carry playback position; render ProgressBar in expanded Now Playing view; on-device UAT
 **UI hint**: yes
 
 ### Phase 8: Fullscreen-Enter Flash Elimination
@@ -76,5 +76,5 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Now Playing Progress Bar | 0/1 | Planned | - |
+| 7. Now Playing Progress Bar | 1/1 | Complete   | 2026-07-03 |
 | 8. Fullscreen-Enter Flash Elimination | 0/TBD | Not started | - |

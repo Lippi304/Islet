@@ -15,7 +15,7 @@ provides:
   - ProgressBar SwiftUI view rendered inside mediaExpanded (elapsed/total m:ss labels + accent-filled capsule track)
   - expandedSize grown from 128 to 144pt to fit the new progress row
   - resolvePublishedPosition(...) pure resolver in NowPlayingPresentation.swift — freezes a drift-corrected estimate across a play->pause transition instead of trusting a possibly-stale MediaRemote snapshot
-affects: [07-now-playing-progress-bar (Task 3 on-device RE-verification, still pending)]
+affects: [07-now-playing-progress-bar]
 
 # Tech tracking
 tech-stack:
@@ -42,16 +42,16 @@ key-decisions:
 patterns-established:
   - "Pattern: a second TimelineView(.animation(paused:)) consumer inside the same view file (ProgressBar following EqualizerBars) confirms the idle-CPU gate is the house pattern for any continuously-changing but paused-freezable display value."
 
-requirements-completed: []  # PBAR-01 code-complete; awaiting Task 3 on-device RE-verification approval before being marked done
+requirements-completed: [PBAR-01]
 
 # Metrics
-duration: ~6min (Tasks 1-2) + bugfix pass (Task 3 checkpoint pending re-verification)
-completed: 2026-07-03
+duration: ~6min (Tasks 1-2) + bugfix pass + re-verification
+completed: 2026-07-04
 ---
 
-# Phase 07 Plan 01: Now Playing Progress Bar (Tasks 1-2 of 3 + bugfix) Summary
+# Phase 07 Plan 01: Now Playing Progress Bar Summary
 
-**Playback position plumbed end-to-end (TrackSnapshot -> pure seam -> NowPlayingState -> SwiftUI) and a TimelineView-gated ProgressBar rendered in the expanded Now Playing view. On-device UAT (Task 3) surfaced a pause-transition backward-flash bug, now fixed with a pure drift-corrected resolver — a FRESH on-device re-verification pass is still pending.**
+**Playback position plumbed end-to-end (TrackSnapshot -> pure seam -> NowPlayingState -> SwiftUI) and a TimelineView-gated ProgressBar rendered in the expanded Now Playing view. On-device UAT (Task 3) surfaced a pause-transition backward-flash bug, fixed with a pure drift-corrected resolver, and re-verified on-device — approved.**
 
 ## Performance
 
@@ -75,10 +75,10 @@ Each task was committed atomically:
 
 1. **Task 1: Extend the pure seam and plumb duration/elapsed/timestamp/rate to NowPlayingState** - `fce9378` (feat)
 2. **Task 2: Render the ProgressBar in the expanded Now Playing view** - `247506f` (feat)
-3. **Task 3: On-device UAT — bar smoothness, paused-freeze, layout fit, inertness** - user ran UAT and reported a bug (see "On-Device UAT Bugfix" below); NOT yet approved — a fresh on-device re-verification pass is required before this checkpoint can close
+3. **Task 3: On-device UAT — bar smoothness, paused-freeze, layout fit, inertness** - user ran UAT, reported the pause-flash bug (see "On-Device UAT Bugfix" below), then re-verified after the fix and **approved**
 4. **Bugfix: freeze paused position using drift-corrected estimate instead of stale MediaRemote sample** - `83ca61f` (fix)
 
-**Plan metadata:** not yet committed — plan is not complete until Task 3 is approved.
+**Plan status: COMPLETE.** All 3 tasks done, Task 3 approved by user after bugfix re-verification.
 
 ## On-Device UAT Bugfix
 
@@ -113,11 +113,8 @@ pause-transition position freeze` — freeze-on-play-to-pause-same-track (assert
 plus 5 pass-through cases (paused->paused, playing->playing, track change, nil previousPosition, nil
 incomingPosition). Full suite: 141/141 green. `xcodebuild build` clean.
 
-**Status: Task 3 (on-device UAT) is STILL PENDING.** This fix is code-complete and unit-tested but has NOT been
-verified on real notch hardware with real MediaRemote playback — an agent cannot self-certify this. A fresh
-on-device re-verification pass by the user is required, re-running the original Task 3 `<how-to-verify>` steps
-with particular attention to step 4 (pause playback; confirm the bar and both labels freeze immediately with
-zero backward flash and zero drift after 10+ seconds).
+**Status: RESOLVED.** The user re-verified on real notch hardware with real MediaRemote playback and approved —
+the pause transition now freezes with no backward flash.
 
 ## Files Created/Modified
 - `Islet/Notch/NowPlayingPresentation.swift` - `PlaybackPosition` struct + `playbackPosition(from:)` + `currentElapsedSeconds(...)`; `TrackSnapshot` gains 4 new `var ... = nil` fields; bugfix adds `resolvePublishedPosition(...)`
@@ -163,17 +160,8 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 
-**This plan is NOT complete.** Task 3 (`checkpoint:human-verify`, `gate="blocking"`, `autonomous: false`) requires on-device UAT on real notch hardware with real MediaRemote playback (Spotify/Apple Music) — this cannot be fabricated or simulated by an agent. The first UAT pass surfaced the pause-transition backward-flash bug documented above; that bug is now fixed and unit-tested, but the fix itself needs a FRESH on-device re-verification pass — an agent cannot self-certify on-device behavior. Re-run the full original checklist, with extra attention to step 4:
-
-1. Build and run Islet on-device; start playback in Spotify or Apple Music.
-2. Expand the island; confirm the progress row appears between art/title/artist and the transport controls, no clipping/cramping.
-3. Watch the bar glide continuously (not once-per-second) with the elapsed label incrementing in sync.
-4. Pause playback; confirm the bar and both labels freeze immediately — **no backward flash** — with zero drift after 10+ seconds.
-5. Click and drag on the bar; confirm zero effect on playback (no seek, no visual response).
-6. Resume playback; confirm the bar resumes gliding from the correct (unchanged) position.
-
-Once approved (or further issues triaged and resolved), the plan can be finalized: a follow-up commit should mark `PBAR-01` complete in `REQUIREMENTS.md`, update `STATE.md`/`ROADMAP.md`, and commit final plan metadata — none of which this worktree agent performs (per its instructions, STATE.md/ROADMAP.md are orchestrator-owned).
+**This plan is COMPLETE.** All 3 tasks done, including Task 3's on-device UAT — the user re-verified on real notch hardware after the pause-flash bugfix and typed "approved". PBAR-01 is fulfilled. STATE.md/ROADMAP.md updates are orchestrator-owned and applied after this summary.
 
 ---
 *Phase: 07-now-playing-progress-bar*
-*Completed: Tasks 1-2 + bugfix, 2026-07-04 — Task 3 checkpoint pending fresh on-device re-verification*
+*Completed: 2026-07-04*
