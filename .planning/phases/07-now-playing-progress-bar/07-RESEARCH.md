@@ -523,9 +523,9 @@ corroborated against source code (e.g. D-07's technical basis was independently 
 by reading the actual vendored `TrackInfo.swift`, not just trusted from CONTEXT.md's
 prose).
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Exact new `expandedSize.height` value**
+1. **Exact new `expandedSize.height` value** — RESOLVED: see `07-UI-SPEC.md` Spacing Scale (`expandedSize` height delta +16pt, 128pt → 144pt)
    - What we know: current is 128 (32 clearance + 84 content + 12 bottom inset); D-06
      wants "~16-20pt" growth; the D-09 spacer being replaced is only 4pt, so the NEW row's
      total height (bar + labels + its own vertical spacing) minus the 4pt already
@@ -538,7 +538,7 @@ prose).
      row height, and compute `expandedSize.height` precisely rather than eyeballing it —
      then verify on-device that no clipping/cramping occurs (Pitfall 2).
 
-2. **Nil-duration/nil-elapsed fallback rendering**
+2. **Nil-duration/nil-elapsed fallback rendering** — RESOLVED: see `07-UI-SPEC.md` Copywriting Contract (reserve the 20pt row, render bar and labels at `opacity(0)` until real data arrives)
    - What we know: the fields are optional in the vendored payload (Pitfall 5); the
      existing codebase has a consistent "fail safe to a defined fallback" discipline for
      other optional fields (e.g. nil artist → "").
