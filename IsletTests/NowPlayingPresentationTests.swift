@@ -150,4 +150,105 @@ final class NowPlayingPresentationTests: XCTestCase {
                                         timestampAtSnapshot: 1000.0, rate: 1.0)
         XCTAssertEqual(currentElapsedSeconds(position, isPlaying: false, now: 999_999.0), 10.0)
     }
+
+    // MARK: PBAR-01 bugfix — pause-transition position freeze
+
+    func testResolvePublishedPositionFreezesOnPlayToPauseSameTrack() {
+        // Last known-good PLAYING position: elapsedAtSnapshot 10.0 @ t=1000.0, rate 1.0.
+        let previousPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 10.0,
+                                                 timestampAtSnapshot: 1000.0, rate: 1.0)
+        // Incoming PAUSED snapshot's raw position is STALE — it claims elapsed 8.0 (a
+        // sample taken before the real pause instant), which would be a visible backward
+        // jump from the last-rendered 10.0+ if trusted verbatim.
+        let incomingPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 8.0,
+                                                 timestampAtSnapshot: 1002.0, rate: 1.0)
+        let previous = NowPlayingPresentation.playing(title: "Track", artist: "Band")
+        let incoming = NowPlayingPresentation.paused(title: "Track", artist: "Band")
+
+        let resolved = resolvePublishedPosition(previous: previous, previousPosition: previousPosition,
+                                                  incoming: incoming, incomingPosition: incomingPosition,
+                                                  now: 1004.0)
+
+        // Expected: our own drift-corrected estimate from the PREVIOUS playing position,
+        // extrapolated to `now` (1004.0) — NOT the incoming snapshot's raw 8.0.
+        // currentElapsedSeconds(previousPosition, isPlaying: true, now: 1004.0)
+        //   = 10.0 + (1004.0 - 1000.0) * 1.0 = 14.0
+        XCTAssertEqual(resolved, PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 14.0,
+                                                    timestampAtSnapshot: 1004.0, rate: 1.0))
+    }
+
+    func testResolvePublishedPositionPassesThroughOnPausedToPaused() {
+        // Previous already .paused (not .playing) -> not a play->pause transition -> pass
+        // through the incoming value unchanged, even though a previousPosition exists.
+        let previousPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 10.0,
+                                                 timestampAtSnapshot: 1000.0, rate: 1.0)
+        let incomingPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 10.0,
+                                                 timestampAtSnapshot: 1000.0, rate: 1.0)
+        let previous = NowPlayingPresentation.paused(title: "Track", artist: "Band")
+        let incoming = NowPlayingPresentation.paused(title: "Track", artist: "Band")
+
+        let resolved = resolvePublishedPosition(previous: previous, previousPosition: previousPosition,
+                                                  incoming: incoming, incomingPosition: incomingPosition,
+                                                  now: 1004.0)
+        XCTAssertEqual(resolved, incomingPosition)
+    }
+
+    func testResolvePublishedPositionPassesThroughOnPlayingToPlaying() {
+        // Previous and incoming both .playing (no pause transition) -> pass through.
+        let previousPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 10.0,
+                                                 timestampAtSnapshot: 1000.0, rate: 1.0)
+        let incomingPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 12.0,
+                                                 timestampAtSnapshot: 1002.0, rate: 1.0)
+        let previous = NowPlayingPresentation.playing(title: "Track", artist: "Band")
+        let incoming = NowPlayingPresentation.playing(title: "Track", artist: "Band")
+
+        let resolved = resolvePublishedPosition(previous: previous, previousPosition: previousPosition,
+                                                  incoming: incoming, incomingPosition: incomingPosition,
+                                                  now: 1004.0)
+        XCTAssertEqual(resolved, incomingPosition)
+    }
+
+    func testResolvePublishedPositionPassesThroughOnTrackChange() {
+        // A play->pause transition, but a DIFFERENT track -> isSameTrack is false -> pass
+        // through the incoming value (don't freeze using the old track's position).
+        let previousPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 10.0,
+                                                 timestampAtSnapshot: 1000.0, rate: 1.0)
+        let incomingPosition = PlaybackPosition(duration: 180.0, elapsedAtSnapshot: 2.0,
+                                                 timestampAtSnapshot: 1002.0, rate: 1.0)
+        let previous = NowPlayingPresentation.playing(title: "Old Track", artist: "Band")
+        let incoming = NowPlayingPresentation.paused(title: "New Track", artist: "Band")
+
+        let resolved = resolvePublishedPosition(previous: previous, previousPosition: previousPosition,
+                                                  incoming: incoming, incomingPosition: incomingPosition,
+                                                  now: 1004.0)
+        XCTAssertEqual(resolved, incomingPosition)
+    }
+
+    func testResolvePublishedPositionPassesThroughWhenPreviousPositionNil() {
+        // A genuine play->pause/same-track transition, but no previousPosition on record
+        // (e.g. the very first callback) -> nothing to extrapolate from -> pass through.
+        let incomingPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 8.0,
+                                                 timestampAtSnapshot: 1002.0, rate: 1.0)
+        let previous = NowPlayingPresentation.playing(title: "Track", artist: "Band")
+        let incoming = NowPlayingPresentation.paused(title: "Track", artist: "Band")
+
+        let resolved = resolvePublishedPosition(previous: previous, previousPosition: nil,
+                                                  incoming: incoming, incomingPosition: incomingPosition,
+                                                  now: 1004.0)
+        XCTAssertEqual(resolved, incomingPosition)
+    }
+
+    func testResolvePublishedPositionPassesThroughWhenIncomingPositionNil() {
+        // A genuine play->pause/same-track transition, but the incoming snapshot carries no
+        // position at all -> nothing to shape into a PlaybackPosition -> pass through nil.
+        let previousPosition = PlaybackPosition(duration: 225.0, elapsedAtSnapshot: 10.0,
+                                                 timestampAtSnapshot: 1000.0, rate: 1.0)
+        let previous = NowPlayingPresentation.playing(title: "Track", artist: "Band")
+        let incoming = NowPlayingPresentation.paused(title: "Track", artist: "Band")
+
+        let resolved = resolvePublishedPosition(previous: previous, previousPosition: previousPosition,
+                                                  incoming: incoming, incomingPosition: nil,
+                                                  now: 1004.0)
+        XCTAssertNil(resolved)
+    }
 }

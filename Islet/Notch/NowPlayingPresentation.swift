@@ -113,3 +113,23 @@ func currentElapsedSeconds(_ position: PlaybackPosition, isPlaying: Bool, now: T
     guard isPlaying else { return position.elapsedAtSnapshot }
     return position.elapsedAtSnapshot + ((now - position.timestampAtSnapshot) * position.rate)
 }
+
+// Bugfix (on-device UAT, Task 3): resolves which PlaybackPosition to publish across a
+// play→pause transition. MediaRemote's paused snapshot can carry a stale elapsedTimeMicros
+// (a periodic sample taken before the real pause instant), which would otherwise render a
+// brief backward jump before a later corrected snapshot arrives. On a genuine play→pause
+// transition for the SAME track, freeze using our own drift-corrected estimate (extrapolated
+// from the last known-good PLAYING position to `now`) instead of trusting the snapshot's raw
+// value — immune to upstream sampling lag. Every other transition (resume, track change,
+// stop, repeated paused emission) passes the incoming value through unchanged.
+func resolvePublishedPosition(previous: NowPlayingPresentation, previousPosition: PlaybackPosition?,
+                               incoming: NowPlayingPresentation, incomingPosition: PlaybackPosition?,
+                               now: TimeInterval) -> PlaybackPosition? {
+    guard case .playing = previous, case .paused = incoming,
+          isSameTrack(previous, incoming),
+          let prevPos = previousPosition, let newPos = incomingPosition
+    else { return incomingPosition }
+    let frozenElapsed = currentElapsedSeconds(prevPos, isPlaying: true, now: now)
+    return PlaybackPosition(duration: newPos.duration, elapsedAtSnapshot: frozenElapsed,
+                             timestampAtSnapshot: now, rate: newPos.rate)
+}

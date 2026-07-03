@@ -940,6 +940,10 @@ final class NotchWindowController {
         // .paused branch can debounce a repeated identical emission (the documented artwork-
         // latency re-emission case) instead of restarting the 15s countdown on every callback.
         let previous = nowPlayingState.presentation
+        // Bugfix (on-device UAT, Task 3): capture the OUTGOING position too, BEFORE it's
+        // overwritten below — resolvePublishedPosition needs the last known-good playing
+        // position to compute a drift-corrected freeze across a play→pause transition.
+        let previousPosition = nowPlayingState.position
 
         // A healthy stream callback means the bridge is alive — a successful emission after a
         // prior drop restores the D-12 flag so the next expand shows media, not "nicht verfügbar".
@@ -949,7 +953,13 @@ final class NotchWindowController {
             nowPlayingState.presentation = p
             // PBAR-01: lift the raw duration/elapsed/timestamp/rate fields into the pure
             // PlaybackPosition value inside the SAME spring block as `presentation`.
-            nowPlayingState.position = playbackPosition(from: snapshot)
+            // Bugfix (on-device UAT, Task 3): resolve through resolvePublishedPosition rather
+            // than trusting the incoming snapshot verbatim — a play→pause transition's
+            // snapshot can carry a stale elapsedTimeMicros, which would otherwise render a
+            // brief backward flash before a later corrected snapshot arrives.
+            nowPlayingState.position = resolvePublishedPosition(previous: previous, previousPosition: previousPosition,
+                                                                  incoming: p, incomingPosition: playbackPosition(from: snapshot),
+                                                                  now: Date().timeIntervalSince1970)
             // 06-10 Finding 16: a nil `art` no longer unconditionally overwrites the artwork.
             // Album art can arrive a beat after metadata (documented latency), so a nil
             // callback for the SAME track (isSameTrack(previous, p)) retains whatever's
