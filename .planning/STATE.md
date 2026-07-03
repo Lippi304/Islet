@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.0.1
 milestone_name: Pre-Release Polish
-status: planning
-last_updated: "2026-07-02T02:59:02.013Z"
+status: roadmap_ready
+last_updated: "2026-07-02T13:59:00.000Z"
 last_activity: 2026-07-02
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** v1.0.1 Pre-Release Polish — defining requirements
+**Current focus:** v1.0.1 Pre-Release Polish — roadmap ready, Phase 7 next to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 7 of 8 (Now Playing Progress Bar) — ready to plan
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-02 — Milestone v1.0.1 started
+Status: Ready to plan
+Last activity: 2026-07-02 — ROADMAP.md created for v1.0.1 (Phase 7: Now Playing Progress Bar, Phase 8: Fullscreen-Enter Flash Elimination); 2/2 requirements mapped
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -85,6 +85,7 @@ Recent decisions affecting current work:
 - [Roadmap] Notarization toolchain proven in Phase 0 on a hello-world build, not deferred to release — the single biggest first-timer footgun.
 - [Roadmap] Fullscreen-hide (ISL-05) and multi-display/clamshell correctness (ISL-06) are CORE success criteria in Phases 1–2, not polish.
 - [Roadmap] All MediaRemote access isolated behind one NowPlayingService with a launch-time health check (Phase 4); a future Apple change is a one-file fix.
+- [Roadmap v1.0.1] Two requirements (PBAR-01, FS-01) split into two phases (7, 8) rather than combined into one — different risk profiles: PBAR-01 is straightforward SwiftUI/timer work on top of the existing Now Playing view; FS-01 requires fresh on-device investigation of alternative fullscreen-transition detection signals (v1.0's reactive orderOut approach was already ruled out), with a documented-escalation path if genuinely unfixable at the app layer.
 - [Phase 00]: [00-03] Release script uses hdiutil (UDZO) for the DMG; create-dmg noted as Phase-6 polish (not installed).
 - [Phase 00]: [00-03] release.sh placeholder-gates Developer-ID/notary steps; ad-hoc fallback exits 0 with a loud SKIP banner — runs unchanged at Phase 6 (D-01/D-02/D-03).
 - [Phase 02]: [02-01] isTrueFullscreen maps nil built-in to false: clamshell is NOT fullscreen; the no-target path is owned by shouldShow's hasTarget term, keeping the two concerns untangled.
@@ -115,6 +116,7 @@ None yet.
 - [Phase 0] Confirm the macOS deployment floor (14.0 recommended for reach vs 15.0) before starting.
 - [Phase 4] No Apple Developer account yet — only needed for notarization. Phase 0's dry run and Phase 6's release both require it ($99/yr).
 - [Phase 6] Decision Coverage Gate override (2026-07-01): planning 06-07..06-12 flagged D-01–D-05, D-07–D-12 as uncovered by `must_haves`/`truths` YAML citations. These decisions are already implemented and shipped in the executed 06-01/06-03/06-04 plans (cited 17-27x in prose) — the gate only scans the structured YAML field, so this is a citation-format artifact in the original plans, not a missing feature. User chose to proceed without editing the already-executed plans. Re-surface if `/gsd:verify-work 6` also flags this.
+- [Phase 8] FS-01 is scoped as a full elimination, not a best-effort reduction (REQUIREMENTS.md Out of Scope). v1.0's Phase 2 root-cause diagnosis found the flash likely a window-server compositor timing issue with no viable app-layer fix via the reactive orderOut approach — Phase 8 must find a genuinely different detection/timing signal or produce a documented escalation for an explicit user scope decision.
 
 ## Deferred Items
 
@@ -129,10 +131,10 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening), unrelated
 
 ## Session Continuity
 
-Last session: 2026-07-01T13:07:14.927Z
-Stopped at: Completed 06-06-PLAN.md — Phase 6 fully closed (6/6 plans), COORD-01/APP-03 requirements complete
+Last session: 2026-07-02T13:59:00.000Z
+Stopped at: ROADMAP.md created for v1.0.1 — Phase 7 (Now Playing Progress Bar) and Phase 8 (Fullscreen-Enter Flash Elimination), 2/2 requirements mapped
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Review .planning/ROADMAP.md Phase 7-8 details, then run /gsd-discuss-phase 7

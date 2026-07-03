@@ -41,14 +41,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PBAR-01 | TBD | Pending |
-| FS-01 | TBD | Pending |
+| PBAR-01 | Phase 7 | Pending |
+| FS-01 | Phase 8 | Pending |
 
 **Coverage:**
 - v1.0.1 requirements: 2 total
-- Mapped to phases: 0
-- Unmapped: 2 ⚠️ (pending roadmap creation)
+- Mapped to phases: 2
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-02*
-*Last updated: 2026-07-02 after initial definition*
+*Last updated: 2026-07-02 after roadmap creation (Phase 7-8 mapping)*
