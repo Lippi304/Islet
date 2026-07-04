@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 0-6 (shipped 2026-07-02)
 - ✅ **v1.0.1 Pre-Release Polish** — Phases 7-9 (shipped 2026-07-04)
+- 🚧 **v1.1 Trial & Paid Release** — Phases 10-13 (in progress)
 
 ## Phases
 
@@ -33,19 +34,73 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 </details>
 
-### 📋 v1.1 (Planned)
+### 🚧 v1.1 Trial & Paid Release (In Progress)
 
-Scope not yet defined — run `/gsd:new-milestone` to start requirements definition. Candidate carry-overs from v1.0's Active/Out-of-Scope backlog:
+**Milestone Goal:** Islet becomes a real, sellable product — a 3-day free trial, then a one-time €7.99 purchase via Polar.sh, enforced by a local license check, shipped as a genuinely Developer-ID-notarized build.
 
-- [ ] File shelf: drag-and-drop tray at the notch to temporarily hold files, then drag them back out / share / AirDrop
-- [ ] System HUDs: replace the default volume / brightness / battery overlays with notch-based HUDs
-- [ ] Timer: start and watch a countdown timer as a live activity in the island
-- [ ] Real Developer-ID notarization (pending Apple Developer account purchase, $99/yr)
-- [ ] Phase 2's 8 remaining on-device UAT scenarios (`02-HUMAN-UAT.md`)
-- [ ] Code-review polish items from `06-REVIEW.md` (WR-01..04: wing accent-tint consistency, accent-change view rehost, missing animation wrapper, BluetoothMonitor race)
+- [ ] **Phase 10: Trial & Lockout Gate** - Silent 3-day trial with tamper-resistant Keychain persistence and a hard functionality lockout, proven against a stubbed license state
+- [ ] **Phase 11: License Settings UI (Stubbed)** - Days-remaining, Buy Now, and license-entry UI in Settings, wired against a fake in-memory license service
+- [ ] **Phase 12: Real Polar.sh License Integration** - Swap the stub for a real `PolarLicenseService` — live checkout, online validation, offline-capable Keychain cache
+- [ ] **Phase 13: Real Notarization & Release** - Real Developer-ID sign → notarize → staple pipeline, replacing the v1.0 dry-run placeholders
+
+## Phase Details
+
+### Phase 10: Trial & Lockout Gate
+**Goal**: The app enforces a real, tamper-resistant 3-day trial with a hard functionality lockout — proven end-to-end using a manually-settable stub license state, with no live network dependency.
+**Depends on**: Nothing new (builds on the existing v1.0.1 codebase, specifically `NotchWindowController`'s single-arbiter `shouldShow(...)`)
+**Requirements**: TRIAL-01, TRIAL-02, LIC-03
+**Success Criteria** (what must be TRUE):
+  1. On first launch, the trial start timestamp is persisted to the Keychain — running `defaults delete` on the app or deleting/reinstalling it does not reset the trial clock.
+  2. On first launch (and only on first launch), the user sees an explicit one-time notice stating the 3-day trial has started — never a silent start.
+  3. With the trial active or a stub license flagged valid, the island behaves exactly as before (no regression to existing v1.0/v1.0.1 behavior).
+  4. With the trial expired and the stub license flagged invalid/absent, the island is fully locked — no pill, no activities, no expansion — until the stub flips to valid.
+  5. Flipping the stub license from invalid to valid un-locks the island at the next natural UI transition, not as an abrupt mid-interaction yank.
+**Plans**: TBD
+
+### Phase 11: License Settings UI (Stubbed License Service)
+**Goal**: Users can see their trial/license status and initiate purchase or key entry entirely from Settings, exercising the full UI state machine against a fake in-memory service before any live network call exists.
+**Depends on**: Phase 10 (Settings displays the trial/lockout state Phase 10 computes)
+**Requirements**: TRIAL-03
+**Success Criteria** (what must be TRUE):
+  1. User can open Settings and see the number of trial days remaining at any time.
+  2. User can click a "Buy Now" button in Settings (opens a placeholder URL for now — the real Polar.sh link lands in Phase 12).
+  3. User can paste a key into a license field and click Activate, observing idle → validating → success/failure state transitions driven by a fake stub `LicenseService`.
+  4. The Settings window (and its License section) stays one click away from the menu-bar icon at all times, even though Islet has no Dock icon or main window.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 12: Real Polar.sh License Integration
+**Goal**: License purchase and validation work for real against Polar.sh, and stay fully functional offline after the first successful validation.
+**Depends on**: Phase 11 (swaps the stub `LicenseService` for `PolarLicenseService` behind the same protocol — no UI or `TrialManager` changes)
+**Requirements**: LIC-01, LIC-02
+**Success Criteria** (what must be TRUE):
+  1. User can click "Buy Now" in Settings and land on the real Polar.sh checkout page in their default browser, able to complete a live €7.99 one-time purchase.
+  2. User can paste the license key they received by email into Settings; the app validates it online against Polar.sh and shows success or a specific failure reason.
+  3. After one successful validation, the app keeps working fully offline (e.g., in airplane mode) without re-prompting for the key.
+  4. A transient network error during validation (no internet, server hiccup) is distinguishable from an actually-invalid key — it does not lock out a key the user just paid for, and can be retried.
+**Plans**: TBD
+
+### Phase 13: Real Notarization & Release
+**Goal**: The distributed `.dmg` is genuinely Developer-ID signed, notarized, and stapled — purchasers see no Gatekeeper warning on first launch.
+**Depends on**: Nothing new — functionally independent of Phases 10-12, sequenced last for release-readiness ordering only
+**Requirements**: DIST-01
+**Success Criteria** (what must be TRUE):
+  1. Running `scripts/release.sh` produces a `.dmg` signed with the real Developer ID Application certificate — no ad-hoc/placeholder signing remains.
+  2. The `.dmg` is successfully notarized via `xcrun notarytool submit --wait` and stapled via `stapler staple`, with no errors.
+  3. `spctl --assess` on the stapled app reports "accepted" — opening it on a clean Mac shows no "unidentified developer" Gatekeeper warning.
+**Plans**: TBD
 
 ## Progress
 
 **v1.0:** 7/7 phases complete (100%) — see `.planning/milestones/v1.0-ROADMAP.md` for the full per-phase breakdown.
 
 **v1.0.1:** 3/3 phases complete (100%) — see `.planning/milestones/v1.0.1-ROADMAP.md` for the full per-phase breakdown.
+
+**v1.1:**
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 10. Trial & Lockout Gate | 0/TBD | Not started | - |
+| 11. License Settings UI (Stubbed) | 0/TBD | Not started | - |
+| 12. Real Polar.sh License Integration | 0/TBD | Not started | - |
+| 13. Real Notarization & Release | 0/TBD | Not started | - |

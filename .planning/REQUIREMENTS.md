@@ -54,18 +54,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TRIAL-01 | TBD | Pending |
-| TRIAL-02 | TBD | Pending |
-| TRIAL-03 | TBD | Pending |
-| LIC-01 | TBD | Pending |
-| LIC-02 | TBD | Pending |
-| LIC-03 | TBD | Pending |
-| DIST-01 | TBD | Pending |
+| TRIAL-01 | Phase 10 | Pending |
+| TRIAL-02 | Phase 10 | Pending |
+| TRIAL-03 | Phase 11 | Pending |
+| LIC-01 | Phase 12 | Pending |
+| LIC-02 | Phase 12 | Pending |
+| LIC-03 | Phase 10 | Pending |
+| DIST-01 | Phase 13 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 7 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 7
+- Mapped to phases: 7 (roadmap created 2026-07-05)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-05*
