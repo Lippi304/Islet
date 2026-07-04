@@ -39,6 +39,22 @@ escalation — a partial/best-effort reduction is not a valid shipped outcome.
   attributes, a private Space-ownership flag, etc.), that is a stop signal —
   fall back to Candidate B or escalate. Do not keep expanding the private-API
   surface to make Candidate C work.
+  - **Amendment (2026-07-04, post-research re-adjudication):** 09-RESEARCH.md
+    found the only two known shipping reference implementations
+    (`Ebullioscopic/Atoll`, `TheBoredTeam/boring.notch`) require 7 private
+    symbols, not 4: `CGSSpaceCreate`, `CGSSpaceSetAbsoluteLevel`,
+    `CGSAddWindowsToSpaces`, `CGSRemoveWindowsFromSpaces` (the original 4) plus
+    `CGSSpaceDestroy`, `CGSHideSpaces`, `CGSShowSpaces`, and a separate
+    connection-lookup symbol (`_CGSDefaultConnection`, kept independent from
+    the existing `CGSMainConnectionID` binding in `FullscreenSpaceProbe.swift`
+    per the research's Pitfall 2 ABI-mismatch warning). User re-adjudicated
+    and **raised the ceiling to this full 7-symbol set** — it is the only
+    combination with real shipping precedent, and `CGSShowSpaces`/`CGSHideSpaces`
+    are load-bearing (a Space that's never shown may not composite; skipping
+    teardown risks a leaked system Space resource). The ceiling is now **these
+    7 named functions plus the connection lookup — not open-ended** expansion;
+    any further private mechanism beyond this set still triggers the original
+    D-02 stop signal.
 
 ### Regression safety net for the architecture change
 - **D-03:** `NotchPanel.collectionBehavior` is core plumbing touched by nearly
