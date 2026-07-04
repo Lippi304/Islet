@@ -27,7 +27,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 **Milestone Goal:** Close the two remaining polish gaps before Islet's first real release — a Now Playing progress bar and eliminating the fullscreen-enter flash.
 
 - [x] **Phase 7: Now Playing Progress Bar** - Display-only elapsed/remaining playback progress bar in the expanded Now Playing view (completed 2026-07-03)
-- [ ] **Phase 8: Fullscreen-Enter Flash Elimination** - Root-cause investigation and fix for the ~1-frame island flash on fullscreen entry
+- [x] **Phase 8: Fullscreen-Enter Flash Elimination** - Root-cause investigation completed; new CGS event 106/107 candidate disproven on-device (option-c). Escalated per D-03/D-04; user selected a follow-up investigation of `SLSManagedDisplayIsAnimating` (see `08-ESCALATION.md`). FS-01 remains open, tracked for a new phase (completed 2026-07-04)
 
 ### 📋 v1.1 (Planned)
 
@@ -66,9 +66,9 @@ Plans:
   3. Existing fullscreen behavior is not regressed: the island still hides for the duration of fullscreen and still restores correctly on exit.
 **Plans**: 3 plans (Wave 0 on-device probe gates two mutually exclusive Wave 1 plans — fix path or escalation path)
 Plans:
-- [ ] 08-01-PLAN.md — Wave 0: build DEBUG-only CGS event 106/107 timing probe, run on-device D-05 trigger matrix, record option-a/option-b/option-c decision
+- [x] 08-01-PLAN.md — Wave 0: build DEBUG-only CGS event 106/107 timing probe, run on-device D-05 trigger matrix, record option-a/option-b/option-c decision
 - [ ] 08-02-PLAN.md — Wave 1 (fix path, only if 08-01 = option-a/option-b): wire the permanent proactive fullscreen-transition signal into updateVisibility(), extend tests, on-device UAT
-- [ ] 08-03-PLAN.md — Wave 1 (escalation path, only if 08-01 = option-c): revert exploratory code, write root-cause escalation report, surface scope decision to user
+- [x] 08-03-PLAN.md — Wave 1 (escalation path, only if 08-01 = option-c): revert exploratory code, write root-cause escalation report, surface scope decision to user
 
 **Investigation note:** FS-01 is scoped as a full elimination outcome (see REQUIREMENTS.md Out of Scope — partial mitigation is explicitly excluded). If on-device investigation during planning/execution finds the flash is genuinely not fixable at the application layer (window-server compositor timing, as v1.0's root-cause diagnosis suggested), the phase's terminal state is a documented escalation with root-cause evidence, surfaced to the user for an explicit scope decision — not a silent "good enough" ship.
 
@@ -81,4 +81,4 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 7. Now Playing Progress Bar | 1/1 | Complete   | 2026-07-03 |
-| 8. Fullscreen-Enter Flash Elimination | 0/3 | Not started | - |
+| 8. Fullscreen-Enter Flash Elimination | 2/3 | Escalated (08-02 correctly skipped) | 2026-07-04 |

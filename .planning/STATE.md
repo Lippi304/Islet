@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0.1
 milestone_name: Pre-Release Polish
-status: executing
-stopped_at: Phase 8 Plan 03 blocked at Task 3 checkpoint (user FS-01 scope decision required)
-last_updated: "2026-07-04T01:13:15Z"
+status: milestone_complete
+stopped_at: Milestone complete (Phase 08 was final phase)
+last_updated: 2026-07-04T01:23:04.980Z
 last_activity: 2026-07-04 -- Phase 08 Plan 03 Tasks 0-2 executed and committed (Wave-0 probe reverted, escalation report written); Task 3 blocking checkpoint pending
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 4
-  completed_plans: 1
-  percent: 25
+  completed_plans: 34
+  percent: 50
 ---
 
 # Project State
@@ -21,19 +21,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 08 — fullscreen-enter-flash-elimination
+**Current focus:** Milestone complete
 
 ## Current Position
 
-Phase: 08 (fullscreen-enter-flash-elimination) — EXECUTING
-Plan: 3 of 3 (escalation path -- 08-01 recorded option-c, unblocking 08-03; 08-02 the mutually
-  exclusive fix-path plan does NOT run)
-Status: BLOCKED — Plan 03 Tasks 0-2 complete and committed (1ba86ba revert, 6a6f3be escalation
-  report). Task 3 is a `checkpoint:decision gate="blocking"` requiring the user to review
-  08-ESCALATION.md and select option-accept/option-descope/option-investigate-b before the phase
-  can close out. See 08-03-SUMMARY.md "Next Phase Readiness".
-Last activity: 2026-07-04 -- Phase 08 Plan 03 Tasks 0-2 executed and committed (Wave-0 probe
-  reverted byte-for-byte, escalation report written); Task 3 blocking checkpoint pending
+Phase: 08
+Plan: All plans resolved (08-01 executed, 08-02 correctly skipped via Task-0 precondition guard, 08-03 executed)
+Status: Milestone complete
+  Phase 8 escalated per D-03/D-04: the on-device D-05 trigger matrix (08-01) found the CGS event
+  106/107 candidate never fires cross-process (option-c), so 08-03's escalation path ran, reverting
+  all exploratory code byte-for-byte and producing 08-ESCALATION.md. The user reviewed it and
+  selected option-investigate-b (follow-up investigation of SLSManagedDisplayIsAnimating). FS-01
+  remains open — see REQUIREMENTS.md traceability — and needs a new phase, not yet created.
+Last activity: 2026-07-04
+  Phase 8 closed out: option-investigate-b recorded, ROADMAP/REQUIREMENTS/STATE synced, phase.complete run
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -52,7 +53,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 32
+- Total plans completed: 34
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -67,6 +68,7 @@ Progress: [██████████] 100%
 | 04 | 4 | - | - |
 | 06 | 13 | - | - |
 | 07 | 1 | - | - |
+| 08 | 2 | - | - |
 
 **Recent Trend:**
 
@@ -125,7 +127,7 @@ None yet.
 - [Phase 6] Decision Coverage Gate override (2026-07-01): planning 06-07..06-12 flagged D-01–D-05, D-07–D-12 as uncovered by `must_haves`/`truths` YAML citations. These decisions are already implemented and shipped in the executed 06-01/06-03/06-04 plans (cited 17-27x in prose) — the gate only scans the structured YAML field, so this is a citation-format artifact in the original plans, not a missing feature. User chose to proceed without editing the already-executed plans. Re-surface if `/gsd:verify-work 6` also flags this.
 - [Phase 8] FS-01 is scoped as a full elimination, not a best-effort reduction (REQUIREMENTS.md Out of Scope). v1.0's Phase 2 root-cause diagnosis found the flash likely a window-server compositor timing issue with no viable app-layer fix via the reactive orderOut approach — Phase 8 must find a genuinely different detection/timing signal or produce a documented escalation for an explicit user scope decision.
 - [Phase 8] Plan 01's on-device D-05 trigger matrix recorded option-c: CGS event 106/107 never fired for another process's real fullscreen transition across all 3 trigger methods, 3 full enter/exit cycles. Candidate A is disproven; the escalation path (08-03) is the correct plan to execute, not the fix path (08-02).
-- Phase 8 Plan 03 Task 3 (checkpoint:decision, gate=blocking): requires the user to review `.planning/phases/08-fullscreen-enter-flash-elimination/08-ESCALATION.md` and select option-accept/option-descope/option-investigate-b to resolve FS-01's scope. Tasks 0-2 (precondition guard, Wave-0 probe revert, escalation report) are complete and committed; execution is paused here pending that decision.
+- [Phase 8] RESOLVED: user selected option-investigate-b (see `.planning/phases/08-fullscreen-enter-flash-elimination/08-ESCALATION.md` and `08-03-SUMMARY.md`). FS-01 remains open and needs a new follow-up phase to investigate `SLSManagedDisplayIsAnimating` (requires a new `project.yml` SkyLight.framework linker setting, a CVDisplayLink-driven poll, and a fullscreen-vs-ordinary-Space-switch disambiguator — a genuinely new investigation, not a quick fix). Not yet scoped as a phase in ROADMAP.md.
 
 ## Deferred Items
 
@@ -140,11 +142,14 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening), unrelated
 
 ## Session Continuity
 
-Last session: 2026-07-04T01:13:15Z
-Stopped at: Phase 8 Plan 03 Task 3 checkpoint (blocking, user FS-01 scope decision required)
+Last session: 2026-07-04T03:23:00Z
+Stopped at: Phase 8 fully closed out (option-investigate-b recorded); v1.0.1 milestone complete
 Resume file: .planning/phases/08-fullscreen-enter-flash-elimination/08-ESCALATION.md
 
 ## Operator Next Steps
 
-- Review .planning/phases/08-fullscreen-enter-flash-elimination/08-ESCALATION.md and select
-  option-accept, option-descope, or option-investigate-b to close out Phase 8.
+- FS-01 remains open. Scope a new phase for the `SLSManagedDisplayIsAnimating` follow-up
+  investigation described in `08-ESCALATION.md`'s "Untried Fallback" section (via `/gsd-phase` to
+  add it to ROADMAP.md, then the normal discuss → plan → execute cycle).
+- v1.0.1 milestone (Phases 7-8) is otherwise complete — consider running `/gsd-complete-milestone`
+  if no further v1.0.1 work is planned before starting the FS-01 follow-up or v1.1.
