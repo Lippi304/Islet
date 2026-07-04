@@ -14,11 +14,20 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current State
 
-**v1.0.1 Pre-Release Polish shipped 2026-07-04** (Phases 7-9, see `.planning/milestones/v1.0.1-ROADMAP.md`). Both target features landed: a display-only Now Playing progress bar (PBAR-01) and a genuine root-cause fix for the fullscreen-enter island flash (FS-01, via a dedicated max-level CGS Space). The app has still not been publicly released — no Apple Developer account purchased yet, so notarized distribution remains the next real-release blocker, not a v1.1 feature question.
+**v1.0.1 Pre-Release Polish shipped 2026-07-04** (Phases 7-9, see `.planning/milestones/v1.0.1-ROADMAP.md`). Both target features landed: a display-only Now Playing progress bar (PBAR-01) and a genuine root-cause fix for the fullscreen-enter island flash (FS-01, via a dedicated max-level CGS Space). The Apple Developer account has since been purchased and the website's legal (Impressum) is in place — the next milestone turns Islet into an actual paid product.
 
-## Next Milestone Goals
+## Current Milestone: v1.1 Trial & Paid Release
 
-Scope not yet defined — run `/gsd-new-milestone` to start requirements definition (fresh questioning → research → requirements → roadmap). Candidates carried from the v1.0/v1.0.1 backlog (see ROADMAP.md's v1.1 Backlog section for the full list): file shelf, system HUDs, timer, real Developer-ID notarization, Phase 2's 8 remaining on-device UAT scenarios, and the CR-01 CGS-Space-leak-on-quit follow-up from Phase 9.
+**Goal:** Islet becomes a real, sellable product — a 3-day free trial, then a one-time €7.99 purchase via Polar.sh, enforced by a local license check, shipped as a genuinely Developer-ID-notarized build (no more dry-run/placeholder notarization).
+
+**Target features:**
+- Trial period: starts on first launch, lasts 3 days, tracked locally
+- Trial expiry: app fully locks (no island, no functionality) until a valid license key is entered
+- Purchase flow: Polar.sh checkout for a one-time €7.99 purchase, issuing a license key
+- License entry + validation: user enters the key once, app validates it online against Polar.sh, then caches the validated state locally (Keychain) so the app keeps working offline afterward
+- Real Developer-ID notarization (DIST-01): replace the dry-run `scripts/release.sh` placeholders with the actual paid-account sign → notarize → staple flow, so purchasers see no Gatekeeper warning
+
+**Why bundled with notarization:** Shipping a paywall without real notarization means every paying customer's first launch is a Gatekeeper security warning — a broken first impression for a product people just paid for. Doing both together was an explicit user call.
 
 ## Requirements
 
@@ -163,4 +172,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-04 after v1.0.1 milestone close.*
+*Last updated: 2026-07-05 — milestone v1.1 (Trial & Paid Release) started.*

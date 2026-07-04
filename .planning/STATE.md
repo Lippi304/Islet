@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0.1
-milestone_name: Pre-Release Polish
-status: milestone_complete
-stopped_at: Milestone complete (Phase 09 was final phase)
-last_updated: 2026-07-04T14:13:58.046Z
-last_activity: 2026-07-04 -- Phase 09 execution started
+milestone: v1.1
+milestone_name: Trial & Paid Release
+status: planning
+last_updated: "2026-07-04T23:32:44.502Z"
+last_activity: 2026-07-04
 progress:
-  total_phases: 3
-  completed_phases: 1
-  total_plans: 9
-  completed_plans: 39
-  percent: 33
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,20 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-26)
 
 ## Current Position
 
-Phase: 09
-Plan: Not started
-Status: Milestone complete
-  Phase 8 escalated per D-03/D-04: the on-device D-05 trigger matrix (08-01) found the CGS event
-  106/107 candidate never fires cross-process (option-c), so 08-03's escalation path ran, reverting
-  all exploratory code byte-for-byte and producing 08-ESCALATION.md. The user reviewed it and
-  selected option-investigate-b (follow-up investigation). Researching comparable open-source
-  projects (TheBoredTeam/boring.notch, Ebullioscopic/Atoll) surfaced a second, prioritized candidate
-  (Candidate C: window/Space architecture change) beyond the originally-escalated
-  SLSManagedDisplayIsAnimating poll (Candidate B). Phase 9 was added to ROADMAP.md to investigate
-  both, Candidate C first.
-Last activity: 2026-07-04
-  Phase 9 added to ROADMAP.md/.planning/phases/09-fullscreen-flash-window-space-retry/ for FS-01's
-  follow-up investigation; REQUIREMENTS.md traceability updated to point at Phase 9
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-04 — Milestone v1.1 started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
