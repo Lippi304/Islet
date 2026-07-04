@@ -25,16 +25,20 @@ See: .planning/PROJECT.md (updated 2026-06-26)
 
 ## Current Position
 
-Phase: 08
-Plan: All plans resolved (08-01 executed, 08-02 correctly skipped via Task-0 precondition guard, 08-03 executed)
-Status: Milestone complete
+Phase: 09
+Plan: Not started (phase added, not yet planned — run /gsd-discuss-phase 9 then /gsd-plan-phase 9)
+Status: Awaiting planning
   Phase 8 escalated per D-03/D-04: the on-device D-05 trigger matrix (08-01) found the CGS event
   106/107 candidate never fires cross-process (option-c), so 08-03's escalation path ran, reverting
   all exploratory code byte-for-byte and producing 08-ESCALATION.md. The user reviewed it and
-  selected option-investigate-b (follow-up investigation of SLSManagedDisplayIsAnimating). FS-01
-  remains open — see REQUIREMENTS.md traceability — and needs a new phase, not yet created.
+  selected option-investigate-b (follow-up investigation). Researching comparable open-source
+  projects (TheBoredTeam/boring.notch, Ebullioscopic/Atoll) surfaced a second, prioritized candidate
+  (Candidate C: window/Space architecture change) beyond the originally-escalated
+  SLSManagedDisplayIsAnimating poll (Candidate B). Phase 9 was added to ROADMAP.md to investigate
+  both, Candidate C first.
 Last activity: 2026-07-04
-  Phase 8 closed out: option-investigate-b recorded, ROADMAP/REQUIREMENTS/STATE synced, phase.complete run
+  Phase 9 added to ROADMAP.md/.planning/phases/09-fullscreen-flash-window-space-retry/ for FS-01's
+  follow-up investigation; REQUIREMENTS.md traceability updated to point at Phase 9
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -127,7 +131,8 @@ None yet.
 - [Phase 6] Decision Coverage Gate override (2026-07-01): planning 06-07..06-12 flagged D-01–D-05, D-07–D-12 as uncovered by `must_haves`/`truths` YAML citations. These decisions are already implemented and shipped in the executed 06-01/06-03/06-04 plans (cited 17-27x in prose) — the gate only scans the structured YAML field, so this is a citation-format artifact in the original plans, not a missing feature. User chose to proceed without editing the already-executed plans. Re-surface if `/gsd:verify-work 6` also flags this.
 - [Phase 8] FS-01 is scoped as a full elimination, not a best-effort reduction (REQUIREMENTS.md Out of Scope). v1.0's Phase 2 root-cause diagnosis found the flash likely a window-server compositor timing issue with no viable app-layer fix via the reactive orderOut approach — Phase 8 must find a genuinely different detection/timing signal or produce a documented escalation for an explicit user scope decision.
 - [Phase 8] Plan 01's on-device D-05 trigger matrix recorded option-c: CGS event 106/107 never fired for another process's real fullscreen transition across all 3 trigger methods, 3 full enter/exit cycles. Candidate A is disproven; the escalation path (08-03) is the correct plan to execute, not the fix path (08-02).
-- [Phase 8] RESOLVED: user selected option-investigate-b (see `.planning/phases/08-fullscreen-enter-flash-elimination/08-ESCALATION.md` and `08-03-SUMMARY.md`). FS-01 remains open and needs a new follow-up phase to investigate `SLSManagedDisplayIsAnimating` (requires a new `project.yml` SkyLight.framework linker setting, a CVDisplayLink-driven poll, and a fullscreen-vs-ordinary-Space-switch disambiguator — a genuinely new investigation, not a quick fix). Not yet scoped as a phase in ROADMAP.md.
+- [Phase 8] RESOLVED: user selected option-investigate-b (see `.planning/phases/08-fullscreen-enter-flash-elimination/08-ESCALATION.md` and `08-03-SUMMARY.md`). FS-01 remains open.
+- [Phase 9] Added to ROADMAP.md to retry FS-01, with two candidates: Candidate C (prioritized) — replace `.canJoinAllSpaces` with a dedicated max-level CGS Space (`CGSSpaceCreate` + `CGSSpaceSetAbsoluteLevel(level: Int32.max)`), found via researching `Ebullioscopic/Atoll`'s `NotchSpaceManager`/`CGSSpace.swift` (fork lineage of `TheBoredTeam/boring.notch`) — targets Phase 2's root-cause diagnosis structurally (no per-Space auto-join event to race against), unlike Phase 8's timing-detection approach. Candidate B (fallback) — `SLSManagedDisplayIsAnimating` poll + disambiguator, from `08-ESCALATION.md`. Not yet planned — run `/gsd-discuss-phase 9` then `/gsd-plan-phase 9`.
 
 ## Deferred Items
 
@@ -142,14 +147,16 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening), unrelated
 
 ## Session Continuity
 
-Last session: 2026-07-04T03:23:00Z
-Stopped at: Phase 8 fully closed out (option-investigate-b recorded); v1.0.1 milestone complete
-Resume file: .planning/phases/08-fullscreen-enter-flash-elimination/08-ESCALATION.md
+Last session: 2026-07-04T03:38:00Z
+Stopped at: Phase 9 added to ROADMAP.md (not yet planned); Phase 8 closed out with option-investigate-b
+Resume file: .planning/phases/09-fullscreen-flash-window-space-retry/
 
 ## Operator Next Steps
 
-- FS-01 remains open. Scope a new phase for the `SLSManagedDisplayIsAnimating` follow-up
-  investigation described in `08-ESCALATION.md`'s "Untried Fallback" section (via `/gsd-phase` to
-  add it to ROADMAP.md, then the normal discuss → plan → execute cycle).
-- v1.0.1 milestone (Phases 7-8) is otherwise complete — consider running `/gsd-complete-milestone`
-  if no further v1.0.1 work is planned before starting the FS-01 follow-up or v1.1.
+- Phase 9 (`.planning/phases/09-fullscreen-flash-window-space-retry/`) added for FS-01's follow-up
+  investigation. Candidate C (window/Space architecture change — dedicated max-level CGS Space,
+  found via researching `Ebullioscopic/Atoll`) is prioritized; Candidate B
+  (`SLSManagedDisplayIsAnimating` poll, from `08-ESCALATION.md`) is the documented fallback.
+- Run `/gsd-discuss-phase 9` then `/gsd-plan-phase 9` to break Phase 9 down before executing.
+- v1.0.1 milestone now spans Phases 7-9 (was 7-8) — do not run `/gsd-complete-milestone` until
+  Phase 9 resolves FS-01 or the user explicitly descopes it.

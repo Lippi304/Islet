@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 0-6 (shipped 2026-07-02)
-- 🚧 **v1.0.1 Pre-Release Polish** — Phases 7-8 (in progress)
+- 🚧 **v1.0.1 Pre-Release Polish** — Phases 7-9 (in progress)
 
 ## Phases
 
@@ -28,6 +28,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 - [x] **Phase 7: Now Playing Progress Bar** - Display-only elapsed/remaining playback progress bar in the expanded Now Playing view (completed 2026-07-03)
 - [x] **Phase 8: Fullscreen-Enter Flash Elimination** - Root-cause investigation completed; new CGS event 106/107 candidate disproven on-device (option-c). Escalated per D-03/D-04; user selected a follow-up investigation of `SLSManagedDisplayIsAnimating` (see `08-ESCALATION.md`). FS-01 remains open, tracked for a new phase (completed 2026-07-04)
+- [ ] **Phase 9: Fullscreen-Enter Flash — Window/Space Architecture Retry** - Retry FS-01 with a window/Space architecture change (Candidate C, max-level CGS Space) found via research of comparable open-source projects, `SLSManagedDisplayIsAnimating` polling (Candidate B) as fallback
 
 ### 📋 v1.1 (Planned)
 
@@ -72,6 +73,23 @@ Plans:
 
 **Investigation note:** FS-01 is scoped as a full elimination outcome (see REQUIREMENTS.md Out of Scope — partial mitigation is explicitly excluded). If on-device investigation during planning/execution finds the flash is genuinely not fixable at the application layer (window-server compositor timing, as v1.0's root-cause diagnosis suggested), the phase's terminal state is a documented escalation with root-cause evidence, surfaced to the user for an explicit scope decision — not a silent "good enough" ship.
 
+### Phase 9: Fullscreen-Enter Flash — Window/Space Architecture Retry
+**Goal**: Entering true (native) fullscreen on the built-in display never produces a visible island flash, closing out FS-01 (escalated, unresolved, from Phase 8).
+**Depends on**: Phase 8 (Fullscreen-Enter Flash Elimination — see `08-ESCALATION.md` for prior findings)
+**Requirements**: FS-01
+**Success Criteria** (what must be TRUE):
+  1. On-device, entering native fullscreen (green-button, menu bar, video app, at minimum) shows zero visible island flash during or after the transition, across repeated trials.
+  2. The fix is a genuine root-cause elimination, not a best-effort/partial reduction.
+  3. Existing fullscreen behavior is not regressed: the island still hides for the duration of fullscreen and still restores correctly on exit.
+**Plans**: 0 plans (not yet planned)
+
+**Candidates to investigate (found via research of comparable open-source Dynamic-Island clones, GitHub):**
+- **Candidate C (prioritized)** — Window/Space architecture change: replace the panel's `.canJoinAllSpaces` NSWindow collection behavior with a dedicated private CGS Space created at the maximum absolute level (`CGSSpaceCreate` + `CGSSpaceSetAbsoluteLevel(level: Int32.max)`, membership managed via `CGSAddWindowsToSpaces`/`CGSRemoveWindowsFromSpaces`) — mirrors the technique found in `Ebullioscopic/Atoll`'s `NotchSpaceManager`/`CGSSpace.swift` (fork lineage of `TheBoredTeam/boring.notch`). Targets Phase 2's original root-cause diagnosis structurally: `.canJoinAllSpaces` auto-joins the panel onto every newly-created Space (including a just-activated fullscreen Space), compositing it there for ~1 frame before reactive hide code can run. A dedicated max-level Space has no per-Space auto-join event to race against. Needs on-device verification that it (a) actually eliminates the flash, (b) doesn't regress hide-during-fullscreen/restore-on-exit, (c) doesn't cause the panel to visibly show above fullscreen content when it should stay hidden.
+- **Candidate B (fallback)** — `SLSManagedDisplayIsAnimating` poll + fullscreen-vs-ordinary-Space-switch disambiguator (full design in `08-ESCALATION.md`'s "Untried Fallback" section). Requires a new `project.yml` `SkyLight.framework` linker setting and a `CVDisplayLink`-driven poll.
+
+Plans:
+- [ ] TBD (run `/gsd-plan-phase 9` to break down)
+
 ## Progress
 
 **v1.0:** 7/7 phases complete (100%) — see `.planning/milestones/v1.0-ROADMAP.md` for the full per-phase breakdown.
@@ -82,3 +100,4 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Now Playing Progress Bar | 1/1 | Complete   | 2026-07-03 |
 | 8. Fullscreen-Enter Flash Elimination | 2/3 | Escalated (08-02 correctly skipped) | 2026-07-04 |
+| 9. Fullscreen-Enter Flash — Window/Space Architecture Retry | 0/0 | Not planned | - |

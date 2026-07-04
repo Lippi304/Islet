@@ -42,7 +42,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PBAR-01 | Phase 7 | Complete |
-| FS-01 | Phase 8 | Escalated — see `08-ESCALATION.md`; follow-up phase needed for `SLSManagedDisplayIsAnimating` |
+| FS-01 | Phase 8 (escalated) → Phase 9 | Pending — Phase 9 retries with a window/Space architecture change (Candidate C) and `SLSManagedDisplayIsAnimating` (Candidate B, fallback); see `08-ESCALATION.md` |
 
 **Coverage:**
 - v1.0.1 requirements: 2 total
