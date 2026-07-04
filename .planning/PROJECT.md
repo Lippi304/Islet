@@ -72,6 +72,11 @@ _v1.0 core feature set is code-complete and fully human-verified — all 4 on-de
 
 - [x] Display-only playback progress bar in the expanded Now Playing view — elapsed/total m:ss labels flanking an accent-filled capsule track, gliding continuously while playing and frozen while paused, zero tap-to-seek. On-device UAT caught and fixed a pause-transition backward-flash bug (stale MediaRemote sample corrected via a drift-extrapolated freeze); a post-execution code review then closed a NaN/Infinity crash risk in the same view. 141/141 tests green, on-device re-verified and approved. (Phase 7 — PBAR-01)
 
+**Fullscreen-Enter Flash — Window/Space Architecture Retry (Phase 9 — FS-01):**
+
+- [x] Fullscreen-enter island flash eliminated as a genuine root-cause fix — a dedicated, max-level private CGS Space (`CGSSpace.swift`) that the notch panel joins once at creation, additive alongside the existing `.canJoinAllSpaces` collection behavior (no per-Space auto-join race left to fire). On-device verified across all 3 trigger methods (green-button, menu bar, fullscreen video) with zero regressions across the full checklist (hover/click-expand, click-through, multi-Space visibility, display/clamshell repositioning, fullscreen hide/restore, lock-screen/sleep-wake). Closed Phase 8's escalation on the first wave of a 5-wave conditional chain — Candidate B (`SLSManagedDisplayIsAnimating` poll) and the terminal escalation report were never needed. (Phase 9 — FS-01)
+  - **Known follow-up (non-blocking):** code review found the dedicated CGS Space leaks on app quit — `AppDelegate.quit()` calls `NSApp.terminate(nil)` without tearing down `NotchWindowController`, so its `deinit` (and the Space's `CGSHideSpaces`/`CGSSpaceDestroy` teardown) never runs. Doesn't affect the flash fix or fullscreen behavior; recommended fix via `/gsd-quick` before shipping.
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
@@ -154,4 +159,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-04 — Phase 7 (Now Playing Progress Bar, PBAR-01) complete. One phase remains in v1.0.1: Phase 8, fullscreen-enter flash fix.*
+*Last updated: 2026-07-04 — Phase 9 (Fullscreen-Enter Flash — Window/Space Architecture Retry, FS-01) complete. Both v1.0.1 target features (PBAR-01, FS-01) are now validated; run `/gsd-complete-milestone` when ready to close v1.0.1.*
