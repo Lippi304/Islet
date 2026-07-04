@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0.1
 milestone_name: Pre-Release Polish
-status: milestone_complete
-stopped_at: Milestone complete (Phase 08 was final phase)
-last_updated: 2026-07-04T01:23:04.980Z
-last_activity: 2026-07-04 -- Phase 08 Plan 03 Tasks 0-2 executed and committed (Wave-0 probe reverted, escalation report written); Task 3 blocking checkpoint pending
+status: planning
+stopped_at: Phase 9 context gathered
+last_updated: "2026-07-04T01:59:07.563Z"
+last_activity: 2026-07-04
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 1
   total_plans: 4
-  completed_plans: 34
-  percent: 50
+  completed_plans: 3
+  percent: 33
 ---
 
 # Project State
@@ -147,9 +147,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening), unrelated
 
 ## Session Continuity
 
-Last session: 2026-07-04T03:38:00Z
-Stopped at: Phase 9 added to ROADMAP.md (not yet planned); Phase 8 closed out with option-investigate-b
-Resume file: .planning/phases/09-fullscreen-flash-window-space-retry/
+Last session: 2026-07-04T01:59:07.558Z
+Stopped at: Phase 9 context gathered
+Resume file: .planning/phases/09-fullscreen-flash-window-space-retry/09-CONTEXT.md
 
 ## Operator Next Steps
 
@@ -157,6 +157,7 @@ Resume file: .planning/phases/09-fullscreen-flash-window-space-retry/
   investigation. Candidate C (window/Space architecture change — dedicated max-level CGS Space,
   found via researching `Ebullioscopic/Atoll`) is prioritized; Candidate B
   (`SLSManagedDisplayIsAnimating` poll, from `08-ESCALATION.md`) is the documented fallback.
+
 - Run `/gsd-discuss-phase 9` then `/gsd-plan-phase 9` to break Phase 9 down before executing.
 - v1.0.1 milestone now spans Phases 7-9 (was 7-8) — do not run `/gsd-complete-milestone` until
   Phase 9 resolves FS-01 or the user explicitly descopes it.
