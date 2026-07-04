@@ -28,7 +28,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 - [x] **Phase 7: Now Playing Progress Bar** - Display-only elapsed/remaining playback progress bar in the expanded Now Playing view (completed 2026-07-03)
 - [x] **Phase 8: Fullscreen-Enter Flash Elimination** - Root-cause investigation completed; new CGS event 106/107 candidate disproven on-device (option-c). Escalated per D-03/D-04; user selected a follow-up investigation of `SLSManagedDisplayIsAnimating` (see `08-ESCALATION.md`). FS-01 remains open, tracked for a new phase (completed 2026-07-04)
-- [ ] **Phase 9: Fullscreen-Enter Flash — Window/Space Architecture Retry** - Retry FS-01 with a window/Space architecture change (Candidate C, max-level CGS Space) found via research of comparable open-source projects, `SLSManagedDisplayIsAnimating` polling (Candidate B) as fallback
+- [x] **Phase 9: Fullscreen-Enter Flash — Window/Space Architecture Retry** - Retry FS-01 with a window/Space architecture change (Candidate C, max-level CGS Space) found via research of comparable open-source projects, `SLSManagedDisplayIsAnimating` polling (Candidate B) as fallback (completed 2026-07-04)
 
 ### 📋 v1.1 (Planned)
 
@@ -106,23 +106,23 @@ at any wave once FS-01 is resolved)
 Plans:
 **Wave 1**
 
-- [ ] 09-01-PLAN.md — Wave 1: Candidate C additive (CGSSpace.swift + one-time Space-join) + on-device checkpoint
+- [x] 09-01-PLAN.md — Wave 1: Candidate C additive (CGSSpace.swift + one-time Space-join) + on-device checkpoint
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 09-02-PLAN.md — Wave 2 (only if 09-01 = option-continue): Candidate C replace variant (.canJoinAllSpaces removed) + on-device checkpoint
+- [x] 09-02-PLAN.md — Wave 2 (only if 09-01 = option-continue): Candidate C replace variant (.canJoinAllSpaces removed) + on-device checkpoint
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 09-03-PLAN.md — Wave 3 (only if 09-02 = option-proceed-to-b): revert Candidate C + prepare Candidate B's SkyLight.framework linker settings
+- [x] 09-03-PLAN.md — Wave 3 (only if 09-02 = option-proceed-to-b): revert Candidate C + prepare Candidate B's SkyLight.framework linker settings
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 09-04-PLAN.md — Wave 4 (only if 09-03 ran): Candidate B (CVDisplayLink poll + disambiguator + pendingFullscreenTransition) + on-device checkpoint
+- [x] 09-04-PLAN.md — Wave 4 (only if 09-03 ran): Candidate B (CVDisplayLink poll + disambiguator + pendingFullscreenTransition) + on-device checkpoint
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 09-05-PLAN.md — Wave 5 (only if 09-04 = option-escalate): revert Candidate B + final 2-option escalation report
+- [x] 09-05-PLAN.md — Wave 5 (only if 09-04 = option-escalate): revert Candidate B + final 2-option escalation report
 
 ## Progress
 
@@ -134,4 +134,4 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Now Playing Progress Bar | 1/1 | Complete   | 2026-07-03 |
 | 8. Fullscreen-Enter Flash Elimination | 2/3 | Escalated (08-02 correctly skipped) | 2026-07-04 |
-| 9. Fullscreen-Enter Flash — Window/Space Architecture Retry | 0/5 | Planned (conditional chain — may terminate early) | - |
+| 9. Fullscreen-Enter Flash — Window/Space Architecture Retry | 5/5 | Complete   | 2026-07-04 |
