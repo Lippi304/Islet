@@ -2,7 +2,7 @@
 phase: 08-fullscreen-enter-flash-elimination
 plan: 03
 subsystem: fullscreen-detection
-tags: [fullscreen, cgs, escalation, wave-1, decision-pending]
+tags: [fullscreen, cgs, escalation, wave-1, decided]
 
 # Dependency graph
 requires:
@@ -30,7 +30,7 @@ key-decisions:
   - "Task 0 precondition guard confirmed 08-01-SUMMARY.md recorded option-c (Candidate A disproven) - the escalation path (this plan) is the correct one to execute, not 08-02 (fix path)"
   - "Task 1: reverted both Wave-0 probe files byte-for-byte to their pre-Phase-8 state (git checkout dea30c1~1), per D-03 - no code change ships when no proactive signal was found"
   - "Task 2: wrote 08-ESCALATION.md citing this phase's own on-device evidence (08-01's raw [FS-01 probe] Console capture showing zero CGS event 106/107 firings across 3 enter/exit cycles, all 3 D-05 trigger methods) rather than restating prior Phase-2/Phase-6 conclusions, per D-07"
-  - "Task 3 (checkpoint:decision, gate=blocking) has NOT been resolved - execution halts here pending the user's explicit choice among option-accept/option-descope/option-investigate-b, per D-04"
+  - "Task 3 RESOLVED: user selected option-investigate-b - request a follow-up investigation of the untried SLSManagedDisplayIsAnimating fallback. User's own framing: detect that a display animation is in progress, briefly determine whether it is a fullscreen transition, and if it resolves to NOT-fullscreen, show the island immediately - functionally the same disambiguated-poll design 08-ESCALATION.md's Untried Fallback section describes. This requires a new investigation phase (new project.yml linker setting for SkyLight.framework, a CVDisplayLink-driven poll, and a fullscreen-vs-ordinary-Space-switch disambiguator) - out of scope for phase 8 itself."
 
 requirements-completed: []
 
@@ -90,15 +90,25 @@ None. The revert was unambiguous (single source commit for both files), and the 
 
 None - no external service configuration required. Task 3, however, requires the user to review `08-ESCALATION.md` and make an explicit scope decision (see below).
 
-## Next Phase Readiness
+## Task 3 — RESOLVED: option-investigate-b
 
-**This plan is NOT fully complete.** Task 3 is a `checkpoint:decision` with `gate="blocking"` — it requires the user to review `.planning/phases/08-fullscreen-enter-flash-elimination/08-ESCALATION.md` and select one of:
+The user reviewed `08-ESCALATION.md` and selected **option-investigate-b** — a follow-up
+investigation of the untried `SLSManagedDisplayIsAnimating` fallback (Candidate B), rather than
+accepting the flash as permanent debt or formally descoping FS-01.
 
-- `option-accept` — Accept the fullscreen-enter flash as permanent technical debt (closes the phase now)
-- `option-descope` — Formally descope FS-01 in `REQUIREMENTS.md`/`ROADMAP.md`
-- `option-investigate-b` — Request a follow-up investigation of the untried `SLSManagedDisplayIsAnimating` fallback (a new investigation phase, not a quick fix)
+**User's own framing of the desired behavior:** the island should notice that a display animation
+is briefly in progress, take a short moment (order of 1-2 seconds at most) to determine whether
+that animation resolved into a true fullscreen transition or not, and — the instant it resolves to
+NOT-fullscreen — show the island immediately. This is functionally the same shape as
+`08-ESCALATION.md`'s "Untried Fallback" design: a `CVDisplayLink`-driven poll of
+`SLSManagedDisplayIsAnimating` paired with a `CGSCopyManagedDisplaySpaces`-based disambiguator to
+tell a genuine fullscreen-Space appearance apart from an ordinary Space switch.
 
-No code change has shipped for FS-01 in this phase. The v1.0 reactive `updateVisibility()`/`orderOut` behavior is exactly as it was before Phase 8 began (verified byte-for-byte). The phase cannot close out until this decision is recorded.
+**This closes Phase 8.** No code change ships for FS-01 in this phase — the v1.0 reactive
+`updateVisibility()`/`orderOut` behavior is exactly as it was before Phase 8 began (verified
+byte-for-byte). The requested follow-up investigation (Candidate B: `SLSManagedDisplayIsAnimating`
++ `SkyLight.framework` linking + disambiguator design) is out of scope for Phase 8 itself and
+should be scoped as a new phase.
 
 ## Self-Check: PASSED
 
