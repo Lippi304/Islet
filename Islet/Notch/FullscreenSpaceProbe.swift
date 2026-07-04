@@ -83,3 +83,33 @@ func isBuiltinDisplayInFullscreenSpace(builtinUUID: String?) -> Bool {
 
     return type == kCGSSpaceFullscreen
 }
+
+// MARK: - Phase 8 / FS-01 Wave-0 probe (DEBUG-only, throwaway instrumentation)
+//
+// RESEARCH.md's one new candidate signal: the private CGS notification pair
+// CGSClientEnterFullscreen (106) / CGSClientExitFullscreen (107), registered via
+// CGSRegisterNotifyProc. This is a Wave-0 MEASUREMENT ONLY — it produces no shipped
+// behavior change. NotchWindowController wires the registration/teardown and the
+// diagnostic logging (all `#if DEBUG`-gated); this file only adds the constants and
+// the thin @_silgen_name bindings, matching the exact declaration shape of the
+// existing CGSMainConnectionID/CGSCopyManagedDisplaySpaces bindings above (no dlopen,
+// resolves through this file's existing `import CoreGraphics`).
+
+/// CGS private-notification event code for "a client entered fullscreen".
+/// Not `private`: NotchWindowController.swift (same module) registers/tears down against it.
+let kCGSClientEnterFullscreen: UInt32 = 106
+/// CGS private-notification event code for "a client exited fullscreen".
+let kCGSClientExitFullscreen: UInt32 = 107
+
+/// The C callback signature CGSRegisterNotifyProc expects: (event type, user data,
+/// payload length, payload pointer). The probe only ever reads `type` — the payload
+/// params are never dereferenced (T-08-03).
+typealias CGSNotifyProc = @convention(c) (UInt32, UnsafeMutableRawPointer?, Int, UnsafeMutableRawPointer?) -> Void
+
+@_silgen_name("CGSRegisterNotifyProc")
+@discardableResult
+func CGSRegisterNotifyProc(_ proc: CGSNotifyProc?, _ type: UInt32, _ userData: UnsafeMutableRawPointer?) -> Int32
+
+@_silgen_name("CGSRemoveNotifyProc")
+@discardableResult
+func CGSRemoveNotifyProc(_ proc: CGSNotifyProc?, _ type: UInt32, _ userData: UnsafeMutableRawPointer?) -> Int32
