@@ -383,7 +383,7 @@ let cid = CGSMainConnectionID()   // => non-zero, e.g. 804419 — confirms live 
 ## State of the Art
 
 | Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|--------------|--------|
+|--------------|------------------|---------------|--------|
 | Reactive `activeSpaceDidChangeNotification`/`didActivateApplicationNotification` only (v1.0/Phase 2/Phase 6) | + proactive `CGSClientEnterFullscreen`/`ExitFullscreen` push notification (this phase, pending on-device confirmation) | This phase | If confirmed, closes the timing gap that caused the flash; if disproven, the fallback is `SLSManagedDisplayIsAnimating` polling, not another debounce |
 
 **Deprecated/outdated to avoid:**
@@ -400,17 +400,19 @@ let cid = CGSMainConnectionID()   // => non-zero, e.g. 804419 — confirms live 
 | A4 | `SLSManagedDisplayIsAnimating` + a "new fullscreen-Space appeared" check would reliably disambiguate fullscreen-enter animations from ordinary Space-switch animations | Candidate B | MEDIUM — untested reasoning; if wrong, Candidate B would either miss cases or over-trigger (regression risk); only relevant if Candidate A is disproven |
 | A5 | The community-sourced CGS notification header (event enum, `CGSNotifyProc` typedef) is accurate for the CURRENT (Tahoe/macOS 27) WindowServer, not just historically (headers date to 2007-2008 originally, cross-referenced against a 2015-2016 update and the actively-maintained 2024-2026 `alt-tab-macos` project) | Standard Stack / Candidate Signal Investigation | MEDIUM — the numeric codes and registration function SIGNATURE were confirmed callable on-device this session (returns success), but the SEMANTIC meaning of "106" specifically (vs. just "some event number that happens to register without erroring") is cross-referenced across 3 independent sources, not Apple-confirmed |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does `CGSClientEnterFullscreen` (106) fire for another process's fullscreen transition, and if so, how early relative to the compositor flash?**
    - What we know: the symbol/registration mechanism is live and callable on the exact ship OS build; the semantic name and event code are corroborated across 3 independent community CGS headers spanning ~2007-2026.
    - What's unclear: actual on-device firing behavior for a cross-process trigger — blocked in this research session by a TCC restriction on synthetic input in the automation shell used.
    - Recommendation: Wave-0 execution task, exact protocol specified above (DEBUG print + a human running the D-05 trigger matrix). This is a ~15-30 minute manual verification, not a re-investigation.
+   - **RESOLVED: deferred to Wave-0 on-device checkpoint (08-01-PLAN.md Task 2), by design — this is the exact question 08-01's checkpoint:decision was created to answer, not a gap in this research.**
 
 2. **If Candidate A is confirmed but the CGS space-type hasn't flipped yet at 106-fire-time, is a 1s bounded timeout on `pendingFullscreenTransition` the right value, or does it need tuning per trigger method (video apps may take a different duration to complete their Space transition than green-button)?**
    - What we know: the existing codebase's established one-shot-timer idiom (`graceWorkItem`, `dismissWorkItem`, `deviceBatteryWork`) uses seed constants tuned during execution/on-device checkpoints, not fixed at research time.
    - What's unclear: the actual Space-transition duration across all three D-05 trigger methods on this exact machine/OS.
    - Recommendation: treat as a Plan-level tuning seed (like `graceDelay`/`springResponse` already are), confirmed at the on-device human-verify checkpoint, not hard-coded from research.
+   - **RESOLVED: seeded at ~1.0s in 08-02-PLAN.md Task 2 (option-b branch), to be confirmed/tuned at 08-02-PLAN.md Task 3's on-device checkpoint rather than left as an open research question.**
 
 ## Environment Availability
 
