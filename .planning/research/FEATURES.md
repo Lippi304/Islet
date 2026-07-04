@@ -1,206 +1,153 @@
 # Feature Research
 
-**Domain:** Native macOS notch / "Dynamic Island" utility app (Alcove / DynamicLake class)
-**Researched:** 2026-06-26
-**Confidence:** HIGH (feature landscape, verified across 4 reference apps) / MEDIUM (per-feature complexity estimates — informed by open-source implementations but unbuilt)
-
----
-
-## Reference Apps Surveyed
-
-| App | Positioning | Source model | Price | Key takeaway for us |
-|-----|-------------|--------------|-------|---------------------|
-| **Alcove** (tryalcove.com) | "Just the Dynamic Island, nothing more" — polished, minimal | Closed, Swift 6, direct-notarized | ~$17 one-time | The **quality bar** for animations + the v1 feature scope to match. Deliberately omits tray/mirror/calendar. |
-| **DynamicLake Pro** (dynamiclake.com) | Workflow/function maximalist | Closed | ~$17 | The **breadth catalog** — shows the long tail (calls, messaging, file actions, conversion). Mostly anti-features for v1. |
-| **TheBoringNotch** (github.com/TheBoredTeam/boring.notch) | Open-source community island | GPL-3.0, Swift 98% + SwiftUI | Free | The **implementation reference** — read its code for MediaRemote, shelf, HUD. Its roadmap = our feature checklist. |
-| **Notchy** (notchy.dev) | Free maximalist, SwiftUI, ~0% CPU | Closed, free | Free | Shows the **table-stakes minimum** a free app already nails (now playing, shelf, HUDs, AirPods, timer). Raises the floor. |
-
-**Cross-cutting reality check:** Now Playing, a hover-expand island, system HUD replacement, a file shelf, and AirPods/battery activities now appear in *every* one of these apps — including the free ones. That means several of these are **table stakes, not differentiators**, even though they feel ambitious to a beginner. The project's stated v1 (island + now playing + charging + device-connect) maps almost exactly onto the table-stakes set, which is the right call.
-
----
+**Domain:** Trial + one-time-purchase licensing for an indie macOS menu-bar utility (Islet, adding trial/licensing to an already-shipped app)
+**Researched:** 2026-07-05
+**Confidence:** MEDIUM-HIGH (patterns cross-verified across multiple comparable apps; Polar.sh mechanics confirmed against official docs; some app-specific details are community-report quality, not vendor-confirmed)
 
 ## Feature Landscape
 
-### Table Stakes (Users Expect These — missing = they uninstall)
+### Table Stakes (Users Expect These)
 
-| Feature | Why Expected | Complexity (beginner) | Notes |
-|---------|--------------|------------------------|-------|
-| **Island overlay: expand on hover, collapse on idle** | This *is* the product. A static black bar isn't "Dynamic Island." | **MEDIUM** | Borderless `NSWindow`, `.statusBar`/`.screenSaver` window level, ignores-mouse-events except hover zone, `NSScreen.safeAreaInsets`/`auxiliaryTopLeftArea` to find notch geometry. The window/positioning is the single highest-risk foundation task — get it right first. |
-| **Smooth expand/collapse animation** | Alcove's whole reputation is the animation. Janky = "cheap knockoff." | **MEDIUM–HIGH** | SwiftUI `matchedGeometryEffect` + spring animations; the *feel* (rounded-corner morph that mirrors the notch radius) is what separates polished from amateur. Budget real iteration time here. |
-| **Now Playing: album art + title/artist** | Top reason people install these apps. | **MEDIUM** | Needs MediaRemote — see the **critical pitfall below (macOS 15.4 lockdown)**. Album art arrives as image data you render in the island. |
-| **Now Playing: play / pause / skip controls** | A media display you can't control is half a feature. | **MEDIUM** | Same MediaRemote channel sends play/pause/next/prev commands. Low *additional* cost once metadata works. |
-| **Multi-app source detection (Apple Music, Spotify, browser, etc.)** | Users expect it to "just know" what's playing regardless of app. | **LOW (free with MediaRemote)** | MediaRemote is system-wide — it reports whatever app owns Now Playing, so you get Spotify/Safari/Music for free without per-app integrations. This is a hidden win. |
-| **Now Playing: seek / scrub bar + elapsed time** | Present in Alcove, Notchy, Boring. Expected on the expanded view. | **MEDIUM** | Position + duration come from MediaRemote; seek command also supported. Drag interaction adds UI cost. |
-| **Charging / battery live activity** | A v1 core requirement; present in DynamicLake, Notchy, Alcove. | **LOW–MEDIUM** | IOKit power source notifications (`IOPSNotificationCreateRunLoopSource`) fire on plug/unplug; show animation + % for a few seconds, then collapse. No private API, no entitlement issues — a *safe* early win. |
-| **AirPods / Bluetooth connect & disconnect activity** | Expected since iPhone does it; in Notchy, DynamicLake. | **MEDIUM** | `IOBluetooth` connect/disconnect notifications for the event; reading AirPods *battery %* needs extra Bluetooth permission and is finickier — split these (event = easy, battery readout = harder). |
-| **Volume / brightness HUD replacement** | Every competitor replaces these; users notice the ugly default. | **MEDIUM–HIGH** | Must *hide* the system HUD (defaults write / overlay trick) AND intercept volume/brightness key events to show your own. Fiddly and OS-version-sensitive — a classic "looks simple, isn't" feature. Defer past v1. |
-| **Drag-and-drop file shelf** | Standard in Boring, Notchy, DynamicLake, NotchNook. | **MEDIUM–HIGH** | Drop target on the island, hold file promises, drag back out. NSItemProvider / file promises + temp storage. Reference: NotchDrop (open source). Defer to a later phase. |
-| **Menu-bar item + settings/preferences window** | Users need to quit, configure, launch-at-login. | **LOW** | `MenuBarExtra` (SwiftUI). Non-negotiable plumbing; trivial but must exist. |
-| **Launch at login** | Background utilities are expected to persist. | **LOW** | `SMAppService` (modern API). |
-| **Quiet by default / unobtrusive when idle** | A notch app that's always animating is annoying. | **LOW (design discipline)** | Collapsed state must be near-invisible; only react to real events. This is a design rule, not code. |
+Features users assume exist in any trial+one-time-purchase indie Mac utility. Missing these makes the licensing feel amateurish or broken, even though they're separate from the core notch feature.
 
-### Differentiators (Competitive Advantage — earn loyalty)
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Trial starts automatically on first launch, no signup | Every comparable app (BetterDisplay, CleanShot X, Rectangle Pro) starts the clock the moment the app first opens — no email, no account creation. Requiring signup before trying the product is friction users don't expect from a $8 utility. | LOW | Persist a `firstLaunchDate` (or equivalent) locally at first run; compute days-remaining from it. |
+| Visible days-remaining indicator somewhere reachable from the menu bar | Users need to know how much runway they have without hunting. BetterDisplay shows license/trial state under Settings > Pro; the pattern across this app category is "trial status lives in Settings," not a nagging dialog. | LOW | For Islet specifically (no Dock icon, no main window): put it in the Settings window, likely near the existing Settings sections (see Architecture Dependencies below). A menu-bar dropdown line ("Trial: 2 days left") is the standard supplementary spot for menu-bar-only apps. |
+| A "Buy Now" / "Upgrade" button that opens the checkout page in the default browser | Universal pattern — BetterDisplay's Settings > Pro has a direct "Buy BetterDisplay Pro" button; CleanShot X, Bartender do the same. Users expect one click from inside the app to the purchase page, not "go find the website yourself." | LOW | `NSWorkspace.shared.open(URL)` to the Polar.sh checkout link. |
+| A license key entry field, in the same Settings surface as the Buy button | Every comparable app puts "enter your license key" directly adjacent to "buy a license" — same screen, so the purchase-to-activation loop is one context, not a scavenger hunt across app + email + settings. | LOW | Paste-friendly `NSTextField`/SwiftUI `TextField` with trimming of whitespace/newlines (a well-documented pasted-key pitfall) before validation. |
+| License key recovery / re-entry after reinstall or new Mac | Users reinstalling macOS or moving to a new Mac expect to re-enter the same key and have it just work — not have to repurchase. Rectangle Pro solves this via Paddle's `my.paddle.com` self-service; Polar's customer portal is the equivalent. | LOW-MEDIUM | With Polar: license key validation via API means re-entering the same key on a new install re-validates (and, if you enable activation limits, may need old-device deactivation — see Anti-Features below on limits). |
+| Trial state persists across app restarts and (ideally) reinstalls of the same binary | If quitting/relaunching resets the trial, that's an obvious, immediately-discovered bypass — and worse, a legitimate user who reinstalls after a crash could get confused about a "reset" trial in the wrong direction (BetterDisplay users have filed complaints in the *opposite* direction — legitimately having trial time wrongly wiped, see Pitfalls in PITFALLS.md file question). | LOW-MEDIUM | Store trial-start timestamp somewhere UserDefaults-adjacent is fine for v1 (this is a low-stakes $8 utility, not DRM); just don't reset it on ordinary app updates. |
+| Clear, human-readable trial countdown language ("2 days left in your trial", not raw dates/timestamps) | Matches how every comparable app phrases it — plain "X days left" is the near-universal phrasing, it's the mental model users already have from every other trialware app (browser extensions, iOS apps, etc). | LOW | Simple string formatting off the computed days-remaining integer. |
 
-| Feature | Value Proposition | Complexity (beginner) | Notes |
-|---------|-------------------|------------------------|-------|
-| **"Feels exactly like iPhone Dynamic Island" animation polish** | This is THE differentiator vs. free clones — Alcove's entire moat. | **HIGH** | Not a feature, a *quality level*: matched corner radius, spring physics, content morph, no flicker. Worth disproportionate effort because it's the one thing free apps fail at. |
-| **Audio waveform / visualizer on album art** | Alcove + Boring signature look; makes Now Playing feel alive. | **MEDIUM–HIGH** | Real audio-tap visualizers need audio capture (hard); most apps fake a *decorative animated* waveform synced loosely to playback. Do the fake version — looks great, low risk. |
-| **Color-adaptive UI from album art** | Boring's "magical color effects" — island tints to match the cover. | **MEDIUM** | Extract dominant color from artwork (`NSImage` average/quantize) and tint accents. Cheap, high visual payoff. |
-| **Duo / multi-widget view** | Alcove shows two activities at once instead of switching. | **MEDIUM** | A layout choice; meaningful only after ≥2 activity types exist. |
-| **Countdown / Pomodoro timer as a live activity** | In v1's later scope; Notchy + DynamicLake have it. | **LOW–MEDIUM** | A timer is pure SwiftUI + `Timer`; the value is rendering it *as an island activity*. Good "first feature the user can build mostly themselves" because it has no private-API risk. |
-| **Sneak-peek (brief auto-expand on track change)** | Boring's "sneak peek" — glance without hovering. | **LOW** | Auto-expand for ~2s on a Now Playing change, then collapse. Cheap delight once the island + now playing exist. |
-| **Per-event customization (which activities show, durations, theme)** | Power users expect to tune notch apps. | **MEDIUM** | Grows naturally; don't over-build settings before features exist. |
+### Differentiators (Competitive Advantage)
 
-### Anti-Features (Tempting, but DO NOT build for v1 — especially as a beginner)
+Not required, but would make the trial/licensing experience feel more polished than the median utility in this category — directly serves the project's "polished, possibly sellable" goal.
 
-| Feature | Why Requested / Appealing | Why Problematic for v1 | Alternative |
-|---------|---------------------------|-------------------------|-------------|
-| **Messaging / notification mirroring (iMessage, WhatsApp, Slack)** | DynamicLake has it; feels "complete." | No clean API; needs Notification-Center scraping/accessibility hacks, fragile, privacy-loaded, per-app breakage. Huge effort, high maintenance. | Out of scope (already in PROJECT.md). Revisit only post-PMF. |
-| **Calls / FaceTime / phone integration (DynaCall)** | Looks impressive. | Requires Continuity/CallKit-adjacent hooks that aren't public; brittle. | Skip entirely. |
-| **Calendar + weather glance** | Notchy/DynamicLake/Boring all have it. | EventKit permissions + weather API + widget layout = a whole side-project that doesn't touch the core island value. | Defer to v2; it's additive, not foundational. |
-| **Audio/video/image conversion, zip/unzip (DynamicLake "DynaConvert")** | Bundled-utility appeal. | Totally unrelated to the island; a kitchen-sink trap. | Never (out of product scope). |
-| **Clipboard history manager** | Boring + Notchy ship it. | Separate product domain; storage, search, privacy. Scope creep. | Defer indefinitely. |
-| **Camera mirror / teleprompter** | Boring + Notchy have it. | Camera permission, AVFoundation, layout — unrelated to island value. | Defer to v2 at earliest. |
-| **Non-notch Mac / external-display "floating pill"** | DynamicLake + Notchy support it; bigger market. | Doubles the window-positioning/geometry complexity — the hardest part of the app — before the core even works. | Already out of scope in PROJECT.md. Hold the line. |
-| **Synced lyrics (LRCLIB)** | Notchy's standout. | Network calls, sync logic, an extra dependency. Polish, not core. | v2 differentiator candidate, not v1. |
-| **Mac App Store distribution** | Discoverability. | MediaRemote is a private API → guaranteed rejection. | Direct notarized download (already decided). |
-| **Real audio-tap visualizer** | "True" waveform from actual audio. | Audio capture is genuinely hard + permission-heavy. | Ship a *decorative* animated waveform; visually indistinguishable to users. |
+| Feature | Value Proposition | Complexity | Notes |
+|---------|--------------------|------------|-------|
+| Deep-link auto-fill of the license key after web checkout (`islet://license?checkout_id=...`) | Removes the single biggest friction point in the whole flow: manual copy-paste of a key from an email or browser tab back into the app. Polar's checkout `success_url` supports a `checkout_id={CHECKOUT_ID}` placeholder specifically so an app can register a custom URL scheme, receive the checkout ID, and complete the fetch itself — this is a known, documented Polar mechanism, not a hack. Almost no comparable indie utility (BetterDisplay, CleanShot X, Rectangle Pro all rely on Paddle email-delivered keys with manual copy-paste) bothers to do this, so it's a genuine differentiator. | MEDIUM | Requires: (1) `CFBundleURLTypes` entry for a custom scheme in Info.plist, (2) an `NSApplicationDelegate` URL-open handler, (3) success_url configured as `islet://license?checkout_id={CHECKOUT_ID}`, (4) app calls Polar's API (or a tiny serverless relay, since exposing your Polar access token in the client app is a security anti-pattern — see Anti-Features) to resolve `checkout_id` → license key, (5) falls back gracefully to manual paste if the deep link doesn't fire (user closed browser tab, etc). |
+| A one-time, explicit "Start your 3-day trial" moment (not silent) | Silent trial start is table stakes for *not annoying* users, but a single, dismissible first-launch welcome moment ("Welcome to Islet — your 3-day trial has started") sets correct expectations up front and avoids the surprise of a lockout 3 days later with no warning it was ever "on the clock." This is a differentiator specifically because Islet has *no main window* — without an explicit moment, a user might never open Settings during the entire trial and get blindsided by the hard lockout. | LOW-MEDIUM | A one-shot `NSAlert` or a small SwiftUI sheet shown once at first launch (flag persisted so it never reappears). Given the hard-lockout choice below, this is close to load-bearing for fairness/UX, not purely a "nice to have" — flag this to the roadmapper as effectively-required given the hard-lockout decision. |
+| Menu-bar icon subtle state change in the final trial day ("last day" visual cue) | A quiet nudge (e.g., icon tint change, or a one-time system notification "1 day left in your Islet trial") the day before lockout reduces the shock of hard lockout and gives users a chance to buy before losing functionality. No comparable app was found doing exactly this, but it directly mitigates the known backlash pattern against hard lockouts (see Anti-Features / Pitfalls). | LOW | A single local notification (`UNUserNotificationCenter`) fired once when days-remaining crosses into the last 24h; must not repeat/spam. |
 
----
+### Anti-Features (Commonly Requested, Often Problematic)
+
+Features that seem reasonable but create disproportionate complexity or risk for a solo-dev $8 utility.
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|------------------|-------------|
+| Client-side embedded Polar API access token for direct license validation calls from the Mac app | Seems simpler — app calls Polar API directly with the org access token to validate/activate keys. | Any access token embedded in a distributed, non-sandboxed macOS binary can be extracted (strings, debugger) trivially, exposing your Polar org token — used to mint/revoke keys, read customer data. Community write-ups on Polar's licensing (e.g., LicenseSeat's critique) specifically flag Polar's license-key benefit as a "bolt-on" with no built-in device fingerprinting or offline validation designed for this. | Use Polar's public, purpose-built `/v1/customer-portal/license-keys/validate` and `/activate` endpoints, which are designed to be called from an untrusted client using the license key itself as the credential (not an org token). Never ship the org-level Polar access token in the app bundle. |
+| Hardware-fingerprint-bound license activation with strict device limits enforced client-side | Feels like "real" software protection against key sharing. | Massive complexity for a $7.99 impulse-buy utility; every hour spent here is an hour not spent on the core island experience. Also actively backfires: Rectangle Pro's 3-device Paddle-managed limit already generates support-burden discussions (users needing to deactivate old Macs manually) — and that's with Paddle doing the heavy lifting. Rolling your own is strictly worse ROI for a solo dev. | Use Polar's built-in, opt-in activation-limit feature (simple count, e.g. allow 3-5 activations) if you want *any* limit at all — but this is optional, not required, for v1. Simplest v1: no activation limit at all, just "does this key validate" — casual key sharing at the $7.99 price point is not worth building anti-piracy infrastructure to prevent. |
+| Subscription / recurring billing | Recurring revenue is tempting and Polar supports subscriptions natively. | The user has already explicitly decided one-time €7.99 purchase — building subscription billing, renewal emails, and dunning flows is out of scope and directly contradicts the chosen model. Flagging only so the roadmapper doesn't accidentally scope subscription-shaped code (e.g. periodic re-validation "phone home" checks) that isn't needed for a one-time purchase. | One-time purchase, one-time validation (with optional periodic re-validation purely to detect *refunds/chargebacks*, not to enforce a subscription — see Pitfalls). |
+| In-app checkout (embedded web view / native payment sheet) instead of browser handoff | Feels more "native" / seamless to not leave the app. | Every comparable app in this category (BetterDisplay/Paddle, CleanShot X/Paddle, Rectangle Pro/Paddle) hands off to the default browser for checkout — payment processors want their own hardened, regularly-updated checkout surface (fraud rules, 3DS, updated ToS) which an embedded/stale web view inside your app would not get automatically. Polar's checkout is also designed as a hosted page, not an embeddable SDK for native apps. | `NSWorkspace.shared.open()` to a Polar-hosted checkout URL in the user's real browser; bring the user back via the deep-link success_url covered above. |
+| Full "account" system (sign in, password, cross-device sync of purchase state) | Feels more robust / modern. | Wildly over-scoped for a one-time-purchase $7.99 utility with no cloud sync feature elsewhere in the app. Polar's customer portal already gives users self-service license lookup by purchase email — no separate account system needed. | Rely on Polar's existing customer portal (by purchase email) for license lookup/recovery; the app itself stays account-less, matching its current architecture. |
 
 ## Feature Dependencies
 
 ```
-[Notch geometry detection]
-    └──requires──> nothing (FOUNDATION — do first)
-        └──enables──> [Island overlay window]
-                          └──requires──> [Notch geometry detection]
-                          └──enables──> [Expand/collapse + animation]
-                                            └──enables──> EVERY activity below
+[Trial state persistence]
+    └──requires──> [First-launch detection] (already trivial: app has no existing "first run" flag — needs adding)
 
-[Expand/collapse + animation]
-    └──enables──> [Charging activity]        (IOKit — independent data source)
-    └──enables──> [Device-connect activity]  (IOBluetooth — independent data source)
-    └──enables──> [Now Playing display]      (MediaRemote-adapter — independent data source)
-                      └──enables──> [Play/pause/skip controls]
-                      └──enables──> [Seek/scrub bar]
-                      └──enhances──> [Waveform / color-adaptive UI / sneak-peek]
-    └──enables──> [Timer activity]           (no external dependency — pure SwiftUI)
+[License key entry + validation]
+    └──requires──> [Polar.sh product + license-key benefit configured server-side]
+                       └──requires──> [Polar.sh account, product, checkout link] (external, non-code dependency)
 
-[System HUD replacement] ──requires──> [Island overlay] + system-HUD suppression (separate, fiddly)
-[File shelf]            ──requires──> [Island overlay] + drag-drop plumbing (separate domain)
+[Hard lockout behavior]
+    └──requires──> [Trial state persistence] AND [License key validation]
+                       (lockout gate must check: is trial active OR is a valid license present)
 
-[Now Playing] ──depends critically on──> [mediaremote-adapter subprocess] (macOS 15.4+ workaround)
+[Deep-link auto-fill] (differentiator)
+    └──requires──> [Custom URL scheme registration] AND [License key entry UI to autofill into]
+    └──enhances──> [License key entry + validation] (removes manual copy-paste step)
+
+[First-launch welcome/trial-start moment] (differentiator, effectively required given hard lockout)
+    └──requires──> [First-launch detection]
+    └──mitigates──> [Hard lockout] backlash (sets expectations before the clock starts)
+
+[Last-day nudge notification] (differentiator)
+    └──requires──> [Trial state persistence] (needs accurate days-remaining)
+    └──mitigates──> [Hard lockout] backlash
 ```
 
 ### Dependency Notes
 
-- **Everything requires notch geometry + the overlay window.** This is the only true blocker; until the island reliably renders and animates over the physical notch, no activity can ship. Treat it as Phase 1 and over-invest in getting it solid.
-- **The three activity data sources are independent of each other.** Charging (IOKit), device-connect (IOBluetooth), and Now Playing (MediaRemote-adapter) don't depend on one another — once the island exists, they can be built in any order or in parallel. Order them by *risk*, easiest-and-safest first.
-- **Charging is the lowest-risk activity** (public IOKit API, simple plug/unplug event) — ideal as the *first* activity after the island, to prove the activity pattern end-to-end before tackling the harder MediaRemote path.
-- **Now Playing carries the only architectural landmine** (the 15.4 adapter subprocess) — isolate it behind a clean interface so the rest of the app doesn't depend on its internals.
-- **Timer has zero external dependencies** — it's the best candidate for the beginner to implement themselves to learn the activity/UI pattern.
-- **HUD replacement and file shelf are separable sub-projects**, each with their own non-trivial OS-integration cost; neither blocks the core, so both belong in later phases.
-
----
+- **Hard lockout requires trial persistence AND license validation to both exist first:** the lockout gate is a boolean check (`trialActive || validLicense`) — both underlying seams must be built and tested before lockout logic can be wired in, otherwise you risk locking out every user including legitimate trial users (a launch-blocking bug class). This strongly suggests trial-state and license-validation should be built and tested as pure, independently-testable seams (consistent with this project's existing pattern of pure seams — see PROJECT.md/ARCHITECTURE.md conventions) *before* the lockout gate touches any UI.
+- **Deep-link auto-fill enhances but does not block the core license flow:** it should be scoped as an add-on layer on top of a working manual paste-and-validate flow, not a prerequisite. If the deep link fails to fire (browser closed, scheme not registered correctly on first run, etc.), manual paste must still work as the fallback — build manual-paste-and-validate first, deep-link second.
+- **First-launch welcome moment mitigates hard-lockout backlash:** given the user's explicit choice of a hard lockout, the welcome/trial-start moment is not purely optional — it's the main lever available to prevent the "the app suddenly stopped working with zero warning" complaint pattern seen in this app category (see Pitfalls file). Recommend treating it as near-mandatory in scoping, even though it's categorized as a "differentiator" above.
 
 ## MVP Definition
 
-### Launch With (v1) — matches PROJECT.md core, validated as correct
+### Launch With (v1 of this milestone)
 
-- [ ] **Notch geometry + borderless overlay window** — without this nothing else is possible. (FOUNDATION)
-- [ ] **Expand-on-hover / collapse-on-idle with polished spring animation** — this *is* the product's value; the quality bar is Alcove.
-- [ ] **Charging activity (plug/unplug animation + battery %)** — lowest-risk activity; proves the live-activity pattern. (IOKit)
-- [ ] **Now Playing display (album art + title/artist) + play/pause/skip** — top install driver; multi-app source detection comes free. (MediaRemote-adapter)
-- [ ] **Device-connected activity (AirPods/Bluetooth connect/disconnect event)** — completes the "reacts to my life" feel. (IOBluetooth)
-- [ ] **Menu-bar item + minimal settings + launch-at-login** — required plumbing.
+Minimum viable product for the trial+licensing milestone — validates the monetization mechanism without gold-plating.
+
+- [ ] Silent local trial-start timestamp persisted on first launch — foundation for everything else
+- [ ] One-time first-launch "Your 3-day trial has started" moment (sheet or alert) — sets expectations before the hard-lockout clock runs; near-mandatory given the hard-lockout choice
+- [ ] Days-remaining indicator in the Settings window — table stakes, users need to check status
+- [ ] "Buy Now" button in Settings opening the Polar.sh checkout URL in the default browser — table stakes
+- [ ] Manual license-key entry field in Settings (paste-friendly, trims whitespace, clear validate/error states) — table stakes, and the guaranteed-to-work fallback path
+- [ ] License key validation against Polar's customer-portal `/validate` (and `/activate` if using activation limits) API — core mechanism
+- [ ] Hard lockout: when trial has expired and no valid license is present, the island/menu-bar functionality is disabled per the user's explicit product decision — the core requirement of this milestone
 
 ### Add After Validation (v1.x)
 
-- [ ] **Seek/scrub bar + sneak-peek auto-expand** — trigger: Now Playing is solid and users want deeper control.
-- [ ] **Color-adaptive tint + decorative waveform** — trigger: core stable, time to chase Alcove-level polish.
-- [ ] **Countdown/Pomodoro timer activity** — trigger: good "user-built" feature; no API risk.
-- [ ] **AirPods per-bud battery %** — trigger: connect event works and users ask for battery readout.
+Features to add once the core trial→purchase→unlock loop is proven to work end-to-end on-device.
+
+- [ ] Deep-link auto-fill (`islet://license?checkout_id=...`) to remove manual copy-paste — biggest UX upgrade, but only after the manual flow is solid
+- [ ] Last-day nudge notification before lockout — reduces hard-lockout backlash, but not blocking for the mechanism to work
+- [ ] Menu-bar icon subtle "last day" visual state — polish layer on top of the nudge notification
 
 ### Future Consideration (v2+)
 
-- [ ] **Volume/brightness/battery HUD replacement** — defer: fiddly OS-HUD suppression, version-sensitive; high effort vs. island core.
-- [ ] **Drag-and-drop file shelf (+ AirDrop)** — defer: separate drag-drop domain; reference NotchDrop when tackled.
-- [ ] **Synced lyrics, calendar/weather glance, clipboard, camera mirror** — defer: additive, unrelated to core island value.
+Features to defer until there's evidence they're needed (e.g., support requests, abuse reports).
 
----
+- [ ] Activation-limit enforcement / multi-device management UI — only needed if key-sharing becomes an observed problem; Polar supports this natively so it's low-cost to add later, not a v1 blocker
+- [ ] Periodic re-validation ("phone home") purely to catch refunds/chargebacks — defer until there's actual refund abuse; adds complexity and offline-use edge cases (what happens if the check fails while the user is offline — must fail open, not closed)
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Notch overlay window + geometry | HIGH (enabling) | MEDIUM | **P1** |
-| Expand/collapse animation polish | HIGH | HIGH | **P1** |
-| Charging activity | HIGH | LOW–MEDIUM | **P1** |
-| Now Playing (art + metadata + controls) | HIGH | MEDIUM (+ adapter risk) | **P1** |
-| Device-connect activity | MEDIUM–HIGH | MEDIUM | **P1** |
-| Menu bar + settings + launch-at-login | MEDIUM (required) | LOW | **P1** |
-| Seek/scrub bar | MEDIUM | MEDIUM | **P2** |
-| Sneak-peek auto-expand | MEDIUM | LOW | **P2** |
-| Color-adaptive tint | MEDIUM | MEDIUM | **P2** |
-| Decorative waveform | MEDIUM | MEDIUM | **P2** |
-| Timer activity | MEDIUM | LOW–MEDIUM | **P2** |
-| AirPods per-bud battery % | MEDIUM | MEDIUM–HIGH | **P2/P3** |
-| HUD replacement (vol/bright) | MEDIUM | HIGH | **P3** |
-| File shelf + AirDrop | MEDIUM–HIGH | HIGH | **P3** |
-| Lyrics / calendar / clipboard / mirror | LOW–MEDIUM | HIGH | **P3** |
+|---------|------------|----------------------|----------|
+| Trial-start persistence | HIGH | LOW | P1 |
+| First-launch welcome/trial-start moment | HIGH (given hard lockout) | LOW | P1 |
+| Days-remaining indicator in Settings | HIGH | LOW | P1 |
+| Buy Now button → Polar checkout | HIGH | LOW | P1 |
+| Manual license key entry + validation | HIGH | LOW-MEDIUM | P1 |
+| Hard lockout gate | HIGH (explicit product requirement) | MEDIUM | P1 |
+| Deep-link auto-fill of license key | MEDIUM-HIGH | MEDIUM | P2 |
+| Last-day nudge notification | MEDIUM | LOW | P2 |
+| Menu-bar icon "last day" state | LOW-MEDIUM | LOW | P3 |
+| Activation-limit / multi-device management | LOW (at this scale) | MEDIUM | P3 |
+| Periodic re-validation for refund detection | LOW | MEDIUM | P3 |
 
----
-
-## Suggested Build Order (tuned for a first-time programmer)
-
-1. **Plumbing skeleton** — menu-bar app (`MenuBarExtra`), launch-at-login (`SMAppService`), empty settings. *Why first:* tiny, no risk, teaches the app lifecycle and gives a runnable thing on day one.
-2. **The island window** — borderless always-on-top `NSWindow` positioned over the notch using `NSScreen` safe-area/notch geometry; collapsed black pill that ignores mouse events except a hover zone. *Highest-risk foundation — do it before any activity.*
-3. **Expand/collapse animation** — get the spring morph from pill → expanded panel feeling right against the Alcove bar. Iterate until smooth; this is where polish is won or lost.
-4. **Charging activity** — first real live activity. Public IOKit power notifications, plug/unplug animation + %. *Chosen first because it's the safest data source* and proves the activity → island rendering loop end-to-end.
-5. **Now Playing** — integrate `ungive/mediaremote-adapter` (BSD-3, bundle the Perl script + framework, run as subprocess, parse JSON over stdout). Album art + title/artist first, then play/pause/skip. *Isolate behind a clean Swift interface* because of the 15.4 fragility.
-6. **Device-connected activity** — `IOBluetooth` connect/disconnect event (skip per-bud battery for now).
-7. **Polish pass** — sneak-peek auto-expand, color-adaptive tint, decorative waveform, seek bar. Ship v1.
-8. *(Later phases)* — timer → file shelf → HUD replacement.
-
----
+**Priority key:**
+- P1: Must have for this milestone's launch
+- P2: Should have, add once P1 is proven on-device
+- P3: Nice to have, future consideration
 
 ## Competitor Feature Analysis
 
-| Feature | Alcove | DynamicLake Pro | TheBoringNotch (OSS) | Notchy (free) | Our v1 Approach |
-|---------|--------|------------------|----------------------|---------------|-----------------|
-| Hover-expand island | Yes (gestures + hover) | Yes | Yes | Yes (+ pill on non-notch) | **Yes** — match Alcove's feel |
-| Now Playing art + controls | Yes (+ waveform, seek, volume) | Yes (DynaMusic) | Yes (visualizer) | Yes (+ lyrics) | **Yes** — art + controls + seek |
-| Multi-app source detection | Yes | Yes | Yes (MediaRemoteAdapter) | Yes | **Yes** (free via adapter) |
-| Charging/battery activity | Yes | Yes | Roadmap | Yes | **Yes** (IOKit) |
-| AirPods/Bluetooth connect | (devices notif) | Yes | Roadmap | Yes (+per-bud battery) | **Yes** event; battery later |
-| Volume/brightness HUD | Yes | Yes | Yes | Yes | **v2** (defer) |
-| File shelf + AirDrop | No (deliberate) | Yes (DynaClip) | Yes | Yes | **Later phase** |
-| Timer | No | Yes | No | Yes (Pomodoro) | **v1.x** |
-| Lyrics / calendar / clipboard / mirror | No | Some | Some | Yes (many) | **Out of scope v1** |
-| Non-notch / external display | No | Yes | No | Yes | **Out of scope** (decided) |
-| Distribution | Direct notarized | Direct | OSS / direct | Direct | **Direct notarized** |
-
-**Read of the field:** Alcove proves that doing *only* the core island + Now Playing + activities + HUDs, but doing it beautifully, is a viable ~$17 product. Notchy/DynamicLake prove the maximalist long tail exists but is mostly noise relative to the core. The project's instinct — match Alcove's polish on a focused core, defer the DynamicLake long tail — is the correct strategy and is reflected in the build order above.
-
----
-
-## Critical Pitfall Flag (for PITFALLS.md / requirements)
-
-**MediaRemote is locked down on macOS 15.4+.** Since macOS 15.4, Apple's `mediaremoted` daemon enforces an entitlement check; apps loading `MediaRemote.framework` directly get `nil`/denied for Now Playing. Direct framework calls **no longer work** on current macOS. The proven workaround (used by TheBoringNotch and others) is **`ungive/mediaremote-adapter`** (BSD-3-Clause): bundle a Perl script + helper framework and run `/usr/bin/perl mediaremote-adapter.pl <framework> <command>` as a **subprocess** (the `com.apple.perl` bundle ID is entitled), streaming JSON (metadata, base64 album art, position) over stdout, and sending play/pause/skip/seek back. This means Now Playing requires **subprocess management + JSON parsing**, not a simple framework call — the single biggest hidden complexity in v1. Confirmed across ungive/mediaremote-adapter, nowplaying-cli issue #28, LyricFever issue #94, and TheBoringNotch's dependency notes. **HIGH confidence.**
-
----
+| Feature | BetterDisplay (Paddle) | Rectangle Pro (Paddle) | CleanShot X (Paddle) | Islet's Planned Approach |
+|---------|------------------------|--------------------------|------------------------|---------------------------|
+| Trial length | 14 days, unlimited features | Not publicly documented in sources found | 7-day equivalent implied by Paddle norms (not confirmed) | 3 days (explicit product decision, shorter than typical — flag: shortest trial found among comparables, see Pitfalls) |
+| Trial start | Silent on first open | Silent on first open (typical Paddle-app pattern) | Silent on first open | Silent persistence + explicit one-time welcome moment (differentiator vs. comparables) |
+| License entry location | Settings > Pro tab | Settings window, General tab | Dedicated License Manager web portal + in-app field | Existing Settings window (new section) |
+| Key delivery | Email from Paddle | Email from Paddle | Email from Paddle | Polar checkout page + email; deep-link auto-fill planned as differentiator |
+| Multi-device limit | Not strictly enforced found in sources | 3 simultaneous activations via Paddle | Managed via License Manager portal | Undecided for v1 — recommend no limit at v1, Polar activation limits available if needed later |
+| Expiry behavior | "Unlicensed, Trial Expired" state; free tier features remain for personal use (soft) | Not documented in sources found | Not documented in sources found | Hard lockout (explicit product decision — stricter than all comparables found) |
+| Payment processor | Paddle | Paddle | Paddle | Polar.sh (per project decision) |
 
 ## Sources
 
-- Alcove — tryalcove.com; alternativeto.net/software/alcove/about (Now Playing: album art, waveform, seek bar, volume via gesture/click/hover; battery/device/focus notifications; vol+brightness HUDs; Duo view; ~$17 one-time; Swift 6; Henrik Ruscon)
-- DynamicLake Pro — dynamiclake.com (DynaMusic, DynaGlance calendar+weather, DynaCall, notifications, DynaClip file shelf + AirDrop, DynaDrop, timer, battery alerts, conversion, non-notch support)
-- TheBoringNotch — theboring.name; github.com/TheBoredTeam/boring.notch (Swift/SwiftUI, GPL-3.0; music visualizer, color effects, file shelf via NotchDrop, HUD replacement, clipboard, camera; **MediaRemoteAdapter** dependency; roadmap: charging indicator, Bluetooth live activity, HUD, weather)
-- Notchy — notchy.dev (SwiftUI, free, ~0% CPU; Now Playing + scrub + LRCLIB lyrics; file shelf; vol/brightness HUDs; AirPods per-bud battery + audio switcher; Pomodoro timer + Focus integration; teleprompter; clipboard; calendar; many utilities; floating pill on non-notch)
-- raphaeljourney.com/blogs/best-notch-apps-macbook; getseam.app/blog/boring-notch-alternatives (positioning/pricing comparison)
-- **MediaRemote 15.4 lockdown:** github.com/ungive/mediaremote-adapter; feedback-assistant/reports issue #637; kirtan-shah/nowplaying-cli issue #28; aviwad/LyricFever issue #94
-- Battery/IOKit & Bluetooth: blog.brightcoding.dev Boring Notch writeup; macrumors battery/IOKit thread
+- Polar.sh official docs — checkout success_url with `checkout_id={CHECKOUT_ID}` placeholder, license-key `/activate` and `/validate` customer-portal API endpoints, activation limits, metadata propagation to Order/Subscription. (HIGH — official docs, `polar.sh/docs`, `polar.apidocumentation.com`)
+- LicenseSeat "Alternative to Polar.sh" critique — Polar's license-key benefit described as a bolt-on with no device fingerprinting, no offline validation, no native desktop SDKs. (MEDIUM — vendor-competitor source, directionally useful but has an incentive to critique Polar; treated as a caution flag, not gospel)
+- BetterDisplay (`waydabber/BetterDisplay`) GitHub wiki "Getting a Pro License" and support discussions — 14-day unlimited trial, Paddle email delivery, Settings > Pro activation, "Unlicensed, Trial Expired" soft-lock state, community complaint about trial state being wrongly reset by a settings-reset action. (MEDIUM-HIGH — official project wiki + first-party GitHub discussions)
+- Rectangle Pro Community discussion #154 (`rxhanson/RectanglePro-Community`) — Paddle-based purchase/activation flow, 3-device activation limit, Settings window General tab deactivation, `my.paddle.com` self-service recovery. (MEDIUM — community discussion, not official vendor docs, but detailed and consistent)
+- CleanShot X buy/pricing/FAQ pages and License Manager (`licenses.cleanshot.com`) — Paddle email-delivered key, dedicated License Manager portal for multi-device management. (MEDIUM — official product pages, but activation-screen specifics not directly verified)
+- Apple Developer documentation — "Defining a custom URL scheme for your app" (`CFBundleURLTypes`, app delegate URL handling). (HIGH — official Apple docs)
+- General UX validation-pattern sources (Medium, Auth0 community) on trimming whitespace from pasted input and inline validation-error timing. (MEDIUM — general UX best-practice consensus, not Mac-specific)
+- Community reports on trial-lockout variance (Viscosity persistent nag vs. BetterDisplay hard "Trial Expired" state) — confirms both soft-nag and hard-lockout patterns exist in the wild, with no single dominant convention. (LOW-MEDIUM — WebSearch-aggregated summary of scattered community reports, not a systematic survey)
 
 ---
-*Feature research for: native macOS notch / Dynamic Island utility app*
-*Researched: 2026-06-26*
+*Feature research for: trial + one-time-purchase licensing in an indie macOS menu-bar utility*
+*Researched: 2026-07-05*

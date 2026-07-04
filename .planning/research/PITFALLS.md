@@ -1,462 +1,260 @@
 # Pitfalls Research
 
-**Domain:** Native macOS notch / "Dynamic Island" overlay utility (now-playing via private MediaRemote, charging & device activities, borderless overlay, direct-notarized distribution)
-**Researched:** 2026-06-26
-**Confidence:** HIGH on overlay-window, geometry, signing/notarization, permissions, and performance pitfalls (verified against Apple docs + real TheBoringNotch bug reports). MEDIUM-HIGH on MediaRemote (private API, fast-moving — verified current via the adapter project and 15.4 breakage reports, but Apple can change it again).
+**Domain:** Adding trial enforcement, one-time paid licensing (Polar.sh), and real Developer-ID notarization to an existing shipped indie macOS menu-bar app (Islet)
+**Researched:** 2026-07-05
+**Confidence:** MEDIUM-HIGH (notarization/codesign mechanics and macOS Keychain behavior are HIGH confidence, well-documented; Polar.sh-specific operational details are MEDIUM — official docs are thin on rate limits/offline guidance, filled in with general licensing-industry patterns which are LOW-MEDIUM but directionally solid)
 
-> This file assumes the chosen stack (Swift + SwiftUI in an `NSPanel`, `mediaremote-adapter`, IOKit power, IOBluetooth, direct-notarized) and the spine-first build order from `ARCHITECTURE.md`. It does **not** repeat the stack/architecture rationale — it covers what goes *wrong* and how to detect it early. Phase numbers refer to the suggested build order in `ARCHITECTURE.md` / `FEATURES.md` (0 = agent shell, 1 = empty island, 2 = geometry, 3 = hover/expand, 4 = Now Playing, 5 = charging, 6 = Bluetooth, 7 = priority resolver, 8 = settings/launch-at-login, then v1 ships).
+**Explicit scope guardrail:** This is a hobby project's first monetization pass, not enterprise DRM. Every mitigation below is chosen to be "annoying enough to stop casual reset-abuse," not "unbreakable." If a prevention strategy starts requiring server-side device fingerprinting, obfuscation, or anti-debugging, that is over-engineering — flag it and cut it.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Calling MediaRemote directly — silent `nil` on macOS 15.4+
+### Pitfall 1: Trial state stored only in UserDefaults/plist (trivially reset)
 
 **What goes wrong:**
-The classic approach — `dlopen` `MediaRemote.framework` and call `MRMediaRemoteGetNowPlayingInfo` / register for now-playing notifications — returns `nil` and fires no events on macOS 15.4 and every release after (including macOS 26 Tahoe). The app compiles, runs, and shows *nothing* in Now Playing with no error. A beginner can lose days assuming their parsing code is broken when the API simply refused them.
+Storing `trialStartDate` only in `UserDefaults`/`~/Library/Preferences/<bundle-id>.plist` means any user can reset the trial for free by running `defaults delete <bundle-id>` or deleting the plist file directly — no reinstall even required. This is the single most common mistake in indie macOS trial implementations, because UserDefaults is the first API a Swift developer reaches for and it "just works" in every tutorial.
 
 **Why it happens:**
-Since macOS 15.4, the `mediaremoted` daemon enforces an entitlement check: only processes whose bundle ID starts with `com.apple.` (Apple's own apps) are granted Now Playing access. A normal notarized app is not entitled, so the daemon denies it. Training data, old blog posts, and most Stack Overflow answers predate this and still show the direct `dlopen` recipe — which now fails silently.
+UserDefaults is the path of least resistance — no imports, no error handling, no async. Developers don't think about the attack until a user posts "how to reset X app trial" on Reddit/forums.
 
 **How to avoid:**
-- Use **`mediaremote-adapter`** from day one (already the chosen stack). It runs `/usr/bin/perl` — which reports the entitled `com.apple.perl`-style bundle ID — to load a helper framework and stream Now Playing JSON over stdout.
-- Bundle **three things**: `mediaremote-adapter.pl`, `MediaRemoteAdapter.framework` (bundled but **NOT linked** against your target — it is loaded by the perl process, not your app), and optionally the test client. Putting the framework in "Link Binary With Libraries" instead of just copying it into Resources is a common misconfiguration.
-- Never write a code path that calls MediaRemote symbols inside your own process.
+Store the trial marker in the **login keychain** (`kSecClassGenericPassword`, non-sandboxed app, no App Group needed) rather than UserDefaults. On macOS, Keychain items are **not** tied to the app bundle/container — unlike iOS, deleting or reinstalling the app on macOS does **not** remove Keychain items (this is a load-bearing platform difference: macOS Keychain persistence is independent of app lifecycle for non-sandboxed apps). This alone stops the "delete the app, reinstall, get another 3 days" attack without requiring any server component.
+
+Proportionate implementation for this project:
+- Write trial-start date to Keychain on first launch (one item, `kSecAttrAccount` = something app-specific, `kSecAttrAccessible` = `kSecAttrAccessibleAfterFirstUnlock` so it survives reboots without requiring unlock-state gymnastics).
+- Also mirror it to UserDefaults for convenience reads — but treat Keychain as source of truth; if UserDefaults value is absent/earlier than Keychain value, trust Keychain (i.e., **the earliest of the two known dates wins for enforcement**, not the most recent) so a user can't extend by editing just the plist.
+- Do **not** attempt hardware fingerprinting, System Integrity Protection bypass detection, or anti-tamper obfuscation — explicitly out of scope. A determined user who is willing to poke at Keychain Access or write a script to nuke the specific keychain item will always be able to reset it; the goal is raising the bar past "everyone does this by accident," not stopping the 1% who'd bother anyway.
+- Accept, explicitly and in writing in the plan, that **some casual trial abuse is a cost of doing business** at this price point (€7.99) and scale (solo dev, small user base). Do not build a device-fingerprint-plus-server-side-first-seen-registry system for this — that is real over-engineering for a €7.99 utility.
 
 **Warning signs:**
-- Now Playing view is empty while music plays, with no crash and no log output.
-- The adapter subprocess exits immediately, or its stdout is empty.
-- You find yourself reading old (pre-2025) tutorials that say "just link MediaRemote."
+- Any code path that reads trial start exclusively from `UserDefaults.standard`.
+- No fallback/reconciliation logic between two storage locations.
+- QA testing only ever runs the trial once per machine (never verifies reinstall behavior).
 
-**Phase to address:**
-Phase 4 (Now Playing). Flag at planning time so the adapter is the *only* approach ever attempted.
+**Phase to address:** Trial-enforcement phase (the phase that introduces `TrialService`/trial start-date persistence) — should be a foundational design decision, not a bolt-on fix later.
 
 ---
 
-### Pitfall 2: Treating the MediaRemote adapter as permanent / not isolating it
+### Pitfall 2: License validation hard-fails with no retry/support path when Polar API/network is unavailable at first-purchase moment
 
 **What goes wrong:**
-Now Playing breaks after a macOS point release because Apple tightened the daemon again, or the adapter's "API may experience breaking changes across minor revisions" (the maintainer's own warning). If MediaRemote calls and JSON-parsing are smeared across SwiftUI views and the state object, the fix touches a dozen files and the beginner has no idea where to start.
+User buys the license, gets a key (via email or checkout redirect), pastes it into the app, and at that exact moment either Polar's API is briefly down, the user's Wi-Fi hiccups, or a corporate/hotel network blocks the request. A naive implementation shows a raw error ("Network error: -1009") or silently fails, and the user — who just paid money — concludes the app is broken/a scam and requests a refund or leaves a bad review. This is the highest-consequence failure mode in the whole milestone because it happens at the exact moment of maximum purchase-regret risk.
 
 **Why it happens:**
-The whole mechanism is a private-API workaround on borrowed time. The convenience of "just read the track title here in the view" leaks the fragile dependency everywhere. There is no public, stable Now Playing API for third-party apps on macOS as of 2026 (tracked in feedback-assistant report #637 — still open).
+Developers test license validation almost exclusively on their own reliable home/office network, so the "network flaky at the worst possible time" path is rarely exercised. Additionally, a single validate call with no retry logic is the simplest thing to write first and often never gets revisited.
 
-**How to avoid:**
-- Put **all** Now Playing behind one `NowPlayingService` protocol (already the architecture's rule). The rest of the app sees only clean `NowPlayingInfo` structs and command methods (`play()`, `pause()`, `next()`, `seek()`). Swapping the backend = editing one file.
-- Add a **health check** at launch using the adapter's `test` command: exit code `0` = functional; any other code = broken. If it fails, show a graceful "Now Playing unavailable on this macOS version" state instead of an empty island.
-- Pin a known-good adapter version; don't auto-bump it blindly. Re-test Now Playing after **every** macOS update (treat each macOS release as a regression event for this feature only).
+**How to avoid (resilient pattern, proportionate to scale):**
+- Distinguish **network/transient errors** from **actual invalid-key errors**. Only show "this license key is invalid" for an explicit 4xx "key not found/revoked" response from Polar. For anything else (timeout, DNS failure, 5xx, no connectivity), show a clearly different message: "Couldn't reach the license server — check your connection and try again," with a visible **Retry** button.
+- Add automatic retry with short backoff (2-3 attempts, few seconds apart) before surfacing any error to the user at all — most transient blips resolve within seconds.
+- On failure after retries, **do not lock the user out of a key they just paid for.** Let them retry later; keep the pasted key stored locally (unvalidated) so they don't have to re-find/re-paste it, and re-attempt validation on next app launch or on a manual "Retry validation" button.
+- Provide a visible support contact (email/Discord/whatever channel exists) directly in the failure state — "Still stuck? Email us at X" — so a paying customer always has a human escape hatch instead of a dead end.
+- Log the failure locally (simple log file) so if the user does email support, you can ask them to send it rather than debugging blind.
 
 **Warning signs:**
-- The adapter `test` exit code is non-zero after a macOS update.
-- Now Playing worked yesterday and is empty today with no code change — suspect a macOS update first.
-- You see `MRMediaRemote`/JSON-parsing code outside `Services/NowPlaying/`.
+- Error message strings that are raw `Error.localizedDescription` dumps shown directly to the user.
+- No distinction in code between "key invalid" and "request failed."
+- No retry logic at all around the validate/activate network call.
 
-**Phase to address:**
-Phase 4 (build it isolated). Add the launch-time health check in Phase 4 and re-verify in Phase 8 before shipping. Note in the roadmap as a permanent maintenance line item.
+**Phase to address:** Licensing/Polar-integration phase — specifically the "activate/validate flow" task. This should be tested by simulating airplane mode and a mocked 500/timeout response, not just the happy path.
 
 ---
 
-### Pitfall 3: The island doesn't hide for full-screen apps (or hides the window-control bar)
+### Pitfall 3: Offline-cached license state stored as a plain flippable boolean
 
 **What goes wrong:**
-You watch a movie or use a full-screen app and the black island floats on top of it, or — the inverse bug — when the island collapses in full-screen, the traffic-light window-control bar stays visible and never disappears. Both are *real, repeatedly reported* TheBoringNotch bugs (issues #396, #803, #426, #764). This is the single most common "looks done in a window, broken in real use" failure for notch apps.
+Since the design explicitly validates once online then trusts a local cache indefinitely, the temptation is to store `isLicensed: Bool` (or `trialExpired: Bool`) in UserDefaults. This is trivially flipped with `defaults write <bundle-id> isLicensed -bool true` in Terminal — no reverse engineering skill required, just knowledge that the key exists (and app binaries/strings are easy to grep for likely key names).
 
 **Why it happens:**
-Full-screen apps occupy their own Space and (on a notch Mac) the menu-bar/notch region is normally black and unused in full-screen. An always-on-top panel with the wrong `collectionBehavior`/level keeps drawing there. Detecting "am I in a true full-screen app right now?" is non-trivial — there are multiple full-screen modes (native full-screen, QuickLook full-screen, video full-screen) and they don't all signal the same way.
+Same root cause as Pitfall 1: UserDefaults is the reflexive choice, and "cache the validated result" sounds like it just means "save a bool."
 
-**How to avoid:**
-- Use `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]` and window level `.statusBar` — but **also** actively observe full-screen state and hide/show the panel. Don't rely on collection behavior alone.
-- Observe `NSWorkspace.shared.notificationCenter` active-app changes and the frontmost window's full-screen state; when a covering full-screen app is frontmost on the notch display, hide the panel; restore it when it isn't.
-- Give the user a per-app or global "hide in full-screen" toggle (default: hide), because users disagree on the desired behavior.
-- Test against: native full-screen apps, full-screen video (YouTube/IINA), QuickLook, and Mission Control.
+**How to avoid (proportionate — not paranoid-grade):**
+- Store the cached license state in the **Keychain**, not UserDefaults, as the primary source of truth (same rationale/mechanism as Pitfall 1 — non-sandboxed macOS Keychain items are easy to write/read and are not casually editable via a documented CLI the way `defaults write` is).
+- Store more than a bare bool: include the license key itself (or a hash of it), the last-validated timestamp, and ideally a simple locally-computed integrity value (e.g., HMAC or hash of `licenseKey + timestamp + a fixed app-embedded secret`) so a value copied from one field can't just be typed into another blindly. This is **not** meant to defeat a determined reverse engineer with a debugger — it only needs to defeat "type one Terminal command found in a forum post." Do not implement code signing of the cache, remote attestation, or anti-debugging — genuinely out of scope for a €7.99 utility.
+- Re-validate opportunistically (e.g., once every N days when online) rather than never again — this bounds how stale/tampered state can drift before a legitimate re-check silently corrects it, without turning this into a "phone home every launch" always-online requirement (which would reintroduce Pitfall 2's failure mode as a *recurring* nuisance instead of a one-time one).
+- Accept explicitly: a user willing to open Keychain Access and hand-edit an item, or attach a debugger, can still bypass this. That is out of scope to prevent. The bar is "harder than one documented Terminal command," not "unbreakable."
 
 **Warning signs:**
-- The island is visible over a full-screen video.
-- A ghost window-control bar lingers at the top after collapsing.
-- It "works" only because you've only tested in windowed mode.
+- `UserDefaults.standard.bool(forKey: "isLicensed")` or similarly named keys anywhere in the codebase.
+- Cache format is human-readable/guessable with no timestamp or key-material binding at all.
+- No periodic re-validation — cache is genuinely "forever" with zero drift correction.
 
-**Phase to address:**
-Phase 1–2 (window + geometry) for the basic plumbing; harden full-screen handling explicitly in Phase 3 (hover/expand state machine) — do **not** defer it to "polish," it is a core correctness requirement.
+**Phase to address:** Licensing phase, same task as Pitfall 2 (the local cache is the other half of the validate flow) — plan should explicitly call out Keychain-not-UserDefaults as an acceptance criterion.
 
 ---
 
-### Pitfall 4: Island appears on the wrong display (multi-monitor / external display)
+### Pitfall 4: Notarization failure from unsigned/incorrectly-signed nested MediaRemoteAdapter.framework or spawned perl helper
 
 **What goes wrong:**
-With an external monitor connected, the island renders on the external (notch-less) screen, or on the built-in screen but at the wrong coordinates, or disappears entirely when you close the lid (clamshell). TheBoringNotch issues #313 and #749 are exactly this: "notch displayed on the second screen," "not visible because it's on the second screen."
+`notarytool submit` (or the older `altool`) rejects submissions when **any nested binary** inside the app bundle lacks a valid Developer ID signature with the hardened runtime enabled and a secure timestamp — this includes vendored frameworks like `MediaRemoteAdapter.framework`, not just the main executable. Common concrete failures seen in the wild: "The binary is not signed," "The signature does not include a secure timestamp," "The executable does not have the hardened runtime enabled," and nested-framework-specific signature mismatches when Xcode's automatic signing doesn't descend properly into an embedded framework that itself was built/vendored with a different signing identity or timestamp.
+
+For this project specifically: `MediaRemoteAdapter.framework` is a **vendored, prebuilt** third-party framework (not built from this project's source), and the app **spawns `/usr/bin/perl` as a subprocess** at runtime. Spawning system binaries at runtime is not itself something `notarytool` inspects or blocks (the perl binary is Apple's own system binary already signed by Apple — you are not shipping/signing your own perl), but the app's *own* code that does the spawning must itself be correctly signed with the hardened runtime, and if the hardened runtime blocks or restricts child-process behavior, the relevant entitlement (e.g., disabling library validation if needed for how the adapter operates) must be present and justified.
 
 **Why it happens:**
-`NSScreen.main` is the screen with the **key window / focus**, not the built-in notch display — so it changes as you move focus between monitors. Developers grab `NSScreen.main`, assume it's the notch laptop screen, and position there. Screen configuration also changes at runtime (plug/unplug monitor, clamshell, resolution change) and code that positions once at launch never recovers.
+Xcode's "Sign to Run Locally" (used throughout regular development) does not exercise the same validation path as a real Developer ID + hardened runtime + notarization submission — the dry-run/local-dev signing is much more forgiving. The first time a full release-signed archive is built and submitted is often the first time these gaps surface, days or weeks after the actual code was written, disconnected from the original context.
 
 **How to avoid:**
-- Find the notch display **explicitly**: iterate `NSScreen.screens`, pick the one whose `safeAreaInsets.top > 0` (that's the notch). Never trust `NSScreen.main` for placement.
-- Recompute geometry and reposition on `NSApplication.didChangeScreenParametersNotification` (owned by `AppDelegate`/`NotchGeometry` per the architecture).
-- Handle the **no-notch-screen-available** case (lid closed / external-only): hide the island rather than crash or float on the external display. (v1 targets notch Macs, but clamshell with an external monitor is a normal usage of a notch Mac.)
+- Set the framework's "Embed & Sign" (not "Embed Without Signing") in Xcode's Frameworks/Libraries/Embedded Content settings for `MediaRemoteAdapter.framework` — this makes Xcode re-sign the vendored framework with *your* Developer ID during archive, which is required (the framework's own upstream signature, if any, is not sufficient — it must carry your team's signature to notarize as part of your app).
+- Enable the hardened runtime on the target (`ENABLE_HARDENED_RUNTIME = YES`), and add **only** the specific entitlements actually required — if the adapter needs to invoke perl and load a helper dylib there, check whether `com.apple.security.cs.allow-unsigned-executable-memory` / `com.apple.security.cs.disable-library-validation` are genuinely necessary (do not blanket-add every hardened-runtime exception "just in case" — each one is both a notarization risk-surface and a real security weakening; add the minimum that makes the actual adapter flow work, verified by testing the signed build, not by assumption).
+- Do a **local pre-flight validation** before ever calling `notarytool submit`: `codesign --verify --deep --strict --verbose=2 YourApp.app` and `spctl --assess --type execute -vvv YourApp.app` on the *actual archived, exported, Developer-ID-signed* build (not a debug build) to catch nested-signature problems before burning a submission cycle.
+- Sign nested content **innermost-first**: sign `MediaRemoteAdapter.framework` (and anything nested inside it) before signing the outer app bundle — codesign order matters, and this is exactly the kind of bug `--deep` masks rather than fixes (avoid `codesign --deep` for the final production signing step in favor of explicit per-target signing, since `--deep` is described by Apple/community guidance as "almost never what you actually want" for complex bundles with multiple embedded binaries).
+- Treat the first real notarization submission as its own testable milestone step, not a footnote at the end of a phase — budget time for at least 2-3 iteration cycles (each `notarytool submit --wait` round-trip is minutes, but diagnosing a signature issue from the returned log can take longer).
+
+**Notarization vs. "uses a private API/spawns processes" — does this specifically increase rejection risk?**
+Based on available research (MEDIUM confidence — Apple does not publish the exact scanner heuristics), notarization remains fundamentally a **malware/known-bad-signature scan**, not a policy review of *what* the app does — Apple's own documentation continues to describe it as automated scanning for known malicious content plus code-signing validation, not app-behavior review. There is no documented case found of notarization being rejected specifically *because* an app spawns subprocesses or bridges into private frameworks per se — legitimate apps (including this project's own reference points, e.g. TheBoringNotch, and many automation/scripting tools) ship notarized while doing exactly this. However, two real, adjacent risks exist and should not be dismissed:
+1. Malware families have historically abused legitimate-looking, correctly-signed/notarized apps that fetch and execute payloads at runtime — meaning Apple's scanner behavior in this space has evolved and could tighten further without much notice. This is a "watch for future changes" risk, not a known current blocker.
+2. Practically, the **actual signing correctness of the nested framework and hardened-runtime entitlement set** (Pitfall 4's main body) is a far more likely source of a real rejection than anything to do with the private-API bridging itself. Do not spend effort trying to "hide" the perl-spawning behavior from the scanner — that would be the actual red flag (obfuscation is a malware signal); ship it signed correctly and transparently.
 
 **Warning signs:**
-- The island jumps screens when you click a window on the other monitor.
-- It vanishes or mis-positions after plugging in a monitor or closing the lid.
-- Your placement code references `NSScreen.main`.
+- Framework embed setting is "Embed Without Signing" instead of "Embed & Sign."
+- `codesign --verify --deep --strict` on the archived build reports failures before you've even submitted to Apple.
+- Notarization log (`notarytool log <submission-id>`) shows "The signature does not include a secure timestamp" or "is not signed" for anything other than the top-level app you expect.
+- Testing only ever happens via local Xcode run/debug builds, never an actual exported+signed archive, until the day of intended release.
 
-**Phase to address:**
-Phase 2 (geometry). Make "survives screen changes / external display / clamshell" an explicit Phase-2 success criterion, not an afterthought.
+**Phase to address:** The dedicated "real notarization" phase in this milestone (moving from dry-run/local signing to Developer-ID + notarize + staple). Should include an explicit task to codesign-verify and spctl-assess the archived build locally before first submission, and a fallback/iteration budget rather than assuming one-shot success.
 
 ---
 
-### Pitfall 5: Code signing / notarization failures on the first release (the `--deep` trap + un-notarizable nesting)
+### Pitfall 5: Periodic re-validation timer fires mid-session and abruptly yanks the UI
 
 **What goes wrong:**
-First notarization attempt is rejected, or the app launches fine on the dev machine but on someone else's Mac Gatekeeper says "app is damaged / can't be opened." For this app it's worse than average because of the **bundled, unsigned `MediaRemoteAdapter.framework` and the perl script** — embedded code that must be signed correctly or notarization fails / Gatekeeper kills it.
+If trial/license re-validation runs on a periodic timer (e.g., "re-check every 24h" or "re-check on each launch plus daily while running"), and it fires while the user is mid-interaction — island expanded, dragging a file into the shelf, mid-playback-control tap — an abrupt "trial expired, app locked" state change that yanks the currently-open UI out from under the user feels broken and hostile, and risks data loss (e.g., an in-progress drag-and-drop). This is a classic "technically correct enforcement, terrible UX" bug.
 
 **Why it happens:**
-- Hardened Runtime not enabled (notarization requires `--options runtime`).
-- Using `codesign --deep` (widely copied from the internet, explicitly discouraged by Apple) — it signs nested code in the wrong order and with the wrong identity. You must sign **inside-out / bottom-up**: embedded frameworks first, then the app bundle.
-- The app-specific password used for `notarytool` belongs to a different Apple ID than the one that owns the `Developer ID Application` certificate.
-- Using the deprecated `altool` instead of `notarytool`.
-- Forgetting to `stapler staple` the result, so the app fails Gatekeeper on machines that are offline or hit a slow notarization-ticket lookup.
+Enforcement logic is usually written from the "is licensed: yes/no" state-machine perspective in isolation, without considering what UI state the app is in at the moment the check result changes state, because the developer building the check and the developer (same person, different day) building the UI don't cross-reference.
 
 **How to avoid:**
-- Enable **Hardened Runtime** in the target's Signing & Capabilities.
-- Sign **bottom-up**: sign `MediaRemoteAdapter.framework` (and any embedded binary) with `--options runtime --timestamp` first, then sign the `.app`. **Never** use `--deep`.
-- Use `xcrun notarytool store-credentials` once, with an app-specific password generated under the **same** Apple ID that owns the Developer ID cert.
-- `notarytool submit --wait`, then `xcrun stapler staple` the `.dmg`/`.app`.
-- When notarization is rejected, read the JSON log (`notarytool log <submission-id>`) — it names the exact file/issue.
-- For a beginner: script the whole sign→notarize→staple flow once and reuse it; don't run the commands by hand each time.
+- Never force-collapse or force-hide currently-open/interactive UI (expanded island, active drag operation, in-progress HUD) synchronously the instant a background re-check flips the licensed flag. Instead: apply the new locked state model at the **next natural transition point** — when the island next collapses on its own, or on next app launch — not by yanking the current interaction.
+- If a hard lock must take effect immediately (e.g., trial truly expired), show it as a graceful, animated state change consistent with the app's existing spring/morph language (per project's existing `matchedGeometryEffect`/spring conventions) rather than an instant `NSAlert`-style interrupt or a blank/disabled UI mid-gesture. A brief "Trial ended" card that itself morphs in via the same island animation the rest of the app already uses is more in keeping with the polish bar this project has already set (per CLAUDE.md's Dynamic Island animation philosophy) than a jarring modal.
+- Debounce/guard: don't run the re-validation check itself while the island is in an actively-interactive state (expanded/dragging) — defer the check (not the enforcement, the check itself) until the island returns to idle/collapsed, then apply results.
+- Keep the periodic re-check interval generous (daily is plenty for a €7.99 one-time-purchase app — this is not subscription SaaS requiring tight revocation windows) to minimize how often this edge case can even occur.
 
 **Warning signs:**
-- "The binary is not signed with a valid Developer ID certificate" or "code object is not signed at all" in the notary log (usually the embedded framework).
-- App opens on your Mac but "is damaged" on a friend's Mac.
-- You typed `--deep` anywhere.
+- Re-validation timer callback directly mutates `isExpanded = false` or disables UI synchronously with no state-transition awareness.
+- No manual test performed of "expand the island, then simulate trial-expiry firing while expanded."
+- Lockout UI implemented as a system alert/sheet rather than in the app's own animated visual language.
 
-**Phase to address:**
-Phase 8 / pre-release. Do **one** full signing+notarization dry-run *before* any feature is finished (a "hello world" notarized build) so the toolchain is proven early — a beginner discovering signing problems on launch day is a classic disaster. Add a dedicated "first notarization spike" task in the roadmap.
+**Phase to address:** Trial-enforcement / lockout-UX phase — should include an explicit interaction-state check as an acceptance criterion, tested by manually triggering expiry while the island is open.
 
 ---
 
-### Pitfall 6: Polling the system instead of using event/notification sources (battery drain)
+### Pitfall 6: Checkout-to-license-key handoff friction for a Dock-icon-less (LSUIElement) app
 
 **What goes wrong:**
-The app uses a repeating `Timer` to poll "is the charger plugged in?", "what's playing?", "is a device connected?" every second. CPU sits at a few percent constantly, the fans spin on a quiet desktop, battery drains, and reviewers call it a "battery hog" — the opposite of the "~0% CPU when idle" bar that Notchy and TheBoringNotch (<2% CPU) set. For a *menu-bar utility that runs all day*, this is reputation-killing.
+Two related frictions can cause purchase abandonment or confusion:
+1. Opening a web checkout (Polar.sh hosted checkout page) from an `LSUIElement` background-agent app via `NSWorkspace.shared.open(url:)` opens the user's default browser — but because the app itself has no Dock icon and isn't a "normal" foreground app, after the user completes checkout in the browser and switches back, there's no obvious "come back to the app" affordance the way a Dock-icon app would provide (bounce, badge, Cmd+Tab entry). The user completes payment, then isn't sure how to return to Islet to actually enter/receive their license — increasing the chance they forget, or think nothing happened.
+2. The checkout-to-key handoff itself: if the license key only arrives via **email** (typical Polar.sh flow — checkout completes, key is emailed), there's a context-switch gap between "just paid in browser" and "now go check email, copy key, switch back to a menu-bar app, find its settings, paste key." Each extra step is a documented drop-off point in purchase-completion UX generally; for a background/menu-bar app with no persistent visible window, this gap is worse than for a normal windowed app because the user has to actively remember the app exists and go find its icon in the menu bar again.
 
 **Why it happens:**
-Polling is the obvious thing for a beginner ("just check repeatedly"). The correct push-based APIs (run-loop notification sources, registered callbacks) are less obvious and macOS-specific.
+Developers test the checkout flow themselves, already knowing exactly where the app's settings/license-entry UI lives — they don't experience the "wait, where did that app go" moment a real first-time customer does.
 
 **How to avoid:**
-- **Power:** use `IOPSNotificationCreateRunLoopSource` (fires on plug/unplug/level change) — do not poll `IOPSCopyPowerSourcesInfo` on a timer.
-- **Bluetooth:** use `IOBluetoothDevice.register(forConnectNotifications:)` / per-device disconnect notifications — event-driven, no polling.
-- **Now Playing:** the adapter **streams** updates over stdout; consume the stream, don't repeatedly invoke the perl command.
-- The only legitimate timers are short, self-terminating ones (e.g. the ~3s transient-activity auto-collapse, or a user-facing countdown timer) — never a long-lived "watch the system" timer.
-- Profile idle CPU with Activity Monitor / Instruments; target near-0% when the island is collapsed and nothing is happening.
+- Before opening the checkout URL, `NSApplication.shared.activate(ignoringOtherApps: true)` on the app itself is not what's needed here (the browser needs focus, not the app) — instead, ensure the app's own menu-bar icon/status item remains an obvious, discoverable "return point": consider having the menu-bar icon show a distinct state (e.g., a subtle badge or color change) while a checkout is pending, so when the user does eventually click the menu-bar icon again, it's visually obvious the app is waiting for them to finish something.
+- If Polar.sh supports a **success redirect URL** after checkout completion (check Polar's checkout configuration options — hosted checkouts commonly support a post-purchase redirect), prefer a custom URL scheme (`islet://license-activated?...` or similar) that the app registers to handle, so completing checkout in the browser can hand control straight back to the app automatically, rather than relying purely on the email round-trip. This removes an entire manual step (open email, copy key, switch app, paste) if Polar's flow supports passing the key or a claim token through the redirect.
+- Regardless of whether a deep-link handoff is implemented, always also support **manual key entry** (paste from email) as the guaranteed-working fallback — don't make the deep link the *only* path, since email deliverability/user email-client friction is itself variable.
+- Keep the "enter your license key" UI reachable in **one click from the menu-bar icon** at all times post-purchase (not buried in a preferences pane three clicks deep) for exactly the window of time right after a purchase when the user is actively trying to complete the flow.
+- Pre-fill/auto-paste from clipboard if a license-key-shaped string is detected on clipboard when the license entry UI opens (nice-to-have, not required) — reduces friction for the common case of "just copied the key from the email."
 
 **Warning signs:**
-- Idle CPU > ~1% with the island collapsed.
-- Energy Impact shows the app high in Activity Monitor's Energy tab.
-- You wrote `Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true)` to read system state.
+- No visible change to the menu-bar icon/UI state between "checkout opened" and "license entered."
+- License entry UI requires navigating through multiple preference panes to reach.
+- No investigation of whether Polar.sh's checkout supports a post-purchase redirect/webhook that could shortcut the manual copy-paste round trip.
 
-**Phase to address:**
-Each service phase (5 power, 6 Bluetooth) and Phase 4 (consume the adapter stream). Make "no long-lived polling timers; idle CPU ~0%" a success criterion for each.
-
----
-
-## Moderate Pitfalls
-
-### Pitfall 7: Click-through vs. interaction conflicts (you can't click the desktop, or you can't click the island)
-
-**What goes wrong:**
-Either the transparent panel swallows all clicks in the menu-bar region (you can't click the menu bar or desktop around the island), or the panel ignores mouse events entirely and you can't hover/click the island itself. The window also steals focus from the app you're using when clicked (because it wasn't made non-activating).
-
-**Why it happens:**
-A borderless panel is rectangular and opaque to the event system even when visually transparent. `ignoresMouseEvents` is all-or-nothing on the window. The morphing island changes size, so a fixed hit area is wrong half the time.
-
-**How to avoid:**
-- Use an `NSPanel` with `.nonactivatingPanel` style + `becomesKeyOnlyIfNeeded = true` so clicking the island never steals focus from the active app.
-- Toggle `ignoresMouseEvents` by state: when collapsed/idle, only the small pill region should be interactive (let clicks pass through everywhere else); when expanded, the expanded frame is interactive. Drive this from `IslandState`.
-- Keep the interactive hit area in lockstep with the animated frame — when the window resizes for the expanded view, the event region must resize too.
-
-**Warning signs:**
-- Clicking near the notch activates/deactivates other apps unexpectedly.
-- You can't click the menu bar items behind/around the island.
-- Hover doesn't trigger expansion, or the island is "dead" to clicks.
-
-**Phase to address:**
-Phase 3 (hover/expand + interaction). Test clicking *around* and *on* the island in both states.
-
----
-
-### Pitfall 8: Retina / coordinate-math and notch-geometry mismatches
-
-**What goes wrong:**
-The island is a few points off-center over the physical notch, or its corner radius doesn't match the hardware notch, or it's mis-sized on different MacBook models. A verified real gotcha: on some models `safeAreaInsets.top` (e.g. 32) does **not** equal `menuBarHeight` (e.g. 36) — they're different quantities, and naive math that assumes they're equal mis-positions the panel.
-
-**Why it happens:**
-- AppKit's coordinate system is **bottom-left origin** (y grows upward), unlike most UI frameworks; off-by-the-screen-height errors are common.
-- Notch width/corner radius differ across MacBook Air vs Pro (14"/16") models; hardcoding one model's numbers breaks others.
-- Mixing points and pixels (Retina backing scale) when you shouldn't, or vice versa.
-- Conflating menu-bar height with safe-area inset.
-
-**How to avoid:**
-- Derive the notch rectangle from `auxiliaryTopLeftArea`/`auxiliaryTopRightArea` — the **gap between them is the real notch width** on *this* machine — instead of hardcoding pixel values per model.
-- Use `safeAreaInsets.top > 0` only as the *"has a notch"* test, not as a layout constant; don't assume it equals menu-bar height.
-- Work in AppKit points and respect the bottom-left origin; convert carefully when bridging to SwiftUI.
-- Match the island's corner radius to the notch by deriving it from the detected geometry, not a magic number.
-
-**Warning signs:**
-- Island is visibly off-center or has a different corner radius than the notch.
-- It looks right on your MacBook but a tester with a different model reports misalignment.
-- Layout math subtracts/adds the wrong screen dimension and the island appears at the bottom.
-
-**Phase to address:**
-Phase 2 (geometry). If possible, sanity-check the math on at least one other MacBook model before relying on it.
-
----
-
-### Pitfall 9: Permission prompts and TCC surprises (Accessibility, Bluetooth, Automation, "Background Activity")
-
-**What goes wrong:**
-- Features silently do nothing because a TCC permission was never granted (or was reset).
-- An unexpected "App Background Activity" / login-item notification appears the first time the app auto-starts, confusing/alarming the user (a real reported surprise with SMAppService auto-start).
-- Permissions that worked stop working after the app is **re-signed** (different signature → macOS treats it as a new app and forgets granted permissions). This bites repeatedly during development as the app is rebuilt.
-
-**Why it happens:**
-macOS TCC ties granted permissions to the app's code signature/bundle identity; changing it invalidates grants. Some sources (e.g. global event monitors for hover, or AppleScript fallbacks) require Accessibility/Automation consent. TCC databases can also reset on reboot in some configurations.
-
-**How to avoid:**
-- Prefer designs that need **no** special permission: charging (IOKit) and Bluetooth connect events (IOBluetooth) and the adapter Now Playing path generally don't need Accessibility. Avoid AppleScript/Automation fallbacks that trigger Automation prompts.
-- If a permission *is* needed, request it with a clear, just-in-time explanation and a button that deep-links to the right System Settings pane; never expect the user to find it.
-- Keep a **stable bundle identifier** and (once you have a Developer ID) a stable signing identity so permission grants survive rebuilds. During early dev, expect to re-grant after signing changes — and know `tccutil reset <Service> <bundleID>` clears stale state.
-- Make launch-at-login an explicit opt-in toggle (default OFF) via `SMAppService` to reduce the "why did this start itself?" surprise.
-
-**Warning signs:**
-- A feature works once, then stops after a rebuild/re-sign.
-- The user reports a scary background-activity or login-item prompt.
-- You're reaching for AppleScript and a permission dialog appears.
-
-**Phase to address:**
-Phase 8 (settings + launch-at-login) for the SMAppService toggle and any permission UX. But *avoid* permission-heavy approaches starting in Phases 4–6 (choose APIs that don't need TCC).
-
----
-
-### Pitfall 10: Scope creep — building the DynamicLake long tail before the core island is solid
-
-**What goes wrong:**
-A beginner, excited by the reference apps, starts on the file shelf, HUD replacement, lyrics, calendar, or non-notch support before the core island + Now Playing + activities actually feel polished. The project balloons, nothing reaches "Alcove-quality," and motivation collapses. (FEATURES.md already flags most of these as anti-features for v1.)
-
-**Why it happens:**
-The maximalist apps (DynamicLake, Notchy) make the long tail look like table stakes. Each extra feature is individually appealing. The hardest, least glamorous work (window/geometry/full-screen correctness, animation polish) has no visible payoff until late.
-
-**How to avoid:**
-- Hold the line on the v1 scope in PROJECT.md: island + Now Playing + charging + device-connect + plumbing. Everything else is explicitly later.
-- Use the spine-first build order: ship a *visible, runnable* thing at each step (empty island → geometry → hover → one feature) before adding the next.
-- Judge "done" against the Alcove polish bar on the **core**, not against DynamicLake's feature count.
-
-**Warning signs:**
-- You're writing drag-and-drop / EventKit / clipboard code before Now Playing is solid.
-- The animation still feels janky but you're adding a new activity type.
-- The TODO list is growing faster than features are finishing.
-
-**Phase to address:**
-Roadmap/planning level — enforce via phase gates. Don't open later-phase features until the v1 core passes its success criteria.
-
----
-
-### Pitfall 11: Animation that morphs vs. cross-fades (the difference between "Alcove-quality" and "cheap clone")
-
-**What goes wrong:**
-Expand/collapse cross-fades or pops instead of *morphing*; the pill doesn't grow smoothly into the panel; album art jumps instead of sliding. The app technically works but feels like a knockoff — failing the project's single most important differentiator.
-
-**Why it happens:**
-Treating expanded and collapsed as separate views that swap, instead of one continuous view tree whose layout animates. Skipping `matchedGeometryEffect`. Creating/destroying windows per state (an architecture anti-pattern) which kills animation continuity. Mismatched spring parameters.
-
-**How to avoid:**
-- One panel, one root view, state-driven content (the architecture's Pattern 1). Never create/destroy windows to switch content.
-- Use a shared `@Namespace` + `matchedGeometryEffect` so shapes/art *morph* between layouts.
-- Animate the **panel frame** in lockstep with the SwiftUI content (window resizes as the content grows), driven from `IslandState`.
-- Budget real iteration time on spring `response`/`dampingFraction` — polish is found here, not in one pass.
-
-**Warning signs:**
-- Expand looks like a fade or a jump-cut, not a grow.
-- The window's edge is visible "catching up" to the content during animation.
-- Side-by-side with Alcove it looks obviously cheaper.
-
-**Phase to address:**
-Phase 3 (animation), revisited in Phase 7 (polish). Flag as needing design iteration, not a single task.
-
----
-
-## Minor Pitfalls
-
-### Pitfall 12: Swift 6 strict-concurrency errors derailing a beginner
-
-**What goes wrong:**
-Confusing `Sendable` / actor-isolation compile errors appear that have nothing to do with the feature being built — especially around services calling back into the main-actor `IslandState`, or IOKit/Bluetooth callbacks arriving off the main thread.
-
-**Why it happens:**
-Xcode 16 defaults toward Swift 6 strict concurrency; system callbacks (run-loop sources, IOBluetooth selectors, adapter stdout reads) arrive on background threads and must hop to the main actor to touch `@Published` UI state.
-
-**How to avoid:**
-- Start in **Swift 5 language mode** (stack decision) to defer strict-concurrency.
-- Always marshal service callbacks onto the main actor before mutating `IslandState` (`MainActor`/`DispatchQueue.main`).
-- Migrate to Swift 6 mode deliberately, later, when the app is stable.
-
-**Warning signs:** Compile errors mentioning `Sendable`, actor isolation, or "capture of non-Sendable" unrelated to your actual logic.
-
-**Phase to address:** Phase 0 (project setup — set the language mode). Reinforce in each service phase (main-actor hop).
-
----
-
-### Pitfall 13: Debugging native crashes / off-main-thread UI updates without a method
-
-**What goes wrong:**
-The app crashes with a terse stack trace, or the UI freezes/glitches because state is mutated off the main thread. A beginner stares at a crash log with no idea where to look.
-
-**Why it happens:**
-SwiftUI requires main-thread state mutation; system callbacks aren't on the main thread. Native crash logs are denser than scripting-language errors.
-
-**How to avoid:**
-- Centralize the main-thread hop in the service-to-state boundary (one place to get right).
-- Learn the basics: reproduce → read the crash's top frames → set a breakpoint → check the Thread navigator for "not on main thread" purple runtime warnings (Xcode flags these).
-- Keep services thin so crashes have a small surface to live in.
-
-**Warning signs:** Purple main-thread runtime warnings in Xcode; intermittent UI glitches; crashes inside SwiftUI update code triggered by a callback.
-
-**Phase to address:** Phases 4–6 (where async system callbacks first appear).
-
----
-
-### Pitfall 14: Distinguishing "AC connected" from "actively charging" (and Macs/states with no battery info)
-
-**What goes wrong:**
-The charging activity fires on the wrong event — e.g. shows "charging" when the adapter is plugged in but the battery is already full (not charging), or misreads battery %.
-
-**Why it happens:**
-"Plugged in" (`IOPSCopyExternalPowerAdapterDetails` non-nil) and "charging" (`kIOPSIsChargingKey`) are different facts; conflating them produces a wrong animation.
-
-**How to avoid:** Read the specific IOKit keys for the specific fact you're displaying; decide explicitly what the charging activity should show (plugged-in splash vs. actively-charging vs. full).
-
-**Warning signs:** "Charging" animation when the battery is at 100% and not charging; battery % off by a lot.
-
-**Phase to address:** Phase 5 (power/charging).
+**Phase to address:** Licensing/checkout-UX phase — should include a "cold start" manual test: as if for the first time, click buy, complete a real (or sandboxed/test-mode) Polar checkout, and time/count the steps back to a working licensed app with no prior knowledge of where the license-entry UI lives.
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Reading IOKit / MediaRemote directly inside a SwiftUI view | Fewer files, "just works" in a demo | View re-runs leak resources; can't test; when MediaRemote breaks, damage is smeared across UI | **Never** — services must own all system access |
-| Hardcoding notch width / corner radius / one model's pixel values | Looks perfect on your MacBook today | Breaks on other models and external displays; silent misalignment | Never for shipping; OK only as a throwaway probe |
-| Positioning once at launch via `NSScreen.main` | Simple | Wrong screen, breaks on monitor plug/clamshell/focus change | Never |
-| Polling the system on a repeating timer | Trivially obvious to write | Constant CPU, battery drain, "battery hog" reputation | Never for system state; OK only for short self-terminating timers |
-| Using `codesign --deep` | One command signs everything | Wrong nested signing → notarization rejection / Gatekeeper "damaged" | Never (Apple-discouraged) |
-| Skipping the launch-time adapter health check | Less code | Empty island with no explanation when Apple breaks MediaRemote | Only in the very first prototype |
-| Letting `IslandState` also fetch data (god object) | One place for everything | Becomes unmaintainable; decisions + data tangled | Never — decisions in state, data in services |
+|----------|--------------------|-----------------|------------------|
+| Trial/license state in UserDefaults only | Fast to implement, no Keychain API friction | Trivially resettable, undermines the entire trial's purpose | Never for shipped v1 — Keychain is barely more code |
+| Single validate call, no retry/backoff | Simpler code | First-purchase validation failures read as "app is broken," refund/review risk | Never — retry logic here is small and high-value |
+| `codesign --deep` for final signing | One command, "just works" locally | Masks nested-signature issues that surface later as notarization rejections | Acceptable only for quick local dev-signing sanity checks, never for the release-signed archive |
+| Blanket hardened-runtime entitlements (add everything "just in case") | Avoids trial-and-error during signing | Larger security-exception surface, looks worse in review, doesn't actually fix root cause if wrong entitlement chosen | Never — always add the minimum verified-necessary set |
+| Hard real-time UI yank on license state change | Simple state machine, no extra transition logic | Feels broken/hostile mid-interaction, erodes trust in exactly the polished feel this project prioritizes | Never — the deferred-transition approach is a small addition |
+| Device fingerprinting / server-side anti-abuse registry for trial resets | "Solves" reinstall abuse thoroughly | Massive scope increase, server infra, privacy questions, disproportionate to a €7.99 hobby-turned-sellable app | Not acceptable at this project's scale — explicitly out of scope |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| **MediaRemote (via adapter)** | Linking `MediaRemoteAdapter.framework` into the app target; calling MediaRemote symbols in-process | Bundle the framework (copy, **not** link) + the perl script; load it via the `/usr/bin/perl` subprocess; consume streamed stdout JSON |
-| **MediaRemote (lifecycle)** | Assuming it works forever; no version monitoring | Launch-time `test` exit-code check; isolate behind `NowPlayingService`; re-verify after every macOS update |
-| **IOKit power** | Polling on a timer; conflating "plugged in" with "charging" | `IOPSNotificationCreateRunLoopSource` callback; read the specific keys (`kIOPSIsChargingKey`, capacity keys); handle no-battery state |
-| **IOBluetooth** | Using Core Bluetooth (wrong abstraction) for system paired-device events; polling | `register(forConnectNotifications:)` + per-device disconnect notifications; unregister to stop |
-| **NSScreen geometry** | Using `NSScreen.main`; positioning once; hardcoding model values | Find screen with `safeAreaInsets.top > 0`; derive width from `auxiliaryTop*Area`; recompute on `didChangeScreenParametersNotification` |
-| **Code signing** | `--deep`; wrong-account app-specific password; forgetting hardened runtime; not stapling | Sign bottom-up with `--options runtime --timestamp`; matched-account password; `notarytool ... --wait` then `stapler staple` |
-| **SMAppService** | Auto-enabling at first launch (surprise background-activity prompt) | Explicit opt-in toggle, default OFF, with a clear label |
+|-------------|------------------|-------------------|
+| Polar.sh license validation | Treating all non-200 responses as "invalid key" | Distinguish transient/network errors from explicit invalid/revoked-key responses; only the latter should ever say "invalid license" to the user |
+| Polar.sh checkout | Assuming license key delivery is instant/synchronous with payment | Assume email delivery latency; support manual paste as the guaranteed path; investigate redirect/webhook options as an enhancement, not the only path |
+| MediaRemoteAdapter.framework (vendored) | "Embed Without Signing" left as default, or assuming the vendor's own signature is sufficient | Set "Embed & Sign" so your Developer ID re-signs it during archive; verify with `codesign --verify --deep --strict` post-archive |
+| `notarytool submit` | Submitting only after `--wait`ing once and assuming success on first try | Budget iteration; use `notarytool log <id>` on any rejection to get the actual per-binary failure reason before re-submitting blindly |
+| Keychain (non-sandboxed macOS app) | Assuming Keychain behaves like iOS sandboxed Keychain (auto-cleared on delete) | macOS Keychain items for non-sandboxed apps persist independently of the app bundle — this is a feature to lean on here, not a bug to work around |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Long-lived polling timers for system state | Idle CPU > ~1%, fans, battery drain, high Energy Impact | Event/notification sources only (IOKit run-loop, IOBluetooth notifications, adapter stream) | Immediately — it's an all-day background app |
-| Re-invoking the adapter perl command per update | Process-spawn overhead, latency, CPU spikes | Spawn once, consume the long-lived stdout stream | As soon as music plays continuously |
-| Re-decoding album art every render | UI hitches when expanded; memory churn | Decode artwork once on change, cache the `NSImage`; fill in async (art lags metadata) | When tracks change frequently |
-| Animating by recreating the window/view per state | Flicker, dropped frames, lost morph | One window + one root view; animate frame + content together | The first time you switch activities live |
-| Heavy work on the main thread in a callback | Beachballs / dropped animation frames | Do parsing/decoding off-main; hop to main only to set `@Published` | Under real multi-source activity |
+| Re-validating license against Polar's API on every app launch or too frequently | Unnecessary network calls, slower cold start, more exposure to Pitfall 2's failure mode | Validate once at activation, then cache; re-validate on a generous interval (daily+) only, not every launch | Noticeable once launch performance or offline reliability is scrutinized — low risk at this app's scale, but cheap to get right from the start |
 
-## Security / Robustness Mistakes
-
-(Desktop-utility-specific — there's no server or user data store here.)
+## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Trusting adapter stdout JSON without validation | Malformed/partial JSON crashes the parser or the app | Defensive parsing; tolerate missing fields (art especially); never force-unwrap adapter output |
-| Shipping with the App Sandbox enabled | Breaks the perl-subprocess MediaRemote bridge and some IOKit/IOBluetooth access | Ship **un-sandboxed**, hardened-runtime, notarized (App-Store-incompatible anyway, by design) |
-| Unstable bundle ID / ad-hoc signature in releases | TCC permissions reset for users on each update; Gatekeeper friction | Stable bundle ID + consistent Developer ID signing |
-| Bundling an unsigned helper framework/script | Notarization rejection; Gatekeeper "damaged" | Sign every embedded binary bottom-up before signing the app |
-| Auto-updating the adapter blindly | A new adapter version could break Now Playing in the field | Pin a known-good version; test before bumping |
+| Storing license/trial state as human-readable, unbound plain values (bool/date with no integrity check) | Trivial `defaults write`/plist-edit bypass | Keychain storage + lightweight integrity binding (timestamp+key hash), as detailed in Pitfalls 1 & 3 — proportionate, not gold-plated |
+| Over-broad hardened-runtime entitlements to "make notarization pass" | Weakens the actual security hardening notarization is meant to enforce, may itself draw scrutiny | Add only the specific, verified-necessary entitlement(s) for the perl-spawn/adapter-load path |
+| Treating notarization as equivalent to "this app is reviewed/approved for behavior X" | False sense that private-API use is Apple-sanctioned; could create surprise if Apple's policy or scanner heuristics shift | Understand notarization = malware/signature scan only; keep the `NowPlayingService` abstraction (already planned per CLAUDE.md) so an adapter break/policy shift is a contained fix |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Island always animating / never quiet | Distracting; feels broken | Near-invisible collapsed state; only react to real events; transient activities auto-collapse (~3s) |
-| Island floats over full-screen video | Ruins media viewing; feels intrusive | Detect full-screen and hide (with a user toggle) |
-| Stealing focus when clicked | Interrupts the user's current app | Non-activating panel (`becomesKeyOnlyIfNeeded`) |
-| No way to quit / configure | Looks like malware that can't be removed | `MenuBarExtra` with Quit + Settings from day one (Phase 0) |
-| Surprise login-item / background prompt | Alarms the user, looks shady | Launch-at-login opt-in, default OFF, clearly labeled |
-| Empty Now Playing with no explanation when API breaks | User thinks the whole app is broken | Health-check the adapter; show an explicit "unavailable on this macOS" state |
-| Two activities fight for the island simultaneously | Flicker / jarring switching | Priority resolver + transient queue (architecture Pattern 2) |
+|---------|-------------|------------------|
+| Cryptic raw network error shown on first license validation | Paying customer thinks app/purchase is broken, requests refund | Friendly, differentiated error copy + retry + visible support contact (Pitfall 2) |
+| Abrupt mid-session lockout | Feels hostile, breaks trust in a "polished" app | Defer enforcement to next natural UI transition point, animate consistently with existing island morph language (Pitfall 5) |
+| No visible "return to app" cue after browser checkout | User forgets to come back, thinks nothing happened | Menu-bar icon state change + one-click access to license entry (Pitfall 6) |
+| License entry buried in settings | Extra friction right when purchase intent is highest | Keep license-entry reachable in one click from the menu-bar icon |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Overlay window:** Often missing full-screen hide — verify it hides over native full-screen, full-screen video, and QuickLook; verify no lingering window-control bar.
-- [ ] **Geometry:** Often missing multi-display/clamshell handling — verify it stays on the *built-in notch* screen after plugging in a monitor, closing the lid, and changing resolution; verify on a second MacBook model if possible.
-- [ ] **Now Playing:** Often missing the health check and isolation — verify the adapter `test` exit code is checked at launch and all MediaRemote code lives in one service; verify album art loads asynchronously (it lags).
-- [ ] **Interaction:** Often missing click-through correctness — verify you can click the desktop/menu bar *around* the island and that clicking the island doesn't steal focus.
-- [ ] **Charging:** Often missing the plugged-in vs. charging vs. full distinction — verify the right animation for each state and a no-battery fallback.
-- [ ] **Performance:** Often missing idle efficiency — verify idle CPU ~0% and no long-lived polling timers (Activity Monitor Energy tab).
-- [ ] **Signing:** Often missing correct nested signing — verify a notarized build opens cleanly on a *different* Mac (not just yours), embedded framework signed, stapled.
-- [ ] **Permissions/login:** Often missing graceful permission UX — verify launch-at-login is opt-in and any needed permission has a clear prompt that survives a rebuild/re-sign.
-- [ ] **Concurrency:** Often missing main-thread discipline — verify no purple "not on main thread" runtime warnings when callbacks fire.
+- [ ] **Trial enforcement:** Looks done when trial correctly counts down and locks at day 3 on a normal run — verify it also survives app delete + reinstall (Keychain-backed, not just UserDefaults).
+- [ ] **License validation:** Looks done when a valid key validates successfully online — verify behavior specifically with Wi-Fi disabled and with a simulated Polar 500/timeout, both on first-ever validation and on a cached-then-recheck validation.
+- [ ] **Offline license cache:** Looks done when the app remembers "licensed" across launches — verify it isn't a plain flippable UserDefaults bool (`defaults write` test).
+- [ ] **Notarization:** Looks done when `notarytool submit --wait` returns "Accepted" — verify with `spctl --assess --type execute -vvv` and an actual Gatekeeper double-click-from-Finder test on a *different, clean* Mac (or at minimum a fresh user account) before calling it shippable, since local dev machines often have prior overrides/trust that mask real Gatekeeper behavior.
+- [ ] **Mid-session lockout:** Looks done when locking works on app launch — verify the specific case of triggering expiry/re-check while the island is expanded/mid-interaction.
+- [ ] **Checkout-to-key flow:** Looks done when you (the developer) can complete it knowing where everything is — verify with a genuine "first time user" walkthrough, timing the steps from clicking Buy to having a working licensed app.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| MediaRemote broken by a macOS update | LOW (if isolated) / HIGH (if smeared) | Update/swap the adapter version behind `NowPlayingService`; if no fix exists, show "unavailable" state and ship other features. Cost is LOW *only because* of isolation — that's why isolation is mandatory. |
-| Island on wrong display / mispositioned | LOW–MEDIUM | Replace `NSScreen.main` with the `safeAreaInsets.top > 0` screen; add `didChangeScreenParametersNotification` recompute |
-| Notarization rejected | MEDIUM | Read `notarytool log`; re-sign bottom-up with hardened runtime; remove `--deep`; verify app-specific password account matches cert |
-| Permissions reset on every rebuild | LOW | Stabilize bundle ID + signing identity; `tccutil reset` to clear stale entries during dev |
-| Battery-drain complaints | MEDIUM | Replace polling timers with notification/run-loop sources; profile with Instruments Energy Log |
-| Island floats over full-screen | MEDIUM | Add explicit full-screen observation + hide/restore; don't rely on collection behavior alone |
+|---------|----------------|-----------------|
+| Trial state was UserDefaults-only and already shipped | LOW | Migrate to Keychain-backed storage in a point update; on first launch of the new version, if Keychain marker absent but UserDefaults marker present, seed Keychain from UserDefaults (accept that pre-existing reset-abusers keep their reset, not worth chasing) |
+| Notarization rejected on submission | LOW-MEDIUM | Pull `notarytool log <submission-id>`, identify the specific unsigned/invalid binary or missing entitlement, fix signing config, re-archive, re-submit — typically a signing-config fix, not a code-behavior fix |
+| Users report checkout confusion/abandonment post-launch | LOW | Add menu-bar pending-state indicator and/or investigate Polar redirect/deep-link handoff as a fast-follow update; doesn't require re-architecting the purchase flow |
+| Mid-session yank complaints after release | LOW | Wrap enforcement application in a "defer until idle" check; small, isolated fix to the enforcement callsite, not the validation logic itself |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Direct MediaRemote `nil` (P1) | Phase 4 | Now Playing shows real data; adapter (not in-process MediaRemote) is the only path |
-| Adapter fragility / not isolated (P2) | Phase 4 (build), re-check Phase 8 | All MR code in `NowPlayingService`; launch-time `test` exit-code check present |
-| Full-screen not hidden (P3) | Phase 1–2 plumbing, Phase 3 hardening | Hidden over native/video/QuickLook full-screen; no ghost control bar |
-| Wrong-display placement (P4) | Phase 2 | Stays on notch screen after monitor plug / clamshell / focus change |
-| Signing/notarization failure (P5) | Phase 0 dry-run spike + Phase 8 release | Notarized build opens on a *different* Mac; embedded framework signed; stapled |
-| Polling battery drain (P6) | Phases 4/5/6 | Idle CPU ~0%; no long-lived polling timers |
-| Click-through/focus conflict (P7) | Phase 3 | Can click around + on island; no focus stealing |
-| Coordinate/geometry math (P8) | Phase 2 | Centered, correct corner radius; checked on ≥1 other model |
-| Permission/TCC/login surprises (P9) | Phase 8 (avoid permission-heavy APIs in 4–6) | Opt-in login item; permissions survive re-sign; clear prompts |
-| Scope creep (P10) | Planning / phase gates | v1 core passes success criteria before later features open |
-| Cross-fade vs. morph animation (P11) | Phase 3, polish Phase 7 | Side-by-side morph quality vs. Alcove; window frame animates with content |
-| Swift 6 concurrency (P12) | Phase 0 (language mode) | Builds cleanly; callbacks hop to main actor |
-| Native crash / off-main UI (P13) | Phases 4–6 | No purple main-thread warnings; reproducible crash workflow understood |
-| Charging vs. plugged-in vs. full (P14) | Phase 5 | Correct state shown; no-battery fallback |
+|---------|-------------------|---------------|
+| Trial reset via UserDefaults/reinstall | Trial-enforcement phase | Delete app + relaunch fresh copy; trial should NOT reset |
+| Hard-fail license validation on network issues | Licensing/Polar-integration phase | Test with Wi-Fi off and with a mocked API timeout/500 on first-ever validation |
+| Flippable boolean license cache | Licensing/Polar-integration phase (same task as above) | `defaults write <bundle-id> isLicensed -bool true` should have no effect |
+| Notarization rejection from nested framework/hardened runtime | Real-notarization phase | `codesign --verify --deep --strict --verbose=2` and `spctl --assess -vvv` pass locally before first `notarytool submit`; clean-account Gatekeeper test after acceptance |
+| Mid-session abrupt lockout | Trial-enforcement / lockout-UX phase | Manually trigger expiry while island is expanded; verify graceful, animated, non-destructive transition |
+| Checkout-to-key handoff friction | Licensing/checkout-UX phase | Full cold-start purchase walkthrough timed and step-counted |
 
 ## Sources
 
-- ungive/mediaremote-adapter — current (2026) MediaRemote workaround: 15.4 `mediaremoted` entitlement check, perl `/usr/bin/perl` bundle-ID trick, bundle (not link) the framework, `test` exit-code health check, maintainer warning that the API may break across minor revisions: https://github.com/ungive/mediaremote-adapter — **HIGH** (canonical project; verified via fetch 2026-06-26)
-- aviwad/LyricFever issue #94 — `MRMediaRemoteGetNowPlayingInfo` returns nil on recent macOS: https://github.com/aviwad/LyricFever/issues/94 — **MEDIUM-HIGH**
-- feedback-assistant/reports #637 — request for a public Now Playing API (still open; confirms no stable alternative): https://github.com/feedback-assistant/reports/issues/637 — **MEDIUM-HIGH**
-- TheBoringNotch issue #396 — notch does not disappear on fullscreen: https://github.com/TheBoredTeam/boring.notch/issues/396 — **HIGH** (real domain bug)
-- TheBoringNotch issue #803 — not hiding in full screen (entire screen): https://github.com/TheBoredTeam/boring.notch/issues/803 — **HIGH**
-- TheBoringNotch issue #426 — notch shouldn't show in Quick Look full screen: https://github.com/TheBoredTeam/boring.notch/issues/426 — **HIGH**
-- TheBoringNotch issue #313 / #749 — hide on non-notch display / island on wrong (second) screen: https://github.com/TheBoredTeam/boring.notch/issues/313 — **HIGH**
-- Apple — Resolving common notarization issues (hardened runtime, nested signing, `--deep` discouraged): https://developer.apple.com/documentation/security/resolving-common-notarization-issues — **HIGH**
-- Apple — Signing Mac software with Developer ID: https://developer.apple.com/developer-id/ — **HIGH**
-- rsms — macOS distribution: code signing, notarization, quarantine (sign bottom-up, avoid `--deep`): https://gist.github.com/rsms/929c9c2fec231f0cf843a1a746a416f5 — **MEDIUM-HIGH**
-- Apple — `NSScreen.safeAreaInsets` / `auxiliaryTopLeftArea`: https://developer.apple.com/documentation/appkit/nsscreen/safeareainsets — **HIGH**
-- The Swift Den — `safeAreaInsets`/menu-bar height mismatch (32 vs 36) coordinate gotcha: https://www.answeroverflow.com/m/1145112887048810606 — **MEDIUM**
-- nilcoalescing — launch-at-login with SMAppService: https://nilcoalescing.com/blog/LaunchAtLoginSetting/ — **MEDIUM-HIGH**
-- robinebers/openusage issue #607 — confusing "App Background Activity" alert on SMAppService auto-start: https://github.com/robinebers/openusage/issues/607 — **MEDIUM**
-- Michael Tsai / Recoursive — resetting TCC, permissions tied to signature, reset on reboot: https://mjtsai.com/blog/2023/02/09/resetting-tcc/ — **MEDIUM**
+- Faisal Bin Ahmed, "All the wrong ways to persist in-app purchase status in your macOS app" (Medium) — MEDIUM, corroborates UserDefaults-vs-Keychain persistence distinction: https://medium.com/@Faisalbin/all-the-wrong-ways-to-persist-in-app-purchase-status-in-your-macos-app-ce6eb9bcb0c3
+- Apple Developer Forums thread on iOS Keychain auto-delete behavior (confirms iOS/macOS keychain lifecycle differs from app lifecycle) — MEDIUM-HIGH: https://developer.apple.com/forums/thread/36442
+- Polar.sh official docs — License Keys feature overview: https://polar.sh/docs/features/benefits/license-keys — MEDIUM (confirms activate/validate split and activation-limit/machine-binding conditions; does not document rate limits or offline guidance explicitly)
+- Polar.sh API reference — Validate License Key endpoint (existence/shape confirmed; full error taxonomy not retrievable via automated fetch) — LOW-MEDIUM: https://docs.polar.sh/api-reference/customer-portal/license-keys/validate
+- Stanislav Katkov, "Software License management with Polar.sh" — real-world Go implementation notes on local license-file caching pattern (hash, activation_id, next_check_time) — MEDIUM: https://skatkov.com/posts/2025-05-11-software-license-management-for-dummies
+- Keygen.sh, "How to Implement an Offline Licensing Model" — general offline-licensing/grace-period industry pattern — MEDIUM: https://keygen.sh/docs/choosing-a-licensing-model/offline-licenses/
+- Apple Developer Documentation, "Resolving common notarization issues" — HIGH, official: https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues
+- Apple Support, "Gatekeeper and runtime protection in macOS" — confirms notarization = automated malware/signature scan, not behavior review — HIGH: https://support.apple.com/guide/security/gatekeeper-and-runtime-protection-sec5599b66df/web
+- AppleInsider, "Malware bypassed macOS Gatekeeper by abusing Apple's notarization process" (Dec 2025) — MEDIUM, illustrates notarization's scope/limits and that it doesn't inspect runtime behavior deeply, relevant context for the "does spawning perl risk rejection" question: https://appleinsider.com/articles/25/12/23/malware-bypassed-macos-gatekeeper-by-abusing-apples-notarization-proccess
+- Keystroke Countdown, "Signing Embedded Frameworks in an Embedded Framework" — practical nested-framework signing guidance — MEDIUM: https://keystrokecountdown.com/articles/signing/index.html
+- `codesign` man page / community guidance on `--deep` being "almost never what you want" for complex bundles — HIGH (documented tool behavior): https://real-world-systems.com/docs/codesign.1.html
+- Medium, Davion, "Framework in another framework in terms of code signing" — nested code-signature reference behavior — MEDIUM: https://medium.com/@davion/framework-in-another-framework-in-terms-of-code-signing-d9a78be51798
+- Apple Developer Documentation, `LSUIElement` / Launch Services Keys — confirms agent-app behavior (no Dock icon, no automatic focus) — HIGH: https://developer.apple.com/documentation/bundleresources/information-property-list/lsuielement
+- codestudy.net, "How to Make NSAlert the Topmost Window in macOS Menu Bar Apps (LSUIElement)" — corroborates focus/activation friction for agent apps — MEDIUM: https://www.codestudy.net/blog/make-a-nsalert-the-topmost-window/
+- Project's own existing research (CLAUDE.md) — MediaRemote/mediaremote-adapter architecture, notarization-vs-App-Store-review distinction already established for this project — HIGH (primary project source)
 
 ---
-*Pitfalls research for: native macOS notch / Dynamic Island utility app*
-*Researched: 2026-06-26*
+*Pitfalls research for: Adding trial/licensing (Polar.sh) + real notarization to an existing shipped macOS app (Islet)*
+*Researched: 2026-07-05*
