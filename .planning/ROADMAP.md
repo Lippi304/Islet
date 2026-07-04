@@ -81,14 +81,21 @@ Plans:
   1. On-device, entering native fullscreen (green-button, menu bar, video app, at minimum) shows zero visible island flash during or after the transition, across repeated trials.
   2. The fix is a genuine root-cause elimination, not a best-effort/partial reduction.
   3. Existing fullscreen behavior is not regressed: the island still hides for the duration of fullscreen and still restores correctly on exit.
-**Plans**: 0 plans (not yet planned)
+**Plans**: 5 plans across 5 waves — a conditional continuation chain (each wave executes only if
+the prior wave's on-device checkpoint recorded the matching outcome; the chain may terminate early
+at any wave once FS-01 is resolved)
 
-**Candidates to investigate (found via research of comparable open-source Dynamic-Island clones, GitHub):**
-- **Candidate C (prioritized)** — Window/Space architecture change: replace the panel's `.canJoinAllSpaces` NSWindow collection behavior with a dedicated private CGS Space created at the maximum absolute level (`CGSSpaceCreate` + `CGSSpaceSetAbsoluteLevel(level: Int32.max)`, membership managed via `CGSAddWindowsToSpaces`/`CGSRemoveWindowsFromSpaces`) — mirrors the technique found in `Ebullioscopic/Atoll`'s `NotchSpaceManager`/`CGSSpace.swift` (fork lineage of `TheBoredTeam/boring.notch`). Targets Phase 2's original root-cause diagnosis structurally: `.canJoinAllSpaces` auto-joins the panel onto every newly-created Space (including a just-activated fullscreen Space), compositing it there for ~1 frame before reactive hide code can run. A dedicated max-level Space has no per-Space auto-join event to race against. Needs on-device verification that it (a) actually eliminates the flash, (b) doesn't regress hide-during-fullscreen/restore-on-exit, (c) doesn't cause the panel to visibly show above fullscreen content when it should stay hidden.
-- **Candidate B (fallback)** — `SLSManagedDisplayIsAnimating` poll + fullscreen-vs-ordinary-Space-switch disambiguator (full design in `08-ESCALATION.md`'s "Untried Fallback" section). Requires a new `project.yml` `SkyLight.framework` linker setting and a `CVDisplayLink`-driven poll.
+**Candidates investigated (found via research of comparable open-source Dynamic-Island clones, GitHub):**
+- **Candidate C (prioritized, Waves 1-2)** — Window/Space architecture change: a dedicated private CGS Space created at the maximum absolute level (`CGSSpaceCreate` + `CGSSpaceSetAbsoluteLevel(level: Int32.max)`, membership managed via `CGSAddWindowsToSpaces`/`CGSRemoveWindowsFromSpaces`/`CGSHideSpaces`/`CGSShowSpaces`/`CGSSpaceDestroy` — 7 symbols + connection lookup per the D-02 amendment) — mirrors the technique found in `Ebullioscopic/Atoll`'s `NotchSpaceManager`/`CGSSpace.swift` (fork lineage of `TheBoredTeam/boring.notch`). Attempted additively first (Wave 1, `.canJoinAllSpaces` unchanged — the only combination with shipping precedent), then as a replace variant (Wave 2, `.canJoinAllSpaces` removed) if the additive attempt alone doesn't close the flash.
+- **Candidate B (fallback, Wave 4)** — `SLSManagedDisplayIsAnimating` poll + fullscreen-vs-ordinary-Space-switch disambiguator (full design in `08-ESCALATION.md`'s "Untried Fallback" section), fed through a bounded `pendingFullscreenTransition` flag into `FullscreenDetector.shouldShow(...)`. Requires the `project.yml` `SkyLight.framework` linker setting and a `CVDisplayLink`-driven poll (Wave 3 prepares this after reverting Candidate C).
+- **Final escalation (Wave 5)** — if both candidates fail, a report limited to exactly two options (accept as permanent technical debt, or formally descope FS-01) per D-05 — no further candidate investigation.
 
 Plans:
-- [ ] TBD (run `/gsd-plan-phase 9` to break down)
+- [ ] 09-01-PLAN.md — Wave 1: Candidate C additive (CGSSpace.swift + one-time Space-join) + on-device checkpoint
+- [ ] 09-02-PLAN.md — Wave 2 (only if 09-01 = option-continue): Candidate C replace variant (.canJoinAllSpaces removed) + on-device checkpoint
+- [ ] 09-03-PLAN.md — Wave 3 (only if 09-02 = option-proceed-to-b): revert Candidate C + prepare Candidate B's SkyLight.framework linker settings
+- [ ] 09-04-PLAN.md — Wave 4 (only if 09-03 ran): Candidate B (CVDisplayLink poll + disambiguator + pendingFullscreenTransition) + on-device checkpoint
+- [ ] 09-05-PLAN.md — Wave 5 (only if 09-04 = option-escalate): revert Candidate B + final 2-option escalation report
 
 ## Progress
 
@@ -100,4 +107,4 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Now Playing Progress Bar | 1/1 | Complete   | 2026-07-03 |
 | 8. Fullscreen-Enter Flash Elimination | 2/3 | Escalated (08-02 correctly skipped) | 2026-07-04 |
-| 9. Fullscreen-Enter Flash — Window/Space Architecture Retry | 0/0 | Not planned | - |
+| 9. Fullscreen-Enter Flash — Window/Space Architecture Retry | 0/5 | Planned (conditional chain — may terminate early) | - |
