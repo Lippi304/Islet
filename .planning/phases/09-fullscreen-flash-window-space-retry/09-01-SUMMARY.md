@@ -31,28 +31,29 @@ key-decisions:
 patterns-established:
   - "Private CGS Space symbol bindings mirror FullscreenSpaceProbe.swift's @_silgen_name convention but keep a fully self-contained (UInt-typed) connection-ID binding to avoid an ABI mismatch with the existing Int32-typed CGSMainConnectionID"
 
-requirements-completed: []  # FS-01 NOT yet closed — Task 3 (on-device decision) is unexecuted; see below.
+requirements-completed: [FS-01]
 
-duration: ~45min (Tasks 1-2 only; Task 3 requires on-device human verification)
+duration: ~45min (Tasks 1-2) + on-device verification (Task 3, user-run)
 completed: 2026-07-04
 ---
 
-# Phase 9 Plan 1: Additive CGS Space (Candidate C) — Tasks 1-2 complete, Task 3 checkpoint pending
+# Phase 9 Plan 1: Additive CGS Space (Candidate C) — FS-01 resolved, option-accept
 
-**Added a dedicated max-level private CGS Space (`Islet/Notch/CGSSpace.swift`) that the notch panel now joins once at creation, layered alongside its unchanged `.canJoinAllSpaces` collection behavior — the structural fix targeting the fullscreen-enter flash's root cause (per-Space auto-join race). On-device verification (Task 3) has NOT been run and could not be fabricated; this plan is PAUSED at a checkpoint:decision.**
+**Added a dedicated max-level private CGS Space (`Islet/Notch/CGSSpace.swift`) that the notch panel now joins once at creation, layered alongside its unchanged `.canJoinAllSpaces` collection behavior — the structural fix targeting the fullscreen-enter flash's root cause (per-Space auto-join race). On-device verification (Task 3) confirms the flash is completely eliminated across all 3 trigger methods with zero regressions across the full 8-item checklist. Decision: option-accept — FS-01 is resolved by this plan alone; plans 09-02 through 09-05 do not execute.**
 
 ## Performance
 
-- **Duration:** ~45 min (Tasks 1-2)
+- **Duration:** ~45 min (Tasks 1-2) + on-device verification session (Task 3, user-run on real notch hardware)
 - **Started:** 2026-07-04T13:23:00Z (approx, worktree agent spawn)
-- **Completed:** N/A — plan paused at Task 3 checkpoint
-- **Tasks:** 2 of 3 completed (Task 3 is an on-device checkpoint:decision, `autonomous: false`)
+- **Completed:** 2026-07-04 (Task 3 decision recorded)
+- **Tasks:** 3 of 3 completed (Task 3 is an on-device checkpoint:decision, `autonomous: false` — executed by the user, decision relayed to and recorded by this continuation agent)
 - **Files modified:** 3 (1 created, 2 modified)
 
 ## Accomplishments
 - `Islet/Notch/CGSSpace.swift` — the verbatim, verified-against-two-shipping-implementations CGS Space wrapper (7 named private symbols + `_CGSDefaultConnection`, the D-02 amendment's exact ceiling)
 - `NotchWindowController` joins the panel to a dedicated `Int32.max`-level Space exactly once, at panel construction — `NotchPanel.collectionBehavior` (`.canJoinAllSpaces`/`.fullScreenAuxiliary`/`.stationary`) is byte-for-byte unchanged
 - `xcodebuild build -scheme Islet` succeeds with zero errors after both tasks
+- **On-device verification (Task 3) confirms the fullscreen-enter flash is completely gone** across all 3 D-07 trigger methods, with zero regressions across the full 8-item checklist — FS-01 is resolved by this plan alone (option-accept)
 
 ## Task Commits
 
@@ -61,8 +62,9 @@ Each task was committed atomically:
 1. **Task 1: Create the CGSSpace private-symbol wrapper** - `f61c212` (feat)
 2. **Task 2: Wire the additive CGSSpace into NotchWindowController** - `b3abac5` (feat)
 3. **(docs) Log pre-existing test-hang as out of scope** - `e8670b4` (docs)
+4. **(docs) Add partial SUMMARY, Tasks 1-2 complete, Task 3 checkpoint pending** - `bf39457` (docs)
 
-**Task 3 (checkpoint:decision, on-device):** NOT executed — see Checkpoint below.
+**Task 3 (checkpoint:decision, on-device):** Executed by the user on real notch hardware; decision **option-accept** — see "Task 3: On-Device Verification" below.
 
 ## Files Created/Modified
 - `Islet/Notch/CGSSpace.swift` - new; the 7-symbol + connection-lookup CGS Space wrapper (create/destroy/level/show/hide/add-to-space/remove-from-space)
@@ -97,31 +99,61 @@ Each task was committed atomically:
 
 None - no external service configuration required.
 
-## CHECKPOINT — Task 3 not executed (on-device, autonomous: false)
+## Task 3: On-Device Verification — Decision: option-accept
 
-Task 3 is a `checkpoint:decision` gated on a full on-device regression + flash-elimination
-checklist (D-03 core-behavior suite + D-07 trigger matrix + Pitfall 3 lock/sleep check) that
-only real notch hardware can exercise. This plan's frontmatter sets `autonomous: false`
-specifically for this reason. No on-device testing was performed or fabricated — see the
-orchestrator-facing checkpoint response for the full resume instructions.
+Task 3 (`checkpoint:decision`, `autonomous: false`) required real notch hardware and was run by
+the user directly, outside this agent session. Results were reported to the orchestrator and
+relayed here for the record.
+
+**Flash check (D-07 trigger matrix, 3 methods x 3 trials each):** PASS for all three —
+green-button click, menu-bar "Enter Full Screen", and a fullscreen video app. The user reported
+the flash is "komplett weg" (completely gone) across every method tested, with repeated trials
+per method.
+
+**Full on-device regression checklist (8 items, D-03 core-behavior suite + D-07 trigger matrix +
+Pitfall 3):** PASS — confirmed by user, no issues reported. The user explicitly confirmed all
+items were tested ("ja alles mitgetestet") and, when asked directly whether anything was
+unremarkable/fine, confirmed no problems were found. Per the plan's evidence granularity, this is
+recorded as "confirmed by user, no regressions reported" for each item rather than fabricated
+per-item pass/fail detail beyond what was actually reported:
+
+1. Flash check (3 trigger methods x repeated trials) — PASS, flash completely eliminated
+2. Hover/click-expand without focus steal — PASS, no issues reported
+3. Click-through outside the pill while collapsed — PASS, no issues reported
+4. Visibility across multiple (2+) ordinary Spaces — PASS, no issues reported
+5. Positioning through display/clamshell changes — PASS, no issues reported
+6. Fullscreen hide-during/restore-on-exit (all 3 trigger methods) — PASS, no issues reported
+7. Ordinary (non-fullscreen) Space switch — PASS, no issues reported
+8. Lock-screen / sleep-wake (Pitfall 3) — PASS, no issues reported
+
+**Zero regressions found.** Per D-04, this clears the bar for option-accept without requiring any
+further code changes in this plan.
+
+**Decision: option-accept.** The additive/layered Candidate C (dedicated max-level CGSSpace,
+`collectionBehavior` unchanged) eliminates the fullscreen-enter island flash with zero
+regressions. **FS-01 is resolved by this plan (Wave 1) alone.** Plans 09-02 through 09-05 —
+the `.canJoinAllSpaces`-removal variant and further escalation candidates — do NOT execute; the
+phase's conditional chain terminates here. (Their own Task-0 guards would have no-op'd them
+regardless, since they are gated on option-continue.)
 
 ## Next Phase Readiness
-- Tasks 1-2's code changes are complete, committed, and build-clean. They are ready for
-  on-device evaluation exactly as Task 3 specifies.
-- FS-01 remains OPEN until Task 3's on-device decision (option-accept or option-continue) is
-  recorded with the full 8-item checklist evidence. Per D-06, option-continue would
-  automatically authorize proceeding to 09-02 (the `.canJoinAllSpaces`-removal variant) — no
-  separate checkpoint is needed for that continuation.
+- FS-01 is CLOSED. Tasks 1-3 are all complete: the additive CGSSpace code is committed and
+  build-clean, and the on-device decision (option-accept) is recorded with full checklist
+  evidence above.
+- Phase 09's conditional chain (09-02 through 09-05) does not execute — no further plans in this
+  phase are needed.
 - The pre-existing `BluetoothMonitor` test-hang (deferred-items.md) is unrelated to FS-01 and
-  does not block Task 3's on-device work, but is worth surfacing at `/gsd:verify-work 9` since
-  it currently makes `xcodebuild test` unusable from any non-interactive/sandboxed environment.
+  remains a separately-tracked issue, worth surfacing at `/gsd:verify-work 9` since it currently
+  makes `xcodebuild test` unusable from any non-interactive/sandboxed environment.
 
 ---
 *Phase: 09-fullscreen-flash-window-space-retry*
-*Completed: PARTIAL — Tasks 1-2 only, 2026-07-04*
+*Completed: 2026-07-04*
 
 ## Self-Check: PASSED
 - FOUND: Islet/Notch/CGSSpace.swift
 - FOUND commit f61c212 (Task 1)
 - FOUND commit b3abac5 (Task 2)
 - FOUND commit e8670b4 (docs: deferred-items)
+- FOUND commit bf39457 (docs: partial summary)
+- FOUND Task 3 decision: option-accept, recorded with full 8-item checklist evidence and 3-method flash-check evidence per plan's resume-signal requirement
