@@ -146,6 +146,8 @@ Items acknowledged and deferred at milestone close on 2026-07-02:
 
 Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening), unrelated to Phase 6 gap-closure work this session. Not blocking v1.0 close per user decision — revisit before v1.1 planning or run `/gsd:verify-work 2` to close out.
 
+**Re-acknowledged at v1.0.1 milestone close on 2026-07-04:** same Phase 2 items above are still open (unchanged since v1.0 close) — carried over again, not new debt from Phases 7-9. Still recommended: revisit before v1.1 planning or run `/gsd:verify-work 2`.
+
 ## Session Continuity
 
 Last session: 2026-07-04T01:59:07.558Z

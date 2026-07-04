@@ -12,15 +12,13 @@ It is for Mac users who love the iPhone Dynamic Island and want it on their MacB
 
 The notch becomes a beautiful, reliable "island" that shows now-playing media and reacts when you plug in the charger or connect a device — it must feel native, smooth, and as polished as the iPhone Dynamic Island. If everything else is cut, that core island experience must work.
 
-## Current Milestone: v1.0.1 Pre-Release Polish
+## Current State
 
-**Goal:** Close the two remaining polish gaps before Islet's first real release — a Now Playing progress bar and eliminating the fullscreen-enter flash.
+**v1.0.1 Pre-Release Polish shipped 2026-07-04** (Phases 7-9, see `.planning/milestones/v1.0.1-ROADMAP.md`). Both target features landed: a display-only Now Playing progress bar (PBAR-01) and a genuine root-cause fix for the fullscreen-enter island flash (FS-01, via a dedicated max-level CGS Space). The app has still not been publicly released — no Apple Developer account purchased yet, so notarized distribution remains the next real-release blocker, not a v1.1 feature question.
 
-**Target features:**
-- Now Playing progress/seek bar — display-only (elapsed time / total duration / playback position), expanded view only, no drag-to-seek
-- Fullscreen-enter flash fix — fresh root-cause investigation for alternative detection signals (v1.0's diagnosis found no viable app-layer fix using the reactive `orderOut` approach)
+## Next Milestone Goals
 
-**Why v1.0.1, not v1.1:** The app has not been publicly released yet — user's explicit call to keep continuing under the v1.0 line rather than bump to v1.1 until an actual release happens. Rest of the v1.0 backlog (file shelf, HUDs, timer, real notarization) stays deferred.
+Scope not yet defined — run `/gsd-new-milestone` to start requirements definition (fresh questioning → research → requirements → roadmap). Candidates carried from the v1.0/v1.0.1 backlog (see ROADMAP.md's v1.1 Backlog section for the full list): file shelf, system HUDs, timer, real Developer-ID notarization, Phase 2's 8 remaining on-device UAT scenarios, and the CR-01 CGS-Space-leak-on-quit follow-up from Phase 9.
 
 ## Requirements
 
@@ -106,10 +104,13 @@ _v1.0 core feature set is code-complete and fully human-verified — all 4 on-de
 - **Design north star:** A mix of both — as polished as Alcove, as functional/tidy as DynamicLake.
 - **Setup status:** MacBook with notch + Xcode already installed. No Apple Developer account yet (only needed later for notarization/selling).
 - **v1.0 codebase state (shipped 2026-07-02):** ~4,500 LOC Swift across 7 phases (176 files touched total), 131 passing unit tests (`IsletTests`). Every threat register across the project's plans is dispositioned (mitigate/accept), verified in `06-SECURITY.md`.
+- **v1.0.1 codebase state (shipped 2026-07-04):** +2 phases, 141 passing unit tests (`IsletTests`, up from 131). The fullscreen-enter island flash — previously accepted as permanent window-server-timing debt — is now genuinely fixed via a dedicated CGS Space (Phase 9).
 - **Known technical debt carried into v1.1 planning:**
   - Four non-blocking code-review findings from `06-REVIEW.md`: inconsistent charging/device wing accent-tinting (WR-01), accent-change view-tree rehost breaking `matchedGeometryEffect` continuity (WR-02), a missing `withAnimation` wrapper on the Now-Playing health-check callback (WR-03), and a low-probability `BluetoothMonitor` data race (WR-04).
-  - A ~1-frame island flash at the end of the fullscreen-ENTER transition — root-caused since Phase 2, confirmed not fixable at the application layer (window-server compositor timing), accepted as permanent polish debt.
-  - Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised — pre-existing, unrelated to v1.0's Phase 6 close; tracked in `STATE.md` Deferred Items.
+  - CR-01 (Phase 9): the new dedicated CGS Space leaks in WindowServer on every normal app quit — `AppDelegate.quit()` calls `NSApp.terminate(nil)` without tearing down `NotchWindowController`, so its `deinit` (and the Space's `CGSHideSpaces`/`CGSSpaceDestroy` teardown) never runs. Non-blocking; recommended fix via `/gsd-quick` before shipping.
+  - WR-01/WR-02 (Phase 9, info): `CGSSpace.swift` has no validation of CGS private-API return values, and assumes an `Int`/`Int32` width fits `CGSSpaceSetAbsoluteLevel`'s one passed value. Low severity.
+  - Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised — pre-existing, unrelated to v1.0/v1.0.1 close; tracked in `STATE.md` Deferred Items.
+  - Pre-existing (v1.0-era): `xcodebuild test` hangs in non-interactive/sandboxed environments due to a Bluetooth TCC-authorization wait in `BluetoothMonitor`. Logged in `.planning/phases/09-fullscreen-flash-window-space-retry/deferred-items.md`.
 
 ## Constraints
 
@@ -140,6 +141,9 @@ _v1.0 core feature set is code-complete and fully human-verified — all 4 on-de
 | Phase 5 (device-connected activity) scope folded into Phase 6 rather than executed standalone | Phase 6's priority-resolver work needed the device input anyway; building it once inside Phase 6 avoided rework | ✓ v1.0 shipped — DEV-01/DEV-02 delivered via 06-02/06-04; Phase 5 formally marked superseded |
 | Single pure `IslandResolver` (ranked reduce) + bounded `TransientQueue` as the ONE arbiter for all activity priority | Prevents scattered if-chains across the view/controller layer; keeps priority logic testable in isolation | ✓ Phase 6 — 14+ unit tests, WR-1/WR-2 defects found and closed in gap-closure |
 | Real Developer-ID notarization deferred until a paid Apple Developer account exists ($99/yr) | Explicit budget constraint (CLAUDE.md); dry-run pipeline proves the mechanics without the cost | Accepted, formally overridden in `06-VERIFICATION.md` — revisit before any public v1.0 release |
+| FS-01 scoped as a full root-cause elimination, not a best-effort/partial reduction | v1.0's reactive `orderOut` approach was already confirmed insufficient; a partial mitigation would just re-accumulate the same polish debt | ✓ Phase 9 — Phase 8's candidate disproven and honestly escalated rather than shipping a partial fix; Phase 9 achieved a genuine fix |
+| Phase 9's Candidate C (dedicated max-level CGS Space) implemented as ADDITIVE, not a replacement of `.canJoinAllSpaces` | The only variant with real shipping precedent in researched reference apps (`Ebullioscopic/Atoll`, `TheBoredTeam/boring.notch`); removing `.canJoinAllSpaces` deferred as a separate, never-combined follow-up | ✓ Phase 9 — resolved FS-01 on the first wave, zero regressions on-device |
+| v1.0.1 (not v1.1) for the progress-bar + flash-fix milestone | App not yet publicly released — continuing under the v1.0 line rather than bumping to v1.1 until an actual release happens | ✓ Shipped 2026-07-04 — next milestone now free to become v1.1 |
 
 ## Evolution
 
@@ -159,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-04 — Phase 9 (Fullscreen-Enter Flash — Window/Space Architecture Retry, FS-01) complete. Both v1.0.1 target features (PBAR-01, FS-01) are now validated; run `/gsd-complete-milestone` when ready to close v1.0.1.*
+*Last updated: 2026-07-04 after v1.0.1 milestone close.*

@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.0.1 Pre-Release Polish (Shipped: 2026-07-04)
+
+**Phases completed:** 3 phases, 9 plans (4 executed with code, 4 conditional no-ops, 1 precondition-skipped)
+
+**Known deferred items at close:** 3 (see STATE.md Deferred Items — pre-existing Phase 2 UAT/verification gaps, carried over unchanged from v1.0 close, unrelated to Phases 7-9)
+
+**Key accomplishments:**
+
+- Extended the Now Playing pure seam, monitor, and state to carry playback position, then rendered a display-only progress bar (accent-filled capsule track + m:ss labels) in the expanded island — gliding continuously while playing, frozen while paused, zero tap-to-seek.
+- On-device UAT caught a pause-transition backward-flash bug; fixed via a drift-corrected freeze estimate (`resolvePublishedPosition`), then closed a NaN/Infinity crash risk found in code review. 141/141 tests green, on-device re-verified and approved.
+- Built a DEBUG-only CGS event 106/107 timing probe and ran the on-device D-05 trigger matrix across all 3 fullscreen-entry methods — found the candidate signal never fires cross-process, disproving it with concrete on-device evidence rather than reasoning alone.
+- Reverted all exploratory Phase-8 code byte-for-byte and wrote a rigorous root-cause escalation report (`08-ESCALATION.md`), surfacing an explicit scope decision to the user rather than silently shipping a partial fix.
+- Added a dedicated max-level private CGS Space (`CGSSpace.swift`) that the notch panel joins once at creation, additive to the existing `.canJoinAllSpaces` behavior — eliminated the fullscreen-enter island flash entirely, confirmed on-device across all 3 trigger methods with zero regressions across an 8-item checklist.
+- One non-blocking follow-up (CR-01: the new CGS Space leaks in WindowServer on normal app quit) identified in code review and tracked as backlog rather than blocking the milestone.
+
+---
+
 ## v1.0 v1.0 MVP (Shipped: 2026-07-02)
 
 **Phases completed:** 7 phases, 34 plans, 55 tasks
