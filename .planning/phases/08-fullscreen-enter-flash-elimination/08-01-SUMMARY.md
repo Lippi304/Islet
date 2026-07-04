@@ -2,11 +2,11 @@
 phase: 08-fullscreen-enter-flash-elimination
 plan: 01
 subsystem: fullscreen-detection
-tags: [fullscreen, cgs, probe, wave-0, blocked]
-status: partial
+tags: [fullscreen, cgs, probe, wave-0, decided]
+status: complete
 dependency-graph:
   requires: []
-  provides: [FS-01-probe-instrumentation]
+  provides: [FS-01-probe-instrumentation, FS-01-wave0-decision]
   affects: [08-02-PLAN.md, 08-03-PLAN.md]
 tech-stack:
   added: []
@@ -17,10 +17,11 @@ key-files:
   modified:
     - Islet/Notch/FullscreenSpaceProbe.swift
     - Islet/Notch/NotchWindowController.swift
-decisions: []
+decisions:
+  - "option-c selected: CGS event 106/107 never fired for another process's real fullscreen transition across all three D-05 trigger methods (green-button, menu-bar, video app), 3 full enter/exit cycles observed via the existing activeSpaceDidChange/didActivateApplication signals and the isBuiltinDisplayInFullscreenSpace type flip (4/0). The candidate signal is disproven; escalation path (08-03-PLAN.md) is unblocked."
 metrics:
-  duration: "~20 min (Task 1 only; Task 2 not executed)"
-  completed: null
+  duration: "~20 min (Task 1) + on-device D-05 trigger matrix by user"
+  completed: true
 ---
 
 # Phase 8 Plan 01: FS-01 CGS Event 106/107 Timing Probe Summary
@@ -79,6 +80,58 @@ Task 2 (`type="checkpoint:decision" gate="blocking"`) requires a human to:
 This session has no access to physical notch hardware and cannot fabricate this evidence. No
 option was selected. Neither `08-02-PLAN.md` (fix path) nor `08-03-PLAN.md` (escalation path) is
 unblocked yet.
+
+## Task 2 — RESOLVED: option-c (Candidate A disproven)
+
+The user executed Task 2 on real notch hardware (Debug build run via Xcode, console output
+captured directly from Xcode's debug console — Console.app's default level filter was initially
+hiding the print-level output, confirmed to be a display-filter issue, not a missing-signal issue,
+via a sanity check on `didActivateApplication`/`activeSpaceDidChange` firing on ordinary app/Space
+switches before the real trigger matrix was run).
+
+**Trigger methods used:** all three — green-button click, menu-bar "Enter Full Screen", and a
+fullscreen video app. 3 full enter→exit cycles are visible in the captured evidence below.
+
+**Raw evidence (captured Xcode console output, 2026-07-04 session, UTC timestamps as printed):**
+
+```
+[FS-01 probe] didActivateApplication fired at 2026-07-04 01:07:54 +0000
+[ISL-05] builtin current-space type = 0
+[FS-01 probe] activeSpaceDidChange fired at 2026-07-04 01:07:56 +0000
+[ISL-05] builtin current-space type = 4        <- fullscreen entered (cycle 1)
+[FS-01 probe] activeSpaceDidChange fired at 2026-07-04 01:08:00 +0000
+[ISL-05] builtin current-space type = 0        <- fullscreen exited (cycle 1)
+[FS-01 probe] activeSpaceDidChange fired at 2026-07-04 01:08:06 +0000
+[ISL-05] builtin current-space type = 4        <- fullscreen entered (cycle 2)
+[FS-01 probe] activeSpaceDidChange fired at 2026-07-04 01:08:09 +0000
+[ISL-05] builtin current-space type = 0        <- fullscreen exited (cycle 2)
+[FS-01 probe] activeSpaceDidChange fired at 2026-07-04 01:08:11 +0000
+[ISL-05] builtin current-space type = 4        <- fullscreen entered (cycle 3)
+[FS-01 probe] activeSpaceDidChange fired at 2026-07-04 01:08:14 +0000
+[ISL-05] builtin current-space type = 0        <- fullscreen exited (cycle 3)
+[FS-01 probe] didActivateApplication fired at 2026-07-04 01:08:17 +0000
+[ISL-05] builtin current-space type = 0
+```
+
+**Finding:** across all 3 full enter/exit cycles spanning all three D-05 trigger methods, **not a
+single `[FS-01 probe] CGS event 106` or `CGS event 107` line appears anywhere in the captured
+output.** Only the pre-existing reactive signals (`activeSpaceDidChange`, `didActivateApplication`)
+fire, exactly as they did before this phase — confirmed via the existing
+`isBuiltinDisplayInFullscreenSpace` CGS-Spaces read (`[ISL-05] builtin current-space type`) flipping
+4↔0 in lockstep with each real transition. `CGSRegisterNotifyProc` registration itself did not
+error (no crash, no exception — the callback path is simply never invoked by WindowServer for these
+transitions).
+
+**User-confirmed:** the visible ~1-frame island flash **still occurs** on fullscreen entry across
+these trials — consistent with no proactive signal having closed the timing gap.
+
+**Decision: option-c — Candidate A disproven.** `CGSClientEnterFullscreen`/`CGSClientExitFullscreen`
+(106/107) do not fire for another process's real fullscreen transition (at least not observably via
+`CGSRegisterNotifyProc` in this un-sandboxed, non-Apple-bundle-id process — mirroring the
+Pitfall-2 concern RESEARCH.md flagged as a risk for this exact candidate). No timing advantage
+exists; the existing reactive signals remain the only observed source of truth. Per D-07, this
+phase's own on-device attempt at the one new candidate signal is exhausted — `08-03-PLAN.md` (the
+escalation path) is unblocked; `08-02-PLAN.md` (the fix path) MUST NOT execute.
 
 ## Deviations from Plan
 
