@@ -38,31 +38,6 @@ final class NotchWindowController {
     private var spaceObserver: NSObjectProtocol?
     private var appActivateObserver: NSObjectProtocol?
 
-    #if DEBUG
-    // Phase 8 / FS-01 Wave-0 probe (throwaway, DEBUG-only) — measures whether the private
-    // CGS notification pair CGSClientEnterFullscreen(106)/CGSClientExitFullscreen(107) fires
-    // for ANOTHER process's real fullscreen transition, and if so, how its timing compares to
-    // the existing activeSpaceDidChange/didActivateApplication reactive signals. This produces
-    // NO shipped behavior change — Wave 1 either promotes it or fully reverts it (never left
-    // half-in). Never compiled into Release.
-    //
-    // T-08-01: a raw CGS callback gives no main-thread guarantee, so the proc body ONLY hops
-    // via DispatchQueue.main.async before touching `self` — mirrors RESEARCH.md Pitfall 1.
-    // `nonisolated`: a @convention(c) closure can capture no context anyway, and this must be
-    // callable from the nonisolated `deinit` teardown (Swift deinit is never actor-isolated).
-    private nonisolated static let fullscreenProbeCallback: CGSNotifyProc = { type, userData, _, _ in
-        guard let userData else { return }
-        let controller = Unmanaged<NotchWindowController>.fromOpaque(userData).takeUnretainedValue()
-        DispatchQueue.main.async { controller.handleFullscreenProbeEvent(type: type) }
-    }
-
-    // T-08-02: the SAME opaque pointer is passed at CGSRegisterNotifyProc registration and at
-    // CGSRemoveNotifyProc teardown in deinit (use-after-free / dangling-pointer mitigation).
-    // `nonisolated`: deinit is never actor-isolated, so this must be readable from there too;
-    // it only derives a raw pointer from `self` and touches no other state.
-    private nonisolated(unsafe) lazy var probeContext = Unmanaged.passUnretained(self).toOpaque()
-    #endif
-
     // D-10 (ISL-05) — the SINGLE fullscreen-hide gating flag. Default true ships the hide.
     // Phase 6 (APP-03) will flip `let`→`var` and wire a preferences toggle to THIS property —
     // it is the only seam, so build NO preferences UI / stored-defaults read here.
@@ -281,31 +256,11 @@ final class NotchWindowController {
         spaceObserver = wc.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil, queue: .main
-        ) { [weak self] _ in
-            #if DEBUG
-            print("[FS-01 probe] activeSpaceDidChange fired at \(Date())")
-            #endif
-            self?.updateVisibility()
-        }
+        ) { [weak self] _ in self?.updateVisibility() }
         appActivateObserver = wc.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil, queue: .main
-        ) { [weak self] _ in
-            #if DEBUG
-            print("[FS-01 probe] didActivateApplication fired at \(Date())")
-            #endif
-            self?.updateVisibility()
-        }
-
-        #if DEBUG
-        // Phase 8 / FS-01 Wave-0 probe: register for the raw CGS event pair alongside the
-        // existing reactive signals above, so the on-device D-05 trigger matrix can compare
-        // 106/107's timing against activeSpaceDidChange/didActivateApplication in the same
-        // Console stream. D-01/D-02: private symbol binding / private notification
-        // subscription only — no dlopen of arbitrary frameworks, no system-binary patching.
-        CGSRegisterNotifyProc(Self.fullscreenProbeCallback, kCGSClientEnterFullscreen, probeContext)
-        CGSRegisterNotifyProc(Self.fullscreenProbeCallback, kCGSClientExitFullscreen, probeContext)
-        #endif
+        ) { [weak self] _ in self?.updateVisibility() }
 
         // Pattern 1 (focus-safe core): a GLOBAL monitor observes COPIES of .mouseMoved
         // events posted to OTHER apps — it never consumes them, never activates Islet, and
@@ -406,19 +361,6 @@ final class NotchWindowController {
     private func currentBuiltin() -> ScreenDescriptor? {
         NSScreen.screens.map { $0.descriptor }.first { $0.isBuiltin }
     }
-
-    #if DEBUG
-    // Phase 8 / FS-01 Wave-0 probe: fires on the main thread (hopped by the static
-    // fullscreenProbeCallback above) for every raw CGS 106/CGSClientEnterFullscreen or
-    // 107/CGSClientExitFullscreen event. Logs the raw type, the timestamp, and the LIVE
-    // isBuiltinDisplayInFullscreenSpace(...) read at that exact instant — this is the
-    // measurement that decides option-a (already-flipped) vs. option-b (bounded-flag design)
-    // in the Task-2 on-device checkpoint. No state is mutated; this is read-only diagnostics.
-    private func handleFullscreenProbeEvent(type: UInt32) {
-        let spaceFlipped = isBuiltinDisplayInFullscreenSpace(builtinUUID: currentBuiltin()?.uuid)
-        print("[FS-01 probe] CGS event \(type) at \(Date()) — isBuiltinDisplayInFullscreenSpace=\(spaceFlipped)")
-    }
-    #endif
 
     // MARK: - Phase 6: the single arbiter (resolver) + its render
 
@@ -1102,12 +1044,6 @@ final class NotchWindowController {
         let wc = NSWorkspace.shared.notificationCenter
         if let o = spaceObserver { wc.removeObserver(o) }
         if let o = appActivateObserver { wc.removeObserver(o) }
-        #if DEBUG
-        // Phase 8 / FS-01 Wave-0 probe (T-08-02): tear down with the EXACT same
-        // proc/type/userData triple used at registration in start().
-        CGSRemoveNotifyProc(Self.fullscreenProbeCallback, kCGSClientEnterFullscreen, probeContext)
-        CGSRemoveNotifyProc(Self.fullscreenProbeCallback, kCGSClientExitFullscreen, probeContext)
-        #endif
         // Phase 6 / APP-03: the UserDefaults toggle/accent observer lives on the DEFAULT center.
         if let o = defaultsObserver { NotificationCenter.default.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
