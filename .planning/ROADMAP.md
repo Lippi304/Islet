@@ -64,7 +64,11 @@ Plans:
   1. On-device, entering native fullscreen (tested across multiple trigger methods — green-button, menu bar, video apps, at minimum) shows zero visible island flash during or after the transition, across repeated trials.
   2. The fix is a genuine root-cause elimination using a detection/timing signal distinct from v1.0's reactive `orderOut` approach (which was already confirmed insufficient) — not a best-effort reduction.
   3. Existing fullscreen behavior is not regressed: the island still hides for the duration of fullscreen and still restores correctly on exit.
-**Plans**: TBD
+**Plans**: 3 plans (Wave 0 on-device probe gates two mutually exclusive Wave 1 plans — fix path or escalation path)
+Plans:
+- [ ] 08-01-PLAN.md — Wave 0: build DEBUG-only CGS event 106/107 timing probe, run on-device D-05 trigger matrix, record option-a/option-b/option-c decision
+- [ ] 08-02-PLAN.md — Wave 1 (fix path, only if 08-01 = option-a/option-b): wire the permanent proactive fullscreen-transition signal into updateVisibility(), extend tests, on-device UAT
+- [ ] 08-03-PLAN.md — Wave 1 (escalation path, only if 08-01 = option-c): revert exploratory code, write root-cause escalation report, surface scope decision to user
 
 **Investigation note:** FS-01 is scoped as a full elimination outcome (see REQUIREMENTS.md Out of Scope — partial mitigation is explicitly excluded). If on-device investigation during planning/execution finds the flash is genuinely not fixable at the application layer (window-server compositor timing, as v1.0's root-cause diagnosis suggested), the phase's terminal state is a documented escalation with root-cause evidence, surfaced to the user for an explicit scope decision — not a silent "good enough" ship.
 
@@ -77,4 +81,4 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 7. Now Playing Progress Bar | 1/1 | Complete   | 2026-07-03 |
-| 8. Fullscreen-Enter Flash Elimination | 0/TBD | Not started | - |
+| 8. Fullscreen-Enter Flash Elimination | 0/3 | Not started | - |
