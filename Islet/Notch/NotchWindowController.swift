@@ -30,6 +30,13 @@ final class NotchWindowController {
     private var panel: NotchPanel?
     private var observer: NSObjectProtocol?
 
+    // FS-01 (Phase 9, Candidate C, additive) — the dedicated max-level CGS Space the panel
+    // joins ALONGSIDE its unchanged `.canJoinAllSpaces` collectionBehavior (NotchPanel.swift is
+    // untouched by this). 2147483647 == Int32.max, matching both verified reference
+    // implementations. Owned directly here (not a separate singleton type) — this app has
+    // exactly one panel, per 09-CONTEXT.md's Claude's-Discretion allowance.
+    private let notchSpace = CGSSpace(level: 2147483647)
+
     // Pattern 6 (ISL-05) — fullscreen lives on its OWN Space, so entering/exiting true
     // fullscreen fires activeSpaceDidChange; didActivateApplication catches the fullscreen
     // kinds (fullscreen video / QuickLook) that may not take a dedicated Space (A6). Both
@@ -477,6 +484,10 @@ final class NotchWindowController {
             appliedAccentIndex = index
             panel.contentView = NSHostingView(rootView: makeRootView(accentIndex: index))
             self.panel = panel
+            // FS-01 (Candidate C, additive) — join the dedicated max-level Space exactly ONCE,
+            // here at panel creation (never re-synced per show/hide cycle, RESEARCH.md
+            // Anti-Patterns). collectionBehavior above is unaffected.
+            notchSpace.windows.insert(panel)
         }
         if panel.frame != panelFrame {
             panel.setFrame(panelFrame, display: true) // reposition for resolution / display changes
@@ -1066,5 +1077,9 @@ final class NotchWindowController {
         // pending D-06/D-07 dismiss. Mirrors the powerMonitor.stop() + dismissWorkItem discipline.
         nowPlayingMonitor?.stop()
         mediaDismissWorkItem?.cancel()
+
+        // FS-01 (Candidate C, additive): leave the dedicated max-level Space, mirroring the
+        // owner-driven teardown discipline above (powerMonitor/bluetoothMonitor/nowPlayingMonitor).
+        if let panel { notchSpace.windows.remove(panel) }
     }
 }
