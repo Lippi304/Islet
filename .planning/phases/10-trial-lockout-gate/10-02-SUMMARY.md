@@ -105,3 +105,6 @@ None - no external service configuration required. No new dependencies added.
 ---
 *Phase: 10-trial-lockout-gate*
 *Completed: 2026-07-05*
+
+## Self-Check: PASSED
+All 3 modified files verified present on disk; all 4 commits (67e282d, 3d8a92b, 8dfaccb, 0a99640) verified present in git log. Working tree clean.
