@@ -11,6 +11,14 @@ struct SettingsView: View {
     // ObservableObject. Values: .trial(daysRemaining:) | .trialExpired | .licensed.
     @State private var licenseStatus = LicenseState.shared.status
 
+    // D-04/D-05 — the activation state machine: idle (no status line) → validating
+    // (~1s, Activate disabled) → success/failure inline status. The seam is held as
+    // the PROTOCOL type (Plan 01) so Phase 12's PolarLicenseService is a one-line swap.
+    private enum ActivationPhase { case idle, validating, success, failure }
+    @State private var enteredKey = ""
+    @State private var activationPhase: ActivationPhase = .idle
+    private let licenseService: LicenseService = StubLicenseService()
+
     // APP-03 activity preferences — app-owned, so @AppStorage IS the source of
     // truth (D-09). All three default ON (D-06/D-07): `@AppStorage(key) var x =
     // true` returns `true` when the key is ABSENT, so a fresh install reads ON
@@ -125,10 +133,55 @@ struct SettingsView: View {
         }
     }
 
-    // Fleshed out in Task 2 (activation state machine). Placeholder for now so the
-    // trial/expired branches reference a single named subview.
+    // D-04/D-05 — license key entry + Activate. Activate is disabled while
+    // validating and when the trimmed field is empty (empty input is inert — no
+    // validation attempt, no status change). The field fills the Form width.
     @ViewBuilder private var licenseEntry: some View {
-        EmptyView()
+        TextField("Enter your license key", text: $enteredKey)
+            .frame(maxWidth: .infinity)
+        Button("Activate") { activate() }
+            .disabled(activationPhase == .validating
+                      || enteredKey.trimmingCharacters(in: .whitespaces).isEmpty)
+        statusLine
+    }
+
+    // D-04 — inline status line. Idle shows nothing; color is reserved for the
+    // terminal success/failure outcome only (validating stays neutral .secondary).
+    @ViewBuilder private var statusLine: some View {
+        switch activationPhase {
+        case .idle:
+            EmptyView()
+        case .validating:
+            Text("⟳ Validating…").foregroundStyle(.secondary)
+        case .success:
+            Text("✓ License activated").foregroundStyle(.green)
+        case .failure:
+            Text("✗ That key wasn't recognized.").foregroundStyle(.red)
+        }
+    }
+
+    // D-04/D-05 — drive the state machine. The service completes on the MAIN thread
+    // (Plan 01 contract), so @State/LicenseState are mutated directly without a hop.
+    private func activate() {
+        activationPhase = .validating
+        licenseService.activate(key: enteredKey) { result in
+            switch result {
+            case .success:
+                LicenseState.shared.sessionActivated = true
+                // TRIGGER ONLY (T-11-02): any defaults write fires the existing
+                // UserDefaults.didChangeNotification path — AppDelegate.licenseObserver
+                // + NotchWindowController.defaultsObserver → updateVisibility() — which
+                // re-reads isEntitled and live-unlocks the island (Phase 10 path, no
+                // second show/hide site). This nudge key is NEVER read as entitlement
+                // truth; entitlement lives in the in-memory sessionActivated.
+                UserDefaults.standard.set(Date().timeIntervalSince1970,
+                                          forKey: "license.activationNudge")
+                licenseStatus = .licensed
+                activationPhase = .success
+            case .failure:
+                activationPhase = .failure
+            }
+        }
     }
 
     static var versionString: String {
