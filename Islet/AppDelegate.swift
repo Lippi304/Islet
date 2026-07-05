@@ -181,6 +181,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func debugResetTrial() {
         UserDefaults.standard.removeObject(forKey: LicenseState.debugOverrideKey)
         TrialManager.shared.debugResetTrial()
+        // Gap closure (Plan 10-04 manual verification): a reset with no re-seed leaves
+        // trialStartDate() nil for the rest of the running process — the trial only
+        // "restarted" on the next actual app relaunch, not live. Re-recording here
+        // makes Reset Trial usable for on-device testing without quitting the app.
+        TrialManager.shared.recordFirstLaunchIfNeeded()
     }
     #endif
 }
