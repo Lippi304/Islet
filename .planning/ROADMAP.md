@@ -38,7 +38,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 **Milestone Goal:** Islet becomes a real, sellable product — a 3-day free trial, then a one-time €7.99 purchase via Polar.sh, enforced by a local license check, shipped as a genuinely Developer-ID-notarized build.
 
-- [ ] **Phase 10: Trial & Lockout Gate** - Silent 3-day trial with tamper-resistant Keychain persistence and a hard functionality lockout, proven against a stubbed license state
+- [x] **Phase 10: Trial & Lockout Gate** - Silent 3-day trial with tamper-resistant Keychain persistence and a hard functionality lockout, proven against a stubbed license state — completed 2026-07-05
 - [ ] **Phase 11: License Settings UI (Stubbed)** - Days-remaining, Buy Now, and license-entry UI in Settings, wired against a fake in-memory license service
 - [ ] **Phase 12: Real Polar.sh License Integration** - Swap the stub for a real `PolarLicenseService` — live checkout, online validation, offline-capable Keychain cache
 - [ ] **Phase 13: Real Notarization & Release** - Real Developer-ID sign → notarize → staple pipeline, replacing the v1.0 dry-run placeholders
@@ -58,7 +58,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
   4. With the trial expired and the stub license flagged invalid/absent, the island is fully locked — no pill, no activities, no expansion — until the stub flips to valid.
   5. Flipping the stub license from invalid to valid un-locks the island at the next natural UI transition, not as an abrupt mid-interaction yank.
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans executed — Phase complete 2026-07-05
 Plans:
 **Wave 1**
 
@@ -71,7 +71,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 10-04-PLAN.md — On-device manual verification (Keychain survival, DEBUG-inertness, non-abrupt lockout)
+- [x] 10-04-PLAN.md — On-device manual verification (Keychain survival, DEBUG-inertness, non-abrupt lockout)
 
 ### Phase 11: License Settings UI (Stubbed License Service)
 
@@ -125,7 +125,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 10. Trial & Lockout Gate | 3/4 | In Progress|  |
+| 10. Trial & Lockout Gate | 4/4 | Complete | 2026-07-05 |
 | 11. License Settings UI (Stubbed) | 0/TBD | Not started | - |
 | 12. Real Polar.sh License Integration | 0/TBD | Not started | - |
 | 13. Real Notarization & Release | 0/TBD | Not started | - |
