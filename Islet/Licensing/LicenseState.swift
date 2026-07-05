@@ -21,6 +21,13 @@ final class LicenseState {
 
     private init() {}
 
+    // Phase 11 / TRIAL-03 — in-memory session entitlement. Set to `true` by the
+    // SettingsView activate flow (Plan 02) after StubLicenseService returns `.success`.
+    // INTENTIONALLY NOT persisted to UserDefaults/Keychain this phase (T-11-02 / Pitfall 1):
+    // a stored bool is a trivially-flippable entitlement bypass, so the flag resets to
+    // `false` on every launch. Real persisted entitlement is Phase 12's concern.
+    var sessionActivated = false
+
     #if DEBUG
     static let debugOverrideKey = "debug.licenseOverride"
 
@@ -40,6 +47,11 @@ final class LicenseState {
             }
         }
         #endif
+
+        // TRIAL-03: in-memory session activation short-circuits to .licensed. Sits AFTER
+        // the DEBUG override (so forceExpired/forceLicensed still win in dev) and BEFORE the
+        // trial computation. `isEntitled` already maps `.licensed → true`, so no change there.
+        if sessionActivated { return .licensed }
 
         guard let start = TrialManager.shared.trialStartDate() else {
             // Should not happen after recordFirstLaunchIfNeeded() has run, but never
