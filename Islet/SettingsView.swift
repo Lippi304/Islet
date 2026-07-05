@@ -124,12 +124,11 @@ struct SettingsView: View {
         .frame(width: 360)
     }
 
-    // D-07: opens the placeholder purchase URL in the default browser. The real
-    // Polar.sh checkout URL is Phase 12; the URL is a hardcoded constant with no
-    // user input, so there is no injection surface (T-11-04).
+    // D-07: opens the purchase page in the default browser. The URL is a hardcoded
+    // constant with no user input, so there is no injection surface (T-11-04).
     private var buyNowButton: some View {
         Button("Buy Islet — €7.99") {
-            NSWorkspace.shared.open(URL(string: "https://getislet.app")!)
+            NSWorkspace.shared.open(URL(string: "https://lippi304.xyz/projects/islet/buy")!)
         }
     }
 
