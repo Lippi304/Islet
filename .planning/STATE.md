@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 Phase: 12
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-07-05
+Last activity: 2026-07-05 - Quick task 260705-l4i (idle-notch merge geometry) code-complete + merged; Release verify deferred behind a discovered Release-launch signing crash
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -106,6 +106,13 @@ None yet.
 - [Phase 13] Budget 2-3 notarization iteration cycles, not one-shot success — nested `MediaRemoteAdapter.framework` signing/entitlement mismatches are the most likely failure mode.
 - [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
 - [Carried, pre-existing] CR-01 (Phase 9): the dedicated CGS Space leaks in WindowServer on normal app quit (`AppDelegate.quit()` doesn't tear down `NotchWindowController`). Non-blocking, recommended fix via `/gsd-quick` before shipping v1.1.
+- **[BLOCKER — pre-Phase-13 / distribution] Release build crashes at launch.** First-ever Release build fails in `dyld`: embedded `MediaRemoteAdapter.framework` fails Library Validation under Hardened Runtime on macOS 26/27 (`different Team IDs`; app + framework both ad-hoc signed, no entitlements file exists). Blocks EVERY Release build and thus all on-device Release verification + distribution. Fix in progress via `/gsd-quick`: add an entitlements file with `com.apple.security.cs.disable-library-validation`, wire via `CODE_SIGN_ENTITLEMENTS`. Relates to the Phase-13 blocker above (`MediaRemoteAdapter.framework` signing/entitlement mismatch).
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260705-l4i | Idle-notch merge: data-drive collapsed pill size from measured notch (D-01) | 2026-07-05 | 52ee074 | Code-complete; Release verify deferred (blocked by Release-launch signing crash) | [260705-l4i-idle-notch-soll-unsichtbar-mit-der-hardw](./quick/260705-l4i-idle-notch-soll-unsichtbar-mit-der-hardw/) |
 
 ## Deferred Items
 
