@@ -1,8 +1,15 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @Environment(\.appearsActive) private var appearsActive   // refocus → re-sync
+
+    // TRIAL-03 / D-01 — the License section adapts to LicenseState.status. `status`
+    // is a plain computed property (NOT observable), so it is re-read into @State on
+    // appear and on refocus (Pitfall 4); LicenseState is intentionally NOT an
+    // ObservableObject. Values: .trial(daysRemaining:) | .trialExpired | .licensed.
+    @State private var licenseStatus = LicenseState.shared.status
 
     // APP-03 activity preferences — app-owned, so @AppStorage IS the source of
     // truth (D-09). All three default ON (D-06/D-07): `@AppStorage(key) var x =
@@ -16,15 +23,27 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            // TRIAL-02/D-02: a short, plain notice line — visible on every Settings
-            // open during an active trial. The "one-time" requirement is satisfied
-            // by AppDelegate's first-launch auto-open EVENT, not by hiding this
-            // line after the first render.
-            if let start = TrialManager.shared.trialStartDate() {
-                let expiry = start.addingTimeInterval(TrialManager.trialLength)
-                Text("Your 3-day trial started — ends \(expiry.formatted(date: .abbreviated, time: .omitted)).")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+            // D-01/D-02: the adaptive License section is the FIRST element in the
+            // Form, above Launch-at-login. Its body swaps on the current
+            // LicenseStatus — during an active trial it shows the days-remaining
+            // countdown (D-03/TRIAL-03) that REPLACES the old fixed end-date notice.
+            Section("License") {
+                switch licenseStatus {
+                case .trial(let days):
+                    Text(days == 1
+                         ? "1 day left in your trial."
+                         : "\(days) days left in your trial.")
+                        .foregroundStyle(.secondary)
+                    buyNowButton
+                    licenseEntry
+                case .trialExpired:
+                    Text("3-day trial period expired")
+                        .font(.headline)
+                    buyNowButton
+                    licenseEntry
+                case .licensed:
+                    Text("Licensed ✓")
+                }
             }
 
             Toggle("Launch Islet at login", isOn: $launchAtLogin)
@@ -83,12 +102,33 @@ struct SettingsView: View {
         // Settings behind the app's back, so the toggle must never desync
         // (RESEARCH Pitfall 3). `appearsActive` is the macOS env value for
         // "this window's app is the active app".
-        .onAppear { launchAtLogin = LaunchAtLogin.isEnabled }
+        .onAppear {
+            launchAtLogin = LaunchAtLogin.isEnabled
+            licenseStatus = LicenseState.shared.status
+        }
         .onChange(of: appearsActive) { _, active in
-            if active { launchAtLogin = LaunchAtLogin.isEnabled }
+            if active {
+                launchAtLogin = LaunchAtLogin.isEnabled
+                licenseStatus = LicenseState.shared.status
+            }
         }
         .padding(20)
         .frame(width: 360)
+    }
+
+    // D-07: opens the placeholder purchase URL in the default browser. The real
+    // Polar.sh checkout URL is Phase 12; the URL is a hardcoded constant with no
+    // user input, so there is no injection surface (T-11-04).
+    private var buyNowButton: some View {
+        Button("Buy Islet — €7.99") {
+            NSWorkspace.shared.open(URL(string: "https://getislet.app")!)
+        }
+    }
+
+    // Fleshed out in Task 2 (activation state machine). Placeholder for now so the
+    // trial/expired branches reference a single named subview.
+    @ViewBuilder private var licenseEntry: some View {
+        EmptyView()
     }
 
     static var versionString: String {
