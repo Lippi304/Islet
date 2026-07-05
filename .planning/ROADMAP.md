@@ -85,12 +85,12 @@ Plans:
   3. User can paste a key into a license field and click Activate, observing idle → validating → success/failure state transitions driven by a fake stub `LicenseService`.
   4. The Settings window (and its License section) stays one click away from the menu-bar icon at all times, even though Islet has no Dock icon or main window.
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 
 **Wave 1**
 
-- [ ] 11-01-PLAN.md — LicenseService stub seam + in-memory session entitlement + Wave 0 async tests (LicenseService, LicenseState.sessionActivated, LicenseServiceTests)
+- [x] 11-01-PLAN.md — LicenseService stub seam + in-memory session entitlement + Wave 0 async tests (LicenseService, LicenseState.sessionActivated, LicenseServiceTests)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -136,6 +136,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 10. Trial & Lockout Gate | 4/4 | Complete | 2026-07-05 |
-| 11. License Settings UI (Stubbed) | 0/2 | Planned | - |
+| 11. License Settings UI (Stubbed) | 1/2 | In Progress|  |
 | 12. Real Polar.sh License Integration | 0/TBD | Not started | - |
 | 13. Real Notarization & Release | 0/TBD | Not started | - |
