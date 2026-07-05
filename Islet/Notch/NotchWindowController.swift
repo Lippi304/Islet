@@ -509,6 +509,18 @@ final class NotchWindowController {
                                               widthFudge: 4)
         else { return }
 
+        // D-01 — publish the VISIBLE collapsed pill size from the SAME measured notch, but
+        // UNFUDGED (widthFudge: 0 == exactly the cutout macOS reports). The fudge split is
+        // deliberate: the transparent WINDOW / hot-zone above keeps its 4pt overlap so the
+        // morph coverage + pointer target sit seamlessly over the hardware edges, while the
+        // black pill uses the unfudged size so no black spills past the physical notch — a
+        // clean idle merge. nil (non-notch / degenerate) leaves the view on its 200x38 fallback.
+        interaction.collapsedNotchSize = notchSize(screenWidth: target.frame.width,
+                                                   safeAreaTop: target.safeAreaTop,
+                                                   auxLeftWidth: target.auxLeftWidth,
+                                                   auxRightWidth: target.auxRightWidth,
+                                                   widthFudge: 0)
+
         // Pattern 4 / Pitfall 4: size the PANEL to the EXPANDED frame UP FRONT (the extra
         // area is transparent → invisible) so the SwiftUI spring morph never clips or jumps
         // mid-animation. The collapsed pill sits flush at the top of this larger window.
