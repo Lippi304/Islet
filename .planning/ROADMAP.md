@@ -39,7 +39,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 **Milestone Goal:** Islet becomes a real, sellable product — a 3-day free trial, then a one-time €7.99 purchase via Polar.sh, enforced by a local license check, shipped as a genuinely Developer-ID-notarized build.
 
 - [x] **Phase 10: Trial & Lockout Gate** - Silent 3-day trial with tamper-resistant Keychain persistence and a hard functionality lockout, proven against a stubbed license state — completed 2026-07-05
-- [ ] **Phase 11: License Settings UI (Stubbed)** - Days-remaining, Buy Now, and license-entry UI in Settings, wired against a fake in-memory license service
+- [x] **Phase 11: License Settings UI (Stubbed)** - Days-remaining, Buy Now, and license-entry UI in Settings, wired against a fake in-memory license service (completed 2026-07-05)
 - [ ] **Phase 12: Real Polar.sh License Integration** - Swap the stub for a real `PolarLicenseService` — live checkout, online validation, offline-capable Keychain cache
 - [ ] **Phase 13: Real Notarization & Release** - Real Developer-ID sign → notarize → staple pipeline, replacing the v1.0 dry-run placeholders
 
@@ -85,7 +85,7 @@ Plans:
   3. User can paste a key into a license field and click Activate, observing idle → validating → success/failure state transitions driven by a fake stub `LicenseService`.
   4. The Settings window (and its License section) stays one click away from the menu-bar icon at all times, even though Islet has no Dock icon or main window.
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 
 **Wave 1**
@@ -94,7 +94,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 11-02-PLAN.md — Adaptive License section in Settings (days-remaining, Buy Now, activation state machine, live-unlock wiring)
+- [x] 11-02-PLAN.md — Adaptive License section in Settings (days-remaining, Buy Now, activation state machine, live-unlock wiring)
 
 **UI hint**: yes
 
@@ -136,6 +136,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 10. Trial & Lockout Gate | 4/4 | Complete | 2026-07-05 |
-| 11. License Settings UI (Stubbed) | 1/2 | In Progress|  |
+| 11. License Settings UI (Stubbed) | 2/2 | Complete   | 2026-07-05 |
 | 12. Real Polar.sh License Integration | 0/TBD | Not started | - |
 | 13. Real Notarization & Release | 0/TBD | Not started | - |
