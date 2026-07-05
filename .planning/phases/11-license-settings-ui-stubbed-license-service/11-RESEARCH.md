@@ -355,16 +355,16 @@ private var buyNowButton: some View {
 | A3 | The `UserDefaults` nudge-key trigger is acceptable (vs a dedicated `Notification.Name`) | Pattern 3 | Low — reuses proven Phase-10 wiring; planner may swap to a custom notification with two one-line observers. Either satisfies the locked "activate → island unlocks live" behavior |
 | A4 | `ISLET-DEMO-OK` as the literal magic key | Pattern 1 / D-05 | None — CONTEXT calls it a naming suggestion; planner may pick any literal |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the magic-key comparison be `#if DEBUG`-gated in Phase 11?**
    - What we know: Phase 11 is not a public release; Phase 12 replaces the stub before Phase 13 (distribution).
    - What's unclear: whether the on-device tester wants `ISLET-DEMO-OK` to work in the DEBUG build they run (yes — they need it to exercise success/failure per D-05) while being inert in a hypothetical Release.
-   - Recommendation: keep the comparison active in DEBUG (needed for on-device testing); note that the entire `StubLicenseService` is deleted in Phase 12, so no Release exposure survives to Phase 13. A `#if DEBUG` guard is optional belt-and-suspenders.
+   - RESOLVED: keep the comparison active in DEBUG (needed for on-device testing); note that the entire `StubLicenseService` is deleted in Phase 12, so no Release exposure survives to Phase 13. A `#if DEBUG` guard is optional belt-and-suspenders. Adopted by plan 11-01 Task 1 (optional gate). Also a CONTEXT "Claude's Discretion" item — no user decision left open.
 
 2. **Where is `LicenseService` instantiated / injected into `SettingsView`?**
    - What we know: the stub is stateless; `SettingsView` is created in `IsletApp`'s Window scene with no current dependencies.
-   - Recommendation: `SettingsView` owns `private let licenseService: LicenseService = StubLicenseService()` (default-injected so Phase 12 swaps the default, or the planner threads it from `IsletApp`). Keep it simple — no DI framework.
+   - RESOLVED: `SettingsView` owns `private let licenseService: LicenseService = StubLicenseService()` (default-injected so Phase 12 swaps the default, or the planner threads it from `IsletApp`). Keep it simple — no DI framework. Adopted concretely by plan 11-02 Task 2.
 
 ## Environment Availability
 
