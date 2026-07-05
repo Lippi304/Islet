@@ -84,6 +84,17 @@ final class TrialManager {
     private let keychain: KeychainStore
     private let defaults: UserDefaults
 
+    // Gap closure (Plan 10-04 manual verification): the trial start date is immutable
+    // for the life of the process (aside from the two write points below), but
+    // `updateVisibility()` reads `LicenseState.isEntitled` on every hover/click/drag —
+    // far more often than the "rare system notification" frequency this file's
+    // original design assumed. On an ad-hoc-signed dev build, that burst of live
+    // Keychain reads each independently triggered a macOS authorization prompt,
+    // producing an unusable flood. Caching after the first read removes the Keychain
+    // call from the hot path entirely; both write points below keep the cache in sync.
+    private var cachedStartDate: Date?
+    private var hasCachedStartDate = false
+
     init(keychain: KeychainStore, defaults: UserDefaults = .standard) {
         self.keychain = keychain
         self.defaults = defaults
@@ -93,19 +104,26 @@ final class TrialManager {
     // for enforcement — a user editing only the UserDefaults mirror to a later date
     // can never extend the trial that way.
     func trialStartDate() -> Date? {
+        if hasCachedStartDate { return cachedStartDate }
+
         let keychainDate = keychain.read()
         let mirrorDate = (defaults.object(forKey: Self.mirrorKey) as? Double).map(Date.init(timeIntervalSince1970:))
 
+        let resolved: Date?
         switch (keychainDate, mirrorDate) {
         case let (.some(k), .some(m)):
-            return min(k, m)
+            resolved = min(k, m)
         case let (.some(k), .none):
-            return k
+            resolved = k
         case let (.none, .some(m)):
-            return m
+            resolved = m
         case (.none, .none):
-            return nil
+            resolved = nil
         }
+
+        cachedStartDate = resolved
+        hasCachedStartDate = true
+        return resolved
     }
 
     @discardableResult
@@ -113,6 +131,8 @@ final class TrialManager {
         guard trialStartDate() == nil else { return false }
         keychain.write(now)
         defaults.set(now.timeIntervalSince1970, forKey: Self.mirrorKey)
+        cachedStartDate = now
+        hasCachedStartDate = true
         return true
     }
 
@@ -121,6 +141,8 @@ final class TrialManager {
     func debugResetTrial() {
         keychain.delete()
         defaults.removeObject(forKey: Self.mirrorKey)
+        cachedStartDate = nil
+        hasCachedStartDate = false
     }
     #endif
 }
