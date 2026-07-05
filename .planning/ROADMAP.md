@@ -58,7 +58,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
   4. With the trial expired and the stub license flagged invalid/absent, the island is fully locked — no pill, no activities, no expansion — until the stub flips to valid.
   5. Flipping the stub license from invalid to valid un-locks the island at the next natural UI transition, not as an abrupt mid-interaction yank.
 
-**Plans:** 1/4 plans executed
+**Plans:** 3/4 plans executed
 Plans:
 **Wave 1**
 
@@ -66,8 +66,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 10-02-PLAN.md — isLicensed AND-term wired into the single visibility arbiter + one-shot expiry timer
-- [ ] 10-03-PLAN.md — First-launch Settings notice, D-05 locked-click routing, DEBUG stub menu
+- [x] 10-02-PLAN.md — isLicensed AND-term wired into the single visibility arbiter + one-shot expiry timer
+- [x] 10-03-PLAN.md — First-launch Settings notice, D-05 locked-click routing, DEBUG stub menu
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -125,7 +125,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 10. Trial & Lockout Gate | 1/4 | In Progress|  |
+| 10. Trial & Lockout Gate | 3/4 | In Progress|  |
 | 11. License Settings UI (Stubbed) | 0/TBD | Not started | - |
 | 12. Real Polar.sh License Integration | 0/TBD | Not started | - |
 | 13. Real Notarization & Release | 0/TBD | Not started | - |
