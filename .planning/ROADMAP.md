@@ -55,7 +55,12 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
   3. With the trial active or a stub license flagged valid, the island behaves exactly as before (no regression to existing v1.0/v1.0.1 behavior).
   4. With the trial expired and the stub license flagged invalid/absent, the island is fully locked — no pill, no activities, no expansion — until the stub flips to valid.
   5. Flipping the stub license from invalid to valid un-locks the island at the next natural UI transition, not as an abrupt mid-interaction yank.
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 10-01-PLAN.md — Keychain-backed trial persistence + LicenseState stub (TrialLogic, TrialManager, LicenseState)
+- [ ] 10-02-PLAN.md — isLicensed AND-term wired into the single visibility arbiter + one-shot expiry timer
+- [ ] 10-03-PLAN.md — First-launch Settings notice, D-05 locked-click routing, DEBUG stub menu
+- [ ] 10-04-PLAN.md — On-device manual verification (Keychain survival, DEBUG-inertness, non-abrupt lockout)
 
 ### Phase 11: License Settings UI (Stubbed License Service)
 **Goal**: Users can see their trial/license status and initiate purchase or key entry entirely from Settings, exercising the full UI state machine against a fake in-memory service before any live network call exists.
@@ -100,7 +105,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 10. Trial & Lockout Gate | 0/TBD | Not started | - |
+| 10. Trial & Lockout Gate | 0/4 | Not started | - |
 | 11. License Settings UI (Stubbed) | 0/TBD | Not started | - |
 | 12. Real Polar.sh License Integration | 0/TBD | Not started | - |
 | 13. Real Notarization & Release | 0/TBD | Not started | - |
