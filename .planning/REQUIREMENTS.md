@@ -11,7 +11,7 @@ Islet becomes a real, sellable product: a 3-day trial, a one-time €7.99 purcha
 
 - [ ] **TRIAL-01**: Trial starts silently on first launch, with the start date persisted tamper-resistantly (Keychain, survives app reinstall) — not trivially reset via `defaults delete` or reinstalling the app
 - [ ] **TRIAL-02**: User sees a one-time, explicit "your 3-day trial has started" notice on first launch, so the hard-lockout clock is never a silent surprise
-- [ ] **TRIAL-03**: User can see the number of trial days remaining at any time from the Settings window
+- [x] **TRIAL-03**: User can see the number of trial days remaining at any time from the Settings window
 
 ### Purchase & Licensing (LIC)
 
@@ -56,7 +56,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | TRIAL-01 | Phase 10 | Pending |
 | TRIAL-02 | Phase 10 | Pending |
-| TRIAL-03 | Phase 11 | Pending |
+| TRIAL-03 | Phase 11 | Complete |
 | LIC-01 | Phase 12 | Pending |
 | LIC-02 | Phase 12 | Pending |
 | LIC-03 | Phase 10 | Pending |
