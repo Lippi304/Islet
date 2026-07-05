@@ -11,8 +11,12 @@ final class TrialManagerTests: XCTestCase {
     // In-memory fake conforming to KeychainStore — no real Keychain I/O.
     private final class FakeKeychainStore: KeychainStore {
         var storedDate: Date?
+        private(set) var readCount = 0
 
-        func read() -> Date? { storedDate }
+        func read() -> Date? {
+            readCount += 1
+            return storedDate
+        }
 
         @discardableResult
         func write(_ date: Date) -> Bool {
@@ -79,6 +83,49 @@ final class TrialManagerTests: XCTestCase {
         let manager = makeManager()
         XCTAssertNil(manager.trialStartDate())
     }
+
+    // Gap closure (Plan 10-04 manual verification): a live Keychain read on every
+    // updateVisibility() call (hover/click hot path) triggered a repeated macOS
+    // Keychain-authorization prompt on-device. The start date never changes after
+    // first-launch (aside from the two known write points below), so it must be
+    // cached in-process after the first read.
+    func testTrialStartDateCachesAfterFirstReadAndDoesNotHitKeychainAgain() {
+        let fake = FakeKeychainStore()
+        fake.storedDate = Date(timeIntervalSince1970: 5_000_000)
+        let manager = makeManager(fake: fake)
+
+        _ = manager.trialStartDate()
+        _ = manager.trialStartDate()
+        _ = manager.trialStartDate()
+
+        XCTAssertEqual(fake.readCount, 1)
+    }
+
+    func testRecordFirstLaunchIfNeededDoesNotReReadKeychainAfterWriting() {
+        let fake = FakeKeychainStore()
+        let manager = makeManager(fake: fake)
+
+        manager.recordFirstLaunchIfNeeded(now: Date(timeIntervalSince1970: 1_000_000))
+        _ = manager.trialStartDate()
+        _ = manager.trialStartDate()
+
+        // recordFirstLaunchIfNeeded's own guard performs the one read that discovers
+        // the store is empty; every read after the write must be served from cache.
+        XCTAssertEqual(fake.readCount, 1)
+    }
+
+    #if DEBUG
+    func testDebugResetTrialInvalidatesCacheSoNextReadReflectsClearedStore() {
+        let fake = FakeKeychainStore()
+        let manager = makeManager(fake: fake)
+        manager.recordFirstLaunchIfNeeded(now: Date(timeIntervalSince1970: 1_000_000))
+        XCTAssertNotNil(manager.trialStartDate())
+
+        manager.debugResetTrial()
+
+        XCTAssertNil(manager.trialStartDate())
+    }
+    #endif
 
     #if DEBUG
     func testDebugResetTrialClearsBothStores() {
