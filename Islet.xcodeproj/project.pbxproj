@@ -105,6 +105,7 @@
 		4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5D869CDF80317230429414E1 /* PowerActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivityTests.swift; sourceTree = "<group>"; };
+		5F13DD9E9F8F782EEAE48FC2 /* Islet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Islet.entitlements; sourceTree = "<group>"; };
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
 		71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSpaceProbe.swift; sourceTree = "<group>"; };
 		734F24D3CCE5D48060447B10 /* TrialManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManager.swift; sourceTree = "<group>"; };
@@ -182,6 +183,7 @@
 				15C1DF53311CEDA936A0B43D /* ActivitySettings.swift */,
 				F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */,
 				46B181CF063D1999E055DD9B /* Assets.xcassets */,
+				5F13DD9E9F8F782EEAE48FC2 /* Islet.entitlements */,
 				143DD03B59EE64AE773112BD /* IsletApp.swift */,
 				0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */,
 				99C074399453E7F8439A9CD2 /* SettingsView.swift */,
@@ -406,6 +408,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Islet/Islet.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
@@ -558,6 +561,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Islet/Islet.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;

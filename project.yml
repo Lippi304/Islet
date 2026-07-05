@@ -61,6 +61,12 @@ targets:
         SWIFT_VERSION: "5.0"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         ENABLE_HARDENED_RUNTIME: YES
+        # BLOCKER fix (260705-mzj): embedded MediaRemoteAdapter.framework fails Library
+        # Validation under Hardened Runtime (app + framework ad-hoc signed → different Team
+        # IDs → dyld rejects the mapping, crashing every Release launch on Tahoe). Opt out of
+        # library validation for the embedded third-party framework. Minimal surface: this is
+        # the ONLY entitlement; sandbox stays off, hardened runtime stays on for notarization.
+        CODE_SIGN_ENTITLEMENTS: Islet/Islet.entitlements
 
   # Phase-1 Wave-0 unit-test bundle. Hosted in the Islet app so `@testable import
   # Islet` can reach the app's internal symbols (the pure NotchGeometry /
