@@ -417,17 +417,19 @@ private func scheduleTrialExpiryCheck() {
 | A3 | A DEBUG-only UserDefaults override key, reused through the existing `UserDefaults.didChangeNotification` mechanism, is the right shape for the D-08 stub (vs. e.g. an in-memory-only override, or a separate DEBUG-only settings UI) | Architecture Patterns, Summary/Recommendation synthesis | Low-Medium — this is a design synthesis beyond what CONTEXT.md explicitly locked (CONTEXT.md left the exact DEBUG menu wiring to discretion); if the planner picks a different shape, no requirement is violated, but the "reuses existing live-update plumbing" benefit would need to be re-derived |
 | A4 | Mach-time-based `DispatchQueue.main.asyncAfter` deadlines only ever fire *late* (never early) across sleep, never causing an under-enforcement security gap | Common Pitfalls, Pitfall 1 | Low — if this is wrong (i.e., if sleep could somehow cause an *early* fire), the practical impact is still bounded because the actual enforcement authority is the wall-clock `TrialLogic` check on every `updateVisibility()` call, not the timer itself |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does `applicationDidFinishLaunching`'s existing `didHideSettingsAtLaunch` retry-loop need a parameter, or a full bypass, for the first-launch case?**
+1. **RESOLVED: Does `applicationDidFinishLaunching`'s existing `didHideSettingsAtLaunch` retry-loop need a parameter, or a full bypass, for the first-launch case?**
    - What we know: the retry loop hides the window up to ~1s after launch; the first-launch notice needs the window to end up *shown*, not hidden.
    - What's unclear: whether the cleanest fix is "skip `hideSettingsWindowOnLaunch()` entirely on first launch" vs. "let it hide, then immediately re-show via the same `openSettings()` path used for the menu item" — both satisfy D-02/D-03's literal requirement, but have different flash/flicker risk.
    - Recommendation: planner should pick "skip the hide entirely on first launch" — it has zero flicker risk and is a one-line `guard` addition, consistent with the project's low-complexity bias.
+   - **Resolution: 10-03-PLAN.md, Task 1, sub-item (c)** — on `isFirstLaunch`, `didHideSettingsAtLaunch` is set to `true` directly (permanently disarming the retry loop with zero flicker risk) and `openSettings()` is called instead of `hideSettingsWindowOnLaunch()`. This is exactly the recommended "skip the hide entirely" fix.
 
-2. **Should `LicenseState`'s stub have a real "licensed" case at all in Phase 10, or only `.trial`/`.trialExpired`?**
+2. **RESOLVED: Should `LicenseState`'s stub have a real "licensed" case at all in Phase 10, or only `.trial`/`.trialExpired`?**
    - What we know: CONTEXT.md D-08 explicitly asks for a "Force Licensed" debug option, implying `LicenseState` needs a third case now even though no real Polar validation exists until Phase 12.
    - What's unclear: nothing structurally — `LicenseState.status` should be a 3-case enum (`.trial(daysRemaining:)` / `.trialExpired` / `.licensed`) from the start, per `ARCHITECTURE.md`'s own `LicenseStatus` shape, so Phase 11/12 don't need to re-shape it later.
    - Recommendation: build the 3-case enum now; only the "how does `.licensed` become true for real" wiring (Polar validation) is deferred.
+   - **Resolution: 10-01-PLAN.md, Task 3** — `LicenseState.swift` defines `enum LicenseStatus: Equatable { case trial(daysRemaining: Int); case trialExpired; case licensed }`, the full 3-case shape, from the start. Only the real Polar-backed path to `.licensed` remains deferred to Phase 12.
 
 ## Validation Architecture
 

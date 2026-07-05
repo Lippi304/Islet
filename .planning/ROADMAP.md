@@ -46,53 +46,73 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 ## Phase Details
 
 ### Phase 10: Trial & Lockout Gate
+
 **Goal**: The app enforces a real, tamper-resistant 3-day trial with a hard functionality lockout — proven end-to-end using a manually-settable stub license state, with no live network dependency.
 **Depends on**: Nothing new (builds on the existing v1.0.1 codebase, specifically `NotchWindowController`'s single-arbiter `shouldShow(...)`)
 **Requirements**: TRIAL-01, TRIAL-02, LIC-03
 **Success Criteria** (what must be TRUE):
+
   1. On first launch, the trial start timestamp is persisted to the Keychain — running `defaults delete` on the app or deleting/reinstalling it does not reset the trial clock.
   2. On first launch (and only on first launch), the user sees an explicit one-time notice stating the 3-day trial has started — never a silent start.
   3. With the trial active or a stub license flagged valid, the island behaves exactly as before (no regression to existing v1.0/v1.0.1 behavior).
   4. With the trial expired and the stub license flagged invalid/absent, the island is fully locked — no pill, no activities, no expansion — until the stub flips to valid.
   5. Flipping the stub license from invalid to valid un-locks the island at the next natural UI transition, not as an abrupt mid-interaction yank.
+
 **Plans:** 4 plans
 Plans:
+**Wave 1**
+
 - [ ] 10-01-PLAN.md — Keychain-backed trial persistence + LicenseState stub (TrialLogic, TrialManager, LicenseState)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 10-02-PLAN.md — isLicensed AND-term wired into the single visibility arbiter + one-shot expiry timer
 - [ ] 10-03-PLAN.md — First-launch Settings notice, D-05 locked-click routing, DEBUG stub menu
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 10-04-PLAN.md — On-device manual verification (Keychain survival, DEBUG-inertness, non-abrupt lockout)
 
 ### Phase 11: License Settings UI (Stubbed License Service)
+
 **Goal**: Users can see their trial/license status and initiate purchase or key entry entirely from Settings, exercising the full UI state machine against a fake in-memory service before any live network call exists.
 **Depends on**: Phase 10 (Settings displays the trial/lockout state Phase 10 computes)
 **Requirements**: TRIAL-03
 **Success Criteria** (what must be TRUE):
+
   1. User can open Settings and see the number of trial days remaining at any time.
   2. User can click a "Buy Now" button in Settings (opens a placeholder URL for now — the real Polar.sh link lands in Phase 12).
   3. User can paste a key into a license field and click Activate, observing idle → validating → success/failure state transitions driven by a fake stub `LicenseService`.
   4. The Settings window (and its License section) stays one click away from the menu-bar icon at all times, even though Islet has no Dock icon or main window.
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 12: Real Polar.sh License Integration
+
 **Goal**: License purchase and validation work for real against Polar.sh, and stay fully functional offline after the first successful validation.
 **Depends on**: Phase 11 (swaps the stub `LicenseService` for `PolarLicenseService` behind the same protocol — no UI or `TrialManager` changes)
 **Requirements**: LIC-01, LIC-02
 **Success Criteria** (what must be TRUE):
+
   1. User can click "Buy Now" in Settings and land on the real Polar.sh checkout page in their default browser, able to complete a live €7.99 one-time purchase.
   2. User can paste the license key they received by email into Settings; the app validates it online against Polar.sh and shows success or a specific failure reason.
   3. After one successful validation, the app keeps working fully offline (e.g., in airplane mode) without re-prompting for the key.
   4. A transient network error during validation (no internet, server hiccup) is distinguishable from an actually-invalid key — it does not lock out a key the user just paid for, and can be retried.
+
 **Plans**: TBD
 
 ### Phase 13: Real Notarization & Release
+
 **Goal**: The distributed `.dmg` is genuinely Developer-ID signed, notarized, and stapled — purchasers see no Gatekeeper warning on first launch.
 **Depends on**: Nothing new — functionally independent of Phases 10-12, sequenced last for release-readiness ordering only
 **Requirements**: DIST-01
 **Success Criteria** (what must be TRUE):
+
   1. Running `scripts/release.sh` produces a `.dmg` signed with the real Developer ID Application certificate — no ad-hoc/placeholder signing remains.
   2. The `.dmg` is successfully notarized via `xcrun notarytool submit --wait` and stapled via `stapler staple`, with no errors.
   3. `spctl --assess` on the stapled app reports "accepted" — opening it on a clean Mac shows no "unidentified developer" Gatekeeper warning.
+
 **Plans**: TBD
 
 ## Progress
