@@ -50,6 +50,17 @@ final class NotchWindowController {
     // it is the only seam, so build NO preferences UI / stored-defaults read here.
     private let hideInFullscreen = true
 
+    // Phase 10 / D-11 (LIC-03) — the live entitlement source consumed as the new dominant
+    // AND-term in shouldShow(...). Read fresh on every updateVisibility() call (no caching);
+    // the Keychain-backed trial/DEBUG-override logic lives entirely in LicenseState (Plan 01).
+    private let licenseState = LicenseState.shared
+
+    // Phase 10 / D-13 — idle-state guard flag: true when a license-driven hide is OWED but was
+    // deferred because the pointer was mid-hover or the island was mid-expansion. Applied at the
+    // next natural transition (handleHoverExit's grace-elapsed collapse or a handleClick
+    // toggle-shut), never synchronously mid-interaction.
+    private var pendingLockoutHide = false
+
     // ISL-03/04 — the SwiftUI-facing interaction state. This controller DRIVES it: the
     // monitor/timer/click callbacks mutate `phase` inside withAnimation(.spring(...)).
     private let interaction = NotchInteractionState()
@@ -172,6 +183,15 @@ final class NotchWindowController {
     // splash stands. Hover cancels it; pointer-leave reschedules it.
     private var dismissWorkItem: DispatchWorkItem?
     private let activityDuration: TimeInterval = 3.0   // D-09 single tuning seed
+
+    // Phase 10 / D-12 — the best-effort ONE-SHOT proactive expiry re-check, mirroring the exact
+    // property + cancel-then-reschedule + deinit-cancel idiom already used 4x in this file
+    // (dismissWorkItem/graceWorkItem/mediaDismissWorkItem/deviceBatteryWork). NOT a polling loop
+    // (Pitfall 1): the authoritative check is the wall-clock licenseState.isEntitled read inside
+    // updateVisibility(), which already re-runs on every existing screen/space/app-activate
+    // notification — this timer only nudges that check right at the computed expiry instant so
+    // the lockout doesn't wait for the next incidental trigger.
+    private var trialExpiryWorkItem: DispatchWorkItem?
 
     // Pitfall 4 — the last classified activity, for the category-transition debounce
     // (shouldTriggerSplash). A pure % tick within the same category updates a standing
@@ -307,6 +327,22 @@ final class NotchWindowController {
         // Phase 6: seed the first rendered presentation from the resolver (idle until an
         // activity fires) so the view starts from the single-arbiter verdict, not a stale value.
         renderPresentation()
+
+        // Phase 10 / D-12: arm the best-effort one-shot proactive expiry re-check.
+        scheduleTrialExpiryCheck()
+    }
+
+    // Phase 10 / D-12 — schedules the single one-shot re-check of updateVisibility() at the
+    // computed trial-expiry instant. Best-effort only: DispatchQueue.main.asyncAfter deadlines
+    // are Mach-time-based and pause during system sleep, so a multi-day timer can fire LATE
+    // relative to wall-clock expiry (never early) — the authoritative check remains the
+    // wall-clock licenseState.isEntitled read inside updateVisibility() (T-10-06, accepted).
+    private func scheduleTrialExpiryCheck() {
+        trialExpiryWorkItem?.cancel()
+        guard let expiry = licenseState.trialExpiryDate, expiry > Date() else { return }
+        let work = DispatchWorkItem { [weak self] in self?.updateVisibility() }
+        trialExpiryWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + expiry.timeIntervalSinceNow, execute: work)
     }
 
     // MARK: - Phase 6: toggle-gated monitor lifecycle (D-09 prefer stop, Pitfall 5 idempotent)
@@ -419,6 +455,21 @@ final class NotchWindowController {
     // observer (didChangeScreenParameters, activeSpaceDidChange, didActivateApplication) calls
     // ONLY this; safe to call repeatedly.
     private func updateVisibility() {
+        // Phase 10 / D-13 — idle-state guard: a license-driven hide must never abruptly yank the
+        // island out from under an active hover/expansion. If the pointer is in the hot-zone or
+        // the island is expanded, defer the hide (set pendingLockoutHide) and leave panel/hotZone/
+        // expandedZone/pointerInZone completely untouched this call — the deferred hide is applied
+        // at the next natural transition (handleHoverExit's grace-elapsed collapse or a
+        // handleClick toggle-shut, both of which re-invoke updateVisibility()).
+        let midInteraction = pointerInZone || interaction.isExpanded
+        if !licenseState.isEntitled && midInteraction {
+            pendingLockoutHide = true
+            return
+        }
+        if pendingLockoutHide {
+            pendingLockoutHide = false
+        }
+
         // Build descriptors from live screens, then pick via the pure resolver.
         let descriptors = NSScreen.screens.map { $0.descriptor }
         let target = selectTargetScreen(from: descriptors)               // Phase-1: built-in present + notched
@@ -431,7 +482,8 @@ final class NotchWindowController {
 
         if shouldShow(hasTarget: target != nil,
                       hideInFullscreen: hideInFullscreen,
-                      isFullscreen: fullscreen),
+                      isFullscreen: fullscreen,
+                      isLicensed: licenseState.isEntitled),
            let target {
             positionAndShow(on: target)
         } else {
@@ -585,6 +637,10 @@ final class NotchWindowController {
                 // inside the spring so an expanded-media island morphs back to the ambient glance.
                 self.renderPresentation()
             }
+            // Phase 10 / D-13: this is the natural-transition recheck the idle-state guard
+            // depends on — the pointer has just left AND the grace-elapsed collapse has just
+            // finished, so a previously-deferred pendingLockoutHide now applies here.
+            self.updateVisibility()
             // Pitfall 3: restore click-through deterministically once collapsed + pointer out.
             self.syncClickThrough()
         }
@@ -614,6 +670,12 @@ final class NotchWindowController {
             // Phase 6: expand/collapse flips `isExpanded`, a resolver input — re-resolve inside
             // the SAME spring so the island morphs between the wings/expanded presentation cases.
             renderPresentation()
+        }
+        // Phase 10 / D-13: this is the OTHER natural-transition recheck the idle-state guard
+        // depends on — a toggle-shut click (.expanded → .collapsed) applies any previously
+        // deferred pendingLockoutHide right away instead of waiting for a hover-exit.
+        if !interaction.isExpanded {
+            updateVisibility()
         }
         // WR-02: a toggle-shut click (.expanded → .collapsed) schedules NO grace timer, so
         // without this the window would keep swallowing clicks until the next hover cycle.
@@ -1081,5 +1143,9 @@ final class NotchWindowController {
         // FS-01 (Candidate C, additive): leave the dedicated max-level Space, mirroring the
         // owner-driven teardown discipline above (powerMonitor/bluetoothMonitor/nowPlayingMonitor).
         if let panel { notchSpace.windows.remove(panel) }
+
+        // Phase 10 / D-12: cancel the best-effort proactive expiry re-check — a mere nudge, not
+        // the authoritative check (that's the wall-clock read inside updateVisibility()).
+        trialExpiryWorkItem?.cancel()
     }
 }

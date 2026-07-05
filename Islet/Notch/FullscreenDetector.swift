@@ -24,8 +24,11 @@ func isTrueFullscreen(builtin: ScreenDescriptor?) -> Bool {
 
 // ISL-05 / Pattern 7 — the ONE visibility decision. Every "should the pill be
 // visible right now?" input (clamshell/target from Phase 1, fullscreen from
-// Phase 2) converges here. hideInFullscreen is the single gating flag (D-10):
-// default true ships the hide; a future Phase-6 settings toggle flips it.
-func shouldShow(hasTarget: Bool, hideInFullscreen: Bool, isFullscreen: Bool) -> Bool {
-    hasTarget && !(hideInFullscreen && isFullscreen)
+// Phase 2, license entitlement from Phase 10) converges here. hideInFullscreen
+// is the single gating flag (D-10): default true ships the hide; a future
+// Phase-6 settings toggle flips it. isLicensed (D-11, LIC-03) is a new dominant
+// AND-term: an unlicensed/expired-trial state always hides, overriding every
+// other input.
+func shouldShow(hasTarget: Bool, hideInFullscreen: Bool, isFullscreen: Bool, isLicensed: Bool) -> Bool {
+    isLicensed && hasTarget && !(hideInFullscreen && isFullscreen)
 }
