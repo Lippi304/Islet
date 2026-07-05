@@ -16,6 +16,17 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            // TRIAL-02/D-02: a short, plain notice line — visible on every Settings
+            // open during an active trial. The "one-time" requirement is satisfied
+            // by AppDelegate's first-launch auto-open EVENT, not by hiding this
+            // line after the first render.
+            if let start = TrialManager.shared.trialStartDate() {
+                let expiry = start.addingTimeInterval(TrialManager.trialLength)
+                Text("Your 3-day trial started — ends \(expiry.formatted(date: .abbreviated, time: .omitted)).")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             Toggle("Launch Islet at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, on in
                     do {
