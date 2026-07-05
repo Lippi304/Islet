@@ -3,13 +3,29 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
+    private var menu: NSMenu!
     private var didHideSettingsAtLaunch = false
+    private var licenseObserver: NSObjectProtocol?
     // Phase 1: owns the notch overlay panel. Retained for the app's lifetime so the
     // panel and its screen-change observer stay alive (a dropped controller would
     // tear down the overlay). Parallel to `statusItem`.
     private var notchController: NotchWindowController?
 
+    #if DEBUG
+    // D-08/D-09: a SEPARATE status item for the 3 stub-flip testing actions, kept
+    // apart from `statusItem` so the debug controls stay reachable even while the
+    // primary item is in the D-05 locked-click state (nil-ing `statusItem.menu`
+    // while locked would otherwise make debug items unreachable exactly when a
+    // developer most needs to flip the stub back to licensed). Absent from Release.
+    private var debugStatusItem: NSStatusItem!
+    #endif
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // TRIAL-01/D-10: must run before controller.start() so LicenseState.shared
+        // already has a valid trial start date the first time updateVisibility()
+        // runs inside start().
+        let isFirstLaunch = TrialManager.shared.recordFirstLaunchIfNeeded()
+
         // Create the menu-bar status item. variableLength = sized to its content.
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
@@ -23,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // The dropdown menu shown when the status item is clicked.
-        let menu = NSMenu()
+        menu = NSMenu()
         menu.addItem(withTitle: "Settings…",
                      action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(.separator())
@@ -32,6 +48,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu items send their actions to this delegate.
         for item in menu.items { item.target = self }
         statusItem.menu = menu
+        // D-05: route the initial click behavior to the live license state.
+        applyMenuBarClickRouting(isLicensed: LicenseState.shared.isEntitled)
+
+        // Re-apply D-05 routing whenever license state changes (e.g. a DEBUG
+        // stub-flip writes UserDefaults) — mirrors NotchWindowController's
+        // existing defaultsObserver pattern.
+        licenseObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.applyMenuBarClickRouting(isLicensed: LicenseState.shared.isEntitled)
+        }
 
         // Phase 1: build and show the notch overlay on the built-in notched display.
         // The controller resolves the correct screen, positions the panel on the
@@ -45,9 +72,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The SwiftUI Window(id:) scene creates its window at launch, so hide it
         // right after launch. orderOut keeps the window object alive, so
         // "Settings…" can re-show it instantly via makeKeyAndOrderFront below.
-        DispatchQueue.main.async { [weak self] in
-            self?.hideSettingsWindowOnLaunch()
+        if isFirstLaunch {
+            // D-02/D-03: on a genuinely fresh install, skip the hide entirely
+            // (Pitfall 2's recommended fix) and auto-open Settings once instead,
+            // regardless of the notch-target display state.
+            didHideSettingsAtLaunch = true
+            DispatchQueue.main.async { [weak self] in
+                self?.openSettings()
+            }
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.hideSettingsWindowOnLaunch()
+            }
         }
+
+        #if DEBUG
+        setupDebugMenu()
+        #endif
     }
 
     // The SwiftUI Window(id:) NSWindow may not exist yet on the first run-loop
@@ -65,6 +106,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
                 self?.hideSettingsWindowOnLaunch(attempt: attempt + 1)
             }
+        }
+    }
+
+    // D-05: while locked, a click has nothing useful to do except jump straight
+    // to Settings, so `statusItem.menu` and `button.action` must be mutually
+    // exclusive — AppKit shows the assigned `.menu` automatically on click and
+    // silently ignores `button.action` while `.menu` is non-nil (Pitfall 3).
+    // Per D-06, this method never touches `statusItem.button.image` — the
+    // menu-bar icon's own appearance never changes across states.
+    private func applyMenuBarClickRouting(isLicensed: Bool) {
+        if isLicensed {
+            statusItem.menu = menu
+            statusItem.button?.action = nil
+        } else {
+            statusItem.menu = nil
+            statusItem.button?.target = self
+            statusItem.button?.action = #selector(openSettings)
         }
     }
 
@@ -90,4 +148,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
+
+    #if DEBUG
+    // D-08: the sole testing seam for the license/trial gate — 3 stub-flip
+    // actions, no shortened-trial-length action (D-09). Fully absent from
+    // Release builds.
+    private func setupDebugMenu() {
+        debugStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        debugStatusItem.button?.title = "🐞"
+
+        let debugMenu = NSMenu()
+        debugMenu.addItem(withTitle: "Debug: Force Expired",
+                          action: #selector(debugForceExpired), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Debug: Force Licensed",
+                          action: #selector(debugForceLicensed), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Debug: Reset Trial",
+                          action: #selector(debugResetTrial), keyEquivalent: "")
+        for item in debugMenu.items { item.target = self }
+        debugStatusItem.menu = debugMenu
+    }
+
+    @objc private func debugForceExpired() {
+        UserDefaults.standard.set(LicenseState.DebugOverride.forceExpired.rawValue,
+                                   forKey: LicenseState.debugOverrideKey)
+    }
+
+    @objc private func debugForceLicensed() {
+        UserDefaults.standard.set(LicenseState.DebugOverride.forceLicensed.rawValue,
+                                   forKey: LicenseState.debugOverrideKey)
+    }
+
+    @objc private func debugResetTrial() {
+        UserDefaults.standard.removeObject(forKey: LicenseState.debugOverrideKey)
+        TrialManager.shared.debugResetTrial()
+    }
+    #endif
 }
