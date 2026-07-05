@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Trial & Paid Release
-status: planning
+status: executing
 stopped_at: Phase 12 context gathered
-last_updated: "2026-07-05T17:21:04.767Z"
-last_activity: 2026-07-05 - Release-launch signing crash fixed (260705-mzj) + idle-notch merge (260705-l4i); both on-device verified in Release ("klappt wieder"). Both quick tasks complete.
+last_updated: "2026-07-05T17:52:10.734Z"
+last_activity: 2026-07-05 -- Phase 12 planning complete
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 6
+  total_plans: 10
   completed_plans: 6
   percent: 50
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 
 Phase: 12
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-05 - Release-launch signing crash fixed (260705-mzj) + idle-notch merge (260705-l4i); both on-device verified in Release ("klappt wieder"). Both quick tasks complete.
+Status: Ready to execute
+Last activity: 2026-07-05 -- Phase 12 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 

@@ -448,19 +448,20 @@ One near-adjacent item worth noting for the planner:
 verification step that pastes the real purchased key (supplied live by the user) to confirm
 the 200/granted happy path, and pastes a garbage key to confirm the 404→`.invalidKey` path.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does a 200 ever carry `status: "revoked"`/`"disabled"`, or is it always 404?**
    - What we know: server source raises `ResourceNotFound` (404) for non-granted.
    - What's unclear: whether any edge path returns 200 with a non-granted status.
-   - Recommendation: already handled — the 200 branch requires `status == "granted"`, so
-     either behavior is safe. No planning blocker.
+   - **RESOLVED:** already handled — the 200 branch requires `status == "granted"`, so
+     either behavior is safe. No planning blocker. (Plan 12-02 requires `status == "granted"`.)
 
 2. **Should 403 map to `.invalidKey` or `.unreachable`?**
    - What we know: WebSearch surfaced a generic Polar `NotPermitted` 403 pattern, but the
      validate endpoint's documented codes are 200/404/422.
-   - Recommendation: map 403 → `.invalidKey` (safer for the user-facing message than
-     "unreachable"); it will effectively never fire for this no-auth endpoint. Planner's call.
+   - **RESOLVED:** planner's call — 12-02 routes 403 via `default → .unreachable` (safer for
+     D-04: never falsely rejects a paid key, always retryable). It effectively never fires on
+     this no-auth endpoint. Conscious decision, confirmed by plan-checker Advisory 2.
 
 ## Environment Availability
 
