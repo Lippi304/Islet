@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01168B5EC7AF98EE1ADA34D8 /* IsletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 143DD03B59EE64AE773112BD /* IsletApp.swift */; };
+		04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31972FF1ED9E30425E37EE11 /* TrialLogic.swift */; };
 		0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C074399453E7F8439A9CD2 /* SettingsView.swift */; };
 		0B5D7C9F97587BFE2049F7D7 /* InteractionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406030D1395E35FB24681FE8 /* InteractionStateTests.swift */; };
 		1A099891C9DC0C4BBD962245 /* VisibilityDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */; };
@@ -35,6 +36,7 @@
 		91F81FE03A457F64032081F8 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC50D5D14612F7A3B39F683 /* NotchShape.swift */; };
 		921F5385399CF08B36043288 /* PowerActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76ADF16C067A181F295BA4C5 /* PowerActivity.swift */; };
 		9924445F8465340818CC6973 /* BatteryIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEFCAF742543C37096D4F714 /* BatteryIndicator.swift */; };
+		9D1FF157B4E789EF0A05245A /* TrialLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */; };
 		A532C893CA28FEBC8B8F87A8 /* NotchPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B2D92BF83095959068F293 /* NotchPanelTests.swift */; };
 		A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */; };
 		B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72C119AE687341C28E9786C /* NSScreen+Notch.swift */; };
@@ -86,6 +88,7 @@
 		279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargingActivityState.swift; sourceTree = "<group>"; };
 		28316551B58651959797184D /* DeviceActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivity.swift; sourceTree = "<group>"; };
 		2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingState.swift; sourceTree = "<group>"; };
+		31972FF1ED9E30425E37EE11 /* TrialLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLogic.swift; sourceTree = "<group>"; };
 		406030D1395E35FB24681FE8 /* InteractionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionStateTests.swift; sourceTree = "<group>"; };
 		43F635228C4261E9EECEC41F /* NotchShapeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShapeTests.swift; sourceTree = "<group>"; };
 		46B181CF063D1999E055DD9B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -101,6 +104,7 @@
 		77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityDecisionTests.swift; sourceTree = "<group>"; };
 		83B2D92BF83095959068F293 /* NotchPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanelTests.swift; sourceTree = "<group>"; };
 		885DB8C610716B7530D89BDB /* FullscreenDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDetector.swift; sourceTree = "<group>"; };
+		88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLogicTests.swift; sourceTree = "<group>"; };
 		8AECFB326AA1C46FECE017D0 /* IslandResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandResolver.swift; sourceTree = "<group>"; };
 		984325CC40BE13B07D21477D /* NotchGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometryTests.swift; sourceTree = "<group>"; };
 		99C074399453E7F8439A9CD2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -130,6 +134,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		116E2C7AAD069A31898510D4 /* Licensing */ = {
+			isa = PBXGroup;
+			children = (
+				31972FF1ED9E30425E37EE11 /* TrialLogic.swift */,
+			);
+			path = Licensing;
+			sourceTree = "<group>";
+		};
 		2A6EFEBFBF547E6277E6C69F /* IsletTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -143,6 +155,7 @@
 				43F635228C4261E9EECEC41F /* NotchShapeTests.swift */,
 				E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */,
 				5D869CDF80317230429414E1 /* PowerActivityTests.swift */,
+				88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */,
 				77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */,
 			);
 			path = IsletTests;
@@ -157,6 +170,7 @@
 				143DD03B59EE64AE773112BD /* IsletApp.swift */,
 				0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */,
 				99C074399453E7F8439A9CD2 /* SettingsView.swift */,
+				116E2C7AAD069A31898510D4 /* Licensing */,
 				EA504E63C5387A70CEC3745D /* Notch */,
 			);
 			path = Islet;
@@ -334,6 +348,7 @@
 				921F5385399CF08B36043288 /* PowerActivity.swift in Sources */,
 				EB0A6293AAD242E76B254033 /* PowerSourceMonitor.swift in Sources */,
 				0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */,
+				04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,6 +366,7 @@
 				4EBD25B8C54F6A68250153F4 /* NotchShapeTests.swift in Sources */,
 				40A19305FE709A3C8F605C3B /* NowPlayingPresentationTests.swift in Sources */,
 				1F2B2E8221BC9084BB4A839D /* PowerActivityTests.swift in Sources */,
+				9D1FF157B4E789EF0A05245A /* TrialLogicTests.swift in Sources */,
 				1A099891C9DC0C4BBD962245 /* VisibilityDecisionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
