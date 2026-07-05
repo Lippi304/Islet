@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 // ISL-03 — the Alcove interaction model as a PURE state machine (Pattern 3).
 // No timers, no AppKit: Plan 03 owns the global mouse monitor + grace timer and
@@ -26,6 +27,14 @@ func nextState(_ current: InteractionPhase, _ event: InteractionEvent) -> Intera
 // (inside withAnimation(.spring(...))) from the monitor/timer callbacks.
 final class NotchInteractionState: ObservableObject {
     @Published var phase: InteractionPhase = .collapsed
+
+    // D-01 — the REAL measured collapsed notch size the controller publishes (unfudged:
+    // exactly the cutout macOS reports). NotchPillView.collapsedIsland reads this so the idle
+    // black pill matches the hardware notch and merges into it. nil = not yet measured /
+    // non-notch or external display → the view falls back to NotchPillView.collapsedSize (the
+    // static 200x38 seed), the same nil-propagating contract the geometry layer already uses.
+    @Published var collapsedNotchSize: CGSize?
+
     var isExpanded: Bool { phase == .expanded }
     var isHovering: Bool { phase == .hovering || phase == .expanded }
 }

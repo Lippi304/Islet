@@ -75,6 +75,11 @@ struct NotchPillView: View {
     // sizes the panel to `expandedSize` up front (via expandedNotchFrame) so the
     // morph never clips mid-animation, and passes the SAME expandedSize so the
     // window matches this content. Tunable on-device in Plan 05.
+    // D-01 — this is now the FALLBACK seed ONLY. The collapsed pill's real size comes from the
+    // measured notch published on `interaction.collapsedNotchSize` (see collapsedIsland). This
+    // 200x38 is used solely when no notch is measured — an external / non-notch display, or the
+    // DEBUG #Previews which construct the view with a nil measured size — the same nil-propagating
+    // contract the geometry layer already uses.
     static let collapsedSize = CGSize(width: 200, height: 38)
     // Height fits the tallest expanded content WITH a top notch-clearance band. The island
     // is pinned top-flush to the screen edge, so the top 32pt sits UNDER the physical camera/
@@ -156,10 +161,13 @@ struct NotchPillView: View {
     // offset so a first-time builder can SEE width/radius/position over the real
     // notch (D-02); RELEASE ships pure black so it merges with the hardware notch.
     private var collapsedIsland: some View {
-        NotchShape()
+        // D-01: size from the REAL measured notch the controller published; fall back to the
+        // static 200x38 seed when no notch is measured (non-notch / external display / previews).
+        let size = interaction.collapsedNotchSize ?? Self.collapsedSize
+        return NotchShape()
             .fill(collapsedFill)
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.collapsedSize.width, height: Self.collapsedSize.height)
+            .frame(width: size.width, height: size.height)
             // D-01 (visual half): a subtle "you're in" bounce on hover only — never
             // when expanded. The controller drives this via its spring wrapper at the
             // state mutation. The haptic + the real pointer monitor are Plan 03.
