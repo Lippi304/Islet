@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 Phase: 12
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-07-05 - Fixed Release-launch signing crash (quick 260705-mzj, disable-library-validation entitlement); Release build now launches. Idle-notch merge (260705-l4i) merged. Both pending final user visual eyeball.
+Last activity: 2026-07-05 - Release-launch signing crash fixed (260705-mzj) + idle-notch merge (260705-l4i); both on-device verified in Release ("klappt wieder"). Both quick tasks complete.
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -112,8 +112,8 @@ None yet.
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
-| 260705-l4i | Idle-notch merge: data-drive collapsed pill size from measured notch (D-01) | 2026-07-05 | 52ee074 | Code-complete; Release visual verify folded into 260705-mzj checkpoint | [260705-l4i-idle-notch-soll-unsichtbar-mit-der-hardw](./quick/260705-l4i-idle-notch-soll-unsichtbar-mit-der-hardw/) |
-| 260705-mzj | Release-build launch crash fix: disable-library-validation entitlement for embedded MediaRemoteAdapter framework | 2026-07-05 | 8e06a1b | Launch crash fixed (objectively verified); user visual eyeball pending | [260705-mzj-release-build-crash-fix-disable-library-](./quick/260705-mzj-release-build-crash-fix-disable-library-/) |
+| 260705-l4i | Idle-notch merge: data-drive collapsed pill size from measured notch (D-01) | 2026-07-05 | 52ee074 | Complete ✓ (on-device verified in Release) | [260705-l4i-idle-notch-soll-unsichtbar-mit-der-hardw](./quick/260705-l4i-idle-notch-soll-unsichtbar-mit-der-hardw/) |
+| 260705-mzj | Release-build launch crash fix: disable-library-validation entitlement for embedded MediaRemoteAdapter framework | 2026-07-05 | 8e06a1b | Complete ✓ (Release launches, on-device verified) | [260705-mzj-release-build-crash-fix-disable-library-](./quick/260705-mzj-release-build-crash-fix-disable-library-/) |
 
 ## Deferred Items
 

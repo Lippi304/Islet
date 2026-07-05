@@ -1,7 +1,7 @@
 ---
 quick_id: 260705-mzj
 type: execute
-status: launch-fix-verified-visual-eyeball-pending
+status: complete
 subsystem: build-signing
 tags: [entitlements, hardened-runtime, library-validation, release-build, signing]
 requires:
@@ -50,7 +50,7 @@ Commit: `cc63c00` — `fix(260705-mzj): add disable-library-validation entitleme
 - [x] Entitlement present in built app (`codesign -d --entitlements -`)
 - [x] `Islet.xcodeproj` regenerated and references the entitlements
 - [x] **Release launch crash FIXED — objectively verified by the orchestrator**: the freshly built `Release/Islet.app` was launched standalone and stayed running cleanly (process state `SN`, no dyld error), whereas the pre-fix binary exited within seconds on the `different Team IDs` dyld error. The launch-crash half of the checkpoint is proven.
-- [ ] Visual eyeball only (user): menu-bar icon renders + idle-notch merges/expands (folds in deferred 260705-l4i). Cosmetic-only; does not gate the signing fix, which is merged (`8e06a1b`).
+- [x] **User visual confirmation (2026-07-05, "klappt wieder"):** Release build launches, menu-bar icon present, and the idle-notch merge/expand (folded-in 260705-l4i) looks correct on-device. Both quick tasks APPROVED.
 
 ## Deviations from Plan
 

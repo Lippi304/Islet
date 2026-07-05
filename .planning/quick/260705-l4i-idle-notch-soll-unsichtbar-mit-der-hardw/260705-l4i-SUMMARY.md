@@ -2,7 +2,7 @@
 phase: quick-260705-l4i
 plan: 01
 subsystem: notch-island
-status: code-complete-release-verify-deferred
+status: complete
 tags: [D-01, idle-merge, geometry, swiftui]
 requires:
   - NotchGeometry.notchSize (existing pure measurement seam)
@@ -37,7 +37,9 @@ Data-drives the collapsed idle island's frame from the app's already-measured no
 
 **code-complete-release-verify-deferred** — Task 1 (code) is complete, the Debug build gate passed, and the change is merged into `gsd-new-project-setup` (merge commit `52ee074`).
 
-Task 2 (on-device Release visual verify) is **DEFERRED**: the attempt surfaced a **pre-existing, unrelated Release-launch crash** — the embedded `MediaRemoteAdapter.framework` fails Library Validation under Hardened Runtime on macOS 26/27 (`dyld: ... different Team IDs`; ad-hoc signed app + ad-hoc third-party framework, no entitlements file). This blocks EVERY Release build, independent of this geometry change (which only reached Release via this merge). Release verification of the idle merge will be done together with the signing fix, tracked as a separate quick task. Decision by user (2026-07-05): merge now, verify in Release after the signing fix.
+Task 2 (on-device Release visual verify) is **DONE** — confirmed by the user on-device on 2026-07-05 ("klappt wieder") once the Release build could launch (via quick 260705-mzj signing fix). The idle island merges with the hardware notch and expands on hover in the Release build.
+
+Original blocker context: the first verification attempt surfaced a **pre-existing, unrelated Release-launch crash** — the embedded `MediaRemoteAdapter.framework` fails Library Validation under Hardened Runtime on macOS 26/27 (`dyld: ... different Team IDs`; ad-hoc signed app + ad-hoc third-party framework, no entitlements file). This blocks EVERY Release build, independent of this geometry change (which only reached Release via this merge). Release verification of the idle merge will be done together with the signing fix, tracked as a separate quick task. Decision by user (2026-07-05): merge now, verify in Release after the signing fix.
 
 ## What Changed
 
