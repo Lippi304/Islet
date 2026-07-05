@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Trial & Paid Release
-status: ready_to_plan
-stopped_at: Phase 11 complete (2/2) — ready to discuss Phase 12
-last_updated: 2026-07-05T13:00:45.281Z
-last_activity: 2026-07-05 -- Phase 11 execution started
+status: planning
+stopped_at: Phase 12 context gathered
+last_updated: "2026-07-05T17:21:04.767Z"
+last_activity: 2026-07-05 - Release-launch signing crash fixed (260705-mzj) + idle-notch merge (260705-l4i); both on-device verified in Release ("klappt wieder"). Both quick tasks complete.
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 45
-  percent: 25
+  completed_plans: 6
+  percent: 50
 ---
 
 # Project State
@@ -130,9 +130,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-05T11:18:35.255Z
-Stopped at: Phase 11 UI-SPEC approved
-Resume file: .planning/phases/11-license-settings-ui-stubbed-license-service/11-UI-SPEC.md
+Last session: 2026-07-05T17:21:04.763Z
+Stopped at: Phase 12 context gathered
+Resume file: .planning/phases/12-real-polar-sh-license-integration/12-CONTEXT.md
 
 ## Operator Next Steps
 
