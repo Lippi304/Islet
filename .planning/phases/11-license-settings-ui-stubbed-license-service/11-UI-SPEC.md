@@ -1,10 +1,11 @@
 ---
 phase: 11
 slug: license-settings-ui-stubbed-license-service
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-05
+reviewed_at: 2026-07-05
 ---
 
 # Phase 11 — UI Design Contract
