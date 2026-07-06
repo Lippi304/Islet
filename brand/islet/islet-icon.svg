@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="coral" x1="0.12" y1="0" x2="0.88" y2="1">
+      <stop offset="0" stop-color="#FFA982"/>
+      <stop offset="0.44" stop-color="#FF6A45"/>
+      <stop offset="1" stop-color="#E4471F"/>
+    </linearGradient>
+    <clipPath id="sq">
+      <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#sq)">
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#coral)"/>
+    <!-- Notch: hangs from top edge, flat top, rounded bottom -->
+    <path fill="#17110E" d="M144 0 L880 0 L880 96 Q880 176 800 176 L224 176 Q144 176 144 96 Z"/>
+    <!-- Camera lens -->
+    <circle cx="512" cy="84" r="42" fill="#342c27"/>
+    <circle cx="512" cy="84" r="15" fill="#0b0705"/>
+  </g>
+</svg>
