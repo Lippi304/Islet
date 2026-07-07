@@ -31,7 +31,7 @@ auto-update; DMG visual polish (background/icon layout) beyond the existing plai
   verification method for success criterion #3 — no second machine is being sourced.
 
 ### Product name lock-in (D-02)
-- **D-02:** **"Islet" is now the final product name** — the "Product name TBD" flag in
+- **D-02 [informational]:** **"Islet" is now the final product name** — the "Product name TBD" flag in
   PROJECT.md's Key Decisions table is resolved as of this phase. Bundle ID
   (`com.lippi304.islet`), display name, and website already all say "Islet"; no rename
   work is needed. (Note for downstream: PROJECT.md's Key Decisions table should be
