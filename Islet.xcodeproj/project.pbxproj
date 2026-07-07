@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		01168B5EC7AF98EE1ADA34D8 /* IsletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 143DD03B59EE64AE773112BD /* IsletApp.swift */; };
 		04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31972FF1ED9E30425E37EE11 /* TrialLogic.swift */; };
+		093EB93DF4C26FB9D4D0E4C5 /* PolarLicenseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */; };
 		0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C074399453E7F8439A9CD2 /* SettingsView.swift */; };
 		0B5D7C9F97587BFE2049F7D7 /* InteractionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406030D1395E35FB24681FE8 /* InteractionStateTests.swift */; };
 		1A099891C9DC0C4BBD962245 /* VisibilityDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */; };
@@ -24,6 +25,7 @@
 		344AC320C82085AB24E1F3EC /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */; };
 		3724A77CBBC391E628A7C5EA /* TrialManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EDAEA183BDB83B0E678C41 /* TrialManagerTests.swift */; };
 		3A5F1F3C8D2C451435E0A5BB /* NowPlayingPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09022AEB4178AE45BE2F65BE /* NowPlayingPresentation.swift */; };
+		3AFB898616FDDD93C37B1906 /* PolarLicenseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA8943FF6A71F7546A800BD /* PolarLicenseService.swift */; };
 		3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */; };
 		40A19305FE709A3C8F605C3B /* NowPlayingPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */; };
 		4EBD25B8C54F6A68250153F4 /* NotchShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F635228C4261E9EECEC41F /* NotchShapeTests.swift */; };
@@ -95,6 +97,7 @@
 		28316551B58651959797184D /* DeviceActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivity.swift; sourceTree = "<group>"; };
 		2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingState.swift; sourceTree = "<group>"; };
 		31972FF1ED9E30425E37EE11 /* TrialLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLogic.swift; sourceTree = "<group>"; };
+		3AA8943FF6A71F7546A800BD /* PolarLicenseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseService.swift; sourceTree = "<group>"; };
 		406030D1395E35FB24681FE8 /* InteractionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionStateTests.swift; sourceTree = "<group>"; };
 		43F635228C4261E9EECEC41F /* NotchShapeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShapeTests.swift; sourceTree = "<group>"; };
 		46B181CF063D1999E055DD9B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -104,6 +107,7 @@
 		4A3063E01FF76A78398606DF /* IslandResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandResolverTests.swift; sourceTree = "<group>"; };
 		4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseServiceTests.swift; sourceTree = "<group>"; };
 		5D869CDF80317230429414E1 /* PowerActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivityTests.swift; sourceTree = "<group>"; };
 		5F13DD9E9F8F782EEAE48FC2 /* Islet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Islet.entitlements; sourceTree = "<group>"; };
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
@@ -150,6 +154,7 @@
 			children = (
 				A1DF9B7E0816B6996D6DD363 /* LicenseService.swift */,
 				EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */,
+				3AA8943FF6A71F7546A800BD /* PolarLicenseService.swift */,
 				31972FF1ED9E30425E37EE11 /* TrialLogic.swift */,
 				734F24D3CCE5D48060447B10 /* TrialManager.swift */,
 			);
@@ -169,6 +174,7 @@
 				83B2D92BF83095959068F293 /* NotchPanelTests.swift */,
 				43F635228C4261E9EECEC41F /* NotchShapeTests.swift */,
 				E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */,
+				5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */,
 				5D869CDF80317230429414E1 /* PowerActivityTests.swift */,
 				88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */,
 				11EDAEA183BDB83B0E678C41 /* TrialManagerTests.swift */,
@@ -364,6 +370,7 @@
 				7E4D99F7223419D03FC89C5C /* NowPlayingMonitor.swift in Sources */,
 				3A5F1F3C8D2C451435E0A5BB /* NowPlayingPresentation.swift in Sources */,
 				A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */,
+				3AFB898616FDDD93C37B1906 /* PolarLicenseService.swift in Sources */,
 				921F5385399CF08B36043288 /* PowerActivity.swift in Sources */,
 				EB0A6293AAD242E76B254033 /* PowerSourceMonitor.swift in Sources */,
 				0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */,
@@ -386,6 +393,7 @@
 				A532C893CA28FEBC8B8F87A8 /* NotchPanelTests.swift in Sources */,
 				4EBD25B8C54F6A68250153F4 /* NotchShapeTests.swift in Sources */,
 				40A19305FE709A3C8F605C3B /* NowPlayingPresentationTests.swift in Sources */,
+				093EB93DF4C26FB9D4D0E4C5 /* PolarLicenseServiceTests.swift in Sources */,
 				1F2B2E8221BC9084BB4A839D /* PowerActivityTests.swift in Sources */,
 				9D1FF157B4E789EF0A05245A /* TrialLogicTests.swift in Sources */,
 				3724A77CBBC391E628A7C5EA /* TrialManagerTests.swift in Sources */,
