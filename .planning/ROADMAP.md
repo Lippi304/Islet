@@ -110,7 +110,7 @@ Plans:
   3. After one successful validation, the app keeps working fully offline (e.g., in airplane mode) without re-prompting for the key.
   4. A transient network error during validation (no internet, server hiccup) is distinguishable from an actually-invalid key — it does not lock out a key the user just paid for, and can be retried.
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans executed — Phase complete 2026-07-07
 
 Plans:
 
@@ -125,7 +125,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 12-04-PLAN.md — On-device verification (Buy Now, real-key validate, offline relaunch, error states) + Debug/Release build gate
+- [x] 12-04-PLAN.md — On-device verification (Buy Now, real-key validate, offline relaunch, error states) + Debug/Release build gate
 
 ### Phase 13: Real Notarization & Release
 
