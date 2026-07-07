@@ -110,14 +110,14 @@ Plans:
   3. After one successful validation, the app keeps working fully offline (e.g., in airplane mode) without re-prompting for the key.
   4. A transient network error during validation (no internet, server hiccup) is distinguishable from an actually-invalid key — it does not lock out a key the user just paid for, and can be retried.
 
-**Plans:** 4 plans
+**Plans:** 2/4 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 12-01-PLAN.md — Keychain license persistence: LicenseStore seam + LicenseRecord + KeychainLicenseStore + read-once-cached LicenseManager
-- [ ] 12-02-PLAN.md — PolarLicenseService: URLSession customer-portal validate + strict HTTP→verdict mapping + HTTPSession seam
+- [x] 12-01-PLAN.md — Keychain license persistence: LicenseStore seam + LicenseRecord + KeychainLicenseStore + read-once-cached LicenseManager
+- [x] 12-02-PLAN.md — PolarLicenseService: URLSession customer-portal validate + strict HTTP→verdict mapping + HTTPSession seam
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -152,5 +152,5 @@ Plans:
 |-------|----------------|--------|-----------|
 | 10. Trial & Lockout Gate | 4/4 | Complete | 2026-07-05 |
 | 11. License Settings UI (Stubbed) | 2/2 | Complete    | 2026-07-05 |
-| 12. Real Polar.sh License Integration | 0/4 | Planned | - |
+| 12. Real Polar.sh License Integration | 2/4 | In Progress|  |
 | 13. Real Notarization & Release | 0/TBD | Not started | - |
