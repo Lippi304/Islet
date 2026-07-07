@@ -16,7 +16,7 @@ Islet becomes a real, sellable product: a 3-day trial, a one-time €7.99 purcha
 ### Purchase & Licensing (LIC)
 
 - [ ] **LIC-01**: User can click a "Buy Now" button in Settings that opens the Polar.sh checkout page (one-time €7.99 purchase) in the default browser
-- [ ] **LIC-02**: User can paste a purchased license key into a field in Settings; the key is validated once online against Polar.sh, then the validated state is cached locally (Keychain) so the app keeps working fully offline afterward
+- [x] **LIC-02**: User can paste a purchased license key into a field in Settings; the key is validated once online against Polar.sh, then the validated state is cached locally (Keychain) so the app keeps working fully offline afterward
 - [ ] **LIC-03**: When the trial has expired and no valid license is present, the app's functionality (the island) is fully locked until a valid license key is entered
 
 ### Distribution (DIST)
@@ -58,7 +58,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRIAL-02 | Phase 10 | Pending |
 | TRIAL-03 | Phase 11 | Complete |
 | LIC-01 | Phase 12 | Pending |
-| LIC-02 | Phase 12 | Pending |
+| LIC-02 | Phase 12 | Complete |
 | LIC-03 | Phase 10 | Pending |
 | DIST-01 | Phase 13 | Pending |
 
