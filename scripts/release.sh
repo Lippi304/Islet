@@ -19,8 +19,8 @@ set -euo pipefail
 # ============================================================================
 
 # >>> FILL THESE IN AT PHASE 6 (leave as-is for the Phase-0 dry run) >>>
-DEVELOPER_ID="__DEVELOPER_ID__"     # e.g. "Developer ID Application: Your Name (TEAMID)"
-NOTARY_PROFILE="__NOTARY_PROFILE__" # e.g. "islet-notary"  (see docs/RELEASE.md)
+DEVELOPER_ID="6F5264EF72441E588C7A54CCEA26C40028B6AEDF"
+NOTARY_PROFILE="islet-notary"
 # <<< FILL THESE IN AT PHASE 6 <<<
 #
 # SECURITY: NOTARY_PROFILE is just a NAME that points at credentials stored in
@@ -77,6 +77,18 @@ if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ]; then
   codesign --force --sign - "${APP_PATH}"
 else
   echo "-> Signing with Developer ID + hardened runtime."
+  # Sign nested frameworks first (inside-out). codesign does not recurse into
+  # embedded frameworks and --deep is deprecated/unreliable, so each embedded
+  # framework needs the real Developer ID + secure timestamp explicitly —
+  # otherwise notarization rejects the ad-hoc signature Xcode's archive step
+  # applied to it.
+  if [ -d "${APP_PATH}/Contents/Frameworks" ]; then
+    find "${APP_PATH}/Contents/Frameworks" -maxdepth 1 -name "*.framework" -print0 |
+      while IFS= read -r -d '' framework; do
+        codesign --force --options runtime --timestamp \
+          --sign "${DEVELOPER_ID}" "${framework}"
+      done
+  fi
   codesign --force --options runtime --timestamp \
     --sign "${DEVELOPER_ID}" "${APP_PATH}"
 fi
@@ -95,7 +107,14 @@ codesign --verify --verbose "${APP_PATH}"
 # itself still gets its own separate notarize+staple pass in Step 6 (a DMG is
 # a distinct artifact from the .app it contains).
 if [ "${DEVELOPER_ID}" != "__DEVELOPER_ID__" ] && [ "${NOTARY_PROFILE}" != "__NOTARY_PROFILE__" ]; then
-  xcrun notarytool submit "${APP_PATH}" --keychain-profile "${NOTARY_PROFILE}" --wait
+  # notarytool only accepts a .zip/.pkg/.dmg for submission (not a raw .app
+  # directory) — ditto -c -k --keepParent zips it while preserving the bundle
+  # structure notarization needs to inspect.
+  APP_ZIP="${EXPORT_DIR}/${APP_NAME}.zip"
+  ditto -c -k --keepParent "${APP_PATH}" "${APP_ZIP}"
+  xcrun notarytool submit "${APP_ZIP}" --keychain-profile "${NOTARY_PROFILE}" --wait
+  rm -f "${APP_ZIP}"
+  # Stapling attaches the ticket to the original .app bundle, not the zip.
   xcrun stapler staple "${APP_PATH}"
 fi
 
