@@ -21,7 +21,7 @@ Islet becomes a real, sellable product: a 3-day trial, a one-time €7.99 purcha
 
 ### Distribution (DIST)
 
-- [ ] **DIST-01**: The app is signed with a real Developer ID, notarized via `notarytool`, and stapled — replacing the v1.0 dry-run placeholders — so purchasers see no Gatekeeper warning on first launch
+- [x] **DIST-01**: The app is signed with a real Developer ID, notarized via `notarytool`, and stapled — replacing the v1.0 dry-run placeholders — so purchasers see no Gatekeeper warning on first launch
 
 ## v2 Requirements
 
@@ -60,7 +60,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIC-01 | Phase 12 | Pending |
 | LIC-02 | Phase 12 | Complete |
 | LIC-03 | Phase 10 | Pending |
-| DIST-01 | Phase 13 | Pending |
+| DIST-01 | Phase 13 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 7 total

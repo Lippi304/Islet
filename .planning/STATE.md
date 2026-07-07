@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Trial & Paid Release
 status: executing
-stopped_at: Phase 14 context gathered
-last_updated: "2026-07-07T22:07:17.297Z"
-last_activity: 2026-07-07 -- Phase 13 execution started
+stopped_at: Phase 13 complete; Phase 14 context gathered
+last_updated: "2026-07-07T22:26:28.000Z"
+last_activity: 2026-07-08 -- Phase 13 (real-notarization-release) completed and verified on-device
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
-  percent: 60
+  completed_plans: 11
+  percent: 80
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 13 — real-notarization-release
+**Current focus:** v1.1 milestone phases (10-13) all complete; Phase 14 (new post-milestone scope) context gathered, not yet planned
 
 ## Current Position
 
-Phase: 13 (real-notarization-release) — EXECUTING
-Plan: 1 of 1
-Next: Phase 13 (real-notarization-release) — not started
-Last activity: 2026-07-07 -- Phase 13 execution started
+Phase: 13 (real-notarization-release) — COMPLETE (2026-07-08)
+Plan: 1 of 1 — done
+Next: `/gsd-plan-phase 14` (Basic Outfit) to plan the new post-v1.1 feature, or `/gsd-complete-milestone` to close out v1.1 (all 4 phases — 10, 11, 12, 13 — complete)
+Last activity: 2026-07-08 -- Phase 13 completed: real Developer-ID sign, notarize, staple verified on-device (DIST-01)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -41,7 +41,7 @@ on-device Bluetooth permission spike from 05-01 Task 3 was superseded by the act
 finding in 06-04 (NSBluetoothAlwaysUsageDescription IS required on macOS 26 — see project
 memory `a1-bluetooth-usage-key-required`), so no further action is needed there either.
 
-Progress (v1.1): [░░░░░░░░░░] 0%
+Progress (v1.1): [██████████] 100% (Phases 10-13 all complete; Phase 14 is new scope added after this milestone's original 4 phases)
 
 ## Performance Metrics
 
@@ -65,6 +65,8 @@ Progress (v1.1): [░░░░░░░░░░] 0%
 | 08 | 2 | - | - |
 | 09 | 5 | - | - |
 | 11 | 2 | - | - |
+| 12 | 4 | - | - |
+| 13 | 1 | - | - |
 
 **Recent Trend:**
 
@@ -106,8 +108,8 @@ None yet.
 - [Phase 10] Lockout enforcement must defer to the next natural UI transition point, not an instant synchronous yank, per research pitfall on mid-session abrupt lockout.
 - [Phase 12] License validation must distinguish "invalid key" (4xx) from "couldn't reach the server" (network/5xx) and never hard-lock a key the user just paid for — highest-consequence pitfall per research (hits paying customers at peak purchase-regret risk).
 - [Phase 12] Polar API error taxonomy beyond `granted/revoked/disabled` is thin in official docs (research flag) — verify actual error shapes against the real (production) API during Phase 12 planning/implementation.
-- [Phase 13] Individual-vs-Team notarytool API key `--issuer` flag behavior is MEDIUM-HIGH confidence only (Apple's TN3147 page didn't render during research) — re-verify if a 401 error appears.
-- [Phase 13] Budget 2-3 notarization iteration cycles, not one-shot success — nested `MediaRemoteAdapter.framework` signing/entitlement mismatches are the most likely failure mode.
+- **[RESOLVED 2026-07-08] [Phase 13] Individual-vs-Team notarytool API key `--issuer` flag behavior** — moot: app-specific-password auth (D-03) was used, not an API key, so this path was never hit.
+- **[RESOLVED 2026-07-08] [Phase 13] Nested `MediaRemoteAdapter.framework` signing/entitlement mismatch** — hit exactly as predicted (2 pipeline iterations). Fixed in `scripts/release.sh`: embedded frameworks are now explicitly re-signed with the real Developer ID before the outer `.app` (codesign does not recurse; `--deep` is deprecated). Also fixed a related real bug: `notarytool submit` requires a `.zip`/`.pkg`/`.dmg`, not a raw `.app` — the script now zips via `ditto -c -k --keepParent` before submission. Verified end-to-end: notarized + stapled, `spctl --assess` accepted, manual double-click open confirmed no Gatekeeper warning.
 - [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
 - [Carried, pre-existing] CR-01 (Phase 9): the dedicated CGS Space leaks in WindowServer on normal app quit (`AppDelegate.quit()` doesn't tear down `NotchWindowController`). Non-blocking, recommended fix via `/gsd-quick` before shipping v1.1.
 - **[RESOLVED 2026-07-05 — quick 260705-mzj] Release build crashed at launch.** First-ever Release build failed in `dyld`: embedded `MediaRemoteAdapter.framework` failed Library Validation under Hardened Runtime on macOS 26/27 (`different Team IDs`; app + framework both ad-hoc signed, no entitlements file). **Fixed** by adding `Islet/Islet.entitlements` with `com.apple.security.cs.disable-library-validation`, wired into the Islet target via `CODE_SIGN_ENTITLEMENTS` in `project.yml` (commit `8e06a1b`). Release build now BUILD SUCCEEDED and the app launches without the dyld crash (objectively verified via standalone launch). This also pre-clears the Phase-13 blocker below (`MediaRemoteAdapter.framework` signing/entitlement mismatch) — the entitlement is notarization-compatible.
@@ -141,6 +143,5 @@ Resume file: .planning/phases/14-basic-outfit-weather-calendar-date-display-with
 
 ## Operator Next Steps
 
-- Run `/gsd-discuss-phase 10` to walk through assumptions/risks for Trial & Lockout Gate before planning.
-- Then `/gsd-plan-phase 10` to produce the executable plan, then `/gsd-execute-phase 10`.
-- Phases 10 → 11 → 12 are a dependency chain (each builds on the prior); Phase 13 (real notarization) is independent and can be resequenced if the Developer ID / App Store Connect API key setup is ready sooner.
+- v1.1 (Trial & Paid Release) is functionally complete — all 4 phases (10, 11, 12, 13) done, all v1.1 requirements (TRIAL-01/02/03, LIC-01/02/03, DIST-01) satisfied. Consider `/gsd-complete-milestone` to formally close it out.
+- Phase 14 (Basic Outfit: weather + calendar + date display) is new post-milestone scope, discussed but not yet planned — run `/gsd-plan-phase 14` when ready to continue.
