@@ -48,6 +48,13 @@ final class LicenseState {
         }
         #endif
 
+        // Phase 12 / LIC-02 — persisted (survives-relaunch, offline) entitlement. Sits AFTER
+        // the DEBUG override and BEFORE sessionActivated so a real activation's Keychain
+        // record is honored even without an in-memory session flag (e.g. after relaunch).
+        // LicenseManager reads the Keychain ONCE and caches in memory, so this hot-path read
+        // (updateVisibility()) never re-hits the Keychain (memory 2401 flood mitigation).
+        if LicenseManager.shared.isLicensed { return .licensed }
+
         // TRIAL-03: in-memory session activation short-circuits to .licensed. Sits AFTER
         // the DEBUG override (so forceExpired/forceLicensed still win in dev) and BEFORE the
         // trial computation. `isEntitled` already maps `.licensed → true`, so no change there.

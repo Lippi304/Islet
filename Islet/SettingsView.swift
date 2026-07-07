@@ -14,10 +14,10 @@ struct SettingsView: View {
     // D-04/D-05 — the activation state machine: idle (no status line) → validating
     // (~1s, Activate disabled) → success/failure inline status. The seam is held as
     // the PROTOCOL type (Plan 01) so Phase 12's PolarLicenseService is a one-line swap.
-    private enum ActivationPhase { case idle, validating, success, failure }
+    private enum ActivationPhase { case idle, validating, success, failure, unreachable }
     @State private var enteredKey = ""
     @State private var activationPhase: ActivationPhase = .idle
-    private let licenseService: LicenseService = StubLicenseService()
+    private let licenseService: LicenseService = PolarLicenseService()
 
     // APP-03 activity preferences — app-owned, so @AppStorage IS the source of
     // truth (D-09). All three default ON (D-06/D-07): `@AppStorage(key) var x =
@@ -156,6 +156,12 @@ struct SettingsView: View {
             Text("✓ License activated").foregroundStyle(.green)
         case .failure:
             Text("✗ That key wasn't recognized.").foregroundStyle(.red)
+        case .unreachable:
+            // D-04 — distinct from `.failure`: a network/server problem is NOT an
+            // invalid key, so it gets its own non-red message plus a manual Retry
+            // (no silent auto-retry).
+            Text("⚠ Server not reachable.").foregroundStyle(.secondary)
+            Button("Retry") { activate() }
         }
     }
 
@@ -175,10 +181,16 @@ struct SettingsView: View {
                 // truth; entitlement lives in the in-memory sessionActivated.
                 UserDefaults.standard.set(Date().timeIntervalSince1970,
                                           forKey: "license.activationNudge")
+                // Phase 12 / LIC-02 — persist the granted record so the next launch
+                // short-circuits LicenseState.status offline, with zero network call.
+                LicenseManager.shared.recordValidation(
+                    key: enteredKey.trimmingCharacters(in: .whitespacesAndNewlines))
                 licenseStatus = .licensed
                 activationPhase = .success
-            case .failure:
+            case .failure(.invalidKey):
                 activationPhase = .failure
+            case .failure(.unreachable):
+                activationPhase = .unreachable
             }
         }
     }
