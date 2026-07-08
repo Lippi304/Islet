@@ -72,11 +72,11 @@ final class PolarLicenseService: LicenseService {
         self.session = session
     }
 
-    func activate(key: String, completion: @escaping (Result<Void, LicenseActivationError>) -> Void) {
+    func activate(key: String, completion: @escaping (Result<ValidatedLicense, LicenseActivationError>) -> Void) {
         // Opaque untrusted input (T-11-03): trim, never interpolate.
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        func finish(_ result: Result<Void, LicenseActivationError>) {
+        func finish(_ result: Result<ValidatedLicense, LicenseActivationError>) {
             DispatchQueue.main.async { completion(result) }   // CONTRACT: always main thread
         }
 
@@ -108,7 +108,7 @@ final class PolarLicenseService: LicenseService {
                 else {
                     return finish(.failure(.invalidKey))
                 }
-                return finish(.success(()))
+                return finish(.success(ValidatedLicense(id: validated.id, status: validated.status, expiresAt: validated.expiresAt)))
             case 400, 404, 422:
                 // not found / revoked / disabled / expired / malformed request.
                 return finish(.failure(.invalidKey))

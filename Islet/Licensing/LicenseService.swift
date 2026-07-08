@@ -32,28 +32,39 @@ enum LicenseActivationError: Error, Equatable {
     case unreachable(String)
 }
 
+/// The real payload validated by the server (or the DEBUG stub) on a successful activation.
+/// Phase 15 / D-03: widened from a bare `Void` so the caller can persist what was actually
+/// validated instead of fabricating a placeholder (`Islet/Licensing/KeychainLicenseStore.swift`).
+struct ValidatedLicense: Equatable {
+    let id: String
+    let status: String
+    let expiresAt: String?
+}
+
 protocol LicenseService: AnyObject {
     /// Validate `key` and report the verdict.
     /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
-    func activate(key: String, completion: @escaping (Result<Void, LicenseActivationError>) -> Void)
+    func activate(key: String, completion: @escaping (Result<ValidatedLicense, LicenseActivationError>) -> Void)
 }
 
 final class StubLicenseService: LicenseService {
     // D-05 magic key — DEBUG scaffold only (see file header / T-11-01).
     static let validKey = "ISLET-DEMO-OK"
 
-    func activate(key: String, completion: @escaping (Result<Void, LicenseActivationError>) -> Void) {
+    func activate(key: String, completion: @escaping (Result<ValidatedLicense, LicenseActivationError>) -> Void) {
         // D-06: observable ~1s simulated round-trip. This one-shot also GUARANTEES the
         // completion fires on the main thread (mirrors NowPlayingMonitor.swift:107-111).
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             #if DEBUG
             // Opaque untrusted input (T-11-03): trim whitespace, then a plain `==` compare.
             let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-            let verdict: Result<Void, LicenseActivationError> =
-                trimmed == Self.validKey ? .success(()) : .failure(.invalidKey)
+            let verdict: Result<ValidatedLicense, LicenseActivationError> =
+                trimmed == Self.validKey
+                    ? .success(ValidatedLicense(id: "", status: "granted", expiresAt: nil))
+                    : .failure(.invalidKey)
             #else
             // T-11-01: the magic-key scaffold is compiled OUT of Release — nothing validates.
-            let verdict: Result<Void, LicenseActivationError> = .failure(.invalidKey)
+            let verdict: Result<ValidatedLicense, LicenseActivationError> = .failure(.invalidKey)
             #endif
             completion(verdict)
         }
