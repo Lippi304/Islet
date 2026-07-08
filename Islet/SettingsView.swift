@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
@@ -101,6 +102,12 @@ struct SettingsView: View {
                 }
             }
 
+            // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
+            // reports — no new logging subsystem, nothing written unless clicked.
+            Section("Diagnostics") {
+                Button("Save Diagnostic Report…") { saveDiagnosticReport() }
+            }
+
             LabeledContent("Version") {
                 Text(Self.versionString)   // D-09: version/build label
             }
@@ -193,6 +200,29 @@ struct SettingsView: View {
             case .failure(.unreachable):
                 activationPhase = .unreachable
             }
+        }
+    }
+
+    // Quick task 260708-u47 — builds the report from this view's already-bound state
+    // (no new UserDefaults reads) and lets the user save it via a native NSSavePanel.
+    // Fire-and-forget: nothing here needs to live-update while Settings is open.
+    private func saveDiagnosticReport() {
+        let text = DiagnosticReport.text(
+            licenseStatus: LicenseState.shared.status,
+            launchAtLogin: launchAtLogin,
+            chargingEnabled: chargingEnabled,
+            nowPlayingEnabled: nowPlayingEnabled,
+            deviceEnabled: deviceEnabled,
+            accentIndex: accentIndex,
+            nowPlayingHealthy: (NSApp.delegate as? AppDelegate)?.notchController?.nowPlayingState.isHealthy
+        )
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.nameFieldStringValue = "Islet-Diagnostic-Report.txt"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            try? text.write(to: url, atomically: true, encoding: .utf8)
         }
     }
 
