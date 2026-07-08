@@ -1,5 +1,21 @@
 # Milestones
 
+## v1.1 Trial & Paid Release (Shipped: 2026-07-08)
+
+**Phases completed:** 4 phases, 11 plans
+
+**Key accomplishments:**
+
+- Tamper-resistant 3-day trial: start timestamp persisted to the Keychain (survives `defaults delete` and reinstall), a one-time first-launch notice, and a hard lockout (no pill, no activities) at expiry that unlocks at the next natural UI transition rather than an abrupt yank.
+- License Settings UI proven end-to-end against a fake in-memory `LicenseService` — days-remaining display, Buy Now, and an idle→validating→success/failure activation state machine — before any live network call existed.
+- Swapped the stub for a real `PolarLicenseService`: live Polar.sh checkout in the default browser, online key validation with a strict HTTP→verdict mapping that never hard-locks a key just paid for on a transient network error, and Keychain-cached validated state so the app keeps working fully offline afterward.
+- Real Developer-ID sign → notarize → staple pipeline replacing the v1.0 dry-run placeholders — fixed two real bugs along the way (embedded frameworks need explicit re-signing before the outer `.app`; `notarytool` requires a zip/pkg/dmg, not a raw `.app`). `spctl --assess` confirmed accepted, no Gatekeeper warning on first launch.
+- Also shipped in the same window, ahead of formal milestone scope: a weather + calendar + date glance (Phase 14) in the expanded idle view, on-device verified — needs its own requirement IDs captured at the next milestone.
+
+**Known deferred items at close:** Phase 02's 8 pending UAT scenarios + its verification gap (pre-existing since v1.0 close); CR-01 CGS Space leak on quit and WR-01..04 code-review findings (pre-existing since v1.0/v1.0.1 close) — see STATE.md Deferred Items.
+
+---
+
 ## v1.0.1 Pre-Release Polish (Shipped: 2026-07-04)
 
 **Phases completed:** 3 phases, 9 plans (4 executed with code, 4 conditional no-ops, 1 precondition-skipped)

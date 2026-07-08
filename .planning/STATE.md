@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Trial & Paid Release
-status: executing
-stopped_at: Phase 14 complete (14-05 on-device verification approved)
-last_updated: "2026-07-08T14:59:28.543Z"
+milestone: none
+milestone_name: none
+status: done
+stopped_at: v1.1 milestone closed (Phases 10-13 archived); Phase 14 complete and on-device verified, pending next-milestone requirement capture
+last_updated: "2026-07-08T15:33:00.000Z"
 last_activity: 2026-07-08
 progress:
   total_phases: 5
@@ -18,16 +18,16 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-05)
+See: .planning/PROJECT.md (updated 2026-07-08)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 14 — basic-outfit-weather-calendar-date-display-with-weather-driv
+**Current focus:** None — v1.1 shipped. Planning next milestone (candidates: formalize Phase 14's already-shipped weather/calendar/outfit work, or the deferred file shelf/HUD/timer backlog).
 
 ## Current Position
 
-Phase: 14 (basic-outfit-weather-calendar-date-display-with-weather-driv) — COMPLETE (5 of 5 plans)
-Plan: 5 of 5 — done
-Next: `/gsd:verify-work 14` to confirm phase goals were actually reached, then `/gsd-complete-milestone` to close out v1.1 (all 5 phases — 10, 11, 12, 13, 14 — complete)
+v1.1 Trial & Paid Release closed 2026-07-08 (Phases 10-13, see `.planning/milestones/v1.1-ROADMAP.md`).
+Phase 14 (weather/calendar/date, executed ahead of v1.1's formal scope) is complete and on-device verified (5 of 5 plans) but not yet archived — its requirements (WEATHER-01/CAL-01/OUTFIT-01) still need IDs in the next milestone's REQUIREMENTS.md.
+Next: `/gsd-new-milestone` to scope the next milestone.
 Last activity: 2026-07-08
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -79,21 +79,14 @@ Progress (v1.1): [██████████] 100% (Phases 10-13 all complet
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived there and in `.planning/milestones/v1.1-ROADMAP.md`).
 
-- [Roadmap v1.1] Phase order follows research SUMMARY.md verbatim: Phase 10 (Trial + Lockout Gate on a stubbed license state) before Phase 11 (Settings UI against a stubbed LicenseService) before Phase 12 (real Polar.sh integration) — de-risks the most sensitive existing file (`NotchWindowController`'s single-arbiter `shouldShow(...)`) and the UI state machine before live network flakiness is introduced. Phase 13 (real notarization) is functionally independent and sequenced last for release-readiness ordering only.
-- [Roadmap v1.1] LIC-01/LIC-02 mapped to Phase 12, not Phase 11, even though Phase 11 builds their UI shell — the requirements' actual observable behavior (real Polar.sh checkout page, real online validation) isn't true until the real `PolarLicenseService` swap; Phase 11's stub only proves the state machine.
-- [Roadmap v1.1] LIC-03 (hard lockout) mapped to Phase 10, not Phase 12 — the lockout mechanism itself (the `isLicensed` AND-term in `shouldShow(...)`) is fully built and testable against a manually-settable stub license state in Phase 10, per research: the gate must exist and be proven before real license validation touches it.
-- [Roadmap] Charging (Phase 3) is built before Now Playing (Phase 4): proves the activity→island loop on the safest public API (IOKit) before the fragile MediaRemote landmine. (Diverges from research SUMMARY's "Now Playing first"; activity-arbitration nuance deferred to Phase 6 resolver.)
-- [Roadmap] Notarization toolchain proven in Phase 0 on a hello-world build, not deferred to release — the single biggest first-timer footgun.
-- [Roadmap] All MediaRemote access isolated behind one NowPlayingService with a launch-time health check (Phase 4); a future Apple change is a one-file fix.
-- [Roadmap v1.0.1] Two requirements (PBAR-01, FS-01) split into two phases (7, 8) rather than combined into one — different risk profiles.
 - [Phase 14] Verification (14-05) found and fixed two Hardened-Runtime entitlement gaps (Calendar, Location) plus a WeatherKit Portal App Services capability miss - all three needed before on-device permission prompts/weather fetch would work at all
 
 ### Roadmap Evolution
 
-- Phase 14 added: Basic outfit: weather + calendar + date display with weather-driven animated background
+- v1.1 (Trial & Paid Release) shipped 2026-07-08 — archived to `.planning/milestones/v1.1-ROADMAP.md`.
+- Phase 14 (weather/calendar/date) executed ahead of formal milestone scope — stays on the live ROADMAP.md pending next-milestone requirement capture.
 
 ### Pending Todos
 
@@ -105,15 +98,8 @@ None yet.
 
 [Issues that affect future work]
 
-- [Phase 10] Trial-start and license-key/activation state must live in the Keychain (not UserDefaults/plist) per research PITFALLS.md — UserDefaults-only trial storage is trivially reset via `defaults delete`.
-- [Phase 10] Lockout enforcement must defer to the next natural UI transition point, not an instant synchronous yank, per research pitfall on mid-session abrupt lockout.
-- [Phase 12] License validation must distinguish "invalid key" (4xx) from "couldn't reach the server" (network/5xx) and never hard-lock a key the user just paid for — highest-consequence pitfall per research (hits paying customers at peak purchase-regret risk).
-- [Phase 12] Polar API error taxonomy beyond `granted/revoked/disabled` is thin in official docs (research flag) — verify actual error shapes against the real (production) API during Phase 12 planning/implementation.
-- **[RESOLVED 2026-07-08] [Phase 13] Individual-vs-Team notarytool API key `--issuer` flag behavior** — moot: app-specific-password auth (D-03) was used, not an API key, so this path was never hit.
-- **[RESOLVED 2026-07-08] [Phase 13] Nested `MediaRemoteAdapter.framework` signing/entitlement mismatch** — hit exactly as predicted (2 pipeline iterations). Fixed in `scripts/release.sh`: embedded frameworks are now explicitly re-signed with the real Developer ID before the outer `.app` (codesign does not recurse; `--deep` is deprecated). Also fixed a related real bug: `notarytool submit` requires a `.zip`/`.pkg`/`.dmg`, not a raw `.app` — the script now zips via `ditto -c -k --keepParent` before submission. Verified end-to-end: notarized + stapled, `spctl --assess` accepted, manual double-click open confirmed no Gatekeeper warning.
 - [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
-- [Carried, pre-existing] CR-01 (Phase 9): the dedicated CGS Space leaks in WindowServer on normal app quit (`AppDelegate.quit()` doesn't tear down `NotchWindowController`). Non-blocking, recommended fix via `/gsd-quick` before shipping v1.1.
-- **[RESOLVED 2026-07-05 — quick 260705-mzj] Release build crashed at launch.** First-ever Release build failed in `dyld`: embedded `MediaRemoteAdapter.framework` failed Library Validation under Hardened Runtime on macOS 26/27 (`different Team IDs`; app + framework both ad-hoc signed, no entitlements file). **Fixed** by adding `Islet/Islet.entitlements` with `com.apple.security.cs.disable-library-validation`, wired into the Islet target via `CODE_SIGN_ENTITLEMENTS` in `project.yml` (commit `8e06a1b`). Release build now BUILD SUCCEEDED and the app launches without the dyld crash (objectively verified via standalone launch). This also pre-clears the Phase-13 blocker below (`MediaRemoteAdapter.framework` signing/entitlement mismatch) — the entitlement is notarization-compatible.
+- [Carried, pre-existing] CR-01 (Phase 9): the dedicated CGS Space leaks in WindowServer on normal app quit (`AppDelegate.quit()` doesn't tear down `NotchWindowController`). Non-blocking, recommended fix via `/gsd-quick`.
 
 ### Quick Tasks Completed
 
@@ -136,16 +122,15 @@ Items acknowledged and carried forward from previous milestone close:
 | code_review | CR-01: CGS Space leak on app quit (Phase 9) | non-blocking, recommended fix via `/gsd-quick` | v1.0.1 close |
 | code_review | WR-01..04: wing accent-tint, view rehost, animation wrapper, BluetoothMonitor race (Phase 6) | non-blocking | v1.0 close |
 
-Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 6/9 code review, unrelated to v1.1 scope. Not blocking v1.1 roadmap creation per user decision — revisit via `/gsd-quick` or `/gsd:verify-work` as desired.
+Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 6/9 code review, carried forward again at v1.1 close. Not blocking — revisit via `/gsd-quick` or `/gsd:verify-work` as desired.
 
 ## Session Continuity
 
-Last session: 2026-07-08T14:58:20.309Z
-Stopped at: Phase 14 complete (14-05 on-device verification approved)
+Last session: 2026-07-08T15:33:00.000Z
+Stopped at: v1.1 milestone closed; Phase 14 complete and on-device verified, pending next-milestone requirement capture
 Resume file: None
 
 ## Operator Next Steps
 
-- v1.1 (Trial & Paid Release) is functionally complete — all 4 phases (10, 11, 12, 13) done, all v1.1 requirements (TRIAL-01/02/03, LIC-01/02/03, DIST-01) satisfied. Consider `/gsd-complete-milestone` to formally close it out.
-- Phase 14 (Basic Outfit: weather + calendar + date display) is now fully executed and on-device verified (all 5 plans complete, 14-05's two checkpoints approved) — run `/gsd:verify-work 14` next, or fold into `/gsd-complete-milestone`.
-- WEATHER-01, CAL-01, OUTFIT-01 are not yet tracked in `REQUIREMENTS.md` (phase added post-roadmap) — add them there at the next `/gsd-transition`/milestone-close pass if formal traceability is desired.
+- v1.1 (Trial & Paid Release) is shipped and archived (`.planning/milestones/v1.1-ROADMAP.md`, `.planning/milestones/v1.1-REQUIREMENTS.md`).
+- Phase 14 (Basic Outfit: weather + calendar + date display) is fully executed and on-device verified but was never part of v1.1's formal scope — run `/gsd-new-milestone` to scope the next milestone and capture WEATHER-01, CAL-01, OUTFIT-01 as real requirement IDs there.

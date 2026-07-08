@@ -4,30 +4,23 @@
 
 ## What This Is
 
-A native macOS app that turns the MacBook's notch into an interactive "Dynamic Island" — the same idea Apple ships on the iPhone, brought to the Mac. A black, rounded island sits around the camera/notch and expands on hover/click to show live activities. **Shipped in v1.0:** now-playing media controls with working transport, a charging activity, a Bluetooth/AirPods device-connected activity, and a minimal settings window with three activity toggles + accent theming — all arbitrated by a single priority resolver so activities coexist gracefully. A drag-and-drop file shelf, system HUD replacement, and a countdown timer are planned for a future milestone, not yet built.
+A native macOS app that turns the MacBook's notch into an interactive "Dynamic Island" — the same idea Apple ships on the iPhone, brought to the Mac. A black, rounded island sits around the camera/notch and expands on hover/click to show live activities. **Shipped in v1.0/v1.0.1:** now-playing media controls with working transport and a progress bar, a charging activity, a Bluetooth/AirPods device-connected activity, and a minimal settings window with three activity toggles + accent theming — all arbitrated by a single priority resolver so activities coexist gracefully. **Shipped in v1.1:** Islet is now a real, sellable product — a tamper-resistant 3-day free trial with hard lockout, a one-time €7.99 purchase via Polar.sh (live checkout, online validation, offline-capable Keychain cache), and a genuinely Developer-ID-notarized release pipeline. **Also shipped (ahead of formal milestone scope, needs requirement IDs next milestone):** a weather + calendar + date glance in the expanded idle view. A drag-and-drop file shelf, system HUD replacement, and a countdown timer remain planned for a future milestone, not yet built.
 
 It is for Mac users who love the iPhone Dynamic Island and want it on their MacBook without paying for the existing closed-source apps (Alcove, DynamicLake). Built by a first-time programmer with the goal of a polished, possibly sellable product down the line.
 
 ## Core Value
 
-The notch becomes a beautiful, reliable "island" that shows now-playing media and reacts when you plug in the charger or connect a device — it must feel native, smooth, and as polished as the iPhone Dynamic Island. If everything else is cut, that core island experience must work.
+The notch becomes a beautiful, reliable "island" that shows now-playing media and reacts when you plug in the charger or connect a device — it must feel native, smooth, and as polished as the iPhone Dynamic Island. If everything else is cut, that core island experience must work. Still the right priority after v1.1 — the paywall and notarization work protects and monetizes the core experience without changing it.
 
 ## Current State
 
-**v1.0.1 Pre-Release Polish shipped 2026-07-04** (Phases 7-9, see `.planning/milestones/v1.0.1-ROADMAP.md`). Both target features landed: a display-only Now Playing progress bar (PBAR-01) and a genuine root-cause fix for the fullscreen-enter island flash (FS-01, via a dedicated max-level CGS Space). The Apple Developer account has since been purchased and the website's legal (Impressum) is in place — the next milestone turns Islet into an actual paid product.
+**v1.1 Trial & Paid Release shipped 2026-07-08** (Phases 10-13, see `.planning/milestones/v1.1-ROADMAP.md`). All 7 v1.1 requirements (TRIAL-01/02/03, LIC-01/02/03, DIST-01) shipped and verified on-device. Islet is now a genuinely distributable, sellable product: real Developer-ID signing/notarization, a Keychain-backed tamper-resistant trial with hard lockout, and live Polar.sh purchase + offline-capable validation.
 
-## Current Milestone: v1.1 Trial & Paid Release
+**Also shipped in this window, ahead of formal milestone scope (Phase 14):** the `expandedIdle` glance now shows live weather (WeatherKit), the next calendar event (EventKit), and the date alongside the time readout, in a 3-column layout that degrades silently on permission denial. Code-complete and on-device verified, but never part of v1.1's Milestone Goal — needs its own requirement IDs (WEATHER-01, CAL-01, OUTFIT-01) captured when the next milestone's requirements are defined.
 
-**Goal:** Islet becomes a real, sellable product — a 3-day free trial, then a one-time €7.99 purchase via Polar.sh, enforced by a local license check, shipped as a genuinely Developer-ID-notarized build (no more dry-run/placeholder notarization).
+## Current Milestone
 
-**Target features:**
-- Trial period: starts on first launch, lasts 3 days, tracked locally
-- Trial expiry: app fully locks (no island, no functionality) until a valid license key is entered
-- Purchase flow: Polar.sh checkout for a one-time €7.99 purchase, issuing a license key
-- License entry + validation: user enters the key once, app validates it online against Polar.sh, then caches the validated state locally (Keychain) so the app keeps working offline afterward
-- Real Developer-ID notarization (DIST-01): replace the dry-run `scripts/release.sh` placeholders with the actual paid-account sign → notarize → staple flow, so purchasers see no Gatekeeper warning
-
-**Why bundled with notarization:** Shipping a paywall without real notarization means every paying customer's first launch is a Gatekeeper security warning — a broken first impression for a product people just paid for. Doing both together was an explicit user call.
+None — v1.1 is closed. Natural candidates for the next milestone: formalize Phase 14's already-shipped weather/calendar/outfit work, or pick up the deferred file shelf / HUD / timer backlog. Run `/gsd-new-milestone` to scope it.
 
 ## Requirements
 
@@ -84,9 +77,35 @@ _v1.0 core feature set is code-complete and fully human-verified — all 4 on-de
 - [x] Fullscreen-enter island flash eliminated as a genuine root-cause fix — a dedicated, max-level private CGS Space (`CGSSpace.swift`) that the notch panel joins once at creation, additive alongside the existing `.canJoinAllSpaces` collection behavior (no per-Space auto-join race left to fire). On-device verified across all 3 trigger methods (green-button, menu bar, fullscreen video) with zero regressions across the full checklist (hover/click-expand, click-through, multi-Space visibility, display/clamshell repositioning, fullscreen hide/restore, lock-screen/sleep-wake). Closed Phase 8's escalation on the first wave of a 5-wave conditional chain — Candidate B (`SLSManagedDisplayIsAnimating` poll) and the terminal escalation report were never needed. (Phase 9 — FS-01)
   - **Known follow-up (non-blocking):** code review found the dedicated CGS Space leaks on app quit — `AppDelegate.quit()` calls `NSApp.terminate(nil)` without tearing down `NotchWindowController`, so its `deinit` (and the Space's `CGSHideSpaces`/`CGSSpaceDestroy` teardown) never runs. Doesn't affect the flash fix or fullscreen behavior; recommended fix via `/gsd-quick` before shipping.
 
+**Trial & Lockout Gate (Phase 10 — TRIAL-01, TRIAL-02, LIC-03):**
+
+- [x] Tamper-resistant 3-day trial — start timestamp persisted to the Keychain, survives `defaults delete` and reinstall; a one-time first-launch notice tells the user the trial has started; hard lockout (no pill, no activities) when expired and unlicensed, unlocking at the next natural UI transition rather than an abrupt yank. On-device verified. (Phase 10)
+
+**License Settings UI (Phase 11 — TRIAL-03):**
+
+- [x] Settings shows trial days remaining, a Buy Now button, and a key-entry field with idle/validating/success/failure states, proven against a stubbed `LicenseService` before any live network call existed. (Phase 11)
+
+**Real Polar.sh License Integration (Phase 12 — LIC-01, LIC-02):**
+
+- [x] Live Polar.sh checkout from Buy Now; real online key validation with a strict HTTP→verdict mapping that distinguishes a transient network error from an actually-invalid key (never hard-locks a key just paid for); validated state cached in the Keychain so the app keeps working fully offline afterward. On-device verified. (Phase 12)
+
+**Real Notarization & Release (Phase 13 — DIST-01):**
+
+- [x] `scripts/release.sh` produces a real Developer-ID signed, notarized, and stapled `.dmg` — no ad-hoc/placeholder signing remains; `spctl --assess` reports accepted, no Gatekeeper warning on first launch. Two real bugs fixed along the way: embedded frameworks need explicit re-signing before the outer `.app` (`codesign` doesn't recurse), and `notarytool` requires a zip/pkg/dmg, not a raw `.app`. (Phase 13)
+
+_v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7 requirements shipped and on-device tested. Milestone shipped 2026-07-08._
+
+**Basic Outfit: Weather + Calendar + Date (Phase 14 — pending formal requirement IDs):**
+
+- [x] `expandedIdle` glance shows live weather (icon + temperature via WeatherKit), the next relevant calendar event (EventKit), and the date in a 3-column layout alongside the existing time readout; only the weather icon animates per condition category; any column degrades silently to absent on permission denial. On-device verified (WeatherKit end-to-end, permission-denial omission, live event advancement, idle-CPU check). Executed ahead of formal milestone scope — capture as WEATHER-01/CAL-01/OUTFIT-01 in the next milestone's REQUIREMENTS.md. (Phase 14)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
+
+**Needs formal requirement capture at next milestone start:**
+
+- [ ] WEATHER-01/CAL-01/OUTFIT-01: already shipped in Phase 14 (see Validated above) — add real requirement IDs and traceability rows to the next milestone's REQUIREMENTS.md
 
 **Later phases (still in scope, after the core lands):**
 
@@ -100,7 +119,7 @@ _v1.0 core feature set is code-complete and fully human-verified — all 4 on-de
 
 - Macs without a physical notch / simulated island on external displays — keeps v1 simpler; only notch Macs targeted for now
 - Mac App Store distribution — Now Playing relies on Apple's private MediaRemote API, which is not allowed on the App Store; distribution will be direct + notarized (the same path Alcove/DynamicLake use)
-- Messaging/notification mirroring (iMessage, WhatsApp, Slack), calendar/weather glance, FaceTime/phone-call integration — DynamicLake-style extras deferred until the core island is solid
+- Messaging/notification mirroring (iMessage, WhatsApp, Slack), FaceTime/phone-call integration — DynamicLake-style extras deferred until the core island is solid. (Calendar/weather glance shipped in Phase 14 — no longer out of scope.)
 - Cross-platform (Windows/Linux) — this is a macOS-native product
 
 ## Context
@@ -114,12 +133,14 @@ _v1.0 core feature set is code-complete and fully human-verified — all 4 on-de
 - **Setup status:** MacBook with notch + Xcode already installed. No Apple Developer account yet (only needed later for notarization/selling).
 - **v1.0 codebase state (shipped 2026-07-02):** ~4,500 LOC Swift across 7 phases (176 files touched total), 131 passing unit tests (`IsletTests`). Every threat register across the project's plans is dispositioned (mitigate/accept), verified in `06-SECURITY.md`.
 - **v1.0.1 codebase state (shipped 2026-07-04):** +2 phases, 141 passing unit tests (`IsletTests`, up from 131). The fullscreen-enter island flash — previously accepted as permanent window-server-timing debt — is now genuinely fixed via a dedicated CGS Space (Phase 9).
-- **Known technical debt carried into v1.1 planning:**
+- **v1.1 codebase state (shipped 2026-07-08, includes Phase 14):** ~6,900 LOC Swift, 185 passing unit tests (`IsletTests`, up from 141). Added Keychain-backed trial/license persistence, `PolarLicenseService`, a real Developer-ID notarization pipeline, and WeatherKit/EventKit services behind their own protocol seams. A real Apple Developer account and paid Polar.sh integration are now live (no more placeholders).
+- **Known technical debt carried into next milestone planning:**
   - Four non-blocking code-review findings from `06-REVIEW.md`: inconsistent charging/device wing accent-tinting (WR-01), accent-change view-tree rehost breaking `matchedGeometryEffect` continuity (WR-02), a missing `withAnimation` wrapper on the Now-Playing health-check callback (WR-03), and a low-probability `BluetoothMonitor` data race (WR-04).
-  - CR-01 (Phase 9): the new dedicated CGS Space leaks in WindowServer on every normal app quit — `AppDelegate.quit()` calls `NSApp.terminate(nil)` without tearing down `NotchWindowController`, so its `deinit` (and the Space's `CGSHideSpaces`/`CGSSpaceDestroy` teardown) never runs. Non-blocking; recommended fix via `/gsd-quick` before shipping.
+  - CR-01 (Phase 9): the dedicated CGS Space leaks in WindowServer on every normal app quit — `AppDelegate.quit()` calls `NSApp.terminate(nil)` without tearing down `NotchWindowController`, so its `deinit` (and the Space's `CGSHideSpaces`/`CGSSpaceDestroy` teardown) never runs. Non-blocking; recommended fix via `/gsd-quick` before shipping.
   - WR-01/WR-02 (Phase 9, info): `CGSSpace.swift` has no validation of CGS private-API return values, and assumes an `Int`/`Int32` width fits `CGSSpaceSetAbsoluteLevel`'s one passed value. Low severity.
-  - Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised — pre-existing, unrelated to v1.0/v1.0.1 close; tracked in `STATE.md` Deferred Items.
-  - Pre-existing (v1.0-era): `xcodebuild test` hangs in non-interactive/sandboxed environments due to a Bluetooth TCC-authorization wait in `BluetoothMonitor`. Logged in `.planning/phases/09-fullscreen-flash-window-space-retry/deferred-items.md`.
+  - Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised — pre-existing, unrelated to v1.0/v1.0.1/v1.1 close; tracked in `STATE.md` Deferred Items.
+  - Pre-existing (v1.0-era): `xcodebuild test` hangs in non-interactive/sandboxed environments due to a Bluetooth TCC-authorization wait in `BluetoothMonitor` (also affects the full `Islet.app`'s WeatherKit/MediaRemote/IOBluetooth boot as of Phase 14 — gate on `xcodebuild build`, route test runs to manual Cmd-U). Logged in `.planning/phases/09-fullscreen-flash-window-space-retry/deferred-items.md`.
+  - WEATHER-01/CAL-01/OUTFIT-01 not yet formally tracked in a REQUIREMENTS.md — Phase 14 shipped ahead of its own milestone scope; add these IDs at next milestone's requirements pass.
 
 ## Constraints
 
@@ -153,6 +174,11 @@ _v1.0 core feature set is code-complete and fully human-verified — all 4 on-de
 | FS-01 scoped as a full root-cause elimination, not a best-effort/partial reduction | v1.0's reactive `orderOut` approach was already confirmed insufficient; a partial mitigation would just re-accumulate the same polish debt | ✓ Phase 9 — Phase 8's candidate disproven and honestly escalated rather than shipping a partial fix; Phase 9 achieved a genuine fix |
 | Phase 9's Candidate C (dedicated max-level CGS Space) implemented as ADDITIVE, not a replacement of `.canJoinAllSpaces` | The only variant with real shipping precedent in researched reference apps (`Ebullioscopic/Atoll`, `TheBoredTeam/boring.notch`); removing `.canJoinAllSpaces` deferred as a separate, never-combined follow-up | ✓ Phase 9 — resolved FS-01 on the first wave, zero regressions on-device |
 | v1.0.1 (not v1.1) for the progress-bar + flash-fix milestone | App not yet publicly released — continuing under the v1.0 line rather than bumping to v1.1 until an actual release happens | ✓ Shipped 2026-07-04 — next milestone now free to become v1.1 |
+| v1.1 bundled the paywall with real notarization in one milestone, not split | Shipping a paywall without real notarization means every paying customer's first launch is a Gatekeeper warning — a broken first impression for something just paid for; explicit user call | ✓ v1.1 shipped 2026-07-08 |
+| Phase order within v1.1: Trial/lockout (10) → Settings UI on a stub (11) → real Polar.sh (12) → notarization (13) | De-risked the single-arbiter `shouldShow(...)` and the UI state machine before live network flakiness was introduced; notarization is functionally independent, sequenced last for release-readiness only | ✓ v1.1 shipped — no rework needed when the stub was swapped for the real service |
+| Trial-start and license state stored in the Keychain, not UserDefaults/plist | UserDefaults-only trial storage is trivially reset via `defaults delete` — research pitfall | ✓ Phase 10 — verified on-device (survives `defaults delete` + reinstall) |
+| License validation distinguishes "invalid key" (4xx) from "couldn't reach the server" (network/5xx) | Highest-consequence pitfall identified in research — a hard lock on a key someone just paid for would hit customers at peak purchase-regret risk | ✓ Phase 12 — strict HTTP→verdict split + Retry, verified on-device |
+| Phase 14 (weather/calendar/date) executed inside the v1.1 working window but excluded from the v1.1 milestone close | Its requirements (WEATHER-01/CAL-01/OUTFIT-01) were never part of v1.1's Milestone Goal or REQUIREMENTS.md — closing v1.1 as Phases 10-13 keeps the archive accurate to what was actually scoped | Phase 14 stays on the live ROADMAP as completed, unarchived work — formal requirement capture deferred to next milestone |
 
 ## Evolution
 
@@ -172,4 +198,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-05 — milestone v1.1 (Trial & Paid Release) started.*
+*Last updated: 2026-07-08 — milestone v1.1 (Trial & Paid Release) shipped.*
