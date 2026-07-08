@@ -87,6 +87,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 
 - v1.1 (Trial & Paid Release) shipped 2026-07-08 — archived to `.planning/milestones/v1.1-ROADMAP.md`.
 - Phase 14 (weather/calendar/date) executed ahead of formal milestone scope — stays on the live ROADMAP.md pending next-milestone requirement capture.
+- Phase 15 added: Architecture Refactor (NotchWindowController/NotchPillView decomposition) — targeted-extraction scope per this session's full-codebase audit (5 subsystem reviews, 21 findings). Zero product-behavior change is a hard constraint. Source findings/refactor sketches captured in this session; not yet written to a phase artifact — surface them during `/gsd-discuss-phase 15`.
 
 ### Pending Todos
 

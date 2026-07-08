@@ -86,3 +86,13 @@ Plans:
 **v1.1:** 4/4 phases complete (100%) — see `.planning/milestones/v1.1-ROADMAP.md` for the full per-phase breakdown.
 
 **Phase 14 (post-v1.1, pre-next-milestone):** 5/5 plans complete — completed 2026-07-08.
+
+### Phase 15: Architecture Refactor: NotchWindowController & NotchPillView Decomposition — targeted extraction (coordinators, DI seams, shared view helpers) per the full-codebase audit, zero product-behavior change
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 14
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 15 to break down)
