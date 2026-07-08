@@ -99,15 +99,15 @@ explicit, called-out exceptions to an otherwise zero-product-behavior-change pha
 small, well-understood bug fixes with an already-worked fix.
 **Requirements**: P15-ITEM1..P15-ITEM7 (source: this session's full-codebase architecture audit — no formal REQUIREMENTS.md IDs exist for this phase; the 7 CONTEXT.md scope items are the coverage unit)
 **Depends on:** Phase 14
-**Plans:** 5 plans
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 15-01-PLAN.md — NotchGeometry DRY (topPinnedFrame) + NotchPillView blobShape() extraction (items 1, 2)
-- [ ] 15-02-PLAN.md — LocationProvider protocolization + BasicOutfitState @MainActor + weather/calendar visibility-arbiter gap fix (items 3, 5)
-- [ ] 15-03-PLAN.md — LicenseState dependency-injection seam + LicenseStateTests.swift (item 4)
-- [ ] 15-04-PLAN.md — Preserve the real Polar.sh validation payload end-to-end (item 7)
+- [x] 15-01-PLAN.md — NotchGeometry DRY (topPinnedFrame) + NotchPillView blobShape() extraction (items 1, 2)
+- [x] 15-02-PLAN.md — LocationProvider protocolization + BasicOutfitState @MainActor + weather/calendar visibility-arbiter gap fix (items 3, 5)
+- [x] 15-03-PLAN.md — LicenseState dependency-injection seam + LicenseStateTests.swift (item 4)
+- [x] 15-04-PLAN.md — Preserve the real Polar.sh validation payload end-to-end (item 7)
 
 **Wave 2** *(blocked on 15-01)*
 

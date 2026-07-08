@@ -4,8 +4,8 @@ milestone: none
 milestone_name: none
 status: done
 stopped_at: Phase 15 context gathered
-last_updated: "2026-07-08T17:10:45.522Z"
-last_activity: 2026-07-08 -- Phase 15 planning complete
+last_updated: "2026-07-08T17:12:17.109Z"
+last_activity: 2026-07-08 -- Phase 15 execution started
 progress:
   total_phases: 3
   completed_phases: 1
@@ -21,14 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-08)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** None — v1.1 shipped. Planning next milestone (candidates: formalize Phase 14's already-shipped weather/calendar/outfit work, or the deferred file shelf/HUD/timer backlog).
+**Current focus:** Phase 15 — architecture-refactor-notchwindowcontroller-notchpillview-de
 
 ## Current Position
 
+Phase: 15 (architecture-refactor-notchwindowcontroller-notchpillview-de) — EXECUTING
+Plan: 1 of 5
 v1.1 Trial & Paid Release closed 2026-07-08 (Phases 10-13, see `.planning/milestones/v1.1-ROADMAP.md`).
 Phase 14 (weather/calendar/date, executed ahead of v1.1's formal scope) is complete and on-device verified (5 of 5 plans) but not yet archived — its requirements (WEATHER-01/CAL-01/OUTFIT-01) still need IDs in the next milestone's REQUIREMENTS.md.
 Next: `/gsd-new-milestone` to scope the next milestone.
-Last activity: 2026-07-08 -- Phase 15 planning complete
+Last activity: 2026-07-08 -- Phase 15 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
