@@ -133,3 +133,7 @@ None — no external service configuration required.
 ---
 *Phase: 16-notchwindowcontroller-device-coordinator-extraction-prove-th*
 *Completed: 2026-07-08*
+
+## Self-Check: PASSED
+
+All created files exist on disk; all 3 commit hashes (29b8255, 3cd2ac9, b6b3be2) verified in git log.
