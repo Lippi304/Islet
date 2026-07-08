@@ -87,12 +87,38 @@ Plans:
 
 **Phase 14 (post-v1.1, pre-next-milestone):** 5/5 plans complete — completed 2026-07-08.
 
-### Phase 15: Architecture Refactor: NotchWindowController & NotchPillView Decomposition — targeted extraction (coordinators, DI seams, shared view helpers) per the full-codebase audit, zero product-behavior change
+### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Fix the audit's small, well-understood issues with no architectural risk: DRY the
+duplicate frame-geometry formula (`NotchGeometry.swift`), extract a shared `blobShape()` helper
+in `NotchPillView.swift`, protocolize `LocationProvider` and add its missing main-thread
+contract, give `LicenseState` a dependency-injection seam, close the weather/calendar
+visibility-arbiter gap, fix the `EqualizerBars` re-render bug, and preserve the real Polar.sh
+validation payload instead of discarding it. Two items (EqualizerBars, Polar payload) are
+explicit, called-out exceptions to an otherwise zero-product-behavior-change phase — both are
+small, well-understood bug fixes with an already-worked fix.
+**Requirements**: TBD (source: this session's full-codebase architecture audit)
 **Depends on:** Phase 14
 **Plans:** 0 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 15 to break down)
+
+### Phase 16: NotchWindowController Device Coordinator Extraction
+
+**Goal:** Extract the 9-field device-splash bookkeeping (`deviceLastShown`, `deviceSuppressedAtLaunch`,
+`deviceDebounce`, `connectedDeviceAddresses`, `bluetoothStartedAt`, `deviceLaunchGrace`,
+`deviceBatteryWork`, `pollingAddress`, `pendingDeviceBatteryPolls`) plus `handleDevice`,
+`scheduleDeviceBatteryRefresh`, and `triggerDeviceBatteryRefreshIfPromoted` out of
+`NotchWindowController` into a dedicated `DeviceCoordinator` behind an `ActivityCoordinator`
+protocol, with its own test surface. This is a deliberate first slice, not the full controller
+split — Device is the highest-risk, most-documented case (11+ inline "gap-closure"/"Finding N"
+comments recording races found after the fact), chosen to prove the coordinator shape before
+repeating it for Charging/NowPlaying/Outfit in a later phase. Identical `TransientQueue`/dismiss
+timing behavior; zero product-behavior change.
+**Requirements**: TBD (source: this session's full-codebase architecture audit)
+**Depends on:** Phase 15
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 16 to break down)
