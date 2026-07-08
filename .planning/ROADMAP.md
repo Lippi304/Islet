@@ -163,10 +163,29 @@ Plans:
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** The `expandedIdle` glance shows live weather (icon + temperature), date, and the next
+relevant calendar event alongside the existing time readout, in a 3-column layout — with only
+the weather icon animating per condition category, degrading silently to an absent column on
+permission denial.
+**Requirements**: WEATHER-01, CAL-01, OUTFIT-01 (new — not yet in REQUIREMENTS.md; add these 3
+IDs to REQUIREMENTS.md's Requirements section and Traceability table)
 **Depends on:** Phase 13
-**Plans:** 0 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 14 to break down)
+**Wave 1**
+
+- [ ] 14-01-PLAN.md — Pure seams: WeatherCategory.from(_:) (D-06) + nextRelevantEvent(events:now:) (D-04), TDD
+- [ ] 14-02-PLAN.md — WeatherKit signing/entitlement setup: real Developer Team for Debug, WeatherKit App ID capability, Location/Calendar usage-description keys (Pitfall 1)
+
+**Wave 2** *(blocked on 14-01)*
+
+- [ ] 14-03-PLAN.md — Services: LocationProvider, WeatherService/WeatherKitService, CalendarService/EventKitService, BasicOutfitState
+
+**Wave 3** *(blocked on 14-02, 14-03)*
+
+- [ ] 14-04-PLAN.md — Wire outfitState into NotchWindowController + 3-column expandedIsland layout in NotchPillView (D-07)
+
+**Wave 4** *(blocked on 14-04)*
+
+- [ ] 14-05-PLAN.md — On-device verification: WeatherKit end-to-end, permission-denial silent omission (D-01/D-03), next-event live advancement (D-04), idle-CPU check (Pitfall 5)
