@@ -371,19 +371,19 @@ struct NotchPillView: View {
         case .sunny:
             Image(systemName: "sun.max.fill")
                 .symbolRenderingMode(.multicolor)
-                .symbolEffect(.pulse, options: .repeating, isActive: true)
+                .symbolEffect(.pulse, options: .repeating.speed(0.4), isActive: true)
         case .cloudy:
             Image(systemName: "cloud.fill")
                 .symbolRenderingMode(.multicolor)
-                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: true)
+                .symbolEffect(.variableColor.iterative, options: .repeating.speed(0.4), isActive: true)
         case .rain:
             Image(systemName: "cloud.rain.fill")
                 .symbolRenderingMode(.multicolor)
-                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: true)
+                .symbolEffect(.variableColor.iterative, options: .repeating.speed(0.4), isActive: true)
         case .snow:
             Image(systemName: "cloud.snow.fill")
                 .symbolRenderingMode(.multicolor)
-                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: true)
+                .symbolEffect(.variableColor.iterative, options: .repeating.speed(0.4), isActive: true)
         }
     }
 
