@@ -29,6 +29,7 @@
 		3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */; };
 		40A19305FE709A3C8F605C3B /* NowPlayingPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */; };
 		43DF0886D3878D38B6157239 /* WeatherCategoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0C1FFC49C8A8CE3E74509 /* WeatherCategoryTests.swift */; };
+		48156062092638E2BD35BAA0 /* LicenseStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B227C92D09FB6EAB081E62E /* LicenseStateTests.swift */; };
 		4EBD25B8C54F6A68250153F4 /* NotchShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F635228C4261E9EECEC41F /* NotchShapeTests.swift */; };
 		56BC6DBE6E5F1E2B6F485BE0 /* CalendarGlance.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECDB797EE481836D5DD878FD /* CalendarGlance.swift */; };
 		59A9F1A6B642331EFB7EBE26 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E70A8667DE9528FD2F0CFB /* LocationProvider.swift */; };
@@ -96,6 +97,7 @@
 
 /* Begin PBXFileReference section */
 		09022AEB4178AE45BE2F65BE /* NowPlayingPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingPresentation.swift; sourceTree = "<group>"; };
+		0B227C92D09FB6EAB081E62E /* LicenseStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseStateTests.swift; sourceTree = "<group>"; };
 		0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		0C997928190396DADC0ADA29 /* NotchWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindowController.swift; sourceTree = "<group>"; };
 		0EEA35677CE1730669284423 /* IslandPresentationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandPresentationState.swift; sourceTree = "<group>"; };
@@ -195,6 +197,7 @@
 				4A3063E01FF76A78398606DF /* IslandResolverTests.swift */,
 				5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */,
 				471EC72A07A658DCBFCDDB38 /* LicenseServiceTests.swift */,
+				0B227C92D09FB6EAB081E62E /* LicenseStateTests.swift */,
 				605C8A3B6F9015948DC073F0 /* LocationServiceTests.swift */,
 				984325CC40BE13B07D21477D /* NotchGeometryTests.swift */,
 				83B2D92BF83095959068F293 /* NotchPanelTests.swift */,
@@ -457,6 +460,7 @@
 				F553863EC9FBAB880ED80376 /* IslandResolverTests.swift in Sources */,
 				7604855295CC6043B60954AF /* LicenseManagerTests.swift in Sources */,
 				62BB9F9BCB658F55890D95BD /* LicenseServiceTests.swift in Sources */,
+				48156062092638E2BD35BAA0 /* LicenseStateTests.swift in Sources */,
 				EECA01E637ADFB54CFAA54E3 /* LocationServiceTests.swift in Sources */,
 				EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */,
 				A532C893CA28FEBC8B8F87A8 /* NotchPanelTests.swift in Sources */,
