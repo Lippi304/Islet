@@ -170,13 +170,13 @@ permission denial.
 **Requirements**: WEATHER-01, CAL-01, OUTFIT-01 (new — not yet in REQUIREMENTS.md; add these 3
 IDs to REQUIREMENTS.md's Requirements section and Traceability table)
 **Depends on:** Phase 13
-**Plans:** 5 plans
+**Plans:** 2/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 14-01-PLAN.md — Pure seams: WeatherCategory.from(_:) (D-06) + nextRelevantEvent(events:now:) (D-04), TDD
-- [ ] 14-02-PLAN.md — WeatherKit signing/entitlement setup: real Developer Team for Debug, WeatherKit App ID capability, Location/Calendar usage-description keys (Pitfall 1)
+- [x] 14-01-PLAN.md — Pure seams: WeatherCategory.from(_:) (D-06) + nextRelevantEvent(events:now:) (D-04), TDD
+- [x] 14-02-PLAN.md — WeatherKit signing/entitlement setup: real Developer Team for Debug, WeatherKit App ID capability, Location/Calendar usage-description keys (Pitfall 1)
 
 **Wave 2** *(blocked on 14-01)*
 
