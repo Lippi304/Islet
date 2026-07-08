@@ -9,7 +9,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Phase 1: owns the notch overlay panel. Retained for the app's lifetime so the
     // panel and its screen-change observer stay alive (a dropped controller would
     // tear down the overlay). Parallel to `statusItem`.
-    private var notchController: NotchWindowController?
+    // Quick task 260708-u47: not `private` so SettingsView can read the live
+    // nowPlayingState.isHealthy via the standard `NSApp.delegate as? AppDelegate` idiom.
+    var notchController: NotchWindowController?
 
     #if DEBUG
     // D-08/D-09: a SEPARATE status item for the 3 stub-flip testing actions, kept
