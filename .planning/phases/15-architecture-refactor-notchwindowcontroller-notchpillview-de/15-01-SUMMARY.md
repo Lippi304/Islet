@@ -95,3 +95,7 @@ Plan 15-01 is code-complete and build-verified. The two remaining manual checks 
 ---
 *Phase: 15-architecture-refactor-notchwindowcontroller-notchpillview-de*
 *Completed: 2026-07-08*
+
+## Self-Check: PASSED
+
+All created/modified files verified present on disk; all task commit hashes (daed80f, ce0ba35) and the metadata commit (47ee22f) verified present in git log; `topPinnedFrame` and `blobShape` helpers verified present in source via grep.
