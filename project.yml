@@ -26,7 +26,7 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "14.0" # D-06
     ENABLE_HARDENED_RUNTIME: YES     # required later for notarization — keep on
     CODE_SIGN_STYLE: Automatic
-    CODE_SIGN_IDENTITY: "-"          # ad-hoc "Sign to Run Locally" (no Team yet — D-03)
+    DEVELOPMENT_TEAM: "R7AGU84UX7"    # real Apple Developer Team (Pitfall 1 fix — WeatherKit needs a real entitled identity, not ad-hoc)
     DEAD_CODE_STRIPPING: YES
 
 targets:
@@ -53,6 +53,9 @@ targets:
         # which also took down the test runner. The key is therefore REQUIRED (not speculative).
         # German string to match the app's user-facing locale (cf. "Now Playing nicht verfügbar").
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird."
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst."
+        INFOPLIST_KEY_NSCalendarsUsageDescription: "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an."
+        INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an."
         GENERATE_INFOPLIST_FILE: YES                   # modern Xcode: synthesize Info.plist from build settings
         MARKETING_VERSION: "0.1"                       # -> CFBundleShortVersionString (D-14: private first release; 1.0 reserved for public launch)
         CURRENT_PROJECT_VERSION: "1"                   # -> CFBundleVersion (build number)

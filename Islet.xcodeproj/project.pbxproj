@@ -332,9 +332,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					A1E37B5761C97A84D0C08985 = {
+						DevelopmentTeam = R7AGU84UX7;
 						ProvisioningStyle = Automatic;
 					};
 					C01E8954EF80BB42EE9F46CE = {
+						DevelopmentTeam = R7AGU84UX7;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -465,6 +467,9 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Islet;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -511,11 +516,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = R7AGU84UX7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -578,11 +583,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = R7AGU84UX7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -618,6 +623,9 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Islet;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
