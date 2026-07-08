@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: none
 milestone_name: none
 status: done
-stopped_at: v1.1 milestone closed (Phases 10-13 archived); Phase 14 complete and on-device verified, pending next-milestone requirement capture
-last_updated: "2026-07-08T15:33:00.000Z"
+stopped_at: Phase 15 context gathered
+last_updated: "2026-07-08T16:29:05.576Z"
 last_activity: 2026-07-08
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 16
-  completed_plans: 16
-  percent: 100
+  total_phases: 3
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 5
+  percent: 33
 ---
 
 # Project State
@@ -87,7 +87,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 
 - v1.1 (Trial & Paid Release) shipped 2026-07-08 — archived to `.planning/milestones/v1.1-ROADMAP.md`.
 - Phase 14 (weather/calendar/date) executed ahead of formal milestone scope — stays on the live ROADMAP.md pending next-milestone requirement capture.
-- Phase 15 added: Architecture Refactor (NotchWindowController/NotchPillView decomposition) — targeted-extraction scope per this session's full-codebase audit (5 subsystem reviews, 21 findings). Zero product-behavior change is a hard constraint. Source findings/refactor sketches captured in this session; not yet written to a phase artifact — surface them during `/gsd-discuss-phase 15`.
+- Phase 15 rescoped to "Mechanical Fixes & DI Seams" (7 low-risk audit findings; context captured in `15-CONTEXT.md`, ready for `/gsd:plan-phase 15`) after discussion split the original scope in two.
+- Phase 16 added: NotchWindowController DeviceCoordinator Extraction — the higher-risk coordinator-split work, isolated from Phase 15 per user decision. Not yet planned.
 
 ### Pending Todos
 
@@ -128,9 +129,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-08T15:33:00.000Z
-Stopped at: v1.1 milestone closed; Phase 14 complete and on-device verified, pending next-milestone requirement capture
-Resume file: None
+Last session: 2026-07-08T16:29:05.572Z
+Stopped at: Phase 15 context gathered
+Resume file: .planning/phases/15-architecture-refactor-notchwindowcontroller-notchpillview-de/15-CONTEXT.md
 
 ## Operator Next Steps
 
