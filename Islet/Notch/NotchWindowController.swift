@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import CoreLocation
 
 // ISL-03 / ISL-06 — owns the overlay panel, keeps it on the correct display, and drives
 // the FOCUS-SAFE Alcove interaction (Plan 02-03).
@@ -79,6 +80,19 @@ final class NotchWindowController {
     // observes this; the controller writes it (inside the spring) on every state change via
     // renderPresentation(). This is the ONE place the rendered presentation is set.
     private let presentationState = IslandPresentationState()
+
+    // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model the expandedIdle
+    // 3-column glance observes (Plan 04). Held behind their PROTOCOL types (never the concrete
+    // class), mirroring `nowPlayingMonitor: NowPlayingService?`'s existing convention — a future
+    // WeatherKit/EventKit API change becomes a one-file swap. `lastLocation` caches the one-shot
+    // coordinate (D-01): a MacBook rarely changes location meaningfully within a session, so the
+    // coarse refresh timer reuses it instead of re-prompting/re-requesting location every cycle.
+    private let outfitState = BasicOutfitState()
+    private let weatherService: WeatherService = WeatherKitService()
+    private let calendarService: CalendarService = EventKitService()
+    private let locationProvider = LocationProvider()
+    private var outfitRefreshTimer: Timer?
+    private var lastLocation: CLLocation?
 
     // Phase 6 / COORD-01 / D-03 — the bounded, de-duped SEQUENTIAL transient queue (pure value
     // from IslandResolver.swift). Its `head` feeds `resolve(activeTransient:)`; charging + device
@@ -315,6 +329,11 @@ final class NotchWindowController {
         // carry-over; the wiring is code-complete.)
         if activityEnabled(ActivitySettings.deviceKey) { startBluetoothMonitor() }
 
+        // Phase 14 / WEATHER-01 / CAL-01: start the outfit (weather + calendar) coarse-refresh
+        // cycle. Unconditional — unlike the toggle-gated monitors above, this phase has no
+        // Settings toggle of its own (out of scope for 14-04).
+        startOutfitRefresh()
+
         // Phase 6 / APP-03 / D-09: observe UserDefaults so flipping a toggle (or the accent
         // swatch) live-applies — start/stop the affected monitor, flush its standing/queued
         // transient, re-inject the accent, and re-render. UserDefaults posts on the thread that
@@ -395,6 +414,39 @@ final class NotchWindowController {
         let bt = BluetoothMonitor { [weak self] reading in self?.handleDevice(reading) }
         bluetoothMonitor = bt
         bt.start()
+    }
+
+    // Phase 14 / WEATHER-01 / CAL-01 — idempotent start (mirrors startPowerMonitor/
+    // startBluetoothMonitor's `guard ... == nil` convention): requests the device location
+    // ONCE (D-01 — never re-requested on refresh, only cached in `lastLocation`), fetches
+    // calendar immediately (no location dependency), then arms the 15-minute coarse refresh
+    // (well under WeatherKit's 500k/month quota per RESEARCH.md).
+    private func startOutfitRefresh() {
+        guard outfitRefreshTimer == nil else { return }
+        locationProvider.requestOnce { [weak self] location in
+            self?.lastLocation = location
+            self?.refreshWeather()
+        }
+        refreshCalendar()
+        outfitRefreshTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { [weak self] _ in
+            self?.refreshWeather()
+            self?.refreshCalendar()
+        }
+    }
+
+    // D-01: no cached location means no attempt, ever — never re-request here (that's
+    // startOutfitRefresh's one-shot job alone).
+    private func refreshWeather() {
+        guard let loc = lastLocation else { return }
+        weatherService.fetchCurrent(latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude) { [weak self] glance in
+            self?.outfitState.weather = glance
+        }
+    }
+
+    private func refreshCalendar() {
+        calendarService.fetchUpcoming { [weak self] glance in
+            self?.outfitState.calendar = glance
+        }
     }
 
     // The built-in display's CURRENT descriptor, or nil when the built-in has dropped out
@@ -912,6 +964,7 @@ final class NotchWindowController {
         NotchPillView(interaction: interaction,
                       nowPlaying: nowPlayingState,
                       presentationState: presentationState,
+                      outfit: outfitState,
                       onClick: { [weak self] in self?.handleClick() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
                       // monitor — no re-spawn, no focus steal.
@@ -1159,5 +1212,11 @@ final class NotchWindowController {
         // Phase 10 / D-12: cancel the best-effort proactive expiry re-check — a mere nudge, not
         // the authoritative check (that's the wall-clock read inside updateVisibility()).
         trialExpiryWorkItem?.cancel()
+
+        // Phase 14 / WEATHER-01 / CAL-01: stop the 15-min coarse-refresh timer. No persistent
+        // LocationProvider/service teardown needed — neither holds an OS-level registration
+        // outside the one-shot requestLocation() call, unlike the IOKit/IOBluetooth/MediaRemote
+        // monitors above.
+        outfitRefreshTimer?.invalidate()
     }
 }

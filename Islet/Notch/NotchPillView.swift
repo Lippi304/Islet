@@ -43,6 +43,13 @@ struct NotchPillView: View {
     // Convenience so the body + previews read a plain enum.
     private var presentation: IslandPresentation { presentationState.presentation }
 
+    // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model (weather +
+    // calendar), mirroring nowPlaying/presentationState's ownership contract: the controller
+    // (14-04) is the only writer, this view only RENDERS whatever is published. No default
+    // value — the controller always owns and injects a real instance (same non-defaulted
+    // convention as `nowPlaying`/`presentationState`).
+    @ObservedObject var outfit: BasicOutfitState
+
     // Phase 6 / D-11 / Pattern 4 — the persisted accent the controller injects on the hosting
     // view via `.environment(\.activityAccent, …)`. It tints ONLY the three lively leaf
     // elements (charging filling glyph, equalizer bars, device icon); the black island and the
@@ -176,20 +183,32 @@ struct NotchPillView: View {
             .onTapGesture { onClick() }
     }
 
-    // EXPANDED — the same black blob grown to the compact expanded size, with a
-    // small date/time readout. The blob carries the SAME matchedGeometryEffect id so
-    // SwiftUI morphs the single shape from the collapsed pill to here (no cross-fade).
+    // EXPANDED — the same black blob grown to the compact expanded size. Phase 14 / D-07:
+    // the placeholder date/time readout is now a 3-column glance — weather LEFT, time+date
+    // CENTER, calendar RIGHT — per UI-SPEC.md's Spacing Scale. The blob carries the SAME
+    // matchedGeometryEffect id so SwiftUI morphs the single shape from the collapsed pill to
+    // here (no cross-fade). Either side column is simply absent (not an error state) when its
+    // `outfit` field is nil (D-01/D-03/D-04); default (centered) overlay alignment is correct
+    // here — this ~40pt-tall content needs no camera-clearance pin, unlike mediaExpanded's
+    // 84-100pt content (UI-SPEC.md explicitly corrects RESEARCH.md's `.padding(.top, 32)`).
     private var expandedIsland: some View {
         NotchShape(topCornerRadius: 6, bottomCornerRadius: 20)
             .fill(Color.black)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
             .overlay(
-                // D-05: Phase-2 placeholder only — real activity content arrives Phase 3+.
-                Text(Date.now, format: .dateTime.hour().minute())
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.white)
+                HStack(spacing: 0) {
+                    if let weather = outfit.weather {
+                        weatherColumn(weather)
+                    }
+                    Spacer()
+                    centerColumn
+                    Spacer()
+                    if let calendarGlance = outfit.calendar {
+                        calendarColumn(calendarGlance)
+                    }
+                }
+                .padding(.horizontal, 16)
             )
             .onTapGesture { onClick() }
     }
@@ -307,6 +326,92 @@ struct NotchPillView: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(isConnected ? accent : Color.white.opacity(0.5))
         }
+    }
+
+    // Phase 14 / D-07 — CENTER column of the expandedIdle 3-column glance: time (large,
+    // semibold) over date (small, secondary grey). Fully static (D-05) — no TimelineView, no
+    // animation attached to either Text.
+    private var centerColumn: some View {
+        VStack(spacing: 2) {
+            Text(Date.now, format: .dateTime.hour().minute())
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+            Text(Date.now, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // Phase 14 / WEATHER-01 / D-06 — LEFT column: the animated category icon over the
+    // (static, D-05) temperature, formatted locale-aware via `.formatted()` (no manual
+    // Celsius/Fahrenheit conversion, mirroring the file header contract in WeatherService.swift).
+    private func weatherColumn(_ weather: WeatherGlance) -> some View {
+        VStack(spacing: 4) {
+            weatherIcon(for: weather.category)
+                .font(.system(size: 20))
+            Text(weather.temperature.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+        }
+        .frame(width: 90)
+    }
+
+    // Phase 14 / D-06 — the ONLY animation in this glance (D-05). Each case gets its OWN
+    // concrete Image + symbolEffect chain: `.pulse` and `.variableColor.iterative` are
+    // different concrete SymbolEffect types and cannot share one call site.
+    // `options: .repeating` is REQUIRED on every case — the default symbolEffect behavior is
+    // one-shot per value change, not continuous (RESEARCH.md Pitfall 2). Idle-CPU discipline
+    // is by construction: this view (and its symbolEffect driver) only exists while
+    // `presentation == .expandedIdle`, one case of the switch in `body`.
+    @ViewBuilder
+    private func weatherIcon(for category: WeatherCategory) -> some View {
+        switch category {
+        case .sunny:
+            Image(systemName: "sun.max.fill")
+                .symbolRenderingMode(.multicolor)
+                .symbolEffect(.pulse, options: .repeating, isActive: true)
+        case .cloudy:
+            Image(systemName: "cloud.fill")
+                .symbolRenderingMode(.multicolor)
+                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: true)
+        case .rain:
+            Image(systemName: "cloud.rain.fill")
+                .symbolRenderingMode(.multicolor)
+                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: true)
+        case .snow:
+            Image(systemName: "cloud.snow.fill")
+                .symbolRenderingMode(.multicolor)
+                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: true)
+        }
+    }
+
+    // Phase 14 / CAL-01 / D-07 — RIGHT column: Today/Tomorrow label, the event title + the
+    // event's own calendar-color dot, and the start time. `.lineLimit(1)` + `.truncationMode(
+    // .tail)` on the title is MANDATORY (V5 — T-14-06 mitigation): EKEvent.title is untrusted
+    // external data from subscribed/shared calendars.
+    private func calendarColumn(_ glance: CalendarGlance) -> some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(glance.isToday ? "Today" : "Tomorrow")
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            HStack(spacing: 4) {
+                Text(glance.title)
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Circle()
+                    .fill(Color(red: glance.colorRed, green: glance.colorGreen, blue: glance.colorBlue))
+                    .frame(width: 6, height: 6)
+            }
+            Text(glance.startDate, format: .dateTime.hour().minute())
+                .font(.system(size: 10, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+        .frame(width: 100, alignment: .trailing)
     }
 
     // D-02 — map the device glyph to an SF Symbol name. All chosen names are valid SF Symbols; a
@@ -629,7 +734,8 @@ struct ProgressBar: View {
     // Phase 6: the view renders the supplied `presentation` — `.idle` → the collapsed pill.
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
-                         presentationState: IslandPresentationState(.idle))
+                         presentationState: IslandPresentationState(.idle),
+                         outfit: BasicOutfitState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -638,10 +744,16 @@ struct ProgressBar: View {
 #Preview("Expanded") {
     let state = NotchInteractionState()
     state.phase = .expanded
+    // Phase 14: demonstrates the D-07 3-column layout — weather left, calendar right.
+    let outfit = BasicOutfitState()
+    outfit.weather = WeatherGlance(category: .rain, temperature: Measurement(value: 14, unit: .celsius))
+    outfit.calendar = CalendarGlance(title: "Team Sync", startDate: .now, isToday: true,
+                                      colorRed: 0.2, colorGreen: 0.5, colorBlue: 0.9)
     // Phase 6: `.expandedIdle` → the D-11 date/time (expanded, healthy, no media).
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
-                         presentationState: IslandPresentationState(.expandedIdle))
+                         presentationState: IslandPresentationState(.expandedIdle),
+                         outfit: outfit)
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -656,7 +768,8 @@ struct ProgressBar: View {
     // Phase 6: `.charging(...)` → the wings splash regardless of interaction phase.
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
-                         presentationState: IslandPresentationState(.charging(.charging(percent: 47))))
+                         presentationState: IslandPresentationState(.charging(.charging(percent: 47))),
+                         outfit: BasicOutfitState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -669,7 +782,8 @@ struct ProgressBar: View {
     state.phase = .collapsed
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
-                         presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))))
+                         presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))),
+                         outfit: BasicOutfitState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -684,7 +798,8 @@ struct ProgressBar: View {
     np.presentation = .playing(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
                          nowPlaying: np,
-                         presentationState: IslandPresentationState(.nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa"))))
+                         presentationState: IslandPresentationState(.nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa"))),
+                         outfit: BasicOutfitState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -699,7 +814,8 @@ struct ProgressBar: View {
     np.presentation = .paused(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
                          nowPlaying: np,
-                         presentationState: IslandPresentationState(.nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa"))))
+                         presentationState: IslandPresentationState(.nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa"))),
+                         outfit: BasicOutfitState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -714,7 +830,8 @@ struct ProgressBar: View {
     np.presentation = .playing(title: "New Rules", artist: "Dua Lipa")
     return NotchPillView(interaction: state,
                          nowPlaying: np,
-                         presentationState: IslandPresentationState(.nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true)))
+                         presentationState: IslandPresentationState(.nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true)),
+                         outfit: BasicOutfitState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -728,7 +845,8 @@ struct ProgressBar: View {
     np.isHealthy = false
     return NotchPillView(interaction: state,
                          nowPlaying: np,
-                         presentationState: IslandPresentationState(.nowPlayingExpanded(.none, healthy: false)))
+                         presentationState: IslandPresentationState(.nowPlayingExpanded(.none, healthy: false)),
+                         outfit: BasicOutfitState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
