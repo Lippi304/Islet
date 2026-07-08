@@ -57,14 +57,20 @@ func notchFrame(screenFrame: CGRect,
     return CGRect(x: x, y: y, width: size.width, height: size.height)
 }
 
+// Phase 15 architecture audit item 1 — the shared body of expandedNotchFrame/wingsFrame
+// (both centered on the collapsed pill's midX, pinned to the top edge / AppKit maxY).
+private func topPinnedFrame(collapsed: CGRect, size: CGSize) -> CGRect {
+    let x = collapsed.midX - size.width / 2
+    let y = collapsed.maxY - size.height
+    return CGRect(x: x, y: y, width: size.width, height: size.height)
+}
+
 // ISL-04 — the EXPANDED island frame. Same contract as notchFrame: centered on the
 // collapsed pill's midX and pinned to the top edge (AppKit bottom-left origin, so the
 // top edge is maxY). The panel is sized to THIS up front (Plan 02) so the SwiftUI spring
 // can morph the content without the window clipping or jumping mid-animation.
 func expandedNotchFrame(collapsed: CGRect, expandedSize: CGSize) -> CGRect {
-    let x = collapsed.midX - expandedSize.width / 2
-    let y = collapsed.maxY - expandedSize.height
-    return CGRect(x: x, y: y, width: expandedSize.width, height: expandedSize.height)
+    topPinnedFrame(collapsed: collapsed, size: expandedSize)
 }
 
 // CHG-01 — the WINGS frame (sideways/Alcove layout, D-01). Same contract as
@@ -73,7 +79,5 @@ func expandedNotchFrame(collapsed: CGRect, expandedSize: CGSize) -> CGRect {
 // the UNION of this and expandedNotchFrame up front (Pattern 4) so neither the
 // Phase-2 downward expand nor the Phase-3 sideways wings is ever resized mid-animation.
 func wingsFrame(collapsed: CGRect, wingsSize: CGSize) -> CGRect {
-    let x = collapsed.midX - wingsSize.width / 2
-    let y = collapsed.maxY - wingsSize.height
-    return CGRect(x: x, y: y, width: wingsSize.width, height: wingsSize.height)
+    topPinnedFrame(collapsed: collapsed, size: wingsSize)
 }

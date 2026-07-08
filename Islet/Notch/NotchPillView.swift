@@ -192,24 +192,40 @@ struct NotchPillView: View {
     // here — this ~40pt-tall content needs no camera-clearance pin, unlike mediaExpanded's
     // 84-100pt content (UI-SPEC.md explicitly corrects RESEARCH.md's `.padding(.top, 32)`).
     private var expandedIsland: some View {
-        NotchShape(topCornerRadius: 6, bottomCornerRadius: 20)
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 20) {
+            HStack(spacing: 0) {
+                if let weather = outfit.weather {
+                    weatherColumn(weather)
+                }
+                Spacer()
+                centerColumn
+                Spacer()
+                if let calendarGlance = outfit.calendar {
+                    calendarColumn(calendarGlance)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    // Phase 15 architecture audit item 2 — the shared downward-blob skeleton for
+    // expandedIsland/mediaExpanded/mediaUnavailable, mirroring wingsShape(content:)'s
+    // precedent (Finding 12): NotchShape → .fill → .matchedGeometryEffect → .frame →
+    // .overlay → .onTapGesture. The `alignment` parameter defaults to `.center` (today's
+    // plain `.overlay(content())` for expandedIsland/mediaUnavailable); mediaExpanded
+    // passes `.top` explicitly to preserve its camera-clearance pinning (default .center
+    // would leave only ~22pt top clearance, not enough to clear the 32pt camera band).
+    // collapsedIsland is NOT routed through this — DEBUG tint, hover scale, and dev
+    // offset make it "not a clean fit" (CONTEXT.md).
+    private func blobShape<Content: View>(topCornerRadius: CGFloat,
+                                           bottomCornerRadius: CGFloat,
+                                           alignment: Alignment = .center,
+                                           @ViewBuilder content: () -> Content) -> some View {
+        NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
             .fill(Color.black)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
-            .overlay(
-                HStack(spacing: 0) {
-                    if let weather = outfit.weather {
-                        weatherColumn(weather)
-                    }
-                    Spacer()
-                    centerColumn
-                    Spacer()
-                    if let calendarGlance = outfit.calendar {
-                        calendarColumn(calendarGlance)
-                    }
-                }
-                .padding(.horizontal, 16)
-            )
+            .overlay(alignment: alignment) { content() }
             .onTapGesture { onClick() }
     }
 
@@ -476,15 +492,11 @@ struct NotchPillView: View {
     private func mediaExpanded(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
         let isPlaying = isPlayingFor(presentation)
         let meta = titleArtist(presentation)
-        return NotchShape(topCornerRadius: 6, bottomCornerRadius: 20)
-            .fill(Color.black)
-            .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
-            // .top alignment + .padding(.top, 32) pins the content to the camera-clearance
-            // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
-            // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
-            // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
-            .overlay(alignment: .top) {
+        // alignment: .top + .padding(.top, 32) pins the content to the camera-clearance
+        // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
+        // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
+        // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
+        return blobShape(topCornerRadius: 6, bottomCornerRadius: 20, alignment: .top) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
                     HStack(alignment: .top, spacing: 10) {
@@ -549,18 +561,13 @@ struct NotchPillView: View {
     // expanded blob shape so the island still morphs; a single centered message. Distinct
     // from D-11 (.none + healthy → date/time): isHealthy is the orthogonal axis.
     private var mediaUnavailable: some View {
-        NotchShape(topCornerRadius: 6, bottomCornerRadius: 20)
-            .fill(Color.black)
-            .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
-            .overlay(
-                Text("Now Playing nicht verfügbar")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-            )
-            .onTapGesture { onClick() }
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 20) {
+            Text("Now Playing nicht verfügbar")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+        }
     }
 
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
