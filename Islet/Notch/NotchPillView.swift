@@ -605,11 +605,15 @@ struct EqualizerBars: View {
     var tint: Color = .white
     private static let barCount = 5     // discretion: 3–5
 
-    // Per-bar RANDOM profile, generated ONCE at init and held stable for the view's
-    // lifetime (re-renders don't reshuffle it). Each bar oscillates between its OWN random
-    // low/high height on its OWN random period + phase offset, so the bars pulse
-    // INDEPENDENTLY (random-looking) instead of a uniform left-to-right sweep.
-    private let profiles: [(low: CGFloat, high: CGFloat, period: Double, phase: Double)]
+    // Per-bar RANDOM profile, seeded ONCE per view IDENTITY via @State's initial-value
+    // expression (held stable for the view's lifetime; re-renders don't reshuffle it).
+    // @State's initial value evaluates exactly once per identity — NOT once per struct
+    // construction — which is what actually delivers this stability: a plain stored `let`
+    // does NOT, because SwiftUI reconstructs the struct (re-running its init) on every
+    // parent re-render. Each bar oscillates between its OWN random low/high height on its
+    // OWN random period + phase offset, so the bars pulse INDEPENDENTLY (random-looking)
+    // instead of a uniform left-to-right sweep.
+    @State private var profiles: [(low: CGFloat, high: CGFloat, period: Double, phase: Double)] = EqualizerBars.makeProfiles()
 
     // Fixed box, CENTER-anchored: each bar is vertically centered and grows OUTWARD from the
     // middle (both up AND down) as its height changes — not pinned to a bottom baseline. The
@@ -617,10 +621,11 @@ struct EqualizerBars: View {
     // view as in the collapsed wing.
     private let boxHeight: CGFloat = 16
 
-    init(isPlaying: Bool, tint: Color = .white) {
-        self.isPlaying = isPlaying
-        self.tint = tint
-        self.profiles = (0..<Self.barCount).map { _ in
+    // internal (not private): EqualizerBarsTests.swift calls this directly to sanity-check
+    // the extracted factory — `private` is file-scoped and would not compile from another
+    // file even under @testable import.
+    static func makeProfiles() -> [(low: CGFloat, high: CGFloat, period: Double, phase: Double)] {
+        (0..<barCount).map { _ in
             (low: CGFloat.random(in: 3...6),
              high: CGFloat.random(in: 10...16),
              period: Double.random(in: 0.55...1.05),   // seconds per full up-down cycle
