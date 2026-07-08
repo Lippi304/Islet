@@ -170,7 +170,7 @@ permission denial.
 **Requirements**: WEATHER-01, CAL-01, OUTFIT-01 (new — not yet in REQUIREMENTS.md; add these 3
 IDs to REQUIREMENTS.md's Requirements section and Traceability table)
 **Depends on:** Phase 13
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -184,7 +184,7 @@ Plans:
 
 **Wave 3** *(blocked on 14-02, 14-03)*
 
-- [ ] 14-04-PLAN.md — Wire outfitState into NotchWindowController + 3-column expandedIsland layout in NotchPillView (D-07)
+- [x] 14-04-PLAN.md — Wire outfitState into NotchWindowController + 3-column expandedIsland layout in NotchPillView (D-07)
 
 **Wave 4** *(blocked on 14-04)*
 
