@@ -7,7 +7,15 @@ import CoreLocation
 // updates, no significant-location-change monitoring — RESEARCH.md's Don't
 // Hand-Roll table). D-01: any non-authorized status or any failure settles the
 // completion with nil exactly once, with NO retry loop and NO re-prompt/nag.
-final class LocationProvider: NSObject, CLLocationManagerDelegate {
+//
+// CONTRACT — `completion` is ALWAYS delivered on the MAIN thread (mirrors
+// LicenseService.swift's file-header contract; CLLocationManager delegate
+// callbacks land on the main queue by default).
+protocol LocationService: AnyObject {
+    func requestOnce(completion: @escaping (CLLocation?) -> Void)
+}
+
+final class LocationProvider: NSObject, CLLocationManagerDelegate, LocationService {
     private let manager = CLLocationManager()
     private var completion: ((CLLocation?) -> Void)?
 
