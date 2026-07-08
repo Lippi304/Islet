@@ -20,7 +20,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current Milestone
 
-None — v1.1 is closed. **Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) completed 2026-07-08**, ahead of any formal milestone: DRY'd the duplicate frame-geometry/blob-shape code, protocolized `LocationProvider` and `LicenseState` with DI seams, gated the outfit-refresh timer on visibility, persisted the real Polar.sh license payload, and fixed `EqualizerBars`' broken profile-stability contract. Zero unintended behavior change except the two explicit exceptions (Polar payload widening, EqualizerBars fix). All 5 plans verified on-device; 7/7 phase items confirmed against source in `15-VERIFICATION.md`. Natural candidates for the next milestone: Phase 16 (`NotchWindowController` device-coordinator extraction, next on the roadmap), formalizing Phase 14's already-shipped weather/calendar/outfit work, or the deferred file shelf / HUD / timer backlog. Run `/gsd-new-milestone` to scope it.
+None — v1.1 is closed. **Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) completed 2026-07-08**, ahead of any formal milestone: DRY'd the duplicate frame-geometry/blob-shape code, protocolized `LocationProvider` and `LicenseState` with DI seams, gated the outfit-refresh timer on visibility, persisted the real Polar.sh license payload, and fixed `EqualizerBars`' broken profile-stability contract. Zero unintended behavior change except the two explicit exceptions (Polar payload widening, EqualizerBars fix). All 5 plans verified on-device; 7/7 phase items confirmed against source in `15-VERIFICATION.md`. **Phase 16 (NotchWindowController Device Coordinator Extraction) completed 2026-07-08**, also ahead of any formal milestone: extracted the device-splash bookkeeping into `DeviceCoordinator` behind an `ActivityCoordinator` protocol, proving the coordinator-extraction shape on the highest-risk activity type before repeating it for Charging/NowPlaying/Outfit. 9/9 must-haves verified in `16-VERIFICATION.md`; all 4 D-03 on-device Bluetooth scenarios passed. Natural candidates for the next milestone: repeating the coordinator extraction for Charging/NowPlaying/Outfit, formalizing Phase 14's already-shipped weather/calendar/outfit work, or the deferred file shelf / HUD / timer backlog. Run `/gsd-new-milestone` to scope it.
 
 ## Requirements
 
@@ -99,6 +99,10 @@ _v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7
 
 - [x] `expandedIdle` glance shows live weather (icon + temperature via WeatherKit), the next relevant calendar event (EventKit), and the date in a 3-column layout alongside the existing time readout; only the weather icon animates per condition category; any column degrades silently to absent on permission denial. On-device verified (WeatherKit end-to-end, permission-denial omission, live event advancement, idle-CPU check). Executed ahead of formal milestone scope — capture as WEATHER-01/CAL-01/OUTFIT-01 in the next milestone's REQUIREMENTS.md. (Phase 14)
 
+**NotchWindowController Device Coordinator Extraction (Phase 16 — D-01, D-02, D-03, informal IDs sourced from 16-CONTEXT.md):**
+
+- [x] The 9-field device-splash bookkeeping and its 3 stateful methods extracted out of `NotchWindowController` into an independently-testable `DeviceCoordinator`, behind a narrow 2-method `ActivityCoordinator` protocol; `BluetoothMonitor`'s own construction/start/stop/deinit lifecycle stays untouched and directly owned by the controller (D-01/D-02). Zero product behavior change proven both by 9 new unit tests covering Pitfalls 1-8 and by a mandatory on-device Bluetooth verification checklist — all 4 D-03 scenarios (reconnect-flap debounce, launch-grace suppression, genuine disconnect, battery-poll promotion) passed on real hardware. First proof of the coordinator-extraction shape, ahead of repeating it for Charging/NowPlaying/Outfit. (Phase 16)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
@@ -142,6 +146,7 @@ _v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7
   - Pre-existing (v1.0-era): `xcodebuild test` hangs in non-interactive/sandboxed environments due to a Bluetooth TCC-authorization wait in `BluetoothMonitor` (also affects the full `Islet.app`'s WeatherKit/MediaRemote/IOBluetooth boot as of Phase 14 — gate on `xcodebuild build`, route test runs to manual Cmd-U). Logged in `.planning/phases/09-fullscreen-flash-window-space-retry/deferred-items.md`.
   - WEATHER-01/CAL-01/OUTFIT-01 not yet formally tracked in a REQUIREMENTS.md — Phase 14 shipped ahead of its own milestone scope; add these IDs at next milestone's requirements pass.
   - Two non-blocking code-review findings from `15-REVIEW.md` (pre-existing behavior, not new regressions): `KeychainLicenseStore`/`SettingsView` can show "License activated" while silently swallowing a Keychain write failure (WR-01); `LocationProvider.requestOnce` would silently drop a first caller's completion under a hypothetical concurrent second call, currently unreachable (WR-02).
+  - Two non-blocking code-review findings from `16-REVIEW.md` (pre-existing behavior, carried through the extraction verbatim): `DeviceCoordinator`'s post-connect battery-refresh retry checks device *shape*, not identity, and silently depends on two independently-maintained magic-number caps (`TransientQueue.maxDepth` and a hardcoded `> 2`) staying in lockstep — benign today, but could misattribute a battery reading to the wrong device if either cap changes independently later (WR-1); `deviceSuppressedAtLaunch` is a dead parameter, always an empty `Set` pending a deferred A2 on-device seed (WR-2).
 
 ## Constraints
 
@@ -199,4 +204,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-08 — Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) completed.*
+*Last updated: 2026-07-08 — Phase 16 (NotchWindowController Device Coordinator Extraction) completed.*
