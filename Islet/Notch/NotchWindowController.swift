@@ -90,7 +90,7 @@ final class NotchWindowController {
     private let outfitState = BasicOutfitState()
     private let weatherService: WeatherService = WeatherKitService()
     private let calendarService: CalendarService = EventKitService()
-    private let locationProvider = LocationProvider()
+    private let locationProvider: LocationService = LocationProvider()
     private var outfitRefreshTimer: Timer?
     private var lastLocation: CLLocation?
 
@@ -232,6 +232,11 @@ final class NotchWindowController {
     // pending grace collapse, letting the island collapse out from under the pointer).
     // Reset in updateVisibility's hide branch so it can't go stale across a hide/show cycle.
     private var pointerInZone = false
+
+    // Phase 15 / P15-ITEM5 — mirrors the shown/hidden branch of updateVisibility() so the
+    // outfit-refresh timer can gate on it (D-06): true only while the island is actually
+    // visible (panel shown), false while hidden (fullscreen or expired trial).
+    private var isCurrentlyVisible = false
 
     // The pill hot-zone in GLOBAL screen coords. It is the COLLAPSED pill frame padded a
     // few px so the tiny notch band is easy to target. Recomputed on every resolve so it
@@ -429,8 +434,11 @@ final class NotchWindowController {
         }
         refreshCalendar()
         outfitRefreshTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { [weak self] _ in
-            self?.refreshWeather()
-            self?.refreshCalendar()
+            // Phase 15 / P15-ITEM5 (D-06) — skip the fetch entirely while hidden (fullscreen or
+            // expired trial); updateVisibility()'s hidden-to-visible edge resumes it on the next show.
+            guard let self, self.isCurrentlyVisible else { return }
+            self.refreshWeather()
+            self.refreshCalendar()
         }
     }
 
@@ -507,6 +515,10 @@ final class NotchWindowController {
     // observer (didChangeScreenParameters, activeSpaceDidChange, didActivateApplication) calls
     // ONLY this; safe to call repeatedly.
     private func updateVisibility() {
+        // Phase 15 / P15-ITEM5 (D-06) — captured before any early return/branch so the
+        // hidden-to-visible transition below can detect the edge and resume outfit refresh.
+        let wasVisible = isCurrentlyVisible
+
         // Phase 10 / D-13 — idle-state guard: a license-driven hide must never abruptly yank the
         // island out from under an active hover/expansion. If the pointer is in the hot-zone or
         // the island is expanded, defer the hide (set pendingLockoutHide) and leave panel/hotZone/
@@ -537,7 +549,14 @@ final class NotchWindowController {
                       isFullscreen: fullscreen,
                       isLicensed: licenseState.isEntitled),
            let target {
+            isCurrentlyVisible = true
             positionAndShow(on: target)
+            // Phase 15 / P15-ITEM5 (D-06) — a hidden-to-visible transition resumes outfit data
+            // immediately instead of waiting up to 15 minutes for the next timer tick.
+            if !wasVisible {
+                refreshWeather()
+                refreshCalendar()
+            }
         } else {
             // The ONLY hide call in the file (single path). Covers BOTH clamshell/external-only
             // (no target → D-04 never relocate) AND true fullscreen (D-09 hide, no ghost bar).
@@ -548,6 +567,7 @@ final class NotchWindowController {
             // Clearing this here prevents a stale `true` from suppressing the next enter edge
             // after a show, which would skip the haptic + grace-cancel on re-entry.
             pointerInZone = false
+            isCurrentlyVisible = false
         }
     }
 
