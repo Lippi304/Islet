@@ -358,32 +358,23 @@ struct NotchPillView: View {
         .frame(width: 90)
     }
 
-    // Phase 14 / D-06 — the ONLY animation in this glance (D-05). Each case gets its OWN
-    // concrete Image + symbolEffect chain: `.pulse` and `.variableColor.iterative` are
-    // different concrete SymbolEffect types and cannot share one call site.
-    // `options: .repeating` is REQUIRED on every case — the default symbolEffect behavior is
-    // one-shot per value change, not continuous (RESEARCH.md Pitfall 2). Idle-CPU discipline
-    // is by construction: this view (and its symbolEffect driver) only exists while
-    // `presentation == .expandedIdle`, one case of the switch in `body`.
+    // Phase 14 / D-06 — static weather icon per user request: no `.symbolEffect`, no
+    // animation. Just the SF Symbol with multicolor rendering.
     @ViewBuilder
     private func weatherIcon(for category: WeatherCategory) -> some View {
         switch category {
         case .sunny:
             Image(systemName: "sun.max.fill")
                 .symbolRenderingMode(.multicolor)
-                .symbolEffect(.pulse, options: .repeating.speed(0.4), isActive: true)
         case .cloudy:
             Image(systemName: "cloud.fill")
                 .symbolRenderingMode(.multicolor)
-                .symbolEffect(.variableColor.iterative, options: .repeating.speed(0.4), isActive: true)
         case .rain:
             Image(systemName: "cloud.rain.fill")
                 .symbolRenderingMode(.multicolor)
-                .symbolEffect(.variableColor.iterative, options: .repeating.speed(0.4), isActive: true)
         case .snow:
             Image(systemName: "cloud.snow.fill")
                 .symbolRenderingMode(.multicolor)
-                .symbolEffect(.variableColor.iterative, options: .repeating.speed(0.4), isActive: true)
         }
     }
 
