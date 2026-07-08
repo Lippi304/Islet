@@ -407,22 +407,25 @@ func symbolName(for category: WeatherCategory) -> String {
 | A4 | WeatherKit calls fail under the project's current ad-hoc ("Sign to Run Locally") local Debug signing | Summary / Pitfall 1 | If WeatherKit tolerates ad-hoc signing in some Xcode/OS combination, the recommended `project.yml` signing-team change becomes unnecessary extra setup work — but the safer assumption is to require it, since the cost of being wrong the other way (silent WeatherKit failures with no clear error) is much higher and harder to debug |
 | A5 | The reconstructed `WeatherService`/`CalendarService` protocol shapes (method signatures) are illustrative, not verified against a real WeatherKit/EventKit compile | Architecture Patterns | Executor must confirm exact async/completion signatures against the real macOS 26 SDK during implementation — Swift's `async throws` idioms may differ slightly from the illustrated completion-closure wrapper shown here (chosen to match the existing `LicenseService`/`NowPlayingService` completion-closure convention in this codebase) |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact `WeatherKit.WeatherCondition` full case enumeration**
    - What we know: dozens of cases exist (clear, cloudy, rain, snow, thunderstorm variants, fog/haze, wind); WeatherKit exposes both `.condition` (enum) and `.symbolName` (Apple's own SF Symbol string) on `CurrentWeather`.
    - What's unclear: the complete authoritative case list wasn't available through the search tools used in this session.
    - Recommendation: planner should have the executor enumerate the real case list via Xcode Quick Help/autocomplete on `WeatherKit.WeatherCondition` at implementation time, write the `switch` with an exhaustive `default: .cloudy` fallback (already reflected in the Pattern 2 example), and unit-test the mapping function against the confirmed case list.
+   - RESOLVED: 14-01 Task 1 has the executor verify the real `WeatherKit.WeatherCondition` case list via Xcode Quick Help/autocomplete before finalizing the switch, with a safe `.cloudy` default regardless of any missed case.
 
 2. **Whether `weather.currentWeather.symbolName` (Apple's own suggested SF Symbol) should be used directly instead of hand-mapping to 4 custom category symbols**
    - What we know: WeatherKit exposes a ready-made `symbolName` per exact condition (dozens of possible symbol names, day/night variants).
    - What's unclear: D-06 explicitly wants only 4 coarse categories (not Apple's finer-grained symbol set) for the animation mapping — so `symbolName` is likely NOT usable directly; the phase needs its OWN 4-symbol mapping (as shown in Pattern 2/Code Examples) regardless.
    - Recommendation: use the custom 4-category mapping (`WeatherCategory.from(condition)` → one of 4 fixed SF Symbol names), not `weather.currentWeather.symbolName`, to honor D-06.
+   - RESOLVED: 14-04 uses the custom 4-symbol mapping (`WeatherCategory.from`), not `weather.currentWeather.symbolName`, per D-06.
 
 3. **Refresh cadence for weather/calendar data**
    - What we know: WeatherKit's 500k/month quota gives enormous headroom (a refresh every 15 min = ~2,880/month for one user); EventKit has no meaningful rate limit for local queries.
    - What's unclear: CONTEXT.md doesn't specify a refresh interval — this is Claude's Discretion territory not explicitly flagged in the phase's Discretion list, but material to plan.
    - Recommendation: planner should pick a simple coarse timer (e.g., 15-30 min for weather, re-query calendar on notch-expand or a similar coarse interval) — no need for anything more sophisticated at this phase's scope.
+   - RESOLVED: 14-04 Task 2 picks a concrete 900s (15-min) `Timer.scheduledTimer` cadence for both weather and calendar refresh.
 
 ## Environment Availability
 
