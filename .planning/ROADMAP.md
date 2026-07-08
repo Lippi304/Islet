@@ -99,7 +99,7 @@ explicit, called-out exceptions to an otherwise zero-product-behavior-change pha
 small, well-understood bug fixes with an already-worked fix.
 **Requirements**: P15-ITEM1..P15-ITEM7 (source: this session's full-codebase architecture audit — no formal REQUIREMENTS.md IDs exist for this phase; the 7 CONTEXT.md scope items are the coverage unit)
 **Depends on:** Phase 14
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -111,7 +111,7 @@ Plans:
 
 **Wave 2** *(blocked on 15-01)*
 
-- [ ] 15-05-PLAN.md — EqualizerBars re-render reshuffle bug fix (item 6)
+- [x] 15-05-PLAN.md — EqualizerBars re-render reshuffle bug fix (item 6)
 
 ### Phase 16: NotchWindowController Device Coordinator Extraction
 
