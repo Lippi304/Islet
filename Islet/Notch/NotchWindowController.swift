@@ -104,54 +104,17 @@ final class NotchWindowController {
     // held as a plain optional so toggle-off / deinit can stop() + release it.
     private var bluetoothMonitor: BluetoothMonitor?
 
-    // Phase 6 / 05 D-04 — the device-splash debounce/burst-suppression state threaded into the
-    // PURE shouldShowDeviceSplash(...) predicate (no clock inside it; the controller passes `now`
-    // + these dictionaries). deviceLastShown debounces reconnect flaps; deviceSuppressedAtLaunch
-    // would hold the at-launch/wake connect burst (left empty for v1 — the on-device A2 verdict
-    // that would seed it is a deferred carry-over; the debounce alone already bounds the queue).
-    private var deviceLastShown: [String: TimeInterval] = [:]
-    private var deviceSuppressedAtLaunch: Set<String> = []
-    private let deviceDebounce: TimeInterval = 3.0   // mirror activityDuration (discretion seed)
-
-    // Phase 6 fix (post-checkpoint) — the set of addresses we currently believe are CONNECTED.
-    // IOBluetooth re-delivers connection events for an already-connected device (the
-    // CoreBluetooth connectionEventDidOccur bridge fires repeatedly), which made a stable
-    // headphone splash perpetually instead of once. We splash ONLY on a genuine connect/disconnect
-    // EDGE: a connect for an address already in this set is ignored; a disconnect only splashes if
-    // the address was tracked as connected. Mirrors a debounced "is this a new state" gate.
-    private var connectedDeviceAddresses: Set<String> = []
-
-    // The instant the BluetoothMonitor started. Devices already connected at launch fire a connect
-    // BURST the moment we register; within this grace window those are RECORDED as connected but NOT
-    // splashed (the user did not just connect them — 05 D-04 at-launch suppression). A genuine
-    // connect after the window splashes normally. Reset whenever the monitor (re)starts.
-    private var bluetoothStartedAt: Date?
-    private let deviceLaunchGrace: TimeInterval = 4.0
-
-    // The one-shot post-connect battery re-read (the HFP battery can arrive after the connect
-    // edge). A single DispatchWorkItem — cancelled/replaced per connect, torn down in deinit.
-    private var deviceBatteryWork: DispatchWorkItem?
-
-    // Gap-closure fix (Finding 2 — battery-poll identity race): the address the CURRENT
-    // scheduleDeviceBatteryRefresh poll chain is running for. `deviceBatteryWork?.cancel()`
-    // cannot stop a closure that has ALREADY started executing (its body may be mid-flight when
-    // a newer connect for a DIFFERENT device supersedes it), so this side table lets that stale
-    // closure detect it has been superseded before it applies a (possibly wrong) battery result
-    // to whatever is now the standing head. Controller-owned, non-persisted — mirrors the
-    // existing deviceLastShown convention.
-    private var pollingAddress: String?
-
-    // Gap-closure fix (WR-1 — battery-poll identity desync): address-keyed side data mirroring
-    // TransientQueue's own pending order for `.device` entries ONLY, so a device promoted to head
-    // LATER (not immediately, via scheduleActivityDismiss's advance() or a flushTransients
-    // promotion) still gets its post-connect battery poll scheduled — handleDevice's immediate
-    // `if changed` path only covers a device that becomes head RIGHT AWAY. No longer a plain
-    // best-effort FIFO: it is matched by DeviceActivity IDENTITY via matchPendingBatteryPoll, not
-    // by insertion order, because the old FIFO could desync from TransientQueue's own pending list
-    // (a disconnect transient for a DIFFERENT device can evict the queue's corresponding entry via
-    // maxDepth without ever touching this list) and poll the wrong device's battery under a
-    // different device's name. Capped at 2 to mirror TransientQueue.maxDepth.
-    private var pendingDeviceBatteryPolls: [PendingBatteryPoll] = []
+    // Phase 16 / D-02 — the extracted device-splash bookkeeping now lives in DeviceCoordinator
+    // (Plan 16-01), wired here via reach-back closures (TransientQueue is a value type, so the
+    // coordinator can't hold a reference to it). Constructed in start() (so the [weak self]
+    // closures bind a fully-initialised self, mirroring powerMonitor/nowPlayingMonitor's own
+    // convention) and held as a plain (implicitly-unwrapped) stored property — NOT `lazy` — so
+    // the nonisolated deinit can call deviceCoordinator?.cancelPendingWork() directly: a `lazy
+    // var`'s synthesized getter is itself actor-isolated and cannot be read from a nonisolated
+    // deinit context, unlike a plain stored field (T-16-03, deviation from the plan's literal
+    // "lazy var" wording — see 16-02-SUMMARY.md). Effectively non-optional after start() runs;
+    // its bookkeeping simply sits idle when the Devices toggle is off, exactly as the old fields did.
+    private var deviceCoordinator: DeviceCoordinator!
 
     // Phase 6 / APP-03 — the last accent index applied to the hosting view. UserDefaults posts
     // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
@@ -200,7 +163,7 @@ final class NotchWindowController {
 
     // Phase 10 / D-12 — the best-effort ONE-SHOT proactive expiry re-check, mirroring the exact
     // property + cancel-then-reschedule + deinit-cancel idiom already used 4x in this file
-    // (dismissWorkItem/graceWorkItem/mediaDismissWorkItem/deviceBatteryWork). NOT a polling loop
+    // (dismissWorkItem/graceWorkItem/mediaDismissWorkItem/DeviceCoordinator's own work item). NOT a polling loop
     // (Pitfall 1): the authoritative check is the wall-clock licenseState.isEntitled read inside
     // updateVisibility(), which already re-runs on every existing screen/space/app-activate
     // notification — this timer only nudges that check right at the computed expiry instant so
@@ -278,6 +241,18 @@ final class NotchWindowController {
     #endif
 
     func start() {
+        // Phase 16 / D-02 — constructed here (not at declaration) so the [weak self]-capturing
+        // closures bind a fully-initialised self, mirroring powerMonitor/nowPlayingMonitor's
+        // own start()-time construction.
+        deviceCoordinator = DeviceCoordinator(
+            queueHead: { [weak self] in self?.transientQueue.head },
+            enqueue: { [weak self] t in self?.transientQueue.enqueue(t) ?? false },
+            updateHead: { [weak self] t in self?.transientQueue.updateHead(t) },
+            presentTransientChange: { [weak self] in self?.presentTransientChange() },
+            renderPresentation: { [weak self] in self?.renderPresentation() },
+            batteryForAddress: { [weak self] addr in self?.bluetoothMonitor?.battery(forAddress: addr) }
+        )
+
         updateVisibility()
 
         // ISL-06 / D-05: re-evaluate on EVERY screen-config change (plug/unplug, resolution,
@@ -413,10 +388,9 @@ final class NotchWindowController {
     private func startBluetoothMonitor() {
         guard bluetoothMonitor == nil else { return }
         // Reset the edge-tracking state and stamp the start so the at-launch connect burst of
-        // already-connected devices is recorded-but-not-splashed (deviceLaunchGrace window).
-        connectedDeviceAddresses.removeAll()
-        bluetoothStartedAt = Date()
-        let bt = BluetoothMonitor { [weak self] reading in self?.handleDevice(reading) }
+        // already-connected devices is recorded-but-not-splashed (DeviceCoordinator's launch-grace window).
+        deviceCoordinator.started(at: Date())
+        let bt = BluetoothMonitor { [weak self] reading in self?.deviceCoordinator.handle(reading) }
         bluetoothMonitor = bt
         bt.start()
     }
@@ -827,7 +801,7 @@ final class NotchWindowController {
             }
             self.updateVisibility()                       // the SOLE show/hide site (fullscreen gate)
             if self.transientQueue.head != nil {
-                self.triggerDeviceBatteryRefreshIfPromoted()  // Finding 4 — cover a device promoted here
+                self.deviceCoordinator.activityPromoted()  // Finding 4 — cover a device promoted here
                 self.scheduleActivityDismiss()            // re-arm the ~3s for the next transient
             }
         }
@@ -844,135 +818,6 @@ final class NotchWindowController {
         case .device:   chargingState.activity = nil
         case nil:       chargingState.activity = nil
         }
-    }
-
-    // Phase 6 / DEV-01 / DEV-02 — a live IOBluetooth connect/disconnect lands here (already on
-    // main; BluetoothMonitor's callback runs on the main run loop). It mirrors handlePower:
-    //   1. The PURE shouldShowDeviceSplash(...) predicate gates BEFORE the queue (05 D-04
-    //      reconnect-flap debounce + at-launch burst suppression) — T-06-09 DoS mitigation: a
-    //      flapping device can't flood the queue because this gate drops repeats within `debounce`.
-    //   2. The PURE deviceActivity(from:) maps the (UNTRUSTED, T-05-01) reading → a bounded
-    //      DeviceActivity (name already clamped to a plain String by deviceLabel).
-    //   3. ENQUEUE as a rank-2 transient (D-02): show immediately if no transient stands, else
-    //      play after the current one (D-03 sequential). On a head change → render (in the spring)
-    //      + the SINGLE updateVisibility() (fullscreen gate) + arm the shared ~3s dismiss.
-    private func handleDevice(_ reading: DeviceReading) {
-        let now = Date().timeIntervalSinceReferenceDate
-
-        // EDGE detection (post-checkpoint fix): IOBluetooth re-fires connection events for an
-        // already-connected device (the CoreBluetooth bridge fires connectionEventDidOccur
-        // repeatedly), which previously made a stable headphone splash perpetually. Splash ONLY on
-        // a genuine connect/disconnect EDGE, keyed by address — this Set-based dedup genuinely
-        // needs an address to work, so it is scoped to the `if let addr` branch below.
-        //
-        // Gap-closure fix (Finding 1): an ADDRESSLESS reading must NOT be dropped here — it just
-        // can't be deduped by this Set. It falls through to the shared splash-gate/deviceActivity
-        // call below unconditionally, mirroring shouldShowDeviceSplash's own documented "nil
-        // address → can't dedup, but still show" contract (the previous blanket early-return on a
-        // nil address silently dropped every addressless reading BEFORE that pure seam ever ran).
-        if let addr = reading.address {
-            if reading.connected {
-                guard !connectedDeviceAddresses.contains(addr) else { return }   // already connected → no repeat splash
-                connectedDeviceAddresses.insert(addr)
-                // 05 D-04 at-launch suppression: a device already connected when the monitor started is
-                // recorded as connected above but does NOT splash (the user did not just connect it).
-                if let started = bluetoothStartedAt,
-                   Date().timeIntervalSince(started) < deviceLaunchGrace { return }
-            } else {
-                // Disconnect edge: only splash if we actually had it tracked as connected.
-                guard connectedDeviceAddresses.remove(addr) != nil else { return }
-            }
-        } else if reading.connected, let started = bluetoothStartedAt,
-                  Date().timeIntervalSince(started) < deviceLaunchGrace {
-            // Symmetry with the addressed path above: an addressless connect during the at-launch
-            // burst window is still suppressed, even though it can't be tracked in the Set (no key).
-            return
-        }
-
-        // Secondary flap debounce (05 D-04): drop a repeat edge for the same address within ~3s.
-        // Passes reading.address DIRECTLY (may be nil) — shouldShowDeviceSplash's own contract
-        // falls through to true when it has no address to dedup against.
-        guard shouldShowDeviceSplash(address: reading.address,
-                                     connected: reading.connected,
-                                     now: now,
-                                     lastShown: deviceLastShown,
-                                     debounce: deviceDebounce,
-                                     suppressedAtLaunch: deviceSuppressedAtLaunch)
-        else { return }                                   // 05 D-04 — debounced
-        if let addr = reading.address { deviceLastShown[addr] = now }   // only stamp when there IS a key
-
-        guard let activity = deviceActivity(from: reading) else { return }
-        let changed = transientQueue.enqueue(.device(activity))   // D-02 rank 2 / D-03 sequential
-        if changed {
-            presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
-            // The HFP battery indicator can arrive a beat after the connect notification, so the
-            // splash may open with the connection sign; refresh it shortly after so the battery
-            // appears within the ~3s glance (no-op if the battery was already present / unchanged).
-            // Requires an address to poll by — an addressless connect can't be battery-refreshed.
-            if reading.connected, let addr = reading.address { scheduleDeviceBatteryRefresh(address: addr) }
-        } else if reading.connected {
-            // Gap-closure fix (Finding 4 — missed battery-refresh for a promoted device): this
-            // connect was enqueued BEHIND the current head (or deduped), so it did NOT get a
-            // battery-refresh scheduled above. Remember it (address + the SAME DeviceActivity
-            // payload just enqueued above, capped at maxDepth) so
-            // triggerDeviceBatteryRefreshIfPromoted() can identity-match it (WR-1) once it is
-            // eventually promoted to head.
-            if let addr = reading.address {
-                pendingDeviceBatteryPolls.append(PendingBatteryPoll(address: addr, activity: activity))
-                if pendingDeviceBatteryPolls.count > 2 { pendingDeviceBatteryPolls.removeFirst() }
-            }
-        }
-    }
-
-    // Called whenever the queue head may have just changed to a freshly-promoted `.device`
-    // transient (from scheduleActivityDismiss's advance() or flushTransients's promotion). If the
-    // new head is a connected device we still owe a battery refresh for, schedule it now.
-    //
-    // Gap-closure fix (WR-1): matched by the promoted device's actual DeviceActivity IDENTITY via
-    // matchPendingBatteryPoll, not by FIFO position — the old address-only FIFO's `.first` pop
-    // could poll a stale/mismatched device once it desynced from TransientQueue's own pending
-    // list.
-    private func triggerDeviceBatteryRefreshIfPromoted() {
-        let (match, remaining) = matchPendingBatteryPoll(pendingDeviceBatteryPolls, promoted: transientQueue.head)
-        pendingDeviceBatteryPolls = remaining
-        guard let match else { return }
-        scheduleDeviceBatteryRefresh(address: match.address)
-    }
-
-    // Bounded POLL for the just-connected device's battery: the HFP AT+IPHONEACCEV value often
-    // lands a second or two AFTER the connect notification, so a single re-read can miss it. Re-read
-    // every ~0.6s; the moment a level arrives (and the device is still the standing head) update the
-    // head in place (no dismiss re-arm — like a charging % tick) so the BatteryIndicator replaces the
-    // connection sign live, then stop. Bounded to ~6 attempts (~3.6s) and naturally ends when the
-    // device splash advances off the head. ONE work item, cancelled/replaced per connect + in deinit.
-    private func scheduleDeviceBatteryRefresh(address: String, attempt: Int = 0) {
-        // Finding 2: stamp the address BEFORE cancel/schedule, on every call including the
-        // internal retry recursion (same address → unchanged through the chain) and whenever a
-        // genuinely NEW connect starts a NEW chain (a different address supersedes the old one).
-        pollingAddress = address
-        deviceBatteryWork?.cancel()
-        guard attempt < 6 else { return }
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            // Finding 2: abort if a NEWER poll (for a different device) has superseded this one —
-            // closes the race even when .cancel() above arrived too late to stop an already-running
-            // closure body from applying its result to the wrong (now-current) head.
-            guard self.pollingAddress == address else { return }
-            // Stop once the device is no longer the standing splash (advanced / dismissed).
-            guard case .device(.connected(let name, let glyph, let old))? = self.transientQueue.head else { return }
-            if let monitor = self.bluetoothMonitor,
-               let fresh = monitor.battery(forAddress: address), fresh != old {
-                let updated = DeviceActivity.connected(name: name, glyph: glyph, battery: fresh)
-                self.transientQueue.updateHead(.device(updated))
-                withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
-                    self.renderPresentation()
-                }
-                return   // got a level — stop polling
-            }
-            self.scheduleDeviceBatteryRefresh(address: address, attempt: attempt + 1)   // retry
-        }
-        deviceBatteryWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
     }
 
     // MARK: - Phase 6: hosting view + live settings application (APP-03 / D-09 / D-11)
@@ -1013,7 +858,7 @@ final class NotchWindowController {
             startBluetoothMonitor()
         } else if bluetoothMonitor != nil {
             bluetoothMonitor?.stop(); bluetoothMonitor = nil
-            deviceLastShown.removeAll()
+            deviceCoordinator.reset()
             flushTransients(.device)
         }
 
@@ -1068,12 +913,12 @@ final class NotchWindowController {
         switch category {
         case .charging: chargingState.activity = nil
         case .device:
-            pendingDeviceBatteryPolls.removeAll()   // Finding 4 — drop any pending battery polls too
+            deviceCoordinator.clearPendingBatteryPolls()   // Finding 4 — drop any pending battery polls too
         }
         guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
         if transientQueue.head != nil {
-            triggerDeviceBatteryRefreshIfPromoted()   // Finding 4 — cover a device promoted here
+            deviceCoordinator.activityPromoted()   // Finding 4 — cover a device promoted here
             scheduleActivityDismiss()                 // Finding 3 — fresh window for the promoted transient
         }
     }
@@ -1217,7 +1062,7 @@ final class NotchWindowController {
         // class connect token + every per-device disconnect token so no OS-held token outlives
         // the owner. Mirrors powerMonitor.stop()'s owner-driven teardown.
         bluetoothMonitor?.stop()
-        deviceBatteryWork?.cancel()
+        deviceCoordinator?.cancelPendingWork()
 
         // Phase 4 (security T-04-12): terminate the persistent MediaRemote child so no orphaned
         // perl / MediaRemoteAdapter process leaks after the controller dies, and cancel the
