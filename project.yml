@@ -57,7 +57,7 @@ targets:
         INFOPLIST_KEY_NSCalendarsUsageDescription: "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an."
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an."
         GENERATE_INFOPLIST_FILE: YES                   # modern Xcode: synthesize Info.plist from build settings
-        MARKETING_VERSION: "0.1"                       # -> CFBundleShortVersionString (D-14: private first release; 1.0 reserved for public launch)
+        MARKETING_VERSION: "1.0"                       # -> CFBundleShortVersionString (D-14: 1.0 is the public launch)
         CURRENT_PROJECT_VERSION: "1"                   # -> CFBundleVersion (build number)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_APP_SANDBOX: NO                         # un-sandboxed (needed for later MediaRemote/IOKit work)
