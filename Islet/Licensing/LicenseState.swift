@@ -16,10 +16,31 @@ enum LicenseStatus: Equatable {
     case licensed
 }
 
+// Phase 15 / P15-ITEM4 — DI seam mirroring TrialManager/LicenseManager's own
+// protocol-typed collaborator pattern. These extensions keep LicenseManager.swift
+// and TrialManager.swift untouched; the protocols exist solely so LicenseState's
+// precedence logic is testable with fakes instead of only on-device.
+protocol LicenseManaging: AnyObject {
+    var isLicensed: Bool { get }
+}
+
+protocol TrialStatusProviding: AnyObject {
+    func trialStartDate() -> Date?
+}
+
+extension LicenseManager: LicenseManaging {}
+extension TrialManager: TrialStatusProviding {}
+
 final class LicenseState {
     static let shared = LicenseState()
 
-    private init() {}
+    private let licenseManager: LicenseManaging
+    private let trialManager: TrialStatusProviding
+
+    init(licenseManager: LicenseManaging = LicenseManager.shared, trialManager: TrialStatusProviding = TrialManager.shared) {
+        self.licenseManager = licenseManager
+        self.trialManager = trialManager
+    }
 
     // Phase 11 / TRIAL-03 — in-memory session entitlement. Set to `true` by the
     // SettingsView activate flow (Plan 02) after StubLicenseService returns `.success`.
@@ -53,14 +74,14 @@ final class LicenseState {
         // record is honored even without an in-memory session flag (e.g. after relaunch).
         // LicenseManager reads the Keychain ONCE and caches in memory, so this hot-path read
         // (updateVisibility()) never re-hits the Keychain (memory 2401 flood mitigation).
-        if LicenseManager.shared.isLicensed { return .licensed }
+        if licenseManager.isLicensed { return .licensed }
 
         // TRIAL-03: in-memory session activation short-circuits to .licensed. Sits AFTER
         // the DEBUG override (so forceExpired/forceLicensed still win in dev) and BEFORE the
         // trial computation. `isEntitled` already maps `.licensed → true`, so no change there.
         if sessionActivated { return .licensed }
 
-        guard let start = TrialManager.shared.trialStartDate() else {
+        guard let start = trialManager.trialStartDate() else {
             // Should not happen after recordFirstLaunchIfNeeded() has run, but never
             // crash on unexpected state — default to a fresh, fully active trial.
             return .trial(daysRemaining: 3)
@@ -82,6 +103,6 @@ final class LicenseState {
     }
 
     var trialExpiryDate: Date? {
-        TrialManager.shared.trialStartDate()?.addingTimeInterval(TrialManager.trialLength)
+        trialManager.trialStartDate()?.addingTimeInterval(TrialManager.trialLength)
     }
 }
