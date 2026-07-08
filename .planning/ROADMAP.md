@@ -170,7 +170,7 @@ permission denial.
 **Requirements**: WEATHER-01, CAL-01, OUTFIT-01 (new — not yet in REQUIREMENTS.md; add these 3
 IDs to REQUIREMENTS.md's Requirements section and Traceability table)
 **Depends on:** Phase 13
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -188,4 +188,4 @@ Plans:
 
 **Wave 4** *(blocked on 14-04)*
 
-- [ ] 14-05-PLAN.md — On-device verification: WeatherKit end-to-end, permission-denial silent omission (D-01/D-03), next-event live advancement (D-04), idle-CPU check (Pitfall 5)
+- [x] 14-05-PLAN.md — On-device verification: WeatherKit end-to-end, permission-denial silent omission (D-01/D-03), next-event live advancement (D-04), idle-CPU check (Pitfall 5)

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Trial & Paid Release
 status: executing
-stopped_at: Phase 14 UI-SPEC approved
-last_updated: "2026-07-08T12:21:05.360Z"
-last_activity: 2026-07-08 -- Phase 14 execution started
+stopped_at: Phase 14 complete (14-05 on-device verification approved)
+last_updated: "2026-07-08T14:59:28.543Z"
+last_activity: 2026-07-08
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 16
-  completed_plans: 11
-  percent: 69
+  completed_plans: 16
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 
 ## Current Position
 
-Phase: 14 (basic-outfit-weather-calendar-date-display-with-weather-driv) — EXECUTING
-Plan: 1 of 5
-Next: `/gsd-plan-phase 14` (Basic Outfit) to plan the new post-v1.1 feature, or `/gsd-complete-milestone` to close out v1.1 (all 4 phases — 10, 11, 12, 13 — complete)
-Last activity: 2026-07-08 -- Phase 14 execution started
+Phase: 14 (basic-outfit-weather-calendar-date-display-with-weather-driv) — COMPLETE (5 of 5 plans)
+Plan: 5 of 5 — done
+Next: `/gsd:verify-work 14` to confirm phase goals were actually reached, then `/gsd-complete-milestone` to close out v1.1 (all 5 phases — 10, 11, 12, 13, 14 — complete)
+Last activity: 2026-07-08
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -89,6 +89,7 @@ Recent decisions affecting current work:
 - [Roadmap] Notarization toolchain proven in Phase 0 on a hello-world build, not deferred to release — the single biggest first-timer footgun.
 - [Roadmap] All MediaRemote access isolated behind one NowPlayingService with a launch-time health check (Phase 4); a future Apple change is a one-file fix.
 - [Roadmap v1.0.1] Two requirements (PBAR-01, FS-01) split into two phases (7, 8) rather than combined into one — different risk profiles.
+- [Phase 14] Verification (14-05) found and fixed two Hardened-Runtime entitlement gaps (Calendar, Location) plus a WeatherKit Portal App Services capability miss - all three needed before on-device permission prompts/weather fetch would work at all
 
 ### Roadmap Evolution
 
@@ -137,11 +138,12 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-08T01:02:10.331Z
-Stopped at: Phase 14 UI-SPEC approved
-Resume file: .planning/phases/14-basic-outfit-weather-calendar-date-display-with-weather-driv/14-UI-SPEC.md
+Last session: 2026-07-08T14:58:20.309Z
+Stopped at: Phase 14 complete (14-05 on-device verification approved)
+Resume file: None
 
 ## Operator Next Steps
 
 - v1.1 (Trial & Paid Release) is functionally complete — all 4 phases (10, 11, 12, 13) done, all v1.1 requirements (TRIAL-01/02/03, LIC-01/02/03, DIST-01) satisfied. Consider `/gsd-complete-milestone` to formally close it out.
-- Phase 14 (Basic Outfit: weather + calendar + date display) is new post-milestone scope, discussed but not yet planned — run `/gsd-plan-phase 14` when ready to continue.
+- Phase 14 (Basic Outfit: weather + calendar + date display) is now fully executed and on-device verified (all 5 plans complete, 14-05's two checkpoints approved) — run `/gsd:verify-work 14` next, or fold into `/gsd-complete-milestone`.
+- WEATHER-01, CAL-01, OUTFIT-01 are not yet tracked in `REQUIREMENTS.md` (phase added post-roadmap) — add them there at the next `/gsd-transition`/milestone-close pass if formal traceability is desired.
