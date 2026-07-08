@@ -20,7 +20,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current Milestone
 
-None — v1.1 is closed. Natural candidates for the next milestone: formalize Phase 14's already-shipped weather/calendar/outfit work, or pick up the deferred file shelf / HUD / timer backlog. Run `/gsd-new-milestone` to scope it.
+None — v1.1 is closed. **Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) completed 2026-07-08**, ahead of any formal milestone: DRY'd the duplicate frame-geometry/blob-shape code, protocolized `LocationProvider` and `LicenseState` with DI seams, gated the outfit-refresh timer on visibility, persisted the real Polar.sh license payload, and fixed `EqualizerBars`' broken profile-stability contract. Zero unintended behavior change except the two explicit exceptions (Polar payload widening, EqualizerBars fix). All 5 plans verified on-device; 7/7 phase items confirmed against source in `15-VERIFICATION.md`. Natural candidates for the next milestone: Phase 16 (`NotchWindowController` device-coordinator extraction, next on the roadmap), formalizing Phase 14's already-shipped weather/calendar/outfit work, or the deferred file shelf / HUD / timer backlog. Run `/gsd-new-milestone` to scope it.
 
 ## Requirements
 
@@ -141,6 +141,7 @@ _v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7
   - Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised — pre-existing, unrelated to v1.0/v1.0.1/v1.1 close; tracked in `STATE.md` Deferred Items.
   - Pre-existing (v1.0-era): `xcodebuild test` hangs in non-interactive/sandboxed environments due to a Bluetooth TCC-authorization wait in `BluetoothMonitor` (also affects the full `Islet.app`'s WeatherKit/MediaRemote/IOBluetooth boot as of Phase 14 — gate on `xcodebuild build`, route test runs to manual Cmd-U). Logged in `.planning/phases/09-fullscreen-flash-window-space-retry/deferred-items.md`.
   - WEATHER-01/CAL-01/OUTFIT-01 not yet formally tracked in a REQUIREMENTS.md — Phase 14 shipped ahead of its own milestone scope; add these IDs at next milestone's requirements pass.
+  - Two non-blocking code-review findings from `15-REVIEW.md` (pre-existing behavior, not new regressions): `KeychainLicenseStore`/`SettingsView` can show "License activated" while silently swallowing a Keychain write failure (WR-01); `LocationProvider.requestOnce` would silently drop a first caller's completion under a hypothetical concurrent second call, currently unreachable (WR-02).
 
 ## Constraints
 
@@ -198,4 +199,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-08 — milestone v1.1 (Trial & Paid Release) shipped.*
+*Last updated: 2026-07-08 — Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) completed.*
