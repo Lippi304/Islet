@@ -48,6 +48,7 @@
 		9D1FF157B4E789EF0A05245A /* TrialLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */; };
 		A532C893CA28FEBC8B8F87A8 /* NotchPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B2D92BF83095959068F293 /* NotchPanelTests.swift */; };
 		A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */; };
+		B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */; };
 		B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72C119AE687341C28E9786C /* NSScreen+Notch.swift */; };
 		B994C996D0B11203E21C3E0C /* LicenseState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */; };
 		C0667FBB99D4EFB9F888FEE1 /* IslandResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AECFB326AA1C46FECE017D0 /* IslandResolver.swift */; };
@@ -121,6 +122,7 @@
 		734F24D3CCE5D48060447B10 /* TrialManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManager.swift; sourceTree = "<group>"; };
 		76ADF16C067A181F295BA4C5 /* PowerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivity.swift; sourceTree = "<group>"; };
 		77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityDecisionTests.swift; sourceTree = "<group>"; };
+		8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlanceTests.swift; sourceTree = "<group>"; };
 		83B2D92BF83095959068F293 /* NotchPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanelTests.swift; sourceTree = "<group>"; };
 		885DB8C610716B7530D89BDB /* FullscreenDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDetector.swift; sourceTree = "<group>"; };
 		88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLogicTests.swift; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 		2A6EFEBFBF547E6277E6C69F /* IsletTests */ = {
 			isa = PBXGroup;
 			children = (
+				8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */,
 				AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */,
 				46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */,
 				E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */,
@@ -413,6 +416,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */,
 				3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */,
 				FD503D3A7D28F74B8D86C930 /* DisplayResolverTests.swift in Sources */,
 				21D3560AA4C7B91581AA5272 /* FullscreenDetectorTests.swift in Sources */,
