@@ -305,7 +305,7 @@ after the fact — treat this as the verification checklist for the extraction d
 
 4. **Line 892-901 (Secondary flap debounce)** — "drop a repeat edge for the same address within ~3s. Passes reading.address DIRECTLY (may be nil) — shouldShowDeviceSplash's own contract falls through to true when it has no address to dedup against." → this is a SECOND, independent debounce layer on top of the edge-detection Set — do not conflate or merge them.
 
-5. **Line 902** — `deviceLastShown[addr] = now` is stamped "only when there IS a key" — an addressless reading that passes the gate does NOT get a debounce timestamp (can't dedupe next time either — accepted, matches `shouldShowDeviceSplash`'s own documented contract).
+5. **Line 902** — `deviceLastShown[addr] = now` is stamped "only when there IS a key" — an addressless reading that passes the gate does NOT get a debounce timestamp (can't dedupe next time either — accepted, matches `shouldShowDeviceSplash`'s own documented contract). Unit-tested: a second addressless reading fed shortly after the first must ALSO enqueue (no debounce timestamp exists for it to be checked against).
 
 6. **Gap-closure fix (Finding 4), lines 913-923** — "this connect was enqueued BEHIND the current head (or deduped), so it did NOT get a battery-refresh scheduled above. Remember it... capped at maxDepth) so `triggerDeviceBatteryRefreshIfPromoted()` can identity-match it (WR-1) once it is eventually promoted to head." → the `else if reading.connected` branch (not just `else`) — a disconnect that fails to become head is NOT queued for a pending battery poll (only connects need one).
 
@@ -417,17 +417,19 @@ pre- and post-extraction shape.
 | A2 | `DeviceCoordinator.handle(_:)` needs an explicit `now:`/clock parameter to be unit-testable, deviating slightly from `handleDevice`'s internal `Date()` read | `DeviceCoordinatorTests.swift` template section | Medium — if the planner instead accepts calling `Date()` internally and tests only via longer real-time sleeps or skips debounce-timing tests entirely, this changes the achievable test coverage (D-03 already requires full on-device verification regardless, so unit test coverage of the debounce math is a nice-to-have, not the sole safety net) |
 | A3 | `ActivityCoordinator`'s two methods (`handle(_:)`, `activityPromoted()`) are the complete and correct minimal set — no third method needed | `ActivityCoordinator` Protocol Shape section | Low-Medium — if `handleSettingsChanged`'s devices-off branch and `flushTransients(.device)`'s partial delegation (see Call Sites table) turn out to need their own protocol methods (`reset()`/`cancelPendingWork()`) rather than being called as concrete (non-protocol) methods on the concrete `DeviceCoordinator` type, the protocol would need a third/fourth requirement — this research recommends keeping those as concrete methods specifically to avoid this, but the planner should confirm this holds once actually writing the extraction |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `handleSettingsChanged`'s device-toggle-off branch and `flushTransients(.device)`'s pending-poll clear be full protocol methods or concrete `DeviceCoordinator` methods called directly (not through `ActivityCoordinator`)?**
    - What we know: the controller already holds a concrete `deviceCoordinator: DeviceCoordinator` property (not just an `any ActivityCoordinator` existential), because it needs both the protocol-driven `handle`/`activityPromoted` calls (which could go through the protocol) AND the toggle-off/flush concrete calls documented in the Call Sites table.
    - What's unclear: whether holding both a concrete type AND intending it to conform to a protocol is worth the protocol at all, given only ONE coordinator exists this phase (D-02) — but the phase description explicitly mandates the protocol exists, so this isn't really open for the planner to skip, just to size correctly.
    - Recommendation: hold `private let deviceCoordinator = DeviceCoordinator(...)` as a concrete type (not `any ActivityCoordinator`), and have `DeviceCoordinator: ActivityCoordinator` be a conformance used only where the protocol type is actually useful (arguably nowhere yet, since there's only one — but D-02/the phase title mandate the protocol's existence as scaffolding for the future, not for present-day polymorphism). This is a case where the protocol is intentionally "unused" polymorphically in this phase and that is fine per the phase's own stated goal ("prove the coordinator shape").
+   - **RESOLVED (Plan 16-02, Task 1):** `NotchWindowController` holds `private lazy var deviceCoordinator: DeviceCoordinator` as the concrete type, with `reset()`/`clearPendingBatteryPolls()`/`cancelPendingWork()`/`started(at:)` called directly (not through the protocol), exactly per the recommendation above.
 
 2. **Does the on-device Bluetooth checklist (D-03) need a NEW verification document, or does it fold into the existing verify-work flow?**
    - What we know: D-03 lists four minimum scenarios (reconnect-flap debounce, launch-grace suppression, genuine disconnect, battery-poll promotion).
    - What's unclear: whether the plan should produce a dedicated `16-HUMAN-UAT.md`-style checklist file (mirroring Phase 2's `02-HUMAN-UAT.md` precedent found in STATE.md) or fold these four scenarios into `/gsd:verify-work`'s standard on-device pass.
    - Recommendation: planner should create an explicit checklist artifact (mirroring `02-HUMAN-UAT.md`) given the project's own history shows unstructured on-device checks get deferred/forgotten (STATE.md's "Phase 2's 8 on-device UAT scenarios... remain unexercised since v1.0 close").
+   - **RESOLVED (Plan 16-02, Task 2):** `16-HUMAN-UAT.md` is created as a dedicated deliverable with all four D-03 scenarios enumerated, then executed and recorded in Plan 16-02's Task 3 checkpoint, exactly per the recommendation above.
 
 ## Environment Availability
 
