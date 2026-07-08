@@ -30,7 +30,7 @@ final class LicenseManagerTests: XCTestCase {
         let fake = FakeLicenseStore()
         let manager = LicenseManager(store: fake)
 
-        XCTAssertTrue(manager.recordValidation(key: "TEST-KEY-1"))
+        XCTAssertTrue(manager.recordValidation(key: "TEST-KEY-1", validated: ValidatedLicense(id: "test-1", status: "granted", expiresAt: nil)))
         XCTAssertEqual(fake.storedRecord?.status, "granted")
         XCTAssertTrue(manager.isLicensed)
     }
@@ -70,7 +70,7 @@ final class LicenseManagerTests: XCTestCase {
         let fake = FakeLicenseStore()
         let manager = LicenseManager(store: fake)
 
-        manager.recordValidation(key: "TEST-KEY-2")
+        manager.recordValidation(key: "TEST-KEY-2", validated: ValidatedLicense(id: "test-2", status: "granted", expiresAt: nil))
         _ = manager.isLicensed
         _ = manager.isLicensed
 

@@ -171,7 +171,7 @@ struct SettingsView: View {
         activationPhase = .validating
         licenseService.activate(key: enteredKey) { result in
             switch result {
-            case .success:
+            case .success(let validated):
                 LicenseState.shared.sessionActivated = true
                 // TRIGGER ONLY (T-11-02): any defaults write fires the existing
                 // UserDefaults.didChangeNotification path — AppDelegate.licenseObserver
@@ -184,7 +184,8 @@ struct SettingsView: View {
                 // Phase 12 / LIC-02 — persist the granted record so the next launch
                 // short-circuits LicenseState.status offline, with zero network call.
                 LicenseManager.shared.recordValidation(
-                    key: enteredKey.trimmingCharacters(in: .whitespacesAndNewlines))
+                    key: enteredKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                    validated: validated)
                 licenseStatus = .licensed
                 activationPhase = .success
             case .failure(.invalidKey):

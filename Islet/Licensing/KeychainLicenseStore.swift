@@ -101,8 +101,8 @@ final class LicenseManager {
     }
 
     @discardableResult
-    func recordValidation(key: String) -> Bool {
-        let record = LicenseRecord(key: key, licenseID: "", status: "granted", validatedAt: Date())
+    func recordValidation(key: String, validated: ValidatedLicense) -> Bool {
+        let record = LicenseRecord(key: key, licenseID: validated.id, status: validated.status, validatedAt: Date())
         let wrote = store.write(record)
         cachedRecord = record
         hasCachedRecord = true

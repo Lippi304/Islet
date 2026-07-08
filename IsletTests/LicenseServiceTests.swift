@@ -20,7 +20,11 @@ final class LicenseServiceTests: XCTestCase {
         let exp = expectation(description: "activate completes")
         StubLicenseService().activate(key: "ISLET-DEMO-OK") { result in
             XCTAssertTrue(Thread.isMainThread, "completion contract: MUST fire on main")
-            if case .success = result {} else { XCTFail("expected .success for the magic key") }
+            if case .success(let v) = result {
+                XCTAssertEqual(v.status, "granted")
+            } else {
+                XCTFail("expected .success for the magic key")
+            }
             exp.fulfill()
         }
         wait(for: [exp], timeout: 3.0)   // comfortably above the 1s stub delay

@@ -60,7 +60,12 @@ final class PolarLicenseServiceTests: XCTestCase {
 
         service.activate(key: "ABC-123") { result in
             XCTAssertTrue(Thread.isMainThread, "completion contract: MUST fire on main")
-            if case .success = result {} else { XCTFail("expected .success for a granted 200") }
+            if case .success(let v) = result {
+                XCTAssertEqual(v.id, "lic_1")
+                XCTAssertEqual(v.status, "granted")
+            } else {
+                XCTFail("expected .success for a granted 200")
+            }
             exp.fulfill()
         }
         wait(for: [exp], timeout: 3.0)
