@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Now Playing Polish
-status: executing
-stopped_at: Phase 18 UI-SPEC approved
-last_updated: "2026-07-09T13:05:33.731Z"
+status: milestone_complete
+stopped_at: Milestone complete (Phase 18 was final phase)
+last_updated: 2026-07-09T15:11:59.593Z
 last_activity: 2026-07-09 -- Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 3
   percent: 20
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-08)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 18 — song-change-toast
+**Current focus:** Milestone complete
 
 ## Current Position
 
-Phase: 18 (song-change-toast) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 18
-Last activity: 2026-07-09 -- Phase 18 execution started
+Phase: 18
+Plan: Not started
+Status: Milestone complete
+Last activity: 2026-07-09
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,7 +47,7 @@ Progress (v1.2): [░░░░░░░░░░] 0% (Phase 17 ready to plan, Ph
 
 **Velocity:**
 
-- Total plans completed: 48
+- Total plans completed: 50
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -69,6 +69,7 @@ Progress (v1.2): [░░░░░░░░░░] 0% (Phase 17 ready to plan, Ph
 | 13 | 1 | - | - |
 | 15 | 5 | - | - |
 | 16 | 2 | - | - |
+| 18 | 2 | - | - |
 
 **Recent Trend:**
 

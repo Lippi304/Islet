@@ -10,8 +10,8 @@ Requirements for the "Now Playing Polish" milestone. Each maps to roadmap phases
 ### Now Playing
 
 - [ ] **NOW-04**: User does not see the Now Playing glance at Islet launch if the detected player only has a paused/loaded track — the glance appears only once the user actually presses Play
-- [ ] **NOW-05**: User sees a brief (~3s) toast with the new track's title when playback switches to a genuinely different song (not on the very first track detected after launch), then the island returns to the compact glance
-- [ ] **NOW-06**: User can toggle the song-change toast on/off in Settings (Activities tab, next to the existing Now Playing toggle)
+- [x] **NOW-05**: User sees a brief (~3s) toast with the new track's title when playback switches to a genuinely different song (not on the very first track detected after launch), then the island returns to the compact glance
+- [x] **NOW-06**: User can toggle the song-change toast on/off in Settings (Activities tab, next to the existing Now Playing toggle)
 
 ## Out of Scope
 
@@ -30,8 +30,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | NOW-04 | Phase 17 | Pending |
-| NOW-05 | Phase 18 | Pending |
-| NOW-06 | Phase 18 | Pending |
+| NOW-05 | Phase 18 | Complete |
+| NOW-06 | Phase 18 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 3 total
