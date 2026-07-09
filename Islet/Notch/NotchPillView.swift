@@ -363,7 +363,9 @@ struct NotchPillView: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .padding(.horizontal, 16)
-            .frame(width: Self.wingsSize.width, height: Self.toastExtraHeight, alignment: .leading)
+            // Round 4 (on-device feedback): centered, not tucked under the left-side art —
+            // was `alignment: .leading` (D-01 left-align superseded, "mittig nicht linksbündig").
+            .frame(width: Self.wingsSize.width, height: Self.toastExtraHeight, alignment: .center)
     }
 
     // DEV-01 / DEV-02 / D-02 / D-03 — the DEVICE connect/disconnect glance WINGS. Same flat strip
