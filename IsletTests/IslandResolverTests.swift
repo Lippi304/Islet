@@ -36,6 +36,28 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)))
     }
 
+    // Phase 20 / SHELF-09 regression coverage: the shelf strip NotchPillView composes into
+    // expandedIsland/mediaExpanded/mediaUnavailable (D-02) is structurally ABSENT during a
+    // Charging or Device splash, with ZERO new production code in IslandResolver.swift — a
+    // standing transient always outranks the isExpanded branches (D-04), so the shelf-composing
+    // branches are simply never reached while a transient is active. Proves RESEARCH.md's
+    // "falls out for free" claim.
+    func testShelfComposingBranchesUnreachableDuringTransient() {
+        let charging = resolve(activeTransient: .charging(.charging(percent: 50)),
+                                nowPlaying: .playing(title: "Song", artist: "Artist"),
+                                nowPlayingHealthy: true,
+                                hasPlayedSinceLaunch: true,
+                                isExpanded: true)
+        XCTAssertEqual(charging, .charging(.charging(percent: 50)))
+
+        let device = resolve(activeTransient: .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)),
+                              nowPlaying: .none,
+                              nowPlayingHealthy: true,
+                              hasPlayedSinceLaunch: true,
+                              isExpanded: true)
+        XCTAssertEqual(device, .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)))
+    }
+
     func testNoTransientWhilePlayingReturnsToWings() {
         // D-02 ambient yield (rank 3): with no transient and media playing, the resolver
         // yields to the now-playing wings — NOT idle.
