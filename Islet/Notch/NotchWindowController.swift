@@ -215,6 +215,11 @@ final class NotchWindowController {
     // Reset in updateVisibility's hide branch so it can't go stale across a hide/show cycle.
     private var pointerInZone = false
 
+    // CR-01 — the last raw GLOBAL pointer position handlePointer observed. syncClickThrough()
+    // itself receives no point parameter, so it needs this to hit-test against
+    // visibleContentZone() (the actual visible-blob rect, narrower than expandedZone).
+    private var lastPointerLocation: CGPoint = .zero
+
     // Phase 15 / P15-ITEM5 — mirrors the shown/hidden branch of updateVisibility() so the
     // outfit-refresh timer can gate on it (D-06): true only while the island is actually
     // visible (panel shown), false while hidden (fullscreen or expired trial).
@@ -609,7 +614,11 @@ final class NotchWindowController {
         // Phase 20 / SHELF-03: the panel reserves the shelf band UNCONDITIONALLY (transparent
         // when empty) so the window is never live-resized when the shelf gains its first item —
         // the VISIBLE black shape (NotchPillView.blobShape) still only grows into that space
-        // conditionally, exactly matching the panel's reserved height.
+        // conditionally, exactly matching the panel's reserved height. This is intentional and
+        // PERMANENT (not a temporary state to later condition) — the CR-01 click-through
+        // regression this unconditional reservation caused is fixed separately, by scoping the
+        // hit-test in syncClickThrough()/visibleContentZone() to the actual visible blob rect,
+        // NOT by resizing the panel. See visibleContentZone() below.
         let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                expandedSize: CGSize(width: expandedSize.width,
                                                                      height: expandedSize.height + NotchPillView.shelfRowHeight))
@@ -650,6 +659,10 @@ final class NotchWindowController {
     // Pattern 1: every .mouseMoved tick hit-tests the GLOBAL pointer against the hot-zone.
     // No coordinate conversion — both `point` and `hotZone` are global bottom-left (Pitfall 6).
     private func handlePointer(at point: CGPoint) {
+        // CR-01 — stash the raw pointer location for syncClickThrough()/visibleContentZone(),
+        // which need it but receive no point parameter themselves.
+        lastPointerLocation = point
+
         // While expanded, the keep-open region is the full expanded island so the pointer can
         // travel down to the transport controls without reading as a hot-zone exit (which would
         // collapse the island after the grace delay). Collapsed/hovering use the small pill zone.
@@ -668,6 +681,29 @@ final class NotchWindowController {
             pointerInZone = false
             handleHoverExit()
         }
+
+        // CR-01 — visibleContentZone()'s boundary (toggled by the shelf's item count) sits
+        // INSIDE expandedZone and is never itself crossed by the enter/exit edge detection
+        // above, so re-scope the click-through hit-test on every raw pointer tick while
+        // expanded, not just at the coarser expandedZone enter/exit edges.
+        if interaction.isExpanded {
+            syncClickThrough()
+        }
+    }
+
+    // CR-01 — the actual VISIBLE-content rect, narrower than expandedZone (which is the
+    // padded static panel union, used only for the keep-open grace decision). Mirrors
+    // NotchPillView.blobShape's own `hasShelf ? shelfRowHeight : 0` conditional exactly, so
+    // the click-through hit-test never grants interactivity over the reserved-but-invisible
+    // shelf band when the shelf is empty. nil if the panel hasn't been shown yet.
+    private func visibleContentZone() -> CGRect? {
+        guard let hotZone else { return nil }
+        let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
+        let shelfHeight = shelfViewState.items.isEmpty ? 0 : NotchPillView.shelfRowHeight
+        let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame,
+                                              expandedSize: CGSize(width: expandedSize.width,
+                                                                    height: expandedSize.height + shelfHeight))
+        return visibleFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
     }
 
     // D-01 hover-ENTER: haptic + a `.pointerEntered` bounce, NO expand. Make the panel
@@ -716,8 +752,18 @@ final class NotchWindowController {
     // next hover cycle. Called after EVERY phase/pointer mutation (enter, grace-elapsed,
     // click). The panel stays `.nonactivatingPanel` + never-key (D-04); `ignoresMouseEvents`
     // is the ONLY flag toggled at runtime.
+    // CR-01: while expanded, the panel is STATICALLY sized to the max shelf reservation
+    // (positionAndShow, unchanged) — but the pointer must additionally sit inside
+    // visibleContentZone() (the actual visible blob rect) for the whole panel to become
+    // interactive. Without this, the reserved-but-invisible shelf band (56pt, empty by
+    // default) silently swallowed clicks meant for the app underneath the notch.
     private func syncClickThrough() {
-        let interactive = pointerInZone || interaction.isExpanded
+        let interactive: Bool
+        if interaction.isExpanded {
+            interactive = pointerInZone || (visibleContentZone()?.contains(lastPointerLocation) ?? false)
+        } else {
+            interactive = pointerInZone
+        }
         panel?.ignoresMouseEvents = !interactive
     }
 
