@@ -84,6 +84,13 @@ final class NotchWindowController {
     // renderPresentation(). This is the ONE place the rendered presentation is set.
     private let presentationState = IslandPresentationState()
 
+    // Phase 20 / SHELF-03 — the SEPARATE @Published shelf model NotchPillView's shelf row
+    // observes. Plan 20-01 wires only the empty placeholder here (the view's `shelfViewState:`
+    // parameter is non-defaulted, so makeRootView needs a live instance to build at all); Plan
+    // 20-02 owns the real `ShelfCoordinator` and writes `.items` into this SAME instance after
+    // every append/remove/clear (mirrors nowPlayingState/outfitState's own ownership contract).
+    private let shelfViewState = ShelfViewState()
+
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model the expandedIdle
     // 3-column glance observes (Plan 04). Held behind their PROTOCOL types (never the concrete
     // class), mirroring `nowPlayingMonitor: NowPlayingService?`'s existing convention — a future
@@ -858,6 +865,7 @@ final class NotchWindowController {
                       nowPlaying: nowPlayingState,
                       presentationState: presentationState,
                       outfit: outfitState,
+                      shelfViewState: shelfViewState,
                       onClick: { [weak self] in self?.handleClick() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
                       // monitor — no re-spawn, no focus steal.

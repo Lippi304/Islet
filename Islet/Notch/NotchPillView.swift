@@ -50,6 +50,12 @@ struct NotchPillView: View {
     // convention as `nowPlaying`/`presentationState`).
     @ObservedObject var outfit: BasicOutfitState
 
+    // Phase 20 / SHELF-03 — the SEPARATE @Published shelf model, mirroring nowPlaying/
+    // presentationState/outfit's existing ownership contract: the controller (Plan 20-02) always
+    // owns and injects a real instance, never defaulted. This view only RENDERS whatever is
+    // published — no ShelfCoordinator, no file I/O.
+    @ObservedObject var shelfViewState: ShelfViewState
+
     // Phase 6 / D-11 / Pattern 4 — the persisted accent the controller injects on the hosting
     // view via `.environment(\.activityAccent, …)`. It tints ONLY the three lively leaf
     // elements (charging filling glyph, equalizer bars, device icon); the black island and the
@@ -73,6 +79,14 @@ struct NotchPillView: View {
     var onTogglePlayPause: () -> Void = {}
     var onNext: () -> Void = {}
     var onPrevious: () -> Void = {}
+
+    // Phase 20 / SHELF-04/05 — the shelf-item callbacks, plain closures mirroring the transport
+    // callbacks above: the view stays AppKit-free, only REPORTS intent. NotchWindowController
+    // (Plan 20-02) owns these and forwards them to ShelfCoordinator/NSWorkspace. Defaulted to
+    // no-ops so the DEBUG #Previews build without a controller.
+    var onShelfItemTap: (ShelfItem) -> Void = { _ in }
+    var onShelfItemDelete: (UUID) -> Void = { _ in }
+    var onShelfClearAll: () -> Void = {}
 
     // The single shared morph identity (D-07): the collapsed and expanded blobs both
     // morph against this one geometry group via matchedGeometryEffect(id: "island").
@@ -126,6 +140,13 @@ struct NotchPillView: View {
     // taller than the plain wings, nowhere near expandedSize's 144pt or even round 2's 56pt-
     // tall standalone blob.
     static let toastExtraHeight: CGFloat = 32
+
+    // Phase 20 / SHELF-03 — the shelf row's own height. Box math (20-UI-SPEC.md Layout Notes):
+    // 28pt icon (matches transportButton's established 28x28 touch size) + 2pt icon-gap + ~11pt
+    // caption line + ~7.5pt top/bottom padding x2 ~= 56pt. SINGLE SOURCE OF TRUTH: Plan 20-02's
+    // NotchWindowController.positionAndShow panel-sizing math must read from THIS constant, never
+    // re-derive it.
+    static let shelfRowHeight: CGFloat = 56
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -203,7 +224,7 @@ struct NotchPillView: View {
     // here — this ~40pt-tall content needs no camera-clearance pin, unlike mediaExpanded's
     // 84-100pt content (UI-SPEC.md explicitly corrects RESEARCH.md's `.padding(.top, 32)`).
     private var expandedIsland: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 20) {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 20, shelfItems: shelfViewState.items) {
             HStack(spacing: 0) {
                 if let weather = outfit.weather {
                     weatherColumn(weather)
@@ -231,16 +252,63 @@ struct NotchPillView: View {
     // Phase 18 round 3: the round-2 `size:` parameter (added solely for the now-superseded
     // standalone toast blob) is removed — the toast row is no longer a `blobShape` caller
     // (see `mediaWingsOrToast`), so every remaining caller uses the same `expandedSize`.
+    // Phase 20 / SHELF-03/D-01/D-02 — extended with a `shelfItems` parameter: the visible black
+    // shape only grows TALLER (by `shelfRowHeight`) when the shelf has content, uniformly across
+    // every caller (expandedIsland/mediaExpanded/mediaUnavailable) — no per-branch special-casing.
+    // The shelf row is appended BELOW each caller's own content, inside the SAME continuous
+    // NotchShape/matchedGeometryEffect (D-07: no second shape, no cross-fade); each caller's own
+    // `alignment` still governs ONLY its own content's box, unchanged from before this phase.
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
+                                           shelfItems: [ShelfItem],
                                            @ViewBuilder content: () -> Content) -> some View {
-        NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
+        let hasShelf = !shelfItems.isEmpty
+        let height = Self.expandedSize.height + (hasShelf ? Self.shelfRowHeight : 0)
+        return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
             .fill(Color.black)
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
-            .overlay(alignment: alignment) { content() }
+            .frame(width: Self.expandedSize.width, height: height)
+            .overlay(alignment: .top) {
+                VStack(spacing: 0) {
+                    content()
+                        .frame(width: Self.expandedSize.width, height: Self.expandedSize.height, alignment: alignment)
+                    if hasShelf {
+                        shelfRow(shelfItems)
+                            .transition(.opacity)
+                    }
+                }
+            }
+            // D-05: this single ancestor gesture already covered content's own empty space
+            // before this phase; it now ALSO covers the shelf row's empty space "for free" —
+            // only ShelfItemView's own scoped tap/trash gestures intercept before it.
             .onTapGesture { onClick() }
+    }
+
+    // Phase 20 / SHELF-03/05 — the horizontally-scrolling shelf strip: per-item icon+caption+
+    // trash (ShelfItemView), then a far-right delete-all trash icon. No `.onTapGesture` is
+    // attached to this container itself — D-05 falls out for free via blobShape's own trailing
+    // ancestor gesture (see above).
+    private func shelfRow(_ items: [ShelfItem]) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 10) {   // item-gap, UI-SPEC
+                ForEach(items, id: \.id) { item in
+                    ShelfItemView(item: item,
+                                  onTap: { onShelfItemTap(item) },
+                                  onDelete: { onShelfItemDelete(item.id) })
+                }
+                Button(action: onShelfClearAll) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear shelf")
+            }
+            .padding(.horizontal, 16)   // row-padding, UI-SPEC
+        }
+        .scrollIndicators(.never)
+        .frame(height: Self.shelfRowHeight)
     }
 
     // Finding 12 — the shared flat-strip skeleton `wings(for:)` and `deviceWings(for:)` each
@@ -570,7 +638,7 @@ struct NotchPillView: View {
         // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
         // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
         // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
-        return blobShape(topCornerRadius: 6, bottomCornerRadius: 20, alignment: .top) {
+        return blobShape(topCornerRadius: 6, bottomCornerRadius: 20, alignment: .top, shelfItems: shelfViewState.items) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
                     HStack(alignment: .top, spacing: 10) {
@@ -635,7 +703,7 @@ struct NotchPillView: View {
     // expanded blob shape so the island still morphs; a single centered message. Distinct
     // from D-11 (.none + healthy → date/time): isHealthy is the orthogonal axis.
     private var mediaUnavailable: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 20) {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 20, shelfItems: shelfViewState.items) {
             Text("Now Playing nicht verfügbar")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(.white)
@@ -812,7 +880,8 @@ struct ProgressBar: View {
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.idle),
-                         outfit: BasicOutfitState())
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -830,7 +899,8 @@ struct ProgressBar: View {
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.expandedIdle),
-                         outfit: outfit)
+                         outfit: outfit,
+                         shelfViewState: ShelfViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -846,7 +916,8 @@ struct ProgressBar: View {
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.charging(.charging(percent: 47))),
-                         outfit: BasicOutfitState())
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -860,7 +931,8 @@ struct ProgressBar: View {
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))),
-                         outfit: BasicOutfitState())
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -876,7 +948,8 @@ struct ProgressBar: View {
     return NotchPillView(interaction: state,
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa"))),
-                         outfit: BasicOutfitState())
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -892,7 +965,8 @@ struct ProgressBar: View {
     return NotchPillView(interaction: state,
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa"))),
-                         outfit: BasicOutfitState())
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -908,7 +982,8 @@ struct ProgressBar: View {
     return NotchPillView(interaction: state,
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true)),
-                         outfit: BasicOutfitState())
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -923,7 +998,8 @@ struct ProgressBar: View {
     return NotchPillView(interaction: state,
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.none, healthy: false)),
-                         outfit: BasicOutfitState())
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
