@@ -333,6 +333,13 @@ final class NotchWindowController {
         // Settings toggle of its own (out of scope for 14-04).
         startOutfitRefresh()
 
+        // Phase 20 / SHELF-03/04/05/07 (Pitfall 5) — DEBUG-only hand-seed of real, on-disk sample
+        // shelf items so the shelf strip is visually verifiable ahead of Phase 22's real drag-in.
+        // Never compiles into Release.
+        #if DEBUG
+        seedDebugShelfItems()
+        #endif
+
         // Phase 6 / APP-03 / D-09: observe UserDefaults so flipping a toggle (or the accent
         // swatch) live-applies — start/stop the affected monitor, flush its standing/queued
         // transient, re-inject the accent, and re-render. UserDefaults posts on the thread that
@@ -1162,6 +1169,31 @@ final class NotchWindowController {
         shelfCoordinator.clear()
         shelfViewState.items = shelfCoordinator.logic.items
     }
+
+    #if DEBUG
+    // Pitfall 5 — real, on-disk sample files (not fabricated ShelfItem structs with synthetic
+    // URLs) so icon lookup + click-to-open are realistic ahead of Phase 22's real drag-in.
+    // DEBUG-only: compiled out of Release entirely.
+    private func seedDebugShelfItems() {
+        let seedDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("IsletShelfSeed", isDirectory: true)
+        try? FileManager.default.createDirectory(at: seedDir, withIntermediateDirectories: true)
+
+        let seeds: [(name: String, contents: String)] = [
+            ("Report.pdf", "seed pdf placeholder"),
+            ("Photo.jpg", "seed jpg placeholder"),
+            ("Notes.txt", "seed txt placeholder"),
+        ]
+        for seed in seeds {
+            let source = seedDir.appendingPathComponent(seed.name)
+            guard (try? Data(seed.contents.utf8).write(to: source)) != nil else { continue }
+            let id = UUID()
+            guard let localURL = try? ShelfFileStore.makeSessionCopy(of: source, id: id) else { continue }
+            let item = ShelfItem(id: id, originalURL: source, localURL: localURL, filename: seed.name, addedAt: Date())
+            shelfCoordinator.append(item)
+        }
+        shelfViewState.items = shelfCoordinator.logic.items
+    }
+    #endif
 
     deinit {
         // The screen-parameters observer lives on the DEFAULT center; the two fullscreen
