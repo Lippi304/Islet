@@ -1,137 +1,125 @@
 ---
 phase: 20-shelf-view
-verified: 2026-07-10T00:50:00Z
-status: gaps_found
-score: 5/6 must-haves verified
+verified: 2026-07-10T01:44:00Z
+status: human_needed
+score: 6/6 must-haves verified
 overrides_applied: 0
-gaps:
-  - truth: "The panel-sizing math introduced by this phase does not regress the documented click-through invariant (clicks outside the visible pill always pass through) when the shelf is empty"
-    status: failed
-    reason: >
-      NotchWindowController.positionAndShow (lines 613-615) unconditionally adds
-      NotchPillView.shelfRowHeight (56pt) to the expanded panel frame regardless of whether
-      shelfViewState.items is empty. syncClickThrough() (lines 719-722) sets
-      panel.ignoresMouseEvents = false for the ENTIRE panel rectangle whenever
-      interaction.isExpanded is true, not just the pixels the visible blobShape actually
-      occupies. NotchPillView.blobShape correctly only grows the VISIBLE black shape
-      conditionally on !shelfItems.isEmpty (line 267), but the panel/hit-region sizing was
-      never conditioned to match. Result: every time a user expands the island, a permanent
-      invisible 56pt-tall band beneath the visible content swallows clicks intended for
-      whatever is underneath it -- even when the shelf has zero items, which is the ONLY
-      possible state in a Release build today (the DEBUG hand-seed that populates the shelf
-      is compiled out of Release; Phase 22's real drag-in has not shipped). This directly
-      contradicts the class's own documented invariant (Pitfall 3 / D-07, in
-      syncClickThrough's own doc comment) and is squarely inside this phase's own stated
-      goal ("proving the view AND PANEL-SIZING MATH before any live drag risk is
-      introduced") -- the panel-sizing math has not been proven correct, it has been shown
-      to regress a core interaction guarantee for every real user.
-    artifacts:
-      - path: "Islet/Notch/NotchWindowController.swift"
-        issue: "positionAndShow (~613-615) reserves shelfRowHeight unconditionally; syncClickThrough (~719-722) applies ignoresMouseEvents=false to the full panel rect on any expand, not scoped to the visible blob height"
-    missing:
-      - "Condition the panel height reservation (or the click-through hit-test) on shelfViewState.items.isEmpty so an empty shelf never grows the interactive/click-swallowing region beyond the visible 144pt-tall blob"
-      - "Re-run positionAndShow (or otherwise update the reserved frame) whenever the shelf transitions between empty and non-empty, since the reservation can no longer be a static one-time computation once it depends on item count"
+re_verification:
+  previous_status: gaps_found
+  previous_score: 5/6
+  gaps_closed:
+    - "The panel-sizing math introduced to reserve shelf space does not regress the documented click-through invariant when the shelf is empty"
+  gaps_remaining: []
+  regressions: []
 deferred: []
 human_verification:
-  - test: "On-device: expand the island with the shelf empty (default Release state) and click/drag an item in the app or window directly beneath the notch, in the invisible band ~144-200pt down from the notch"
-    expected: "Per Pitfall 3/D-07, the click should pass through to the app underneath since no visible content occupies that band"
-    why_human: "Requires a running app instance and physical click testing on notch hardware; cannot be confirmed by static analysis alone (though the code path is unambiguous from CR-01)"
-  - test: "On-device with DEBUG hand-seed: expand island, observe the shelf row's appear/resize transition when deleting an item or clicking delete-all"
-    expected: "Per WR-01 (code review), the shelf row fade / island resize will SNAP instantly rather than animate with the app's spring, since handleShelfItemDelete/handleShelfClearAll do not wrap the shelfViewState.items mutation in withAnimation"
-    why_human: "Visual smoothness/feel judgment, not a hard functional break; flagged for awareness alongside CR-01"
-  - test: "Cmd-U in Xcode: run IslandResolverTests (incl. testShelfComposingBranchesUnreachableDuringTransient) and ShelfViewStateTests"
-    expected: "All tests pass, per project memory (xcodebuild test hangs headlessly hosting the full Islet.app; build-for-testing is the automated gate, Cmd-U is the manual pass confirmation)"
-    why_human: "xcodebuild test cannot run headlessly in this environment per documented project memory (xcodebuild-test-headless-hang)"
+  - test: "On-device: expand the island with the shelf empty (default Release state) and click/drag an item in the app or window directly beneath the notch, in the reserved-but-invisible band ~144-200pt down from the notch"
+    expected: "Per Pitfall 3/D-07, the click passes through to the app underneath — visibleContentZone() no longer includes this band when shelfViewState.items is empty, and pointerInZone can no longer OR-defeat that scoping while expanded"
+    why_human: "Requires a running app instance and physical click testing on notch hardware; the code path is unambiguous from the two-round CR-01 fix trace but the actual NSPanel/AppKit hit-testing behavior at runtime is outside static analysis"
+  - test: "On-device with DEBUG hand-seed: expand island with items, hover down toward the transport controls, then move further down into the shelf row/trash icons — confirm both the transport controls and the shelf row remain fully clickable (visibleContentZone() must not over-narrow when the shelf is non-empty)"
+    expected: "All visible content (transport controls + shelf row + per-item/delete-all trash icons) stays interactive throughout"
+    why_human: "Dynamic pointer-tracking behavior across zone boundaries; cannot be confirmed by static analysis alone"
+  - test: "On-device with DEBUG hand-seed: delete a shelf item / clear-all, observe the shelf row's fade and the island's height change"
+    expected: "The shelf row fades and the blob height change animate with the controller's standard spring (WR-01 fix via resyncShelfViewState), no instant snap, and no clipping/snap of the shrinking blob against the statically-sized panel"
+    why_human: "Visual smoothness/feel judgment, not a hard functional break"
+  - test: "Cmd-U in Xcode: run IslandResolverTests and ShelfViewStateTests (full suite, incl. any new assertions touching this phase)"
+    expected: "All tests pass"
+    why_human: "xcodebuild test cannot run headlessly in this environment per documented project memory (xcodebuild-test-headless-hang) — hosts full Islet.app with NSPanel/MediaRemote/IOBluetooth boot"
 ---
 
 # Phase 20: Shelf View Verification Report
 
 **Phase Goal:** With hand-seeded shelf state, the expanded island renders a full shelf strip — icons, per-item and delete-all removal, click-to-open, and correct gating alongside Charging/Device splashes — proving the view and panel-sizing math before any live drag risk is introduced.
-**Verified:** 2026-07-10T00:50:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-07-10T01:44:00Z
+**Status:** human_needed
+**Re-verification:** Yes — after gap closure (20-03-PLAN.md / 20-03-SUMMARY.md, commits 09dc463, d5346e5, 8e3fa64, 0a52803)
 
 ## Goal Achievement
+
+### Re-verification Summary
+
+The prior verification (2026-07-10T00:50:00Z) failed Truth 6 (CR-01): `positionAndShow` unconditionally reserved 56pt of panel height for the shelf row, and `syncClickThrough()` made the ENTIRE panel rect interactive whenever expanded — creating a permanent invisible click-swallowing band under the expanded island whenever the shelf was empty (the default Release state).
+
+Gap-closure plan 20-03 was executed in two corrective rounds:
+
+1. **Round 1 (commits `09dc463`, `d5346e5`):** Added `visibleContentZone()` — a narrower rect mirroring `NotchPillView.blobShape`'s own `hasShelf ? shelfRowHeight : 0` conditional — and rewrote `syncClickThrough()` to gate expanded-state interactivity on it. Also extracted `resyncShelfViewState(animated:)` to fix WR-01 (unanimated shelf mutations) and WR-02 (triplicated resync line).
+2. **Adversarial code review of round 1** found the fix incomplete: the expanded branch read `pointerInZone || (visibleContentZone()?.contains(lastPointerLocation) ?? false)`. Because `pointerInZone` tracks the broad `expandedZone` (the padded panel-union keep-open region) and stays `true` for the entire natural hover→expand→move-toward-app-underneath path, the OR let the broad flag defeat the narrow scoping for virtually the whole real-world interaction — CR-01 remained open in practice despite the new helper existing.
+3. **Round 2 fix (commit `8e3fa64`):** Removed `pointerInZone` from the expanded branch entirely. Confirmed by direct read of the current code (`NotchWindowController.swift:760-774`): the expanded branch is now `interactive = visibleContentZone()?.contains(lastPointerLocation) ?? false` with no OR-fallback. Only the narrow, item-count-conditional zone can grant interactivity while expanded.
+4. **Doc-comment cleanup (commit `0a52803`):** Fixed a stale comment that still described the old OR semantics.
+
+I independently re-read the current file (not the SUMMARY's narrative) and confirm the code matches this account exactly — see Truth 6 below.
 
 ### Observable Truths
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Shelf strip appears below expanded content whenever it has items, showing file-type icons, scrolling horizontally with unbounded capacity, uniformly across Now Playing / idle glance / unavailable | VERIFIED | `NotchPillView.blobShape` (lines 261-286) conditionally grows height by `shelfRowHeight` only when `!shelfItems.isEmpty`; `shelfRow(_:)` (292-312) uses `ScrollView(.horizontal)` + `ForEach` (unbounded); all 3 expanded-content callers (`expandedIsland` L227, `mediaExpanded` L641, `mediaUnavailable` L706) pass the identical `shelfItems: shelfViewState.items` — no per-branch special-casing |
-| 2 | Each shelf item has its own small trash icon; clicking it removes just that item, with real disk deletion | VERIFIED | `ShelfItemView` (ShelfItemView.swift) renders a scoped `.overlay` `Button(action: onDelete)`, sibling to (not nested in) the item's own `.onTapGesture`; `NotchWindowController.handleShelfItemDelete` (L1161-1164) calls the locked Phase-19 `ShelfCoordinator.remove(id:)` (real session-temp file deletion via `ShelfFileStore`) then resyncs `shelfViewState.items` |
-| 3 | A single delete-all trash icon at the strip's far right clears every item instantly, no confirmation dialog | VERIFIED | `shelfRow(_:)` appends one far-right `Button(action: onShelfClearAll)` (L300-306) after the `ForEach`; `handleShelfClearAll` (L1168-1171) calls `ShelfCoordinator.clear()` directly — no alert/sheet/dialog present anywhere in the call chain |
-| 4 | Clicking a shelf item opens it in its default app; a vanished local copy is a silent no-op (D-04) | VERIFIED | `handleShelfItemTap` (L1154-1157): `guard shouldOpenShelfItem(fileExists: FileManager.default.fileExists(atPath: item.localURL.path)) else { return }` precedes `NSWorkspace.shared.open(item.localURL)` textually — guard-before-side-effect confirmed; `shouldOpenShelfItem` is a pure 1-line function (`ShelfViewState.swift` L14) covered by `ShelfViewStateTests.testShouldOpenShelfItemGate` |
-| 5 | Shelf strip is hidden during a Charging or Device splash, reappears once the splash dismisses | VERIFIED | Structural: `wings(for:)`/`deviceWings(for:)`/`mediaWingsOrToast` never call `blobShape`/`shelfRow` (confirmed unchanged by this phase); `IslandResolverTests.testShelfComposingBranchesUnreachableDuringTransient` proves a standing Charging/Device transient always outranks `isExpanded` in `IslandResolver.resolve`, so the shelf-composing branches are unreachable during a splash with zero new resolver production code |
-| 6 | The panel-sizing math introduced to reserve shelf space does not regress the documented click-through invariant when the shelf is empty | **FAILED** | See gap below — code review finding CR-01, confirmed by direct code read: `positionAndShow` (NotchWindowController.swift L613-615) unconditionally reserves 56pt regardless of item count; `syncClickThrough` (L719-722) makes the FULL panel rect interactive whenever expanded, not just the visible blob — a permanent invisible click-swallowing band exists under the expanded island in the shelf's default (empty) state |
+| 1 | Shelf strip appears below expanded content whenever it has items, showing file-type icons, scrolling horizontally with unbounded capacity, uniformly across Now Playing / idle glance / unavailable | VERIFIED (regression check) | `NotchPillView.swift` untouched by any 20-03 commit (`git show --stat` on 09dc463/d5346e5/8e3fa64/0a52803 shows only `NotchWindowController.swift` modified); `blobShape` (L261-286), `shelfRow` (L292-312) unchanged from prior verification |
+| 2 | Each shelf item has its own small trash icon; clicking it removes just that item, with real disk deletion | VERIFIED (regression check) | `ShelfItemView.swift` untouched by 20-03; `handleShelfItemDelete` (L1232-1235) still calls `shelfCoordinator.remove(id:)` then now `resyncShelfViewState()` (previously a direct assignment) — functionally identical resync, now also animated and click-through-refreshed |
+| 3 | A single delete-all trash icon at the strip's far right clears every item instantly, no confirmation dialog | VERIFIED (regression check) | `handleShelfClearAll` (L1239-1242) calls `shelfCoordinator.clear()` then `resyncShelfViewState()`; no alert/sheet/dialog introduced |
+| 4 | Clicking a shelf item opens it in its default app; a vanished local copy is a silent no-op (D-04) | VERIFIED (regression check) | `handleShelfItemTap` (L1206-1209) unchanged by 20-03; guard-before-side-effect intact |
+| 5 | Shelf strip is hidden during a Charging or Device splash, reappears once the splash dismisses | VERIFIED (regression check) | `IslandResolverTests.testShelfComposingBranchesUnreachableDuringTransient` present and unmodified (L45); resolver code untouched by 20-03 |
+| 6 | The panel-sizing math introduced to reserve shelf space does not regress the documented click-through invariant when the shelf is empty | **VERIFIED** | `positionAndShow` (L591-657) still unconditionally reserves `expandedSize.height + NotchPillView.shelfRowHeight` (confirmed intentional/permanent per the updated doc comment, L611-621) — but `syncClickThrough()` (L760-774) now reads, while expanded: `interactive = visibleContentZone()?.contains(lastPointerLocation) ?? false` — no `pointerInZone` OR-fallback anywhere in that branch. `visibleContentZone()` (L699-707) computes `let shelfHeight = shelfViewState.items.isEmpty ? 0 : NotchPillView.shelfRowHeight`, mirroring `NotchPillView.blobShape`'s `hasShelf` conditional exactly. `handlePointer(at:)` (L661-692) stores `lastPointerLocation` on every tick and calls `syncClickThrough()` whenever expanded, so the hit-test is live, not just recomputed at zone-crossing edges. Traced the exact repro scenario from the prior gap (hover→expand→move down toward the app underneath with an empty shelf): pointer enters `expandedZone` → `pointerInZone = true` → but since the expanded branch no longer consults `pointerInZone` at all, `interactive` depends solely on whether the pointer is still inside the 144pt-tall `visibleContentZone()` (shelfHeight=0 when empty) — once the pointer crosses below that boundary, `interactive` becomes `false` and `panel.ignoresMouseEvents = true`, so the click passes through. CR-01 is closed at the code level. |
 
-**Score:** 5/6 truths verified
+**Score:** 6/6 truths verified
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `Islet/Shelf/ShelfViewState.swift` | `ShelfViewState` published mirror + `shouldOpenShelfItem` gate | VERIFIED | Exactly one `@Published var items`, no other stored property/method; top-level pure gate function present |
-| `Islet/Notch/ShelfItemView.swift` | Leaf row: icon + filename + scoped trash | VERIFIED | `NSWorkspace.shared.icon(forFile:)`, `.lineLimit(1)` + `.truncationMode(.middle)`, trash `Button` in `.overlay`, never nested in the tap-gesture chain |
-| `Islet/Notch/NotchPillView.swift` | `shelfRowHeight`, shelf-aware `blobShape`, `shelfRow(_:)`, 3 callers wired, 8 previews updated | VERIFIED | All confirmed by grep + direct read; `static let shelfRowHeight: CGFloat = 56` present exactly once |
-| `Islet/Notch/NotchWindowController.swift` | `shelfCoordinator`/`shelfViewState` ownership, 3 handlers, panel-sizing extension, DEBUG hand-seed | VERIFIED (wiring) / **FAILED (panel-sizing side effect)** | Ownership, handler wiring, and DEBUG seed all present and correct; the panel-sizing extension itself introduces the CR-01 regression (see Truth 6) |
-| `IsletTests/IslandResolverTests.swift` | SHELF-09 regression test | VERIFIED | `testShelfComposingBranchesUnreachableDuringTransient` present, asserts against both charging and device transients with `isExpanded: true` |
-| `IsletTests/ShelfViewStateTests.swift` | Resync contract + D-04 gate coverage | VERIFIED | `ShelfViewStateTests: XCTestCase` with `testAppendThenResyncReflectsInViewState`, `testRemoveThenResyncReflectsInViewState`, `testClearThenResyncReflectsInViewState`, `testShouldOpenShelfItemGate` all present |
+| `Islet/Shelf/ShelfViewState.swift` | `ShelfViewState` published mirror + `shouldOpenShelfItem` gate | VERIFIED (unchanged) | Not touched by 20-03 |
+| `Islet/Notch/ShelfItemView.swift` | Leaf row: icon + filename + scoped trash | VERIFIED (unchanged) | Not touched by 20-03 |
+| `Islet/Notch/NotchPillView.swift` | `shelfRowHeight`, shelf-aware `blobShape`, `shelfRow(_:)` | VERIFIED (unchanged) | Not touched by 20-03; `shelfRowHeight` constant read by the new `visibleContentZone()` as the single source of truth |
+| `Islet/Notch/NotchWindowController.swift` | `visibleContentZone()`, corrected `syncClickThrough()`, `resyncShelfViewState(animated:)` | VERIFIED | `visibleContentZone()` (L699-707) exists exactly once; `syncClickThrough()` (L760-774) branches on `interaction.isExpanded` and consults only `visibleContentZone()?.contains(lastPointerLocation)` when expanded (no OR with `pointerInZone`); `resyncShelfViewState(animated:)` (L1218-1228) is the single resync call site used by `handleShelfItemDelete`, `handleShelfClearAll`, and `seedDebugShelfItems` |
+| `IsletTests/IslandResolverTests.swift` | SHELF-09 regression test | VERIFIED (unchanged) | Not touched by 20-03 |
+| `IsletTests/ShelfViewStateTests.swift` | Resync contract + D-04 gate coverage | VERIFIED (unchanged) | Not touched by 20-03 |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|----|----|--------|---------|
-| `expandedIsland`/`mediaExpanded`/`mediaUnavailable` | `NotchPillView.shelfRow(_:)` | `blobShape`'s conditional `VStack` | WIRED | All 3 callers confirmed passing `shelfItems: shelfViewState.items`; `shelfRow` appended below content inside the same `VStack`/`NotchShape` |
-| `NotchPillView.shelfRow` | `ShelfItemView` | `ForEach(items, id: \.id)` | WIRED | Confirmed at NotchPillView.swift L295-299 |
-| `NotchWindowController.handleShelfItemDelete`/`handleShelfClearAll` | `ShelfCoordinator.remove`/`clear` | direct call + resync | WIRED | Confirmed at L1161-1171; resync line present in both |
-| `NotchWindowController.positionAndShow` | `NotchPillView.shelfRowHeight` | `expandedFrame` height addition | WIRED but **UNCONDITIONAL** | Confirmed at L613-615 — wired correctly as a single-source-of-truth constant read, but the unconditional application is the root of the CR-01 gap |
+| `NotchWindowController.syncClickThrough` | `shelfViewState.items.isEmpty` | `visibleContentZone()`'s `shelfHeight` computation | WIRED | Confirmed at L702: `let shelfHeight = shelfViewState.items.isEmpty ? 0 : NotchPillView.shelfRowHeight` — matches `NotchPillView.blobShape`'s `hasShelf` conditional exactly |
+| `handleShelfItemDelete` / `handleShelfClearAll` / `seedDebugShelfItems` | `syncClickThrough()` | `resyncShelfViewState(animated:)` | WIRED | Confirmed at L1218-1228: `resyncShelfViewState` calls `syncClickThrough()` unconditionally after the (animated or direct) assignment — the hit-test re-evaluates the new item count immediately, without waiting for the next pointer tick |
+| `handlePointer(at:)` | `syncClickThrough()` | direct call while expanded, plus `lastPointerLocation` store | WIRED | Confirmed at L664 (`lastPointerLocation = point`, first line) and L689-691 (`if interaction.isExpanded { syncClickThrough() }`, after the existing enter/exit edge detection) |
+| `NotchWindowController.positionAndShow` | `NotchPillView.shelfRowHeight` | `expandedFrame` height addition (unconditional, by design) | WIRED (intentional, documented as permanent) | Confirmed unchanged at L622-624; doc comment (L611-621) now explicitly states this is intentional/permanent and points readers to `visibleContentZone()`/`syncClickThrough()` for the actual click-through fix — resolves the prior verification's confusion about whether this needed to become conditional |
+
+### Data-Flow Trace (Level 4)
+
+| Artifact | Data Variable | Source | Produces Real Data | Status |
+|----------|---------------|--------|---------------------|--------|
+| `syncClickThrough()` | `shelfViewState.items.isEmpty` (via `visibleContentZone()`) | `shelfCoordinator.logic.items` synced through `resyncShelfViewState` on every real mutation (delete/clear/debug-seed) | Yes — reads live `@Published` state, not a static/hardcoded value | FLOWING |
+| `handlePointer(at:)` | `lastPointerLocation` | Raw global `.mouseMoved` event coordinates, stored every tick | Yes | FLOWING |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| Debug build compiles with full shelf wiring | `xcodebuild build -scheme Islet -configuration Debug` | `** BUILD SUCCEEDED **` | PASS |
-| Test target compiles (incl. new shelf tests) | `xcodebuild build-for-testing -scheme Islet -configuration Debug` | `** TEST BUILD SUCCEEDED **` | PASS |
+| Debug build compiles with the CR-01 fix + resync helper | `xcodegen generate && xcodebuild -project Islet.xcodeproj -scheme Islet -configuration Debug build` | `** BUILD SUCCEEDED **` | PASS |
+| `syncClickThrough()` contains no `pointerInZone` reference in the expanded branch | `grep -n` on the current function body (L760-774) | Confirmed: expanded branch is `visibleContentZone()?.contains(lastPointerLocation) ?? false` only; `pointerInZone` appears solely in the collapsed `else` branch | PASS |
 | Actual test run (pass/fail of assertions) | `xcodebuild test` | not run — hangs headlessly per project memory (hosts full `Islet.app` w/ NSPanel/MediaRemote/IOBluetooth) | SKIP — routed to human verification (Cmd-U) |
 
 ### Requirements Coverage
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|-------------|------------|-------------|--------|----------|
-| SHELF-03 | 20-01 | Shelf strip appended below expanded content whenever it has content, scrolls horizontally, unbounded capacity | SATISFIED | `blobShape`/`shelfRow` — see Truth 1 |
-| SHELF-04 | 20-01, 20-02 | Each shelf item shows file-type icon + own small trash icon for individual removal | SATISFIED | `ShelfItemView` + `handleShelfItemDelete` — see Truth 2 |
-| SHELF-05 | 20-02 | Single delete-all trash icon clears entire shelf at once | SATISFIED | `shelfRow`'s far-right `Button` + `handleShelfClearAll` — see Truth 3 |
-| SHELF-07 | 20-02 | Clicking a shelf item opens it in its default application | SATISFIED | `handleShelfItemTap` + `shouldOpenShelfItem` guard — see Truth 4 |
-| SHELF-09 | 20-01 | Shelf suppressed while Charging/Device splash actively showing, reappears once dismissed | SATISFIED | Structural resolver precedence + regression test — see Truth 5 |
-
-Note: `.planning/REQUIREMENTS.md` still marks all 5 of these IDs as `Pending`/unchecked (lines 14-20, 55-61) despite the implementation evidence above — this is a documentation-sync gap (the checkboxes were not updated as part of phase completion), not a code gap. Recommend updating REQUIREMENTS.md's checkboxes/status column to Complete for SHELF-03/04/05/07/09 now that this verification confirms the underlying code.
-
-No orphaned requirements found — REQUIREMENTS.md maps exactly SHELF-03/04/05/07/09 to Phase 20, matching both plans' `requirements:` frontmatter combined.
+No change from prior verification — SHELF-03/04/05/07/09 remain SATISFIED (see prior report body); this re-verification only re-confirms none of that evidence regressed. `.planning/REQUIREMENTS.md` now shows local uncommitted edits in the working tree (outside the scope of this code-level re-verification); recommend confirming those reflect Complete status for SHELF-03/04/05/07/09 before the next phase.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `Islet/Notch/NotchWindowController.swift` | 613-615, 719-722 | Unconditional panel-height reservation + full-panel-rect click-through toggle | 🛑 Blocker | CR-01 — permanent invisible click-swallowing band under the expanded island whenever the shelf is empty (the only state possible in Release today) |
-| `Islet/Notch/NotchWindowController.swift` | 1161-1171 | Shelf mutations (`handleShelfItemDelete`/`handleShelfClearAll`) not wrapped in `withAnimation`, unlike every other `@Published` mutation in this controller | ⚠️ Warning | Shelf row's `.transition(.opacity)` and the blob's height change will snap instantly rather than animate — inconsistent with the rest of the app's spring-driven feel (WR-01 in code review) |
-| `Islet/Notch/NotchWindowController.swift` | 1163, 1170, 1194 | `shelfViewState.items = shelfCoordinator.logic.items` duplicated verbatim across 3 handlers | ℹ️ Info | Maintainability only — no functional impact today (WR-02 in code review) |
-| `Islet/Notch/ShelfItemView.swift` | 14-16 | `.resizable()` + fixed `.frame` with no `.aspectRatio` | ℹ️ Info | Could distort a non-square icon; low risk (IN-01 in code review) |
+| — | — | No TBD/FIXME/XXX/TODO/HACK/PLACEHOLDER markers found in `NotchWindowController.swift` | — | Clean |
 
-No TBD/FIXME/XXX debt markers found in any file modified by this phase.
+The two prior non-blocking Warnings (WR-01 unanimated mutation, WR-02 triplicated resync) were fixed by this same gap-closure plan as a side effect (`resyncShelfViewState(animated:)`) and are no longer present. The prior review's stale doc-comment issue was fixed in commit `0a52803`. Remaining known gap (non-blocking, explicitly accepted by the two-round adversarial review): no automated test coverage exists for `syncClickThrough()`/`visibleContentZone()`'s hit-test logic itself — `IslandResolverTests`/`ShelfViewStateTests` do not exercise this AppKit-level pointer/zone code. This is a coverage gap, not a functional one; flagged as `ℹ️ Info`, not a blocker, since the logic was verified by direct code trace across two adversarial review rounds.
 
 ### Human Verification Required
 
-See frontmatter `human_verification` section — 3 items: on-device click-through confirmation of CR-01, on-device animation-smoothness confirmation of WR-01, and Cmd-U confirmation of the 2 new/extended test files' actual pass/fail (build-for-testing only confirms compilation, not assertion outcomes).
+See frontmatter `human_verification` — 4 items: on-device empty-shelf click-through confirmation (the core CR-01 repro), on-device non-empty-shelf interactivity confirmation (regression guard against over-narrowing), on-device animation-smoothness confirmation of the WR-01 fix, and Cmd-U confirmation of the full test suite's actual pass/fail (build-for-testing only confirms compilation, not assertion outcomes — this project's `xcodebuild test` hangs headlessly per documented project memory and must be run manually via Cmd-U in Xcode).
 
 ### Gaps Summary
 
-The view layer (Plan 20-01) and the interaction wiring (Plan 20-02, minus panel-sizing) are solid: every SUMMARY.md claim about rendering, per-item/delete-all removal, click-to-open with the D-04 guard, and SHELF-09's structural gating checks out against the actual code, with no stubs, no unwired closures, and a passing build/test-build gate.
+No code-level gaps remain. Truth 6 (CR-01) — the only failing truth in the prior verification — is now VERIFIED: `syncClickThrough()`'s expanded-state interactivity decision depends solely on `visibleContentZone()`, which is itself conditioned on `shelfViewState.items.isEmpty` and mirrors `NotchPillView.blobShape`'s own visible-height conditional. The `pointerInZone` OR-defeat that survived round 1 of the gap-closure plan (and would have left the natural hover→expand→move-down path still swallowing clicks in practice) was found and removed in round 2 (commit `8e3fa64`). No live panel resize was introduced in the process — `positionAndShow`'s static max-reservation sizing is untouched, so the animation-race hazard the plan checker flagged in an earlier plan revision was correctly avoided. The build succeeds. All 5 truths from the original verification were re-checked and remain intact — none of the 20-03 commits touched any file outside `NotchWindowController.swift`.
 
-The one blocking gap is real and was flagged in the phase's own code review (CR-01, `20-REVIEW.md`) but was not fixed before this phase was marked complete: the panel-sizing change this phase introduced to avoid a live NSPanel resize does so by unconditionally reserving 56pt of interactive space, and the click-through toggle (`syncClickThrough`) does not distinguish "the visible blob's actual footprint" from "the full reserved panel rect." Since the shelf is empty by default in every Release build today (the DEBUG hand-seed that would exercise a non-empty shelf is compiled out of Release, and Phase 22's real drag-in hasn't shipped), this is not a rare edge case — it is the app's current permanent behavior for every user who ever expands the island: an invisible 56pt band beneath the visible content swallows clicks meant for whatever sits underneath. This directly contradicts the controller's own documented invariant (Pitfall 3/D-07: "clicks OUTSIDE the pill always pass through") and falls squarely within this phase's own goal text ("proving the view and panel-sizing math before any live drag risk is introduced") — the panel-sizing math has been shown to regress a core interaction guarantee, not proven correct.
-
-Recommend closing this gap (condition the reservation/hit-test on `shelfViewState.items.isEmpty`, or hit-test against the actual visible blob rect) before proceeding to Phase 21/22, since both later phases build directly on this same panel-sizing foundation and would inherit the regression.
+Status is `human_needed` rather than `passed` solely because the on-device click-through repro and the Cmd-U test run — both explicitly called out as requiring physical interaction / an environment where `xcodebuild test` doesn't hang — remain outside what static code analysis can confirm. This is the same category of human-verification item present in the original (passing) truths 1-5 all along; it does not indicate any remaining code defect.
 
 ---
 
-_Verified: 2026-07-10T00:50:00Z_
+_Verified: 2026-07-10T01:44:00Z_
 _Verifier: Claude (gsd-verifier)_
