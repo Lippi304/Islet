@@ -126,6 +126,34 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .nowPlayingWings(.paused(title: "Song", artist: "Artist")))
     }
 
+    // MARK: songChangeToastGate(...) — Phase 18 NOW-05/NOW-06 coverage
+
+    func testSongChangeToastGateSuppressedByChargingTransient() {
+        // D-02: a charging transient suppresses the toast entirely, no queueing.
+        XCTAssertFalse(songChangeToastGate(activeTransient: charging, isExpanded: false, toastEnabled: true))
+    }
+
+    func testSongChangeToastGateSuppressedByDeviceTransient() {
+        // D-02: a device transient suppresses the toast too.
+        XCTAssertFalse(songChangeToastGate(activeTransient: device, isExpanded: false, toastEnabled: true))
+    }
+
+    func testSongChangeToastGateSuppressedWhenExpanded() {
+        // D-04: a manually-expanded island suppresses the toast (the expanded card already
+        // shows the live title/artist).
+        XCTAssertFalse(songChangeToastGate(activeTransient: nil, isExpanded: true, toastEnabled: true))
+    }
+
+    func testSongChangeToastGateSuppressedWhenToggleOff() {
+        // NOW-06: the toggle being off suppresses new toasts.
+        XCTAssertFalse(songChangeToastGate(activeTransient: nil, isExpanded: false, toastEnabled: false))
+    }
+
+    func testSongChangeToastGateAllowsAmbientEnabled() {
+        // The only condition under which a toast may show: no transient, not expanded, toggle on.
+        XCTAssertTrue(songChangeToastGate(activeTransient: nil, isExpanded: false, toastEnabled: true))
+    }
+
     func testExpandedHealthyNoMediaIsExpandedIdle() {
         // D-12: expanded, healthy API, nothing playing → the expanded idle (date/time) view.
         let r = resolve(activeTransient: nil,

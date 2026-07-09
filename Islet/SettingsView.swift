@@ -27,6 +27,9 @@ struct SettingsView: View {
     // controller (Plan 04) reads the identical values.
     @AppStorage(ActivitySettings.chargingKey)   private var chargingEnabled = true
     @AppStorage(ActivitySettings.nowPlayingKey) private var nowPlayingEnabled = true
+    // Phase 18 / NOW-06 — default true, matching nowPlayingEnabled's default (no regression
+    // for existing users, fresh installs read ON).
+    @AppStorage(ActivitySettings.songChangeToastKey) private var songChangeToastEnabled = true
     @AppStorage(ActivitySettings.deviceKey)     private var deviceEnabled = true
     @AppStorage(ActivitySettings.accentIndexKey) private var accentIndex = ActivitySettings.defaultAccentIndex
 
@@ -131,6 +134,7 @@ struct SettingsView: View {
                 Section("Activities") {
                     Toggle("Charging", isOn: $chargingEnabled)
                     Toggle("Now Playing", isOn: $nowPlayingEnabled)
+                    Toggle("Song-Change Toast", isOn: $songChangeToastEnabled)
                     Toggle("Devices", isOn: $deviceEnabled)
                 }
             }

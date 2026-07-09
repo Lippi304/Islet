@@ -77,6 +77,31 @@ func isSameTrack(_ a: NowPlayingPresentation, _ b: NowPlayingPresentation) -> Bo
     return ta == tb
 }
 
+// Phase 18 / NOW-05 — the song-change toast's own title/artist snapshot. A plain value
+// (no NSImage), so tests construct it by hand; mirrors TrackSnapshot's role.
+struct TrackToast: Equatable {
+    let title: String
+    let artist: String
+}
+
+// Phase 18 / NOW-05 (D-01–D-04) — TOTAL pure detection: does this transition deserve a
+// song-change toast? `hasPlayedSinceLaunch` MUST be the PRE-callback value (mirrors Phase
+// 17's hasPlayedSinceLaunch capture-before-mutate discipline) — Pitfall 2: the very first
+// track observed after launch never toasts. Guard order matches RESEARCH.md: Pitfall 1
+// (stop) then Pitfall 2 (first track) then genuine-change via isSameTrack, reused verbatim
+// so a play<->pause transition on the same track (D-01) is never mistaken for a change.
+// `.none` never produces a toast even though isSameTrack alone would say "not same track"
+// for a stop.
+func songChangeToastContent(previous: NowPlayingPresentation, current: NowPlayingPresentation,
+                             hasPlayedSinceLaunch: Bool) -> TrackToast? {
+    guard hasPlayedSinceLaunch else { return nil }
+    guard !isSameTrack(previous, current) else { return nil }
+    switch current {
+    case .playing(let t, let a), .paused(let t, let a): return TrackToast(title: t, artist: a)
+    case .none: return nil
+    }
+}
+
 // PBAR-01 — the pure playback-position seam (Plan 07-01). Mirrors the file's existing
 // discipline: plain values + total functions, Foundation only, no SwiftUI/AppKit. Ported
 // VERBATIM from the vendored TrackInfo.Payload.currentElapsedTime formula (pinned commit

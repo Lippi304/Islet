@@ -14,6 +14,7 @@ enum ActivitySettings {
     // @AppStorage / UserDefaults keys — used by BOTH SettingsView and the controller (Plan 04).
     static let chargingKey   = "activity.charging"
     static let nowPlayingKey = "activity.nowPlaying"
+    static let songChangeToastKey = "activity.songChangeToast"
     static let deviceKey     = "activity.device"
     static let accentIndexKey = "accentIndex"
     // Quick task 260709-glz — NOT an "activity" toggle (it gates fullscreen visibility,
