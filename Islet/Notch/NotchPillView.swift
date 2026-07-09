@@ -116,14 +116,16 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
-    // Phase 18 / NOW-05 — post-checkpoint (on-device feedback): the song-change toast is a
-    // MINIMAL glance, not the full expanded card. 56pt is tall enough for one line of ~13-15pt
-    // text plus vertical padding and the blob's rounded corners; 240pt wide reads as "minimal"
-    // (bigger than collapsedSize's 200pt, far smaller than expandedSize's 360pt) while still
-    // fitting a typical "Title — Artist" string on one line before truncating. Fits within the
-    // existing panel bounds (the panel is already sized to the UNION of expandedFrame/wingsFrame,
-    // see NotchWindowController — no panel-sizing change needed for a smaller toast frame).
-    static let toastSize = CGSize(width: 240, height: 56)
+    // Phase 18 / NOW-05 — post-checkpoint ROUND 3 (on-device feedback, supersedes round 2's
+    // standalone `toastSize` blob below): the user rejected a separate replacement shape and
+    // asked for the EXISTING wings glance to stay pixel-identical, with a small text row
+    // fading in BELOW it in ONE continuous shape (DynamicLake reference, "leicht weiter nach
+    // unten expandieren und den titel mit Sänger rein faden" — expand slightly further down
+    // and fade the title+artist in). 32pt is enough for one ~12pt text line plus padding;
+    // added to wingsSize.height (32) the combined shape is only ~64pt tall total — modestly
+    // taller than the plain wings, nowhere near expandedSize's 144pt or even round 2's 56pt-
+    // tall standalone blob.
+    static let toastExtraHeight: CGFloat = 32
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -226,28 +228,29 @@ struct NotchPillView: View {
     // would leave only ~22pt top clearance, not enough to clear the 32pt camera band).
     // collapsedIsland is NOT routed through this — DEBUG tint, hover scale, and dev
     // offset make it "not a clean fit" (CONTEXT.md).
-    // Phase 18 post-checkpoint: `size` defaults to `expandedSize` so every existing caller
-    // (expandedIsland/mediaExpanded/mediaUnavailable) is unchanged; songChangeToastView is the
-    // only caller passing a smaller `toastSize` — proven safe by wingsShape's own precedent of
-    // a smaller-than-expandedSize frame morphing through this same matchedGeometryEffect identity.
+    // Phase 18 round 3: the round-2 `size:` parameter (added solely for the now-superseded
+    // standalone toast blob) is removed — the toast row is no longer a `blobShape` caller
+    // (see `mediaWingsOrToast`), so every remaining caller uses the same `expandedSize`.
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
-                                           size: CGSize = Self.expandedSize,
                                            @ViewBuilder content: () -> Content) -> some View {
         NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
             .fill(Color.black)
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: size.width, height: size.height)
+            .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
             .overlay(alignment: alignment) { content() }
             .onTapGesture { onClick() }
     }
 
-    // Finding 12 — the shared flat-strip skeleton `wings(for:)`, `mediaWings(_:art:)`, and
-    // `deviceWings(for:)` each repeated: NotchShape → .fill → .matchedGeometryEffect → .frame
-    // → .overlay(content sized the same). Their size constants were already numerically
-    // identical (290×32, the post-checkpoint "one uniform width" decision), so this collapses
-    // them into the single `wingsSize`. Each caller supplies only its own distinct HStack content.
+    // Finding 12 — the shared flat-strip skeleton `wings(for:)` and `deviceWings(for:)` each
+    // repeated: NotchShape → .fill → .matchedGeometryEffect → .frame → .overlay(content sized
+    // the same). Their size constants were already numerically identical (290×32, the
+    // post-checkpoint "one uniform width" decision), so this collapses them into the single
+    // `wingsSize`. Each caller supplies only its own distinct HStack content.
+    // Phase 18 round 3: `mediaWingsOrToast` no longer routes through this helper — its bottom
+    // corner radius and height must vary with the toast, so it builds its own NotchShape
+    // directly (see that function's comment) rather than the always-flat 6/6 this returns.
     private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flatter than the downward blob
             .fill(Color.black)
@@ -257,8 +260,8 @@ struct NotchPillView: View {
                 content()
                     .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             )
-            // Finding 15 (06-10): all three wing glances (wings(for:), mediaWings(_:art:),
-            // deviceWings(for:)) share this one tap-to-toggle through the shared helper.
+            // Finding 15 (06-10): both remaining wing glances (wings(for:), deviceWings(for:))
+            // share this one tap-to-toggle through the shared helper.
             .onTapGesture { onClick() }
     }
 
@@ -295,58 +298,72 @@ struct NotchPillView: View {
     // the RIGHT wing. `isPlaying` is derived from the presentation: `.playing` → bars bounce,
     // `.paused` → bars freeze static (D-05). The bars are the ONLY continuous animation in
     // the app and are isPlaying-gated for the idle-CPU guarantee (D-04, see EqualizerBars).
-    // Phase 18 / NOW-05 — branches the `.nowPlayingWings` case between the toast (when a
-    // genuine song change is being announced) and the normal collapsed media glance,
-    // mirroring `deviceTrailing(isConnected:battery:)`'s exact @ViewBuilder if/else shape.
+    // Phase 18 / NOW-05 — post-checkpoint ROUND 3 (on-device feedback, supersedes round 2's
+    // either/or branch between `mediaWings` and a standalone `songChangeToastView` blob): the
+    // user asked for the wings row to stay EXACTLY as it renders today, with a small text row
+    // fading in BELOW it in the SAME continuous shape — not a different shape swapped in.
+    // This is no longer an if/else between two shapes; it's ONE shape (flat-ish top, a more
+    // rounded — blob-like — bottom once the toast row appears) whose height/content grows
+    // conditionally. Row 1 is `mediaWingsRow`, byte-for-byte the same HStack the old
+    // `mediaWings(_:art:)` rendered (art left, equalizer right) so the collapsed glance is
+    // visually unchanged; row 2 (`toastTextRow`) is present only while `songChangeToast` is
+    // non-nil and carries `.transition(.opacity)` so it fades in/out under whichever spring
+    // the controller is already running when the toast field flips (D-08: the view drives no
+    // animation of its own — see NotchWindowController's presentTransientChange/
+    // scheduleToastDismiss, which all wrap the mutation in `withAnimation(.spring(...))`).
     @ViewBuilder
     private func mediaWingsOrToast(_ p: NowPlayingPresentation) -> some View {
-        if let toast = nowPlaying.songChangeToast {
-            songChangeToastView(toast)
-        } else {
-            mediaWings(p, art: nowPlaying.artwork)
-        }
-    }
-
-    // Phase 18 / NOW-05 — the song-change toast's render: a MINIMAL single-line glance, not the
-    // full expanded card. Post-checkpoint deviation from 18-UI-SPEC.md's original "reuse
-    // blobShape exactly, do not invent a new size" guidance — on-device testing showed the full
-    // 360×144 frame read as the island "fully opening" rather than a brief glance. Now uses its
-    // own smaller `toastSize` (240×56) with title + artist side-by-side on ONE line (`.lineLimit(1)`
-    // + `.truncationMode(.tail)` on each Text so a long string truncates instead of wrapping/
-    // growing the blob). Still `.center` alignment (not `.top` — that's mediaExpanded's
-    // camera-clearance need, not this content's) and inherits `blobShape`'s `.onTapGesture`.
-    private func songChangeToastView(_ toast: TrackToast) -> some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 20, size: Self.toastSize) {
-            HStack(spacing: 6) {
-                Text(toast.title)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Text("—")
-                    .font(.system(size: 12, design: .rounded))
-                    .foregroundStyle(.secondary)
-                Text(toast.artist)
-                    .font(.system(size: 12, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+        let toast = nowPlaying.songChangeToast
+        let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)
+        NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
+            .fill(Color.black)
+            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.wingsSize.width, height: height)
+            .overlay(alignment: .top) {
+                VStack(spacing: 0) {
+                    mediaWingsRow(p, art: nowPlaying.artwork)
+                    if let toast {
+                        toastTextRow(toast)
+                            .transition(.opacity)
+                    }
+                }
             }
-            .padding(.horizontal, 16)
-        }
+            // Finding 15 (06-10) precedent: the shared tap-to-toggle, same as wingsShape's
+            // callers — no buttons live in this content, so one ancestor gesture is safe.
+            .onTapGesture { onClick() }
     }
 
-    private func mediaWings(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
+    // Row 1 — the collapsed media glance content, UNCHANGED from before this phase (D-02):
+    // album art LEFT, animated equalizer bars RIGHT, same paddings. Factored out of the old
+    // `mediaWings(_:art:)` (which used to also own the `wingsShape` wrapper) so
+    // `mediaWingsOrToast` can size the combined shape itself; the visual output is identical.
+    private func mediaWingsRow(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
         let isPlaying = isPlayingFor(presentation)
-        return wingsShape {
-            HStack(spacing: 0) {
-                artThumbnail(art, side: Self.wingsSize.height - 8, corner: 6)  // LEFT wing
-                    .padding(.leading, 22)   // inset from the outer notch edge (user request)
-                Spacer()                                            // clears the physical camera bridge
-                EqualizerBars(isPlaying: isPlaying, tint: accent)  // RIGHT wing — D-02 bars (D-11 accent)
-                    .padding(.trailing, 24)  // inset from the outer notch edge (user request)
-            }
+        return HStack(spacing: 0) {
+            artThumbnail(art, side: Self.wingsSize.height - 8, corner: 6)  // LEFT wing
+                .padding(.leading, 22)   // inset from the outer notch edge (user request)
+            Spacer()                                            // clears the physical camera bridge
+            EqualizerBars(isPlaying: isPlaying, tint: accent)  // RIGHT wing — D-02 bars (D-11 accent)
+                .padding(.trailing, 24)  // inset from the outer notch edge (user request)
         }
+        .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+    }
+
+    // Row 2 (round 3, new) — the fading "Title — Artist" line under the wings row. TEXT ONLY:
+    // the DynamicLake reference screenshot also shows transport buttons, but the user's own
+    // words only asked for "titel mit Sänger" (title with artist) — this phase's scope
+    // (18-UI-SPEC.md D-01/D-02) is a PASSIVE toast, so no play/pause/skip here. One combined
+    // Text (not a title+artist HStack) so a long string truncates cleanly instead of the
+    // artist half getting squeezed off — `.lineLimit(1)` + `.truncationMode(.tail)` bounds
+    // untrusted metadata (T-04-09), same discipline as mediaExpanded's title/artist.
+    private func toastTextRow(_ toast: TrackToast) -> some View {
+        Text("\(toast.title) — \(toast.artist)")
+            .font(.system(size: 12, weight: .medium, design: .rounded))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, 16)
+            .frame(width: Self.wingsSize.width, height: Self.toastExtraHeight, alignment: .leading)
     }
 
     // DEV-01 / DEV-02 / D-02 / D-03 — the DEVICE connect/disconnect glance WINGS. Same flat strip
