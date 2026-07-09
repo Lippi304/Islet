@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: planning
-stopped_at: Phase 20 context gathered
-last_updated: "2026-07-09T21:17:22.051Z"
-last_activity: 2026-07-09
+status: executing
+stopped_at: Phase 20 UI-SPEC approved
+last_updated: "2026-07-09T22:03:58.338Z"
+last_activity: 2026-07-09 -- Phase 20 planning complete
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 1
+  total_plans: 3
   completed_plans: 1
   percent: 14
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 20
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-09
+Status: Ready to execute
+Last activity: 2026-07-09 -- Phase 20 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -142,9 +142,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-09T21:17:22.047Z
-Stopped at: Phase 20 context gathered
-Resume file: .planning/phases/20-shelf-view/20-CONTEXT.md
+Last session: 2026-07-09T21:40:11.843Z
+Stopped at: Phase 20 UI-SPEC approved
+Resume file: .planning/phases/20-shelf-view/20-UI-SPEC.md
 
 ## Operator Next Steps
 
