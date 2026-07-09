@@ -62,6 +62,7 @@
 		A532C893CA28FEBC8B8F87A8 /* NotchPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B2D92BF83095959068F293 /* NotchPanelTests.swift */; };
 		A5CBE92E220E6C6C2FC10FF1 /* Diagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94FF8FB96D00B8442591E7B /* Diagnostics.swift */; };
 		A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */; };
+		A8AF3A084971A06380D41ECC /* ShelfItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */; };
 		B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */; };
 		B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72C119AE687341C28E9786C /* NSScreen+Notch.swift */; };
 		B994C996D0B11203E21C3E0C /* LicenseState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */; };
@@ -79,6 +80,7 @@
 		EECA01E637ADFB54CFAA54E3 /* LocationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605C8A3B6F9015948DC073F0 /* LocationServiceTests.swift */; };
 		F168E6273C7AF9808D244CCA /* ActivitySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C1DF53311CEDA936A0B43D /* ActivitySettings.swift */; };
 		F553863EC9FBAB880ED80376 /* IslandResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A3063E01FF76A78398606DF /* IslandResolverTests.swift */; };
+		F6629BA3134FAACBF505CCF5 /* ShelfViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAD06AEB3294BABCAE1B7990 /* ShelfViewState.swift */; };
 		FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28316551B58651959797184D /* DeviceActivity.swift */; };
 		FD503D3A7D28F74B8D86C930 /* DisplayResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */; };
 		FFB8FF809780DAA08EC9B819 /* DeviceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87941F5DC2AA7BA8674AB0C /* DeviceCoordinator.swift */; };
@@ -148,6 +150,7 @@
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
 		6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EqualizerBarsTests.swift; sourceTree = "<group>"; };
 		6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCoordinator.swift; sourceTree = "<group>"; };
+		70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItemView.swift; sourceTree = "<group>"; };
 		71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSpaceProbe.swift; sourceTree = "<group>"; };
 		734F24D3CCE5D48060447B10 /* TrialManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManager.swift; sourceTree = "<group>"; };
 		73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfCoordinatorTests.swift; sourceTree = "<group>"; };
@@ -178,6 +181,7 @@
 		E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingPresentationTests.swift; sourceTree = "<group>"; };
 		E72C119AE687341C28E9786C /* NSScreen+Notch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+Notch.swift"; sourceTree = "<group>"; };
 		E87941F5DC2AA7BA8674AB0C /* DeviceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCoordinator.swift; sourceTree = "<group>"; };
+		EAD06AEB3294BABCAE1B7990 /* ShelfViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfViewState.swift; sourceTree = "<group>"; };
 		ECC50D5D14612F7A3B39F683 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		ECDB797EE481836D5DD878FD /* CalendarGlance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlance.swift; sourceTree = "<group>"; };
 		EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseState.swift; sourceTree = "<group>"; };
@@ -290,6 +294,7 @@
 				353BC5A79583E82567AEE07F /* ShelfFileStore.swift */,
 				D2C09F7CB439DBC707F7E095 /* ShelfItem.swift */,
 				58372E319659DF8AA32F403D /* ShelfLogic.swift */,
+				EAD06AEB3294BABCAE1B7990 /* ShelfViewState.swift */,
 			);
 			path = Shelf;
 			sourceTree = "<group>";
@@ -349,6 +354,7 @@
 				E72C119AE687341C28E9786C /* NSScreen+Notch.swift */,
 				76ADF16C067A181F295BA4C5 /* PowerActivity.swift */,
 				FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */,
+				70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */,
 			);
 			path = Notch;
 			sourceTree = "<group>";
@@ -494,7 +500,9 @@
 				1E4766E3B83E3E06186D2154 /* ShelfCoordinator.swift in Sources */,
 				E80E54F355F9DD7F3895158E /* ShelfFileStore.swift in Sources */,
 				05E3F6406213849B1212DA66 /* ShelfItem.swift in Sources */,
+				A8AF3A084971A06380D41ECC /* ShelfItemView.swift in Sources */,
 				873F50F44716655751E47E8B /* ShelfLogic.swift in Sources */,
+				F6629BA3134FAACBF505CCF5 /* ShelfViewState.swift in Sources */,
 				04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */,
 				98F28BB61930892735C9F48A /* TrialManager.swift in Sources */,
 				68CE6D5F610C8C037058F697 /* WeatherCategory.swift in Sources */,
