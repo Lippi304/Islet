@@ -168,6 +168,7 @@ final class NotchWindowController {
     // splash stands. Hover cancels it; pointer-leave reschedules it.
     private var dismissWorkItem: DispatchWorkItem?
     private let activityDuration: TimeInterval = 3.0   // D-09 single tuning seed
+    private let songToastDuration: TimeInterval = 2.0   // song-change toast auto-dismiss (round 5, on-device request: 1s shorter than the shared activityDuration, toast-only)
 
     // Phase 10 / D-12 — the best-effort ONE-SHOT proactive expiry re-check, mirroring the exact
     // property + cancel-then-reschedule + deinit-cancel idiom already used 4x in this file
@@ -1100,7 +1101,7 @@ final class NotchWindowController {
             }
         }
         toastDismissWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + activityDuration, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + songToastDuration, execute: work)
     }
 
     // D-13 mid-session child death (already on main). The adapter emitted at least once and
