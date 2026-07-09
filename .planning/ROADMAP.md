@@ -62,7 +62,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 **Milestone Goal:** Add a drag-and-drop file shelf to the island — a temporary, session-only staging area for files, matching the polish of the existing activities.
 
-- [ ] **Phase 19: Shelf Data Model** - Pure, unit-tested shelf lifecycle (append/remove/clear, never persisted) with zero AppKit/drag risk
+- [x] **Phase 19: Shelf Data Model** - Pure, unit-tested shelf lifecycle (append/remove/clear, never persisted) with zero AppKit/drag risk (completed 2026-07-09)
 - [ ] **Phase 20: Shelf View** - Users can see and manage a populated shelf strip in the expanded island (icons, per-item/delete-all trash, click-to-open, gated correctly against other activities)
 - [ ] **Phase 21: Drag-Out** - Users can drag shelf items back out to Finder or other apps
 - [ ] **Phase 22: Drag-In** - Users can drag files/folders onto the collapsed island to add them to the shelf
@@ -176,7 +176,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 19-01-PLAN.md — ShelfItem + ShelfLogic pure model (append/remove/clear/dedupe) + ShelfFileStore session-temp copy-in/delete-on-removal I/O
+- [x] 19-01-PLAN.md — ShelfItem + ShelfLogic pure model (append/remove/clear/dedupe) + ShelfFileStore session-temp copy-in/delete-on-removal I/O
 
 ### Phase 20: Shelf View
 
