@@ -63,7 +63,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 **Milestone Goal:** Add a drag-and-drop file shelf to the island — a temporary, session-only staging area for files, matching the polish of the existing activities.
 
 - [x] **Phase 19: Shelf Data Model** - Pure, unit-tested shelf lifecycle (append/remove/clear, never persisted) with zero AppKit/drag risk (completed 2026-07-09)
-- [ ] **Phase 20: Shelf View** - Users can see and manage a populated shelf strip in the expanded island (icons, per-item/delete-all trash, click-to-open, gated correctly against other activities) — gaps found, see 20-VERIFICATION.md
+- [x] **Phase 20: Shelf View** - Users can see and manage a populated shelf strip in the expanded island (icons, per-item/delete-all trash, click-to-open, gated correctly against other activities) — CR-01 click-through gap closed in 20-03 (completed 2026-07-10)
 - [ ] **Phase 21: Drag-Out** - Users can drag shelf items back out to Finder or other apps
 - [ ] **Phase 22: Drag-In** - Users can drag files/folders onto the collapsed island to add them to the shelf
 
@@ -110,7 +110,7 @@ Plans:
 
 **v1.2:** 2/2 phases complete (100%) — see `.planning/milestones/v1.2-ROADMAP.md` for the full per-phase breakdown.
 
-**v1.3:** 0/4 phases complete (0%) — Phase 19 ready to plan.
+**v1.3:** 2/4 phases complete (50%) — Phase 21 (Drag-Out) ready to plan.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -189,7 +189,7 @@ Plans:
   3. A single "delete all" trash icon at the strip's far right clears every item at once.
   4. Clicking a shelf item (not its trash icon) opens the file in its default application.
   5. The shelf strip is hidden while a Charging or Device wings splash is actively showing, and reappears once the splash dismisses.
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 **Wave 1**
@@ -199,6 +199,10 @@ Plans:
 **Wave 2** *(blocked on 20-01)*
 
 - [x] 20-02-PLAN.md — NotchWindowController wiring (ShelfCoordinator/ShelfViewState ownership, tap/delete/clear-all handlers, panel-height reservation, DEBUG hand-seed), ShelfViewStateTests.swift
+
+**Wave 3** *(blocked on 20-02, gap closure)*
+
+- [x] 20-03-PLAN.md — Closed CR-01 click-through regression: scoped syncClickThrough() hit-test to visible blob height (static panel, no resize), extracted resyncShelfViewState(animated:) helper (WR-01/WR-02)
 **UI hint**: yes
 
 ### Phase 21: Drag-Out

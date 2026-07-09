@@ -11,13 +11,13 @@ Drag-and-drop file shelf: a session-only staging area for files, appended below 
 
 - [ ] **SHELF-01**: User can drag a file, multiple files, or a folder onto the collapsed island — it auto-expands and the item(s) land in a shelf strip below the expanded view
 - [ ] **SHELF-02**: Drop target shows "hot"/targeted visual feedback while a file is being dragged over, before release
-- [ ] **SHELF-03**: Shelf strip is appended below whatever else is showing expanded (Now Playing, idle glance, etc.) whenever it has content, and scrolls horizontally with unbounded capacity
-- [ ] **SHELF-04**: Each shelf item shows a file-type icon with its own small trash icon for individual removal
-- [ ] **SHELF-05**: A single "delete all" trash icon on the far right clears the entire shelf at once
+- [x] **SHELF-03**: Shelf strip is appended below whatever else is showing expanded (Now Playing, idle glance, etc.) whenever it has content, and scrolls horizontally with unbounded capacity
+- [x] **SHELF-04**: Each shelf item shows a file-type icon with its own small trash icon for individual removal
+- [x] **SHELF-05**: A single "delete all" trash icon on the far right clears the entire shelf at once
 - [ ] **SHELF-06**: User can drag a shelf item back out to Finder or any other app
-- [ ] **SHELF-07**: Clicking a shelf item opens it in its default application
+- [x] **SHELF-07**: Clicking a shelf item opens it in its default application
 - [x] **SHELF-08**: Shelf content is purely session-temporary — cleared on manual delete, app restart, or Mac restart; never persisted to disk
-- [ ] **SHELF-09**: Shelf is suppressed while a Charging or Device wings splash is actively showing, reappearing once the splash dismisses
+- [x] **SHELF-09**: Shelf is suppressed while a Charging or Device wings splash is actively showing, reappearing once the splash dismisses
 
 ## v2 Requirements
 
@@ -52,13 +52,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | SHELF-01 | Phase 22 | Pending |
 | SHELF-02 | Phase 22 | Pending |
-| SHELF-03 | Phase 20 | Pending |
-| SHELF-04 | Phase 20 | Pending |
-| SHELF-05 | Phase 20 | Pending |
+| SHELF-03 | Phase 20 | Complete |
+| SHELF-04 | Phase 20 | Complete |
+| SHELF-05 | Phase 20 | Complete |
 | SHELF-06 | Phase 21 | Pending |
-| SHELF-07 | Phase 20 | Pending |
+| SHELF-07 | Phase 20 | Complete |
 | SHELF-08 | Phase 19 | Complete |
-| SHELF-09 | Phase 20 | Pending |
+| SHELF-09 | Phase 20 | Complete |
 
 **Coverage:**
 - v1.3 requirements: 9 total

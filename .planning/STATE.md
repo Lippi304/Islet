@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: executing
-stopped_at: Phase 20 UI-SPEC approved
-last_updated: "2026-07-09T23:13:53.014Z"
-last_activity: 2026-07-09 -- Phase 20 planning complete
+status: ready_to_plan
+stopped_at: Phase 20 complete (3/3) — ready to discuss Phase 21
+last_updated: 2026-07-10T00:05:00.000Z
+last_activity: 2026-07-10 -- Phase 20 gap closure (20-03) executed, CR-01 verified closed at code level
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 14
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 20 — shelf-view
+**Current focus:** Phase 21 — drag out
 
 ## Current Position
 
-Phase: 20 (shelf-view) — GAPS FOUND
-Plan: 2 of 2 (both executed)
-Status: Ready to execute
-Last activity: 2026-07-09 -- Phase 20 planning complete
+Phase: 21
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-10 -- Phase 20 (shelf-view) closed out, 6/6 must-haves verified at code level (4 items need on-device/Cmd-U manual confirmation, see 20-VERIFICATION.md)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -41,13 +41,13 @@ on-device Bluetooth permission spike from 05-01 Task 3 was superseded by the act
 finding in 06-04 (NSBluetoothAlwaysUsageDescription IS required on macOS 26 — see project
 memory `a1-bluetooth-usage-key-required`), so no further action is needed there either.
 
-Progress (v1.3): [░░░░░░░░░░] 0% (Phase 19 ready to plan; Phases 20-22 depend on it sequentially)
+Progress (v1.3): [█████░░░░░] 50% (Phases 19-20 complete; Phase 21 ready to plan)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 51
+- Total plans completed: 54
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -71,6 +71,7 @@ Progress (v1.3): [░░░░░░░░░░] 0% (Phase 19 ready to plan; Ph
 | 16 | 2 | - | - |
 | 18 | 2 | - | - |
 | 19 | 1 | - | - |
+| 20 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -142,10 +143,11 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-09T21:40:11.843Z
-Stopped at: Phase 20 UI-SPEC approved
-Resume file: .planning/phases/20-shelf-view/20-UI-SPEC.md
+Last session: 2026-07-10T00:05:00.000Z
+Stopped at: Phase 20 (shelf-view) execution + gap closure complete, verification human_needed
+Resume file: .planning/phases/20-shelf-view/20-VERIFICATION.md
 
 ## Operator Next Steps
 
-- Review ROADMAP.md's v1.3 phase order/success criteria, then start Phase 19 with `/gsd-discuss-phase 19`
+- Manually verify the 4 on-device/Cmd-U items in 20-VERIFICATION.md (empty-shelf click-through, non-empty-shelf interactivity, delete/clear-all animation smoothness, IslandResolverTests/ShelfViewStateTests via Cmd-U)
+- Then start Phase 21 with `/gsd-discuss-phase 21`
