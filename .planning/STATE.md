@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: gaps_found
-stopped_at: Phase 20 verification found 1 blocking gap (CR-01 click-through regression)
-last_updated: "2026-07-10T00:53:00.000Z"
-last_activity: 2026-07-10 -- Phase 20 executed and verified; gaps_found, needs gap-closure plan
+status: executing
+stopped_at: Phase 20 UI-SPEC approved
+last_updated: "2026-07-09T23:13:53.014Z"
+last_activity: 2026-07-09 -- Phase 20 planning complete
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 3
+  total_plans: 4
   completed_plans: 3
-  percent: 100
+  percent: 14
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 20 (shelf-view) — GAPS FOUND
 Plan: 2 of 2 (both executed)
-Status: Phase 20 verified with 1 blocking gap — see .planning/phases/20-shelf-view/20-VERIFICATION.md
-Last activity: 2026-07-10 -- Phase 20 executed, code-reviewed, and verified; gap closure needed before advancing
+Status: Ready to execute
+Last activity: 2026-07-09 -- Phase 20 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
