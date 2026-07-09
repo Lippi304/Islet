@@ -6,6 +6,7 @@
 - ✅ **v1.0.1 Pre-Release Polish** — Phases 7-9 (shipped 2026-07-04)
 - ✅ **v1.1 Trial & Paid Release** — Phases 10-13 (shipped 2026-07-08)
 - ✅ **v1.2 Now Playing Polish** — Phases 17-18 (shipped 2026-07-09)
+- 🚧 **v1.3 Notch Shelf** — Phases 19-22 (in progress)
 
 ## Phases
 
@@ -57,6 +58,15 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 </details>
 
+### 🚧 v1.3 Notch Shelf (Phases 19-22) — In Progress
+
+**Milestone Goal:** Add a drag-and-drop file shelf to the island — a temporary, session-only staging area for files, matching the polish of the existing activities.
+
+- [ ] **Phase 19: Shelf Data Model** - Pure, unit-tested shelf lifecycle (append/remove/clear, never persisted) with zero AppKit/drag risk
+- [ ] **Phase 20: Shelf View** - Users can see and manage a populated shelf strip in the expanded island (icons, per-item/delete-all trash, click-to-open, gated correctly against other activities)
+- [ ] **Phase 21: Drag-Out** - Users can drag shelf items back out to Finder or other apps
+- [ ] **Phase 22: Drag-In** - Users can drag files/folders onto the collapsed island to add them to the shelf
+
 ## Phase Details
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
@@ -99,6 +109,8 @@ Plans:
 **Phase 14 (post-v1.1, pre-next-milestone):** 5/5 plans complete — completed 2026-07-08.
 
 **v1.2:** 2/2 phases complete (100%) — see `.planning/milestones/v1.2-ROADMAP.md` for the full per-phase breakdown.
+
+**v1.3:** 0/4 phases complete (0%) — Phase 19 ready to plan.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -149,3 +161,51 @@ Plans:
 **Wave 2** *(blocked on 16-01)*
 
 - [x] 16-02-PLAN.md — Wire NotchWindowController to DeviceCoordinator (D-01), delete extracted fields/methods, create + execute 16-HUMAN-UAT.md's D-03 on-device Bluetooth checklist
+
+### Phase 19: Shelf Data Model
+
+**Goal**: The shelf's core data and lifecycle contracts exist as pure, Foundation-only, unit-tested logic — no AppKit, no drag APIs — establishing the session-only guarantee before any fragile drag/panel code is touched. Mirrors this project's own established convention (`IslandResolver` before controller wiring, `DeviceCoordinator` proven in isolation before Phase 16 wiring).
+**Depends on**: Nothing (first phase of this milestone)
+**Requirements**: SHELF-08
+**Success Criteria** (what must be TRUE):
+  1. `ShelfItem` (id, originalURL, localURL, filename, addedAt) and `ShelfLogic` (append/remove/clear/dedupe) exist as pure value types/functions, fully covered by unit tests, with no dependency on AppKit or `NSItemProvider`.
+  2. The model has no persistence path whatsoever — no Codable-to-disk, no UserDefaults, no Keychain — so a cleared or relaunched shelf is provably empty by construction (SHELF-08's core contract).
+  3. The shelf is designed as its own independent `@Published` axis, never a case inside `IslandResolver`/`TransientQueue` — confirmed by the model's shape alone, before any view exists.
+**Plans**: TBD
+
+### Phase 20: Shelf View
+
+**Goal**: With hand-seeded shelf state, the expanded island renders a full shelf strip — icons, per-item and delete-all removal, click-to-open, and correct gating alongside Charging/Device splashes — proving the view and panel-sizing math before any live drag risk is introduced.
+**Depends on**: Phase 19
+**Requirements**: SHELF-03, SHELF-04, SHELF-05, SHELF-07, SHELF-09
+**Success Criteria** (what must be TRUE):
+  1. When the shelf has items and the island is expanded, a horizontally-scrolling strip appears below whatever else is showing (Now Playing, idle glance, etc.), showing each item's file-type icon, with unbounded capacity.
+  2. Each shelf item has its own small trash icon; clicking it removes just that one item from the strip.
+  3. A single "delete all" trash icon at the strip's far right clears every item at once.
+  4. Clicking a shelf item (not its trash icon) opens the file in its default application.
+  5. The shelf strip is hidden while a Charging or Device wings splash is actively showing, and reappears once the splash dismisses.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 21: Drag-Out
+
+**Goal**: Users can drag a file already staged in the shelf back out to Finder or any other app, using the item's own local copy — validated before the higher-risk drag-in work.
+**Depends on**: Phase 20
+**Requirements**: SHELF-06
+**Success Criteria** (what must be TRUE):
+  1. User can drag a shelf item out of the strip onto the Finder desktop (or another app) and the real file lands there.
+  2. Dragging out a shelf item whose backing file has since vanished fails gracefully (pruned or a no-op drag) rather than crashing.
+  3. The expanded island's hover/grace-collapse behavior does not get stuck open after a drag-out gesture completes.
+**Plans**: TBD
+
+### Phase 22: Drag-In
+
+**Goal**: Users can drag a file, multiple files, or a folder onto the collapsed island and have it land in the shelf — the single highest-uncertainty integration point (click-through panel vs. drag delivery, `.mouseMoved` freezing mid-drag), spiked and sequenced last so every other piece is already proven.
+**Depends on**: Phase 21
+**Requirements**: SHELF-01, SHELF-02
+**Success Criteria** (what must be TRUE):
+  1. Dragging one or more files, or a folder, onto the collapsed island pill auto-expands it and each item lands in the shelf strip.
+  2. While a file is being dragged over the pill before release, the drop target shows visible "hot"/targeted feedback.
+  3. Dragging a file (in or out) no longer freezes the hover/collapse state machine — the island still collapses normally afterward.
+  4. The click-through panel correctly receives drag events without breaking normal click-through behavior for ordinary (non-drag) pointer movement.
+**Plans**: TBD

@@ -50,21 +50,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SHELF-01 | TBD | Pending |
-| SHELF-02 | TBD | Pending |
-| SHELF-03 | TBD | Pending |
-| SHELF-04 | TBD | Pending |
-| SHELF-05 | TBD | Pending |
-| SHELF-06 | TBD | Pending |
-| SHELF-07 | TBD | Pending |
-| SHELF-08 | TBD | Pending |
-| SHELF-09 | TBD | Pending |
+| SHELF-01 | Phase 22 | Pending |
+| SHELF-02 | Phase 22 | Pending |
+| SHELF-03 | Phase 20 | Pending |
+| SHELF-04 | Phase 20 | Pending |
+| SHELF-05 | Phase 20 | Pending |
+| SHELF-06 | Phase 21 | Pending |
+| SHELF-07 | Phase 20 | Pending |
+| SHELF-08 | Phase 19 | Pending |
+| SHELF-09 | Phase 20 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9 ⚠️ (roadmap not yet created)
+- Mapped to phases: 9
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-09*
-*Last updated: 2026-07-09 after initial v1.3 definition*
+*Last updated: 2026-07-09 — v1.3 ROADMAP.md created, Phases 19-22, 100% coverage.*

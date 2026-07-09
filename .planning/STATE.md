@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
 status: planning
-last_updated: "2026-07-09T17:15:23.796Z"
+last_updated: "2026-07-09T18:10:00.000Z"
 last_activity: 2026-07-09
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-08)
+See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Milestone complete
+**Current focus:** Phase 19 (Shelf Data Model) — ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-09 — Milestone v1.3 started
+Phase: 19 of 22 (Shelf Data Model)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-07-09 — ROADMAP.md created for v1.3 (Phases 19-22), 100% requirement coverage (9/9 SHELF requirements mapped)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -40,7 +40,7 @@ on-device Bluetooth permission spike from 05-01 Task 3 was superseded by the act
 finding in 06-04 (NSBluetoothAlwaysUsageDescription IS required on macOS 26 — see project
 memory `a1-bluetooth-usage-key-required`), so no further action is needed there either.
 
-Progress (v1.2): [░░░░░░░░░░] 0% (Phase 17 ready to plan, Phase 18 depends on it)
+Progress (v1.3): [░░░░░░░░░░] 0% (Phase 19 ready to plan; Phases 20-22 depend on it sequentially)
 
 ## Performance Metrics
 
@@ -85,6 +85,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 
 - [Phase 14] Verification (14-05) found and fixed two Hardened-Runtime entitlement gaps (Calendar, Location) plus a WeatherKit Portal App Services capability miss - all three needed before on-device permission prompts/weather fetch would work at all
 - [v1.2 roadmap] Phase 18 (song-change toast) sequenced after Phase 17 (launch gating) — both track "is this the first real playback transition after launch" state, so gating ships and settles first before the toast is layered on top
+- [v1.3 roadmap] Phase order 19→20→21→22 (model → view → drag-out → drag-in) follows research's codebase-grounded build order: pure-seam-first is this project's own established convention (`IslandResolver`, `DeviceCoordinator`), and the one genuinely uncertain integration point — drag delivery through the click-through `NSPanel` — is isolated in its own last phase (22) so a spike/iteration there doesn't block the rest of the feature
 
 ### Roadmap Evolution
 
@@ -93,6 +94,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - Phase 15 rescoped to "Mechanical Fixes & DI Seams" (7 low-risk audit findings; context captured in `15-CONTEXT.md`, ready for `/gsd:plan-phase 15`) after discussion split the original scope in two.
 - Phase 16 added: NotchWindowController DeviceCoordinator Extraction — the higher-risk coordinator-split work, isolated from Phase 15 per user decision. Completed 2026-07-08.
 - v1.2 (Now Playing Polish) roadmap created 2026-07-09: Phase 17 (NOW-04, launch gating) and Phase 18 (NOW-05/NOW-06, song-change toast + its Settings toggle), 100% requirement coverage. Phase numbering continues from Phase 16.
+- v1.3 (Notch Shelf) roadmap created 2026-07-09: Phase 19 (Shelf Data Model, SHELF-08), Phase 20 (Shelf View, SHELF-03/04/05/07/09), Phase 21 (Drag-Out, SHELF-06), Phase 22 (Drag-In, SHELF-01/02) — 100% coverage (9/9). Phase numbering continues from Phase 18. Sequenced per research's build-order recommendation with the click-through drag-in risk isolated in the final phase.
 
 ### Pending Todos
 
@@ -104,7 +106,9 @@ None yet.
 
 [Issues that affect future work]
 
-- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
+- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
+- [v1.3, from research] Phase 22 (Drag-In) rests on an unverified assumption — that `ignoresMouseEvents = true` blocks AppKit drag-destination delivery entirely — drawn from general AppKit knowledge, not a re-fetched Apple doc page. Needs an on-device spike at the start of Phase 22 before committing to the full drag-in architecture.
+- [v1.3, from research] Open product decision, flagged for `/gsd:discuss-phase 20`: should the shelf render/suppress during collapsed "wings" transients (Charging/Device/Now-Playing-wings) mid-display, beyond the already-locked SHELF-09 (suppressed only during Charging/Device splashes)?
 
 ### Quick Tasks Completed
 
@@ -136,10 +140,10 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-09T12:12:39.268Z
-Stopped at: Phase 18 UI-SPEC approved
-Resume file: .planning/phases/18-song-change-toast/18-UI-SPEC.md
+Last session: 2026-07-09T18:10:00.000Z
+Stopped at: v1.3 ROADMAP.md created (Phases 19-22), REQUIREMENTS.md traceability updated, 100% coverage
+Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Review ROADMAP.md's v1.3 phase order/success criteria, then start Phase 19 with `/gsd-discuss-phase 19`
