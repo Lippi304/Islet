@@ -160,7 +160,12 @@ actually starts playback. A restart with music already actively playing is unaff
   1. Launching Islet while Spotify/Apple Music has a track loaded but paused shows no Now Playing glance.
   2. Pressing Play after such a launch makes the glance appear immediately, with correct track info.
   3. Launching Islet while a track is already actively playing still shows the glance immediately (no regression from today's behavior).
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+**Wave 1**
+
+- [ ] 17-01-PLAN.md — hasPlayedSinceLaunch gate: pure resolve() signature change + IslandResolverTests coverage, controller wiring (flip on Play + thread into resolve), on-device verification checkpoint
 
 ### Phase 18: Song-Change Toast
 
