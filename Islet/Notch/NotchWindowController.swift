@@ -460,6 +460,7 @@ final class NotchWindowController {
         return resolve(activeTransient: transientQueue.head,
                        nowPlaying: np,
                        nowPlayingHealthy: healthy,
+                       hasPlayedSinceLaunch: nowPlayingState.hasPlayedSinceLaunch,
                        isExpanded: interaction.isExpanded)
     }
 
@@ -955,6 +956,14 @@ final class NotchWindowController {
         // A healthy stream callback means the bridge is alive — a successful emission after a
         // prior drop restores the D-12 flag so the next expand shows media, not "nicht verfügbar".
         nowPlayingState.isHealthy = true
+
+        // Phase 17 / NOW-04 — D-01/D-02: first real Play observed this Islet run lifts the launch
+        // gate permanently. Set BEFORE the render call below so the triggering snapshot itself
+        // isn't gated — do NOT move into the post-render `switch p` block further down (it runs
+        // AFTER the render call in this same invocation and would gate this very snapshot). No
+        // `if !hasPlayedSinceLaunch` guard needed: reassigning true is idempotent, mirroring the
+        // unconditional isHealthy assignment just above.
+        if case .playing = p { nowPlayingState.hasPlayedSinceLaunch = true }
 
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             nowPlayingState.presentation = p
