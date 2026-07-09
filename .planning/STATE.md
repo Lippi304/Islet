@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Now Playing Polish
-status: Awaiting next milestone
-stopped_at: Phase 18 UI-SPEC approved
-last_updated: "2026-07-09T15:20:20.278Z"
-last_activity: 2026-07-09 — Milestone v1.2 completed and archived
+milestone: v1.3
+milestone_name: Notch Shelf
+status: planning
+last_updated: "2026-07-09T17:15:23.796Z"
+last_activity: 2026-07-09
 progress:
-  total_phases: 5
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
-  percent: 40
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-08)
 
 ## Current Position
 
-Phase: Milestone v1.2 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-09 — Milestone v1.2 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-09 — Milestone v1.3 started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 

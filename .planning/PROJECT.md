@@ -22,18 +22,23 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-Not yet started — run `/gsd-new-milestone` to define v1.3's scope. Candidates on the table: capture WEATHER-01/CAL-01/OUTFIT-01 as formal requirements, the drag-and-drop file shelf, system HUD replacement, or a countdown timer (all still Out of Scope below until picked up).
+Not yet started — candidates remaining after v1.3 is scoped: capture WEATHER-01/CAL-01/OUTFIT-01 as formal requirements, system HUD replacement, or a countdown timer (all still Out of Scope below until picked up).
 
-## Current Milestone: v1.2 Now Playing Polish
+## Current Milestone: v1.3 Notch Shelf
 
-**Goal:** Fix the Now-Playing launch behavior (an already-paused track must not trigger the glance until the user actually presses Play) and add a brief song-change toast that shows the new track's title as text when playback switches to a genuinely new song.
+**Goal:** Add a drag-and-drop file shelf to the island — a temporary, session-only staging area for files, matching the polish of the existing activities.
 
-**Status: both phases (17, 18) shipped and on-device verified 2026-07-09 — milestone code-complete, not yet formally archived (`/gsd-complete-milestone`).**
+**Status: requirements being defined.**
 
-**Target features (all delivered — see Validated Requirements above):**
-- Islet stays idle at launch even if an allowlisted player reports a paused/loaded track — only a transition into the actively-playing state triggers the Now Playing glance
-- On a real song change (not the first track after launch), the island briefly grows a small text row and shows the new title+artist for ~2s, then collapses back to the compact glance
-- Settings toggle for the song-change toast, in the Activities tab next to the existing Now Playing toggle
+**Target features:**
+- Drag a file onto the collapsed pill → island auto-expands, file lands in a shelf strip below the normal expanded view
+- Shelf strip is appended below whatever else is showing expanded (Now Playing, idle glance, etc.) whenever it has content
+- Files can be dragged back out to Finder or any other app
+- Each file shows an icon/thumbnail with its own small trash icon for individual removal
+- A "delete all" trash icon on the far right of the strip
+- Unbounded capacity — strip scrolls horizontally
+- Purely session-temporary — cleared on manual delete, app restart, or Mac restart; never persisted to disk
+- Standard `NSItemProvider` drag & drop in both directions — no private API needed
 
 (Prior context, retained: Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) and Phase 16 (NotchWindowController Device Coordinator Extraction) both completed 2026-07-08 ahead of any formal milestone — see Validated Requirements below for details.)
 
@@ -133,7 +138,7 @@ _v1.2 (Now Playing Polish) is code-complete and on-device verified — both phas
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_Nothing currently active — v1.2 requirements are all validated above. Next milestone not yet started._
+_v1.3 Notch Shelf — requirements being defined, see REQUIREMENTS.md once created._
 
 ### Out of Scope
 
@@ -222,4 +227,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 after v1.2 milestone archived.*
+*Last updated: 2026-07-09 — milestone v1.3 (Notch Shelf) started.*
