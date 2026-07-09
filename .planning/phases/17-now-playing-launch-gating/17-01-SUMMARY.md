@@ -38,22 +38,22 @@ key-decisions:
 patterns-established:
   - "nowPlayingLaunchGate(...) — TOTAL pure helper mirroring nowPlayingHealthGate's shape, gates one input to resolve()'s non-expanded branch only"
 
-requirements-completed: []  # NOW-04 NOT marked complete — Task 3 (on-device checkpoint) is pending human verification
+requirements-completed: [NOW-04]
 
 # Metrics
-duration: ~20min (Tasks 1-2; Task 3 pending)
+duration: ~20min (Tasks 1-2) + on-device verification
 completed: 2026-07-09
 ---
 
 # Phase 17 Plan 01: Now Playing Launch Gating Summary
 
-**hasPlayedSinceLaunch flag + nowPlayingLaunchGate pure helper gate the ambient Now Playing wings glance until a real Play is observed this Islet session — checkpoint pending on-device verification.**
+**hasPlayedSinceLaunch flag + nowPlayingLaunchGate pure helper gate the ambient Now Playing wings glance until a real Play is observed this Islet session — on-device verified and approved.**
 
 ## Performance
 
-- **Duration:** ~20 min (Tasks 1-2 automated; Task 3 is an on-device human-verify checkpoint, not yet performed)
-- **Completed (Tasks 1-2):** 2026-07-09T11:18:37Z
-- **Tasks:** 2 of 3 complete (Task 3 checkpoint reached, awaiting on-device verification)
+- **Duration:** ~20 min (Tasks 1-2 automated) + on-device verification round
+- **Completed:** 2026-07-09
+- **Tasks:** 3 of 3 complete (Task 3 checkpoint verified on-device and approved by user)
 - **Files modified:** 4
 
 ## Accomplishments
@@ -72,7 +72,12 @@ Each task was committed atomically (Task 1 followed RED→GREEN per its `tdd="tr
 2. **Task 1 (GREEN): flag + gate helper + resolve() signature** - `65cb784` (feat)
 3. **Task 2: wire controller (flag flip + thread into resolve)** - `5a408fa` (feat)
 
-Task 3 (checkpoint:human-verify, gate="blocking") has NOT been performed — this SUMMARY documents Tasks 1-2 only.
+Task 3 (checkpoint:human-verify, gate="blocking") was performed on-device by the user and approved. First verification attempt caught an orchestration issue, not a code issue: the executor's worktree changes hadn't been merged into the main workspace yet, so the initial rebuild used stale code and showed no change. After merging the worktree, the user rebuilt (clearing a stale DerivedData VFS artifact along the way) and confirmed all 5 on-device scenarios:
+- Launch with a paused/loaded track → no ambient glance (idle) ✓
+- Manual expand while gated → shows the real paused track ✓
+- Press Play → glance appears immediately with correct info ✓
+- Pause again same session → glance still shows (no re-arm, D-02) ✓
+- Relaunch while already playing → glance shows immediately (no regression) ✓
 
 ## Files Created/Modified
 - `Islet/Notch/NowPlayingState.swift` - added `hasPlayedSinceLaunch: Bool = false` field
@@ -94,7 +99,7 @@ One wording adjustment during Task 2: the inline comment explaining the ordering
 
 ## Issues Encountered
 
-`xcodebuild test` was not run (per project memory `xcodebuild-test-headless-hang`: the test target hosts the full `Islet.app`, which boots `NSPanel`/MediaRemote/IOBluetooth and hangs headless). The `xcodebuild build` gate was used as the automated proxy per the plan's own `<verify>` commands; the 4 new `IslandResolverTests.swift` cases have NOT yet been compiler-verified or run — that is deferred to the on-device Cmd-U step inside Task 3's checkpoint, per the plan's `<what-built>` note.
+`xcodebuild test` was not run headlessly (per project memory `xcodebuild-test-headless-hang`); the on-device Cmd-U run inside Task 3 covered the 4 new `IslandResolverTests.swift` cases instead. Orchestration note (not a code defect): worktree isolation meant the first on-device attempt ran against unmerged code — resolved by merging the worktree branch into the main workspace before the user's actual verification pass.
 
 ## User Setup Required
 
@@ -102,12 +107,7 @@ None — no external service configuration required.
 
 ## Next Phase Readiness
 
-**Task 3 is an unresolved `checkpoint:human-verify` gate (`gate="blocking"`) — this plan is NOT complete.** The on-device verification (Cmd-U test run + 5 manual launch/expand/play/pause/relaunch scenarios) described in the plan's Task 3 must be performed and approved before:
-- `requirements-completed` can include NOW-04
-- STATE.md / ROADMAP.md can be advanced past this plan
-- Phase 18 (song-change toast) can safely build on this gating state
-
-See `.planning/phases/17-now-playing-launch-gating/17-01-PLAN.md` Task 3 for the exact checkpoint content (what-built / how-to-verify / resume-signal).
+Plan complete. NOW-04 satisfied and on-device verified. Phase 18 (song-change toast) can build on this gating state — `hasPlayedSinceLaunch` and the launch-gate mechanism are in place and confirmed working.
 
 ## Self-Check: PASSED
 
@@ -118,8 +118,9 @@ See `.planning/phases/17-now-playing-launch-gating/17-01-PLAN.md` Task 3 for the
 - FOUND commit aa2c01c (test: RED)
 - FOUND commit 65cb784 (feat: GREEN — flag + helper)
 - FOUND commit 5a408fa (feat: controller wiring)
-- BUILD SUCCEEDED confirmed after Task 2
+- BUILD SUCCEEDED confirmed after Task 2 and after on-device merge rebuild
+- On-device checkpoint approved by user: all 5 scenarios confirmed
 
 ---
 *Phase: 17-now-playing-launch-gating*
-*Completed (Tasks 1-2 only): 2026-07-09 — Task 3 checkpoint pending*
+*Completed: 2026-07-09*

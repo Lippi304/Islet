@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Now Playing Polish
-status: executing
-stopped_at: Phase 17 context gathered
-last_updated: "2026-07-09T11:11:35.109Z"
-last_activity: 2026-07-09 -- Phase 17 planning complete
+status: verifying
+stopped_at: Phase 17 complete — on-device checkpoint approved
+last_updated: "2026-07-09T11:51:27.466Z"
+last_activity: 2026-07-09 -- Phase 17 complete (NOW-04 verified on-device)
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 1
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 20
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-08)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 17: Now Playing Launch Gating
+**Current focus:** Phase 18 — song-change toast (next)
 
 ## Current Position
 
-Phase: 17 of 18 (Now Playing Launch Gating)
-Plan: — (not yet planned)
-Status: Ready to execute
-Last activity: 2026-07-09 -- Phase 17 planning complete
+Phase: 17 (now-playing-launch-gating) — COMPLETE
+Plan: 1 of 1
+Status: Phase complete — NOW-04 verified on-device, ready for Phase 18
+Last activity: 2026-07-09 -- Phase 17 complete (NOW-04 verified on-device)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 

@@ -53,7 +53,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 the glance until the user actually presses Play) and add a brief song-change toast that shows the
 new track's title as text when playback switches to a genuinely new song.
 
-- [ ] **Phase 17: Now Playing Launch Gating** - Islet stays idle at launch for a paused/loaded track; only a transition into actively-playing triggers the glance
+- [x] **Phase 17: Now Playing Launch Gating** - Islet stays idle at launch for a paused/loaded track; only a transition into actively-playing triggers the glance (completed 2026-07-09)
 - [ ] **Phase 18: Song-Change Toast** - a brief title toast on genuine track changes, with its own Settings toggle
 
 ## Phase Details
@@ -97,7 +97,7 @@ Plans:
 
 **Phase 14 (post-v1.1, pre-next-milestone):** 5/5 plans complete — completed 2026-07-08.
 
-**v1.2:** 0/2 phases complete (0%) — Phase 17 ready to plan.
+**v1.2:** 1/2 phases complete (50%) — Phase 17 complete, Phase 18 ready to plan.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -160,12 +160,12 @@ actually starts playback. A restart with music already actively playing is unaff
   1. Launching Islet while Spotify/Apple Music has a track loaded but paused shows no Now Playing glance.
   2. Pressing Play after such a launch makes the glance appear immediately, with correct track info.
   3. Launching Islet while a track is already actively playing still shows the glance immediately (no regression from today's behavior).
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 **Wave 1**
 
-- [ ] 17-01-PLAN.md — hasPlayedSinceLaunch gate: pure resolve() signature change + IslandResolverTests coverage, controller wiring (flip on Play + thread into resolve), on-device verification checkpoint
+- [x] 17-01-PLAN.md — hasPlayedSinceLaunch gate: pure resolve() signature change + IslandResolverTests coverage, controller wiring (flip on Play + thread into resolve), on-device verification checkpoint
 
 ### Phase 18: Song-Change Toast
 
