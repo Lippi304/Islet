@@ -54,7 +54,7 @@ the glance until the user actually presses Play) and add a brief song-change toa
 new track's title as text when playback switches to a genuinely new song.
 
 - [x] **Phase 17: Now Playing Launch Gating** - Islet stays idle at launch for a paused/loaded track; only a transition into actively-playing triggers the glance (completed 2026-07-09)
-- [ ] **Phase 18: Song-Change Toast** - a brief title toast on genuine track changes, with its own Settings toggle
+- [x] **Phase 18: Song-Change Toast** - a brief title toast on genuine track changes, with its own Settings toggle (completed 2026-07-09)
 
 ## Phase Details
 
@@ -179,7 +179,7 @@ Playing glance itself.
   2. The toast does not fire for the first track detected after launch, or for pause/resume/scrub of the same track.
   3. Settings' Activities tab has a toggle for the song-change toast, positioned next to the existing Now Playing toggle.
   4. Turning the toggle off suppresses the toast on subsequent track changes while the Now Playing glance itself keeps working normally.
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 **Wave 1**
@@ -187,5 +187,5 @@ Plans:
 - [x] 18-01-PLAN.md — Pure seam (TrackToast/songChangeToastContent/songChangeToastGate) + NOW-06 Settings toggle
 **Wave 2** *(blocked on 18-01)*
 
-- [ ] 18-02-PLAN.md — Controller wiring (detection, ~3s dismiss timer, toggle-off live-clear) + toast render + on-device verification
+- [x] 18-02-PLAN.md — Controller wiring (detection, ~3s dismiss timer, toggle-off live-clear) + toast render + on-device verification
 **UI hint**: yes
