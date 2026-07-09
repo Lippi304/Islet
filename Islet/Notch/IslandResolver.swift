@@ -71,6 +71,23 @@ func nowPlayingLaunchGate(hasPlayedSinceLaunch: Bool, nowPlaying: NowPlayingPres
     hasPlayedSinceLaunch ? nowPlaying : .none
 }
 
+// Phase 18 / NOW-05/NOW-06 (D-02/D-04) — the song-change toast's suppression gate. TOTAL
+// pure standalone function, deliberately NOT threaded through resolve(...) or
+// IslandPresentation — the toast is a separate @Published field the controller (Plan 02)
+// sets only when this gate returns true, so D-02's "skipped entirely, not queued, not shown
+// afterward" falls out for free (no ActiveTransient/TransientQueue participation at all, per
+// this file's own TransientQueue doc comment on FIFO/dedup semantics being the wrong shape
+// for this requirement). This deliberately diverges from 18-RESEARCH.md's Architectural
+// Responsibility Map (which assigns toast suppression to resolve(...)) and its Anti-Pattern
+// warning against splitting ranking logic between controller and resolver — permitted by
+// CONTEXT.md's discretion note, safe because this gate's two inputs are read from the exact
+// same live state resolve(...) itself consumes (transientQueue.head, interaction.isExpanded),
+// so the two can never disagree; see 18-01-PLAN.md's <objective> "Deviation from
+// RESEARCH.md" section for the full rationale.
+func songChangeToastGate(activeTransient: ActiveTransient?, isExpanded: Bool, toastEnabled: Bool) -> Bool {
+    activeTransient == nil && !isExpanded && toastEnabled
+}
+
 // Gap-closure fix (WR-1) — the address-keyed side data for a device's post-connect battery
 // poll. Controller-owned "address-keyed side table, pure enum stays address-free" discipline
 // (mirrors NotchWindowController's own `deviceLastShown: [String: TimeInterval]` convention):
