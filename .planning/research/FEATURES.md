@@ -1,153 +1,128 @@
 # Feature Research
 
-**Domain:** Trial + one-time-purchase licensing for an indie macOS menu-bar utility (Islet, adding trial/licensing to an already-shipped app)
-**Researched:** 2026-07-05
-**Confidence:** MEDIUM-HIGH (patterns cross-verified across multiple comparable apps; Polar.sh mechanics confirmed against official docs; some app-specific details are community-report quality, not vendor-confirmed)
+**Domain:** Notch-overlay drag-and-drop file shelf (temporary file tray utilities)
+**Researched:** 2026-07-09
+**Confidence:** MEDIUM — direct competitors (NotchDrop, DynamicLake/DynaClip) document *what* they do but rarely *how* (drop-zone hit-testing, duplicate handling); Apple's own `onDrop`/`NSDraggingDestination` docs are HIGH confidence; architecture-dependency analysis below is based on this project's own shipped Phase 1-2/6 behavior (PROJECT.md), not external sources.
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist in any trial+one-time-purchase indie Mac utility. Missing these makes the licensing feel amateurish or broken, even though they're separate from the core notch feature.
-
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Trial starts automatically on first launch, no signup | Every comparable app (BetterDisplay, CleanShot X, Rectangle Pro) starts the clock the moment the app first opens — no email, no account creation. Requiring signup before trying the product is friction users don't expect from a $8 utility. | LOW | Persist a `firstLaunchDate` (or equivalent) locally at first run; compute days-remaining from it. |
-| Visible days-remaining indicator somewhere reachable from the menu bar | Users need to know how much runway they have without hunting. BetterDisplay shows license/trial state under Settings > Pro; the pattern across this app category is "trial status lives in Settings," not a nagging dialog. | LOW | For Islet specifically (no Dock icon, no main window): put it in the Settings window, likely near the existing Settings sections (see Architecture Dependencies below). A menu-bar dropdown line ("Trial: 2 days left") is the standard supplementary spot for menu-bar-only apps. |
-| A "Buy Now" / "Upgrade" button that opens the checkout page in the default browser | Universal pattern — BetterDisplay's Settings > Pro has a direct "Buy BetterDisplay Pro" button; CleanShot X, Bartender do the same. Users expect one click from inside the app to the purchase page, not "go find the website yourself." | LOW | `NSWorkspace.shared.open(URL)` to the Polar.sh checkout link. |
-| A license key entry field, in the same Settings surface as the Buy button | Every comparable app puts "enter your license key" directly adjacent to "buy a license" — same screen, so the purchase-to-activation loop is one context, not a scavenger hunt across app + email + settings. | LOW | Paste-friendly `NSTextField`/SwiftUI `TextField` with trimming of whitespace/newlines (a well-documented pasted-key pitfall) before validation. |
-| License key recovery / re-entry after reinstall or new Mac | Users reinstalling macOS or moving to a new Mac expect to re-enter the same key and have it just work — not have to repurchase. Rectangle Pro solves this via Paddle's `my.paddle.com` self-service; Polar's customer portal is the equivalent. | LOW-MEDIUM | With Polar: license key validation via API means re-entering the same key on a new install re-validates (and, if you enable activation limits, may need old-device deactivation — see Anti-Features below on limits). |
-| Trial state persists across app restarts and (ideally) reinstalls of the same binary | If quitting/relaunching resets the trial, that's an obvious, immediately-discovered bypass — and worse, a legitimate user who reinstalls after a crash could get confused about a "reset" trial in the wrong direction (BetterDisplay users have filed complaints in the *opposite* direction — legitimately having trial time wrongly wiped, see Pitfalls in PITFALLS.md file question). | LOW-MEDIUM | Store trial-start timestamp somewhere UserDefaults-adjacent is fine for v1 (this is a low-stakes $8 utility, not DRM); just don't reset it on ordinary app updates. |
-| Clear, human-readable trial countdown language ("2 days left in your trial", not raw dates/timestamps) | Matches how every comparable app phrases it — plain "X days left" is the near-universal phrasing, it's the mental model users already have from every other trialware app (browser extensions, iOS apps, etc). | LOW | Simple string formatting off the computed days-remaining integer. |
+| Drag-over-pill triggers auto-expand | Every reference (NotchDrop, DynamicLake DynaClip, Alcove) opens the island the instant a drag enters it — the whole point of a notch shelf is "drop without navigating anywhere first." Already specified in this milestone. | MEDIUM | Not a new trigger on top of the existing click-to-expand path — it's a **third** expand path (drag-enter), since the user's mouse button is down and can't "click" separately. See Dependencies below. |
+| "Hot" drop-zone visual feedback while hovering with a file | DynamicLake explicitly advertises "real-time feedback while dragging, ensuring precision in file placement"; Yoink and macOS Finder both accent/highlight the destination the instant a drag enters it (HIG: "you can change the drag image / destination when content is dragged over it"). Users need confirmation the tiny notch target registered the drag *before* they release the mouse. | LOW | SwiftUI `isTargeted` boolean (from `onDrop(of:isTargeted:perform:)`) + an accent glow/scale on the pill is sufficient — same primitive already used for the collapsed-pill hover bounce (ISL-03). |
+| Multi-file drop in one gesture | DynamicLake: "Select and drop multiple files at once for bulk organization." Selecting several Finder items and dragging as a group is the default macOS gesture — a shelf that only accepts one file per drop would feel broken. | LOW | `NSItemProvider` drop delivers an *array* of providers per drop already; iterate and append one shelf entry per provider. No extra design needed beyond looping. |
+| Folder drops | Finder never distinguishes "drag one file" from "drag one folder" as a gesture — users will drop folders without thinking about it. | LOW | A folder is just another `public.file-url` provider; treat it as a shelf item with a folder icon instead of a file icon. Opening it on click should reveal-in-Finder rather than try to "open" it as a document. |
+| Per-item removal (trash icon on each shelf item) | Already specified in this milestone; matches NotchDrop ("deletable by holding option + clicking the x") and is the baseline expectation for any temporary tray (Yoink, macOS Stacks all have per-item removal). | LOW | Standard array-remove on a `@State`/`@Published` collection; no persistence to invalidate. |
+| "Delete all" affordance | Already specified. Table stakes once item count is unbounded — without it, clearing a long session queue means many individual clicks. | LOW | Single button clearing the backing array. |
+| Drag back out to Finder / other apps | Already specified; this is the entire reason a "shelf" beats a plain notification — it's a staging area, not a dead end. NotchDrop, Yoink, DynaClip all support this. | MEDIUM | Outbound `NSItemProvider`/`.onDrag` with the original file URL. Since this app is **not sandboxed** (confirmed in CLAUDE.md — MediaRemote rules out sandboxing anyway), there's no security-scoped-bookmark ceremony needed, which simplifies this versus a sandboxed app. |
+| Unbounded, horizontally-scrolling strip | Already specified — explicitly diverges from DynaClip's fixed 5-file cap (see Anti-Features). | LOW | Plain `ScrollView(.horizontal)`; same SwiftUI idiom already used for the Phase 14 3-column glance layout. |
+| Click-to-open a shelf item | Not explicitly in this milestone's spec, but **every** reference app has it (NotchDrop: "open with a simple click"; Yoink; DynaClip). Its absence would be the single most noticeable "missing table stakes" gap versus the reference apps this project benchmarks against. | LOW | `NSWorkspace.shared.open(url)` (or `activateFileViewerSelecting` for folders). Near-zero cost — recommend adding to REQUIREMENTS.md even though not in the original target-feature list. |
 
 ### Differentiators (Competitive Advantage)
 
-Not required, but would make the trial/licensing experience feel more polished than the median utility in this category — directly serves the project's "polished, possibly sellable" goal.
-
 | Feature | Value Proposition | Complexity | Notes |
-|---------|--------------------|------------|-------|
-| Deep-link auto-fill of the license key after web checkout (`islet://license?checkout_id=...`) | Removes the single biggest friction point in the whole flow: manual copy-paste of a key from an email or browser tab back into the app. Polar's checkout `success_url` supports a `checkout_id={CHECKOUT_ID}` placeholder specifically so an app can register a custom URL scheme, receive the checkout ID, and complete the fetch itself — this is a known, documented Polar mechanism, not a hack. Almost no comparable indie utility (BetterDisplay, CleanShot X, Rectangle Pro all rely on Paddle email-delivered keys with manual copy-paste) bothers to do this, so it's a genuine differentiator. | MEDIUM | Requires: (1) `CFBundleURLTypes` entry for a custom scheme in Info.plist, (2) an `NSApplicationDelegate` URL-open handler, (3) success_url configured as `islet://license?checkout_id={CHECKOUT_ID}`, (4) app calls Polar's API (or a tiny serverless relay, since exposing your Polar access token in the client app is a security anti-pattern — see Anti-Features) to resolve `checkout_id` → license key, (5) falls back gracefully to manual paste if the deep link doesn't fire (user closed browser tab, etc). |
-| A one-time, explicit "Start your 3-day trial" moment (not silent) | Silent trial start is table stakes for *not annoying* users, but a single, dismissible first-launch welcome moment ("Welcome to Islet — your 3-day trial has started") sets correct expectations up front and avoids the surprise of a lockout 3 days later with no warning it was ever "on the clock." This is a differentiator specifically because Islet has *no main window* — without an explicit moment, a user might never open Settings during the entire trial and get blindsided by the hard lockout. | LOW-MEDIUM | A one-shot `NSAlert` or a small SwiftUI sheet shown once at first launch (flag persisted so it never reappears). Given the hard-lockout choice below, this is close to load-bearing for fairness/UX, not purely a "nice to have" — flag this to the roadmapper as effectively-required given the hard-lockout decision. |
-| Menu-bar icon subtle state change in the final trial day ("last day" visual cue) | A quiet nudge (e.g., icon tint change, or a one-time system notification "1 day left in your Islet trial") the day before lockout reduces the shock of hard lockout and gives users a chance to buy before losing functionality. No comparable app was found doing exactly this, but it directly mitigates the known backlash pattern against hard lockouts (see Anti-Features / Pitfalls). | LOW | A single local notification (`UNUserNotificationCenter`) fired once when days-remaining crosses into the last 24h; must not repeat/spam. |
+|---------|-------------------|------------|-------|
+| Real thumbnail/preview per item (image/video/PDF preview, not just a generic file icon) | This is where Alcove-level "polish" is won or lost — a shelf full of identical generic icons feels like Finder, a shelf with live thumbnails feels like the iPhone Dynamic Island. None of the competitor writeups confirm they do this well. | MEDIUM | `QLThumbnailGenerator` (QuickLookThumbnailing) generates async thumbnails for arbitrary file types, including video frame and PDF first-page previews — same "fill in asynchronously" pattern this project already uses for Now Playing album art (PROJECT.md: "artwork latency... design the UI to fill art in asynchronously"). Reuse that async-fill pattern. |
+| Polished drag-out lift/shrink preview | Alcove-quality feel — the item visibly "picks up" (scale + shadow) the instant a drag starts from the shelf, mirroring the iOS Dynamic Island's tactile feedback. | LOW-MEDIUM | SwiftUI's default `.onDrag` preview is a flat snapshot; a custom `NSItemProvider` preview image with a slight scale/shadow closes the gap cheaply. |
+| Non-empty-shelf indicator on the *collapsed* pill (e.g. a small dot/badge) | Users who drop a file, let the island auto-collapse, and get distracted will forget files are staged — a subtle idle-pill cue ("you still have N files waiting") prevents silently losing dropped files, which is a real risk given content is never persisted. Not confirmed anywhere in competitor material, but a natural fit for this project's existing idle-pill design (Phase 1). | MEDIUM | New idle-pill visual state; needs its own design pass (badge shape, whether it survives across the resolver's other activities). Flag as a candidate REQUIREMENTS.md item, not a certainty. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-Features that seem reasonable but create disproportionate complexity or risk for a solo-dev $8 utility.
-
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|------------------|-------------|
-| Client-side embedded Polar API access token for direct license validation calls from the Mac app | Seems simpler — app calls Polar API directly with the org access token to validate/activate keys. | Any access token embedded in a distributed, non-sandboxed macOS binary can be extracted (strings, debugger) trivially, exposing your Polar org token — used to mint/revoke keys, read customer data. Community write-ups on Polar's licensing (e.g., LicenseSeat's critique) specifically flag Polar's license-key benefit as a "bolt-on" with no built-in device fingerprinting or offline validation designed for this. | Use Polar's public, purpose-built `/v1/customer-portal/license-keys/validate` and `/activate` endpoints, which are designed to be called from an untrusted client using the license key itself as the credential (not an org token). Never ship the org-level Polar access token in the app bundle. |
-| Hardware-fingerprint-bound license activation with strict device limits enforced client-side | Feels like "real" software protection against key sharing. | Massive complexity for a $7.99 impulse-buy utility; every hour spent here is an hour not spent on the core island experience. Also actively backfires: Rectangle Pro's 3-device Paddle-managed limit already generates support-burden discussions (users needing to deactivate old Macs manually) — and that's with Paddle doing the heavy lifting. Rolling your own is strictly worse ROI for a solo dev. | Use Polar's built-in, opt-in activation-limit feature (simple count, e.g. allow 3-5 activations) if you want *any* limit at all — but this is optional, not required, for v1. Simplest v1: no activation limit at all, just "does this key validate" — casual key sharing at the $7.99 price point is not worth building anti-piracy infrastructure to prevent. |
-| Subscription / recurring billing | Recurring revenue is tempting and Polar supports subscriptions natively. | The user has already explicitly decided one-time €7.99 purchase — building subscription billing, renewal emails, and dunning flows is out of scope and directly contradicts the chosen model. Flagging only so the roadmapper doesn't accidentally scope subscription-shaped code (e.g. periodic re-validation "phone home" checks) that isn't needed for a one-time purchase. | One-time purchase, one-time validation (with optional periodic re-validation purely to detect *refunds/chargebacks*, not to enforce a subscription — see Pitfalls). |
-| In-app checkout (embedded web view / native payment sheet) instead of browser handoff | Feels more "native" / seamless to not leave the app. | Every comparable app in this category (BetterDisplay/Paddle, CleanShot X/Paddle, Rectangle Pro/Paddle) hands off to the default browser for checkout — payment processors want their own hardened, regularly-updated checkout surface (fraud rules, 3DS, updated ToS) which an embedded/stale web view inside your app would not get automatically. Polar's checkout is also designed as a hosted page, not an embeddable SDK for native apps. | `NSWorkspace.shared.open()` to a Polar-hosted checkout URL in the user's real browser; bring the user back via the deep-link success_url covered above. |
-| Full "account" system (sign in, password, cross-device sync of purchase state) | Feels more robust / modern. | Wildly over-scoped for a one-time-purchase $7.99 utility with no cloud sync feature elsewhere in the app. Polar's customer portal already gives users self-service license lookup by purchase email — no separate account system needed. | Rely on Polar's existing customer portal (by purchase email) for license lookup/recovery; the app itself stays account-less, matching its current architecture. |
+| Drop-triggered action menu (DynamicLake's "DynaDrop": choose AirDrop / convert / share-link on drop) | DynamicLake ships this and it demos well; feels like "more value per drop." | Directly the kind of "DynamicLake-style extra" this project has already chosen to defer (CLAUDE.md/PROJECT.md: messaging/notification mirroring and similar extras deferred until the core island is solid); adds AirDrop framework integration, conversion pipelines, and a whole action-picker UI to a milestone whose explicit goal is "standard `NSItemProvider` drag & drop... no private API needed." | Ship the plain shelf only. Revisit a drop-action picker as its own future milestone if ever wanted. |
+| iCloud-synced / cross-device shelf (Yoink's model) | Yoink users like having their shelf everywhere. | Directly contradicts this milestone's explicit requirement: "purely session-temporary... never persisted to disk." Any sync layer is by definition persistence. | None needed — the spec already correctly excludes this. |
+| Configurable retention window (NotchDrop's default "auto-save for 1 day, configurable") | NotchDrop, the most directly comparable open-source reference, does exactly this and it's a reasonable feature in isolation. | Also contradicts the explicit spec: "cleared on manual delete, app restart, or Mac restart." Worth naming explicitly here because NotchDrop is the closest prior art and someone skimming it might assume this project should match it — it should not, per the user's own requirement. | None needed — session-only is a deliberate, already-correct deviation from the most popular reference implementation. |
+| Fixed low item cap (DynaClip's 5-file limit) | Keeps the UI simple and the strip a fixed width. | Contradicts the explicit "unbounded/horizontally-scrolling" requirement, and a hard cap actively loses a 6th dropped file with no signal — worse than persisting nothing at all. | Already correctly rejected by the unbounded-scroll spec; no action needed. |
+| Folder "spring-loading" (drop a folder → shelf auto-navigates inside it, Finder-style) | Feels powerful, mirrors classic Finder drag-and-drop navigation. | No reference notch-shelf app does this; it requires building a mini file browser inside the shelf strip, which is a different feature entirely (file manager, not staging tray) and works against the "temporary staging" mental model. | Folder drops become a single shelf item (folder icon) that reveals-in-Finder on click, same as any file. |
 
 ## Feature Dependencies
 
 ```
-[Trial state persistence]
-    └──requires──> [First-launch detection] (already trivial: app has no existing "first run" flag — needs adding)
+Drag-triggered auto-expand
+    └──requires──> Existing NSPanel click-through / hit-test model (Phase 1/2, ISL-01..04)
+                       └──CONFLICTS WITH──> idle pill's ignoresMouseEvents / click-through design
+                                                (see Dependency Notes — highest-risk unknown)
 
-[License key entry + validation]
-    └──requires──> [Polar.sh product + license-key benefit configured server-side]
-                       └──requires──> [Polar.sh account, product, checkout link] (external, non-code dependency)
+Shelf strip visible while expanded
+    └──requires──> Existing matchedGeometryEffect expand/collapse state machine (ISL-04)
+    └──enhances──> IslandResolver / TransientQueue (Phase 6, COORD-01)
+                       └──CONFLICTS WITH──> resolver's auto-collapse timers (Charging/Device ~3s)
+                                                (see Dependency Notes)
 
-[Hard lockout behavior]
-    └──requires──> [Trial state persistence] AND [License key validation]
-                       (lockout gate must check: is trial active OR is a valid license present)
-
-[Deep-link auto-fill] (differentiator)
-    └──requires──> [Custom URL scheme registration] AND [License key entry UI to autofill into]
-    └──enhances──> [License key entry + validation] (removes manual copy-paste step)
-
-[First-launch welcome/trial-start moment] (differentiator, effectively required given hard lockout)
-    └──requires──> [First-launch detection]
-    └──mitigates──> [Hard lockout] backlash (sets expectations before the clock starts)
-
-[Last-day nudge notification] (differentiator)
-    └──requires──> [Trial state persistence] (needs accurate days-remaining)
-    └──mitigates──> [Hard lockout] backlash
+Thumbnail/preview generation ──enhances──> Click-to-open, drag-out preview
+Non-empty-shelf idle-pill badge ──requires──> Idle-pill visual state (Phase 1) + shelf item count
 ```
 
 ### Dependency Notes
 
-- **Hard lockout requires trial persistence AND license validation to both exist first:** the lockout gate is a boolean check (`trialActive || validLicense`) — both underlying seams must be built and tested before lockout logic can be wired in, otherwise you risk locking out every user including legitimate trial users (a launch-blocking bug class). This strongly suggests trial-state and license-validation should be built and tested as pure, independently-testable seams (consistent with this project's existing pattern of pure seams — see PROJECT.md/ARCHITECTURE.md conventions) *before* the lockout gate touches any UI.
-- **Deep-link auto-fill enhances but does not block the core license flow:** it should be scoped as an add-on layer on top of a working manual paste-and-validate flow, not a prerequisite. If the deep link fails to fire (browser closed, scheme not registered correctly on first run, etc.), manual paste must still work as the fallback — build manual-paste-and-validate first, deep-link second.
-- **First-launch welcome moment mitigates hard-lockout backlash:** given the user's explicit choice of a hard lockout, the welcome/trial-start moment is not purely optional — it's the main lever available to prevent the "the app suddenly stopped working with zero warning" complaint pattern seen in this app category (see Pitfalls file). Recommend treating it as near-mandatory in scoping, even though it's categorized as a "differentiator" above.
+- **Drag-triggered auto-expand conflicts with the existing click-through idle pill (HIGH-RISK, project-specific):** Phase 1 shipped the idle pill as click-through ("clicks pass through") so it never steals ordinary clicks. `NSDraggingDestination` messages (`draggingEntered`/`draggingUpdated`/`performDragOperation`) route through the same window hit-testing path as mouse clicks — a window/view configured to ignore mouse events for click-through will typically **not** receive drag-destination callbacks either. Every reference app (NotchDrop, DynamicLake) must solve this same problem for their notch shelf, but none of the sources found document how. **This is the single biggest unknown for this milestone and should be spiked on-device before any shelf UI is built** — confirm whether the exact hit-testing mechanism already used for ISL-03's click-to-expand (which necessarily *does* accept clicks on the pill shape while passing through everywhere else) also carries drag sessions, or whether `registerForDraggedTypes` needs to be added to a different view/window layer than the one handling clicks.
+- **Shelf visibility conflicts with the resolver's auto-collapse timers:** Charging and Device splashes auto-collapse the island ~3s after showing (Phase 3/6). If a file lands in the shelf while one of those transient activities is mid-display, the resolver's existing collapse timer must not blow away a non-empty shelf — otherwise a user who drops a file during, say, a charging splash loses the island (and effectively loses sight of their staged file) the moment the splash's unrelated timer fires. The shelf's "always show while non-empty" model (per PROJECT.md's target feature: "shelf strip is appended below whatever else is showing... whenever it has content") is architecturally different from Charging/Device/NowPlaying's single-slot, priority-ranked `TransientQueue` membership — it needs to be additive across whatever the resolver currently selects, not itself enqueued and time-boxed the same way. This needs an explicit decision in REQUIREMENTS.md/architecture, not just quiet reuse of the existing resolver.
+- **Auto-expand-by-drag is a third expand trigger, not a variant of click-to-expand:** ISL-03 established exactly two states — hover (haptic + bounce, no expand) and click (expand). A file drag is neither: the mouse button is held down over a dropped-in file, there is no click event, and the existing "hover only bounces" rule would otherwise leave the pill collapsed while a file sits on top of it. The expand path taken for a drag-enter needs to be its own explicit branch alongside "user clicked" and "resolver selected an activity," with its own collapse condition (collapse only after the drag session ends AND the shelf's own display rules — not the transient-activity 3s timer — decide to hide).
 
 ## MVP Definition
 
-### Launch With (v1 of this milestone)
+### Launch With (v1.3 Notch Shelf)
 
-Minimum viable product for the trial+licensing milestone — validates the monetization mechanism without gold-plating.
+Minimum viable product — matches the already-specified target features plus the two near-zero-cost table-stakes additions found in this research.
 
-- [ ] Silent local trial-start timestamp persisted on first launch — foundation for everything else
-- [ ] One-time first-launch "Your 3-day trial has started" moment (sheet or alert) — sets expectations before the hard-lockout clock runs; near-mandatory given the hard-lockout choice
-- [ ] Days-remaining indicator in the Settings window — table stakes, users need to check status
-- [ ] "Buy Now" button in Settings opening the Polar.sh checkout URL in the default browser — table stakes
-- [ ] Manual license-key entry field in Settings (paste-friendly, trims whitespace, clear validate/error states) — table stakes, and the guaranteed-to-work fallback path
-- [ ] License key validation against Polar's customer-portal `/validate` (and `/activate` if using activation limits) API — core mechanism
-- [ ] Hard lockout: when trial has expired and no valid license is present, the island/menu-bar functionality is disabled per the user's explicit product decision — the core requirement of this milestone
+- [ ] Drag file(s) onto collapsed pill auto-expands the island — table stakes, core of the feature
+- [ ] Hot/targeted visual feedback while a file hovers over the pill before drop — table stakes, users need confirmation before releasing
+- [ ] Multi-file simultaneous drop — table stakes, default Finder multi-select gesture
+- [ ] Folder drop support (folder icon, not a crash/no-op) — table stakes, Finder drags don't distinguish file vs. folder
+- [ ] Shelf strip appended below current expanded content, unbounded + horizontally scrolling — already specified
+- [ ] Per-item trash icon + one "delete all" icon — already specified
+- [ ] Drag shelf items back out to Finder/other apps — already specified
+- [ ] Purely session-temporary (RAM-only, cleared on manual delete/app restart/Mac restart) — already specified
+- [ ] Click-to-open a shelf item in its default app (or reveal-in-Finder for folders) — near-zero cost, closes the biggest gap versus every reference app
 
 ### Add After Validation (v1.x)
 
-Features to add once the core trial→purchase→unlock loop is proven to work end-to-end on-device.
-
-- [ ] Deep-link auto-fill (`islet://license?checkout_id=...`) to remove manual copy-paste — biggest UX upgrade, but only after the manual flow is solid
-- [ ] Last-day nudge notification before lockout — reduces hard-lockout backlash, but not blocking for the mechanism to work
-- [ ] Menu-bar icon subtle "last day" visual state — polish layer on top of the nudge notification
+- [ ] Real thumbnail/preview generation (QuickLook) instead of generic file icons — add once the plain-icon version proves the core interaction is solid; async-fill using the same pattern as Now Playing album art
+- [ ] Polished drag-out lift/shrink preview — cosmetic pass once basic drag-out works
+- [ ] Non-empty-shelf badge on the idle/collapsed pill — add if on-device use reveals people forget staged files exist
 
 ### Future Consideration (v2+)
 
-Features to defer until there's evidence they're needed (e.g., support requests, abuse reports).
-
-- [ ] Activation-limit enforcement / multi-device management UI — only needed if key-sharing becomes an observed problem; Polar supports this natively so it's low-cost to add later, not a v1 blocker
-- [ ] Periodic re-validation ("phone home") purely to catch refunds/chargebacks — defer until there's actual refund abuse; adds complexity and offline-use edge cases (what happens if the check fails while the user is offline — must fail open, not closed)
+- [ ] Drop-triggered action picker (AirDrop / convert / share-link) — explicitly deferred; only revisit if the plain shelf ships and users specifically ask for DynamicLake-style actions
+- [ ] Any persisted/cross-restart retention — explicitly excluded by this milestone's own requirements; would need a full requirements re-scope to add
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|----------------------|----------|
-| Trial-start persistence | HIGH | LOW | P1 |
-| First-launch welcome/trial-start moment | HIGH (given hard lockout) | LOW | P1 |
-| Days-remaining indicator in Settings | HIGH | LOW | P1 |
-| Buy Now button → Polar checkout | HIGH | LOW | P1 |
-| Manual license key entry + validation | HIGH | LOW-MEDIUM | P1 |
-| Hard lockout gate | HIGH (explicit product requirement) | MEDIUM | P1 |
-| Deep-link auto-fill of license key | MEDIUM-HIGH | MEDIUM | P2 |
-| Last-day nudge notification | MEDIUM | LOW | P2 |
-| Menu-bar icon "last day" state | LOW-MEDIUM | LOW | P3 |
-| Activation-limit / multi-device management | LOW (at this scale) | MEDIUM | P3 |
-| Periodic re-validation for refund detection | LOW | MEDIUM | P3 |
-
-**Priority key:**
-- P1: Must have for this milestone's launch
-- P2: Should have, add once P1 is proven on-device
-- P3: Nice to have, future consideration
+|---------|------------|---------------------|----------|
+| Drag-onto-pill auto-expand + hot feedback | HIGH | MEDIUM (gated by click-through spike) | P1 |
+| Multi-file / folder drop | HIGH | LOW | P1 |
+| Shelf strip (scroll, per-item + delete-all trash) | HIGH | LOW | P1 |
+| Drag-out to Finder | HIGH | MEDIUM | P1 |
+| Click-to-open item | MEDIUM | LOW | P1 (recommend adding to scope) |
+| Real thumbnails/previews | MEDIUM | MEDIUM | P2 |
+| Drag-out preview polish | LOW-MEDIUM | LOW-MEDIUM | P2 |
+| Idle-pill non-empty badge | MEDIUM | MEDIUM | P2/P3 |
+| Drop-action picker (AirDrop/convert) | LOW (for this project's stated goals) | HIGH | P3 / explicitly deferred |
 
 ## Competitor Feature Analysis
 
-| Feature | BetterDisplay (Paddle) | Rectangle Pro (Paddle) | CleanShot X (Paddle) | Islet's Planned Approach |
-|---------|------------------------|--------------------------|------------------------|---------------------------|
-| Trial length | 14 days, unlimited features | Not publicly documented in sources found | 7-day equivalent implied by Paddle norms (not confirmed) | 3 days (explicit product decision, shorter than typical — flag: shortest trial found among comparables, see Pitfalls) |
-| Trial start | Silent on first open | Silent on first open (typical Paddle-app pattern) | Silent on first open | Silent persistence + explicit one-time welcome moment (differentiator vs. comparables) |
-| License entry location | Settings > Pro tab | Settings window, General tab | Dedicated License Manager web portal + in-app field | Existing Settings window (new section) |
-| Key delivery | Email from Paddle | Email from Paddle | Email from Paddle | Polar checkout page + email; deep-link auto-fill planned as differentiator |
-| Multi-device limit | Not strictly enforced found in sources | 3 simultaneous activations via Paddle | Managed via License Manager portal | Undecided for v1 — recommend no limit at v1, Polar activation limits available if needed later |
-| Expiry behavior | "Unlicensed, Trial Expired" state; free tier features remain for personal use (soft) | Not documented in sources found | Not documented in sources found | Hard lockout (explicit product decision — stricter than all comparables found) |
-| Payment processor | Paddle | Paddle | Paddle | Polar.sh (per project decision) |
+| Feature | NotchDrop (open-source) | DynamicLake / DynaClip | Yoink | Our Approach |
+|---------|--------------------------|--------------------------|-------|--------------|
+| Retention | Auto-saves ~1 day, configurable | "Until removed manually" + auto-cleanup of old files | Persistent shelf, iCloud-synced | Strictly session-only (RAM), never written to disk — deliberate divergence from all three |
+| Capacity | Unbounded (implied, no cap documented) | Fixed at 5 files | Unbounded | Unbounded, horizontal scroll — matches NotchDrop/Yoink, explicitly rejects DynaClip's cap |
+| Drop actions | Store + open-on-click | Multi-action picker (shelf/convert/AirDrop/share-link) | Store + system services/share extension | Store + open-on-click only — no action picker (anti-feature above) |
+| Removal | Option+click the x mark | Manual + auto-cleanup | Drag out or clear | Per-item trash icon + delete-all icon (no modifier-key gesture required) |
+| Multi-file drop | Not documented | Explicitly supported ("select and drop multiple") | Supported | Supported (table stakes) |
+| Hover/hot feedback | Not documented | "Real-time feedback while dragging" (undetailed) | Slide-out shelf reveal on drag-start | Targeted-state highlight/glow on the pill before drop |
 
 ## Sources
 
-- Polar.sh official docs — checkout success_url with `checkout_id={CHECKOUT_ID}` placeholder, license-key `/activate` and `/validate` customer-portal API endpoints, activation limits, metadata propagation to Order/Subscription. (HIGH — official docs, `polar.sh/docs`, `polar.apidocumentation.com`)
-- LicenseSeat "Alternative to Polar.sh" critique — Polar's license-key benefit described as a bolt-on with no device fingerprinting, no offline validation, no native desktop SDKs. (MEDIUM — vendor-competitor source, directionally useful but has an incentive to critique Polar; treated as a caution flag, not gospel)
-- BetterDisplay (`waydabber/BetterDisplay`) GitHub wiki "Getting a Pro License" and support discussions — 14-day unlimited trial, Paddle email delivery, Settings > Pro activation, "Unlicensed, Trial Expired" soft-lock state, community complaint about trial state being wrongly reset by a settings-reset action. (MEDIUM-HIGH — official project wiki + first-party GitHub discussions)
-- Rectangle Pro Community discussion #154 (`rxhanson/RectanglePro-Community`) — Paddle-based purchase/activation flow, 3-device activation limit, Settings window General tab deactivation, `my.paddle.com` self-service recovery. (MEDIUM — community discussion, not official vendor docs, but detailed and consistent)
-- CleanShot X buy/pricing/FAQ pages and License Manager (`licenses.cleanshot.com`) — Paddle email-delivered key, dedicated License Manager portal for multi-device management. (MEDIUM — official product pages, but activation-screen specifics not directly verified)
-- Apple Developer documentation — "Defining a custom URL scheme for your app" (`CFBundleURLTypes`, app delegate URL handling). (HIGH — official Apple docs)
-- General UX validation-pattern sources (Medium, Auth0 community) on trimming whitespace from pasted input and inline validation-error timing. (MEDIUM — general UX best-practice consensus, not Mac-specific)
-- Community reports on trial-lockout variance (Viscosity persistent nag vs. BetterDisplay hard "Trial Expired" state) — confirms both soft-nag and hard-lockout patterns exist in the wild, with no single dominant convention. (LOW-MEDIUM — WebSearch-aggregated summary of scattered community reports, not a systematic survey)
+- NotchDrop (open-source reference) — `github.com/Lakr233/NotchDrop` — README confirms drag-to-notch, 1-day configurable auto-save, click-to-open, option+click delete. (MEDIUM — README-level detail only, no architecture docs)
+- DynamicLake / DynaClip — `dynamiclake.com/blog/dynaclip-why-this-feature-is-so-strong`, `dynamiclake.com/blog/dynamic-island-for-mac-drag-and-drop` — 5-file cap, multi-file drop, drop-action picker (DynaDrop), "real-time feedback while dragging." (MEDIUM — marketing/blog copy, not technical docs)
+- Yoink — `eternalstorms.at/yoink/mac/`, App Store listing — shelf-slides-out-on-drag-start pattern, iCloud sync, drag-out workflow philosophy. (MEDIUM)
+- Apple HIG — `developers.apple.com/design/human-interface-guidelines/macos/user-interaction/drag-and-drop/` and `developer.apple.com/library/archive/.../dragdestination.html` — destination visual feedback expectations, spring-loading precedent. (HIGH)
+- Apple Developer Docs — `developer.apple.com/documentation/swiftui/view/ondrop(of:istargeted:perform:)` — `isTargeted` binding for hot-state feedback; `NSItemProvider` multi-provider drop delivery. (HIGH)
+- This project's own PROJECT.md — Phase 1 (click-through idle pill), Phase 2 (ISL-03 click-vs-hover model), Phase 3/6 (IslandResolver + TransientQueue auto-collapse timers), Phase 4 (async artwork-fill precedent for thumbnails). (HIGH — primary source for all dependency/pitfall analysis)
 
 ---
-*Feature research for: trial + one-time-purchase licensing in an indie macOS menu-bar utility*
-*Researched: 2026-07-05*
+*Feature research for: notch-overlay drag-and-drop file shelf*
+*Researched: 2026-07-09*

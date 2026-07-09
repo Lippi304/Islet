@@ -442,3 +442,157 @@ The dry-run already proved the mechanical steps (archive → sign → `hdiutil` 
 ---
 *Stack research for: Trial + Polar.sh licensing + real notarization additions to Islet (existing macOS notch app)*
 *Researched: 2026-07-05*
+
+---
+---
+
+# Stack Research Addendum: Drag-and-Drop File Shelf (v1.3 Notch Shelf)
+
+**Domain:** Native drag-and-drop (accept + drag-out) inside an existing borderless/click-through `NSPanel` overlay, plus file icon/thumbnail generation — additions for the "Notch Shelf" milestone
+**Researched:** 2026-07-09
+**Confidence:** MEDIUM-HIGH. The APIs themselves (`NSItemProvider`, `onDrop`, `Transferable`/`draggable`, `QLThumbnailGenerator`) are HIGH-confidence, current, official Apple APIs verified against the two most relevant open-source reference apps' actual shipped source (not just docs). The single riskiest claim — that `ignoresMouseEvents = true` does NOT block `NSDraggingDestination`/`onDrop` delivery — is not spelled out in Apple's prose docs, but is corroborated by (a) a working reference app (`NotchShelf`) whose collapsed-panel drag-to-open behavior is *only* explicable if this holds, (b) Apple's own "Dragging Destinations" doc describing drag delivery as a distinct message path independent of ordinary hit-testing, and (c) multiple independent community sources agreeing. Flag as MEDIUM-HIGH, not HIGH, and treat the first on-device drag test as the actual proof.
+
+This addendum covers ONLY the new-feature additions for the file-shelf milestone (accepting drops onto the click-through pill, auto-expand-on-drag-hover, dragging shelf items back out to Finder/other apps, file icon/thumbnail rendering). It does not re-research the core notch/overlay/MediaRemote/IOKit/IOBluetooth/licensing stack above, which is validated and unchanged. It verifies and refines — rather than just restates — the assumption already recorded in `PROJECT.md`: *"sauber machbar mit Standard-NSItemProvider-Drag&Drop in beide Richtungen, kein privates API nötig"* — **confirmed true**, with one important architectural nuance the assumption glossed over (see "The click-through integration" below).
+
+## TL;DR
+
+No new dependency is needed. Everything is built-in AppKit/SwiftUI/Foundation: `NSItemProvider` (+ SwiftUI's classic `.onDrop`) to **accept** drops of arbitrary file types from any app, the newer `Transferable` + `.draggable(_:)` (macOS 13+) to **drag items back out**, `QuickLookThumbnailing` (or, more simply, `NSWorkspace.icon(forFile:)`) for the per-item glyph, and a small, additive change to Islet's *existing* `syncClickThrough()`/`ignoresMouseEvents` machinery so a drag-hover can open the island even though the collapsed pill is normally click-through. The one thing to get right architecturally: **auto-expand-on-drag-hover must be driven by SwiftUI's `onDrop(isTargeted:)` callback, not by the existing global `.mouseMoved` monitor** — that monitor only observes `.mouseMoved` events, and macOS does not deliver `.mouseMoved` while a drag session (button held down) is in progress, so `NotchWindowController`'s current hover-detection path (`handlePointer`, `NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved])`) is structurally blind to a file being dragged over the notch. This has to be a second, independent trigger path into the same `syncClickThrough()`/expand logic, not a reuse of the existing one.
+
+## Recommended Stack
+
+### Core Technologies
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| **`NSItemProvider` + SwiftUI `.onDrop(of:isTargeted:perform:)`** | Foundation/AppKit, ships with SDK (classic API, still current) | Accept a drop of one or more files (or other content) onto the shelf/pill | All three studied reference apps — `Lakr233/NotchDrop`, `TheBoredTeam/boring.notch`'s Shelf feature, and the purpose-built `waynele-growtrics/NotchShelf` — use exactly this API for the **inbound** side, not the newer `dropDestination(for:)`. Reason: an inbound drop can come from Finder, a browser, Mail, Slack, etc. with unpredictable/heterogeneous UTTypes, and `NSItemProvider`'s `loadItem`/`loadObject`/`loadInPlaceFileRepresentation` family handles that heterogeneity far more robustly than declaring one `Transferable` type to decode into. HIGH confidence — 3/3 shipped reference apps converge on this. |
+| **`Transferable` + SwiftUI `.draggable(_:)`** | macOS 13+ (Ventura), ships with SDK | Drag a shelf item back OUT to Finder/other apps | The modern, Apple-blessed replacement for `.onDrag`, introduced WWDC22. Since the project already targets macOS 14+, this is available for free. `NotchShelf`'s `ShelfItem: Transferable` conformance (a `FileRepresentation` + a `ProxyRepresentation` fallback, see gotcha below) is the concrete, working pattern to copy. MEDIUM-HIGH confidence — one real reference implementation plus WebSearch corroboration that `draggable`/`Transferable` is the current generation (superseding `.onDrag`) for macOS 13+. |
+| **`NSItemProvider` + SwiftUI `.onDrag { ... }`** | Foundation/AppKit, ships with SDK (classic API) | Alternative/fallback for drag-out if `Transferable`'s `FileRepresentation` proves flaky with a particular receiving app | `TheBoredTeam/boring.notch` — the most mature, most-referenced reference app in this project's own `STACK.md` — ships its *real*, current (2026) Shelf feature on the **classic** `NSItemProvider`-based `onDrag`, not `Transferable`. That's a meaningful signal: a team maintaining a polished, widely-used app chose the older, more manual, more battle-tested API for exactly this feature. Keep both in your toolbox; start with `.draggable`/`Transferable` (less code), fall back to `.onDrag`/`NSItemProvider` if a specific target app (Finder/Slack/Mail) rejects the drop. |
+| **`QuickLookThumbnailing` (`QLThumbnailGenerator`)** | Ships with SDK since macOS 10.15, current | Real content thumbnails (actual photo/PDF-page preview, not just a generic file-type icon) | This is what `boring.notch`'s current Shelf feature actually uses (`ThumbnailService`, an `actor` wrapping `QLThumbnailGenerator.shared.generateBestRepresentation(for:)`, `iconMode: true`, cached by path+size). It is the correct, non-deprecated API for real thumbnails (the old `QuickLook.framework` C API `QLThumbnailImageCreate` is deprecated). Matches the project's "Alcove-level polish" design north star better than a generic icon. HIGH confidence on the API; MEDIUM-HIGH on it being the *right* choice for a beginner (see the simpler alternative below). |
+| **`NSWorkspace.icon(forFile:)`** | Ships with SDK | Simplest possible per-item glyph (generic Finder icon, not real content preview) | This is what the purpose-built `NotchShelf` reference uses — one line, synchronous, zero async/actor complexity (native platform feature covers it). Fine for a first pass or if `QLThumbnailGenerator`'s async/actor machinery feels like too much ceremony; upgrade to `QLThumbnailGenerator` later purely as a visual-polish pass — it's an additive, isolated service, not an architecture change (see Stack Patterns by Variant). |
+| **`UniformTypeIdentifiers` (`UTType`)** | Ships with SDK | Declaring accepted drop types (`.fileURL`, `.item`, `.data`) and the `Transferable` `exportedContentType` | Already a transitive dependency of the above; no separate install. |
+
+### Supporting Libraries
+
+None. Every piece above is a first-party Apple framework already linked by the app (AppKit/SwiftUI/Foundation). No third-party drag-and-drop library exists that does this better, and the user's own pre-assessment ("kein privates API nötig") is correct — nothing here touches a private API, unlike the existing MediaRemote/fullscreen-CGS pieces of this app.
+
+### Development Tools
+
+No new tools. Standard Xcode/SwiftUI-preview workflow — with one caveat: Xcode Previews cannot simulate a real OS-level drag session, so the drop/drag-out paths are only truly testable by running the app and dragging real files from Finder (mirrors the project's existing "manual Cmd-U on hardware" pattern for MediaRemote/Bluetooth/fullscreen work).
+
+## The click-through panel integration (the trickiest part, resolved)
+
+This project's actual, current implementation (`Islet/Notch/NotchWindowController.swift`) does **not** use the "size the window to exactly the visible content" trick that `NotchDrop`/`boring.notch` use to achieve click-through. Instead it keeps one panel sized to the union of all activity frames and flips `panel.ignoresMouseEvents` at runtime via a single centralized `syncClickThrough()`:
+
+```swift
+private func syncClickThrough() {
+    let interactive = pointerInZone || interaction.isExpanded
+    panel?.ignoresMouseEvents = !interactive
+}
+```
+
+Two findings from studying a directly-analogous shipped implementation (`waynele-growtrics/NotchShelf`, whose `NotchWindowController` uses the *exact same* `ignoresMouseEvents`-toggle pattern as Islet, not the "resize to content" pattern):
+
+1. **`ignoresMouseEvents = true` does not block SwiftUI's `.onDrop(isTargeted:)`.** `NotchShelf`'s panel is constructed with `panel.ignoresMouseEvents = true` immediately at init ("collapsed by default: pass every click through") and its `NotchViewModel.isOpen` computed property is `state == .expanded || isDropTargeted` — meaning a drag hover alone (`isDropTargeted` flipping true from the `.onDrop(isTargeted:)` binding) visibly opens the panel *before* anything ever sets `ignoresMouseEvents = false`. The only way that code works at all is if drag-destination delivery (`draggingEntered`/`isTargeted`) reaches the view regardless of `ignoresMouseEvents`. This matches Apple's own "Dragging Destinations" documentation, which describes drag-and-drop delivery as its own message path (`NSDraggingDestination`) gated purely on registered pasteboard types, not on ordinary mouse hit-testing — and matches independent community reports found via search. **Practical consequence for Islet: you do NOT need to force `ignoresMouseEvents = false` before a drag can be detected.** Attach `.onDrop(of:isTargeted:)` to a view inside the existing `NSHostingView` exactly as today, and it will start reporting `isTargeted` transitions even while the collapsed pill is fully click-through.
+2. **The existing global `.mouseMoved` hover monitor cannot see a drag session.** Islet's hover/expand path is driven entirely by `NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved])` → `handlePointer(at:)`. While a drag is in progress (mouse button down, moving), AppKit posts `.leftMouseDragged` events, not `.mouseMoved` — a monitor scoped to `.mouseMoved` will not fire during a drag pass over the notch, confirmed by Apple's own event-type taxonomy (dragged vs. moved are distinct `NSEvent` types/masks). **This means the drag-triggered auto-expand cannot piggyback on `handlePointer`/`pointerInZone` at all — it needs its own signal.**
+
+**Concrete integration shape for the actual phase plan** (not fully resolved here — this is a stack/API recommendation, the phase plan should design the exact state-machine wiring):
+- Add a `@Published var isDropTargeted: Bool` (or fold it into the existing `NotchInteractionState`) fed by a `.onDrop(of: [.fileURL, .item], isTargeted: $isDropTargeted) { providers in ...; return true }` attached to a view that covers (at least) the collapsed pill's frame — mirroring `NotchDrop`'s separate, slightly-larger invisible `dragDetector` overlay so the hit-target is comfortable to drag onto, not pixel-perfect to the pill.
+- Feed `isDropTargeted` into `syncClickThrough()`'s `interactive` condition (`pointerInZone || interaction.isExpanded || isDropTargeted`) so the panel becomes interactive (to accept the eventual drop) the moment a drag is detected, exactly mirroring the existing pattern already in the file for hover/click.
+- Drive the actual expand animation (spring + `nextState(...)`) from the same `isTargeted` transition, as an ADDITIVE third trigger next to the existing `.pointerEntered`/`.clicked` transitions — not a reuse of `handlePointer`.
+- Return `true` synchronously from the `.onDrop` `perform` closure as soon as you're confident you can handle *some* item (matching `NotchDrop`'s `DispatchQueue.global().async { load(providers) }; return true` pattern) — a documented SwiftUI gotcha (Eclectic Light Company) is that computing the return value *inside* the async load block races the drop animation and can silently cancel it; decide synchronously, load asynchronously.
+
+## Auto-expand-on-drag-hover — behavior notes
+
+- `isTargeted` (the `.onDrop` binding) goes `true` the instant the OS-level drag enters the view's registered bounds and `false` on exit or drop — this is the correct, sufficient signal for "should the island pop open," matching exactly what `NotchDrop` (`dropTargeting` → `vm.notchOpen(.drag)`) and `NotchShelf` (`isDropTargeted` → `isOpen`) both do.
+- On exit (drag dragged back off the pill without dropping), close only if the *real* pointer isn't independently still hovering — `NotchDrop`'s `onChange(of: dropTargeting)` explicitly re-checks `NSEvent.mouseLocation` against the open rect before collapsing, to avoid a flicker-close if the user's cursor is still physically over the expanded area during the same gesture. Reuse the existing `expandedZone`/`hotZone` rects for this recheck rather than inventing new geometry.
+- No `wantsPeriodicDraggingUpdates` or manual `NSDraggingDestination` conformance is needed — SwiftUI's `.onDrop` already registers the underlying view for dragged types and delivers the `isTargeted` transitions; none of the three reference apps drop down to raw AppKit `registerForDraggedTypes` for this.
+
+## Drag files back OUT to Finder/other apps
+
+- **Primary path:** conform the shelf-item model to `Transferable`, mirroring `NotchShelf`'s `ShelfItem`:
+  ```swift
+  extension ShelfItem: Transferable {
+      static var transferRepresentation: some TransferRepresentation {
+          FileRepresentation(exportedContentType: .data, shouldAllowToOpenInPlace: false) { item in
+              // copy to a FRESH temp file per export, return SentTransferredFile
+          }
+          ProxyRepresentation { item in item.storageURL }   // see gotcha below
+      }
+  }
+  ```
+  Then `.draggable(item)` on the shelf cell view — that's the entire drag-out wiring, no manual pasteboard code.
+- **Documented gotcha (cite: `NotchShelf` source comment, corroborated by the general `Transferable`/Finder interop discussion in the WebSearch results):** *"A bare `FileRepresentation` is rejected by Finder/Slack on macOS 13/14; also vending the URL as a proxy makes the drop accept reliably."* Always pair `FileRepresentation` with a `ProxyRepresentation` returning the file's `URL` — this is a one-line addition, not a redesign, but skipping it produces an intermittent "drag out doesn't work in Finder" bug that is easy to lose hours to.
+- **Vend a fresh copy per export, never the live stored file directly** — `NotchShelf`'s own comment on this: *"a receiver that moves rather than copies can't destroy our stored original."* Since some drop targets (e.g. Mail attach, or a user doing a Finder *move* rather than copy) physically move/consume the source URL, always copy-to-a-throwaway-temp-path inside the `FileRepresentation` closure and hand out that copy, keeping the shelf's own on-disk original untouched.
+- **Fallback if `Transferable`/`FileRepresentation` misbehaves against a specific target app:** drop to the classic `.onDrag { NSItemProvider(...) }` + `provider.registerObject(url as NSURL, visibility: .all)` pattern — this is `boring.notch`'s actual real-world choice for its shipped Shelf feature, so treat it as a proven fallback, not a last resort.
+
+## File icon / thumbnail generation
+
+Two valid tiers, pick one to start and treat the other as a pure visual-polish upgrade later (no architecture change either way — both just fill an `NSImage` for the same cell view):
+
+1. **`NSWorkspace.shared.icon(forFile:)`** — one synchronous line, generic per-file-type icon (a PDF shows the generic PDF icon, not the first page; a photo shows the generic image-file icon, not the picture). Simplest possible starting point (`NotchShelf`'s actual choice).
+2. **`QLThumbnailGenerator.generateBestRepresentation(for:)`** (async, via `QLThumbnailGenerator.Request(fileAt:size:scale:representationTypes:)`, `iconMode = true`) — real content previews (an actual PDF-page render, an actual photo thumbnail). This is `boring.notch`'s real, current choice for its shipped Shelf, wrapped in a small `actor`-based cache service (~80 lines) to avoid redundant regeneration. Matches the "Alcove-level polish" design bar better, at the cost of async/actor code a first-time programmer will need explained.
+
+**Recommendation: start with `NSWorkspace.icon(forFile:)`** (native platform feature, zero threading complexity) and reserve `QLThumbnailGenerator` as an explicit, isolated follow-up polish pass once the shelf's core drag-in/drag-out/remove mechanics are proven on-device — this mirrors the project's own established pattern (Phase 4's Now Playing shipped basic art first, artwork-latency polish followed).
+
+## Alternatives Considered
+
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| Classic `NSItemProvider` + `.onDrop` for inbound drops | `.dropDestination(for: SomeTransferable.self, ...)` (macOS 13+) | Only if every source you need to accept from is under your control and always vends the exact same `Transferable` type — not the case here (arbitrary files from Finder/browsers/Mail). |
+| `Transferable` + `.draggable(_:)` for drag-out | Classic `.onDrag { NSItemProvider(...) }` | If `Transferable`'s `FileRepresentation` proves unreliable against a specific target app during on-device testing — `boring.notch` made exactly this call for its real shipped feature. |
+| `NSWorkspace.icon(forFile:)` for the cell glyph | `QLThumbnailGenerator` | Once the shelf's core mechanics are solid and you want Alcove-level real-content thumbnails (photo/PDF previews) rather than generic file-type icons. |
+| Additive `isDropTargeted` signal feeding the existing `syncClickThrough()` | Reusing the existing `.mouseMoved` global monitor for drag detection | Never — `.mouseMoved` is not delivered during an active drag session; this path is structurally incapable of seeing a drag hover, regardless of tuning. |
+| Copy dropped files into a private temp/app-support directory immediately, wipe at every launch (no `reload()` of a prior session) | Persisting shelf contents across relaunch, like `NotchDrop`/`boring.notch` do | Only if a future milestone changes the "purely session-temporary, cleared on app/Mac restart" requirement — the reference apps' own persistence (`reload()` from disk, `keepInterval` expiry) is explicitly the opposite of what this milestone specifies; don't copy that part of their design. |
+
+## What NOT to Use
+
+| Avoid | Why | Use Instead |
+|-------|-----|--------------|
+| Any third-party drag-and-drop library (none of note exist for this) | Apple's own `NSItemProvider`/`Transferable`/`onDrop`/`draggable` APIs fully cover both directions; three independent shipped reference apps prove it end-to-end with zero third-party dependencies | First-party `NSItemProvider` + `Transferable`/SwiftUI drag-drop modifiers |
+| Manually implementing `NSDraggingDestination` (`registerForDraggedTypes`, `draggingEntered`/`performDragOperation` overrides) on a custom `NSView` | SwiftUI's `.onDrop`/`.draggable` already wrap this correctly; none of the three reference apps drop to raw AppKit for this feature — added complexity for no benefit | SwiftUI `.onDrop(of:isTargeted:perform:)` / `.draggable(_:)` |
+| Deprecated `QuickLook.framework` C API (`QLThumbnailImageCreate`) for thumbnails | Deprecated; `QuickLookThumbnailing`'s `QLThumbnailGenerator` is the current, non-deprecated replacement | `QLThumbnailGenerator.generateBestRepresentation(for:)`, or the simpler `NSWorkspace.icon(forFile:)` |
+| Trying to gate the drag-hover auto-expand behind the existing hover-based `ignoresMouseEvents`/`pointerInZone` machinery unmodified | `.mouseMoved` is not posted during an active drag; this path never fires for a drag session no matter how it's wired | A second, additive `isDropTargeted` signal from SwiftUI's own `.onDrop(isTargeted:)`, which is delivered independently of `ignoresMouseEvents` |
+| Computing the `.onDrop` `perform` closure's `Bool` return value from inside the async item-loading block | Documented SwiftUI gotcha — the drop succeeds/fails animation races the async load and can silently show a cancelled-drop animation even when the load later succeeds | Return `true` synchronously as soon as you accept responsibility for the items; do the actual (possibly failing) load asynchronously afterward, same as `NotchDrop`'s pattern |
+| Persisting the shelf's contents to survive an app relaunch (`reload()`-from-disk pattern) | Explicitly contradicts this milestone's "cleared on app restart or Mac restart" requirement, even though both mature reference apps (`NotchDrop`, `boring.notch`) do exactly this for their own (different) requirements | Copy dropped files into a private temp directory for in-session use only; never read that directory back in at the next `start()` |
+
+## Stack Patterns by Variant
+
+**If the beginner wants the absolute simplest first working version:**
+- `NSWorkspace.icon(forFile:)` for glyphs, classic `.onDrop`/`NSItemProvider` in, classic `.onDrag`/`NSItemProvider` out.
+- Because it avoids `Transferable`'s protocol-conformance boilerplate and `QLThumbnailGenerator`'s async/actor code entirely, at the cost of a slightly plainer look (generic icons, one extra manual `NSItemProvider` construction step for drag-out).
+
+**If Finder/Slack drag-out via `Transferable`/`FileRepresentation` misbehaves on-device:**
+- Fall back to the classic `.onDrag { NSItemProvider(...) }` pattern `boring.notch` actually ships.
+- Because that's the proven, real-world-shipped path for exactly this failure mode, not a hypothetical.
+
+**If real content thumbnails (photo/PDF preview) are wanted for Alcove-level polish:**
+- Add `QLThumbnailGenerator` behind a small, isolated cache actor (mirroring `boring.notch`'s `ThumbnailService`), swapped in for `NSWorkspace.icon(forFile:)` purely as a visual upgrade — no other code changes.
+- Because thumbnail generation is naturally isolable behind one function signature (`URL, CGSize -> NSImage?`), matching this project's own established isolation pattern for risky/swappable API surfaces (`NowPlayingService`, `WeatherService`, `CalendarService`).
+
+## Version Compatibility
+
+| Component | Compatible With | Notes |
+|-----------|------------------|-------|
+| `Transferable` / `.draggable(_:)` / `.dropDestination(for:)` | macOS 13+ (Ventura) | Project targets macOS 14+, so fully available; no floor-raising needed. |
+| Classic `.onDrag`/`.onDrop` + `NSItemProvider` | All current macOS | Long-stable API; still the *current, real* choice in the most mature reference app (`boring.notch`) for both drop-in and (for that app) drag-out. |
+| `QuickLookThumbnailing` (`QLThumbnailGenerator`) | macOS 10.15+ | No version gotcha at a macOS 14+ floor. |
+| `ignoresMouseEvents` + `NSDraggingDestination`/`onDrop` independence | Current macOS, behavior not officially documented by Apple in prose but empirically confirmed via a working reference app + Apple's architectural description of drag delivery | Re-verify with a real on-device drag test as the first executable step of implementation — this is the one claim in this addendum resting on inference + a working analog rather than an explicit Apple statement. |
+| Drag-and-drop as an implicit TCC/Powerbox-style grant for protected folders (Desktop/Documents/Downloads) | Current macOS | Dragging a file *into* an app is one of the recognized user-intent mechanisms (like an `NSOpenPanel` selection) that grants that specific file's access without a TCC prompt — confirmed via HackTricks' TCC writeup. Relevant because Islet is an unsandboxed `LSUIElement` background agent: expect NO extra permission prompt for accepting a drag-dropped file from a protected folder, unlike a hypothetical programmatic directory scan of `~/Desktop` (which would need Full Disk Access or a folder-specific TCC grant). |
+
+## Sources
+
+- `Lakr233/NotchDrop` (MIT, cloned 2026-07-09) — `NotchDrop/TrayDrop+View.swift`, `NotchDrop/NotchView.swift`, `NotchDrop/Ext+FileProvider.swift`, `NotchDrop/NotchWindow.swift` — confirmed classic `.onDrop(of: [.data], isTargeted:)`, the separate larger invisible `dragDetector` overlay, `onChange(of: dropTargeting)` re-checking real mouse location before closing, and the "return true synchronously, load async" pattern. HIGH confidence (read directly from shipped source).
+- `waynele-growtrics/NotchShelf` (cloned 2026-07-09) — `Sources/Notch/NotchWindow.swift`, `Sources/Notch/NotchViewModel.swift`, `Sources/Notch/NotchView.swift`, `Sources/Shelf/ShelfView.swift`, `Sources/Shelf/ShelfModel.swift`, `Sources/Shelf/ShelfItem.swift` — the single most load-bearing source for this addendum: an `ignoresMouseEvents`-toggling `NSPanel` (same architecture family as Islet's own, unlike `NotchDrop`/`boring.notch`'s resize-to-content approach), whose `isDropTargeted`-driven auto-open only makes sense if drag delivery bypasses `ignoresMouseEvents`; also the source of the `Transferable`/`FileRepresentation`+`ProxyRepresentation` Finder-compat gotcha and the "copy a fresh export, never the live original" comment. HIGH confidence (read directly from shipped source), MEDIUM-HIGH on the inferred `ignoresMouseEvents` behavior specifically (see caveat above).
+- `TheBoredTeam/boring.notch` (cloned 2026-07-09) — `boringNotch/components/Shelf/Services/ShelfDropService.swift`, `.../ThumbnailService.swift`, `.../ViewModels/ShelfItemViewModel.swift`, `.../NSItemProvider+LoadHelpers.swift`, `boringNotch/components/Notch/BoringNotchWindow.swift` — confirmed this project's most mature reference app uses classic `NSItemProvider`/`onDrag` for drag-out (not `Transferable`) and `QLThumbnailGenerator` (via a cached `actor` service) for real content thumbnails; confirmed its window class does not toggle `ignoresMouseEvents` at all (different click-through strategy than Islet's own). HIGH confidence (read directly from shipped source).
+- `Islet/Notch/NotchWindowController.swift` (this repository) — Islet's own current `syncClickThrough()`/`ignoresMouseEvents`/`handlePointer`/global `.mouseMoved` monitor implementation, read directly to ground the integration recommendation in the project's actual code, not a generic pattern. HIGH confidence (primary source).
+- Apple Developer Documentation — `developer.apple.com/documentation/appkit/nswindow/ignoresmouseevents` (fetched directly 2026-07-09, JSON API) — confirmed the property's bare semantics; does not itself discuss drag-and-drop interplay, hence the MEDIUM-HIGH (not HIGH) confidence on that specific claim.
+- Apple Developer Documentation — `developer.apple.com/library/archive/documentation/Cocoa/Conceptual/DragandDrop/Concepts/dragdestination.html` ("Dragging Destinations") — describes `NSDraggingDestination` message delivery as gated on registered pasteboard types during an active drag session, a distinct mechanism from ordinary mouse-event hit-testing. MEDIUM-HIGH (architectural description, not an explicit ignoresMouseEvents statement).
+- WebSearch, multiple queries on `ignoresMouseEvents` + `NSDraggingDestination`/`onDrop` interplay — converging community consensus that drag delivery has its own event path independent of `ignoresMouseEvents`. MEDIUM confidence (community sources, no single authoritative doc found saying this explicitly).
+- WebSearch — "SwiftUI on macOS: Drag and drop, and more" (Eclectic Light Company, eclecticlight.co) — confirmed the "return true synchronously, not from inside the async load block" gotcha via a documented real bug report in that article's comments. MEDIUM-HIGH.
+- WebSearch — HackTricks macOS TCC writeup (`hacktricks.wiki`) — confirmed drag-and-drop is a recognized implicit-consent/Powerbox-style mechanism for TCC-protected folders (Desktop/Documents/Downloads), distinct from a TCC-database grant. MEDIUM confidence (security-research secondary source, not an Apple doc, but specific and technically detailed).
+- WebSearch — general SwiftUI drag-and-drop evolution query — confirmed `Transferable`/`draggable(_:)`/`dropDestination(for:)` were introduced for iOS 16/macOS 13, superseding `onDrag`/`onDrop` as Apple's current-generation API, while `onDrag`/`onDrop` remain supported and, per the reference apps above, still the pragmatic choice for heterogeneous inbound drops. MEDIUM-HIGH (converges with training-data knowledge of the WWDC22 Transferable introduction).
+
+---
+*Stack research for: Drag-and-drop file shelf additions to Islet (existing macOS notch app), v1.3 Notch Shelf milestone*
+*Researched: 2026-07-09*
+</content>

@@ -1,260 +1,209 @@
 # Pitfalls Research
 
-**Domain:** Adding trial enforcement, one-time paid licensing (Polar.sh), and real Developer-ID notarization to an existing shipped indie macOS menu-bar app (Islet)
-**Researched:** 2026-07-05
-**Confidence:** MEDIUM-HIGH (notarization/codesign mechanics and macOS Keychain behavior are HIGH confidence, well-documented; Polar.sh-specific operational details are MEDIUM — official docs are thin on rate limits/offline guidance, filled in with general licensing-industry patterns which are LOW-MEDIUM but directionally solid)
-
-**Explicit scope guardrail:** This is a hobby project's first monetization pass, not enterprise DRM. Every mitigation below is chosen to be "annoying enough to stop casual reset-abuse," not "unbreakable." If a prevention strategy starts requiring server-side device fingerprinting, obfuscation, or anti-debugging, that is over-engineering — flag it and cut it.
-
----
+**Domain:** Drag-and-drop file shelf added to an existing non-activating, click-through notch-overlay `NSPanel` (Islet/Notch, v1.3 "Notch Shelf")
+**Researched:** 2026-07-09
+**Confidence:** MEDIUM-HIGH (grounded in direct read of `NotchWindowController.swift`/`IslandResolver.swift`, Apple API docs, and TheBoringNotch's shipped shelf architecture; LOW-confidence items flagged individually)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Trial state stored only in UserDefaults/plist (trivially reset)
+### Pitfall 1: `ignoresMouseEvents = true` silently blocks ALL drag-and-drop delivery, not just clicks
 
 **What goes wrong:**
-Storing `trialStartDate` only in `UserDefaults`/`~/Library/Preferences/<bundle-id>.plist` means any user can reset the trial for free by running `defaults delete <bundle-id>` or deleting the plist file directly — no reinstall even required. This is the single most common mistake in indie macOS trial implementations, because UserDefaults is the first API a Swift developer reaches for and it "just works" in every tutorial.
+The panel already relies on `panel?.ignoresMouseEvents = !interactive` (`syncClickThrough()`, `NotchWindowController.swift:696-699`) to stay click-through everywhere except the hot-zone. Apple's own docs for `NSWindow.ignoresMouseEvents` state the window becomes "transparent to all mouse events" when true — this is not scoped to clicks. AppKit's drag-destination hit-testing (`draggingEntered`/`draggingUpdated`/`performDragOperation`) is routed through the exact same window-server mouse-event delivery path. A window that ignores mouse events is invisible to the drag machinery too: registering `registerForDraggedTypes(...)` on the hosted `NSHostingView` (or a `.onDrop` in the SwiftUI tree) has **zero effect** while `ignoresMouseEvents` is true, because the drag session never reaches the window at all.
 
 **Why it happens:**
-UserDefaults is the path of least resistance — no imports, no error handling, no async. Developers don't think about the attack until a user posts "how to reset X app trial" on Reddit/forums.
+The existing hover architecture (Phase 2) was built for *clicks*, where "pass through everywhere except a tiny hot-zone" is exactly correct. Drag-and-drop looks like the same problem ("only react near the notch") but is a fundamentally different event path — it's easy to assume flipping the same flag on drag-enter will "just work" the way it does for hover, because the code already does that dance for `.mouseMoved`.
 
 **How to avoid:**
-Store the trial marker in the **login keychain** (`kSecClassGenericPassword`, non-sandboxed app, no App Group needed) rather than UserDefaults. On macOS, Keychain items are **not** tied to the app bundle/container — unlike iOS, deleting or reinstalling the app on macOS does **not** remove Keychain items (this is a load-bearing platform difference: macOS Keychain persistence is independent of app lifecycle for non-sandboxed apps). This alone stops the "delete the app, reinstall, get another 3 days" attack without requiring any server component.
-
-Proportionate implementation for this project:
-- Write trial-start date to Keychain on first launch (one item, `kSecAttrAccount` = something app-specific, `kSecAttrAccessible` = `kSecAttrAccessibleAfterFirstUnlock` so it survives reboots without requiring unlock-state gymnastics).
-- Also mirror it to UserDefaults for convenience reads — but treat Keychain as source of truth; if UserDefaults value is absent/earlier than Keychain value, trust Keychain (i.e., **the earliest of the two known dates wins for enforcement**, not the most recent) so a user can't extend by editing just the plist.
-- Do **not** attempt hardware fingerprinting, System Integrity Protection bypass detection, or anti-tamper obfuscation — explicitly out of scope. A determined user who is willing to poke at Keychain Access or write a script to nuke the specific keychain item will always be able to reset it; the goal is raising the bar past "everyone does this by accident," not stopping the 1% who'd bother anyway.
-- Accept, explicitly and in writing in the plan, that **some casual trial abuse is a cost of doing business** at this price point (€7.99) and scale (solo dev, small user base). Do not build a device-fingerprint-plus-server-side-first-seen-registry system for this — that is real over-engineering for a €7.99 utility.
+Detect an in-flight drag session independently of the panel's own drag-destination callbacks (which can never fire while the panel is click-through) — mirror the project's existing pattern of a **global NSEvent monitor** (it already has one for `.mouseMoved` at `NotchWindowController.swift:299`) but add `.leftMouseDragged`, hit-test the pointer location against the (drag-specific, slightly larger) hot-zone, and — the moment the pointer enters — flip `ignoresMouseEvents = false` through the *same* `syncClickThrough()` single-writer function before AppKit's drag-destination determination needs it. Only once the window has stopped ignoring mouse events will `draggingEntered` on a `registerForDraggedTypes` view (or SwiftUI `.onDrop`) actually get called. Confirm the drag pasteboard is really a file drag (`NSPasteboard(name: .drag)` change count / `hasItemConformingToTypeIdentifier(.fileURL)`) before treating it as a shelf trigger, matching the technique TheBoringNotch's `DragDetector` and community write-ups use for exactly this scenario.
 
 **Warning signs:**
-- Any code path that reads trial start exclusively from `UserDefaults.standard`.
-- No fallback/reconciliation logic between two storage locations.
-- QA testing only ever runs the trial once per machine (never verifies reinstall behavior).
+Dragging a file over the collapsed pill does nothing at all — no expand, no hover cursor change, `.onDrop`'s `isTargeted` binding never flips true even though the pointer is visually over the notch.
 
-**Phase to address:** Trial-enforcement phase (the phase that introduces `TrialService`/trial start-date persistence) — should be a foundational design decision, not a bolt-on fix later.
+**Phase to address:**
+Pure-seam/model phase must define the drag-hit-test as a pure function (mirrors `nextState`/`handlePointer`'s existing hotZone math) BEFORE the view-wiring phase adds any `.onDrop`/`registerForDraggedTypes` call — wiring `.onDrop` first without the `ignoresMouseEvents` fix will look "done" in a simulator/preview but silently fail on the real panel.
 
 ---
 
-### Pitfall 2: License validation hard-fails with no retry/support path when Polar API/network is unavailable at first-purchase moment
+### Pitfall 2: `.mouseMoved` stops firing during an active drag — the existing hover/grace-collapse state machine freezes mid-drag
 
 **What goes wrong:**
-User buys the license, gets a key (via email or checkout redirect), pastes it into the app, and at that exact moment either Polar's API is briefly down, the user's Wi-Fi hiccups, or a corporate/hotel network blocks the request. A naive implementation shows a raw error ("Network error: -1009") or silently fails, and the user — who just paid money — concludes the app is broken/a scam and requests a refund or leaves a bad review. This is the highest-consequence failure mode in the whole milestone because it happens at the exact moment of maximum purchase-regret risk.
+AppKit does not deliver ordinary `.mouseMoved` events while a mouse button is held down and a drag is in progress — pointer motion during a drag arrives only as `.leftMouseDragged`. The existing `handlePointer(at:)` (fed exclusively by the `.mouseMoved` global monitor) therefore **freezes** the instant any drag starts, anywhere on screen — including a drag-out of a shelf file. Concretely: user starts dragging a file out of the expanded shelf toward Finder; `pointerInZone` was `true` at drag-start and never updates again because no more `.mouseMoved` events arrive; the pointer visually leaves `expandedZone` but `handleHoverExit()`/the grace-collapse timer is never scheduled, so **the island stays expanded and stuck** until the drag ends and a fresh `.mouseMoved` finally fires (or, if it un-sticks only after drop, is visually jarring). The inverse also breaks auto-expand-on-hover: a file dragged in from Finder generates `.leftMouseDragged`, not `.mouseMoved`, so the auto-expand logic (if wired only to the existing hover monitor) never triggers at all — the exact "false negative" the milestone is worried about.
 
 **Why it happens:**
-Developers test license validation almost exclusively on their own reliable home/office network, so the "network flaky at the worst possible time" path is rarely exercised. Additionally, a single validate call with no retry logic is the simplest thing to write first and often never gets revisited.
-
-**How to avoid (resilient pattern, proportionate to scale):**
-- Distinguish **network/transient errors** from **actual invalid-key errors**. Only show "this license key is invalid" for an explicit 4xx "key not found/revoked" response from Polar. For anything else (timeout, DNS failure, 5xx, no connectivity), show a clearly different message: "Couldn't reach the license server — check your connection and try again," with a visible **Retry** button.
-- Add automatic retry with short backoff (2-3 attempts, few seconds apart) before surfacing any error to the user at all — most transient blips resolve within seconds.
-- On failure after retries, **do not lock the user out of a key they just paid for.** Let them retry later; keep the pasted key stored locally (unvalidated) so they don't have to re-find/re-paste it, and re-attempt validation on next app launch or on a manual "Retry validation" button.
-- Provide a visible support contact (email/Discord/whatever channel exists) directly in the failure state — "Still stuck? Email us at X" — so a paying customer always has a human escape hatch instead of a dead end.
-- Log the failure locally (simple log file) so if the user does email support, you can ask them to send it rather than debugging blind.
-
-**Warning signs:**
-- Error message strings that are raw `Error.localizedDescription` dumps shown directly to the user.
-- No distinction in code between "key invalid" and "request failed."
-- No retry logic at all around the validate/activate network call.
-
-**Phase to address:** Licensing/Polar-integration phase — specifically the "activate/validate flow" task. This should be tested by simulating airplane mode and a mocked 500/timeout response, not just the happy path.
-
----
-
-### Pitfall 3: Offline-cached license state stored as a plain flippable boolean
-
-**What goes wrong:**
-Since the design explicitly validates once online then trusts a local cache indefinitely, the temptation is to store `isLicensed: Bool` (or `trialExpired: Bool`) in UserDefaults. This is trivially flipped with `defaults write <bundle-id> isLicensed -bool true` in Terminal — no reverse engineering skill required, just knowledge that the key exists (and app binaries/strings are easy to grep for likely key names).
-
-**Why it happens:**
-Same root cause as Pitfall 1: UserDefaults is the reflexive choice, and "cache the validated result" sounds like it just means "save a bool."
-
-**How to avoid (proportionate — not paranoid-grade):**
-- Store the cached license state in the **Keychain**, not UserDefaults, as the primary source of truth (same rationale/mechanism as Pitfall 1 — non-sandboxed macOS Keychain items are easy to write/read and are not casually editable via a documented CLI the way `defaults write` is).
-- Store more than a bare bool: include the license key itself (or a hash of it), the last-validated timestamp, and ideally a simple locally-computed integrity value (e.g., HMAC or hash of `licenseKey + timestamp + a fixed app-embedded secret`) so a value copied from one field can't just be typed into another blindly. This is **not** meant to defeat a determined reverse engineer with a debugger — it only needs to defeat "type one Terminal command found in a forum post." Do not implement code signing of the cache, remote attestation, or anti-debugging — genuinely out of scope for a €7.99 utility.
-- Re-validate opportunistically (e.g., once every N days when online) rather than never again — this bounds how stale/tampered state can drift before a legitimate re-check silently corrects it, without turning this into a "phone home every launch" always-online requirement (which would reintroduce Pitfall 2's failure mode as a *recurring* nuisance instead of a one-time one).
-- Accept explicitly: a user willing to open Keychain Access and hand-edit an item, or attach a debugger, can still bypass this. That is out of scope to prevent. The bar is "harder than one documented Terminal command," not "unbreakable."
-
-**Warning signs:**
-- `UserDefaults.standard.bool(forKey: "isLicensed")` or similarly named keys anywhere in the codebase.
-- Cache format is human-readable/guessable with no timestamp or key-material binding at all.
-- No periodic re-validation — cache is genuinely "forever" with zero drift correction.
-
-**Phase to address:** Licensing phase, same task as Pitfall 2 (the local cache is the other half of the validate flow) — plan should explicitly call out Keychain-not-UserDefaults as an acceptance criterion.
-
----
-
-### Pitfall 4: Notarization failure from unsigned/incorrectly-signed nested MediaRemoteAdapter.framework or spawned perl helper
-
-**What goes wrong:**
-`notarytool submit` (or the older `altool`) rejects submissions when **any nested binary** inside the app bundle lacks a valid Developer ID signature with the hardened runtime enabled and a secure timestamp — this includes vendored frameworks like `MediaRemoteAdapter.framework`, not just the main executable. Common concrete failures seen in the wild: "The binary is not signed," "The signature does not include a secure timestamp," "The executable does not have the hardened runtime enabled," and nested-framework-specific signature mismatches when Xcode's automatic signing doesn't descend properly into an embedded framework that itself was built/vendored with a different signing identity or timestamp.
-
-For this project specifically: `MediaRemoteAdapter.framework` is a **vendored, prebuilt** third-party framework (not built from this project's source), and the app **spawns `/usr/bin/perl` as a subprocess** at runtime. Spawning system binaries at runtime is not itself something `notarytool` inspects or blocks (the perl binary is Apple's own system binary already signed by Apple — you are not shipping/signing your own perl), but the app's *own* code that does the spawning must itself be correctly signed with the hardened runtime, and if the hardened runtime blocks or restricts child-process behavior, the relevant entitlement (e.g., disabling library validation if needed for how the adapter operates) must be present and justified.
-
-**Why it happens:**
-Xcode's "Sign to Run Locally" (used throughout regular development) does not exercise the same validation path as a real Developer ID + hardened runtime + notarization submission — the dry-run/local-dev signing is much more forgiving. The first time a full release-signed archive is built and submitted is often the first time these gaps surface, days or weeks after the actual code was written, disconnected from the original context.
+This is invisible in normal manual testing because a developer testing hover/click never has a mouse button held down; it only shows up once a real drag session (in or out) is exercised, which non-drag phases of this project never needed to consider.
 
 **How to avoid:**
-- Set the framework's "Embed & Sign" (not "Embed Without Signing") in Xcode's Frameworks/Libraries/Embedded Content settings for `MediaRemoteAdapter.framework` — this makes Xcode re-sign the vendored framework with *your* Developer ID during archive, which is required (the framework's own upstream signature, if any, is not sufficient — it must carry your team's signature to notarize as part of your app).
-- Enable the hardened runtime on the target (`ENABLE_HARDENED_RUNTIME = YES`), and add **only** the specific entitlements actually required — if the adapter needs to invoke perl and load a helper dylib there, check whether `com.apple.security.cs.allow-unsigned-executable-memory` / `com.apple.security.cs.disable-library-validation` are genuinely necessary (do not blanket-add every hardened-runtime exception "just in case" — each one is both a notarization risk-surface and a real security weakening; add the minimum that makes the actual adapter flow work, verified by testing the signed build, not by assumption).
-- Do a **local pre-flight validation** before ever calling `notarytool submit`: `codesign --verify --deep --strict --verbose=2 YourApp.app` and `spctl --assess --type execute -vvv YourApp.app` on the *actual archived, exported, Developer-ID-signed* build (not a debug build) to catch nested-signature problems before burning a submission cycle.
-- Sign nested content **innermost-first**: sign `MediaRemoteAdapter.framework` (and anything nested inside it) before signing the outer app bundle — codesign order matters, and this is exactly the kind of bug `--deep` masks rather than fixes (avoid `codesign --deep` for the final production signing step in favor of explicit per-target signing, since `--deep` is described by Apple/community guidance as "almost never what you actually want" for complex bundles with multiple embedded binaries).
-- Treat the first real notarization submission as its own testable milestone step, not a footnote at the end of a phase — budget time for at least 2-3 iteration cycles (each `notarytool submit --wait` round-trip is minutes, but diagnosing a signature issue from the returned log can take longer).
-
-**Notarization vs. "uses a private API/spawns processes" — does this specifically increase rejection risk?**
-Based on available research (MEDIUM confidence — Apple does not publish the exact scanner heuristics), notarization remains fundamentally a **malware/known-bad-signature scan**, not a policy review of *what* the app does — Apple's own documentation continues to describe it as automated scanning for known malicious content plus code-signing validation, not app-behavior review. There is no documented case found of notarization being rejected specifically *because* an app spawns subprocesses or bridges into private frameworks per se — legitimate apps (including this project's own reference points, e.g. TheBoringNotch, and many automation/scripting tools) ship notarized while doing exactly this. However, two real, adjacent risks exist and should not be dismissed:
-1. Malware families have historically abused legitimate-looking, correctly-signed/notarized apps that fetch and execute payloads at runtime — meaning Apple's scanner behavior in this space has evolved and could tighten further without much notice. This is a "watch for future changes" risk, not a known current blocker.
-2. Practically, the **actual signing correctness of the nested framework and hardened-runtime entitlement set** (Pitfall 4's main body) is a far more likely source of a real rejection than anything to do with the private-API bridging itself. Do not spend effort trying to "hide" the perl-spawning behavior from the scanner — that would be the actual red flag (obfuscation is a malware signal); ship it signed correctly and transparently.
+Add a **second** global monitor for `.leftMouseDragged` (and `.leftMouseUp` to detect drag-end) alongside the existing `.mouseMoved` one, and feed both into the same `pointerInZone`/zone-hit-test logic — during a drag, zone membership must be evaluated from `.leftMouseDragged` locations, not `.mouseMoved`. `.leftMouseUp` should force a final zone check so a drag that ends outside the zone properly triggers the grace-collapse instead of leaving the island open forever.
 
 **Warning signs:**
-- Framework embed setting is "Embed Without Signing" instead of "Embed & Sign."
-- `codesign --verify --deep --strict` on the archived build reports failures before you've even submitted to Apple.
-- Notarization log (`notarytool log <submission-id>`) shows "The signature does not include a secure timestamp" or "is not signed" for anything other than the top-level app you expect.
-- Testing only ever happens via local Xcode run/debug builds, never an actual exported+signed archive, until the day of intended release.
+Manually dragging a file out of the shelf and dropping it on the Desktop, then moving the mouse without touching it again — island stays expanded with no pointer inside it until the next stray `.mouseMoved`.
 
-**Phase to address:** The dedicated "real notarization" phase in this milestone (moving from dry-run/local signing to Developer-ID + notarize + staple). Should include an explicit task to codesign-verify and spctl-assess the archived build locally before first submission, and a fallback/iteration budget rather than assuming one-shot success.
+**Phase to address:**
+View-wiring/gesture-integration phase, and must be covered by an explicit on-device UAT checklist item (this class of bug is not visible in unit tests, which can't simulate a real OS-level drag session) — flag prominently in that phase's plan, mirroring the project's own precedent of on-device-only checklists for OS-level interaction bugs (e.g. `02-HUMAN-UAT.md`, Phase 16's Bluetooth checklist).
 
 ---
 
-### Pitfall 5: Periodic re-validation timer fires mid-session and abruptly yanks the UI
+### Pitfall 3: Auto-expand-on-drag false positives from a hot-zone sized/timed for clicks, not drags
 
 **What goes wrong:**
-If trial/license re-validation runs on a periodic timer (e.g., "re-check every 24h" or "re-check on each launch plus daily while running"), and it fires while the user is mid-interaction — island expanded, dragging a file into the shelf, mid-playback-control tap — an abrupt "trial expired, app locked" state change that yanks the currently-open UI out from under the user feels broken and hostile, and risks data loss (e.g., an in-progress drag-and-drop). This is a classic "technically correct enforcement, terrible UX" bug.
+The existing click hot-zone is the collapsed pill padded by only 6pt (`hotZonePadding`) — appropriate for a precise click, but too tight for a drag, where the visible drag-ghost cursor is offset from the actual drop point and users are imprecise while dragging. Reusing the click hot-zone as-is for drag detection causes frustrating false negatives (dragging visibly "at" the notch doesn't trigger expand). Conversely, naively widening the interactive region for *all* pointer/click purposes (not just drag) to fix this reintroduces false positives — e.g. a file dragged across the menu bar near, but not over, the notch (well within the wider menu-bar strip) would wrongly auto-expand the island.
 
 **Why it happens:**
-Enforcement logic is usually written from the "is licensed: yes/no" state-machine perspective in isolation, without considering what UI state the app is in at the moment the check result changes state, because the developer building the check and the developer (same person, different day) building the UI don't cross-reference.
+"Just make the hot-zone bigger" is the easy fix and works for the demo case (dragging straight at the notch) but breaks the "must not react to a drag that merely passes near the notch" requirement implied by the milestone question, because click precision and drag precision are different UX problems solved by the same one constant today.
 
 **How to avoid:**
-- Never force-collapse or force-hide currently-open/interactive UI (expanded island, active drag operation, in-progress HUD) synchronously the instant a background re-check flips the licensed flag. Instead: apply the new locked state model at the **next natural transition point** — when the island next collapses on its own, or on next app launch — not by yanking the current interaction.
-- If a hard lock must take effect immediately (e.g., trial truly expired), show it as a graceful, animated state change consistent with the app's existing spring/morph language (per project's existing `matchedGeometryEffect`/spring conventions) rather than an instant `NSAlert`-style interrupt or a blank/disabled UI mid-gesture. A brief "Trial ended" card that itself morphs in via the same island animation the rest of the app already uses is more in keeping with the polish bar this project has already set (per CLAUDE.md's Dynamic Island animation philosophy) than a jarring modal.
-- Debounce/guard: don't run the re-validation check itself while the island is in an actively-interactive state (expanded/dragging) — defer the check (not the enforcement, the check itself) until the island returns to idle/collapsed, then apply results.
-- Keep the periodic re-check interval generous (daily is plenty for a €7.99 one-time-purchase app — this is not subscription SaaS requiring tight revocation windows) to minimize how often this edge case can even occur.
+Use a **separate, slightly larger padding constant** for drag hit-testing than for click hit-testing (e.g. a `dragHotZonePadding` distinct from `hotZonePadding`), tuned on-device, not reused. Keep the click hot-zone untouched. Gate the auto-expand also on a short dwell (e.g. re-use the pattern of `handleHoverEnter`'s existing debounce feel) so a fast pass-through drag near the notch (menu bar traversal) doesn't trigger a flash-expand — only a drag that lingers in the zone for a beat should promote to expanded.
 
 **Warning signs:**
-- Re-validation timer callback directly mutates `isExpanded = false` or disables UI synchronously with no state-transition awareness.
-- No manual test performed of "expand the island, then simulate trial-expiry firing while expanded."
-- Lockout UI implemented as a system alert/sheet rather than in the app's own animated visual language.
+On-device testing: drag a file in a straight line across the menu bar, passing near but not directly over the pill — island should NOT expand. Drag a file slowly toward the pill and stop over it — island SHOULD expand within a beat.
 
-**Phase to address:** Trial-enforcement / lockout-UX phase — should include an explicit interaction-state check as an acceptance criterion, tested by manually triggering expiry while the island is open.
+**Phase to address:**
+Pure-seam/model phase (the padding/dwell constants and the hit-test function are pure and testable); view-wiring phase supplies the live dwell timer, mirroring `graceWorkItem`'s existing DispatchWorkItem idiom.
 
 ---
 
-### Pitfall 6: Checkout-to-license-key handoff friction for a Dock-icon-less (LSUIElement) app
+### Pitfall 4: Treating the shelf as another `IslandResolver`/`TransientQueue` case
 
 **What goes wrong:**
-Two related frictions can cause purchase abandonment or confusion:
-1. Opening a web checkout (Polar.sh hosted checkout page) from an `LSUIElement` background-agent app via `NSWorkspace.shared.open(url:)` opens the user's default browser — but because the app itself has no Dock icon and isn't a "normal" foreground app, after the user completes checkout in the browser and switches back, there's no obvious "come back to the app" affordance the way a Dock-icon app would provide (bounce, badge, Cmd+Tab entry). The user completes payment, then isn't sure how to return to Islet to actually enter/receive their license — increasing the chance they forget, or think nothing happened.
-2. The checkout-to-key handoff itself: if the license key only arrives via **email** (typical Polar.sh flow — checkout completes, key is emailed), there's a context-switch gap between "just paid in browser" and "now go check email, copy key, switch back to a menu-bar app, find its settings, paste key." Each extra step is a documented drop-off point in purchase-completion UX generally; for a background/menu-bar app with no persistent visible window, this gap is worse than for a normal windowed app because the user has to actively remember the app exists and go find its icon in the menu bar again.
+`IslandResolver` is a deliberately narrow, rank-ordered arbiter (`Charging > Device > NowPlaying`) for **transient, mutually-exclusive** activities that take over the whole island. The milestone explicitly wants the shelf to be "appended below whatever else is showing expanded... whenever it has content" — i.e., an orthogonal overlay, not a competing case. Adding `.shelf(...)` as a new `IslandPresentation` case (or a new `ActiveTransient` case in `TransientQueue`) would be a natural-looking but wrong move: it would make the shelf mutually exclusive with Now Playing/expandedIdle instead of layered on top of them, and it would let a shelf item get silently evicted by `TransientQueue`'s `maxDepth = 2` bound/de-dup logic, which was built for flapping Bluetooth/charging events, not user-authored shelf content.
 
 **Why it happens:**
-Developers test the checkout flow themselves, already knowing exactly where the app's settings/license-entry UI lives — they don't experience the "wait, where did that app go" moment a real first-time customer does.
+`IslandResolver`/`TransientQueue` is the one existing "priority arbiter" in the codebase, so it's the obvious place to bolt on "one more thing that shows in the expanded island" — especially for a first-time-programmer codebase where "there's already a resolver, just add a case" looks like the DRY choice.
 
 **How to avoid:**
-- Before opening the checkout URL, `NSApplication.shared.activate(ignoringOtherApps: true)` on the app itself is not what's needed here (the browser needs focus, not the app) — instead, ensure the app's own menu-bar icon/status item remains an obvious, discoverable "return point": consider having the menu-bar icon show a distinct state (e.g., a subtle badge or color change) while a checkout is pending, so when the user does eventually click the menu-bar icon again, it's visually obvious the app is waiting for them to finish something.
-- If Polar.sh supports a **success redirect URL** after checkout completion (check Polar's checkout configuration options — hosted checkouts commonly support a post-purchase redirect), prefer a custom URL scheme (`islet://license-activated?...` or similar) that the app registers to handle, so completing checkout in the browser can hand control straight back to the app automatically, rather than relying purely on the email round-trip. This removes an entire manual step (open email, copy key, switch app, paste) if Polar's flow supports passing the key or a claim token through the redirect.
-- Regardless of whether a deep-link handoff is implemented, always also support **manual key entry** (paste from email) as the guaranteed-working fallback — don't make the deep link the *only* path, since email deliverability/user email-client friction is itself variable.
-- Keep the "enter your license key" UI reachable in **one click from the menu-bar icon** at all times post-purchase (not buried in a preferences pane three clicks deep) for exactly the window of time right after a purchase when the user is actively trying to complete the flow.
-- Pre-fill/auto-paste from clipboard if a license-key-shaped string is detected on clipboard when the license entry UI opens (nice-to-have, not required) — reduces friction for the common case of "just copied the key from the email."
+Follow the project's own already-established precedent for exactly this shape of problem: the Phase 18 song-change toast is a **separate `@Published` field** (`nowPlayingState.songChangeToast`) composed *alongside* `resolve(...)`'s output, deliberately NOT threaded through `IslandResolver` (see `IslandResolver.swift:74-89`, `songChangeToastGate`). Model the shelf the same way: an independent `@Published var shelfItems: [ShelfItem]` observed directly by the expanded view, rendered as an additional strip whenever `!shelfItems.isEmpty && isExpanded`, entirely orthogonal to `IslandPresentation`. A pure `shelfVisibilityGate`-style helper (mirroring `songChangeToastGate`) can express any suppression rules (e.g., hide the shelf strip while a Charging/Device transient owns the island, matching D-04's "transient wins even over expanded") without touching `resolve(...)`'s switch statement.
 
 **Warning signs:**
-- No visible change to the menu-bar icon/UI state between "checkout opened" and "license entered."
-- License entry UI requires navigating through multiple preference panes to reach.
-- No investigation of whether Polar.sh's checkout supports a post-purchase redirect/webhook that could shortcut the manual copy-paste round trip.
+Any PR that adds a case to `IslandPresentation` or `ActiveTransient` for the shelf; any code path where dropping a 3rd file while 2 are "pending" in some queue silently drops the 3rd (that's `TransientQueue.maxDepth` leaking into a feature it was never designed for).
 
-**Phase to address:** Licensing/checkout-UX phase — should include a "cold start" manual test: as if for the first time, click buy, complete a real (or sandboxed/test-mode) Polar checkout, and time/count the steps back to a working licensed app with no prior knowledge of where the license-entry UI lives.
+**Phase to address:**
+Pure-seam/model phase — get the composition shape right before any view code exists, since retrofitting "orthogonal overlay" after building it as a resolver case is a structural rewrite, not a tweak.
+
+---
+
+### Pitfall 5: Holding dropped file references without sandboxing safety nets — stale, moved, or deleted URLs
+
+**What goes wrong:**
+A sandboxed app gets security-scoped bookmarks and (for many source apps) an automatic temporary local copy + cleanup "for free" from `NSItemProvider`'s in-place file APIs. This app is deliberately **not sandboxed** (existing MediaRemote-bridge constraint) — so there's no sandbox extension to keep a bookmark alive, but there's also no sandbox *forcing* awkward bookmark bookkeeping. The risk is the opposite direction: it's easy to just store a plain `URL` from the drop and assume it stays valid indefinitely in an in-memory, session-only array. Between drop and later drag-out (or Finder-icon repaint), the user can rename, move, or delete the source file (or eject the volume it lived on), leaving a dangling `URL` that crashes or silently no-ops when re-read.
+
+**Why it happens:**
+"Just no sandbox, so no bookmark ceremony" is correct but gets read as "so just keep the URL, nothing else to worry about" — the actual remaining risk (file moved/deleted after drop, while the reference is held in memory) is not a sandboxing problem and is easy to overlook precisely because sandboxing is the thing everyone associates with drag-and-drop file-permission bugs.
+
+**How to avoid:**
+- Treat every dropped item as `URL` + a **cached, generated-once thumbnail/icon** (see Pitfall 6) — never re-derive the icon lazily from the URL at render time, since the file may be gone by then.
+- Before any drag-OUT of a shelf item, call `FileManager.default.fileExists(atPath:)` (or attempt `NSItemProvider(contentsOf:)` and catch failure) and gracefully drop the item from the shelf with a discreet removal if the source vanished, rather than propagating a crash or a broken drag.
+- Prefer `loadItem(forTypeIdentifier: UTType.fileURL.identifier)` / `loadObject(ofClass: URL.self)` over `loadInPlaceFileRepresentation` where possible for files from apps that hand back a stable in-place URL (e.g. Finder); for sources that only offer a temporary in-place copy (some browsers/Mail), the temp file is deleted "immediately after the completion block returns" per Apple's docs — so the shelf must copy or retain a reference to that URL's *contents* (or reject browser-drag support) rather than hold the transient in-place URL past the block, or the shelf icon will point at a file that's already gone by the time the user tries to drag it back out.
+
+**Warning signs:**
+Drop a file, delete/rename it in Finder, then try to drag the shelf's icon back out — app crashes or produces a broken/empty drag instead of silently pruning the stale entry.
+
+**Phase to address:**
+Pure-seam/model phase defines the `ShelfItem` shape (URL + cached icon, no lazy re-derivation); view-wiring phase adds the `fileExists` guard at drag-out time and the graceful-prune UX.
+
+---
+
+### Pitfall 6: Unbounded shelf capacity + naive `NSItemProvider` loading balloons memory
+
+**What goes wrong:**
+The milestone deliberately wants unbounded capacity with horizontal scroll. If each dropped item's SwiftUI cell calls something like `Image(nsImage: NSImage(contentsOf: url)!)` directly in the view body, or the drop handler eagerly calls `loadDataRepresentation`/`loadObject` to pull the **full file bytes** into memory just to make a thumbnail, then a shelf holding a few dozen video files or RAW photos can retain hundreds of MB to GBs of live `Data`/`NSImage` full-resolution bitmaps for items that are mostly scrolled off-screen. SwiftUI re-invoking the view body on every state change (e.g. any resolver re-render, since the shelf sits inside the same view tree the priority-resolver churns) would repeat this expensive load and could visibly stutter or spike CPU/memory each render.
+
+**Why it happens:**
+The most obvious drop-handling code path (`loadDataRepresentation(forTypeIdentifier:) { data, error in ... }` → `NSImage(data: data)`) is exactly what most `.onDrop` tutorials show, because most demo apps only handle one or two items and never think about "unbounded, in-memory, re-rendered constantly."
+
+**How to avoid:**
+Generate a small, fixed-size icon/thumbnail **exactly once per drop** (`NSWorkspace.shared.icon(forFile:)` is cheap and doesn't require reading the file's data into your process at all — it's the simplest correct choice here, no QLThumbnailGenerator complexity needed for icons rather than true previews) and store only that small `NSImage` + the `URL` in the `ShelfItem` model — never store raw `Data`. Confirm SwiftUI doesn't re-run the icon generation on every render by keeping it as stored model state (set once at drop time), not computed in the view body.
+
+**Warning signs:**
+Memory ballooning when dropping several large files; visible frame-drop/re-render lag when an unrelated activity (charging splash, song-change toast) causes a resolver re-render while the shelf has many items.
+
+**Phase to address:**
+Pure-seam/model phase — the `ShelfItem` model's shape (icon generated once at construction, not derived in the view) is the load-bearing decision; flag as a code-review checklist item in the view-wiring phase.
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|--------------------|-----------------|------------------|
-| Trial/license state in UserDefaults only | Fast to implement, no Keychain API friction | Trivially resettable, undermines the entire trial's purpose | Never for shipped v1 — Keychain is barely more code |
-| Single validate call, no retry/backoff | Simpler code | First-purchase validation failures read as "app is broken," refund/review risk | Never — retry logic here is small and high-value |
-| `codesign --deep` for final signing | One command, "just works" locally | Masks nested-signature issues that surface later as notarization rejections | Acceptable only for quick local dev-signing sanity checks, never for the release-signed archive |
-| Blanket hardened-runtime entitlements (add everything "just in case") | Avoids trial-and-error during signing | Larger security-exception surface, looks worse in review, doesn't actually fix root cause if wrong entitlement chosen | Never — always add the minimum verified-necessary set |
-| Hard real-time UI yank on license state change | Simple state machine, no extra transition logic | Feels broken/hostile mid-interaction, erodes trust in exactly the polished feel this project prioritizes | Never — the deferred-transition approach is a small addition |
-| Device fingerprinting / server-side anti-abuse registry for trial resets | "Solves" reinstall abuse thoroughly | Massive scope increase, server infra, privacy questions, disproportionate to a €7.99 hobby-turned-sellable app | Not acceptable at this project's scale — explicitly out of scope |
+|----------|-------------------|-----------------|------------------|
+| Skip the `.leftMouseDragged`/drag-pasteboard detection and just widen the click hot-zone permanently | Much less new code | Menu-bar false positives near the notch on every ordinary click too, not just drags | Never — the two hit-tests must stay independent |
+| Use `loadInPlaceFileRepresentation`'s temp URL directly as the long-lived `ShelfItem.url` | Simplest possible drop handler | Silently dangling URL once the temp file is cleaned up by the system after the completion block returns | Never for shelf items meant to persist beyond the drop callback; fine only for one-shot, synchronous-use cases |
+| Store raw file `Data` per shelf item for thumbnailing | Slightly simpler code than caching an `NSImage` | Unbounded memory growth exactly matching the deliberately-unbounded capacity requirement | Never — this is the one place "unbounded" and "naive" combine into a real bug |
+| Add the shelf as a new `IslandResolver`/`TransientQueue` case | Reuses existing priority machinery | Shelf becomes mutually exclusive with Now Playing/idle instead of layered; shelf items can be silently evicted by `maxDepth` | Never |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|------------------|-------------------|
-| Polar.sh license validation | Treating all non-200 responses as "invalid key" | Distinguish transient/network errors from explicit invalid/revoked-key responses; only the latter should ever say "invalid license" to the user |
-| Polar.sh checkout | Assuming license key delivery is instant/synchronous with payment | Assume email delivery latency; support manual paste as the guaranteed path; investigate redirect/webhook options as an enhancement, not the only path |
-| MediaRemoteAdapter.framework (vendored) | "Embed Without Signing" left as default, or assuming the vendor's own signature is sufficient | Set "Embed & Sign" so your Developer ID re-signs it during archive; verify with `codesign --verify --deep --strict` post-archive |
-| `notarytool submit` | Submitting only after `--wait`ing once and assuming success on first try | Budget iteration; use `notarytool log <id>` on any rejection to get the actual per-binary failure reason before re-submitting blindly |
-| Keychain (non-sandboxed macOS app) | Assuming Keychain behaves like iOS sandboxed Keychain (auto-cleared on delete) | macOS Keychain items for non-sandboxed apps persist independently of the app bundle — this is a feature to lean on here, not a bug to work around |
+|-------------|----------------|-------------------|
+| `NSPanel.ignoresMouseEvents` + drag destination | Assuming `registerForDraggedTypes`/`.onDrop` "just works" once wired, regardless of the panel's click-through state | Flip `ignoresMouseEvents = false` (via the existing `syncClickThrough()` single-writer) the instant a drag enters the zone, using an independent drag-session detector, before relying on `draggingEntered` |
+| SwiftUI `.onDrop` + existing hover/click gesture (`onTapGesture` on the pill) | Layering `.onDrop` directly on the same view that owns `onTapGesture`/hover styling without checking which gesture "wins" the hit-test | Test on-device that a drag-hover doesn't also fire a spurious click/haptic, and that clicking still works once a shelf item is present in the expanded view |
+| `NSItemProvider` completion handlers | Mutating `@Published`/`ObservableObject` shelf state directly inside the (background-thread) completion block | Hop to `DispatchQueue.main.async` (or `@MainActor`) before touching `shelfItems`, mirroring the project's existing main-thread-hop discipline used for `NowPlayingMonitor`/`BluetoothMonitor` callbacks |
+| Drag-out to Finder | Reaching for `NSFilePromiseProvider` (built for *generating new files on demand*) to re-expose an already-existing file | Use a plain `NSItemProvider(object: url as NSURL)` / `.onDrag` with the file's own URL — Finder already knows how to move/copy an existing file reference; `NSFilePromiseProvider` is unnecessary complexity for this use case |
+| Global drag-session monitor | Assuming the monitor definitely fires without checking Accessibility permission state | Add the same DEBUG-only "first fire" probe log the codebase already uses for the `.mouseMoved` monitor (`didLogFirstHover`), so a silently-ungranted permission is diagnosable on-device rather than looking like "drag detection doesn't work" |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Re-validating license against Polar's API on every app launch or too frequently | Unnecessary network calls, slower cold start, more exposure to Pitfall 2's failure mode | Validate once at activation, then cache; re-validate on a generous interval (daily+) only, not every launch | Noticeable once launch performance or offline reliability is scrutinized — low risk at this app's scale, but cheap to get right from the start |
+|------|----------|------------|-----------------|
+| Full-resolution `NSImage`/raw `Data` retained per shelf item | Memory climbs with each drop, doesn't shrink until items are removed | Generate a small fixed-size icon once via `NSWorkspace.shared.icon(forFile:)`, discard raw data immediately | Noticeable after roughly a dozen large (video/RAW) files; unbounded requirement makes this inevitable without the fix |
+| Re-deriving the icon/thumbnail inside the SwiftUI view body | Stutter on every unrelated resolver re-render (charging splash, song toast) once the shelf has several items | Store the icon as model state set once at drop time, never computed in `body` | As soon as the shelf has more than a handful of items and any other activity fires while it's visible |
+| Horizontal `ScrollView` rendering every item eagerly with no lazy container | Layout cost grows linearly with shelf size even for off-screen items | Use `LazyHStack` inside the horizontal `ScrollView`, not a plain `HStack` | Becomes visible once the shelf holds enough items to overflow the visible strip several times over (the "unbounded, scrolls" requirement guarantees this eventually) |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Storing license/trial state as human-readable, unbound plain values (bool/date with no integrity check) | Trivial `defaults write`/plist-edit bypass | Keychain storage + lightweight integrity binding (timestamp+key hash), as detailed in Pitfalls 1 & 3 — proportionate, not gold-plated |
-| Over-broad hardened-runtime entitlements to "make notarization pass" | Weakens the actual security hardening notarization is meant to enforce, may itself draw scrutiny | Add only the specific, verified-necessary entitlement(s) for the perl-spawn/adapter-load path |
-| Treating notarization as equivalent to "this app is reviewed/approved for behavior X" | False sense that private-API use is Apple-sanctioned; could create surprise if Apple's policy or scanner heuristics shift | Understand notarization = malware/signature scan only; keep the `NowPlayingService` abstraction (already planned per CLAUDE.md) so an adapter break/policy shift is a contained fix |
+| Reading beyond the exact dropped URL (e.g., walking the parent directory to build a "recent files" list) | Un-sandboxed apps performing programmatic access to protected folders (Desktop/Documents/Downloads) can still trigger unexpected TCC prompts on modern macOS, unlike the implicit grant a user's own physical drag/drop already carries | Only ever touch the exact URL(s) the user dragged in; never proactively enumerate sibling files or parent directories |
+| Accepting non-file drag payloads (plain text, an image copied from Preview, a Safari link) as if they were file URLs | Force-unwrapping/force-casting an `NSItemProvider`'s payload to `URL` when the source never provided `public.file-url` crashes or silently corrupts the shelf | Explicitly filter with `hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)` before accepting a drop; ignore (or clearly reject) drags that aren't backed by a real file |
+| Dropping the same file twice (or dragging a shelf item onto itself) | Duplicate entries in an "unbounded" list that the user then can't tell apart, one becomes stale after the other is deleted from Finder | De-dup on drop by resolved `URL` (or a stable identity), not by array append order |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|------------------|
-| Cryptic raw network error shown on first license validation | Paying customer thinks app/purchase is broken, requests refund | Friendly, differentiated error copy + retry + visible support contact (Pitfall 2) |
-| Abrupt mid-session lockout | Feels hostile, breaks trust in a "polished" app | Defer enforcement to next natural UI transition point, animate consistently with existing island morph language (Pitfall 5) |
-| No visible "return to app" cue after browser checkout | User forgets to come back, thinks nothing happened | Menu-bar icon state change + one-click access to license entry (Pitfall 6) |
-| License entry buried in settings | Extra friction right when purchase intent is highest | Keep license-entry reachable in one click from the menu-bar icon |
+|---------|-------------|-------------------|
+| Auto-expand fires on any drag that merely passes near the notch (menu bar traversal) | Feels twitchy/broken, undermines the "polished, Alcove-quality" bar this project holds itself to | Separate, slightly larger drag-only hot-zone + a short dwell before promoting to expanded (Pitfall 3) |
+| Island freezes expanded after a drag-out because `.mouseMoved` never resumes tracking mid-drag (Pitfall 2) | Looks like a genuine bug — an "always-on" island that won't collapse | Track pointer position via `.leftMouseDragged`/`.leftMouseUp` during any active drag, not just `.mouseMoved` |
+| Collapsed pill gives no hint the shelf has content | User forgets files are staged in the shelf, "loses" a file they dropped earlier in the session | Small persistent indicator (dot/badge) on the collapsed pill when `!shelfItems.isEmpty`, consistent with the existing collapsed-glance conventions (equalizer wings, etc.) |
+| Per-file delete icon and "delete all" icon both hit-testable inside a horizontally scrolling strip | Users may accidentally trigger "delete all" while trying to scroll past it, or accidentally delete a file while trying to drag it | Keep the destructive "delete all" visually and spatially distinct (far right, requires a deliberate tap) from the per-item drag/delete affordances, mirroring standard shelf-UI conventions (e.g. DynamicLake's DynaClip) |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Trial enforcement:** Looks done when trial correctly counts down and locks at day 3 on a normal run — verify it also survives app delete + reinstall (Keychain-backed, not just UserDefaults).
-- [ ] **License validation:** Looks done when a valid key validates successfully online — verify behavior specifically with Wi-Fi disabled and with a simulated Polar 500/timeout, both on first-ever validation and on a cached-then-recheck validation.
-- [ ] **Offline license cache:** Looks done when the app remembers "licensed" across launches — verify it isn't a plain flippable UserDefaults bool (`defaults write` test).
-- [ ] **Notarization:** Looks done when `notarytool submit --wait` returns "Accepted" — verify with `spctl --assess --type execute -vvv` and an actual Gatekeeper double-click-from-Finder test on a *different, clean* Mac (or at minimum a fresh user account) before calling it shippable, since local dev machines often have prior overrides/trust that mask real Gatekeeper behavior.
-- [ ] **Mid-session lockout:** Looks done when locking works on app launch — verify the specific case of triggering expiry/re-check while the island is expanded/mid-interaction.
-- [ ] **Checkout-to-key flow:** Looks done when you (the developer) can complete it knowing where everything is — verify with a genuine "first time user" walkthrough, timing the steps from clicking Buy to having a working licensed app.
+- [ ] **Auto-expand-on-drag-hover:** Often "works" only in Xcode Previews/simulated drags — verify on a real Mac by dragging an actual Finder file toward the physical notch with the panel's `ignoresMouseEvents` fix in place (Pitfall 1), not just via a SwiftUI `.onDrop` added to the view tree.
+- [ ] **Drag files back OUT to Finder:** Often demoed only by dragging within the same app window — verify dropping onto the real Finder/Desktop and onto another unrelated app (e.g. Mail, Preview) produces a normal move/copy, not a broken or empty drag.
+- [ ] **Per-file delete + delete-all:** Often missing a check for "shelf becomes empty" — verify the shelf strip actually disappears from the expanded view (not just an empty horizontal scroller with a delete-all button still lingering) once the last file is removed.
+- [ ] **Session-temporary, no persistence:** Often accidentally leaks into `UserDefaults`/`@AppStorage` (the project's own established persistence pattern for settings) if a developer reflexively reaches for the same tool used elsewhere in this codebase — verify a full Islet quit/relaunch, not just an app-restart-in-Xcode, actually clears the shelf.
+- [ ] **Interaction with the priority resolver:** Often "looks done" if it only shows correctly when nothing else is active — verify the shelf strip's suppression/re-appearance while a Charging or Device transient interrupts the expanded view (Pitfall 4), and after the transient clears.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|----------------|-----------------|
-| Trial state was UserDefaults-only and already shipped | LOW | Migrate to Keychain-backed storage in a point update; on first launch of the new version, if Keychain marker absent but UserDefaults marker present, seed Keychain from UserDefaults (accept that pre-existing reset-abusers keep their reset, not worth chasing) |
-| Notarization rejected on submission | LOW-MEDIUM | Pull `notarytool log <submission-id>`, identify the specific unsigned/invalid binary or missing entitlement, fix signing config, re-archive, re-submit — typically a signing-config fix, not a code-behavior fix |
-| Users report checkout confusion/abandonment post-launch | LOW | Add menu-bar pending-state indicator and/or investigate Polar redirect/deep-link handoff as a fast-follow update; doesn't require re-architecting the purchase flow |
-| Mid-session yank complaints after release | LOW | Wrap enforcement application in a "defer until idle" check; small, isolated fix to the enforcement callsite, not the validation logic itself |
+|---------|-----------------|------------------|
+| Shelf modeled as an `IslandResolver`/`TransientQueue` case (Pitfall 4) | MEDIUM | Extract the shelf into its own `@Published` field observed independently by the expanded view, following the Phase 18 toast precedent; delete the added enum case(s) and any `TransientQueue` coupling |
+| `ignoresMouseEvents` drag-blocking discovered late (Pitfall 1) | LOW-MEDIUM | Add the second global `.leftMouseDragged` monitor and route its zone hit-test through the existing `syncClickThrough()`; no data-model rework needed since this is purely an AppKit event-wiring gap |
+| Stuck-expanded-after-drag-out bug (Pitfall 2) found in UAT | LOW | Add `.leftMouseDragged`/`.leftMouseUp` tracking to `handlePointer`'s zone logic; localized fix to `NotchWindowController.swift` |
+| Memory bloat from raw `Data` thumbnails (Pitfall 6) found late | MEDIUM | Swap the icon-generation call site to `NSWorkspace.shared.icon(forFile:)` and drop any retained `Data`; requires touching every place `ShelfItem` was constructed, but no architectural change |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|-------------------|---------------|
-| Trial reset via UserDefaults/reinstall | Trial-enforcement phase | Delete app + relaunch fresh copy; trial should NOT reset |
-| Hard-fail license validation on network issues | Licensing/Polar-integration phase | Test with Wi-Fi off and with a mocked API timeout/500 on first-ever validation |
-| Flippable boolean license cache | Licensing/Polar-integration phase (same task as above) | `defaults write <bundle-id> isLicensed -bool true` should have no effect |
-| Notarization rejection from nested framework/hardened runtime | Real-notarization phase | `codesign --verify --deep --strict --verbose=2` and `spctl --assess -vvv` pass locally before first `notarytool submit`; clean-account Gatekeeper test after acceptance |
-| Mid-session abrupt lockout | Trial-enforcement / lockout-UX phase | Manually trigger expiry while island is expanded; verify graceful, animated, non-destructive transition |
-| Checkout-to-key handoff friction | Licensing/checkout-UX phase | Full cold-start purchase walkthrough timed and step-counted |
+|---------|--------------------|----------------|
+| `ignoresMouseEvents` blocks drag delivery entirely (1) | Pure-seam/model phase defines drag hit-test; view-wiring phase wires the global `.leftMouseDragged` monitor + `syncClickThrough()` extension | On-device: drag a real Finder file onto the physical notch and confirm `draggingEntered`/`.onDrop` actually fires |
+| `.mouseMoved` freezes mid-drag, island stuck open (2) | View-wiring/gesture-integration phase | On-device: drag a shelf file out to Finder, drop it, move the mouse away without further clicks — island must collapse normally |
+| Drag hot-zone false positives/negatives (3) | Pure-seam/model phase (constants + hit-test), tuned in view-wiring phase | On-device: drag across the menu bar near-but-not-over the notch (no expand) vs. directly at it (expands within a beat) |
+| Shelf modeled as a resolver/queue case (4) | Pure-seam/model phase | Code review: `IslandPresentation`/`ActiveTransient`/`TransientQueue` unchanged by the shelf feature; shelf state is a separate `@Published` field |
+| Stale/moved/deleted dropped-file URLs (5) | Pure-seam/model phase (ShelfItem shape); view-wiring phase (fileExists guard at drag-out) | On-device: drop a file, delete it in Finder, then try to drag the shelf icon back out — must prune gracefully, not crash |
+| Unbounded capacity + naive full-data loading (6) | Pure-seam/model phase (icon-once-at-drop model shape) | Code review + on-device: drop 10+ large files, confirm memory stays flat and scrolling stays smooth (`LazyHStack`) |
 
 ## Sources
 
-- Faisal Bin Ahmed, "All the wrong ways to persist in-app purchase status in your macOS app" (Medium) — MEDIUM, corroborates UserDefaults-vs-Keychain persistence distinction: https://medium.com/@Faisalbin/all-the-wrong-ways-to-persist-in-app-purchase-status-in-your-macos-app-ce6eb9bcb0c3
-- Apple Developer Forums thread on iOS Keychain auto-delete behavior (confirms iOS/macOS keychain lifecycle differs from app lifecycle) — MEDIUM-HIGH: https://developer.apple.com/forums/thread/36442
-- Polar.sh official docs — License Keys feature overview: https://polar.sh/docs/features/benefits/license-keys — MEDIUM (confirms activate/validate split and activation-limit/machine-binding conditions; does not document rate limits or offline guidance explicitly)
-- Polar.sh API reference — Validate License Key endpoint (existence/shape confirmed; full error taxonomy not retrievable via automated fetch) — LOW-MEDIUM: https://docs.polar.sh/api-reference/customer-portal/license-keys/validate
-- Stanislav Katkov, "Software License management with Polar.sh" — real-world Go implementation notes on local license-file caching pattern (hash, activation_id, next_check_time) — MEDIUM: https://skatkov.com/posts/2025-05-11-software-license-management-for-dummies
-- Keygen.sh, "How to Implement an Offline Licensing Model" — general offline-licensing/grace-period industry pattern — MEDIUM: https://keygen.sh/docs/choosing-a-licensing-model/offline-licenses/
-- Apple Developer Documentation, "Resolving common notarization issues" — HIGH, official: https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues
-- Apple Support, "Gatekeeper and runtime protection in macOS" — confirms notarization = automated malware/signature scan, not behavior review — HIGH: https://support.apple.com/guide/security/gatekeeper-and-runtime-protection-sec5599b66df/web
-- AppleInsider, "Malware bypassed macOS Gatekeeper by abusing Apple's notarization process" (Dec 2025) — MEDIUM, illustrates notarization's scope/limits and that it doesn't inspect runtime behavior deeply, relevant context for the "does spawning perl risk rejection" question: https://appleinsider.com/articles/25/12/23/malware-bypassed-macos-gatekeeper-by-abusing-apples-notarization-proccess
-- Keystroke Countdown, "Signing Embedded Frameworks in an Embedded Framework" — practical nested-framework signing guidance — MEDIUM: https://keystrokecountdown.com/articles/signing/index.html
-- `codesign` man page / community guidance on `--deep` being "almost never what you want" for complex bundles — HIGH (documented tool behavior): https://real-world-systems.com/docs/codesign.1.html
-- Medium, Davion, "Framework in another framework in terms of code signing" — nested code-signature reference behavior — MEDIUM: https://medium.com/@davion/framework-in-another-framework-in-terms-of-code-signing-d9a78be51798
-- Apple Developer Documentation, `LSUIElement` / Launch Services Keys — confirms agent-app behavior (no Dock icon, no automatic focus) — HIGH: https://developer.apple.com/documentation/bundleresources/information-property-list/lsuielement
-- codestudy.net, "How to Make NSAlert the Topmost Window in macOS Menu Bar Apps (LSUIElement)" — corroborates focus/activation friction for agent apps — MEDIUM: https://www.codestudy.net/blog/make-a-nsalert-the-topmost-window/
-- Project's own existing research (CLAUDE.md) — MediaRemote/mediaremote-adapter architecture, notarization-vs-App-Store-review distinction already established for this project — HIGH (primary project source)
+- Direct read of `Islet/Notch/NotchWindowController.swift` (hover/click/`ignoresMouseEvents`/hot-zone architecture) and `Islet/Notch/IslandResolver.swift` (`IslandResolver`, `TransientQueue`, song-change-toast precedent) — HIGH confidence, primary source.
+- Apple Developer Documentation — [`NSWindow.ignoresMouseEvents`](https://developer.apple.com/documentation/appkit/nswindow/1419354-ignoresmouseevents) — HIGH confidence (official docs confirm "transparent to all mouse events").
+- Apple Developer Documentation — [`NSItemProvider.loadInPlaceFileRepresentation`](https://developer.apple.com/documentation/foundation/nsitemprovider/2888335-loadinplacefilerepresentation) and community summary at [humancode.us "All about Item Providers"](https://humancode.us/2023/07/08/all-about-nsitemprovider) — MEDIUM-HIGH confidence (temp-file lifetime tied to the completion block).
+- [Buckleyisms — "How to Actually Implement File Dragging From Your App on Mac"](https://buckleyisms.com/blog/how-to-actually-implement-file-dragging-from-your-app-on-mac/) — MEDIUM confidence, corroborates `NSFilePromiseProvider` vs. plain `NSItemProvider`/`.onDrag` distinction for existing-file drag-out.
+- [DeepWiki — TheBoredTeam/boring.notch Shelf System](https://deepwiki.com/TheBoredTeam/boring.notch/3.6-shelf-system) — MEDIUM confidence (third-party summary of a comparable shipped notch-shelf feature; confirms accessibility-API/system-wide drag detection and security-scoped-bookmark handling as the real-world precedent for this exact feature).
+- Community write-ups on `.leftMouseDragged` + drag-pasteboard change-count detection (e.g. [Medium — "Adding Drag-and-Drop Indicator in Your macOS App"](https://medium.com/@clyapp/adding-drag-and-drop-indicator-in-your-macos-app-33dc48c66216)) — MEDIUM confidence, single-source technique corroborated by TheBoringNotch's shipped precedent.
+- [SwiftUI Lab — "Drag & Drop with SwiftUI"](https://swiftui-lab.com/drag-drop-with-swiftui/) and [Apple — `onDrop(of:isTargeted:perform:)`](https://developer.apple.com/documentation/swiftui/view/ondrop(of:istargeted:perform:)-7u51) — MEDIUM confidence, general `.onDrop`/`NSItemProvider`/`Transferable` API landscape and known "no visibility into a drag session unless you're the drop target" limitation.
 
 ---
-*Pitfalls research for: Adding trial/licensing (Polar.sh) + real notarization to an existing shipped macOS app (Islet)*
-*Researched: 2026-07-05*
+*Pitfalls research for: drag-and-drop file shelf on a non-activating, click-through notch overlay panel (Islet v1.3)*
+*Researched: 2026-07-09*

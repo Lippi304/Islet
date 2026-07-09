@@ -1,251 +1,262 @@
-# Architecture Research — Trial/Licensing Integration into Islet
+# Architecture Research — Drag-and-Drop File Shelf Integration into Islet
 
-**Domain:** Integrating a trial-period + Polar.sh paid-licensing gate + real notarization into an existing, shipped native macOS notch app
-**Researched:** 2026-07-05
-**Confidence:** HIGH on integration points and existing-pattern extraction (verified by reading the actual files); HIGH on the Polar.sh API shape (fetched from official docs); MEDIUM on the exact offline-grace-period product decision (that's a product call, not an architecture fact)
+**Domain:** Adding a session-only, drag-and-drop file shelf to an existing, shipped native macOS notch app with a proven single-arbiter (`IslandResolver`) + coordinator-extraction (`ActivityCoordinator`) architecture
+**Researched:** 2026-07-09
+**Confidence:** HIGH on integration points and existing-pattern extraction (verified by reading the real files: `NotchWindowController.swift`, `IslandResolver.swift`, `ActivityCoordinator.swift`, `DeviceCoordinator.swift`, `NotchPillView.swift`, `IslandPresentationState.swift`, `NotchInteractionState.swift`, `Islet.entitlements`); MEDIUM-HIGH on the `NSItemProvider` drag-in/out mechanics (corroborated by multiple independent sources, no official Apple sample matched exactly); LOW-MEDIUM on the exact "does the shelf show during a transient wings splash" behavior — that is a product call this doc flags rather than invents.
 
-> This is not a green-field "what does the domain look like" research doc — it is a **spot-check of the real Islet codebase** plus the Polar.sh customer-portal license-key API, answering exactly where five new pieces of functionality plug into an app that already has a proven single-arbiter visibility pattern and a proven protocol-isolation pattern for fragile external dependencies.
+> Spot-check research, not green-field: this answers exactly where the file shelf plugs into an app that already has a proven "pure resolver decides content, a separate @Published axis rides underneath it, the view only renders" pattern (established for the Phase 18 song-change toast) and a proven "coordinator per activity domain" pattern (established for `DeviceCoordinator`, Phase 16) — and explains, with reasons grounded in the real code, why the shelf fits the FIRST pattern, not the second.
 
 ---
 
 ## The One Idea That Makes This Integration Make Sense
 
-Islet already has two precedents this milestone must reuse, not reinvent:
+**The file shelf is not a competing activity — it never has a rank, never enters `TransientQueue`, and never gets its own `ActivityCoordinator`.** It is a second, independent `@Published` axis that `NotchPillView` renders *underneath* whatever `IslandResolver.resolve(...)` already decided, gated only on `interaction.isExpanded`. Islet already has exactly this shape shipped and working: the Phase 18 song-change toast (`NowPlayingState.songChangeToast`, `songChangeToastGate(...)` in `IslandResolver.swift:87-89`) is deliberately **not** threaded through `resolve(...)`/`IslandPresentation` — its own doc comment says so explicitly, and calls out that this diverges from that phase's own pre-execution research on purpose, "permitted by CONTEXT.md's discretion note." The shelf is the same shape again: a sibling `@Published` field the controller sets directly, rendered by the view as an extra row, never touching the resolver's ranking.
 
-1. **Protocol-isolation for fragile externals** — `NowPlayingService` (`Islet/Notch/NowPlayingMonitor.swift:40-47`) wraps the one truly fragile external dependency (private MediaRemote API) behind a tiny protocol so a break is a one-file swap. **Polar.sh's HTTP API is the second fragile external dependency this app will have** — it gets the identical treatment: a `LicenseService` protocol + one concrete `PolarLicenseService` conformer that is the ONLY file that imports `Foundation`'s networking for this purpose / knows Polar.sh's URL shape.
+This one framing answers all four sub-questions in the prompt:
 
-2. **Single-arbiter visibility (`updateVisibility()`, `NotchWindowController.swift:421-448`)** — there is exactly ONE place that decides show/hide (Pattern 7, enforced across Phases 2, 6, 8, 9 specifically to prevent race/flicker bugs). Licensing must compose into this existing AND-chain, not create a second hide/show call site.
-
-Everything below elaborates those two sentences.
+1. **No `ShelfCoordinator`.** `ActivityCoordinator` (`Islet/Notch/ActivityCoordinator.swift`) is deliberately narrow — its own header says it is "a deliberate first slice ... NOT pre-sketched for the future Charging/NowPlaying/Outfit coordinators," sized to exactly what `DeviceCoordinator` needs: reach-back into the shared `TransientQueue` (`queueHead`/`enqueue`/`updateHead`) plus reacting to a promotion event. The shelf needs **none** of that — it never enqueues, never competes for the head, never gets promoted/demoted. Giving it a `ShelfCoordinator` behind that protocol would be building the shape for a problem the shelf doesn't have.
+2. **Plain `@Published` state is not just simpler, it is the *correct* fit** — mirroring `BasicOutfitState`/`NowPlayingState`/`IslandPresentationState`'s existing "plain published holder, no methods, no timers, no system frameworks" convention (`Islet/Notch/BasicOutfitState.swift` is the shortest, cleanest example of this).
+3. **It is a modifier on the current visible content, not a competing activity** — see "Interaction with IslandResolver" below for exactly how and where it renders.
+4. **Data model: a copy in an app-owned temp directory, addressed by a plain file `URL`** — not a security-scoped bookmark (irrelevant — Islet is un-sandboxed, confirmed below) and not raw `Data` (wasteful for drag-out, breaks `NSItemProvider(contentsOf:)`). See "Data Model & File Lifetime" below.
 
 ---
 
-## Standard Architecture (current + proposed overlay)
+## Confirmed: Islet is NOT sandboxed
 
-### System Overview
+`Islet/Islet.entitlements` contains only `com.apple.security.cs.disable-library-validation`, `com.apple.developer.weatherkit`, and two `personal-information` keys (calendars, location) — **no `com.apple.security.app-sandbox` key at all**. This was already an architectural given (the private MediaRemote bridge + spawning `perl` rules out sandboxing entirely, per `CLAUDE.md`/`PROJECT.md`).
+
+This matters directly for the shelf's data model: **security-scoped bookmarks solve a sandboxed app's problem** (persisting file-read permission across app relaunches when the sandbox would otherwise revoke it). Islet has full filesystem access as the logged-in user already, and the shelf is explicitly session-only (cleared on restart) — there is no permission boundary to persist across, and no reason to ever call `startAccessingSecurityScopedResource()`. Don't build that machinery; it would be solving a problem this app doesn't have.
+
+---
+
+## System Overview (current + proposed overlay)
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│  AppDelegate (Islet/AppDelegate.swift)                                  │
-│   - owns NSStatusItem + menu (Settings…, Quit)                          │
-│   - owns NotchWindowController (constructed + .start()'d unconditionally│
-│     regardless of license state — see Recommendation 1 below)           │
-│   - NEW: seeds TrialManager.recordFirstLaunchIfNeeded() before          │
-│     constructing the controller (so the very first updateVisibility()   │
-│     call already sees a valid trial state, no flash of unlicensed UI)   │
-├────────────────────────────────────────────────────────────────────────┤
-│  NotchWindowController (the existing single arbiter)                    │
-│   - existing: powerMonitor, bluetoothMonitor, nowPlayingMonitor,        │
-│     transientQueue, presentationState, interaction                      │
-│   - NEW: private let licenseState: LicenseState  (shared instance)      │
-│   - NEW: updateVisibility()'s shouldShow(...) gains one more AND term:  │
-│     `isLicensed: licenseState.isEntitled` (mirrors hideInFullscreen)    │
-│   - NEW: one one-shot DispatchWorkItem scheduled at the exact trial-    │
-│     expiry instant (mirrors dismissWorkItem / mediaDismissWorkItem)     │
-├────────────────────────────────────────────────────────────────────────┤
-│  NEW: Islet/Licensing/  (mirrors Islet/Notch/'s pure-seam + thin-glue   │
-│  split already used for PowerActivity/PowerSourceMonitor and            │
-│  NowPlayingPresentation/NowPlayingMonitor)                               │
-│                                                                          │
-│   TrialLogic.swift       — PURE: trialStatus(startDate:now:length:)     │
-│   TrialManager.swift     — GLUE: UserDefaults timestamp read/write,     │
-│                             wraps TrialLogic, schedules the one-shot     │
-│                             expiry DispatchWorkItem                      │
-│   LicenseState.swift     — @Published model (mirrors NowPlayingState /  │
-│                             ChargingActivityState: plain holder, no      │
-│                             logic) — `status: LicenseStatus`, computed   │
-│                             `isEntitled`                                 │
-│   LicenseService.swift   — protocol (mirrors NowPlayingService exactly) │
-│   PolarLicenseService.swift — concrete conformer; ONLY file that talks  │
-│                             to api.polar.sh; Keychain read/write lives  │
-│                             here too                                     │
-├────────────────────────────────────────────────────────────────────────┤
-│  SettingsView.swift (existing file, extended)                           │
-│   - NEW Section("License"): TextField for key entry + "Activate" button │
-│     + status label, reading/writing the SAME shared LicenseState        │
-│     instance the controller reads (see Recommendation 3 for how they    │
-│     stay in sync without a new DI mechanism)                            │
-├────────────────────────────────────────────────────────────────────────┤
-│  scripts/release.sh (existing file, unchanged structure)                │
-│   - NEW: DEVELOPER_ID / NOTARY_PROFILE placeholders filled with the     │
-│     real, now-purchased Apple Developer ID + a notarytool keychain      │
-│     profile — no code branches change, only the two variables           │
-└────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│  NotchWindowController (the existing single arbiter, ~1170 lines)        │
+│   existing: transientQueue, presentationState, interaction,              │
+│             chargingState, nowPlayingState, outfitState, deviceCoordinator│
+│   NEW: private let shelfState = ShelfState()          (plain holder,     │
+│        mirrors nowPlayingState/outfitState — no monitor, no start/stop)  │
+│   NEW: private let shelfImporter = ShelfFileImporter() (glue — NOT a     │
+│        coordinator; see "Why not a coordinator" below)                   │
+│   NEW: handleDrop(providers:) — called from the view's onDrop closure,  │
+│        expands the island (reuses `.clicked` via nextState — same path  │
+│        handleClick() already uses) if collapsed, then imports off-main  │
+│   Untouched: IslandResolver.resolve(...), TransientQueue, ActivityCoordinator,│
+│              DeviceCoordinator — the shelf never calls into any of these │
+├──────────────────────────────────────────────────────────────────────────┤
+│  NEW: Islet/Notch/Shelf*.swift  (mirrors the Notch/ pure-seam + thin-glue│
+│  split already used for PowerActivity/PowerSourceMonitor,                │
+│  NowPlayingPresentation/NowPlayingMonitor, DeviceActivity/DeviceCoordinator)│
+│                                                                            │
+│   ShelfItem.swift      — PURE value: id, originalURL, localURL, filename, │
+│                          addedAt. Foundation-only, Equatable.             │
+│   ShelfLogic.swift     — PURE total functions over [ShelfItem]: adding,   │
+│                          removing(id:), clearing. Unit-tested in ms,      │
+│                          mirrors PowerActivity/DeviceActivity's "pure     │
+│                          seam first" discipline — no NSItemProvider here. │
+│   ShelfState.swift     — @Published var items: [ShelfItem] = [].         │
+│                          Mirrors BasicOutfitState exactly: no methods.    │
+│   ShelfFileImporter.swift — GLUE: the ONLY file that imports UniformTypeIdentifiers│
+│                          / touches NSItemProvider. Resolves a dropped     │
+│                          NSItemProvider to a source URL, copies it to a   │
+│                          private temp dir off the main thread, hands back │
+│                          a ShelfItem via a completion closure on main.    │
+│                          NOT behind a protocol (see "No protocol seam    │
+│                          needed" below) — NSItemProvider is a stable,    │
+│                          public Foundation/AppKit API, not a fragile      │
+│                          private one like MediaRemote.                   │
+├──────────────────────────────────────────────────────────────────────────┤
+│  NotchPillView.swift                                                     │
+│   NEW: @ObservedObject var shelf: ShelfState  (new required param,       │
+│        mirrors outfit:/nowPlaying: — non-defaulted, always injected)     │
+│   NEW: shelfRow view — appended BELOW the existing `switch presentation` │
+│        content, `if !shelf.items.isEmpty` (SwiftUI removes its layout    │
+│        space entirely when the condition is false — matches the "extra  │
+│        area is transparent → invisible" Pattern 4 convention already     │
+│        used for the expanded/wings panel union)                          │
+│   NEW: .onDrop(...) on the collapsed-pill hot-zone view specifically     │
+│        (see "The click-through / drag-in collision" pitfall below)       │
+│   NEW: onDropFiles / onRemoveShelfItem / onClearShelf closures, mirroring│
+│        the existing onClick/onTogglePlayPause/onNext/onPrevious plain-   │
+│        closure convention exactly (view stays AppKit/UTType-free)        │
+│   Untouched: the `switch presentation { }` block, IslandPresentation,   │
+│              matchedGeometryEffect identity, all existing wing/blob shapes│
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | New or Modified |
-|-----------|----------------|------------------|
-| `TrialLogic.swift` | Pure function: given a start date, "now", and trial length, return `.active(daysRemaining:)` or `.expired`. Zero I/O, unit-testable in ms. | **New** |
-| `TrialManager.swift` | Reads/writes the trial-start `Date` to `UserDefaults`, calls `TrialLogic`, schedules the one-shot expiry `DispatchWorkItem`. | **New** |
-| `LicenseState.swift` | `ObservableObject` with `@Published var status: LicenseStatus` (`.trial(daysRemaining:)` / `.trialExpired` / `.licensed`) and a computed `isEntitled: Bool`. No logic beyond that — mirrors `NowPlayingState`. | **New** |
-| `LicenseService` (protocol) | `activate(key:completion:)`, `validate(completion:)` — mirrors `NowPlayingService`'s protocol-isolation contract. | **New** |
-| `PolarLicenseService.swift` | Concrete `LicenseService`; owns the `URLSession` calls to Polar's `/v1/customer-portal/license-keys/activate` and `/validate`, decodes JSON, reads/writes Keychain, explicitly hops to main before touching `@Published` state. | **New** |
-| `NotchWindowController` | Adds `isLicensed` to the existing `shouldShow(...)` AND-chain in `updateVisibility()`; owns the shared `LicenseState` instance; schedules the trial-expiry one-shot work item in `start()`; tears it down in `deinit`. | **Modified** (`Islet/Notch/NotchWindowController.swift`) |
-| `AppDelegate` | Calls `TrialManager.recordFirstLaunchIfNeeded()` once, before constructing `NotchWindowController`. | **Modified** (`Islet/AppDelegate.swift:12-51`) |
-| `SettingsView` | Adds a License section bound to the shared `LicenseState`/`PolarLicenseService`. | **Modified** (`Islet/SettingsView.swift`) |
-| `scripts/release.sh` | Fill `DEVELOPER_ID`/`NOTARY_PROFILE` placeholders (lines 22-23); no structural change — the script was explicitly written in Phase 0 to require zero edits beyond these two variables. | **Modified** (2-line change) |
+| Component | Responsibility | New or existing |
+|-----------|-----------------|------------------|
+| `ShelfItem` | Pure value describing one dropped file (id, original + local URL, filename, timestamp) | NEW |
+| `ShelfLogic` | Pure total functions: append, remove-by-id, clear-all over `[ShelfItem]` | NEW |
+| `ShelfState` | `@Published var items: [ShelfItem]`, the view's data source | NEW |
+| `ShelfFileImporter` | Resolves an `NSItemProvider` → copies the file into a private temp dir off-main → hands back a `ShelfItem` | NEW |
+| `NotchWindowController` | Owns `shelfState`; wires drop-in (expand + import), per-item removal, clear-all, and temp-dir teardown into its existing spring/`updateVisibility()` discipline | MODIFIED |
+| `NotchPillView` | Renders the shelf row underneath the resolver's verdict; hosts `.onDrop` on the hot-zone; renders per-item delete + far-right delete-all icons; hosts `.onDrag`/item-provider for drag-out | MODIFIED |
+| `IslandResolver` / `IslandPresentation` / `TransientQueue` | Untouched — the shelf never participates in ranking | NOT TOUCHED |
+| `ActivityCoordinator` / `DeviceCoordinator` | Untouched — no `ShelfCoordinator` is created; see rationale above | NOT TOUCHED |
 
 ---
 
-## Recommendation 1 — Where does the license/trial gate live?
+## Why not a coordinator (elaborated)
 
-**Recommendation: compose it into `updateVisibility()`'s existing `shouldShow(...)` call (`NotchWindowController.swift:432-434`), as one more AND term — do NOT gate construction in `AppDelegate`.**
+`ActivityCoordinator`'s contract is exactly two methods: `handle(_ reading:)` and `activityPromoted()`. Both exist purely to let `DeviceCoordinator` reach back into the shared, value-type `TransientQueue` via six injected closures (`queueHead`, `enqueue`, `updateHead`, `presentTransientChange`, `renderPresentation`, `batteryForAddress` — see `DeviceCoordinator.swift:77-96`). A `ShelfCoordinator` conforming to that protocol would need to invent a `Reading` type and a meaningless `activityPromoted()` implementation, purely to satisfy a shape designed for queue-competing, rank-carrying activities. The shelf is neither — extracting a `ShelfCoordinator` "to follow the pattern" would be **pattern-matching the extraction shape, not the actual problem** the extraction solves (isolating stateful, TransientQueue-touching bookkeeping out of the controller). A plain `ShelfState` + `ShelfLogic` pure-function pair achieves the same testability (unit-test `ShelfLogic` in isolation, exactly as `PowerActivity`/`DeviceActivity`/`TrackSnapshot` are tested) without adopting a protocol built for a different problem.
+
+## No protocol-isolation seam needed for `NSItemProvider`
+
+Islet's other protocol seams (`NowPlayingService`, `LicenseService`) exist specifically because they wrap a **fragile external dependency**: a private framework that already broke once (MediaRemote on macOS 15.4) or a third-party HTTP API. `NSItemProvider` / `UTType.fileURL` is a public, stable, decade-old AppKit/Foundation API with no history of Apple revoking it and no third-party service behind it. Wrapping it in a protocol would add a seam with no corresponding fragility to protect against — skip it; `ShelfFileImporter` can be a plain concrete class.
+
+---
+
+## Interaction with IslandResolver: modifier, not competitor
+
+`IslandPresentation` (`IslandResolver.swift:17-24`) stays exactly as-is — `idle`, `charging`, `device`, `nowPlayingWings`, `nowPlayingExpanded`, `expandedIdle`. The shelf is rendered by `NotchPillView.body` as **content appended after** the `switch presentation { ... }` block, inside the same outer `ZStack`/container, gated on a separate condition — not one more `case` in that switch.
+
+**Recommended gate: `interaction.isExpanded && (presentation == .expandedIdle || presentation.isNowPlayingExpanded) && !shelf.items.isEmpty`** — i.e. the shelf only appends under the two genuinely-expanded, non-transient cases (`.expandedIdle`, `.nowPlayingExpanded`), matching the requirement text "appended below whatever else is showing **expanded**." This deliberately **excludes** the three collapsed "wings" cases (`.charging`, `.device`, `.nowPlayingWings`) — those are 32pt-tall flat strips with no vertical room for a shelf row, and D-04 in `resolve(...)` already establishes that a transient wins even over an expanded island, so a charging/device splash firing mid-expansion would otherwise need the shelf to disappear and reappear every ~3s, which would look broken. **This exclusion is a product decision, not a proven requirement** — flag it explicitly for `/gsd:discuss-phase` rather than treating it as settled; the requirement text is ambiguous about whether a file mid-drop during a charging splash should still show its shelf.
+
+This is structurally identical to how the Phase 18 toast is gated: `songChangeToastGate(activeTransient:isExpanded:toastEnabled:)` is a **separate pure function**, deliberately not merged into `resolve(...)`, evaluated by the controller, and rendered by the view as an extra `VStack` row (`mediaWingsOrToast`'s `toastTextRow`) — read `IslandResolver.swift:74-89`'s own comment block for the precedent this shelf integration should copy almost verbatim, substituting "shelf non-empty" for "toast content present."
+
+---
+
+## Panel sizing: the real mechanical wrinkle
+
+`NotchWindowController.positionAndShow(on:)` sizes the AppKit `NSPanel` **once, up front**, to `expandedNotchFrame(collapsed:expandedSize:).union(wingsFrame(...))` (`NotchWindowController.swift:592-599`) specifically so the SwiftUI spring morph never clips or triggers a mid-animation `panel.setFrame` (Pattern 4 / Pitfall 4, called out repeatedly in the file's comments). The Phase 18 toast avoided ever resizing the panel because its extra 32pt (`toastExtraHeight`) already fit inside the pre-existing headroom: `expandedSize.height` (144pt) is taller than the wings shape even with the toast row added (32 + 32 = 64pt), so the union frame already covered it.
+
+**A shelf row does not automatically get this for free** — a horizontally-scrolling file strip needs real vertical space (icon + label + delete button, realistically ~56–72pt), and `expandedIsland`/`mediaExpanded`/`mediaUnavailable` are all sized via the shared `NotchPillView.expandedSize` constant (360×144) through the common `blobShape(...)` helper. Two options, and the second is the one to take:
+
+- **Wrong:** bake the extra height directly into `NotchPillView.expandedSize`. This makes every existing blob (including `expandedIdle`/`mediaExpanded` with an empty shelf) visually taller, showing dead black space below the existing content whenever the shelf is empty — a visible regression to the 90%-of-the-time empty-shelf case.
+- **Right (mirrors the toast precedent exactly):** reserve the headroom **only in the panel/window frame math**, not in the shared `expandedSize` constant used by every blob's `.frame(height:)`. Concretely: introduce `NotchPillView.shelfRowHeight` and change the value `NotchWindowController` feeds into `expandedNotchFrame(...)` to `expandedSize.height + shelfRowHeight` (an internal-to-the-controller constant, e.g. `panelExpandedSize`), while `blobShape(...)`'s own `.frame(height: Self.expandedSize.height)` stays untouched at 144pt as the *default*. Each blob-producing view that wants to host the shelf computes its **own** conditional total height the same way `mediaWingsOrToast` already does (`let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)`) — i.e. `let height = Self.expandedSize.height + (shelf.items.isEmpty ? 0 : Self.shelfRowHeight)`. The panel's pre-reserved (transparent) extra space absorbs the growth exactly like it already absorbs the toast row; no `panel.setFrame` call is ever needed for a shelf content change, preserving the existing "never resize for content changes" invariant.
+
+---
+
+## The click-through / drag-in collision — the one genuine open risk
+
+`NotchWindowController` only makes the panel interactive (`panel.ignoresMouseEvents = false`) while `pointerInZone || interaction.isExpanded` (`syncClickThrough()`, `NotchWindowController.swift:696-699`); otherwise the **entire window ignores all mouse events**, including drag sessions, so a drag can pass straight through to whatever sits behind the notch. The existing pointer-hover detection that flips this flag in time for a *click* to land works because it rides a **global** `NSEvent.mouseMoved` monitor (`NSEvent.addGlobalMonitorForEvents`, line 299) — this observes copies of events delivered to *other* apps and does not require Islet's own window to be interactive to fire. **A file-drag session is not delivered through that global monitor** — OS drag-and-drop (`NSDraggingDestination`) is only routed to windows that are already registered as valid drop targets *at the moment the drag enters their frame*, which is exactly the chicken-and-egg problem `ignoresMouseEvents = true` creates.
+
+Concretely: today, before any hover/click, the panel is non-interactive over the entire notch area; a file dragged over the collapsed pill in that state would currently **not** trigger `.onDrop`, because the window itself isn't accepting drag events yet. This directly conflicts with the requirement "Drag a file onto the collapsed pill → island auto-expands." Two known mitigation directions (do not treat either as decided — this needs its own research/spike before implementation):
+
+1. Keep the small collapsed hot-zone rectangle **permanently drag-target-registered** (i.e. never gate drag acceptance behind the same `ignoresMouseEvents` toggle used for clicks) — e.g. by having the content view's `hitTest(_:)` return `nil` outside the visible pill (achieving click-pass-through via hit-testing) while leaving `ignoresMouseEvents` permanently `false` so `NSDraggingDestination` methods always fire. This is a bigger change to the existing click-through mechanism (currently a single window-level boolean, not a `hitTest` override) and needs on-device verification that it doesn't reintroduce accidental click-swallowing over the transparent panel margins.
+2. Detect a system-wide drag session starting (there is no clean public API for this cross-app — `NSPasteboard.general.changeCount` polling around drag events is the closest common workaround, and it's inelegant) and pre-emptively flip `ignoresMouseEvents = false` for the drag's duration.
+
+Flagging this prominently: **this is the single highest-uncertainty integration point in the whole feature** and should get its own `/gsd:discuss-phase` conversation and probably a tiny spike/prototype before the full shelf is built, exactly the kind of thing this research is supposed to surface rather than hand-wave past.
+
+---
+
+## Data Model & File Lifetime
+
+**Recommended `ShelfItem`:**
 
 ```swift
-// Before (NotchWindowController.swift:430-436):
-let fullscreen = isBuiltinDisplayInFullscreenSpace(builtinUUID: currentBuiltin()?.uuid)
-if shouldShow(hasTarget: target != nil,
-              hideInFullscreen: hideInFullscreen,
-              isFullscreen: fullscreen),
-   let target {
-
-// After:
-let fullscreen = isBuiltinDisplayInFullscreenSpace(builtinUUID: currentBuiltin()?.uuid)
-if shouldShow(hasTarget: target != nil,
-              hideInFullscreen: hideInFullscreen,
-              isFullscreen: fullscreen,
-              isLicensed: licenseState.isEntitled),   // NEW AND term
-   let target {
+struct ShelfItem: Identifiable, Equatable {
+    let id: UUID
+    let originalURL: URL   // informational only — where the user dragged it from
+    let localURL: URL      // Islet's OWN copy — the only URL ever read from or dragged out
+    let filename: String
+    let addedAt: Date
+}
 ```
 
-**Why not gate at `AppDelegate` (skip constructing `NotchWindowController` at all when unlicensed)?**
+**Why a copy, not a live reference to `originalURL`, and not a security-scoped bookmark:**
 
-- The Settings window (and the license-entry UI that lives inside it) is the ONE surface a locked-out user needs to reach to buy/enter a key. `AppDelegate` already unconditionally builds the status item and menu regardless of license state — so an `AppDelegate`-level gate would need to carve out an exception for Settings anyway, which is the same amount of plumbing as just always constructing everything and gating only the visual island.
-- If the gate lived at construction time, a user who enters a valid key *while the trial-expired lockout is already showing* would need `AppDelegate` to retroactively construct-and-start a controller that was never built — a second construction path, which reintroduces exactly the kind of "two show/hide sites" bug class Phase 6/8/9 fought hard to eliminate (see Pattern 7 comment at `NotchWindowController.swift:414-420`).
-- Gating inside `updateVisibility()` is fully reactive for free: it already re-runs on `didChangeScreenParameters`, `activeSpaceDidChange`, `didActivateApplication`, every transient enqueue/dismiss, and every settings change. License-state transitions (trial expires, user activates a key) just need to trigger one more call to the same function — no new show/hide plumbing.
-- Hiding the panel via the existing else-branch (`panel?.orderOut(nil)`, `hotZone = nil`, `expandedZone = nil`) already achieves "no functionality" for free: with `hotZone`/`expandedZone` nil, `handlePointer(at:)` short-circuits (`NotchWindowController.swift:500-519`), so hover/click/haptics genuinely stop working, not just "invisible but still reacting." No separate interaction-disabling code is needed.
+- **Robustness against the source disappearing.** The requirement explicitly asks "what happens if the source file is deleted/moved while sitting in the shelf" — answering that cleanly requires the shelf to hold something that does **not** depend on the original path continuing to exist. Copying once, at drop time, into an app-owned temp directory means the shelf's own file is authoritative for the rest of the session; a later deletion/move/rename of the original is simply irrelevant.
+- **Drag-out needs a real, currently-valid file on disk.** `NSItemProvider(contentsOf: url)` (the standard, reliable mechanism for handing a file to Finder/another app via drag) requires `url` to point at an actual readable file for the duration of the drag. SwiftUI's file-promise-writer path is documented as unreliable/unsupported in practice (multiple independent sources agree the promise-based approach is the wrong tool here) — reading an existing file via `NSItemProvider(contentsOf:)` from the app's own temp copy sidesteps that whole problem category.
+- **No sandbox, so no bookmark needed at all.** Security-scoped bookmarks solve "persist read access across a sandboxed relaunch." Islet is unsandboxed and the shelf is explicitly session-only (cleared on restart) — there is no permission boundary and no persistence requirement to bridge.
+- **Not raw `Data` in memory.** Holding every dropped file as in-memory `Data` would (a) make `NSItemProvider(contentsOf:)` drag-out impossible without first writing it back to disk anyway, (b) balloon memory for an "unbounded capacity" shelf with large files (e.g. video), and (c) gives nothing a copy-to-temp-dir doesn't already give for free.
 
-**Tradeoff accepted:** the power/Bluetooth/MediaRemote monitors keep running (idle-CPU ~0% by design, per the codebase's own event-driven-not-polling discipline) even while locked out. This is a deliberate, cheap tradeoff — not a functionality leak, since none of their output reaches the screen — and avoids a second start/stop lifecycle keyed to license state on top of the existing per-activity-toggle one (`activityEnabled(...)`, `handleSettingsChanged()`).
+**Lifecycle:**
 
-**Trial-expiry timing (no polling needed):** rather than adding a recurring timer to check "has the trial expired yet," schedule **one** `DispatchWorkItem` at the exact computed expiry instant in `TrialManager`/`start()`, firing a single `updateVisibility()` call — this is the *exact same idiom* already used four times in this file (`dismissWorkItem`, `graceWorkItem`, `mediaDismissWorkItem`, `deviceBatteryWork`: "one wake-up then idle, no recurring timer"). `updateVisibility()` also already gets triggered incidentally by ordinary system activity (screen wake, space switches, app switches), so in practice expiry is very unlikely to go unnoticed even without the dedicated work item — but the one-shot item makes it exact and is nearly free to add given the pattern already exists three times over in this file.
-
----
-
-## Recommendation 2 — New components vs. existing-file additions
-
-**New files (all under a new `Islet/Licensing/` group, mirroring the existing `Islet/Notch/` pure-seam + thin-glue split):**
-
-| File | Pattern mirrored |
-|------|-------------------|
-| `TrialLogic.swift` | `PowerActivity.swift` / `NowPlayingPresentation.swift` — pure, unit-tested classification logic, zero I/O |
-| `TrialManager.swift` | `PowerSourceMonitor.swift` — thin glue: UserDefaults I/O + wraps the pure function + owns the one-shot timer |
-| `LicenseState.swift` | `NowPlayingState.swift` / `ChargingActivityState.swift` — plain `@Published` holder, no methods beyond simple computed properties |
-| `LicenseService.swift` (protocol) | `NowPlayingService` protocol in `NowPlayingMonitor.swift:40-47` — verbatim pattern |
-| `PolarLicenseService.swift` | `NowPlayingMonitor.swift`'s concrete-conformer role — the ONE file that imports networking for Polar and knows the URL/JSON shape; a future Polar API change is a one-file fix |
-
-**Existing-file modifications (small, surgical):**
-
-- `Islet/Notch/NotchWindowController.swift` — add `licenseState` property, add the `isLicensed` AND term (above), add the one-shot expiry work item in `start()`/`deinit` (mirrors existing teardown discipline at lines 1050-1084).
-- `Islet/AppDelegate.swift` — one new call to seed the trial start date before `controller.start()` (around line 39-41).
-- `Islet/SettingsView.swift` — one new `Section("License")` alongside the existing `Section("Activities")` (lines 42-64), same `Form`-based style.
-- `scripts/release.sh` — fill two placeholder variables (lines 22-23); the script was explicitly pre-written in Phase 0 to require nothing else.
-- `project.yml` — no new package dependency is required for the license/trial pieces themselves (plain `URLSession` + `Security` framework for Keychain, both system frameworks, no SPM package needed). If a Polar.sh Swift SDK wrapper is later preferred over raw `URLSession`, it would be added the same way `MediaRemoteAdapter` was (pinned `revision:`, since Polar's own SDKs are JS/Python-first — verify before assuming a Swift package exists).
-
-**Do not** fold license state into the existing `NotchInteractionState`, `ChargingActivityState`, or `IslandPresentationState` models — those are deliberately narrow, single-purpose holders (the codebase's own comments are explicit about this: `ChargingActivityState.swift` header notes it is "the SEPARATE ... model ... NOT a NotchInteractionState phase, so the Phase-2 gesture machine stays untouched"). License gating is a different *axis* (can-the-app-run-at-all) from presentation (what-is-it-showing-right-now) and deserves its own model for the same reason those two are already kept apart.
+- **Copy location:** a private subdirectory under `FileManager.default.temporaryDirectory`, scoped per-launch (e.g. a UUID-named folder created once in `start()`), never Application Support or anywhere implying persistence intent.
+- **Copy timing:** perform the actual file copy **off the main thread** (background `DispatchQueue` or `Task.detached`), then hop back to main to construct the `ShelfItem` and mutate `shelfState.items` inside the existing `withAnimation(.spring(...))` convention — mirrors how every other mutation in `NotchWindowController` is already disciplined, and matters concretely here because dropped files (e.g. videos) can be large enough that a synchronous copy would visibly hitch the UI thread.
+- **Per-file removal:** delete that item's `localURL` copy from disk, then apply `ShelfLogic.removing(id:from:)`.
+- **Delete-all:** delete every item's `localURL`, then `shelfState.items = []`.
+- **App-quit / controller teardown:** best-effort `try? FileManager.default.removeItem(at: shelfTempDirectory)` in `deinit`, mirroring the file's existing owner-driven teardown discipline (`powerMonitor?.stop()`, `nowPlayingMonitor?.stop()`, etc.) — note the file's own known carried-over bug (`AppDelegate.quit()` calls `NSApp.terminate(nil)` without tearing down `NotchWindowController`, so `deinit` never runs on quit) means this cleanup currently would **not** run on quit either; either fix that pre-existing leak as part of this milestone or accept that macOS's own periodic temp-directory cleanup is the fallback (acceptable given these are always just copies, never the user's only copy of anything).
+- **App-launch:** best-effort delete of any stale shelf temp directory left over from a previous crashed session, before creating a fresh one.
 
 ---
 
-## Recommendation 3 — Sharing license state between `NotchWindowController` and `SettingsView`
+## Recommended Project Structure (new files)
 
-This is the one place where the existing `ActivitySettings` pattern (both `SettingsView` and the controller **independently** read the same `UserDefaults` keys, no shared object reference) does *not* transfer cleanly, because license validation must update the running controller's gate **live**, without an app restart, when the user types in a key.
+```
+Islet/Notch/
+├── ShelfItem.swift            # pure value type (Foundation only)
+├── ShelfLogic.swift           # pure functions: adding/removing/clearing over [ShelfItem]
+├── ShelfState.swift           # ObservableObject, @Published var items: [ShelfItem]
+├── ShelfFileImporter.swift    # glue: NSItemProvider → background copy → ShelfItem
+IsletTests/
+├── ShelfLogicTests.swift      # unit tests for the pure seam, written FIRST
+```
 
-**Recommendation: reuse the existing `UserDefaults.didChangeNotification` + `defaultsObserver` mechanism (`NotchWindowController.swift:302-305`, `handleSettingsChanged()` at line 854) rather than introducing a new shared-object-reference/DI style.**
-
-Concretely:
-- `PolarLicenseService`, on a successful `activate`/`validate`, writes a small **non-secret cache boolean** to `UserDefaults` (e.g., `"license.cachedEntitled"`) alongside the real secret (license key + Polar `activation_id`) in Keychain. Writing to `UserDefaults` automatically fires `didChangeNotification`, which `NotchWindowController` already observes.
-- Extend `handleSettingsChanged()` (or add a small sibling `handleLicenseChanged()` called from the same observer) to re-read `LicenseState.status` from the persisted source of truth and call `updateVisibility()`.
-- `SettingsView` reads/writes its own lightweight `LicenseState`-equivalent via `@AppStorage`/direct Keychain calls, exactly the way it already does for `chargingEnabled`/`nowPlayingEnabled`/`deviceEnabled` — no need to literally share a Swift object reference across files.
-
-This keeps the "single source of truth is the persisted store, not an in-memory shared reference" discipline the codebase has used consistently since `ActivitySettings.swift`, and requires zero new plumbing beyond one more thing the existing `defaultsObserver` reacts to.
-
----
-
-## Recommendation 4 — Data flow: UserDefaults vs. Keychain split
-
-**Confirmed, with reasoning to record in the plan:**
-
-| Value | Store | Why |
-|-------|-------|-----|
-| Trial start date/timestamp | `UserDefaults` | Not a secret. A user editing/deleting it just grants themselves a few extra free-trial days — a low-stakes, self-limiting act (they still eventually have to pay or lose the island entirely), not worth the complexity of Keychain access-group/entitlement handling for zero real protection gained (a determined user can delete a Keychain item just as easily as a UserDefaults key). Matches the project's explicit anti-speculative-complexity stance. |
-| Validated license key (raw string) | **Keychain** | This is the tamper-sensitive value; Keychain survives app deletion/reinstall (unlike UserDefaults), which is desirable here — a legitimate paying customer who reinstalls Islet should not have to re-enter their key or re-purchase. |
-| Polar `activation_id` (UUID returned by the `/activate` call) | **Keychain**, alongside the key | Confirmed by Polar's own documented flow (see Sources): the activation endpoint "reserves an allocation for a specific device" and the returned `activation_id` is meant to be stored and round-tripped into subsequent `/validate` calls as "extra validation." Storing it next to the key is the natural, Polar-recommended pattern — not an Islet-specific invention. |
-| `lastValidatedAt` timestamp (last successful *online* validation) | Keychain (or UserDefaults — not tamper-sensitive on its own, but convenient to keep alongside the key) | Needed to implement an offline-grace window (e.g., "trust the cached Keychain state for N days since the last successful online check, then require re-validation") so a legitimate offline user (flight, no wifi) isn't locked out. **This offline-grace duration is a product decision, not an architecture fact — flag it for the roadmap/planning phase, do not hardcode a number from this research.** |
-| `"license.cachedEntitled"` boolean (Recommendation 3) | `UserDefaults` | Deliberately non-secret — it exists purely to piggyback on `didChangeNotification` for live UI updates; the actual authority is the Keychain-stored key + activation_id + last-validated timestamp. A tampered UserDefaults boolean without a correspondingly valid Keychain entry is treated as untrusted the next time an online re-validation is due. |
+No new top-level folder needed — this is exactly the same granularity as the existing `PowerActivity`/`PowerSourceMonitor`, `NowPlayingPresentation`/`NowPlayingMonitor`, `DeviceActivity`/`DeviceCoordinator` pure/glue pairs already living flat in `Islet/Notch/`.
 
 ---
 
-## Recommendation 5 — Suggested build order for the roadmap
+## Build Order (matches this project's existing pure-seam-first convention)
 
-**License-gating logic should be built and fully tested against a stub *before* the real Polar.sh network integration.** Recommended phase order:
+This project has shipped every prior feature in the same order (`IslandResolver` before `NotchWindowController` wiring in Phase 6; `DeviceCoordinator` proven in isolation in Plan 16-01 *before* the controller was wired to it in Plan 16-02). Recommend the identical order here:
 
-1. **Trial + lockout gate (local/stubbed license state).** Build `TrialLogic` (pure, unit-tested), `TrialManager` (UserDefaults glue + one-shot expiry timer), `LicenseState`, and the `updateVisibility()` integration — driven by a trivial stub (`LicenseState.status` manually settable, or a debug-only UserDefaults override) rather than a real `LicenseService`. This is the highest-risk integration point (touches the proven single-arbiter `NotchWindowController`) and should be de-risked and stabilized *before* any other new code touches that file again — matches the codebase's own established practice of building+testing the pure classification seam before wiring the live external glue (`PowerActivity.swift` before `PowerSourceMonitor.swift` in Phase 3; `NowPlayingPresentation.swift` before `NowPlayingMonitor.swift` in Phase 4).
-2. **License-entry Settings UI**, wired against a stubbed `LicenseService` (e.g., an in-memory fake that "validates" any sufficiently key-shaped string after a fake delay). This exercises the full UI state machine (idle → validating → success/failure) without live network flakiness confounding UI bugs.
-3. **Real `PolarLicenseService`** — the actual `URLSession` calls to `/v1/customer-portal/license-keys/activate` and `/validate`, Keychain read/write, main-thread hop — swapped in behind the *same* `LicenseService` protocol from step 2 with zero UI or `TrialManager`/`LicenseState` wiring changes. This is the first point a live Polar.sh product/API credentials are actually needed.
-4. **Real notarization** (`scripts/release.sh` placeholder fill) — genuinely independent of the three steps above; touches only two shell variables and requires only the already-purchased Developer ID credentials. Zero code coupling to the licensing work, so it can be sequenced in parallel with, or after, steps 1-3 without blocking or being blocked by them. `PROJECT.md`'s stated reason for bundling it into this milestone is a *business* reason ("don't want a Gatekeeper warning on a paid product's first launch"), not a technical dependency.
-
----
-
-## Recommendation 6 — Concurrency/threading concerns
-
-- **`URLSession` completion handlers do NOT run on main by default** (they run on the session's delegate queue, a background queue, unless explicitly configured otherwise). This is the *opposite* assumption a first-time programmer might carry over from `NowPlayingMonitor.swift`'s comment ("the wrapper ALREADY dispatches every callback to `DispatchQueue.main.async` ... we add NO second main-hop"). `PolarLicenseService` must instead mirror **`PowerSourceMonitor.swift`'s** explicit-hop discipline (`DispatchQueue.main.async { ... }` wrapped around the callback body, `PowerSourceMonitor.swift:79-83`) before touching any `@Published` property on `LicenseState`. Flag this explicitly in the plan for whichever phase builds `PolarLicenseService` — it is the single most likely threading bug in this milestone.
-- **Keychain calls (`SecItemAdd`/`SecItemCopyMatching`/`SecItemUpdate`) are synchronous** and can block briefly on disk/Secure-Enclave I/O. Given the call frequency here is low (once at launch to read, once after an explicit "Activate" button tap to write — not a hot path, not on every frame or every monitor tick), it is acceptable to call them synchronously on the main thread, consistent with the project's anti-speculative-complexity stance. Do not introduce a background queue for this unless on-device testing shows a perceptible hitch.
-- **The one-shot trial-expiry `DispatchWorkItem`** should follow the exact existing idiom used four times already in `NotchWindowController.swift`: store the item as a property, cancel it in `deinit`, schedule via `DispatchQueue.main.asyncAfter(deadline:)`, no recurring timer.
-- **No new actor-isolation gymnastics expected.** `TrialManager`/`PolarLicenseService` should be plain `@MainActor` classes like `PowerSourceMonitor`/`NowPlayingMonitor`, with the same `nonisolated(unsafe)`-on-a-single-property escape hatch only if `stop()`/teardown needs to run from a `nonisolated deinit` (mirrors `PowerSourceMonitor.swift:62-65` and `NowPlayingMonitor.swift:51-56`) — likely unnecessary here since there is no persistent child process or run-loop source to tear down, just a single in-flight `URLSessionTask` that can be `.cancel()`'d synchronously.
+1. **Pure seam first, no system APIs at all:** `ShelfItem` + `ShelfLogic`, fully unit-tested (append/remove/clear, and whatever dedupe policy is chosen) with zero `NSItemProvider`/`FileManager` involvement — hand-built `ShelfItem`s in tests, exactly like `TrackSnapshot`/`PowerReading`/`DeviceReading` are hand-built in their own test suites.
+2. **View, driven by hand-set preview state, no live drop yet:** add `shelf: ShelfState` to `NotchPillView`, the appended shelf row (icon/thumbnail + per-item trash + far-right delete-all), gated per the "Interaction with IslandResolver" section above, verified via `#Preview` blocks (mirroring the existing `#Preview("Charging Wings")` etc. convention) with a hand-populated `ShelfState`. Confirms panel-sizing math (the `shelfRowHeight` headroom question above) visually before any real drag exists.
+3. **Drag-OUT glue** (simpler than drag-in — no click-through collision): wire `.onDrag`/`NSItemProvider(contentsOf:)` on each rendered shelf item so files can already be dragged to Finder from a manually-seeded shelf, and wire per-item/delete-all buttons to the controller closures.
+4. **Drag-IN glue last, and treat the click-through collision as its own spike:** `ShelfFileImporter` (background copy) + the controller's `handleDrop(providers:)` (expand-if-collapsed + import) + resolving the `.onDrop`/`ignoresMouseEvents` interaction from the pitfall above — this is the step most likely to need on-device iteration, so sequencing it last means every other piece is already proven working before touching the riskiest part.
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: A second show/hide call site for "locked out"
-**What people do:** Add a separate `if !licenseState.isEntitled { panel.orderOut(nil); return }` early-return at the top of some other method, instead of composing into `shouldShow(...)`.
-**Why it's wrong:** Reintroduces the exact "two hide/show sites can race and flicker" bug class Phases 2/6/8/9 explicitly fixed by centralizing on one `updateVisibility()`. A second site is one of the concrete regressions a code reviewer should flag on sight in this codebase.
-**Instead:** One more boolean AND term inside the existing `shouldShow(...)` call.
+### Anti-Pattern 1: `ShelfCoordinator` behind `ActivityCoordinator`
+**What it would look like:** conforming a new type to `ActivityCoordinator`, inventing a `Reading` typealias and a no-op `activityPromoted()`.
+**Why it's wrong:** copies the *shape* of an extraction that exists to manage `TransientQueue` reach-back and rank-competition — neither applies to the shelf. Adds a protocol conformance with unused/meaningless methods.
+**Instead:** plain `ShelfState` (mirrors `BasicOutfitState`) + `ShelfLogic` pure functions.
 
-### Anti-Pattern 2: Sharing a live `LicenseState` object reference constructed in two different places
-**What people do:** `AppDelegate` constructs its own `LicenseState()`, `SettingsView` constructs a different one via `@StateObject`, and they silently drift out of sync.
-**Why it's wrong:** No single source of truth; the controller's gate could show stale entitlement even after a successful validation in Settings.
-**Instead:** Persisted store (UserDefaults cache flag + Keychain) is the single source of truth; `didChangeNotification` is the live-update signal both sides already know how to listen for (Recommendation 3).
+### Anti-Pattern 2: Threading the shelf through `IslandPresentation`/`resolve(...)`
+**What it would look like:** adding a `.shelf([ShelfItem])` case or wrapping every existing case with shelf data.
+**Why it's wrong:** the shelf is orthogonal to *which* activity is showing, not a rank in the same competition — this would force every existing `IslandPresentation` case to also carry shelf data, bloating the enum the resolver's tests already cover, for a concern that has nothing to do with priority arbitration.
+**Instead:** a separate `@Published` field the view appends underneath the switch, exactly like the Phase 18 toast.
 
-### Anti-Pattern 3: Polling for trial expiry
-**What people do:** A repeating `Timer`/`DispatchQueue.main.asyncAfter` loop that re-checks trial status every N seconds "just to be safe."
-**Why it's wrong:** Violates the codebase's explicit, repeatedly-stated "idle CPU ~0%, no polling clock, event/one-shot only" discipline (present in `PowerSourceMonitor`, `BluetoothMonitor`, and every dismiss-timer in `NotchWindowController`).
-**Instead:** One `DispatchWorkItem` scheduled at the exact computed expiry instant (Recommendation 1).
+### Anti-Pattern 3: Referencing `originalURL` directly instead of copying
+**What it would look like:** storing only the dropped `URL` and reading from it whenever the shelf renders/drags-out.
+**Why it's wrong:** breaks the moment the source file is renamed, moved, or deleted while sitting in the shelf (explicitly one of this feature's required behaviors to get right); also fights `NSItemProvider(contentsOf:)`'s expectation of a stable, app-controlled file for drag-out.
+**Instead:** copy once at drop time into an app-owned temp directory; the shelf's own copy is authoritative.
 
-### Anti-Pattern 4: Assuming URLSession's completion handler is already on main
-**What people do:** Copy the "no second main-hop needed" comment style from `NowPlayingMonitor.swift` and skip the `DispatchQueue.main.async` wrap in `PolarLicenseService`.
-**Why it's wrong:** `URLSession` callbacks are background-queue by default; skipping the hop is a crash/undefined-behavior risk the moment the completion touches `@Published` state or AppKit.
-**Instead:** Mirror `PowerSourceMonitor.swift`'s explicit hop instead (Recommendation 6).
+### Anti-Pattern 4: Baking shelf headroom into the shared `expandedSize` constant
+**What it would look like:** changing `NotchPillView.expandedSize` itself to include shelf height.
+**Why it's wrong:** every blob shape using `expandedSize` (idle glance, media expanded, unavailable) becomes visibly taller with dead black space even when the shelf is empty (the common case).
+**Instead:** reserve extra panel-frame headroom separately (controller-side constant), keep each blob view's own conditional height computation local, mirroring `mediaWingsOrToast`'s existing `height = wingsSize.height + (toast != nil ? toastExtraHeight : 0)` pattern.
 
 ---
 
-## Integration Points
+## Integration Points (concrete file/line references)
 
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| Polar.sh customer-portal license-keys API | `POST https://api.polar.sh/v1/customer-portal/license-keys/activate` (first entry — binds the key to this device via a `label`, returns an `activation_id`) then `POST https://api.polar.sh/v1/customer-portal/license-keys/validate` (subsequent checks, passing back `key` + `organization_id` + the stored `activation_id`) | Both customer-portal endpoints are documented as usable **without authentication** directly from a client app — appropriate for a native Mac app with no backend server. Response includes `status` (`granted`/`revoked`/`disabled`), `expires_at`, and `activation` details — map these directly onto `LicenseStatus`. HIGH confidence (fetched directly from `polar.sh/docs`, 2026-07-05). |
-| Apple Notary Service | `xcrun notarytool submit --keychain-profile ... --wait` + `xcrun stapler staple` | Already fully wired in `scripts/release.sh`; only the two placeholder variables need real values once the Developer ID cert + a `notarytool store-credentials` keychain profile exist. No code/architecture change needed here — this was explicitly designed as a fill-in-two-variables task in Phase 0. |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `TrialManager`/`PolarLicenseService` ↔ `NotchWindowController` | Persisted store (`UserDefaults` cache flag + Keychain) + `UserDefaults.didChangeNotification` | Mirrors the existing `ActivitySettings` ↔ controller boundary; no new shared-object DI style introduced. |
-| `LicenseService` protocol ↔ `PolarLicenseService` concrete conformer | Protocol conformance, closure-based callbacks (not async/await, to match the existing `NowPlayingService`/`PowerSourceMonitor` closure idiom used throughout this codebase) | A future Polar.sh API change is a one-file swap, exactly like the `NowPlayingService` precedent this milestone is explicitly told to mirror. |
-| `SettingsView` ↔ `PolarLicenseService` | Direct call from a button action (`activate(key:completion:)`), completion hops to main, updates `@AppStorage`/Keychain, which the controller observes via `didChangeNotification` | Same shape as the existing `LaunchAtLogin.set(...)` call pattern already in `SettingsView.swift:20-38` (try/catch, revert UI state on failure). |
+| Integration point | File | Change |
+|---|---|---|
+| New pure value | `Islet/Notch/ShelfItem.swift` | NEW file |
+| New pure logic | `Islet/Notch/ShelfLogic.swift` | NEW file, unit-tested first |
+| New published state | `Islet/Notch/ShelfState.swift` | NEW file, mirrors `BasicOutfitState.swift` |
+| New glue (drag-in resolution + temp copy) | `Islet/Notch/ShelfFileImporter.swift` | NEW file |
+| Controller owns shelf state | `NotchWindowController.swift` (near line 93, alongside `outfitState`) | ADD `private let shelfState = ShelfState()` |
+| Controller wires drop-in | `NotchWindowController.swift` (near `handleClick()`, line 744) | ADD `handleDrop(providers:)` reusing `nextState(interaction.phase, .clicked)` for the auto-expand |
+| Controller wires teardown | `NotchWindowController.swift` `deinit` (line 1122) | ADD best-effort shelf-temp-dir removal |
+| View receives shelf state | `NotchPillView.swift` (near line 51, alongside `outfit`) | ADD `@ObservedObject var shelf: ShelfState` (non-defaulted) |
+| View renders shelf row | `NotchPillView.swift` `body` (after line 159's `switch`) | ADD conditional row, gated per "Interaction with IslandResolver" |
+| View accepts drops | `NotchPillView.swift` `collapsedIsland` (line 181) + expanded blob shapes | ADD `.onDrop(of: [.fileURL], ...)`, subject to the click-through pitfall above |
+| Panel sizing | `NotchWindowController.swift` `positionAndShow` (line 592) | Feed `expandedSize.height + shelfRowHeight` into `expandedNotchFrame(...)` instead of the raw constant |
+| `IslandResolver.swift` | — | **NOT TOUCHED** |
+| `ActivityCoordinator.swift` / `DeviceCoordinator.swift` | — | **NOT TOUCHED** |
 
 ---
 
 ## Sources
 
-- Direct reads of the actual codebase (HIGH confidence — verified, not inferred): `Islet/AppDelegate.swift`, `Islet/Notch/NotchWindowController.swift` (all ~1086 lines), `Islet/Notch/NotchPanel.swift`, `Islet/Notch/NowPlayingMonitor.swift`, `Islet/Notch/PowerSourceMonitor.swift`, `Islet/Notch/NowPlayingState.swift`, `Islet/ActivitySettings.swift`, `Islet/SettingsView.swift`, `Islet/IsletApp.swift`, `scripts/release.sh`, `project.yml`.
-- `.planning/PROJECT.md` — confirms the v1.1 milestone scope (3-day trial, €7.99 one-time Polar.sh purchase, Keychain-cached validation, real Developer-ID notarization) and that the Developer account has already been purchased.
-- Polar.sh official docs — [Activate License Key](https://polar.sh/docs/api-reference/customer-portal/license-keys/activate), [Validate License Key](https://polar.sh/docs/api-reference/customer-portal/license-keys/validate) — HIGH confidence, fetched directly 2026-07-05; confirms no-auth customer-portal endpoints, the `activation_id` round-trip pattern, and the `status`/`expires_at`/`activation` response shape used in Recommendation 4.
-- A grep across the repo (`keychain|license|polar|trial`, case-insensitive) confirmed there is currently **zero** existing licensing/trial/Keychain code — this is a genuinely new subsystem, not an extension of something partially built.
+- Direct reads of the real Islet codebase (HIGH confidence — these are facts about this project, not general claims): `NotchWindowController.swift`, `IslandResolver.swift`, `ActivityCoordinator.swift`, `DeviceCoordinator.swift`, `NotchPillView.swift`, `IslandPresentationState.swift`, `NotchInteractionState.swift`, `BasicOutfitState.swift`, `NowPlayingPresentation.swift`, `Islet.entitlements`, `.planning/PROJECT.md`.
+- [SwiftUI on macOS: Drag and drop, and more — The Eclectic Light Company](https://eclecticlight.co/2024/05/21/swiftui-on-macos-drag-and-drop-and-more/) — MEDIUM, corroborates `onDrop`/`NSItemProvider`/`public.file-url` mechanics on macOS.
+- [Implementing drag and drop with the SwiftUI modifiers — Create with Swift](https://www.createwithswift.com/implementing-drag-and-drop-with-the-swiftui-modifiers/) — MEDIUM, corroborates `.onDrag`/`.onDrop` API shape.
+- [SwiftUI drag & drop does not support file promises — Wade Tregaskis](https://wadetregaskis.com/swiftui-drag-drop-does-not-support-file-promises/) — MEDIUM-HIGH, directly informs the recommendation to drag out an existing real file (`NSItemProvider(contentsOf:)`) rather than attempt a file-promise-writer approach in SwiftUI.
+- [NSItemProvider — Apple Developer Documentation](https://developer.apple.com/documentation/foundation/nsitemprovider) — HIGH (official), confirms the general contract for conveying files during drag-and-drop.
+- Apple's documented behavior that a window with `ignoresMouseEvents == true` ignores all mouse-related events including drag sessions is drawn from general AppKit `NSWindow` documentation knowledge (MEDIUM confidence, not independently re-verified against a fetched doc page this session) — flagged as the basis for the click-through/drag-in pitfall above and explicitly called out as needing on-device/spike verification before implementation, not treated as settled fact.
 
 ---
-*Architecture research for: Islet v1.1 Trial & Paid Release milestone*
-*Researched: 2026-07-05*
+*Architecture research for: Islet v1.3 "Notch Shelf" milestone*
+*Researched: 2026-07-09*

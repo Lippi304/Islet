@@ -1,151 +1,155 @@
 # Project Research Summary
 
-**Project:** Islet — v1.1 "Trial & Paid Release" milestone
-**Domain:** Trial-period + one-time-purchase licensing (Polar.sh) + real Developer-ID notarization, bolted onto an already-shipped native macOS notch/Dynamic-Island utility
-**Researched:** 2026-07-05
-**Confidence:** MEDIUM-HIGH
+**Project:** Islet — v1.3 "Notch Shelf" milestone (drag-and-drop file shelf)
+**Domain:** Feature addition to an existing, shipped native macOS notch-overlay app (not a green-field project)
+**Researched:** 2026-07-09
+**Confidence:** MEDIUM-HIGH overall — architecture and pitfalls research is grounded in direct reads of the real Islet codebase (HIGH); the one genuine unknown (drag delivery through a click-through `NSPanel`) is flagged everywhere and needs an on-device spike before full implementation.
 
 ## Executive Summary
 
-This milestone adds monetization to an already-working app, not a new product. Islet ships a 3-day silent trial, a €7.99 one-time purchase via Polar.sh, Keychain-cached license validation, a hard functionality lockout on trial expiry, and real Developer-ID notarized distribution (replacing the existing dry-run release pipeline). The domain is well-trodden: comparable indie Mac utilities (BetterDisplay, Rectangle Pro, CleanShot X) all use the same shape — silent trial start, Settings-pane license entry, browser-handoff checkout, Paddle/Polar-style validation. Islet's own codebase already contains the two architectural precedents this milestone needs to reuse rather than reinvent: a protocol-isolation pattern for fragile external dependencies (`NowPlayingService`) and a single-arbiter visibility function (`updateVisibility()`) that all new gating logic must compose into as one more AND term, not a second show/hide call site.
+The Notch Shelf is a session-only, drag-and-drop file tray appended to Islet's existing notch overlay — drop files on the pill, they collect in a horizontally-scrolling strip while the island is expanded, and can be dragged back out to Finder or other apps. Every reference app (NotchDrop, DynamicLake's DynaClip, Yoink) validates the core interaction, and this project's own architecture research (grounded in direct reads of `NotchWindowController.swift`, `IslandResolver.swift`, `ActivityCoordinator.swift`) shows the shelf fits cleanly as a second, independent `@Published` axis rendered underneath whatever `IslandResolver` already decided — exactly the pattern already proven by the Phase 18 song-change toast. No new coordinator, no new `IslandPresentation` case, no protocol seam for `NSItemProvider` (a stable public API, unlike the fragile private MediaRemote bridge) — plain `ShelfState`/`ShelfLogic`/`ShelfFileImporter` mirroring existing pure/glue splits (`BasicOutfitState`, `PowerActivity`/`PowerSourceMonitor`).
 
-The recommended approach: build trial-state persistence and the lockout gate first, entirely stubbed (no network), because that touches the most sensitive existing file (`NotchWindowController`); wire the Settings license-entry UI against a fake `LicenseService` second; swap in the real `PolarLicenseService` (URLSession + Keychain) third; and treat real notarization as a fourth, functionally-independent track that only needs two shell-script variables filled in. Trial/license state must live in the Keychain (not UserDefaults/plist), because UserDefaults is trivially reset via `defaults delete` — the single most common mistake in indie macOS trial implementations — while Keychain items on a non-sandboxed macOS app survive app deletion and reinstall for free. Polar.sh's customer-portal `/activate` and `/validate` endpoints are explicitly designed to be called unauthenticated from a native client using the license key itself as the credential; the one hard rule is never to embed Polar's secret organization API token in the shipped binary, and to always use dashboard-generated Checkout Links (not the authenticated Checkout Sessions API) for the buy flow.
+The single highest-risk unknown, surfaced consistently across ARCHITECTURE.md and PITFALLS.md, is that Islet's panel is click-through via `panel.ignoresMouseEvents = true` outside a small hot-zone — and AppKit drag-destination delivery (`draggingEntered`/`.onDrop`) is routed through the exact same mouse-event path as clicks. A window ignoring mouse events also ignores drag sessions entirely, so today a file dragged onto the collapsed pill would silently do nothing. A second, related gap: the existing hover state machine is driven exclusively by `.mouseMoved`, which AppKit stops delivering the instant a mouse button is held down for a drag — so both drag-in detection and the "collapse after drag-out" behavior need a parallel `.leftMouseDragged`/`.leftMouseUp` global monitor, not a reuse of the existing `.mouseMoved` monitor. Both issues are well-understood and have a clear fix (extend `syncClickThrough()` and add a second global event monitor), but must be spiked/verified on-device before the shelf's view layer is built out, or the feature will "look done" in Xcode Previews while being non-functional on the real notch.
 
-The three biggest risks, in order of consequence: (1) a naive license-validate call that hard-fails on transient network errors at the exact moment a paying customer just completed checkout — this must distinguish "invalid key" from "couldn't reach the server" and retry/support-path accordingly; (2) real Developer-ID notarization failing because the vendored `MediaRemoteAdapter.framework` isn't set to "Embed & Sign" or hardened-runtime entitlements are wrong — mitigated by local `codesign --verify --deep --strict` and `spctl --assess` pre-flight before ever calling `notarytool submit`; and (3) a mid-session abrupt lockout (trial expires or re-check flips state while the island is expanded/mid-interaction) feeling hostile in an app whose whole value proposition is polish — mitigated by deferring enforcement application to the next natural UI transition point rather than yanking state synchronously.
+The recommended build order — pure model first (unit-tested `ShelfItem`/`ShelfLogic`, zero AppKit), then view wiring against hand-seeded state, then drag-OUT (simpler, no click-through collision), then drag-IN last (the riskiest, spike-first piece) — matches this project's own established convention (`IslandResolver` before controller wiring; `DeviceCoordinator` proven in isolation before Phase 16 wiring) and de-risks the one genuinely uncertain integration point by sequencing it after everything else is already proven.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new frameworks or SDKs are needed beyond what Apple already ships. All HTTP calls to Polar.sh go through plain `URLSession` + `async/await` + `Codable` (Polar has no official Swift SDK — confirmed by search; only JS/PHP SDKs exist, and adding a networking dependency like Alamofire for ~2 API calls total is unjustified). Trial-start date and validated license state are cached in the Keychain (`Security` framework, `kSecClassGenericPassword`), which needs zero new entitlements since the app is already intentionally non-sandboxed for the MediaRemote/perl bridge. Real notarization reuses the already-wired `xcrun notarytool`/`stapler` pipeline from the dry-run phase — the only change is real Developer-ID credentials (an App Store Connect API key is the recommended auth method, stored once via `notarytool store-credentials` into the login keychain, never in the repo).
+No new third-party dependencies. The entire feature is built on stable, public Apple APIs already available in the existing toolchain: SwiftUI `.onDrop`/`.onDrag`, `NSItemProvider`, `UniformTypeIdentifiers` (`UTType.fileURL`), `FileManager` (private temp-directory copy), and `NSWorkspace.shared.icon(forFile:)` for cheap icon generation. `QLThumbnailGenerator` is a later, optional upgrade for true previews (P2, not MVP). No Keychain, no networking, no new Swift packages — this is the leanest addition the project has made.
 
 **Core technologies:**
-- **URLSession + Codable (async/await)**: all Polar.sh REST calls — no SDK exists, dependency-free and sufficient for the tiny call volume
-- **Security framework (Keychain Services)**: trial-start date + license state persistence — survives reinstall, no sandbox entitlement needed
-- **`xcrun notarytool` / `stapler`**: already the correct tool (not deprecated `altool`); this milestone only supplies real credentials, not new tooling
+- SwiftUI `.onDrop(of:isTargeted:perform:)` — drop-target hot/targeted feedback and file acceptance — the standard, HIGH-confidence primitive for drag-in
+- `NSItemProvider(contentsOf:)` / `.onDrag` — drag-out to Finder/other apps — the reliable choice; SwiftUI's file-promise-writer path is documented as unreliable and should be avoided
+- `NSWorkspace.shared.icon(forFile:)` — cheap per-item icon generation without reading file bytes into memory — avoids the "unbounded shelf + raw Data" memory trap
+- A second global `NSEvent` monitor for `.leftMouseDragged`/`.leftMouseUp` (mirrors the existing `.mouseMoved` monitor at `NotchWindowController.swift:299`) — required because ordinary hover tracking freezes during an active drag
 
 ### Expected Features
 
-**Must have (table stakes / P1):**
-- Silent trial-start timestamp persisted on first launch, with an explicit one-time "your 3-day trial has started" welcome moment (near-mandatory given the hard-lockout decision, since Islet has no main window and a user could otherwise never see a warning before lockout)
-- Days-remaining indicator + "Buy Now" button + manual license-key entry field, all in the existing Settings window
-- License key validation against Polar's `/validate` (and `/activate` if using activation limits)
-- Hard lockout when trial is expired and no valid license is present — the app's explicit product decision, stricter than every comparable app found (BetterDisplay/Rectangle Pro/CleanShot X all use soft locks or undocumented behavior)
+**Must have (table stakes / MVP, per FEATURES.md):**
+- Drag file(s) onto collapsed pill auto-expands the island
+- Hot/targeted visual feedback (`isTargeted` glow) before the user releases
+- Multi-file and folder drop support
+- Unbounded, horizontally-scrolling shelf strip appended below expanded content
+- Per-item trash icon + a spatially-distinct "delete all" icon
+- Drag shelf items back out to Finder/other apps
+- Purely session-temporary — RAM only, cleared on manual delete, app restart, or Mac restart
+- Click-to-open a shelf item in its default app (not in the original spec, but near-zero cost and closes the biggest gap vs. every reference app — recommend adding to REQUIREMENTS.md)
 
-**Should have (differentiators, v1.x fast-follow):**
-- Deep-link auto-fill of the license key after checkout (`islet://license?checkout_id=...`) — a documented Polar mechanism, removes manual copy-paste, but must degrade gracefully to manual paste
-- Last-day nudge notification before lockout — mitigates hard-lockout backlash
+**Should have (competitive/P2, add after validation):**
+- Real thumbnail/preview via `QLThumbnailGenerator` instead of generic icons
+- Polished drag-out lift/shrink preview (scale + shadow)
+- Non-empty-shelf badge on the collapsed/idle pill (so users don't forget staged files)
 
-**Defer (v2+):**
-- Activation-limit / multi-device management UI (Polar supports it natively, add only if key-sharing becomes an observed problem)
-- Periodic "phone home" re-validation purely for refund/chargeback detection (must fail open if attempted; not needed for a one-time purchase model)
-- Subscription billing, in-app/embedded checkout, hardware fingerprinting, custom account system — all explicitly out of scope and would contradict the chosen one-time-purchase, account-less model
+**Defer (v2+, explicitly out of scope):**
+- Drop-triggered action picker (AirDrop/convert/share-link, DynamicLake's "DynaDrop") — deliberately deferred, matches project's existing "no DynamicLake-style extras yet" stance
+- Any persisted or cross-restart retention, or iCloud sync — directly contradicts this milestone's explicit session-only requirement
+- Fixed low item cap — explicitly rejected in favor of unbounded scroll
+- Folder "spring-loading" (auto-navigate into dropped folders) — out of scope; folders are just another shelf item
 
 ### Architecture Approach
 
-Islet already has the two precedents this milestone must reuse: protocol-isolation for fragile externals (mirror `NowPlayingService` → new `LicenseService` protocol + `PolarLicenseService` conformer) and single-arbiter visibility (`updateVisibility()`'s `shouldShow(...)` AND-chain gains one more term, `isLicensed`, rather than a second hide/show call site anywhere else). A new `Islet/Licensing/` group mirrors the existing pure-seam/thin-glue split: `TrialLogic.swift` (pure, unit-tested), `TrialManager.swift` (UserDefaults/Keychain glue + one-shot expiry `DispatchWorkItem`, no polling), `LicenseState.swift` (plain `@Published` holder), `LicenseService` protocol, `PolarLicenseService.swift` (the one file that talks to `api.polar.sh` and Keychain). `NotchWindowController` and `SettingsView` stay in sync via the existing `UserDefaults.didChangeNotification`/`defaultsObserver` mechanism already used for `ActivitySettings` — no new shared-object DI style needed. Trial-start date lives in UserDefaults (low-stakes if tampered); the actual license key, `activation_id`, and last-validated timestamp live in Keychain (tamper-sensitive, survives reinstall).
+The shelf is not a competing activity in `IslandResolver`'s rank-ordered arbitration (`Charging > Device > NowPlaying`) — it is a second, orthogonal `@Published` axis (`ShelfState`) that `NotchPillView` renders as an extra row appended after the `switch presentation { }` block, gated on `interaction.isExpanded && !shelf.items.isEmpty` (and excluding the collapsed "wings" cases, pending a product decision flagged for discussion). This exactly mirrors the already-shipped Phase 18 song-change toast pattern, which is the load-bearing precedent for this whole integration.
 
 **Major components:**
-1. `TrialLogic` / `TrialManager` — pure trial-status classification + UserDefaults timestamp glue + one-shot expiry timer (no recurring polling, matching the codebase's existing idle-CPU discipline)
-2. `LicenseState` / `LicenseService` protocol / `PolarLicenseService` — plain published state holder + protocol-isolated Polar.sh HTTP client and Keychain read/write, with an explicit main-thread hop (URLSession callbacks are NOT main-thread by default, unlike the existing `NowPlayingMonitor` wrapper)
-3. `NotchWindowController` (modified) — adds `isLicensed` as one more AND term in the existing `shouldShow(...)` gate; owns the shared `LicenseState`; schedules/tears down the one-shot expiry work item
-4. `SettingsView` (modified) — new License section (key entry, Activate button, status/days-remaining label) alongside existing sections
-5. `scripts/release.sh` (modified, 2-line change) — real `DEVELOPER_ID`/`NOTARY_PROFILE` values replace dry-run placeholders; structurally unchanged
+1. `ShelfItem` (pure value: id, originalURL, localURL, filename, addedAt) + `ShelfLogic` (pure functions: append/remove/clear) — unit-tested first, zero AppKit
+2. `ShelfState` (`@Published var items: [ShelfItem]`) — mirrors `BasicOutfitState` exactly, no methods
+3. `ShelfFileImporter` — the only glue file touching `NSItemProvider`/`UniformTypeIdentifiers`; resolves a drop to a source URL, copies it to a private per-launch temp directory off the main thread, hands back a `ShelfItem`
+4. `NotchWindowController` (modified) — owns `shelfState`, wires `handleDrop(providers:)` (reusing the existing click-expand path), per-item removal, clear-all, and temp-dir teardown
+5. `NotchPillView` (modified) — renders the shelf row, hosts `.onDrop` on the hot-zone, per-item + delete-all controls, drag-out `.onDrag`
+
+Explicitly **not touched**: `IslandResolver`, `IslandPresentation`, `TransientQueue`, `ActivityCoordinator`, `DeviceCoordinator`. Panel sizing headroom for the shelf row must be reserved in the controller's panel-frame math only (not the shared `expandedSize` constant), exactly mirroring how the toast's `toastExtraHeight` was handled — otherwise every blob becomes visibly taller even with an empty shelf.
 
 ### Critical Pitfalls
 
-1. **Trial state stored only in UserDefaults/plist** — trivially reset via `defaults delete`; use Keychain as source of truth (survives reinstall on non-sandboxed macOS), with "earliest known date wins" reconciliation if UserDefaults is also mirrored.
-2. **License validation hard-fails on transient network errors at first-purchase moment** — the highest-consequence failure since it hits paying customers at peak purchase-regret risk; distinguish 4xx invalid-key from network/5xx errors, retry with backoff, never lock out a key the user just paid for, keep a visible support contact.
-3. **Offline-cached license state as a plain flippable boolean** — trivially flipped via `defaults write`; cache in Keychain with key/timestamp binding, re-validate opportunistically (not never, not every launch).
-4. **Notarization failure from incorrectly-signed nested `MediaRemoteAdapter.framework` or wrong hardened-runtime entitlements** — set "Embed & Sign" (not "Embed Without Signing"), sign innermost-first, avoid `codesign --deep` for the release build, and run `codesign --verify --deep --strict` + `spctl --assess` locally before ever calling `notarytool submit`.
-5. **Mid-session abrupt lockout** — re-validation/expiry firing while the island is expanded or mid-drag must defer enforcement to the next natural UI transition, animated in the app's existing spring/morph language, not an instant yank or system alert.
-6. **Checkout-to-license-key handoff friction for an LSUIElement (Dock-icon-less) app** — no obvious "come back to the app" affordance after browser checkout; mitigate with a menu-bar icon state cue, one-click-reachable license entry, and (as enhancement) a deep-link redirect rather than relying solely on email round-trip.
+1. **`ignoresMouseEvents = true` silently blocks all drag delivery, not just clicks** — a click-through panel never receives `draggingEntered`/`.onDrop` at all. Fix: an independent global `.leftMouseDragged` monitor that hit-tests a drag-specific hot-zone and flips `ignoresMouseEvents = false` through the existing `syncClickThrough()` single-writer before AppKit's drag machinery needs it.
+2. **`.mouseMoved` stops firing during an active drag**, freezing the existing hover/grace-collapse state machine — dragging a file out of the shelf can leave the island stuck open indefinitely. Fix: add `.leftMouseDragged`/`.leftMouseUp` tracking into the same zone-hit-test logic used by `handlePointer`.
+3. **Reusing the click hot-zone for drag detection causes false positives/negatives** — too tight for imprecise drag gestures, but naively widening it for all pointer purposes causes accidental expand on any drag merely passing near the notch. Fix: a separate, larger `dragHotZonePadding` plus a short dwell before promoting to expanded.
+4. **Treating the shelf as another `IslandResolver`/`TransientQueue` case** — the natural-looking "just add a case" move makes the shelf wrongly mutually-exclusive with Now Playing/idle and exposes it to `TransientQueue`'s `maxDepth` eviction logic, which was built for flapping Bluetooth/charging events, not user file content. Fix: separate `@Published` field, Phase-18-toast pattern, never threaded through `resolve(...)`.
+5. **Unbounded shelf + naive full-file loading balloons memory** — an unbounded, unaddressed capacity requirement combined with eager `loadDataRepresentation`/full-resolution `NSImage` per item can retain hundreds of MB for off-screen items, worsened by SwiftUI re-rendering the shelf on every unrelated resolver update. Fix: generate a small icon once via `NSWorkspace.shared.icon(forFile:)` at drop time, store only that + the URL, never raw `Data`; use `LazyHStack`.
+6. **Stale/moved/deleted dropped-file URLs** — holding a plain URL in memory (correctly, since Islet is unsandboxed and needs no security-scoped bookmark) still requires guarding against the source file vanishing between drop and later drag-out. Fix: copy the file once at drop time into an app-owned temp directory (the shelf's own copy becomes authoritative), and check `fileExists` before any drag-out, pruning gracefully on failure.
 
 ## Implications for Roadmap
 
-Based on combined research, the architecture doc's suggested build order is well-reasoned (de-risk the highest-blast-radius integration point first, defer live network dependency) and should become the roadmap's phase backbone.
+Based on research, suggested phase structure (this is a single-milestone feature addition, not a full project — phases below are sub-phases within v1.3):
 
-### Phase 1: Trial + Lockout Gate (stubbed license state)
-**Rationale:** Touches the most sensitive existing file (`NotchWindowController`'s proven single-arbiter `updateVisibility()`), so it should be built and stabilized before any other new code touches that file again. No live network dependency needed yet — a manually-settable stub `LicenseState` is sufficient to prove the gate.
-**Delivers:** `TrialLogic` (pure, unit-tested), `TrialManager` (UserDefaults+Keychain glue, one-shot expiry `DispatchWorkItem`), `LicenseState` model, `isLicensed` AND-term wired into `shouldShow(...)`, first-launch welcome moment.
-**Addresses:** Trial-start persistence, days-remaining computation, hard lockout mechanism (table stakes P1 features).
-**Avoids:** Pitfall 1 (UserDefaults-only trial storage), Pitfall 3 groundwork (Keychain as source of truth), Anti-Pattern 1 (second show/hide site), Anti-Pattern 3 (polling for expiry).
+### Phase 1: Pure Shelf Model (no AppKit, no drag APIs)
+**Rationale:** Every prior feature in this codebase shipped pure-seam-first (`IslandResolver` before controller wiring, `DeviceCoordinator` proven in isolation before Phase 16 wiring) — the model layer has zero external-API risk and should be nailed down and unit-tested before any fragile drag/panel code is touched.
+**Delivers:** `ShelfItem`, `ShelfLogic` (append/remove/clear/dedupe), unit tests (`ShelfLogicTests.swift`) with hand-built `ShelfItem`s.
+**Addresses:** Data model decisions from FEATURES.md/ARCHITECTURE.md (dedupe on drop, session-only lifecycle).
+**Avoids:** Pitfall 4 (shelf-as-resolver-case) and Pitfall 6 (memory model) — both are model-shape decisions best locked in before any view exists.
 
-### Phase 2: License-Entry Settings UI (stubbed LicenseService)
-**Rationale:** Exercises the full UI state machine (idle → validating → success/failure) against a fake in-memory `LicenseService` before live network flakiness can confound UI bugs.
-**Delivers:** New "License" section in `SettingsView` (key entry field, Activate button, status label, days-remaining display, Buy Now button opening a placeholder URL).
-**Addresses:** Table-stakes license entry UI, Buy Now button, days-remaining indicator.
-**Avoids:** Pitfall 6 groundwork (one-click reachability from menu bar), Pitfall 5 groundwork (UI state awareness before wiring real async validation).
+### Phase 2: Shelf View (hand-seeded state, no live drop)
+**Rationale:** Confirms the panel-sizing math (reserved headroom vs. `expandedSize`) and the resolver-gating rule visually via `#Preview`, before any drag risk is introduced — matches the project's existing `#Preview` convention.
+**Delivers:** `ShelfState`, the appended shelf row in `NotchPillView` (icon, per-item trash, delete-all), gated per the `isExpanded && !items.isEmpty` rule.
+**Uses:** SwiftUI `ScrollView(.horizontal)`/`LazyHStack`, existing `matchedGeometryEffect`/spring conventions.
+**Implements:** The "modifier, not competitor" architecture pattern (ARCHITECTURE.md) alongside `IslandResolver`'s untouched switch.
 
-### Phase 3: Real Polar.sh Integration
-**Rationale:** First point live Polar.sh product/API credentials are actually needed; swaps the stub `LicenseService` for `PolarLicenseService` behind the same protocol with zero UI or `TrialManager` wiring changes.
-**Delivers:** `PolarLicenseService` (URLSession calls to `/activate` and `/validate`, Keychain read/write, explicit main-thread hop), Checkout Link wired to the real Buy Now button, retry/error-differentiation logic.
-**Uses:** URLSession + Codable, Security/Keychain (from STACK.md addendum).
-**Implements:** `LicenseService` protocol pattern (from ARCHITECTURE.md), mirrors `NowPlayingService`'s isolation discipline.
-**Avoids:** Pitfall 2 (hard-fail on transient network errors), Pitfall 3 (flippable boolean cache), Pitfall 6 (checkout handoff friction), Anti-Pattern 4 (assuming URLSession completion runs on main).
+### Phase 3: Drag-OUT (shelf → Finder/other apps)
+**Rationale:** Simpler than drag-in — no click-through collision, since the drag *originates* from an already-interactive expanded island. Lower risk, good place to validate `NSItemProvider(contentsOf:)` mechanics before tackling drag-in.
+**Delivers:** `.onDrag` per shelf item using the item's own `localURL` copy; `fileExists` guard + graceful prune if the source vanished.
+**Addresses:** FEATURES.md's "drag back out" table-stakes requirement.
+**Avoids:** Pitfall 5 (stale URLs) — verified here before drag-in adds more surface area.
 
-### Phase 4: Real Notarization
-**Rationale:** Functionally independent of Phases 1-3 (touches only two shell-script variables and requires only the already-purchased Developer ID credentials); the architecture doc explicitly notes this can run in parallel with or after the licensing work without blocking it. Bundled into this milestone for business reasons (no Gatekeeper warning on a paid product's first launch), not technical dependency.
-**Delivers:** Real Developer ID Application cert verified locally, App Store Connect API key generated and stored via `notarytool store-credentials`, `scripts/release.sh` placeholders filled, `MediaRemoteAdapter.framework` confirmed "Embed & Sign," full pre-flight `codesign --verify --deep --strict` + `spctl --assess` + clean-account Gatekeeper test.
-**Avoids:** Pitfall 4 (nested-framework signature/entitlement rejection) — budget 2-3 notarization iteration cycles, not one-shot success.
+### Phase 4: Drag-IN (spike first, then wire)
+**Rationale:** The single highest-uncertainty integration point in the whole feature (click-through panel vs. drag delivery, `.mouseMoved` freezing mid-drag) — sequencing it last means every other piece is already proven working, isolating the risky work.
+**Delivers:** `ShelfFileImporter` (background copy off main thread), `handleDrop(providers:)` reusing the existing click-expand path, the second global `.leftMouseDragged`/`.leftMouseUp` monitor extending `syncClickThrough()`, drag-specific hot-zone + dwell timer.
+**Avoids:** Pitfalls 1, 2, and 3 (click-through blocking, mid-drag freeze, hot-zone false positives) — all three concentrated in this phase by design.
 
 ### Phase Ordering Rationale
 
-- Phases 1→2→3 follow the "pure seam before live glue" discipline already established in this codebase for `PowerActivity`→`PowerSourceMonitor` and `NowPlayingPresentation`→`NowPlayingMonitor` — de-risk the classification/gating logic against a stub before introducing network flakiness as a confound.
-- The hard-lockout gate (Phase 1) must exist and be tested before license validation (Phase 3) touches it, since the lockout is a boolean AND of both — building them out of order risks a launch-blocking bug that locks out legitimate trial users.
-- Notarization (Phase 4) has zero code coupling to licensing and can be sequenced flexibly, but should not be treated as a footnote — its own pitfalls (nested-framework signing) need a dedicated phase with iteration budget.
-- Deep-link auto-fill and last-day nudge notification (both P2 differentiators) are deliberately excluded from the phase list above — they layer on top of a working manual-paste flow and belong in a v1.x fast-follow, not this milestone's core phases, per FEATURES.md's explicit "Add After Validation" bucket.
+- Pure-model-first is not just "good practice" here — it is the project's own established, proven convention (verified by reading the real shipped code), so deviating from it would be inconsistent with the rest of the codebase, not just riskier.
+- Drag-OUT before drag-IN because drag-out has no click-through collision; sequencing it first builds confidence in `NSItemProvider` mechanics on a lower-risk path.
+- Drag-IN last and explicitly spiked because it is the one place PITFALLS.md and ARCHITECTURE.md both flag as needing on-device verification before commitment — building the view and drag-out first means a failed/iterating drag-in spike doesn't block or waste the rest of the feature.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 3 (Real Polar.sh Integration):** API error-response taxonomy beyond the documented `granted/revoked/disabled` statuses is thin in official docs (LOW-MEDIUM confidence per PITFALLS.md); verify actual error shapes and rate-limit behavior against the real (production, not sandbox) API during implementation.
-- **Phase 4 (Real Notarization):** The Individual-vs-Team API key `--issuer` flag distinction (Xcode 26+) is MEDIUM-HIGH confidence, not officially doc-confirmed (Apple's TN3147 page did not render during research) — re-check the actual error message if a 401 appears.
+Phases likely needing deeper research/spiking during planning:
+- **Phase 4 (Drag-IN):** Needs an on-device spike/prototype specifically for the `ignoresMouseEvents`/drag-delivery interaction and the `.leftMouseDragged` hover-freeze fix before full implementation — flagged as LOW-MEDIUM confidence in ARCHITECTURE.md ("Apple's documented behavior... not independently re-verified against a fetched doc page this session"). Recommend `/gsd:plan-phase --research-phase` or at minimum a tiny throwaway prototype before committing to the full drag-in implementation.
+- **Product decision needed before Phase 2:** whether the shelf should render/suppress during collapsed "wings" transients (Charging/Device/NowPlaying-wings) mid-display — ARCHITECTURE.md explicitly flags this as unresolved and recommends a `/gsd:discuss-phase` conversation, not a default assumption.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Trial + Lockout Gate):** Directly mirrors existing, verified codebase patterns (pure-seam/thin-glue split, single-arbiter visibility, one-shot `DispatchWorkItem` idiom) — architecture is HIGH confidence, spot-checked against actual source files.
-- **Phase 2 (License-Entry Settings UI):** Standard SwiftUI `Form`/`Section` pattern already used elsewhere in `SettingsView.swift`.
+Phases with standard, well-documented patterns (skip research-phase):
+- **Phase 1 (Pure Model):** Plain Swift value types and pure functions — no external API risk, standard testing pattern already used repeatedly in this codebase.
+- **Phase 2 (Shelf View):** Standard SwiftUI `ScrollView`/`LazyHStack`/conditional rendering — HIGH confidence, no novel APIs.
+- **Phase 3 (Drag-OUT):** `NSItemProvider(contentsOf:)` is a well-documented, stable API with a clear "don't use file promises" steer already resolved by research.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | Polar.sh API shape verified directly against current official docs (fetched 2026-07-05); Keychain/notarytool patterns verified against man pages and multiple corroborating secondary sources; a couple of Apple doc pages (Keychain storage guide, TN3147) didn't render via fetch tooling and are flagged inline as needing a manual spot-check |
-| Features | MEDIUM-HIGH | Patterns cross-verified across three comparable apps (BetterDisplay, Rectangle Pro, CleanShot X); Polar.sh mechanics confirmed against official docs; some competitor specifics are community-report quality (GitHub wikis, community discussions), not vendor-confirmed |
-| Architecture | HIGH on integration points | Verified by directly reading the actual Islet codebase files (not inferred) — `NotchWindowController.swift`, `NowPlayingMonitor.swift`, `SettingsView.swift`, etc.; MEDIUM on the offline-grace-period duration, which is explicitly flagged as a product decision, not an architecture fact |
-| Pitfalls | MEDIUM-HIGH | Notarization/codesign mechanics and macOS Keychain behavior are HIGH confidence (well-documented, official sources); Polar.sh-specific operational details (rate limits, offline guidance, error taxonomy) are MEDIUM, filled in with general licensing-industry patterns that are LOW-MEDIUM but directionally solid |
+| Stack | HIGH | No new dependencies; entire feature built on stable, long-standing public Apple APIs (SwiftUI drag modifiers, NSItemProvider, FileManager, NSWorkspace icon generation). |
+| Features | MEDIUM | Table-stakes list is well-corroborated by three reference apps (NotchDrop, DynamicLake, Yoink), but those sources are README/marketing-blog level detail, not technical docs — the exact hit-testing/duplicate-handling mechanics they use are undocumented. |
+| Architecture | HIGH | Grounded in direct reads of the real Islet source files (`NotchWindowController.swift`, `IslandResolver.swift`, `ActivityCoordinator.swift`, `NotchPillView.swift`, entitlements) — this is project-specific fact-finding, not general inference, for the integration-point analysis. Drag mechanics themselves are MEDIUM-HIGH (corroborated by multiple independent sources, no official Apple sample matched exactly). |
+| Pitfalls | MEDIUM-HIGH | Grounded in the same direct code reads plus official Apple docs for `NSWindow.ignoresMouseEvents` and `NSItemProvider`; the core click-through/drag-delivery claim rests on general AppKit knowledge not independently re-verified against a live fetched doc page this session — flagged explicitly and should be confirmed via the Phase 4 spike. |
 
 **Overall confidence:** MEDIUM-HIGH
 
 ### Gaps to Address
 
-- **Offline-grace-period duration** (how long a cached Keychain validation is trusted before requiring re-validation): explicitly flagged in ARCHITECTURE.md as a product decision, not resolved by research — needs a concrete number decided during roadmap/phase planning.
-- **Polar license-key activation-limit defaults**: dashboard UI defaults for the license-key benefit weren't independently confirmed beyond docs text — verify when configuring the Polar product/benefit.
-- **Polar API error taxonomy**: full error-response shapes beyond `granted/revoked/disabled` and 404/422 aren't fully documented — build the retry/error-differentiation logic (Pitfall 2) defensively and verify against the real API during Phase 3.
-- **Individual vs. Team notarytool API key `--issuer` behavior**: MEDIUM-HIGH confidence only, Apple's own TN3147 migration page didn't render during research — re-verify during Phase 4 if a 401 error appears.
-- **Whether Polar's checkout supports a post-purchase redirect/deep-link out of the box** vs. requiring a small serverless relay to resolve `checkout_id` → license key safely (since the org-level secret token can't ship in the app) — this affects whether the P2 deep-link differentiator is feasible without a backend; investigate before committing to it in a v1.x fast-follow.
+- **Drag delivery through a click-through `NSPanel`:** the core premise that `ignoresMouseEvents = true` blocks `NSDraggingDestination` callbacks entirely is drawn from general AppKit documentation knowledge, not a directly fetched/re-verified Apple doc page this session — validate with a minimal on-device prototype at the start of Phase 4 before committing to the full drag-in architecture.
+- **Shelf visibility during collapsed transient "wings" states:** ARCHITECTURE.md flags this as an open product decision (does a file dropped mid-charging-splash still show its shelf?) rather than a settled requirement — needs a `/gsd:discuss-phase` conversation before Phase 2 locks in the gating condition.
+- **Exact hit-testing/duplicate-handling techniques used by competitor apps:** FEATURES.md and PITFALLS.md note that NotchDrop/DynamicLake/Yoink write-ups describe *what* they do but not *how* — this project's own architecture research (grounded in the real codebase) fills that gap for Islet specifically, so this is a low-severity gap.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `polar.sh/docs/api-reference/customer-portal/license-keys/{validate,activate}` — fetched directly 2026-07-05; endpoint shape, no-auth-for-desktop-clients guarantee
-- `polar.sh/docs/features/checkout/links` — Checkout Links vs. authenticated Checkout Sessions API distinction
-- Apple Developer Docs — notarization process, `notarytool`, `LSUIElement`, custom URL scheme handling
-- Direct reads of the actual Islet codebase (`NotchWindowController.swift`, `NowPlayingMonitor.swift`, `PowerSourceMonitor.swift`, `SettingsView.swift`, `AppDelegate.swift`, `scripts/release.sh`, `project.yml`)
-- `keith.github.io/xcode-man-pages/notarytool.1.html` — official man page mirror, flag semantics
+- Direct reads of the Islet codebase: `NotchWindowController.swift`, `IslandResolver.swift`, `ActivityCoordinator.swift`, `DeviceCoordinator.swift`, `NotchPillView.swift`, `IslandPresentationState.swift`, `NotchInteractionState.swift`, `BasicOutfitState.swift`, `NowPlayingPresentation.swift`, `Islet.entitlements`, `.planning/PROJECT.md`
+- Apple Developer Documentation — `NSWindow.ignoresMouseEvents`, `NSItemProvider`, `onDrop(of:isTargeted:perform:)`
+- Apple HIG — drag-and-drop destination visual-feedback guidance
 
 ### Secondary (MEDIUM confidence)
-- BetterDisplay GitHub wiki + support discussions — 14-day trial, Paddle-based Settings > Pro pattern, soft-lock "Trial Expired" state
-- Rectangle Pro Community discussion #154 — Paddle-based purchase/activation flow, 3-device limit, self-service recovery portal
-- CleanShot X buy/pricing/FAQ pages — License Manager portal pattern
-- Faisal Bin Ahmed, "All the wrong ways to persist in-app purchase status" — UserDefaults-vs-Keychain distinction
-- Keygen.sh offline-licensing model docs; Stanislav Katkov Polar.sh Go implementation notes
+- NotchDrop (`github.com/Lakr233/NotchDrop`) — README-level: drag-to-notch, configurable auto-save, click-to-open, option+click delete
+- DynamicLake/DynaClip (`dynamiclake.com` blog posts) — 5-file cap, multi-file drop, drop-action picker, real-time drag feedback
+- Yoink (`eternalstorms.at/yoink/mac/`) — shelf-slide-out-on-drag pattern, iCloud sync philosophy
+- DeepWiki summary of TheBoredTeam/boring.notch's shipped shelf system — third-party summary of a comparable shipped feature
+- Wade Tregaskis — "SwiftUI drag & drop does not support file promises" — informs avoiding `NSFilePromiseProvider`
+- The Eclectic Light Company / Create with Swift — `.onDrop`/`.onDrag`/`NSItemProvider` mechanics corroboration
 
-### Tertiary (LOW-MEDIUM confidence)
-- LicenseSeat's competitor critique of Polar's license-key feature (bolt-on, no device fingerprinting) — directional caution flag, not gospel given vendor-competitor incentive
-- WebSearch-aggregated community reports on trial-lockout variance (soft vs. hard lock) — confirms no single dominant convention, not a systematic survey
-- Individual-vs-Team notarytool API key `--issuer` behavior — corroborated by `@electron/notarize` README and forum reports, but Apple's own TN3147 page didn't render during research
+### Tertiary (LOW confidence)
+- General AppKit knowledge that `ignoresMouseEvents = true` blocks drag-destination delivery, not independently re-verified against a live-fetched doc page this session — flagged for on-device spike validation in Phase 4
+- Community write-ups on `.leftMouseDragged` + drag-pasteboard change-count detection — single-source technique, corroborated only by the TheBoringNotch precedent
 
 ---
-*Research completed: 2026-07-05*
+*Research completed: 2026-07-09*
 *Ready for roadmap: yes*
