@@ -179,5 +179,13 @@ Playing glance itself.
   2. The toast does not fire for the first track detected after launch, or for pause/resume/scrub of the same track.
   3. Settings' Activities tab has a toggle for the song-change toast, positioned next to the existing Now Playing toggle.
   4. Turning the toggle off suppresses the toast on subsequent track changes while the Now Playing glance itself keeps working normally.
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 18-01-PLAN.md — Pure seam (TrackToast/songChangeToastContent/songChangeToastGate) + NOW-06 Settings toggle
+**Wave 2** *(blocked on 18-01)*
+
+- [ ] 18-02-PLAN.md — Controller wiring (detection, ~3s dismiss timer, toggle-off live-clear) + toast render + on-device verification
 **UI hint**: yes
