@@ -1,5 +1,17 @@
 # Milestones
 
+## v1.2 Now Playing Polish (Shipped: 2026-07-09)
+
+**Phases completed:** 2 phases, 3 plans, 9 tasks
+
+**Key accomplishments:**
+
+- hasPlayedSinceLaunch flag + nowPlayingLaunchGate pure helper gate the ambient Now Playing wings glance until a real Play is observed this Islet session — on-device verified and approved.
+- Pure, unit-tested Foundation-only detection/suppression seam for the song-change toast (TrackToast + songChangeToastContent + songChangeToastGate) plus the NOW-06 Settings toggle — no user-observable behavior ships yet, this locks the contracts Plan 02 wires against.
+- Wires Plan 01's pure seam end-to-end: handleNowPlaying detects a genuine song change, gates it through songChangeToastGate, drives an independent ~2s auto-dismiss timer, and NotchPillView renders it as the existing wings capsule growing a small fading text row underneath (title — artist), refined over 5 on-device feedback rounds to match a DynamicLake-style reference.
+
+---
+
 ## v1.1 Trial & Paid Release (Shipped: 2026-07-08)
 
 **Phases completed:** 4 phases, 11 plans

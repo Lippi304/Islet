@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Now Playing Polish
-status: milestone_complete
-stopped_at: Milestone complete (Phase 18 was final phase)
-last_updated: 2026-07-09T15:11:59.593Z
-last_activity: 2026-07-09 -- Phase 18 execution started
+status: Awaiting next milestone
+stopped_at: Phase 18 UI-SPEC approved
+last_updated: "2026-07-09T15:20:20.278Z"
+last_activity: 2026-07-09 — Milestone v1.2 completed and archived
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
   completed_plans: 3
-  percent: 20
+  percent: 40
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-08)
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-07-09
+Phase: Milestone v1.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-09 — Milestone v1.2 completed and archived
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -133,6 +133,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 6/9 code review, carried forward again at v1.1 close. Not blocking — revisit via `/gsd-quick` or `/gsd:verify-work` as desired.
 
+**v1.2 close (2026-07-09):** `gsd-sdk query audit-open` flagged 8 quick-tasks (260705-l4i, 260705-mzj, 260708-nnu, 260708-nzj, 260708-ol8, 260708-u47, 260709-glz, 260709-gvy) as status `missing`. All 8 have completed PLAN.md + SUMMARY.md on disk and are already logged "Complete ✓" in the Quick Tasks Completed table above — acknowledged as a tool status-detection false positive, not real open work, and unrelated to v1.2's phases (17-18). No action needed.
+
 ## Session Continuity
 
 Last session: 2026-07-09T12:12:39.268Z
@@ -141,5 +143,4 @@ Resume file: .planning/phases/18-song-change-toast/18-UI-SPEC.md
 
 ## Operator Next Steps
 
-- `/gsd:discuss-phase 17` — discuss Now Playing Launch Gating before planning
-- Then `/gsd:plan-phase 17`
+- Start the next milestone with /gsd-new-milestone

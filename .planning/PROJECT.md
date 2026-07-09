@@ -4,7 +4,7 @@
 
 ## What This Is
 
-A native macOS app that turns the MacBook's notch into an interactive "Dynamic Island" — the same idea Apple ships on the iPhone, brought to the Mac. A black, rounded island sits around the camera/notch and expands on hover/click to show live activities. **Shipped in v1.0/v1.0.1:** now-playing media controls with working transport and a progress bar, a charging activity, a Bluetooth/AirPods device-connected activity, and a minimal settings window with three activity toggles + accent theming — all arbitrated by a single priority resolver so activities coexist gracefully. **Shipped in v1.1:** Islet is now a real, sellable product — a tamper-resistant 3-day free trial with hard lockout, a one-time €7.99 purchase via Polar.sh (live checkout, online validation, offline-capable Keychain cache), and a genuinely Developer-ID-notarized release pipeline. **Also shipped (ahead of formal milestone scope, needs requirement IDs next milestone):** a weather + calendar + date glance in the expanded idle view. A drag-and-drop file shelf, system HUD replacement, and a countdown timer remain planned for a future milestone, not yet built.
+A native macOS app that turns the MacBook's notch into an interactive "Dynamic Island" — the same idea Apple ships on the iPhone, brought to the Mac. A black, rounded island sits around the camera/notch and expands on hover/click to show live activities. **Shipped in v1.0/v1.0.1:** now-playing media controls with working transport and a progress bar, a charging activity, a Bluetooth/AirPods device-connected activity, and a minimal settings window with three activity toggles + accent theming — all arbitrated by a single priority resolver so activities coexist gracefully. **Shipped in v1.1:** Islet is now a real, sellable product — a tamper-resistant 3-day free trial with hard lockout, a one-time €7.99 purchase via Polar.sh (live checkout, online validation, offline-capable Keychain cache), and a genuinely Developer-ID-notarized release pipeline. **Also shipped (ahead of formal milestone scope):** a weather + calendar + date glance in the expanded idle view. **Shipped in v1.2:** the Now Playing glance no longer appears at launch for an already-paused track (only a real Play does it), and genuine song changes show a brief fading title+artist toast with its own Settings toggle. A drag-and-drop file shelf, system HUD replacement, and a countdown timer remain planned for a future milestone, not yet built.
 
 It is for Mac users who love the iPhone Dynamic Island and want it on their MacBook without paying for the existing closed-source apps (Alcove, DynamicLake). Built by a first-time programmer with the goal of a polished, possibly sellable product down the line.
 
@@ -14,9 +14,15 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current State
 
+**v1.2 Now Playing Polish shipped 2026-07-09** (Phases 17-18, see `.planning/milestones/v1.2-ROADMAP.md`). All 3 v1.2 requirements (NOW-04, NOW-05, NOW-06) shipped and on-device verified. The Now Playing glance no longer fires at launch for a merely-paused track, and genuine song changes surface a brief title+artist toast (independent 2s dismiss, its own Settings toggle) — both refined through on-device iteration.
+
 **v1.1 Trial & Paid Release shipped 2026-07-08** (Phases 10-13, see `.planning/milestones/v1.1-ROADMAP.md`). All 7 v1.1 requirements (TRIAL-01/02/03, LIC-01/02/03, DIST-01) shipped and verified on-device. Islet is now a genuinely distributable, sellable product: real Developer-ID signing/notarization, a Keychain-backed tamper-resistant trial with hard lockout, and live Polar.sh purchase + offline-capable validation.
 
-**Also shipped in this window, ahead of formal milestone scope (Phase 14):** the `expandedIdle` glance now shows live weather (WeatherKit), the next calendar event (EventKit), and the date alongside the time readout, in a 3-column layout that degrades silently on permission denial. Code-complete and on-device verified, but never part of v1.1's Milestone Goal — needs its own requirement IDs (WEATHER-01, CAL-01, OUTFIT-01) captured when the next milestone's requirements are defined.
+**Also shipped ahead of formal milestone scope (Phase 14, weather/calendar/date; Phase 15/16, architecture refactor):** the `expandedIdle` glance shows live weather (WeatherKit), the next calendar event (EventKit), and the date alongside the time readout, in a 3-column layout that degrades silently on permission denial — still needs its own requirement IDs (WEATHER-01, CAL-01, OUTFIT-01) captured whenever a milestone formally covers it. Phase 15/16 were pure architecture cleanup (DI seams, DeviceCoordinator extraction), zero product-behavior change.
+
+## Next Milestone Goals
+
+Not yet started — run `/gsd-new-milestone` to define v1.3's scope. Candidates on the table: capture WEATHER-01/CAL-01/OUTFIT-01 as formal requirements, the drag-and-drop file shelf, system HUD replacement, or a countdown timer (all still Out of Scope below until picked up).
 
 ## Current Milestone: v1.2 Now Playing Polish
 
@@ -195,6 +201,8 @@ _Nothing currently active — v1.2 requirements are all validated above. Next mi
 | Trial-start and license state stored in the Keychain, not UserDefaults/plist | UserDefaults-only trial storage is trivially reset via `defaults delete` — research pitfall | ✓ Phase 10 — verified on-device (survives `defaults delete` + reinstall) |
 | License validation distinguishes "invalid key" (4xx) from "couldn't reach the server" (network/5xx) | Highest-consequence pitfall identified in research — a hard lock on a key someone just paid for would hit customers at peak purchase-regret risk | ✓ Phase 12 — strict HTTP→verdict split + Retry, verified on-device |
 | Phase 14 (weather/calendar/date) executed inside the v1.1 working window but excluded from the v1.1 milestone close | Its requirements (WEATHER-01/CAL-01/OUTFIT-01) were never part of v1.1's Milestone Goal or REQUIREMENTS.md — closing v1.1 as Phases 10-13 keeps the archive accurate to what was actually scoped | Phase 14 stays on the live ROADMAP as completed, unarchived work — formal requirement capture deferred to next milestone |
+| Song-change toast: skip (not queue/interrupt) when Charging/Device splash is active; suppress entirely while manually expanded; rapid skips restart the timer in place rather than queueing each one | Mirrors existing `resolve()` precedence and `TransientQueue.updateHead()`/Phase 17 D-03 gate precedents rather than inventing new queueing logic | ✓ Phase 18 — all three rules verified on-device |
+| Toast design iterated on-device across 5 rounds to a minimal fading text row under the unchanged wings capsule, with its own independent ~2s dismiss (not the shared 3.0s `activityDuration`) | User's on-device feedback overrode the pre-execution 18-UI-SPEC.md draft each round; final shape ships shorter and simpler than originally speced | ✓ Phase 18 — approved after round 5, UI-SPEC updated to match |
 
 ## Evolution
 
@@ -214,4 +222,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 — Phase 18 (Song-Change Toast) complete; v1.2 (Now Playing Polish) code-complete, both phases shipped.*
+*Last updated: 2026-07-09 after v1.2 milestone archived.*
