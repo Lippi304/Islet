@@ -35,92 +35,106 @@ struct SettingsView: View {
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
 
     var body: some View {
-        Form {
-            // D-01/D-02: the adaptive License section is the FIRST element in the
-            // Form, above Launch-at-login. Its body swaps on the current
-            // LicenseStatus — during an active trial it shows the days-remaining
-            // countdown (D-03/TRIAL-03) that REPLACES the old fixed end-date notice.
-            Section("License") {
-                switch licenseStatus {
-                case .trial(let days):
-                    Text(days == 1
-                         ? "1 day left in your trial."
-                         : "\(days) days left in your trial.")
-                        .foregroundStyle(.secondary)
-                    buyNowButton
-                    licenseEntry
-                case .trialExpired:
-                    Text("3-day trial period expired")
-                        .font(.headline)
-                    buyNowButton
-                    licenseEntry
-                case .licensed:
-                    Text("Licensed ✓")
-                }
-            }
-
-            Toggle("Launch Islet at login", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { _, on in
-                    do {
-                        let result = try LaunchAtLogin.set(on)
-                        if on && LaunchAtLogin.requiresApproval {
-                            // macOS needs the user to approve the login item:
-                            // keep the toggle ON (pending) to match the System
-                            // Settings deep-link we open, instead of snapping it
-                            // back OFF.
-                            launchAtLogin = true
-                            LaunchAtLogin.openLoginItemsSettings()
-                        } else {
-                            // Reflect the TRUE resulting system state.
-                            launchAtLogin = result
-                        }
-                    } catch {
-                        // Revert the UI to the real system state on failure.
-                        launchAtLogin = LaunchAtLogin.isEnabled
+        TabView {
+            // General tab — License, Launch-at-login, Diagnostics, Version.
+            Form {
+                // D-01/D-02: the adaptive License section is the FIRST element in the
+                // Form, above Launch-at-login. Its body swaps on the current
+                // LicenseStatus — during an active trial it shows the days-remaining
+                // countdown (D-03/TRIAL-03) that REPLACES the old fixed end-date notice.
+                Section("License") {
+                    switch licenseStatus {
+                    case .trial(let days):
+                        Text(days == 1
+                             ? "1 day left in your trial."
+                             : "\(days) days left in your trial.")
+                            .foregroundStyle(.secondary)
+                        buyNowButton
+                        licenseEntry
+                    case .trialExpired:
+                        Text("3-day trial period expired")
+                            .font(.headline)
+                        buyNowButton
+                        licenseEntry
+                    case .licensed:
+                        Text("Licensed ✓")
                     }
                 }
 
-            // APP-03: three independent activity on/off toggles (D-06/D-07),
-            // pure on/off — no master switch, no per-activity duration (D-08).
-            Section("Activities") {
-                Toggle("Charging", isOn: $chargingEnabled)
-                Toggle("Now Playing", isOn: $nowPlayingEnabled)
-                Toggle("Devices", isOn: $deviceEnabled)
+                Toggle("Launch Islet at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, on in
+                        do {
+                            let result = try LaunchAtLogin.set(on)
+                            if on && LaunchAtLogin.requiresApproval {
+                                // macOS needs the user to approve the login item:
+                                // keep the toggle ON (pending) to match the System
+                                // Settings deep-link we open, instead of snapping it
+                                // back OFF.
+                                launchAtLogin = true
+                                LaunchAtLogin.openLoginItemsSettings()
+                            } else {
+                                // Reflect the TRUE resulting system state.
+                                launchAtLogin = result
+                            }
+                        } catch {
+                            // Revert the UI to the real system state on failure.
+                            launchAtLogin = LaunchAtLogin.isEnabled
+                        }
+                    }
 
-                // D-12: a curated swatch palette (a fixed preset row, not a free
-                // color wheel) with a selected ring. Tapping persists the index
-                // via @AppStorage and
-                // (once Plan 04 wires it) live-applies the accent.
-                LabeledContent("Accent") {
-                    HStack(spacing: 10) {
-                        ForEach(ActivitySettings.palette.indices, id: \.self) { i in
-                            Circle()
-                                .fill(ActivitySettings.palette[i])
-                                .frame(width: 22, height: 22)
-                                .overlay(
-                                    Circle().strokeBorder(.primary, lineWidth: accentIndex == i ? 2 : 0)
-                                )
-                                .onTapGesture { accentIndex = i }
+                // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
+                // reports — no new logging subsystem, nothing written unless clicked.
+                Section("Diagnostics") {
+                    Button("Save Diagnostic Report…") { saveDiagnosticReport() }
+                }
+
+                LabeledContent("Version") {
+                    Text(Self.versionString)   // D-09: version/build label
+                }
+            }
+            .tabItem { Label("General", systemImage: "gearshape") }
+
+            // Appearance tab — Accent color picker, Fullscreen toggle.
+            Form {
+                Section("Appearance") {
+                    // D-12: a curated swatch palette (a fixed preset row, not a free
+                    // color wheel) with a selected ring. Tapping persists the index
+                    // via @AppStorage and
+                    // (once Plan 04 wires it) live-applies the accent.
+                    LabeledContent("Accent") {
+                        HStack(spacing: 10) {
+                            ForEach(ActivitySettings.palette.indices, id: \.self) { i in
+                                Circle()
+                                    .fill(ActivitySettings.palette[i])
+                                    .frame(width: 22, height: 22)
+                                    .overlay(
+                                        Circle().strokeBorder(.primary, lineWidth: accentIndex == i ? 2 : 0)
+                                    )
+                                    .onTapGesture { accentIndex = i }
+                            }
                         }
                     }
                 }
-            }
 
-            // Quick task 260709-glz — a fullscreen-visibility preference, distinct from
-            // the "Activities" on/off toggles above (not a live-activity source).
-            Section("Fullscreen") {
-                Toggle("Hide notch in fullscreen", isOn: $hideInFullscreen)
+                // Quick task 260709-glz — a fullscreen-visibility preference, distinct from
+                // the "Activities" on/off toggles below (not a live-activity source).
+                Section("Fullscreen") {
+                    Toggle("Hide notch in fullscreen", isOn: $hideInFullscreen)
+                }
             }
+            .tabItem { Label("Appearance", systemImage: "paintbrush") }
 
-            // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
-            // reports — no new logging subsystem, nothing written unless clicked.
-            Section("Diagnostics") {
-                Button("Save Diagnostic Report…") { saveDiagnosticReport() }
+            // Activities tab — Charging, Now Playing, Devices toggles only.
+            Form {
+                // APP-03: three independent activity on/off toggles (D-06/D-07),
+                // pure on/off — no master switch, no per-activity duration (D-08).
+                Section("Activities") {
+                    Toggle("Charging", isOn: $chargingEnabled)
+                    Toggle("Now Playing", isOn: $nowPlayingEnabled)
+                    Toggle("Devices", isOn: $deviceEnabled)
+                }
             }
-
-            LabeledContent("Version") {
-                Text(Self.versionString)   // D-09: version/build label
-            }
+            .tabItem { Label("Activities", systemImage: "bolt") }
         }
         // Re-read the system state on appear and whenever the window's app
         // becomes active again — the user can flip the login item in System
@@ -138,7 +152,7 @@ struct SettingsView: View {
             }
         }
         .padding(20)
-        .frame(width: 360)
+        .frame(width: 360, height: 280)
     }
 
     // D-07: opens the purchase page in the default browser. The URL is a hardcoded
