@@ -34,6 +34,13 @@ folded into the transient queue), with its own `DispatchWorkItem` timer patterne
 on `scheduleMediaDismiss`. Add the Settings toggle as a fifth `ActivitySettings` key next to
 `nowPlayingKey`, applied BEFORE the resolver (same discipline as the other three toggles).
 
+**Planning note (see Open Questions (RESOLVED) below):** Planning ultimately did NOT gate the
+toast into `resolve(...)` as a new parameter — it chose the separate-`@Published`-field,
+controller-gated option instead, one of the three shapes this Summary and CONTEXT.md's
+discretion note both left open. See the resolved Open Questions section for the full
+rationale and 18-01-PLAN.md's "Deviation from RESEARCH.md" note for the reconciliation against
+this document's Architectural Responsibility Map / Anti-Pattern guidance below.
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
@@ -121,6 +128,13 @@ None — discussion stayed within phase scope.
 | Toast content state (title/artist while showing) | `@Published` model (`NowPlayingState.swift`) | — | Mirrors `presentation`/`artwork`/`hasPlayedSinceLaunch` — plain published holder, no logic |
 | Toast on/off persistence | `@AppStorage` (`ActivitySettings.swift` + `SettingsView.swift`) | Controller (`activityEnabled(...)` gate before resolver) | Mirrors `nowPlayingKey`/`chargingKey`/`deviceKey` exactly — app-owned prefs, applied before the resolver per D-09 |
 | Toast visual (expand-downward, text render) | SwiftUI view (`NotchPillView.swift`) | — | UI-phase concern (ROADMAP marks "UI hint: yes") — layout/styling deferred, only that it renders title+artist (D-01) is locked here |
+
+**Planning deviation note:** the "Toast priority/suppression (D-02, D-04)" row above assigns
+this responsibility to `resolve(...)`. Planning instead implemented it as a standalone pure
+function (`songChangeToastGate(...)`) in `IslandResolver.swift` that is deliberately NOT called
+by `resolve(...)` — see Open Questions (RESOLVED) #1 below and 18-01-PLAN.md's "Deviation from
+RESEARCH.md" note for why this is a permitted CONTEXT.md-discretion choice rather than a
+violation of the "single arbiter" Anti-Pattern documented below.
 
 ## Standard Stack
 
@@ -294,6 +308,14 @@ confirmed by the `nowPlayingHealthGate`/`nowPlayingLaunchGate` comments).
   `resolve(...)`:** `IslandResolver.swift`'s header states it is "the SINGLE arbiter (D-05)"
   — splitting ranking logic between the controller and the resolver was explicitly what Phase
   6 refactored away from ("replaces the scattered per-pair if-ordering").
+  **Planning note:** Planning's chosen design (`songChangeToastGate(...)` standalone, never
+  called by `resolve(...)`) reads, on its face, as exactly this Anti-Pattern. It is treated as
+  a permitted exception rather than a violation because CONTEXT.md's discretion note explicitly
+  authorized the separate-`@Published`-field shape, and `songChangeToastGate(...)`'s inputs
+  (`activeTransient`, `isExpanded`) are read directly from the same live state `resolve(...)`
+  itself reads — no independent/divergent ranking logic is introduced, only a second,
+  differently-shaped consumer of the same ranking inputs. See 18-01-PLAN.md's "Deviation from
+  RESEARCH.md" note for the full argument.
 
 ## Don't Hand-Roll
 
@@ -374,6 +396,29 @@ inside `applyActivitySettings`, not just gate future triggers.
 **Warning signs:** Turning the toggle off in Settings while a toast is on-screen and watching
 it NOT disappear until its natural ~3s timer would have elapsed anyway.
 
+### Pitfall 5 (added during plan revision): Toggle-off precedent doesn't cover interruption by a NEW transient or manual expand
+**What goes wrong:** Pitfall 4's precedent (`nowPlayingKey`/`chargingKey`/`deviceKey` toggle
+disable branches) only covers the toggle being flipped off. It does NOT cover a toast that is
+already showing being interrupted by a DIFFERENT event — a charging/device transient starting,
+or the user manually expanding the notch — while the toast's own ~3s timer has not yet
+elapsed. Since `songChangeToastGate(...)` is evaluated once, only at the moment the genuine
+change itself fires, nothing re-evaluates it when the interrupting state begins; the toast's
+`@Published` field and its `toastDismissWorkItem` are left running independently of the
+interrupting state and can reappear once that state ends/collapses.
+**Why it happens:** The gate is a point-in-time check (trigger-time only), not a continuously
+re-evaluated condition — this is correct and sufficient for the trigger itself (see Pitfall 3),
+but is not sufficient on its own to guarantee the toast never reappears after being interrupted
+mid-display.
+**How to avoid:** Clear the toast (and cancel `toastDismissWorkItem`) live at the two exact
+points an interrupting state BEGINS: (1) when `transientQueue.head` transitions from `nil` to
+non-nil (the shared `presentTransientChange()` triplet, called only in that exact transition
+per `TransientQueue.enqueue(_:)`'s own "returns true iff `t` becomes the head NOW" contract),
+and (2) when `interaction.isExpanded` transitions from `false` to `true` (`handleClick()`'s
+expand path). See 18-02-PLAN.md Task 1 for the exact insertion points.
+**Warning signs:** A toast reappears after a charging/device splash finishes, or after the
+user collapses a manually-expanded notch, even though several seconds have passed since the
+song change that originally triggered it.
+
 ## Code Examples
 
 ### `isSameTrack` — exact current signature (the detection primitive)
@@ -420,6 +465,11 @@ per D-04) and never inside the `switch activeTransient` branch (per D-02 — if 
 active, `resolve` returns before the toast param is even inspected, which IS the "skip
 silently" behavior D-02 asks for, for free).
 
+**Planning note:** as resolved above, planning did NOT add this parameter — `resolve(...)`'s
+signature is unchanged by this phase. `songChangeToastGate(...)` independently reproduces the
+same two suppression conditions (`activeTransient == nil`, `!isExpanded`) that this sketch
+would have gated on, read from the same live properties `resolve(...)` itself consumes.
+
 ### `handleNowPlaying` — exact current integration point
 ```swift
 // Source: Islet/Notch/NotchWindowController.swift, lines 945-1017 (current repo state, abridged)
@@ -459,16 +509,17 @@ API changes affect this phase.
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | The toast should be modeled as a 4th `@Published` field on `NowPlayingState` + a new `resolve(...)` parameter, rather than a new `IslandPresentation` case | Summary, Standard Stack (Alternatives) | Low — this is a planning-time structural choice CONTEXT.md explicitly left to research/planning discretion; the plan can choose the alternative (new `IslandPresentation` case) without violating any locked decision, as long as D-02/D-04 gating still lands in `resolve(...)` |
+| A1 | The toast should be modeled as a 4th `@Published` field on `NowPlayingState` + a new `resolve(...)` parameter, rather than a new `IslandPresentation` case | Summary, Standard Stack (Alternatives) | Low — this is a planning-time structural choice CONTEXT.md explicitly left to research/planning discretion; the plan can choose the alternative (new `IslandPresentation` case) without violating any locked decision, as long as D-02/D-04 gating still lands in `resolve(...)`. **Resolution:** planning chose neither alternative as originally framed — see Open Questions (RESOLVED) #1. |
 | A2 | The toast's own dismiss constant should be ~3.0s (matching `activityDuration`), distinct from `pausedTimeout` (15.0s) | Pattern 2 | Low — ROADMAP/CONTEXT.md both say "~3s" explicitly (Success Criterion 1), so this is directly sourced, not assumed; flagged only because the exact constant name/placement is left to planning |
 | A3 | The new Settings toggle key should be named something like `activity.songChangeToast` following the `activity.*` namespace convention | Pattern 3 | Low — cosmetic; any key name works as long as it's a new distinct `@AppStorage` key; exact string is planning's choice |
 
 **If this table is empty:** N/A — see above; all three entries are low-risk naming/structural
 choices explicitly deferred to planning by CONTEXT.md, not uncertain facts about the domain.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the toast be a new `IslandPresentation` case or a decoration on `.nowPlayingWings`?**
+   (RESOLVED — planning chose a third option, not this section's own Recommendation)
    - What we know: D-02 requires it to sit outside `ActiveTransient`/`TransientQueue`; D-04
      requires it to apply to the ambient branch only. Both constraints are satisfiable either
      way.
@@ -476,14 +527,34 @@ choices explicitly deferred to planning by CONTEXT.md, not uncertain facts about
      a new case (`.nowPlayingWings(_, toast: TrackToast?)` associated value, or a sibling
      `.songChangeToast(NowPlayingPresentation)` case) vs a view-layer-only flag read alongside
      `.nowPlayingWings`.
-   - Recommendation: Planning should default to adding an associated value to
-     `.nowPlayingWings` (e.g. `case nowPlayingWings(NowPlayingPresentation, toast: TrackSnapshot?)`)
-     since this keeps the toast strictly subordinate to the ambient case rather than a peer,
-     matching D-02's "not a new tier" framing most literally. Confirm with the UI phase once
-     the exact expand-downward geometry is designed.
+   - Recommendation (as originally written, NOT the option chosen): Planning should default to
+     adding an associated value to `.nowPlayingWings` (e.g.
+     `case nowPlayingWings(NowPlayingPresentation, toast: TrackSnapshot?)`) since this keeps the
+     toast strictly subordinate to the ambient case rather than a peer, matching D-02's "not a
+     new tier" framing most literally. Confirm with the UI phase once the exact expand-downward
+     geometry is designed.
+   - **Resolution (18-01-PLAN.md / 18-02-PLAN.md):** Neither the associated-value option above
+     nor a new `IslandPresentation` case was chosen. Planning instead added a fully separate
+     `@Published var songChangeToast: TrackToast?` field directly on `NowPlayingState`, detected
+     and gated entirely inside the controller (`NotchWindowController.handleNowPlaying`, via the
+     new pure `songChangeToastContent(...)` + `songChangeToastGate(...)` helpers), and consumed
+     directly by the view (`NotchPillView.mediaWingsOrToast`) — `resolve(...)` and
+     `IslandPresentation` are untouched entirely, not even threaded a new parameter. This is
+     permitted by CONTEXT.md's Claude's Discretion note ("modeled as a new `IslandPresentation`
+     case, a sub-state carried alongside `.nowPlayingWings`, or a separate `@Published` flag ...
+     is an implementation detail for planning/research to decide"), which explicitly lists this
+     exact option. Rationale: test-surface isolation — the toast's D-02 "skip entirely, never
+     queued" behavior falls out for free without touching `resolve(...)`'s signature or any of
+     its 15+ existing call sites/8 existing tests in `IslandResolverTests.swift`, and
+     `songChangeToastGate(...)` mirrors `resolve(...)`'s own ranking inputs
+     (`activeTransient`/`isExpanded`) directly rather than duplicating ranking *logic*, so there
+     is no risk of the toast and `resolve(...)` disagreeing about suppression. See 18-01-PLAN.md's
+     `<objective>` "Deviation from RESEARCH.md" note for the full reconciliation against this
+     document's Architectural Responsibility Map and Anti-Pattern warning above.
 
 2. **Does the toast need its own `Equatable` value type, or can it reuse a lightweight
    `(title: String, artist: String)?` tuple / the existing `TrackSnapshot`?**
+   (RESOLVED)
    - What we know: `TrackSnapshot` already exists and carries title/artist (plus playback
      fields the toast doesn't need). `NowPlayingPresentation`'s `.playing`/`.paused` cases
      also already carry title/artist.
@@ -497,6 +568,11 @@ choices explicitly deferred to planning by CONTEXT.md, not uncertain facts about
      diverge (toast content = "last settled call", ambient state = "current live state").
      Reusing `NowPlayingPresentation`'s `.playing`/`.paused` cases for this stored value is
      fine; aliasing the toast's storage directly to `presentation` is not.
+   - **Resolution:** Planning followed this Recommendation exactly, with a small naming
+     refinement — a new dedicated `struct TrackToast: Equatable { let title: String; let artist:
+     String }` (in `NowPlayingPresentation.swift`) rather than reusing `TrackSnapshot` or a raw
+     tuple, stored as `NowPlayingState.songChangeToast: TrackToast?`, fully separate from
+     `presentation`.
 
 ## Environment Availability
 
@@ -607,9 +683,11 @@ framework, or API); all research was direct codebase investigation.
   inferred from CONTEXT.md's description alone
 - Pitfalls: HIGH — all four pitfalls are either directly derivable from reading the exact
   current code (Pitfall 1, 2) or documented gap-closure fixes already present in this same
-  file for the analogous transient-queue mechanism (Pitfall 3, 4)
+  file for the analogous transient-queue mechanism (Pitfall 3, 4); Pitfall 5 was added during
+  plan revision (gsd-plan-checker finding) covering the interruption-mid-display gap
 
 **Research date:** 2026-07-09
 **Valid until:** Effectively unbounded for this phase (no external API/version drift risk);
 re-verify only if Phase 17's `IslandResolver.swift`/`NowPlayingState.swift` code changes
 before Phase 18 planning begins.
+</content>
