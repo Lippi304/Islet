@@ -16,7 +16,7 @@ Drag-and-drop file shelf: a session-only staging area for files, appended below 
 - [ ] **SHELF-05**: A single "delete all" trash icon on the far right clears the entire shelf at once
 - [ ] **SHELF-06**: User can drag a shelf item back out to Finder or any other app
 - [ ] **SHELF-07**: Clicking a shelf item opens it in its default application
-- [ ] **SHELF-08**: Shelf content is purely session-temporary — cleared on manual delete, app restart, or Mac restart; never persisted to disk
+- [x] **SHELF-08**: Shelf content is purely session-temporary — cleared on manual delete, app restart, or Mac restart; never persisted to disk
 - [ ] **SHELF-09**: Shelf is suppressed while a Charging or Device wings splash is actively showing, reappearing once the splash dismisses
 
 ## v2 Requirements
@@ -57,7 +57,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHELF-05 | Phase 20 | Pending |
 | SHELF-06 | Phase 21 | Pending |
 | SHELF-07 | Phase 20 | Pending |
-| SHELF-08 | Phase 19 | Pending |
+| SHELF-08 | Phase 19 | Complete |
 | SHELF-09 | Phase 20 | Pending |
 
 **Coverage:**
