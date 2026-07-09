@@ -85,11 +85,14 @@ final class NotchWindowController {
     private let presentationState = IslandPresentationState()
 
     // Phase 20 / SHELF-03 — the SEPARATE @Published shelf model NotchPillView's shelf row
-    // observes. Plan 20-01 wires only the empty placeholder here (the view's `shelfViewState:`
-    // parameter is non-defaulted, so makeRootView needs a live instance to build at all); Plan
-    // 20-02 owns the real `ShelfCoordinator` and writes `.items` into this SAME instance after
-    // every append/remove/clear (mirrors nowPlayingState/outfitState's own ownership contract).
+    // observes. The controller is the ONLY writer — every mutation below resyncs `.items` from
+    // `shelfCoordinator.logic.items` (mirrors nowPlayingState/outfitState's own ownership contract).
     private let shelfViewState = ShelfViewState()
+
+    // Phase 20 / SHELF-04/05/07 — owns the real Phase-19 append/remove/clear + disk-IO seam.
+    // No `start()`-time construction needed (unlike deviceCoordinator, ShelfCoordinator has no
+    // `[weak self]`-capturing closures to bind).
+    private let shelfCoordinator = ShelfCoordinator()
 
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model the expandedIdle
     // 3-column glance observes (Plan 04). Held behind their PROTOCOL types (never the concrete
@@ -596,7 +599,13 @@ final class NotchWindowController {
         // Pattern 4 / Pitfall 4: size the PANEL to the EXPANDED frame UP FRONT (the extra
         // area is transparent → invisible) so the SwiftUI spring morph never clips or jumps
         // mid-animation. The collapsed pill sits flush at the top of this larger window.
-        let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: expandedSize)
+        // Phase 20 / SHELF-03: the panel reserves the shelf band UNCONDITIONALLY (transparent
+        // when empty) so the window is never live-resized when the shelf gains its first item —
+        // the VISIBLE black shape (NotchPillView.blobShape) still only grows into that space
+        // conditionally, exactly matching the panel's reserved height.
+        let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
+                                               expandedSize: CGSize(width: expandedSize.width,
+                                                                     height: expandedSize.height + NotchPillView.shelfRowHeight))
 
         // CHG-01 / Pattern 4: the wings extend SIDEWAYS, so the panel must also cover the
         // flat wings strip. Size the panel ONCE to the UNION of the downward-expanded and the
@@ -871,7 +880,10 @@ final class NotchWindowController {
                       // monitor — no re-spawn, no focus steal.
                       onTogglePlayPause: { [weak self] in self?.nowPlayingMonitor?.togglePlayPause() },
                       onNext: { [weak self] in self?.nowPlayingMonitor?.nextTrack() },
-                      onPrevious: { [weak self] in self?.nowPlayingMonitor?.previousTrack() })
+                      onPrevious: { [weak self] in self?.nowPlayingMonitor?.previousTrack() },
+                      onShelfItemTap: { [weak self] item in self?.handleShelfItemTap(item) },
+                      onShelfItemDelete: { [weak self] id in self?.handleShelfItemDelete(id) },
+                      onShelfClearAll: { [weak self] in self?.handleShelfClearAll() })
             .environment(\.activityAccent, ActivitySettings.accent(for: accentIndex))
     }
 
@@ -1125,6 +1137,30 @@ final class NotchWindowController {
         }
         mediaDismissWorkItem?.cancel()
         updateVisibility()
+    }
+
+    // MARK: - Phase 20 / SHELF-04/05/07 — shelf item handlers
+
+    // SHELF-07 / D-04 — the guard precedes the side effect: a vanished local copy (the user
+    // deleted/moved it out from under the shelf) is a silent no-op, never a dialog or crash, and
+    // the item stays in the shelf.
+    private func handleShelfItemTap(_ item: ShelfItem) {
+        guard shouldOpenShelfItem(fileExists: FileManager.default.fileExists(atPath: item.localURL.path)) else { return }
+        NSWorkspace.shared.open(item.localURL)
+    }
+
+    // SHELF-04 — removes just the tapped item + its session-temp copy (ShelfCoordinator.remove),
+    // then resyncs the published mirror the view observes.
+    private func handleShelfItemDelete(_ id: UUID) {
+        shelfCoordinator.remove(id: id)
+        shelfViewState.items = shelfCoordinator.logic.items
+    }
+
+    // SHELF-05 / D-03 — clears every item + every session-temp copy instantly (no confirmation
+    // dialog), then resyncs the published mirror.
+    private func handleShelfClearAll() {
+        shelfCoordinator.clear()
+        shelfViewState.items = shelfCoordinator.logic.items
     }
 
     deinit {
