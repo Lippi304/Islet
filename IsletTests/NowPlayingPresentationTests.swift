@@ -111,6 +111,46 @@ final class NowPlayingPresentationTests: XCTestCase {
         XCTAssertFalse(isSameTrack(.none, .none))
     }
 
+    // MARK: songChangeToastContent(...) / TrackToast — Phase 18 NOW-05 regression coverage
+
+    func testSongChangeToastContentForGenuineChange() {
+        // A genuine change from one playing track to another, after launch, toasts the new track.
+        XCTAssertEqual(songChangeToastContent(previous: .playing(title: "A", artist: "X"),
+                                              current: .playing(title: "B", artist: "Y"),
+                                              hasPlayedSinceLaunch: true),
+                       TrackToast(title: "B", artist: "Y"))
+    }
+
+    func testSongChangeToastContentForGenuineChangeFromPausedTrack() {
+        // A genuine change is still a genuine change even if the previous track was paused.
+        XCTAssertEqual(songChangeToastContent(previous: .paused(title: "A", artist: "X"),
+                                              current: .playing(title: "B", artist: "Y"),
+                                              hasPlayedSinceLaunch: true),
+                       TrackToast(title: "B", artist: "Y"))
+    }
+
+    func testSongChangeToastContentNilForSameTrackPlayPause() {
+        // Same track, play->pause is NOT a genuine change (isSameTrack semantics).
+        XCTAssertNil(songChangeToastContent(previous: .playing(title: "A", artist: "X"),
+                                            current: .paused(title: "A", artist: "X"),
+                                            hasPlayedSinceLaunch: true))
+    }
+
+    func testSongChangeToastContentNilWhenNotYetPlayedSinceLaunch() {
+        // Pitfall 2: the very first track after launch never toasts, gated on the
+        // PRE-callback hasPlayedSinceLaunch value.
+        XCTAssertNil(songChangeToastContent(previous: .none,
+                                            current: .playing(title: "A", artist: "X"),
+                                            hasPlayedSinceLaunch: false))
+    }
+
+    func testSongChangeToastContentNilForStop() {
+        // Pitfall 1: a stop is not a genuine change, never toast a blank title.
+        XCTAssertNil(songChangeToastContent(previous: .playing(title: "A", artist: "X"),
+                                            current: .none,
+                                            hasPlayedSinceLaunch: true))
+    }
+
     // MARK: PBAR-01 — PlaybackPosition mapping + drift-corrected elapsed formula
 
     func testPlaybackPositionAllFieldsPresent() {
