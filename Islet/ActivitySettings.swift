@@ -16,6 +16,10 @@ enum ActivitySettings {
     static let nowPlayingKey = "activity.nowPlaying"
     static let deviceKey     = "activity.device"
     static let accentIndexKey = "accentIndex"
+    // Quick task 260709-glz — NOT an "activity" toggle (it gates fullscreen visibility,
+    // not a live-activity source), but lives in this same enum because this file is the
+    // shared key namespace between SettingsView and the controller.
+    static let hideInFullscreenKey = "notch.hideInFullscreen"
 
     // D-12 curated palette (~5-6 swatches), NOT a free ColorPicker.
     // Index 0 = neutral default (D-12) — preserves today's white look.

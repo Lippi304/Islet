@@ -47,9 +47,12 @@ final class NotchWindowController {
     private var appActivateObserver: NSObjectProtocol?
 
     // D-10 (ISL-05) — the SINGLE fullscreen-hide gating flag. Default true ships the hide.
-    // Phase 6 (APP-03) will flip `let`→`var` and wire a preferences toggle to THIS property —
-    // it is the only seam, so build NO preferences UI / stored-defaults read here.
-    private let hideInFullscreen = true
+    // Quick task 260709-glz (APP-03) wired the seam: read fresh (no caching) on every
+    // updateVisibility() call, matching licenseState.isEntitled's convention two properties
+    // below.
+    private var hideInFullscreen: Bool {
+        activityEnabled(ActivitySettings.hideInFullscreenKey)
+    }
 
     // Phase 10 / D-11 (LIC-03) — the live entitlement source consumed as the new dominant
     // AND-term in shouldShow(...). Read fresh on every updateVisibility() call (no caching);
