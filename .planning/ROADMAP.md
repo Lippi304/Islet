@@ -189,7 +189,16 @@ Plans:
   3. A single "delete all" trash icon at the strip's far right clears every item at once.
   4. Clicking a shelf item (not its trash icon) opens the file in its default application.
   5. The shelf strip is hidden while a Charging or Device wings splash is actively showing, and reappears once the splash dismisses.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 20-01-PLAN.md — ShelfViewState + ShelfItemView + NotchPillView shelf-aware blobShape/shelfRow, 8 previews updated, SHELF-09 resolver regression test
+
+**Wave 2** *(blocked on 20-01)*
+
+- [ ] 20-02-PLAN.md — NotchWindowController wiring (ShelfCoordinator/ShelfViewState ownership, tap/delete/clear-all handlers, panel-height reservation, DEBUG hand-seed), ShelfViewStateTests.swift
 **UI hint**: yes
 
 ### Phase 21: Drag-Out
