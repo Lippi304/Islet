@@ -109,3 +109,10 @@ None - no external service configuration required.
 ---
 *Phase: 20-shelf-view*
 *Completed: 2026-07-10*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/20-shelf-view/20-03-SUMMARY.md`
+- FOUND: `09dc463` (Task 1 commit)
+- FOUND: `d5346e5` (Task 2 commit)
+- FOUND: `e260b81` (SUMMARY commit)
