@@ -116,3 +116,20 @@ None - no external service configuration required.
 - FOUND: `09dc463` (Task 1 commit)
 - FOUND: `d5346e5` (Task 2 commit)
 - FOUND: `e260b81` (SUMMARY commit)
+
+## Post-Review Correction (orchestrator, 2026-07-10)
+
+The phase's mandatory code-review gate (`gsd-code-reviewer`) found that Task 1's fix did not
+actually close CR-01: `syncClickThrough()`'s expanded branch read
+`pointerInZone || (visibleContentZone()?.contains(lastPointerLocation) ?? false)`. `pointerInZone`
+tracks the broad `expandedZone` (the padded panel-union keep-open region) and stays `true` for the
+entire natural hover→expand→move-toward-app-underneath path — the exact scenario the plan's own
+on-device verification step scripts — so the OR short-circuited `visibleContentZone()`'s narrowing
+for virtually the whole time a user would be positioned over the reserved band. Grep-based
+acceptance criteria and the build gate both passed because the literal code shapes they checked for
+were present; the semantic bug (OR instead of the doc comment's stated AND) was invisible to both.
+
+Fixed by dropping `pointerInZone` from the expanded branch (commit `8e3fa64`) — only
+`visibleContentZone()` may grant interactivity while expanded now. Verified: build still succeeds,
+`positionAndShow`/panel geometry untouched (no reintroduced animation race), collapsed-state and
+hover-enter/exit behavior unaffected (separate branch/call sites).
