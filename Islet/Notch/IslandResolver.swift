@@ -34,6 +34,7 @@ enum ActiveTransient: Equatable {
 func resolve(activeTransient: ActiveTransient?,
              nowPlaying: NowPlayingPresentation,
              nowPlayingHealthy: Bool,
+             hasPlayedSinceLaunch: Bool,
              isExpanded: Bool) -> IslandPresentation {
     switch activeTransient {                              // D-04: transient wins even over expanded
     case .charging(let a): return .charging(a)           // D-02 rank 1
@@ -45,7 +46,10 @@ func resolve(activeTransient: ActiveTransient?,
         if nowPlaying != .none { return .nowPlayingExpanded(nowPlaying, healthy: true) }
         return .expandedIdle
     }
-    if nowPlaying != .none { return .nowPlayingWings(nowPlaying) }   // D-02 ambient yield (rank 3)
+    // Phase 17 / NOW-04 — D-01/D-03: the launch gate applies ONLY to this ambient branch; the
+    // isExpanded branch above is untouched, so a manual expand always reveals the real state.
+    let ambient = nowPlayingLaunchGate(hasPlayedSinceLaunch: hasPlayedSinceLaunch, nowPlaying: nowPlaying)
+    if ambient != .none { return .nowPlayingWings(ambient) }   // D-02 ambient yield (rank 3)
     return .idle
 }
 
@@ -55,6 +59,16 @@ func resolve(activeTransient: ActiveTransient?,
 // flag; when enabled, passes the real flag through unchanged.
 func nowPlayingHealthGate(enabled: Bool, isHealthy: Bool) -> Bool {
     enabled ? isHealthy : true
+}
+
+// Phase 17 / NOW-04 — D-01/D-02: a track that hasn't actually played (isPlaying == true) since
+// Islet launched must not auto-show the ambient wings glance. TOTAL pure helper mirroring
+// nowPlayingHealthGate's shape: when the gate hasn't been lifted yet, force .none for the
+// AMBIENT (non-expanded) presentation only; the raw presentation passes through unchanged once
+// hasPlayed is true. Never applied to the expanded branch (D-03) — resolve(...) only calls this
+// from its non-expanded path.
+func nowPlayingLaunchGate(hasPlayedSinceLaunch: Bool, nowPlaying: NowPlayingPresentation) -> NowPlayingPresentation {
+    hasPlayedSinceLaunch ? nowPlaying : .none
 }
 
 // Gap-closure fix (WR-1) — the address-keyed side data for a device's post-connect battery
