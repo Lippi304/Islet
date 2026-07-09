@@ -760,7 +760,13 @@ final class NotchWindowController {
     private func syncClickThrough() {
         let interactive: Bool
         if interaction.isExpanded {
-            interactive = pointerInZone || (visibleContentZone()?.contains(lastPointerLocation) ?? false)
+            // CR-01 fix-2: `pointerInZone` tracks the BROAD `expandedZone` (padded panel union,
+            // used only for the keep-open grace decision) — it stays true for the whole time the
+            // pointer sits anywhere in that zone, including over the invisible reserved shelf
+            // band. ORing it in here defeated visibleContentZone()'s narrowing entirely. Only
+            // visibleContentZone() (the actual visible blob rect) may grant interactivity while
+            // expanded.
+            interactive = visibleContentZone()?.contains(lastPointerLocation) ?? false
         } else {
             interactive = pointerInZone
         }
