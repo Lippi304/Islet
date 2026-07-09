@@ -30,7 +30,7 @@ Plan: Not started
 v1.1 Trial & Paid Release closed 2026-07-08 (Phases 10-13, see `.planning/milestones/v1.1-ROADMAP.md`).
 Phase 14 (weather/calendar/date, executed ahead of v1.1's formal scope) is complete and on-device verified (5 of 5 plans) but not yet archived — its requirements (WEATHER-01/CAL-01/OUTFIT-01) still need IDs in the next milestone's REQUIREMENTS.md.
 Next: `/gsd-new-milestone` to scope the next milestone.
-Last activity: 2026-07-09 - Completed quick task 260709-glz: Fullscreen-Sichtbarkeit der Notch als Einstellung konfigurierbar machen
+Last activity: 2026-07-09 - Completed quick task 260709-gvy: SettingsView TabView-Umbau (General/Appearance/Activities)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -119,6 +119,7 @@ None yet.
 | 260708-ol8 | Bump MARKETING_VERSION 0.1 → 1.0 for public launch (D-14) | 2026-07-08 | 57f601a | Complete ✓ | [260708-ol8-bump-marketing-version-in-project-yml-fr](./quick/260708-ol8-bump-marketing-version-in-project-yml-fr/) |
 | 260708-u47 | Settings: "Save Diagnostic Report…" button — snapshots version/OS/hardware/license summary/toggles/Now-Playing health to a user-saved .txt (no raw license key) | 2026-07-08 | a7a4243 | Complete ✓ (on-device save + Cmd-U `DiagnosticReportTests` both verified by user) | [260708-u47-settings-button-hinzuf-gen-um-einen-fehl](./quick/260708-u47-settings-button-hinzuf-gen-um-einen-fehl/) |
 | 260709-glz | Fullscreen-hide gating (`hideInFullscreen`) turned from a hardcoded constant into a persisted, live-editable Settings toggle ("Hide notch in fullscreen"); default true preserves existing behavior | 2026-07-09 | d1f6b5e | Complete ✓ (Debug build verified — manual on-device toggle check recommended) | [260709-glz-fullscreen-sichtbarkeit-der-notch-als-ei](./quick/260709-glz-fullscreen-sichtbarkeit-der-notch-als-ei/) |
+| 260709-gvy | SettingsView restructured from a single Form into a 3-tab TabView (General/Appearance/Activities) — pure view-hierarchy reorg, no `@AppStorage` keys or behavior changed; Accent picker moved from Activities into Appearance | 2026-07-09 | 9972811 | Complete ✓ (Debug build verified — manual on-device tab check recommended) | [260709-gvy-settingsview-tabview-umbau-general-appea](./quick/260709-gvy-settingsview-tabview-umbau-general-appea/) |
 
 ## Deferred Items
 
