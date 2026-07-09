@@ -2,7 +2,7 @@
 phase: 18-song-change-toast
 plan: 02
 subsystem: ui
-tags: [swiftui, appkit, notch-window-controller, checkpoint-pending]
+tags: [swiftui, appkit, notch-window-controller]
 
 # Dependency graph
 requires:
@@ -11,7 +11,7 @@ requires:
     provides: TrackToast, songChangeToastContent(...), songChangeToastGate(...), NowPlayingState.songChangeToast, ActivitySettings.songChangeToastKey
 provides:
   - Controller wiring: handleNowPlaying detection + scheduleToastDismiss() one-shot timer + toggle-off/interruption live-clear
-  - NotchPillView toast render (songChangeToastView + mediaWingsOrToast branch)
+  - NotchPillView toast render: wings row unchanged + fading centered single-line title/artist text row
 affects: []
 
 # Tech tracking
@@ -20,132 +20,101 @@ tech-stack:
   patterns:
     - "Toast dismiss timer (toastDismissWorkItem) fully independent DispatchWorkItem mirroring scheduleMediaDismiss, never sharing state with mediaDismissWorkItem"
     - "Interruption live-clear inserted at the two single choke points (presentTransientChange() for new-transient-starts, handleClick() for manual-expand) rather than duplicated per caller"
+    - "Toast renders as a same-shape growth of the existing wings capsule (unchanged row 1 + conditional fading row 2), not a separate blob — matches DynamicLake's visual precedent"
+    - "Toast has its own independent dismiss duration (songToastDuration = 2.0s), decoupled from the shared activityDuration (3.0s) used by charging/device splashes"
 
 key-files:
   created: []
   modified:
     - Islet/Notch/NotchWindowController.swift
     - Islet/Notch/NotchPillView.swift
+    - .planning/phases/18-song-change-toast/18-UI-SPEC.md
 
-key-decisions: []
+key-decisions:
+  - "Toast redesigned mid-plan from a standalone expanded blob to a fading text row grown directly under the unchanged wings capsule, after on-device feedback rejected two blob-based attempts (see Deviations)"
+  - "Toast auto-dismiss uses its own 2.0s duration, independent of the shared 3.0s activityDuration used by charging/device transients"
 
-requirements-completed: []
-# NOW-05/NOW-06 code-complete but NOT marked complete here — Task 3 (on-device checkpoint)
-# is the plan's own verification gate for these requirements and has not yet run.
+requirements-completed: [NOW-05, NOW-06]
 
 # Metrics
-duration: ~15min (Tasks 1-2 only; Task 3 checkpoint pending)
+duration: ~15min code (Tasks 1-2) + 5 rounds of on-device iteration (Task 3)
 completed: 2026-07-09
 ---
 
-# Phase 18 Plan 02: Song-Change Toast Controller Wiring + Render Summary (Tasks 1-2 of 3)
+# Phase 18 Plan 02: Song-Change Toast Controller Wiring + Render Summary
 
-**Wires Plan 01's pure seam end-to-end: handleNowPlaying detects a genuine song change, gates it through songChangeToastGate, drives a dedicated ~3s auto-dismiss timer, and NotchPillView renders it as a centered expanded blob with title+artist text — code-complete and build-verified, on-device checkpoint (Task 3) not yet run.**
+**Wires Plan 01's pure seam end-to-end: handleNowPlaying detects a genuine song change, gates it through songChangeToastGate, drives an independent ~2s auto-dismiss timer, and NotchPillView renders it as the existing wings capsule growing a small fading text row underneath (title — artist), refined over 5 on-device feedback rounds to match a DynamicLake-style reference.**
 
 ## Performance
 
-- **Duration:** ~15 min (Tasks 1-2)
-- **Completed:** 2026-07-09T13:18:44Z (partial — stopped at checkpoint)
-- **Tasks:** 2 of 3 completed (Task 3 is a `checkpoint:human-verify`, gate="blocking")
-- **Files modified:** 2
+- **Duration:** ~15 min (Tasks 1-2 code) + 5 rounds of on-device iteration (Task 3)
+- **Completed:** 2026-07-09
+- **Tasks:** 3 of 3 completed (Task 3 checkpoint approved by user after round 5)
+- **Files modified:** 3 (2 code, 1 spec doc)
 
 ## Accomplishments
 
 - `NotchWindowController.handleNowPlaying`: captures the PRE-mutation `hasPlayedSinceLaunch` value (Pitfall 2), evaluates `songChangeToastGate(activeTransient:isExpanded:toastEnabled:)` and `songChangeToastContent(previous:current:hasPlayedSinceLaunch:)` inside the existing spring block AFTER `renderPresentation()` but BEFORE any mutation to `nowPlayingState.songChangeToast` (Pitfall 3 — never schedule-then-suppress), then sets the toast and calls the new `scheduleToastDismiss()`.
-- New `toastDismissWorkItem` property + `scheduleToastDismiss()` function, byte-for-byte mirroring `scheduleMediaDismiss(after:)`'s cancel-then-reschedule shape but touching ONLY `nowPlayingState.songChangeToast` (never `presentation`/`artwork`/`position`/`renderPresentation()`/`updateVisibility()`), reusing the existing `activityDuration` (3.0s) constant.
+- New `toastDismissWorkItem` property + `scheduleToastDismiss()` function, byte-for-byte mirroring `scheduleMediaDismiss(after:)`'s cancel-then-reschedule shape but touching ONLY `nowPlayingState.songChangeToast` (never `presentation`/`artwork`/`position`/`renderPresentation()`/`updateVisibility()`), using its own independent `songToastDuration` (2.0s — see Deviations round 5).
 - `handleSettingsChanged()`: toggling `songChangeToastKey` off cancels `toastDismissWorkItem` and clears `nowPlayingState.songChangeToast` live, mirroring the pre-existing `nowPlayingKey` disable branch (Pitfall 4).
 - `presentTransientChange()`: clears an in-flight toast the instant `transientQueue.head` transitions nil→non-nil (a new charging/device transient interrupting), covering both interruption paths through this single choke point (RESEARCH.md Pitfall 5).
 - `handleClick()`: captures `wasExpanded` before the spring block, clears an in-flight toast the instant the user manually expands (`!wasExpanded && interaction.isExpanded`), the only path that can flip `isExpanded` false→true (RESEARCH.md Pitfall 5, D-04).
-- `NotchPillView`: `.nowPlayingWings(let p)` case now calls the new `mediaWingsOrToast(_:)`, which renders `songChangeToastView(_:)` when `nowPlaying.songChangeToast` is non-nil, else falls back unchanged to `mediaWings(p, art:)`. `songChangeToastView` reuses `blobShape(topCornerRadius: 6, bottomCornerRadius: 20)` with default `.center` alignment, a `VStack(spacing: 2)` of bold 15pt title + secondary 12pt artist (both `.lineLimit(1)`/`.truncationMode(.tail)`), `.padding(.horizontal, 16)`.
+- `NotchPillView`: the toast renders as a growth of the SAME wings shape rather than a separate blob — row 1 (art + equalizer, unchanged) always shows, and a second row fades in below it (centered "title — artist", one line, truncating) only while `nowPlaying.songChangeToast` is non-nil, matching a DynamicLake reference the user provided (final design from round 3, refined in rounds 4-5 — see Deviations).
 
 ## Task Commits
 
-1. **Task 1: Controller wiring — detection, ~3s dismiss timer, toggle-off + interruption live-clear**
+1. **Task 1: Controller wiring — detection, ~2s dismiss timer, toggle-off + interruption live-clear**
    - `d198d45` (feat) — `Islet/Notch/NotchWindowController.swift`
-2. **Task 2: Toast render — songChangeToastView + mediaWingsOrToast branch**
+2. **Task 2: Toast render — songChangeToastView + mediaWingsOrToast branch (initial version, superseded — see Deviations)**
    - `ff1b35b` (feat) — `Islet/Notch/NotchPillView.swift`
+3. **Task 3: On-device checkpoint** — approved by user after round 5 (no dedicated commit; see round commits below)
 
-Both tasks verified via `xcodebuild build -project Islet.xcodeproj -scheme Islet -destination 'platform=macOS' -configuration Debug` → `BUILD SUCCEEDED`, run inside this worktree's own project (not a sibling checkout), after each edit.
+Both Tasks 1-2 verified via `xcodebuild build -project Islet.xcodeproj -scheme Islet -destination 'platform=macOS' -configuration Debug` → `BUILD SUCCEEDED`, run inside this worktree's own project.
 
 ## Files Created/Modified
 
-- `Islet/Notch/NotchWindowController.swift` — `toastDismissWorkItem` property, `hadPlayedSinceLaunch` capture + toast trigger in `handleNowPlaying`, new `scheduleToastDismiss()`, toggle-off live-clear in `handleSettingsChanged()`, interruption live-clear in `presentTransientChange()` and `handleClick()`
-- `Islet/Notch/NotchPillView.swift` — `.nowPlayingWings` case now calls `mediaWingsOrToast(_:)`; new `mediaWingsOrToast(_:)` and `songChangeToastView(_:)` functions added above `mediaWings(_:art:)`
+- `Islet/Notch/NotchWindowController.swift` — `toastDismissWorkItem` property, `hadPlayedSinceLaunch` capture + toast trigger in `handleNowPlaying`, `scheduleToastDismiss()` (independent `songToastDuration`), toggle-off live-clear in `handleSettingsChanged()`, interruption live-clear in `presentTransientChange()` and `handleClick()`
+- `Islet/Notch/NotchPillView.swift` — `mediaWingsOrToast(_:)` grows the unchanged wings row with a conditional fading, centered text row (final round-3 redesign, superseding the initial round-1/round-2 standalone-blob approach)
+- `.planning/phases/18-song-change-toast/18-UI-SPEC.md` — updated across rounds to document the final design (struck-through history kept for traceability)
 
 ## Decisions Made
 
-None beyond the plan's own pre-documented architecture note (toast gating stays in the controller, never in `resolve(...)` — see 18-01-PLAN.md's "Deviation from RESEARCH.md").
+- Toast gating stays entirely in the controller (`songChangeToastGate`/`songChangeToastContent` called from `handleNowPlaying`), never inside `resolve(...)` — pre-documented architecture note, see 18-01-PLAN.md's "Deviation from RESEARCH.md".
+- Toast visual design was redesigned mid-plan (round 3) from a standalone expanded blob to a fading text row grown under the existing wings capsule — see Deviations for the full arc and rationale.
+- Toast auto-dismiss decoupled to its own 2.0s duration, independent from the shared 3.0s `activityDuration` used by charging/device transients (round 5).
 
 ## Deviations from Plan
 
-None — plan executed exactly as written. All acceptance criteria (grep counts on `toastDismissWorkItem` ≥ 6, exactly one `scheduleToastDismiss`/`mediaWingsOrToast`/`songChangeToastView`, gate+content evaluated before mutation, `scheduleToastDismiss()` never touching `presentation`/`artwork`/`position`/`renderPresentation()`/`updateVisibility()`, `wasExpanded` captured before the spring block, `blobShape` called with no `alignment:` argument, `VStack(spacing: 2)`) were verified before each commit via direct grep + Read.
+### Post-checkpoint iteration (Task 3, rounds 2-5 — on-device feedback)
+
+The plan's originally written design (`songChangeToastView` as a standalone `blobShape` call, per 18-UI-SPEC.md's initial guidance) rendered correctly but did not match what the user actually wanted once seen on-device. Five rounds of on-device verification refined it to the final shape:
+
+1. **Initial render (Task 2, commit `ff1b35b`):** toast rendered via the shared `blobShape` helper, same 360×144 frame as a full manual expand, two-line `VStack` (title over artist).
+2. **Round 2 feedback — "too large, looks like a full expand"** (commit `8007647`): user wanted only a minimal glance, title+artist on one line. Fix: parameterized `blobShape` with an optional `size:` (default unchanged for other callers), added a standalone 240×56 `toastSize`, single-line `HStack`. This was itself rejected in round 3.
+3. **Round 3 feedback — reference screenshots (DynamicLake), reject the standalone blob entirely** (commit `fc69db2`, the design that stuck): the user wanted the *existing* wings capsule (art + equalizer) to stay visually unchanged and simply grow a little, with a second row of text fading in underneath — not a different shape popping in. Redesigned `mediaWingsOrToast` from an if/else between two shapes into always-render-row-1 (`mediaWingsRow`, factored verbatim out of the old `mediaWings(_:art:)`) + conditionally-added row 2 (`toastTextRow`, combined "title — artist" text, `.transition(.opacity)`). New `Self.toastExtraHeight = 32` constant added to the wings frame height when a toast is active; the round-2 `toastSize` constant and `blobShape`'s `size:` param were removed as dead code (checked all remaining callers first). No transport controls were added — the user's own wording only asked for title/artist text, matching the phase's original text-only scope (18-UI-SPEC.md, ROADMAP, D-01).
+4. **Round 4 — centering** (commit `6f7fddf`): text row was left-aligned under the art; user asked for it centered. One-line fix (`.frame(alignment:)` `.leading` → `.center`).
+5. **Round 5 — independent dismiss duration** (commit `881d460`): user asked the toast to disappear 1s sooner than before. Added a dedicated `songToastDuration = 2.0` constant used only by `scheduleToastDismiss()`, leaving the shared `activityDuration` (3.0s, still used by `scheduleActivityDismiss()` for charging/device splashes) untouched.
+
+Each round was build-verified (`xcodebuild build` → `BUILD SUCCEEDED`) and documented in `.planning/phases/18-song-change-toast/18-UI-SPEC.md` as it happened, with prior guidance kept struck through for traceability rather than deleted.
+
+**Task 3 (on-device checkpoint): approved by user after round 5.**
 
 ## Issues Encountered
 
-None during Tasks 1-2. Build note: the first `xcodebuild build` invocation was accidentally run against a sibling directory (`/Users/lippi304/conductor/workspaces/notch/algiers`, a separate worktree of the same repo pointed at the same base commit but WITHOUT this plan's edits) due to a `cd`-prefixed command masking which tree was active; this could have produced a false-positive "BUILD SUCCEEDED" that didn't actually exercise the new code. Caught before relying on it — both tasks were re-verified with an explicit `-project Islet.xcodeproj` build run from this worktree's own directory, which does contain the edits, and both builds genuinely succeeded.
+Build note (Tasks 1-2): the first `xcodebuild build` invocation was accidentally run against a sibling directory (a separate worktree of the same repo pointed at the same base commit but WITHOUT this plan's edits) due to a `cd`-prefixed command masking which tree was active. Caught before relying on it — both tasks were re-verified with an explicit `-project Islet.xcodeproj` build run from this worktree's own directory, which genuinely succeeded.
 
 ## User Setup Required
 
-None for Tasks 1-2 (pure code changes, no new dependencies/config).
+None — pure code changes, no new dependencies/config. The "Song-Change Toast" toggle in Settings' Activities tab was already added by Plan 01 (default on).
 
-## Next Phase Readiness — CHECKPOINT REACHED, NOT PLAN-COMPLETE
+## Next Phase Readiness
 
-Task 3 is a `type="checkpoint:human-verify"` (`gate="blocking"`) requiring on-device manual verification (Xcode Cmd-U for Plan 01's 10 unit tests, then a 10-step on-device Cmd-R checklist covering NOW-05/NOW-06, D-02/D-03/D-04, and the Pitfall 5 interruption live-clear). Per this project's `auto_advance: false` config and the manual-verification-note (native macOS app, no headless test runner for the full suite), this checkpoint cannot be resolved by the executor and is returned to the orchestrator/user as-is. NOW-05/NOW-06 requirements are NOT marked complete in this SUMMARY — that should happen only after Task 3's on-device pass, in whatever follow-up step consumes its "approved" resume-signal.
+Plan 02 complete. NOW-05 (song-change toast trigger/suppress/interrupt semantics) and NOW-06 (Settings toggle, live-clear) are both implemented, on-device verified across 5 iteration rounds, and approved by the user. Phase 18's remaining work (if any) can proceed independently.
 
 ---
 *Phase: 18-song-change-toast*
-*Completed: Tasks 1-2 of 3 (checkpoint pending)*
+*Completed: 3 of 3 tasks*
 
 ## Self-Check: PASSED
 
-Both modified files and both commit hashes verified present (see below).
-
-## Post-checkpoint deviation: toast sizing (on-device feedback)
-
-**Found during:** Task 3 on-device verification round 1 (user tested the build).
-
-**User feedback (verbatim, German):** "Ja es klappt aber mir klappt die Notch zu viel auf. Die Notch klappt ja jetzt voll auf. Ich meinte die soll nur minimal nach unten expandieren um Autor - Titel anzugeigen klein als text also wirklich so expandieren das der Text nebneinander reinpasst" — the toast opened the full expanded island rather than a minimal glance; wanted title/artist side by side on one line.
-
-**Root cause:** `songChangeToastView(_:)` called the shared `blobShape` helper, which hardcoded `.frame(width: Self.expandedSize.width, height: Self.expandedSize.height)` (360×144) — the SAME frame as `expandedIsland`/`mediaExpanded`/`mediaUnavailable`. The content was also a two-line `VStack` (title over artist). Both the frame size and the two-line layout made the toast visually indistinguishable from a full manual expand. This was per 18-UI-SPEC.md's original (now-incorrect) "reuse blobShape exactly, do not invent a new size" guidance — corrected by this on-device round.
-
-**Fix:**
-- `blobShape` parameterized with an optional `size: CGSize = Self.expandedSize` param — default preserves all existing callers (`expandedIsland`/`mediaExpanded`/`mediaUnavailable`) unchanged.
-- New `Self.toastSize = CGSize(width: 240, height: 56)` constant — a minimal glance frame, confirmed to fit inside the existing panel bounds (the panel is already sized to the UNION of `expandedFrame`/`wingsFrame` in `NotchWindowController`, so no panel-sizing change was needed).
-- `songChangeToastView`'s content changed from a two-line `VStack` to a single-line `HStack` (title bold — em-dash — artist secondary), all `.lineLimit(1)`/`.truncationMode(.tail)` so long strings truncate rather than wrap or grow the blob.
-- `songChangeToastView` now calls `blobShape(topCornerRadius: 6, bottomCornerRadius: 20, size: Self.toastSize)`.
-- `18-UI-SPEC.md`'s Motion & Interaction Contract ("Shape/frame", "Content alignment") and Copywriting Contract ("Toast content format") rows updated to document the superseded original guidance and the corrected values.
-
-**Files modified:** `Islet/Notch/NotchPillView.swift`, `.planning/phases/18-song-change-toast/18-UI-SPEC.md`
-
-**Commit:** `8007647` (fix)
-
-**Build:** `xcodebuild build -project Islet.xcodeproj -scheme Islet -destination 'platform=macOS'` → `BUILD SUCCEEDED`.
-
-**Status:** Task 3 checkpoint remains pending — this fix needs a fresh round of on-device verification before NOW-05/NOW-06 can be marked complete.
-
-## Post-checkpoint deviation, round 3 (on-device feedback — supersedes round 2)
-
-**Found during:** Task 3 on-device verification round 2 (user tested round 2's standalone 240×56 blob fix).
-
-**User feedback (verbatim, German):** "Ne es soll das so bleiben und ganz klein darunter, also so hier von DynamicLake geklaut wirklich halt nur leicht weiter nach unten expandieren und den titel mit Sänger rein faden." — the user rejected round 2's fix outright. Two reference screenshots were provided: (1) the CURRENT collapsed media-wings glance (art left, equalizer right) — keep this exactly as-is; (2) a DynamicLake screenshot showing that same top capsule staying visually intact, with a second row fading in directly below it (still one continuous rounded black shape, bottom corners more rounded/blob-like), showing the track title + artist as one line of text, the whole shape only modestly taller than the collapsed capsule. The DynamicLake screenshot also showed transport buttons, but the user's own words only asked for "titel mit Sänger" (title with artist) — no playback controls were requested, and this phase's original scope (18-UI-SPEC.md, ROADMAP, CONTEXT.md D-01) is a passive text-only toast, so no buttons were added.
-
-**Root cause:** Round 2 replaced the wings row ENTIRELY with a different, standalone shape (`songChangeToastView` via `blobShape(... size: Self.toastSize)`) — an either/or branch in `mediaWingsOrToast`. This changed the wings' own look (no equalizer bars visible during a toast) and read as a different UI element popping in, not "the same wings, expanding slightly."
-
-**Fix (redesign, not a tweak):**
-- `mediaWingsOrToast` is no longer an if/else between two shapes. It now always renders the SAME content — row 1 (`mediaWingsRow`, factored byte-for-byte out of the old `mediaWings(_:art:)`: art left, equalizer right, unchanged paddings) — and conditionally grows to add row 2 (`toastTextRow`) only while `nowPlaying.songChangeToast` is non-nil.
-- The combined shape is built directly (`NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)`), sized `width: Self.wingsSize.width` (290, unchanged footprint) and `height: Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)` — 32pt normally, 64pt with a toast (new `Self.toastExtraHeight = 32` constant replaces round 2's `Self.toastSize`).
-- `toastTextRow` renders one combined `Text("\(title) — \(artist)")`, 12pt medium white, `.lineLimit(1)`/`.truncationMode(.tail)`, left-aligned, and carries `.transition(.opacity)` so it fades in/out under the controller's existing spring wrapper (D-08: the view drives no animation of its own — every mutation of `songChangeToast` in `NotchWindowController` already runs inside `withAnimation(.spring(...))`).
-- Dead code removed: `Self.toastSize` constant, the round-2 `songChangeToastView` function, and `blobShape`'s round-2 `size:` parameter (checked all three remaining callers — `expandedIsland`/`mediaExpanded`/`mediaUnavailable` — none needed it after the toast stopped being a `blobShape` caller).
-- `18-UI-SPEC.md` updated: Design System/Copywriting/Motion-Interaction/Typography/Color rows now describe the round-3 final design (wings unchanged + fading single-line text row, ~64pt total height, bottom corners 16 while toast shows, text-only, no controls), with round 1/round 2 history kept struck through for traceability.
-
-**Files modified:** `Islet/Notch/NotchPillView.swift`, `.planning/phases/18-song-change-toast/18-UI-SPEC.md`
-
-**Commit:** `fc69db2` (fix)
-
-**Build:** `xcodebuild build -project Islet.xcodeproj -scheme Islet -destination 'platform=macOS'` → `BUILD SUCCEEDED`.
-
-**Status:** Task 3 checkpoint remains pending — a THIRD round of on-device verification is needed before NOW-05/NOW-06 can be marked complete. This round changes the STRUCTURE (wings row unchanged + a small fading text row below it) rather than the previous two rounds' size-only tweaks, so verification should specifically confirm the wings row looks identical to before this phase and that only a small text strip appears below it.
-
-**Round 4 (minor tweak, on-device feedback):** Round 3's structure was confirmed working on-device; only the text row's alignment needed fixing — user asked for it centered ("Lass es mittig stehen nicht linksbündig") instead of left-aligned under the art. Fix: `toastTextRow`'s `.frame(... alignment:)` changed from `.leading` to `.center`; wings row untouched. Commit: `6f7fddf` (fix). Build: `BUILD SUCCEEDED`.
-
-**Round 5 (minor tweak, on-device feedback):** User asked the toast to auto-dismiss 1s sooner, toast-only (charging/device splash must stay at 3.0s). Added a new `songToastDuration = 2.0` constant used only by `scheduleToastDismiss()`; the shared `activityDuration` (3.0s, still used by `scheduleActivityDismiss()` for charging/device) is untouched. Commit: `881d460` (fix). Build: `BUILD SUCCEEDED`.
+All modified files and all commit hashes verified present.
