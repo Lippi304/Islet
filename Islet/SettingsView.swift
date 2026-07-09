@@ -30,6 +30,10 @@ struct SettingsView: View {
     @AppStorage(ActivitySettings.deviceKey)     private var deviceEnabled = true
     @AppStorage(ActivitySettings.accentIndexKey) private var accentIndex = ActivitySettings.defaultAccentIndex
 
+    // Quick task 260709-glz — default true mirrors the controller's default (matches
+    // today's behavior for existing users, no regression).
+    @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
+
     var body: some View {
         Form {
             // D-01/D-02: the adaptive License section is the FIRST element in the
@@ -100,6 +104,12 @@ struct SettingsView: View {
                         }
                     }
                 }
+            }
+
+            // Quick task 260709-glz — a fullscreen-visibility preference, distinct from
+            // the "Activities" on/off toggles above (not a live-activity source).
+            Section("Fullscreen") {
+                Toggle("Hide notch in fullscreen", isOn: $hideInFullscreen)
             }
 
             // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
