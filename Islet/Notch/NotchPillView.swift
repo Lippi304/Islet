@@ -136,7 +136,7 @@ struct NotchPillView: View {
             case .device(let d):
                 deviceWings(for: d)                                              // D-02 rank 2 transient
             case .nowPlayingWings(let p):
-                mediaWings(p, art: nowPlaying.artwork)                           // D-02 collapsed media glance
+                mediaWingsOrToast(p)                                             // D-02 collapsed media glance / Phase 18 toast
             case .nowPlayingExpanded(let p, true):
                 mediaExpanded(p, art: nowPlaying.artwork)                        // NOW-01/02 controls (healthy)
             case .nowPlayingExpanded(_, false):
@@ -281,6 +281,40 @@ struct NotchPillView: View {
     // the RIGHT wing. `isPlaying` is derived from the presentation: `.playing` → bars bounce,
     // `.paused` → bars freeze static (D-05). The bars are the ONLY continuous animation in
     // the app and are isPlaying-gated for the idle-CPU guarantee (D-04, see EqualizerBars).
+    // Phase 18 / NOW-05 — branches the `.nowPlayingWings` case between the toast (when a
+    // genuine song change is being announced) and the normal collapsed media glance,
+    // mirroring `deviceTrailing(isConnected:battery:)`'s exact @ViewBuilder if/else shape.
+    @ViewBuilder
+    private func mediaWingsOrToast(_ p: NowPlayingPresentation) -> some View {
+        if let toast = nowPlaying.songChangeToast {
+            songChangeToastView(toast)
+        } else {
+            mediaWings(p, art: nowPlaying.artwork)
+        }
+    }
+
+    // Phase 18 / NOW-05 — the song-change toast's render: an expanded downward blob (centered,
+    // per 18-UI-SPEC.md) showing the new track's title+artist as text for ~3s. Reuses
+    // blobShape's default `.center` alignment (not `.top` — that's mediaExpanded's
+    // camera-clearance need, not this content's) and inherits its `.onTapGesture { onClick() }`.
+    private func songChangeToastView(_ toast: TrackToast) -> some View {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 20) {
+            VStack(spacing: 2) {
+                Text(toast.title)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(toast.artist)
+                    .font(.system(size: 12, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
     private func mediaWings(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
         let isPlaying = isPlayingFor(presentation)
         return wingsShape {
