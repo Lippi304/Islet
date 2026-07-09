@@ -743,20 +743,20 @@ final class NotchWindowController {
         syncClickThrough()
     }
 
-    // WR-02 (Pitfall 3 / D-07): the SINGLE place that decides `ignoresMouseEvents`. The
-    // window must swallow clicks (be interactive) while the pointer is in the hot-zone OR
-    // the island is expanded, and pass them through otherwise. Centralising this means no
-    // transition can leave the flag stale — previously only the grace work item restored
-    // `true`, so a toggle-shut click followed by a pointer-exit (which schedules no grace
-    // timer) left the collapsed/idle window swallowing clicks over the notch band until the
-    // next hover cycle. Called after EVERY phase/pointer mutation (enter, grace-elapsed,
-    // click). The panel stays `.nonactivatingPanel` + never-key (D-04); `ignoresMouseEvents`
-    // is the ONLY flag toggled at runtime.
+    // WR-02 (Pitfall 3 / D-07): the SINGLE place that decides `ignoresMouseEvents`. While
+    // collapsed/hovering, the window swallows clicks iff the pointer is in the hot-zone; while
+    // expanded, see the CR-01 note below. Centralising this means no transition can leave the
+    // flag stale — previously only the grace work item restored `true`, so a toggle-shut click
+    // followed by a pointer-exit (which schedules no grace timer) left the collapsed/idle window
+    // swallowing clicks over the notch band until the next hover cycle. Called after EVERY
+    // phase/pointer mutation (enter, grace-elapsed, click). The panel stays `.nonactivatingPanel`
+    // + never-key (D-04); `ignoresMouseEvents` is the ONLY flag toggled at runtime.
     // CR-01: while expanded, the panel is STATICALLY sized to the max shelf reservation
-    // (positionAndShow, unchanged) — but the pointer must additionally sit inside
-    // visibleContentZone() (the actual visible blob rect) for the whole panel to become
-    // interactive. Without this, the reserved-but-invisible shelf band (56pt, empty by
-    // default) silently swallowed clicks meant for the app underneath the notch.
+    // (positionAndShow, unchanged) — interactivity requires the pointer to sit inside
+    // visibleContentZone() (the actual visible blob rect), independent of the broader
+    // pointerInZone/expandedZone keep-open tracking. Without this, the reserved-but-invisible
+    // shelf band (56pt, empty by default) silently swallowed clicks meant for the app underneath
+    // the notch.
     private func syncClickThrough() {
         let interactive: Bool
         if interaction.isExpanded {
