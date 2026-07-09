@@ -83,6 +83,7 @@
 		F6629BA3134FAACBF505CCF5 /* ShelfViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAD06AEB3294BABCAE1B7990 /* ShelfViewState.swift */; };
 		FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28316551B58651959797184D /* DeviceActivity.swift */; };
 		FD503D3A7D28F74B8D86C930 /* DisplayResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */; };
+		FDC3CFCDA54C0AD703BD2156 /* ShelfViewStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C0A7B42CF6115383E65C78 /* ShelfViewStateTests.swift */; };
 		FFB8FF809780DAA08EC9B819 /* DeviceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87941F5DC2AA7BA8674AB0C /* DeviceCoordinator.swift */; };
 /* End PBXBuildFile section */
 
@@ -141,6 +142,7 @@
 		4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		518F37B1B7F2553405CF0926 /* ShelfCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfCoordinator.swift; sourceTree = "<group>"; };
+		51C0A7B42CF6115383E65C78 /* ShelfViewStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfViewStateTests.swift; sourceTree = "<group>"; };
 		5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManagerTests.swift; sourceTree = "<group>"; };
 		5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseServiceTests.swift; sourceTree = "<group>"; };
 		58372E319659DF8AA32F403D /* ShelfLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfLogic.swift; sourceTree = "<group>"; };
@@ -241,6 +243,7 @@
 				73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */,
 				858D32BF5C426DA996EF8187 /* ShelfFileStoreTests.swift */,
 				9CB460DC51BC6612D0A4A134 /* ShelfLogicTests.swift */,
+				51C0A7B42CF6115383E65C78 /* ShelfViewStateTests.swift */,
 				88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */,
 				11EDAEA183BDB83B0E678C41 /* TrialManagerTests.swift */,
 				77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */,
@@ -536,6 +539,7 @@
 				D29EBA9C26F56C26B9E49CDE /* ShelfCoordinatorTests.swift in Sources */,
 				3958A1E6D1E4AAE3829D3F20 /* ShelfFileStoreTests.swift in Sources */,
 				75B9F62FA809ED170142A930 /* ShelfLogicTests.swift in Sources */,
+				FDC3CFCDA54C0AD703BD2156 /* ShelfViewStateTests.swift in Sources */,
 				9D1FF157B4E789EF0A05245A /* TrialLogicTests.swift in Sources */,
 				3724A77CBBC391E628A7C5EA /* TrialManagerTests.swift in Sources */,
 				1A099891C9DC0C4BBD962245 /* VisibilityDecisionTests.swift in Sources */,
