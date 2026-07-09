@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: none
-status: milestone_complete
-stopped_at: Milestone complete (Phase 16 was final phase)
-last_updated: 2026-07-08T19:32:48.345Z
-last_activity: 2026-07-08 -- Phase 16 execution started
+milestone: v1.2
+milestone_name: Now Playing Polish
+status: planning
+last_updated: "2026-07-09T10:29:47.549Z"
+last_activity: 2026-07-09
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 12
-  completed_plans: 62
-  percent: 67
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,11 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-08)
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
-v1.1 Trial & Paid Release closed 2026-07-08 (Phases 10-13, see `.planning/milestones/v1.1-ROADMAP.md`).
-Phase 14 (weather/calendar/date, executed ahead of v1.1's formal scope) is complete and on-device verified (5 of 5 plans) but not yet archived.
-Last activity: 2026-07-09 - Completed quick task 260709-gvy: SettingsView TabView-Umbau (General/Appearance/Activities)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-09 — Milestone v1.2 started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 

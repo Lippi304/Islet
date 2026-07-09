@@ -18,9 +18,16 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 **Also shipped in this window, ahead of formal milestone scope (Phase 14):** the `expandedIdle` glance now shows live weather (WeatherKit), the next calendar event (EventKit), and the date alongside the time readout, in a 3-column layout that degrades silently on permission denial. Code-complete and on-device verified, but never part of v1.1's Milestone Goal — needs its own requirement IDs (WEATHER-01, CAL-01, OUTFIT-01) captured when the next milestone's requirements are defined.
 
-## Current Milestone
+## Current Milestone: v1.2 Now Playing Polish
 
-None — v1.1 is closed. **Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) completed 2026-07-08**, ahead of any formal milestone: DRY'd the duplicate frame-geometry/blob-shape code, protocolized `LocationProvider` and `LicenseState` with DI seams, gated the outfit-refresh timer on visibility, persisted the real Polar.sh license payload, and fixed `EqualizerBars`' broken profile-stability contract. Zero unintended behavior change except the two explicit exceptions (Polar payload widening, EqualizerBars fix). All 5 plans verified on-device; 7/7 phase items confirmed against source in `15-VERIFICATION.md`. **Phase 16 (NotchWindowController Device Coordinator Extraction) completed 2026-07-08**, also ahead of any formal milestone: extracted the device-splash bookkeeping into `DeviceCoordinator` behind an `ActivityCoordinator` protocol, proving the coordinator-extraction shape on the highest-risk activity type before repeating it for Charging/NowPlaying/Outfit. 9/9 must-haves verified in `16-VERIFICATION.md`; all 4 D-03 on-device Bluetooth scenarios passed.
+**Goal:** Fix the Now-Playing launch behavior (an already-paused track must not trigger the glance until the user actually presses Play) and add a brief song-change toast that shows the new track's title as text when playback switches to a genuinely new song.
+
+**Target features:**
+- Islet stays idle at launch even if an allowlisted player reports a paused/loaded track — only a transition into the actively-playing state triggers the Now Playing glance
+- On a real song change (not the first track after launch), the island briefly expands downward and shows the new track title as text for ~3s, then collapses back to the compact glance
+- Settings toggle for the song-change toast, in the Activities tab next to the existing Now Playing toggle
+
+(Prior context, retained: Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) and Phase 16 (NotchWindowController Device Coordinator Extraction) both completed 2026-07-08 ahead of any formal milestone — see Validated Requirements below for details.)
 
 ## Requirements
 
@@ -107,7 +114,11 @@ _v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-(None yet — defining this milestone's scope now)
+**v1.2 Now Playing Polish:**
+
+- [ ] Islet stays idle at launch when an allowlisted player reports a paused/loaded track — only a transition into actively-playing triggers the glance
+- [ ] Song-change toast: on a real track change, the island briefly expands and shows the new title as text (~3s) before collapsing back to the compact glance
+- [ ] Settings toggle for the song-change toast (Activities tab, next to Now Playing)
 
 ### Out of Scope
 
@@ -194,4 +205,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-08 — Phase 16 (NotchWindowController Device Coordinator Extraction) completed.*
+*Last updated: 2026-07-09 — Milestone v1.2 (Now Playing Polish) started.*
