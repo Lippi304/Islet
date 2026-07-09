@@ -1202,18 +1202,37 @@ final class NotchWindowController {
         NSWorkspace.shared.open(item.localURL)
     }
 
+    // WR-01/WR-02/CR-01 — the SINGLE place that resyncs shelfViewState.items from the
+    // coordinator. Live user mutations (delete/clear-all) animate with the controller's
+    // standard spring (WR-01); the DEBUG launch seed passes animated: false (nothing visible
+    // yet to animate from). Either way, syncClickThrough() is called unconditionally
+    // afterward (NOT updateVisibility() — there is no panel resize under strategy (b), just a
+    // cheap boolean recompute) so the click-through hit-test immediately reflects the new item
+    // count via visibleContentZone(), even before the pointer next moves (CR-01).
+    private func resyncShelfViewState(animated: Bool = true) {
+        let newItems = shelfCoordinator.logic.items
+        if animated {
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                shelfViewState.items = newItems
+            }
+        } else {
+            shelfViewState.items = newItems
+        }
+        syncClickThrough()
+    }
+
     // SHELF-04 — removes just the tapped item + its session-temp copy (ShelfCoordinator.remove),
     // then resyncs the published mirror the view observes.
     private func handleShelfItemDelete(_ id: UUID) {
         shelfCoordinator.remove(id: id)
-        shelfViewState.items = shelfCoordinator.logic.items
+        resyncShelfViewState()
     }
 
     // SHELF-05 / D-03 — clears every item + every session-temp copy instantly (no confirmation
     // dialog), then resyncs the published mirror.
     private func handleShelfClearAll() {
         shelfCoordinator.clear()
-        shelfViewState.items = shelfCoordinator.logic.items
+        resyncShelfViewState()
     }
 
     #if DEBUG
@@ -1237,7 +1256,7 @@ final class NotchWindowController {
             let item = ShelfItem(id: id, originalURL: source, localURL: localURL, filename: seed.name, addedAt: Date())
             shelfCoordinator.append(item)
         }
-        shelfViewState.items = shelfCoordinator.logic.items
+        resyncShelfViewState(animated: false)
     }
     #endif
 
