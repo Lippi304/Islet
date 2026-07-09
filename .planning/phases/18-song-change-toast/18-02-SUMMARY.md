@@ -145,3 +145,5 @@ Both modified files and both commit hashes verified present (see below).
 **Build:** `xcodebuild build -project Islet.xcodeproj -scheme Islet -destination 'platform=macOS'` → `BUILD SUCCEEDED`.
 
 **Status:** Task 3 checkpoint remains pending — a THIRD round of on-device verification is needed before NOW-05/NOW-06 can be marked complete. This round changes the STRUCTURE (wings row unchanged + a small fading text row below it) rather than the previous two rounds' size-only tweaks, so verification should specifically confirm the wings row looks identical to before this phase and that only a small text strip appears below it.
+
+**Round 4 (minor tweak, on-device feedback):** Round 3's structure was confirmed working on-device; only the text row's alignment needed fixing — user asked for it centered ("Lass es mittig stehen nicht linksbündig") instead of left-aligned under the art. Fix: `toastTextRow`'s `.frame(... alignment:)` changed from `.leading` to `.center`; wings row untouched. Commit: `6f7fddf` (fix). Build: `BUILD SUCCEEDED`.
