@@ -19,12 +19,19 @@ import Foundation
 final class ShelfCoordinator {
     private(set) var logic = ShelfLogic()
 
-    // A pure forward, no FileManager side effect here: the caller already produced
-    // item.localURL via ShelfFileStore.makeSessionCopy per D-03's contract before
-    // calling this, so the copy-in already happened before an item exists.
+    // The caller already produced item.localURL via ShelfFileStore.makeSessionCopy
+    // per D-03's contract before calling this, so the copy-in already happened
+    // before an item exists. WR-01: when logic.append rejects a duplicate
+    // (D-01/D-02), that just-made session-temp copy would otherwise never be
+    // cleaned up by any other code path — delete it here so a rejected append
+    // never orphans a file on disk (closes the gap in T-19-03's mitigation).
     @discardableResult
     func append(_ item: ShelfItem) -> Bool {
-        logic.append(item)
+        let added = logic.append(item)
+        if !added {
+            ShelfFileStore.deleteSessionCopy(at: item.localURL)
+        }
+        return added
     }
 
     // D-05: the real deletion happens here, the instant an item actually leaves the

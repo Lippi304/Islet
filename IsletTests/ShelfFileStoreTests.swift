@@ -72,6 +72,19 @@ final class ShelfFileStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: localURL.path))
     }
 
+    func testDeleteSessionCopyOutsideShelfRootIsSafeNoOp() throws {
+        // CR-01: a localURL that was never produced by makeSessionCopy (i.e. does not
+        // live under NSTemporaryDirectory()/IsletShelf/) must never be deleted — proves
+        // the real user file below survives an out-of-contract call.
+        let realFile = fixturesDir.appendingPathComponent("real-user-file.pdf")
+        try Data("do not delete me".utf8).write(to: realFile)
+
+        ShelfFileStore.deleteSessionCopy(at: realFile)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: realFile.path))
+        XCTAssertEqual(try Data(contentsOf: realFile), Data("do not delete me".utf8))
+    }
+
     func testMakeSessionCopyRejectsPathTraversalFilename() {
         // T-19-01: a sourceURL whose lastPathComponent is ".." or "." must be rejected
         // BEFORE any file I/O is attempted.

@@ -38,7 +38,20 @@ enum ShelfFileStore {
     // file), so nothing lingers. Non-throwing — D-05 callers should never need to
     // handle a delete failure; `try?` makes double-delete and already-gone paths
     // silent no-ops (idempotent).
+    //
+    // CR-01 guard: only ever delete a directory that actually lives under this
+    // store's own IsletShelf temp root. `localURL` on a ShelfItem is a plain,
+    // freely constructible `var` — nothing else in the type system stops a future
+    // caller from passing a URL that was never produced by makeSessionCopy. Without
+    // this check, that mistake would recursively delete the parent directory of an
+    // arbitrary real file (e.g. the user's Downloads folder). A URL outside the
+    // shelf root is a silent no-op, same idempotency stance as an already-deleted path.
     static func deleteSessionCopy(at localURL: URL) {
-        try? FileManager.default.removeItem(at: localURL.deletingLastPathComponent())
+        let itemDir = localURL.deletingLastPathComponent().standardizedFileURL
+        let shelfRoot = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("IsletShelf", isDirectory: true)
+            .standardizedFileURL
+        guard itemDir.path.hasPrefix(shelfRoot.path + "/") else { return }
+        try? FileManager.default.removeItem(at: itemDir)
     }
 }

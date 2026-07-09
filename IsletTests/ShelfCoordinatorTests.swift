@@ -69,6 +69,24 @@ final class ShelfCoordinatorTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: second.localURL.path))
     }
 
+    func testRejectedDuplicateAppendCleansUpItsOrphanedSessionCopy() throws {
+        // WR-01: ShelfLogic.append rejects a duplicate originalURL (D-01/D-02) but the
+        // caller had already made a real session-temp copy via makeSessionCopy before
+        // calling append. That copy must not be left orphaned on disk.
+        let coordinator = ShelfCoordinator()
+        let first = try makeRealItem(named: "dup.pdf")
+        XCTAssertTrue(coordinator.append(first))
+
+        let source = first.originalURL
+        let duplicateLocalURL = try ShelfFileStore.makeSessionCopy(of: source, id: UUID())
+        let duplicate = ShelfItem(id: UUID(), originalURL: source, localURL: duplicateLocalURL, filename: "dup.pdf", addedAt: Date())
+
+        XCTAssertFalse(coordinator.append(duplicate))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: duplicateLocalURL.path))
+        // The original, successfully-appended item's copy is untouched.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: first.localURL.path))
+    }
+
     func testDoubleRemoveAndClearOnEmptyAreSafeNoOps() throws {
         let coordinator = ShelfCoordinator()
         let item = try makeRealItem(named: "e.pdf")
