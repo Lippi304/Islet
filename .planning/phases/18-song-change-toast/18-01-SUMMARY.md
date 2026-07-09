@@ -105,3 +105,7 @@ Plan 02 can now wire the controller/UI layer against the exact contracts locked 
 ---
 *Phase: 18-song-change-toast*
 *Completed: 2026-07-09*
+
+## Self-Check: PASSED
+
+All 7 modified files and all 6 commit hashes verified present.
