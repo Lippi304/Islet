@@ -122,3 +122,26 @@ Both modified files and both commit hashes verified present (see below).
 **Build:** `xcodebuild build -project Islet.xcodeproj -scheme Islet -destination 'platform=macOS'` → `BUILD SUCCEEDED`.
 
 **Status:** Task 3 checkpoint remains pending — this fix needs a fresh round of on-device verification before NOW-05/NOW-06 can be marked complete.
+
+## Post-checkpoint deviation, round 3 (on-device feedback — supersedes round 2)
+
+**Found during:** Task 3 on-device verification round 2 (user tested round 2's standalone 240×56 blob fix).
+
+**User feedback (verbatim, German):** "Ne es soll das so bleiben und ganz klein darunter, also so hier von DynamicLake geklaut wirklich halt nur leicht weiter nach unten expandieren und den titel mit Sänger rein faden." — the user rejected round 2's fix outright. Two reference screenshots were provided: (1) the CURRENT collapsed media-wings glance (art left, equalizer right) — keep this exactly as-is; (2) a DynamicLake screenshot showing that same top capsule staying visually intact, with a second row fading in directly below it (still one continuous rounded black shape, bottom corners more rounded/blob-like), showing the track title + artist as one line of text, the whole shape only modestly taller than the collapsed capsule. The DynamicLake screenshot also showed transport buttons, but the user's own words only asked for "titel mit Sänger" (title with artist) — no playback controls were requested, and this phase's original scope (18-UI-SPEC.md, ROADMAP, CONTEXT.md D-01) is a passive text-only toast, so no buttons were added.
+
+**Root cause:** Round 2 replaced the wings row ENTIRELY with a different, standalone shape (`songChangeToastView` via `blobShape(... size: Self.toastSize)`) — an either/or branch in `mediaWingsOrToast`. This changed the wings' own look (no equalizer bars visible during a toast) and read as a different UI element popping in, not "the same wings, expanding slightly."
+
+**Fix (redesign, not a tweak):**
+- `mediaWingsOrToast` is no longer an if/else between two shapes. It now always renders the SAME content — row 1 (`mediaWingsRow`, factored byte-for-byte out of the old `mediaWings(_:art:)`: art left, equalizer right, unchanged paddings) — and conditionally grows to add row 2 (`toastTextRow`) only while `nowPlaying.songChangeToast` is non-nil.
+- The combined shape is built directly (`NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)`), sized `width: Self.wingsSize.width` (290, unchanged footprint) and `height: Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)` — 32pt normally, 64pt with a toast (new `Self.toastExtraHeight = 32` constant replaces round 2's `Self.toastSize`).
+- `toastTextRow` renders one combined `Text("\(title) — \(artist)")`, 12pt medium white, `.lineLimit(1)`/`.truncationMode(.tail)`, left-aligned, and carries `.transition(.opacity)` so it fades in/out under the controller's existing spring wrapper (D-08: the view drives no animation of its own — every mutation of `songChangeToast` in `NotchWindowController` already runs inside `withAnimation(.spring(...))`).
+- Dead code removed: `Self.toastSize` constant, the round-2 `songChangeToastView` function, and `blobShape`'s round-2 `size:` parameter (checked all three remaining callers — `expandedIsland`/`mediaExpanded`/`mediaUnavailable` — none needed it after the toast stopped being a `blobShape` caller).
+- `18-UI-SPEC.md` updated: Design System/Copywriting/Motion-Interaction/Typography/Color rows now describe the round-3 final design (wings unchanged + fading single-line text row, ~64pt total height, bottom corners 16 while toast shows, text-only, no controls), with round 1/round 2 history kept struck through for traceability.
+
+**Files modified:** `Islet/Notch/NotchPillView.swift`, `.planning/phases/18-song-change-toast/18-UI-SPEC.md`
+
+**Commit:** `fc69db2` (fix)
+
+**Build:** `xcodebuild build -project Islet.xcodeproj -scheme Islet -destination 'platform=macOS'` → `BUILD SUCCEEDED`.
+
+**Status:** Task 3 checkpoint remains pending — a THIRD round of on-device verification is needed before NOW-05/NOW-06 can be marked complete. This round changes the STRUCTURE (wings row unchanged + a small fading text row below it) rather than the previous two rounds' size-only tweaks, so verification should specifically confirm the wings row looks identical to before this phase and that only a small text strip appears below it.
