@@ -21,6 +21,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: .charging(.charging(percent: 47)),
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: true)
         XCTAssertEqual(r, .charging(.charging(percent: 47)))
     }
@@ -30,6 +31,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)),
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: false)
         XCTAssertEqual(r, .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)))
     }
@@ -40,6 +42,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: nil,
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: false)
         XCTAssertEqual(r, .nowPlayingWings(.playing(title: "Song", artist: "Artist")))
     }
@@ -49,6 +52,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: false)
         XCTAssertEqual(r, .idle)
     }
@@ -61,6 +65,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: false,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: true)
         XCTAssertEqual(r, .nowPlayingExpanded(.none, healthy: false))
     }
@@ -76,11 +81,57 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertFalse(nowPlayingHealthGate(enabled: true, isHealthy: false))
     }
 
+    // MARK: nowPlayingLaunchGate(...) / hasPlayedSinceLaunch — Phase 17 NOW-04 regression coverage
+
+    func testNowPlayingLaunchGateForcesNoneWhenNotYetPlayed() {
+        // D-01: a track that hasn't actually played since launch must be forced to .none for
+        // the ambient gate, regardless of its real (paused) presentation.
+        XCTAssertEqual(nowPlayingLaunchGate(hasPlayedSinceLaunch: false,
+                                            nowPlaying: .paused(title: "Song", artist: "Artist")),
+                       .none)
+        // Once lifted, the real presentation passes through unchanged.
+        XCTAssertEqual(nowPlayingLaunchGate(hasPlayedSinceLaunch: true,
+                                            nowPlaying: .paused(title: "Song", artist: "Artist")),
+                       .paused(title: "Song", artist: "Artist"))
+    }
+
+    func testGatedPausedNotExpandedIsIdle() {
+        // D-01: gated (never played this session) + paused + not expanded → idle, no ambient glance.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .paused(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: false)
+        XCTAssertEqual(r, .idle)
+    }
+
+    func testGatedPausedExpandedStillShowsRealState() {
+        // D-03: gated but manually expanded → the expanded branch is untouched by the gate,
+        // the real paused state (title/artist/controls) still shows.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .paused(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true)
+        XCTAssertEqual(r, .nowPlayingExpanded(.paused(title: "Song", artist: "Artist"), healthy: true))
+    }
+
+    func testGateLiftedPausedNotExpandedShowsWings() {
+        // D-02: once the gate has been lifted, ambient paused shows normally — no re-arm.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .paused(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .nowPlayingWings(.paused(title: "Song", artist: "Artist")))
+    }
+
     func testExpandedHealthyNoMediaIsExpandedIdle() {
         // D-12: expanded, healthy API, nothing playing → the expanded idle (date/time) view.
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: true)
         XCTAssertEqual(r, .expandedIdle)
     }
@@ -90,6 +141,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: nil,
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: true)
         XCTAssertEqual(r, .nowPlayingExpanded(.playing(title: "Song", artist: "Artist"), healthy: true))
     }
