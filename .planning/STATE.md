@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Now Playing Polish
-status: verifying
-stopped_at: Phase 18 context gathered
-last_updated: "2026-07-09T11:59:38.315Z"
-last_activity: 2026-07-09 -- Phase 17 complete (NOW-04 verified on-device)
+status: executing
+stopped_at: Phase 18 UI-SPEC approved
+last_updated: "2026-07-09T12:43:52.723Z"
+last_activity: 2026-07-09 -- Phase 18 planning complete
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 1
+  total_plans: 3
   completed_plans: 1
   percent: 20
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-08)
 
 Phase: 17 (now-playing-launch-gating) — COMPLETE
 Plan: 1 of 1
-Status: Phase complete — NOW-04 verified on-device, ready for Phase 18
-Last activity: 2026-07-09 -- Phase 17 complete (NOW-04 verified on-device)
+Status: Ready to execute
+Last activity: 2026-07-09 -- Phase 18 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -134,9 +134,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-09T11:59:38.311Z
-Stopped at: Phase 18 context gathered
-Resume file: .planning/phases/18-song-change-toast/18-CONTEXT.md
+Last session: 2026-07-09T12:12:39.268Z
+Stopped at: Phase 18 UI-SPEC approved
+Resume file: .planning/phases/18-song-change-toast/18-UI-SPEC.md
 
 ## Operator Next Steps
 
