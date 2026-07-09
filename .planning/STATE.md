@@ -2,11 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Now Playing Polish
-status: planning
-last_updated: "2026-07-09T10:35:23.000Z"
-last_activity: 2026-07-09
+status: Roadmap created — ready to discuss/plan Phase 17
+stopped_at: Phase 17 context gathered
+last_updated: "2026-07-09T10:47:21.074Z"
+last_activity: 2026-07-09 — Roadmap created for v1.2 Now Playing Polish (Phases 17-18)
 progress:
-  total_phases: 2
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -133,9 +134,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-09T10:35:23.000Z
-Stopped at: v1.2 ROADMAP.md created (Phase 17: Now Playing Launch Gating, Phase 18: Song-Change Toast)
-Resume file: None
+Last session: 2026-07-09T10:47:21.070Z
+Stopped at: Phase 17 context gathered
+Resume file: .planning/phases/17-now-playing-launch-gating/17-CONTEXT.md
 
 ## Operator Next Steps
 
