@@ -28,7 +28,7 @@ Not yet started — candidates remaining after v1.3 is scoped: capture WEATHER-0
 
 **Goal:** Add a drag-and-drop file shelf to the island — a temporary, session-only staging area for files, matching the polish of the existing activities.
 
-**Status: requirements being defined.**
+**Status: Phase 19 (Shelf Data Model) shipped 2026-07-09. Phases 20-22 (view, drag-out, drag-in) remaining.**
 
 **Target features:**
 - Drag a file onto the collapsed pill → island auto-expands, file lands in a shelf strip below the normal expanded view
@@ -134,11 +134,15 @@ _v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7
 
 _v1.2 (Now Playing Polish) is code-complete and on-device verified — both phases (17, 18) shipped 2026-07-09._
 
+**Shelf Data Model (Phase 19 — SHELF-08):**
+
+- [x] The shelf's core data and lifecycle contracts (`ShelfItem`, `ShelfLogic`, `ShelfFileStore`, `ShelfCoordinator`) exist as pure, Foundation-only, unit-tested logic with no persistence path whatsoever — a cleared or relaunched shelf is provably empty by construction. Zero coupling to `IslandResolver`/`TransientQueue`; the shelf is its own independent axis. Post-review hardening: `deleteSessionCopy` now validates its delete target lives under the shelf's own temp root (was an unvalidated recursive parent-directory delete), and a rejected duplicate append no longer orphans its just-made session-temp copy. (Phase 19)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_v1.3 Notch Shelf — requirements being defined, see REQUIREMENTS.md once created._
+_v1.3 Notch Shelf — SHELF-01, SHELF-03 through SHELF-07, SHELF-09 remain, see REQUIREMENTS.md (Phases 20-22)._
 
 ### Out of Scope
 
@@ -227,4 +231,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 — milestone v1.3 (Notch Shelf) started.*
+*Last updated: 2026-07-09 — Phase 19 (Shelf Data Model, SHELF-08) shipped.*
