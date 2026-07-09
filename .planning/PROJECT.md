@@ -20,7 +20,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current Milestone
 
-None — v1.1 is closed. **Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) completed 2026-07-08**, ahead of any formal milestone: DRY'd the duplicate frame-geometry/blob-shape code, protocolized `LocationProvider` and `LicenseState` with DI seams, gated the outfit-refresh timer on visibility, persisted the real Polar.sh license payload, and fixed `EqualizerBars`' broken profile-stability contract. Zero unintended behavior change except the two explicit exceptions (Polar payload widening, EqualizerBars fix). All 5 plans verified on-device; 7/7 phase items confirmed against source in `15-VERIFICATION.md`. **Phase 16 (NotchWindowController Device Coordinator Extraction) completed 2026-07-08**, also ahead of any formal milestone: extracted the device-splash bookkeeping into `DeviceCoordinator` behind an `ActivityCoordinator` protocol, proving the coordinator-extraction shape on the highest-risk activity type before repeating it for Charging/NowPlaying/Outfit. 9/9 must-haves verified in `16-VERIFICATION.md`; all 4 D-03 on-device Bluetooth scenarios passed. Natural candidates for the next milestone: repeating the coordinator extraction for Charging/NowPlaying/Outfit, formalizing Phase 14's already-shipped weather/calendar/outfit work, or the deferred file shelf / HUD / timer backlog. Run `/gsd-new-milestone` to scope it.
+None — v1.1 is closed. **Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) completed 2026-07-08**, ahead of any formal milestone: DRY'd the duplicate frame-geometry/blob-shape code, protocolized `LocationProvider` and `LicenseState` with DI seams, gated the outfit-refresh timer on visibility, persisted the real Polar.sh license payload, and fixed `EqualizerBars`' broken profile-stability contract. Zero unintended behavior change except the two explicit exceptions (Polar payload widening, EqualizerBars fix). All 5 plans verified on-device; 7/7 phase items confirmed against source in `15-VERIFICATION.md`. **Phase 16 (NotchWindowController Device Coordinator Extraction) completed 2026-07-08**, also ahead of any formal milestone: extracted the device-splash bookkeeping into `DeviceCoordinator` behind an `ActivityCoordinator` protocol, proving the coordinator-extraction shape on the highest-risk activity type before repeating it for Charging/NowPlaying/Outfit. 9/9 must-haves verified in `16-VERIFICATION.md`; all 4 D-03 on-device Bluetooth scenarios passed.
 
 ## Requirements
 
@@ -107,15 +107,7 @@ _v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-**Needs formal requirement capture at next milestone start:**
-
-- [ ] WEATHER-01/CAL-01/OUTFIT-01: already shipped in Phase 14 (see Validated above) — add real requirement IDs and traceability rows to the next milestone's REQUIREMENTS.md
-
-**Later phases (still in scope, after the core lands):**
-
-- [ ] File shelf: drag-and-drop tray at the notch to temporarily hold files, then drag them back out / share / AirDrop
-- [ ] System HUDs: replace the default volume / brightness / battery overlays with notch-based HUDs
-- [ ] Timer: start and watch a countdown timer as a live activity in the island
+(None yet — defining this milestone's scope now)
 
 ### Out of Scope
 
@@ -140,11 +132,9 @@ _v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7
 - **v1.1 codebase state (shipped 2026-07-08, includes Phase 14):** ~6,900 LOC Swift, 185 passing unit tests (`IsletTests`, up from 141). Added Keychain-backed trial/license persistence, `PolarLicenseService`, a real Developer-ID notarization pipeline, and WeatherKit/EventKit services behind their own protocol seams. A real Apple Developer account and paid Polar.sh integration are now live (no more placeholders).
 - **Known technical debt carried into next milestone planning:**
   - Four non-blocking code-review findings from `06-REVIEW.md`: inconsistent charging/device wing accent-tinting (WR-01), accent-change view-tree rehost breaking `matchedGeometryEffect` continuity (WR-02), a missing `withAnimation` wrapper on the Now-Playing health-check callback (WR-03), and a low-probability `BluetoothMonitor` data race (WR-04).
-  - CR-01 (Phase 9): the dedicated CGS Space leaks in WindowServer on every normal app quit — `AppDelegate.quit()` calls `NSApp.terminate(nil)` without tearing down `NotchWindowController`, so its `deinit` (and the Space's `CGSHideSpaces`/`CGSSpaceDestroy` teardown) never runs. Non-blocking; recommended fix via `/gsd-quick` before shipping.
   - WR-01/WR-02 (Phase 9, info): `CGSSpace.swift` has no validation of CGS private-API return values, and assumes an `Int`/`Int32` width fits `CGSSpaceSetAbsoluteLevel`'s one passed value. Low severity.
   - Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised — pre-existing, unrelated to v1.0/v1.0.1/v1.1 close; tracked in `STATE.md` Deferred Items.
   - Pre-existing (v1.0-era): `xcodebuild test` hangs in non-interactive/sandboxed environments due to a Bluetooth TCC-authorization wait in `BluetoothMonitor` (also affects the full `Islet.app`'s WeatherKit/MediaRemote/IOBluetooth boot as of Phase 14 — gate on `xcodebuild build`, route test runs to manual Cmd-U). Logged in `.planning/phases/09-fullscreen-flash-window-space-retry/deferred-items.md`.
-  - WEATHER-01/CAL-01/OUTFIT-01 not yet formally tracked in a REQUIREMENTS.md — Phase 14 shipped ahead of its own milestone scope; add these IDs at next milestone's requirements pass.
   - Two non-blocking code-review findings from `15-REVIEW.md` (pre-existing behavior, not new regressions): `KeychainLicenseStore`/`SettingsView` can show "License activated" while silently swallowing a Keychain write failure (WR-01); `LocationProvider.requestOnce` would silently drop a first caller's completion under a hypothetical concurrent second call, currently unreachable (WR-02).
   - Two non-blocking code-review findings from `16-REVIEW.md` (pre-existing behavior, carried through the extraction verbatim): `DeviceCoordinator`'s post-connect battery-refresh retry checks device *shape*, not identity, and silently depends on two independently-maintained magic-number caps (`TransientQueue.maxDepth` and a hardcoded `> 2`) staying in lockstep — benign today, but could misattribute a battery reading to the wrong device if either cap changes independently later (WR-1); `deviceSuppressedAtLaunch` is a dead parameter, always an empty `Set` pending a deferred A2 on-device seed (WR-2).
 

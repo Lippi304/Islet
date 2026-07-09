@@ -28,8 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-08)
 Phase: 16
 Plan: Not started
 v1.1 Trial & Paid Release closed 2026-07-08 (Phases 10-13, see `.planning/milestones/v1.1-ROADMAP.md`).
-Phase 14 (weather/calendar/date, executed ahead of v1.1's formal scope) is complete and on-device verified (5 of 5 plans) but not yet archived — its requirements (WEATHER-01/CAL-01/OUTFIT-01) still need IDs in the next milestone's REQUIREMENTS.md.
-Next: `/gsd-new-milestone` to scope the next milestone.
+Phase 14 (weather/calendar/date, executed ahead of v1.1's formal scope) is complete and on-device verified (5 of 5 plans) but not yet archived.
 Last activity: 2026-07-09 - Completed quick task 260709-gvy: SettingsView TabView-Umbau (General/Appearance/Activities)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -105,7 +104,6 @@ None yet.
 [Issues that affect future work]
 
 - [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
-- [Carried, pre-existing] CR-01 (Phase 9): the dedicated CGS Space leaks in WindowServer on normal app quit (`AppDelegate.quit()` doesn't tear down `NotchWindowController`). Non-blocking, recommended fix via `/gsd-quick`.
 
 ### Quick Tasks Completed
 
@@ -129,7 +127,6 @@ Items acknowledged and carried forward from previous milestone close:
 |----------|------|--------|-------------|
 | uat_gaps | Phase 02: 02-HUMAN-UAT.md | partial (8 pending on-device scenarios) | v1.0 close |
 | verification_gaps | Phase 02: 02-VERIFICATION.md | human_needed | v1.0 close |
-| code_review | CR-01: CGS Space leak on app quit (Phase 9) | non-blocking, recommended fix via `/gsd-quick` | v1.0.1 close |
 | code_review | WR-01..04: wing accent-tint, view rehost, animation wrapper, BluetoothMonitor race (Phase 6) | non-blocking | v1.0 close |
 
 Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 6/9 code review, carried forward again at v1.1 close. Not blocking — revisit via `/gsd-quick` or `/gsd:verify-work` as desired.
@@ -143,4 +140,3 @@ Resume file: .planning/phases/16-notchwindowcontroller-device-coordinator-extrac
 ## Operator Next Steps
 
 - v1.1 (Trial & Paid Release) is shipped and archived (`.planning/milestones/v1.1-ROADMAP.md`, `.planning/milestones/v1.1-REQUIREMENTS.md`).
-- Phase 14 (Basic Outfit: weather + calendar + date display) is fully executed and on-device verified but was never part of v1.1's formal scope — run `/gsd-new-milestone` to scope the next milestone and capture WEATHER-01, CAL-01, OUTFIT-01 as real requirement IDs there.
