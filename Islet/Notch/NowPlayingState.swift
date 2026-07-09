@@ -18,6 +18,11 @@ final class NowPlayingState: ObservableObject {
     // "Now Playing nicht verfügbar". Default true (assume healthy until the launch
     // probe says otherwise).
     @Published var isHealthy: Bool = true
+    // Phase 17 / NOW-04 — D-01/D-02: has a .playing presentation been observed at least once
+    // since this Islet process launched? ORTHOGONAL to presentation (mirrors isHealthy's own
+    // orthogonality). Default false (gated) — set to true ONCE in handleNowPlaying on the first
+    // .playing snapshot and NEVER reset (D-02: no re-arm for the rest of the process lifetime).
+    @Published var hasPlayedSinceLaunch: Bool = false
     // PBAR-01 — the live playback-position snapshot (duration/elapsed/timestamp/rate),
     // nil when any raw field is missing. The ProgressBar view derives the drift-corrected
     // elapsed time from this via currentElapsedSeconds(...), never storing a ticking value.
