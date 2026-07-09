@@ -99,3 +99,26 @@ Task 3 is a `type="checkpoint:human-verify"` (`gate="blocking"`) requiring on-de
 ## Self-Check: PASSED
 
 Both modified files and both commit hashes verified present (see below).
+
+## Post-checkpoint deviation: toast sizing (on-device feedback)
+
+**Found during:** Task 3 on-device verification round 1 (user tested the build).
+
+**User feedback (verbatim, German):** "Ja es klappt aber mir klappt die Notch zu viel auf. Die Notch klappt ja jetzt voll auf. Ich meinte die soll nur minimal nach unten expandieren um Autor - Titel anzugeigen klein als text also wirklich so expandieren das der Text nebneinander reinpasst" — the toast opened the full expanded island rather than a minimal glance; wanted title/artist side by side on one line.
+
+**Root cause:** `songChangeToastView(_:)` called the shared `blobShape` helper, which hardcoded `.frame(width: Self.expandedSize.width, height: Self.expandedSize.height)` (360×144) — the SAME frame as `expandedIsland`/`mediaExpanded`/`mediaUnavailable`. The content was also a two-line `VStack` (title over artist). Both the frame size and the two-line layout made the toast visually indistinguishable from a full manual expand. This was per 18-UI-SPEC.md's original (now-incorrect) "reuse blobShape exactly, do not invent a new size" guidance — corrected by this on-device round.
+
+**Fix:**
+- `blobShape` parameterized with an optional `size: CGSize = Self.expandedSize` param — default preserves all existing callers (`expandedIsland`/`mediaExpanded`/`mediaUnavailable`) unchanged.
+- New `Self.toastSize = CGSize(width: 240, height: 56)` constant — a minimal glance frame, confirmed to fit inside the existing panel bounds (the panel is already sized to the UNION of `expandedFrame`/`wingsFrame` in `NotchWindowController`, so no panel-sizing change was needed).
+- `songChangeToastView`'s content changed from a two-line `VStack` to a single-line `HStack` (title bold — em-dash — artist secondary), all `.lineLimit(1)`/`.truncationMode(.tail)` so long strings truncate rather than wrap or grow the blob.
+- `songChangeToastView` now calls `blobShape(topCornerRadius: 6, bottomCornerRadius: 20, size: Self.toastSize)`.
+- `18-UI-SPEC.md`'s Motion & Interaction Contract ("Shape/frame", "Content alignment") and Copywriting Contract ("Toast content format") rows updated to document the superseded original guidance and the corrected values.
+
+**Files modified:** `Islet/Notch/NotchPillView.swift`, `.planning/phases/18-song-change-toast/18-UI-SPEC.md`
+
+**Commit:** `8007647` (fix)
+
+**Build:** `xcodebuild build -project Islet.xcodeproj -scheme Islet -destination 'platform=macOS'` → `BUILD SUCCEEDED`.
+
+**Status:** Task 3 checkpoint remains pending — this fix needs a fresh round of on-device verification before NOW-05/NOW-06 can be marked complete.
