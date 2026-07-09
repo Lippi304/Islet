@@ -116,6 +116,15 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
+    // Phase 18 / NOW-05 — post-checkpoint (on-device feedback): the song-change toast is a
+    // MINIMAL glance, not the full expanded card. 56pt is tall enough for one line of ~13-15pt
+    // text plus vertical padding and the blob's rounded corners; 240pt wide reads as "minimal"
+    // (bigger than collapsedSize's 200pt, far smaller than expandedSize's 360pt) while still
+    // fitting a typical "Title — Artist" string on one line before truncating. Fits within the
+    // existing panel bounds (the panel is already sized to the UNION of expandedFrame/wingsFrame,
+    // see NotchWindowController — no panel-sizing change needed for a smaller toast frame).
+    static let toastSize = CGSize(width: 240, height: 56)
+
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
         // expanded content grows DOWNWARD from the notch (RESEARCH Pattern 4: panel is
@@ -217,14 +226,19 @@ struct NotchPillView: View {
     // would leave only ~22pt top clearance, not enough to clear the 32pt camera band).
     // collapsedIsland is NOT routed through this — DEBUG tint, hover scale, and dev
     // offset make it "not a clean fit" (CONTEXT.md).
+    // Phase 18 post-checkpoint: `size` defaults to `expandedSize` so every existing caller
+    // (expandedIsland/mediaExpanded/mediaUnavailable) is unchanged; songChangeToastView is the
+    // only caller passing a smaller `toastSize` — proven safe by wingsShape's own precedent of
+    // a smaller-than-expandedSize frame morphing through this same matchedGeometryEffect identity.
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
+                                           size: CGSize = Self.expandedSize,
                                            @ViewBuilder content: () -> Content) -> some View {
         NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
             .fill(Color.black)
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.expandedSize.width, height: Self.expandedSize.height)
+            .frame(width: size.width, height: size.height)
             .overlay(alignment: alignment) { content() }
             .onTapGesture { onClick() }
     }
@@ -293,18 +307,25 @@ struct NotchPillView: View {
         }
     }
 
-    // Phase 18 / NOW-05 — the song-change toast's render: an expanded downward blob (centered,
-    // per 18-UI-SPEC.md) showing the new track's title+artist as text for ~3s. Reuses
-    // blobShape's default `.center` alignment (not `.top` — that's mediaExpanded's
-    // camera-clearance need, not this content's) and inherits its `.onTapGesture { onClick() }`.
+    // Phase 18 / NOW-05 — the song-change toast's render: a MINIMAL single-line glance, not the
+    // full expanded card. Post-checkpoint deviation from 18-UI-SPEC.md's original "reuse
+    // blobShape exactly, do not invent a new size" guidance — on-device testing showed the full
+    // 360×144 frame read as the island "fully opening" rather than a brief glance. Now uses its
+    // own smaller `toastSize` (240×56) with title + artist side-by-side on ONE line (`.lineLimit(1)`
+    // + `.truncationMode(.tail)` on each Text so a long string truncates instead of wrapping/
+    // growing the blob). Still `.center` alignment (not `.top` — that's mediaExpanded's
+    // camera-clearance need, not this content's) and inherits `blobShape`'s `.onTapGesture`.
     private func songChangeToastView(_ toast: TrackToast) -> some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 20) {
-            VStack(spacing: 2) {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 20, size: Self.toastSize) {
+            HStack(spacing: 6) {
                 Text(toast.title)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .truncationMode(.tail)
+                Text("—")
+                    .font(.system(size: 12, design: .rounded))
+                    .foregroundStyle(.secondary)
                 Text(toast.artist)
                     .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(.secondary)
