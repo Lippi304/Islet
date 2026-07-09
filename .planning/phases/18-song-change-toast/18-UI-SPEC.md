@@ -25,7 +25,7 @@ directly rather than asking the user to re-specify values the codebase already l
 |----------|-------|
 | Tool | none — native SwiftUI, no component registry |
 | Preset | not applicable |
-| Component library | none — custom SwiftUI views (`NotchPillView.swift`); reuse existing `blobShape(topCornerRadius:bottomCornerRadius:alignment:content:)` helper, do not add a new shape helper |
+| Component library | none — custom SwiftUI views (`NotchPillView.swift`). **ROUND 3 (final, on-device feedback):** the toast is NOT a `blobShape` caller — it is an extra text row (`toastTextRow`) that fades in below the existing `mediaWingsRow` content, inside one combined shape built directly by `mediaWingsOrToast`. ~~Rounds 1-2: reuse `blobShape` (round 1: at `expandedSize`; round 2: at a new standalone `toastSize`).~~ |
 | Icon library | SF Symbols (`Image(systemName:)`) — not used by the toast itself (text-only per ROADMAP: "showing the new title as text") |
 | Font | San Francisco system font, `.rounded` design (`Font.system(size:weight:design:.rounded)`) — 100% of existing island text uses this; the toast must match |
 
@@ -61,18 +61,21 @@ Exceptions: 2px title/artist gap (tight text-stack kerning, matches existing in-
 
 ## Typography
 
-Reuses the exact tokens `mediaExpanded`'s title/artist block already defines (do not invent new sizes/weights):
+**ROUND 3 (final, on-device feedback):** the toast is a single compact text row under the
+wings, not a title/artist pair at `mediaExpanded`'s own sizes — one combined line reads
+smaller:
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Heading (toast title) | 15px | bold (700) | 1.2 (SwiftUI system default; single line, no wrap) |
-| Body (toast artist) | 12px | regular (400) | 1.2 (SwiftUI system default; single line, no wrap) |
+| Toast row (title — artist, one `Text`) | 12px | medium (500) | 1.2 (SwiftUI system default; single line, no wrap) |
 | Label | not used by this phase | — | — |
 | Display | not used by this phase | — | — |
 
-Both roles use `design: .rounded` (matches every other text element in `NotchPillView.swift`).
-Both lines are `.lineLimit(1)` + `.truncationMode(.tail)` — a toast is a brief transient glance,
-not a paragraph; long titles/artists truncate rather than wrap or grow the blob taller.
+Uses `design: .rounded` (matches every other text element in `NotchPillView.swift`).
+`.lineLimit(1)` + `.truncationMode(.tail)` — a toast is a brief transient glance, not a
+paragraph; a long combined "title — artist" string truncates rather than wraps or grows the
+shape taller.
+~~Rounds 1-2: two separate `Text`s — 15px bold title + 12px regular artist.~~
 
 ---
 
@@ -84,7 +87,7 @@ icon accents. Adapted mapping:
 | Role | Value | Usage |
 |------|-------|-------|
 | Dominant | `Color.black` | The island blob itself (`blobShape`'s `.fill(Color.black)`) — always, including the toast |
-| Secondary | `Color.white` / `.secondary` (SwiftUI semantic, adapts light/dark text-on-black) | Toast title: `.foregroundStyle(.white)`. Toast artist: `.foregroundStyle(.secondary)` |
+| Secondary | `Color.white` / `.secondary` (SwiftUI semantic, adapts light/dark text-on-black) | Round 3 (final): the combined toast text row uses `.foregroundStyle(.white)` throughout (a single `Text`, no separate secondary-colored artist span). |
 | Accent (persisted user swatch, `\.activityAccent`) | user-selected, e.g. green/blue/etc. | **NOT used by the toast.** Reserved exclusively for the three existing "lively leaf elements": charging bolt glyph, `EqualizerBars`, device glyph/battery fill, `ProgressBar` fill. The toast's title/artist text stays white/secondary — same "untinted chrome" rule already applied to `mediaExpanded`'s own title/artist (D-10/D-05 precedent: "never accent-tinted"). |
 | Destructive | not applicable | No destructive actions in this phase |
 
@@ -97,7 +100,7 @@ Accent reserved for: charging bolt glyph (`wings(for:)`), `EqualizerBars` fill, 
 | Element | Copy |
 |---------|------|
 | Primary CTA | Not applicable — the toast is a passive, non-interactive glance (tapping the island still triggers the existing manual-expand `onClick()`, inherited "for free" from `blobShape`, but the toast has no dedicated button/CTA of its own) |
-| Toast content format | Two-line, center-aligned: **title** (bold, white, line 1) then **artist** (regular, secondary, line 2) — e.g. "Blinding Lights" / "The Weeknd". Both fields always present per D-01; no separator glyph needed since they're on separate lines (the CONTEXT.md "Blinding Lights — The Weeknd" example was for prose description only, not the literal on-screen string) |
+| Toast content format | **ROUND 3 (final, on-device feedback):** ONE combined `Text("\(title) — \(artist)")`, 12px medium weight, white, left-aligned, `.lineLimit(1)`/`.truncationMode(.tail)` — rendered as row 2 UNDER the unchanged wings row (art + equalizer), not as the sole content of a standalone blob. Text-only, no playback controls (the DynamicLake reference screenshot the user supplied also shows transport buttons, but the user's own words asked only for title+artist — controls are out of scope per D-01/D-02). ~~Round 2: single-line side-by-side title(bold)—artist(secondary) HStack filling a standalone 240×56 blob.~~ ~~Round 1: two-line, center-aligned, title then artist stacked, no separator, filling the full 360×144 expanded blob.~~ |
 | Empty state | Not applicable — the toast never renders without a non-nil title+artist pair; `IslandResolver`'s toast gate (D-02/D-04/Pitfall 1/Pitfall 2) only ever hands the view a fully-populated snapshot or `nil` (hidden) |
 | Error state | Not applicable — this phase adds no new error surface; the existing `mediaUnavailable` ("nicht verfügbar") state is untouched and takes precedence via the existing health gate, upstream of the toast |
 | Destructive confirmation | Not applicable — no destructive actions in this phase |
@@ -111,14 +114,14 @@ Accent reserved for: charging bolt glyph (`wings(for:)`), `EqualizerBars` fill, 
 
 | Property | Value | Source |
 |----------|-------|--------|
-| Shape/frame | Reuse `blobShape(topCornerRadius: 6, bottomCornerRadius: 20)` **exactly as `expandedIsland` does** — same `Self.expandedSize` (360×144) frame, same shared `matchedGeometryEffect(id: "island", in: ns)`. Do not invent a new toast-specific size constant. | Reuse principle — every other "downward blob" case (`expandedIsland`, `mediaExpanded`, `mediaUnavailable`) already shares this one frame; a 4th distinct size would break the morph's visual consistency for zero benefit |
-| Content alignment | Default `.center` (blobShape's default overlay alignment) — same as `expandedIsland`. Do NOT pin to `.top` with `padding(.top, 32)` (that's `mediaExpanded`'s camera-clearance need for its taller 84–100pt content; the toast's ~35–40pt text block centered in the 144pt frame naturally clears the camera band, exactly as `expandedIsland`'s date/time content already does) | `NotchPillView.swift` comment at `expandedIsland` (line ~193): "this ~40pt-tall content needs no camera-clearance pin, unlike mediaExpanded's 84-100pt content" |
+| Shape/frame | **ROUND 3 (final, on-device feedback — user rejected round 2's standalone blob, "es soll das so bleiben und ganz klein darunter... wirklich nur leicht weiter nach unten expandieren"):** the toast is no longer a separate shape at all. `mediaWingsOrToast` builds ONE `NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)` at `width: Self.wingsSize.width` (290, unchanged) and `height: Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)` (32 + 32 = 64 while a toast is showing, vs 32 normally) — still the same `matchedGeometryEffect(id: "island", in: ns)` morph identity. The bottom corners are MORE rounded (16 vs the flat wings' 6) only while the toast row is present, reading as a blob-like curve under an otherwise-flat strip, matching the DynamicLake reference screenshot's proportions (wings height + one text line, NOT a full expand, NOT even round 2's 56pt-tall standalone blob). ~~Round 2: standalone `blobShape(... size: Self.toastSize)` at 240×56, replacing the wings entirely.~~ ~~Round 1: reuse `blobShape` exactly as `expandedIsland` does, 360×144.~~ | On-device UAT round 3; `NotchPillView.swift` `mediaWingsOrToast`/`mediaWingsRow`/`toastTextRow`/`toastExtraHeight` |
+| Content alignment | `VStack(spacing: 0)` top-aligned via `.overlay(alignment: .top)`: row 1 (`mediaWingsRow`, unchanged art+equalizer) then row 2 (`toastTextRow`, left-aligned text) only while a toast is active. Row 2 carries `.transition(.opacity)` so it fades in/out under the controller's existing spring (D-08: view drives no animation of its own) rather than the whole shape cross-fading. | `NotchPillView.swift` `mediaWingsOrToast` |
 | Morph animation | `withAnimation(.spring(response: 0.35, dampingFraction: 0.65))` — the single existing tuning seed (`springResponse`/`springDamping` on `NotchWindowController`). Do not add new spring constants. | `NotchWindowController.swift` lines 233-234 |
 | Auto-dismiss duration | ~3.0s, matching the existing `activityDuration` seed (do not hardcode a new duplicate `3.0` literal elsewhere) | `NotchWindowController.swift` line 165, CONTEXT.md/ROADMAP "~3s" |
 | Dismiss mechanism | One-shot `DispatchWorkItem` + `DispatchQueue.main.asyncAfter`, mirroring `scheduleMediaDismiss` byte-for-byte (cancel-then-reschedule) | RESEARCH.md Pattern 2 |
 | Rapid-skip behavior (D-03) | Each genuine change replaces the toast's stored title/artist AND cancels+reschedules the same 3s timer — visually, the blob does not collapse-then-reexpand between rapid skips, it stays expanded and the text content swaps in place (matches `TransientQueue.updateHead()`'s in-place-refresh precedent) | CONTEXT.md D-03 |
 | Suppression behavior (D-02/D-04) | Silent no-op — when a charging/device transient is active, or the island is already manually expanded, the toast simply never triggers the blob growth at all (no flash, no partial animation, no queued-then-cancelled state) | CONTEXT.md D-02/D-04; RESEARCH.md Pitfall 3 |
-| Tap-through | Inherited automatically from `blobShape`'s `.onTapGesture { onClick() }` — tapping a visible toast triggers the same manual-expand as tapping any other collapsed/wings state; no special-case handling needed | `NotchPillView.swift` `blobShape` helper |
+| Tap-through | Round 3: `mediaWingsOrToast` carries its own `.onTapGesture { onClick() }` (no longer inherited from `blobShape`, since the toast isn't a `blobShape` caller) — tapping the combined wings+toast shape still triggers the same manual-expand as tapping any other collapsed/wings state; no special-case handling needed | `NotchPillView.swift` `mediaWingsOrToast` |
 
 ---
 

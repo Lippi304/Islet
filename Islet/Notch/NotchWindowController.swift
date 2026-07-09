@@ -158,11 +158,17 @@ final class NotchWindowController {
     private var mediaDismissWorkItem: DispatchWorkItem?
     private let pausedTimeout: TimeInterval = 15.0   // D-06 single tuning seed
 
+    // Phase 18 / NOW-05 (D-03) — the song-change toast's own one-shot ~3s auto-dismiss,
+    // fully independent of mediaDismissWorkItem (T-18-05). Mirrors scheduleMediaDismiss's
+    // cancel-then-reschedule discipline exactly.
+    private var toastDismissWorkItem: DispatchWorkItem?
+
     // D-09 / Pattern 5 — the ~3s one-shot auto-dismiss. A single DispatchWorkItem mirroring
     // graceWorkItem (NOT a recurring timer): one wake-up then idle, so CPU stays ~0% while a
     // splash stands. Hover cancels it; pointer-leave reschedules it.
     private var dismissWorkItem: DispatchWorkItem?
     private let activityDuration: TimeInterval = 3.0   // D-09 single tuning seed
+    private let songToastDuration: TimeInterval = 2.0   // song-change toast auto-dismiss (round 5, on-device request: 1s shorter than the shared activityDuration, toast-only)
 
     // Phase 10 / D-12 — the best-effort ONE-SHOT proactive expiry re-check, mirroring the exact
     // property + cancel-then-reschedule + deinit-cancel idiom already used 4x in this file
@@ -479,6 +485,15 @@ final class NotchWindowController {
     // double-arm the dismiss).
     private func presentTransientChange() {
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            // Phase 18 / NOW-05 (RESEARCH.md Pitfall 5, D-02) — a toast already showing must
+            // clear the instant a NEW transient interrupts it, or it could reappear once the
+            // interrupting splash ends. This function runs ONLY at the exact moment
+            // transientQueue.head transitions nil -> non-nil, so this single insertion covers
+            // both the charging and device interruption paths. No-op when no toast is showing.
+            if nowPlayingState.songChangeToast != nil {
+                toastDismissWorkItem?.cancel()
+                nowPlayingState.songChangeToast = nil
+            }
             renderPresentation()
         }
         updateVisibility()
@@ -727,8 +742,17 @@ final class NotchWindowController {
     // onTapGesture; runs the pure `.clicked` transition inside the spring. The panel is
     // already non-activating + never key, so this never steals focus (D-04).
     private func handleClick() {
+        let wasExpanded = interaction.isExpanded
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             interaction.phase = nextState(interaction.phase, .clicked)
+            // Phase 18 / NOW-05 (RESEARCH.md Pitfall 5, D-04) — a toast already showing must
+            // clear the instant the user manually expands, or it could reappear once the
+            // expanded card collapses. Fires only on the expand transition (never a toggle-shut
+            // click, since wasExpanded would already be true there). No-op when no toast shows.
+            if !wasExpanded && interaction.isExpanded && nowPlayingState.songChangeToast != nil {
+                toastDismissWorkItem?.cancel()
+                nowPlayingState.songChangeToast = nil
+            }
             // Phase 6: expand/collapse flips `isExpanded`, a resolver input — re-resolve inside
             // the SAME spring so the island morphs between the wings/expanded presentation cases.
             renderPresentation()
@@ -879,6 +903,15 @@ final class NotchWindowController {
             nowPlayingState.position = nil
         }
 
+        // Phase 18 / NOW-06 (Pitfall 4) — turning the toast toggle off must clear an in-flight
+        // toast live, not just gate future triggers, mirroring the nowPlayingKey branch above.
+        if !activityEnabled(ActivitySettings.songChangeToastKey), nowPlayingState.songChangeToast != nil {
+            toastDismissWorkItem?.cancel()
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                nowPlayingState.songChangeToast = nil
+            }
+        }
+
         applyAccentIfChanged()
 
         // Re-render the resolver verdict (a forced-.none Now-Playing or a flushed transient may
@@ -957,6 +990,12 @@ final class NotchWindowController {
         // prior drop restores the D-12 flag so the next expand shows media, not "nicht verfügbar".
         nowPlayingState.isHealthy = true
 
+        // Phase 18 / NOW-05 (Pitfall 2) — capture the PRE-mutation hasPlayedSinceLaunch value
+        // before the line below overwrites it, mirroring how `previous`/`previousPosition` are
+        // captured before their own overwrites just above. The toast's genuine-change check
+        // needs the pre-callback value so the very first track after launch never toasts.
+        let hadPlayedSinceLaunch = nowPlayingState.hasPlayedSinceLaunch
+
         // Phase 17 / NOW-04 — D-01/D-02: first real Play observed this Islet run lifts the launch
         // gate permanently. Set BEFORE the render call below so the triggering snapshot itself
         // isn't gated — do NOT move into the post-render `switch p` block further down (it runs
@@ -987,6 +1026,19 @@ final class NotchWindowController {
                 nowPlayingState.artwork = nil
             }
             renderPresentation()            // Phase 6: now-playing is a resolver input — re-resolve
+
+            // Phase 18 / NOW-05 (D-02/D-03/D-04) — the song-change toast. Sits inside this SAME
+            // spring block so its appearance animates together with the rest of this callback's
+            // mutation. Both pure checks (Pitfall 3) are evaluated BEFORE any mutation to
+            // nowPlayingState.songChangeToast or scheduling the dismiss — never schedule then
+            // suppress. Deliberately never touches resolve(...)/IslandPresentation — see Plan
+            // 01's <objective> "Deviation from RESEARCH.md" note.
+            if songChangeToastGate(activeTransient: transientQueue.head, isExpanded: interaction.isExpanded,
+                                    toastEnabled: activityEnabled(ActivitySettings.songChangeToastKey)),
+               let toast = songChangeToastContent(previous: previous, current: p, hasPlayedSinceLaunch: hadPlayedSinceLaunch) {
+                nowPlayingState.songChangeToast = toast
+                scheduleToastDismiss()
+            }
         }
         updateVisibility()   // Pattern 7 — the SOLE show/hide site (inherits fullscreen / clamshell)
 
@@ -1034,6 +1086,22 @@ final class NotchWindowController {
         }
         mediaDismissWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
+    }
+
+    // Phase 18 / NOW-05 (D-03) — the toast's own one-shot ~3s auto-dismiss. Mirrors
+    // scheduleMediaDismiss exactly: cancel any pending item, create a SINGLE DispatchWorkItem
+    // that clears ONLY the toast field (orthogonal to presentation/artwork/position — no
+    // re-resolve or visibility recheck needed), and asyncAfter it. One wake-up then idle.
+    private func scheduleToastDismiss() {
+        toastDismissWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                self.nowPlayingState.songChangeToast = nil
+            }
+        }
+        toastDismissWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + songToastDuration, execute: work)
     }
 
     // D-13 mid-session child death (already on main). The adapter emitted at least once and
