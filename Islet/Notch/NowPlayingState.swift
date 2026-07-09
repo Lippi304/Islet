@@ -23,6 +23,14 @@ final class NowPlayingState: ObservableObject {
     // orthogonality). Default false (gated) — set to true ONCE in handleNowPlaying on the first
     // .playing snapshot and NEVER reset (D-02: no re-arm for the rest of the process lifetime).
     @Published var hasPlayedSinceLaunch: Bool = false
+    // Phase 18 / NOW-05 — the toast's OWN title/artist snapshot, stored SEPARATELY from
+    // `presentation` (D-03: during a rapid skip the toast can show an OLDER settled track
+    // while `presentation` has already moved on to a newer one — never alias this to
+    // `presentation`). Default nil. Set by the controller (Plan 02) when a genuine change
+    // passes the suppression gate; cleared by the toast's own dismiss timer, by an
+    // interrupting transient/manual-expand starting (Plan 02 Task 1), or by the toggle
+    // being turned off mid-toast.
+    @Published var songChangeToast: TrackToast? = nil
     // PBAR-01 — the live playback-position snapshot (duration/elapsed/timestamp/rate),
     // nil when any raw field is missing. The ProgressBar view derives the drift-corrected
     // elapsed time from this via currentElapsedSeconds(...), never storing a ticking value.
