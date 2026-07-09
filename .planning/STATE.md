@@ -4,8 +4,8 @@ milestone: v1.2
 milestone_name: Now Playing Polish
 status: executing
 stopped_at: Phase 18 UI-SPEC approved
-last_updated: "2026-07-09T12:43:52.723Z"
-last_activity: 2026-07-09 -- Phase 18 planning complete
+last_updated: "2026-07-09T13:05:33.731Z"
+last_activity: 2026-07-09 -- Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-08)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 18 — song-change toast (next)
+**Current focus:** Phase 18 — song-change-toast
 
 ## Current Position
 
-Phase: 17 (now-playing-launch-gating) — COMPLETE
-Plan: 1 of 1
-Status: Ready to execute
-Last activity: 2026-07-09 -- Phase 18 planning complete
+Phase: 18 (song-change-toast) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 18
+Last activity: 2026-07-09 -- Phase 18 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
