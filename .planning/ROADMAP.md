@@ -5,6 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 0-6 (shipped 2026-07-02)
 - ✅ **v1.0.1 Pre-Release Polish** — Phases 7-9 (shipped 2026-07-04)
 - ✅ **v1.1 Trial & Paid Release** — Phases 10-13 (shipped 2026-07-08)
+- 🚧 **v1.2 Now Playing Polish** — Phases 17-18 (in progress)
 
 ## Phases
 
@@ -46,6 +47,15 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 </details>
 
+### 🚧 v1.2 Now Playing Polish (Phases 17-18, in progress)
+
+**Milestone Goal:** Fix the Now-Playing launch behavior (an already-paused track must not trigger
+the glance until the user actually presses Play) and add a brief song-change toast that shows the
+new track's title as text when playback switches to a genuinely new song.
+
+- [ ] **Phase 17: Now Playing Launch Gating** - Islet stays idle at launch for a paused/loaded track; only a transition into actively-playing triggers the glance
+- [ ] **Phase 18: Song-Change Toast** - a brief title toast on genuine track changes, with its own Settings toggle
+
 ## Phase Details
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
@@ -86,6 +96,8 @@ Plans:
 **v1.1:** 4/4 phases complete (100%) — see `.planning/milestones/v1.1-ROADMAP.md` for the full per-phase breakdown.
 
 **Phase 14 (post-v1.1, pre-next-milestone):** 5/5 plans complete — completed 2026-07-08.
+
+**v1.2:** 0/2 phases complete (0%) — Phase 17 ready to plan.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -136,3 +148,31 @@ Plans:
 **Wave 2** *(blocked on 16-01)*
 
 - [x] 16-02-PLAN.md — Wire NotchWindowController to DeviceCoordinator (D-01), delete extracted fields/methods, create + execute 16-HUMAN-UAT.md's D-03 on-device Bluetooth checklist
+
+### Phase 17: Now Playing Launch Gating
+
+**Goal:** Islet no longer shows the Now Playing glance at launch just because an allowlisted
+player has a paused/loaded track sitting in its session — the glance appears only once the user
+actually starts playback. A restart with music already actively playing is unaffected.
+**Requirements**: NOW-04
+**Depends on:** Phase 16
+**Success Criteria** (what must be TRUE):
+  1. Launching Islet while Spotify/Apple Music has a track loaded but paused shows no Now Playing glance.
+  2. Pressing Play after such a launch makes the glance appear immediately, with correct track info.
+  3. Launching Islet while a track is already actively playing still shows the glance immediately (no regression from today's behavior).
+**Plans**: TBD
+
+### Phase 18: Song-Change Toast
+
+**Goal:** Users get a brief, glanceable cue whenever playback switches to a genuinely different
+song, and can turn that cue off if they don't want it — without affecting the underlying Now
+Playing glance itself.
+**Requirements**: NOW-05, NOW-06
+**Depends on:** Phase 17
+**Success Criteria** (what must be TRUE):
+  1. When playback switches to a new song (not the very first track detected after launch), the island briefly expands downward showing the new title as text, then collapses back to the compact glance after ~3s.
+  2. The toast does not fire for the first track detected after launch, or for pause/resume/scrub of the same track.
+  3. Settings' Activities tab has a toggle for the song-change toast, positioned next to the existing Now Playing toggle.
+  4. Turning the toggle off suppresses the toast on subsequent track changes while the Now Playing glance itself keeps working normally.
+**Plans**: TBD
+**UI hint**: yes

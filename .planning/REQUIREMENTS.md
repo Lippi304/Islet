@@ -29,14 +29,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NOW-04 | TBD | Pending |
-| NOW-05 | TBD | Pending |
-| NOW-06 | TBD | Pending |
+| NOW-04 | Phase 17 | Pending |
+| NOW-05 | Phase 18 | Pending |
+| NOW-06 | Phase 18 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 3 total
-- Mapped to phases: 0
-- Unmapped: 3 ⚠️
+- Mapped to phases: 3
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-09*

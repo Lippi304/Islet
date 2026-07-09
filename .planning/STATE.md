@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Now Playing Polish
 status: planning
-last_updated: "2026-07-09T10:29:47.549Z"
+last_updated: "2026-07-09T10:35:23.000Z"
 last_activity: 2026-07-09
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-08)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Milestone complete
+**Current focus:** Phase 17: Now Playing Launch Gating
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-09 — Milestone v1.2 started
+Phase: 17 of 18 (Now Playing Launch Gating)
+Plan: — (not yet planned)
+Status: Roadmap created — ready to discuss/plan Phase 17
+Last activity: 2026-07-09 — Roadmap created for v1.2 Now Playing Polish (Phases 17-18)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -40,7 +40,7 @@ on-device Bluetooth permission spike from 05-01 Task 3 was superseded by the act
 finding in 06-04 (NSBluetoothAlwaysUsageDescription IS required on macOS 26 — see project
 memory `a1-bluetooth-usage-key-required`), so no further action is needed there either.
 
-Progress (v1.1): [██████████] 100% (Phases 10-13 all complete; Phase 14 is new scope added after this milestone's original 4 phases)
+Progress (v1.2): [░░░░░░░░░░] 0% (Phase 17 ready to plan, Phase 18 depends on it)
 
 ## Performance Metrics
 
@@ -83,13 +83,15 @@ Progress (v1.1): [██████████] 100% (Phases 10-13 all complet
 Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived there and in `.planning/milestones/v1.1-ROADMAP.md`).
 
 - [Phase 14] Verification (14-05) found and fixed two Hardened-Runtime entitlement gaps (Calendar, Location) plus a WeatherKit Portal App Services capability miss - all three needed before on-device permission prompts/weather fetch would work at all
+- [v1.2 roadmap] Phase 18 (song-change toast) sequenced after Phase 17 (launch gating) — both track "is this the first real playback transition after launch" state, so gating ships and settles first before the toast is layered on top
 
 ### Roadmap Evolution
 
 - v1.1 (Trial & Paid Release) shipped 2026-07-08 — archived to `.planning/milestones/v1.1-ROADMAP.md`.
 - Phase 14 (weather/calendar/date) executed ahead of formal milestone scope — stays on the live ROADMAP.md pending next-milestone requirement capture.
 - Phase 15 rescoped to "Mechanical Fixes & DI Seams" (7 low-risk audit findings; context captured in `15-CONTEXT.md`, ready for `/gsd:plan-phase 15`) after discussion split the original scope in two.
-- Phase 16 added: NotchWindowController DeviceCoordinator Extraction — the higher-risk coordinator-split work, isolated from Phase 15 per user decision. Not yet planned.
+- Phase 16 added: NotchWindowController DeviceCoordinator Extraction — the higher-risk coordinator-split work, isolated from Phase 15 per user decision. Completed 2026-07-08.
+- v1.2 (Now Playing Polish) roadmap created 2026-07-09: Phase 17 (NOW-04, launch gating) and Phase 18 (NOW-05/NOW-06, song-change toast + its Settings toggle), 100% requirement coverage. Phase numbering continues from Phase 16.
 
 ### Pending Todos
 
@@ -101,7 +103,7 @@ None yet.
 
 [Issues that affect future work]
 
-- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
+- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
 
 ### Quick Tasks Completed
 
@@ -131,10 +133,11 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-08T18:07:24.709Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-notchwindowcontroller-device-coordinator-extraction-prove-th/16-CONTEXT.md
+Last session: 2026-07-09T10:35:23.000Z
+Stopped at: v1.2 ROADMAP.md created (Phase 17: Now Playing Launch Gating, Phase 18: Song-Change Toast)
+Resume file: None
 
 ## Operator Next Steps
 
-- v1.1 (Trial & Paid Release) is shipped and archived (`.planning/milestones/v1.1-ROADMAP.md`, `.planning/milestones/v1.1-REQUIREMENTS.md`).
+- `/gsd:discuss-phase 17` — discuss Now Playing Launch Gating before planning
+- Then `/gsd:plan-phase 17`
