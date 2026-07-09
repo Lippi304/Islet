@@ -17,6 +17,7 @@
 		1A099891C9DC0C4BBD962245 /* VisibilityDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */; };
 		1C34C1BD974D50396F6713F0 /* IslandPresentationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EEA35677CE1730669284423 /* IslandPresentationState.swift */; };
 		1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */; };
+		1E4766E3B83E3E06186D2154 /* ShelfCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518F37B1B7F2553405CF0926 /* ShelfCoordinator.swift */; };
 		1F2B2E8221BC9084BB4A839D /* PowerActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D869CDF80317230429414E1 /* PowerActivityTests.swift */; };
 		21D3560AA4C7B91581AA5272 /* FullscreenDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */; };
 		21DD22351526B5DCB2A38A65 /* NotchPillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65127041FDE5365C865095B1 /* NotchPillView.swift */; };
@@ -67,6 +68,7 @@
 		C0667FBB99D4EFB9F888FEE1 /* IslandResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AECFB326AA1C46FECE017D0 /* IslandResolver.swift */; };
 		C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */; };
 		CBFEA4D08C31BD0C3602E177 /* NotchInteractionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE98C0240E35D702BEA0DBA /* NotchInteractionState.swift */; };
+		D29EBA9C26F56C26B9E49CDE /* ShelfCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
 		DB506F16085ECD1612616899 /* EqualizerBarsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */; };
 		E80E54F355F9DD7F3895158E /* ShelfFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BC5A79583E82567AEE07F /* ShelfFileStore.swift */; };
@@ -136,6 +138,7 @@
 		4A3063E01FF76A78398606DF /* IslandResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandResolverTests.swift; sourceTree = "<group>"; };
 		4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		518F37B1B7F2553405CF0926 /* ShelfCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfCoordinator.swift; sourceTree = "<group>"; };
 		5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManagerTests.swift; sourceTree = "<group>"; };
 		5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseServiceTests.swift; sourceTree = "<group>"; };
 		58372E319659DF8AA32F403D /* ShelfLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfLogic.swift; sourceTree = "<group>"; };
@@ -147,6 +150,7 @@
 		6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCoordinator.swift; sourceTree = "<group>"; };
 		71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSpaceProbe.swift; sourceTree = "<group>"; };
 		734F24D3CCE5D48060447B10 /* TrialManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManager.swift; sourceTree = "<group>"; };
+		73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfCoordinatorTests.swift; sourceTree = "<group>"; };
 		76ADF16C067A181F295BA4C5 /* PowerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivity.swift; sourceTree = "<group>"; };
 		77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityDecisionTests.swift; sourceTree = "<group>"; };
 		8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlanceTests.swift; sourceTree = "<group>"; };
@@ -230,6 +234,7 @@
 				E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */,
 				5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */,
 				5D869CDF80317230429414E1 /* PowerActivityTests.swift */,
+				73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */,
 				858D32BF5C426DA996EF8187 /* ShelfFileStoreTests.swift */,
 				9CB460DC51BC6612D0A4A134 /* ShelfLogicTests.swift */,
 				88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */,
@@ -281,6 +286,7 @@
 		9F054A8B62BEC32777E8924F /* Shelf */ = {
 			isa = PBXGroup;
 			children = (
+				518F37B1B7F2553405CF0926 /* ShelfCoordinator.swift */,
 				353BC5A79583E82567AEE07F /* ShelfFileStore.swift */,
 				D2C09F7CB439DBC707F7E095 /* ShelfItem.swift */,
 				58372E319659DF8AA32F403D /* ShelfLogic.swift */,
@@ -485,6 +491,7 @@
 				921F5385399CF08B36043288 /* PowerActivity.swift in Sources */,
 				EB0A6293AAD242E76B254033 /* PowerSourceMonitor.swift in Sources */,
 				0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */,
+				1E4766E3B83E3E06186D2154 /* ShelfCoordinator.swift in Sources */,
 				E80E54F355F9DD7F3895158E /* ShelfFileStore.swift in Sources */,
 				05E3F6406213849B1212DA66 /* ShelfItem.swift in Sources */,
 				873F50F44716655751E47E8B /* ShelfLogic.swift in Sources */,
@@ -518,6 +525,7 @@
 				40A19305FE709A3C8F605C3B /* NowPlayingPresentationTests.swift in Sources */,
 				093EB93DF4C26FB9D4D0E4C5 /* PolarLicenseServiceTests.swift in Sources */,
 				1F2B2E8221BC9084BB4A839D /* PowerActivityTests.swift in Sources */,
+				D29EBA9C26F56C26B9E49CDE /* ShelfCoordinatorTests.swift in Sources */,
 				3958A1E6D1E4AAE3829D3F20 /* ShelfFileStoreTests.swift in Sources */,
 				75B9F62FA809ED170142A930 /* ShelfLogicTests.swift in Sources */,
 				9D1FF157B4E789EF0A05245A /* TrialLogicTests.swift in Sources */,
