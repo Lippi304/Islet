@@ -22,9 +22,11 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 **Goal:** Fix the Now-Playing launch behavior (an already-paused track must not trigger the glance until the user actually presses Play) and add a brief song-change toast that shows the new track's title as text when playback switches to a genuinely new song.
 
-**Target features:**
+**Status: both phases (17, 18) shipped and on-device verified 2026-07-09 — milestone code-complete, not yet formally archived (`/gsd-complete-milestone`).**
+
+**Target features (all delivered — see Validated Requirements above):**
 - Islet stays idle at launch even if an allowlisted player reports a paused/loaded track — only a transition into the actively-playing state triggers the Now Playing glance
-- On a real song change (not the first track after launch), the island briefly expands downward and shows the new track title as text for ~3s, then collapses back to the compact glance
+- On a real song change (not the first track after launch), the island briefly grows a small text row and shows the new title+artist for ~2s, then collapses back to the compact glance
 - Settings toggle for the song-change toast, in the Activities tab next to the existing Now Playing toggle
 
 (Prior context, retained: Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) and Phase 16 (NotchWindowController Device Coordinator Extraction) both completed 2026-07-08 ahead of any formal milestone — see Validated Requirements below for details.)
@@ -110,15 +112,22 @@ _v1.1 (Trial & Paid Release) is code-complete and fully human-verified — all 7
 
 - [x] The 9-field device-splash bookkeeping and its 3 stateful methods extracted out of `NotchWindowController` into an independently-testable `DeviceCoordinator`, behind a narrow 2-method `ActivityCoordinator` protocol; `BluetoothMonitor`'s own construction/start/stop/deinit lifecycle stays untouched and directly owned by the controller (D-01/D-02). Zero product behavior change proven both by 9 new unit tests covering Pitfalls 1-8 and by a mandatory on-device Bluetooth verification checklist — all 4 D-03 scenarios (reconnect-flap debounce, launch-grace suppression, genuine disconnect, battery-poll promotion) passed on real hardware. First proof of the coordinator-extraction shape, ahead of repeating it for Charging/NowPlaying/Outfit. (Phase 16)
 
+**Now Playing Launch Gating (Phase 17 — NOW-04):**
+
+- [x] Islet stays idle at launch when an allowlisted player reports a paused/loaded track — only a transition into actively-playing triggers the Now Playing glance. On-device verified. (Phase 17)
+
+**Song-Change Toast (Phase 18 — NOW-05, NOW-06):**
+
+- [x] On a genuine track change (not the first track after launch), the island briefly grows a small fading text row under the existing collapsed wings glance showing the new title and artist for ~2s, then collapses back — suppressed during charging/device activities and while manually expanded, rapid skips replace content in place rather than re-triggering. Design iterated on-device across 5 rounds (initial full-blob render → shrink → structural redesign to a minimal fade-in row under the unchanged wings → centered text → independent 2s duration) before user approval; final shape deviates from the phase's original UI-SPEC.md draft, which was updated to match. (Phase 18)
+- [x] Settings toggle for the song-change toast, Activities tab next to the existing Now Playing toggle, default on. (Phase 18)
+
+_v1.2 (Now Playing Polish) is code-complete and on-device verified — both phases (17, 18) shipped 2026-07-09._
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-**v1.2 Now Playing Polish:**
-
-- [ ] Islet stays idle at launch when an allowlisted player reports a paused/loaded track — only a transition into actively-playing triggers the glance
-- [ ] Song-change toast: on a real track change, the island briefly expands and shows the new title as text (~3s) before collapsing back to the compact glance
-- [ ] Settings toggle for the song-change toast (Activities tab, next to Now Playing)
+_Nothing currently active — v1.2 requirements are all validated above. Next milestone not yet started._
 
 ### Out of Scope
 
@@ -205,4 +214,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 — Milestone v1.2 (Now Playing Polish) started.*
+*Last updated: 2026-07-09 — Phase 18 (Song-Change Toast) complete; v1.2 (Now Playing Polish) code-complete, both phases shipped.*
