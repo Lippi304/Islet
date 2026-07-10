@@ -11,6 +11,13 @@ created: 2026-07-10
 
 > Per-phase validation contract for feedback sampling during execution.
 
+**Status note:** `status: draft` / `nyquist_compliant: false` / `wave_0_complete: false` and the
+unchecked Sign-Off checklist below reflect that this file was authored at PLANNING time — Wave 0
+items are planned here, not yet executed. This matches Phase 20's own VALIDATION.md convention
+(`.planning/phases/20-shelf-view/20-VALIDATION.md`): sign-off finalizes post-execution, once the
+Wave 0 test cases actually exist and the Cmd-U/manual checks in this file have been run. This is
+not a gap — it is the expected pre-execution state for this project.
+
 ---
 
 ## Test Infrastructure

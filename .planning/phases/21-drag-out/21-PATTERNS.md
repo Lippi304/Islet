@@ -183,12 +183,13 @@ private func handleHoverExit() {
 }
 ```
 
-**Required additions** (per RESEARCH.md Pattern 2 — already validated against this exact file's conventions, `dragPinSafetyNetWorkItem` alongside the other 4 `DispatchWorkItem` optionals at lines 168/174/179/190/209):
+**Required additions** (per RESEARCH.md Pattern 2 and Open Questions (RESOLVED) #1 — already validated against this exact file's conventions, `dragPinSafetyNetWorkItem` alongside the other 4 `DispatchWorkItem` optionals at lines 168/174/179/190/209, and `dragReleaseMonitor` mirroring the existing `mouseMonitor` global-monitor idiom at line 314):
 ```swift
 // New stored properties, alongside pointerInZone/graceWorkItem (near line 209/216):
 private var isDraggingShelfItem = false
 private var dragPinSafetyNetWorkItem: DispatchWorkItem?
 private let dragPinSafetyNetDuration: TimeInterval = 20.0
+private var dragReleaseMonitor: Any?   // best-effort early-release signal, armed only during a drag
 
 // Reach-back target for ShelfItemView's onDragStarted closure (wired in makeRootView,
 // mirrors the onShelfItemTap: { [weak self] item in self?.handleShelfItemTap(item) } style
@@ -201,13 +202,25 @@ private func beginShelfItemDrag() {
     let safetyNet = DispatchWorkItem { [weak self] in self?.endShelfItemDrag() }
     dragPinSafetyNetWorkItem = safetyNet
     DispatchQueue.main.asyncAfter(deadline: .now() + dragPinSafetyNetDuration, execute: safetyNet)
+
+    // Best-effort early release (D-03): mirrors Pattern 1's .mouseMoved global monitor exactly,
+    // but for .leftMouseUp, and armed/disarmed per-drag rather than for the app's lifetime.
+    if dragReleaseMonitor == nil {
+        dragReleaseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] _ in
+            self?.endShelfItemDrag()
+        }
+    }
 }
 
 private func endShelfItemDrag() {
-    guard isDraggingShelfItem else { return }   // idempotent
+    guard isDraggingShelfItem else { return }   // idempotent — safety-net + early signal may both fire
     isDraggingShelfItem = false
     dragPinSafetyNetWorkItem?.cancel()
     dragPinSafetyNetWorkItem = nil
+    if let m = dragReleaseMonitor {
+        NSEvent.removeMonitor(m)
+        dragReleaseMonitor = nil
+    }
     if !pointerInZone {
         handleHoverExit()
     }
@@ -221,7 +234,7 @@ let work = DispatchWorkItem { [weak self] in
 }
 ```
 
-**Explicit anti-pattern (DO NOT):** Do not add `isDraggingShelfItem` to `syncClickThrough()` (lines 760-774). That function's expanded branch must stay pure `visibleContentZone()?.contains(lastPointerLocation) ?? false` — the CR-01 regression (project memory `cr01-clickthrough-or-defeat-gotcha`) was caused by exactly this class of OR-in. Grep for `isDraggingShelfItem` near `syncClickThrough`/`visibleContentZone` should return nothing.
+**Explicit anti-pattern (DO NOT):** Do not add `isDraggingShelfItem` or `dragReleaseMonitor` to `syncClickThrough()` (lines 760-774). That function's expanded branch must stay pure `visibleContentZone()?.contains(lastPointerLocation) ?? false` — the CR-01 regression (project memory `cr01-clickthrough-or-defeat-gotcha`) was caused by exactly this class of OR-in. Grep for `isDraggingShelfItem`/`dragReleaseMonitor` near `syncClickThrough`/`visibleContentZone` should return nothing.
 
 ---
 
