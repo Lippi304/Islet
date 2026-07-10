@@ -64,7 +64,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 - [x] **Phase 19: Shelf Data Model** - Pure, unit-tested shelf lifecycle (append/remove/clear, never persisted) with zero AppKit/drag risk (completed 2026-07-09)
 - [x] **Phase 20: Shelf View** - Users can see and manage a populated shelf strip in the expanded island (icons, per-item/delete-all trash, click-to-open, gated correctly against other activities) — CR-01 click-through gap closed in 20-03 (completed 2026-07-10)
-- [ ] **Phase 21: Drag-Out** - Users can drag shelf items back out to Finder or other apps
+- [x] **Phase 21: Drag-Out** - Users can drag shelf items back out to Finder or other apps (completed 2026-07-10)
 - [ ] **Phase 22: Drag-In** - Users can drag files/folders onto the collapsed island to add them to the shelf
 
 ## Phase Details
@@ -219,7 +219,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 21-01-PLAN.md — Pure drag-gate seam (shouldBeginShelfItemDrag) + ShelfItemView .onDrag drag source + NotchWindowController drag-pin lifecycle (D-01/D-02/D-03/D-04)
+- [x] 21-01-PLAN.md — Pure drag-gate seam (shouldBeginShelfItemDrag) + ShelfItemView .onDrag drag source + NotchWindowController drag-pin lifecycle (D-01/D-02/D-03/D-04)
 
 ### Phase 22: Drag-In
 

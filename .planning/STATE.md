@@ -4,8 +4,8 @@ milestone: v1.3
 milestone_name: Notch Shelf
 status: executing
 stopped_at: Phase 21 context gathered
-last_updated: "2026-07-10T01:13:54.417Z"
-last_activity: 2026-07-10 -- Phase 21 planning complete
+last_updated: "2026-07-10T01:41:51.254Z"
+last_activity: 2026-07-10 -- Phase 21 execution started
 progress:
   total_phases: 7
   completed_phases: 2
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 21 — drag out
+**Current focus:** Phase 21 — drag-out
 
 ## Current Position
 
-Phase: 21
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-10 -- Phase 21 planning complete
+Phase: 21 (drag-out) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 21
+Last activity: 2026-07-10 -- Phase 21 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
