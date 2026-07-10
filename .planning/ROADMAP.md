@@ -242,7 +242,7 @@ Plans:
 
 **Wave 2** *(blocked on 22-01)*
 
-- [ ] 22-02-PLAN.md — Pure seams: nextState .dragEntered event (D-01) + DragDropSupport.swift (URL extraction + D-04/non-file gate) + folder round-trip test
+- [x] 22-02-PLAN.md — Pure seams: nextState .dragEntered event (D-01) + DragDropSupport.swift (URL extraction + D-04/non-file gate) + folder round-trip test
 
 **Wave 3** *(blocked on 22-02)*
 

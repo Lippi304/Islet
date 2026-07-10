@@ -4,8 +4,8 @@ milestone: v1.3
 milestone_name: Notch Shelf
 status: executing
 stopped_at: Phase 22 revised context gathered (hot-zone/Mission-Control fallback)
-last_updated: "2026-07-10T19:57:12.256Z"
-last_activity: 2026-07-10 -- Phase 22 planning complete
+last_updated: "2026-07-10T19:59:32.832Z"
+last_activity: 2026-07-10 -- Phase 22 execution started
 progress:
   total_phases: 7
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 22 (drag-in) — UNBLOCKED, needs replan
-Plan: 1 of 3 complete (22-01, PARTIAL verdict); 22-02/22-03 need replanning against the revised CONTEXT.md
-Status: Ready to execute
-Last activity: 2026-07-10 -- Phase 22 planning complete
+Phase: 22 (drag-in) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 22
+Last activity: 2026-07-10 -- Phase 22 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
