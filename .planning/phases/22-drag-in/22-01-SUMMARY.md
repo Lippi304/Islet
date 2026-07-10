@@ -79,9 +79,13 @@ _Note: no plan-metadata commit yet -- this SUMMARY.md commit itself is the only 
 The entire Task 1 change is an intentional, plan-specified throwaway spike:
 - `draggingEntered`, `draggingUpdated`, `draggingExited`, `performDragOperation` in `Islet/Notch/NotchPanel.swift` do no real drag handling (only `NSLog` + fixed return values). Per the plan, 22-03 Task 1 removes this entire block and replaces it with the real closure-forwarding architecture. Not a defect -- explicitly scoped as throwaway by this plan.
 
-## Self-Check: PENDING
+## Self-Check: PASSED
 
-See below -- self-check performed after this section.
+- FOUND: Islet/Notch/NotchPanel.swift
+- FOUND: .planning/phases/22-drag-in/22-01-SUMMARY.md
+- FOUND: commit 7571001 (Task 1)
+- FOUND: commit 1abfa59 (this SUMMARY)
+- FOUND: registerForDraggedTypes present in NotchPanel.swift
 
 ## CHECKPOINT: Task 2 Blocked -- On-Device Human Verification Required
 
