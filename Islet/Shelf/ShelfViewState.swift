@@ -12,3 +12,8 @@ final class ShelfViewState: ObservableObject {
 // mirroring songChangeToastGate/nowPlayingHealthGate in Islet/Notch/IslandResolver.swift. Plan
 // 20-02's NotchWindowController.handleShelfItemTap calls this before NSWorkspace.shared.open.
 func shouldOpenShelfItem(fileExists: Bool) -> Bool { fileExists }
+
+// Phase 21 / SHELF-06 / D-02 — the missing-file-drag gate, identical shape to
+// shouldOpenShelfItem. ShelfItemView's .onDrag closure calls this before constructing
+// NSItemProvider(contentsOf:); a vanished backing file is a silent no-op drag.
+func shouldBeginShelfItemDrag(fileExists: Bool) -> Bool { fileExists }

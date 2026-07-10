@@ -8,6 +8,7 @@ struct ShelfItemView: View {
     let item: ShelfItem
     let onTap: () -> Void
     let onDelete: () -> Void
+    let onDragStarted: () -> Void
 
     var body: some View {
         VStack(spacing: 2) {   // UI-SPEC icon-gap
@@ -23,6 +24,12 @@ struct ShelfItemView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }   // D-04 own scoped gesture — click-to-open
+        .onDrag {   // Phase 21 / SHELF-06 — SIBLING drag source, D-04 default system preview
+            let exists = FileManager.default.fileExists(atPath: item.localURL.path)
+            guard shouldBeginShelfItemDrag(fileExists: exists) else { return NSItemProvider() }   // D-02
+            onDragStarted()
+            return NSItemProvider(contentsOf: item.localURL) ?? NSItemProvider()
+        }
         .overlay(alignment: .topTrailing) {
             // Finding-15/D-05 precedent: a SIBLING overlay, never nested inside the tap-gesture
             // region the ancestor .onTapGesture could shadow.
