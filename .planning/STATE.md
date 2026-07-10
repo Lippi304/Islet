@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: executing
-stopped_at: Phase 21 context gathered
-last_updated: "2026-07-10T01:41:51.254Z"
-last_activity: 2026-07-10 -- Phase 21 execution started
+status: planning
+stopped_at: Phase 22 context gathered
+last_updated: "2026-07-10T16:31:34.879Z"
+last_activity: 2026-07-10
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 4
-  percent: 29
+  completed_plans: 5
+  percent: 43
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 21 — drag-out
+**Current focus:** Phase 22 — drag in
 
 ## Current Position
 
-Phase: 21 (drag-out) — EXECUTING
-Plan: 1 of 1
-Status: Executing Phase 21
-Last activity: 2026-07-10 -- Phase 21 execution started
+Phase: 22
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-10
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,7 +47,7 @@ Progress (v1.3): [█████░░░░░] 50% (Phases 19-20 complete; Ph
 
 **Velocity:**
 
-- Total plans completed: 54
+- Total plans completed: 55
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -72,6 +72,7 @@ Progress (v1.3): [█████░░░░░] 50% (Phases 19-20 complete; Ph
 | 18 | 2 | - | - |
 | 19 | 1 | - | - |
 | 20 | 3 | - | - |
+| 21 | 1 | - | - |
 
 **Recent Trend:**
 
@@ -143,9 +144,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-10T00:35:20.963Z
-Stopped at: Phase 21 context gathered
-Resume file: .planning/phases/21-drag-out/21-CONTEXT.md
+Last session: 2026-07-10T16:31:34.875Z
+Stopped at: Phase 22 context gathered
+Resume file: .planning/phases/22-drag-in/22-CONTEXT.md
 
 ## Operator Next Steps
 
