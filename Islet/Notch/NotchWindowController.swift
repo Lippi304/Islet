@@ -841,6 +841,13 @@ final class NotchWindowController {
                 toastDismissWorkItem?.cancel()
                 nowPlayingState.songChangeToast = nil
             }
+            // Phase 21 follow-up (UAT feedback) — an item whose backing file was deleted
+            // externally is otherwise stuck inert until manually trashed. Pruned right as
+            // the shelf becomes visible so the user never sees a dead item, not just after
+            // a failed drag attempt.
+            if !wasExpanded && interaction.isExpanded && !shelfCoordinator.pruneMissingFiles().isEmpty {
+                resyncShelfViewState()
+            }
             // Phase 6: expand/collapse flips `isExpanded`, a resolver input — re-resolve inside
             // the SAME spring so the island morphs between the wings/expanded presentation cases.
             renderPresentation()

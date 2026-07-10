@@ -97,4 +97,27 @@ final class ShelfCoordinatorTests: XCTestCase {
 
         XCTAssertTrue(coordinator.clear().isEmpty)      // clear on already-empty shelf — safe no-op
     }
+
+    func testPruneMissingFilesRemovesOnlyItemsWithDeletedBackingFile() throws {
+        let coordinator = ShelfCoordinator()
+        let present = try makeRealItem(named: "f.pdf")
+        let missing = try makeRealItem(named: "g.pdf")
+        XCTAssertTrue(coordinator.append(present))
+        XCTAssertTrue(coordinator.append(missing))
+        try FileManager.default.removeItem(at: missing.localURL)   // simulate external deletion
+
+        let pruned = coordinator.pruneMissingFiles()
+
+        XCTAssertEqual(pruned, [missing])
+        XCTAssertEqual(coordinator.logic.items, [present])
+    }
+
+    func testPruneMissingFilesOnFullyIntactShelfIsANoOp() throws {
+        let coordinator = ShelfCoordinator()
+        let item = try makeRealItem(named: "h.pdf")
+        XCTAssertTrue(coordinator.append(item))
+
+        XCTAssertTrue(coordinator.pruneMissingFiles().isEmpty)
+        XCTAssertEqual(coordinator.logic.items, [item])
+    }
 }

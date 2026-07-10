@@ -55,4 +55,18 @@ final class ShelfCoordinator {
         }
         return removed
     }
+
+    // Phase 21 follow-up (UAT feedback) — items whose backing file was deleted
+    // externally (e.g. from Finder, outside the app) are otherwise stuck inert in
+    // the shelf until manually trashed. Called on hover-enter so stale items are
+    // gone before the user sees them, not just after a failed drag attempt.
+    // Routes through remove(id:) so cleanup stays the single, tested code path.
+    @discardableResult
+    func pruneMissingFiles() -> [ShelfItem] {
+        let missing = logic.items.filter { !FileManager.default.fileExists(atPath: $0.localURL.path) }
+        for item in missing {
+            remove(id: item.id)
+        }
+        return missing
+    }
 }
