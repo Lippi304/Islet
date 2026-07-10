@@ -182,8 +182,14 @@ struct NotchPillView: View {
                 collapsedIsland                                                  // idle pill
             }
         }
+        // Phase 21 bugfix (SHELF-06 UAT) — this outer container's height was still the
+        // pre-Phase-20 constant, so blobShape's own +shelfRowHeight growth (for
+        // expandedIsland/mediaExpanded/mediaUnavailable) was clipped away by THIS frame
+        // before ever reaching the screen, even though the AppKit panel itself was sized
+        // correctly (visibleContentZone() already used this same hasShelf math for its
+        // own, unrelated click-through purpose — that duplication is what let this drift).
         .frame(width: Self.expandedSize.width,
-               height: Self.expandedSize.height,
+               height: Self.expandedSize.height + (shelfViewState.items.isEmpty ? 0 : Self.shelfRowHeight),
                alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
         // container level. A single ancestor .onTapGesture here would sit ABOVE the
