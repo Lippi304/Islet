@@ -63,8 +63,10 @@
 		A5CBE92E220E6C6C2FC10FF1 /* Diagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94FF8FB96D00B8442591E7B /* Diagnostics.swift */; };
 		A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */; };
 		A8AF3A084971A06380D41ECC /* ShelfItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */; };
+		AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63FACDF43375E1DE88646B05 /* DragDropSupport.swift */; };
 		B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */; };
 		B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72C119AE687341C28E9786C /* NSScreen+Notch.swift */; };
+		B8DE8D9FDE9ABC0AA193D43C /* DragDropSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */; };
 		B994C996D0B11203E21C3E0C /* LicenseState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */; };
 		C0667FBB99D4EFB9F888FEE1 /* IslandResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AECFB326AA1C46FECE017D0 /* IslandResolver.swift */; };
 		C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */; };
@@ -122,6 +124,7 @@
 		143DD03B59EE64AE773112BD /* IsletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsletApp.swift; sourceTree = "<group>"; };
 		15C1DF53311CEDA936A0B43D /* ActivitySettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivitySettings.swift; sourceTree = "<group>"; };
 		1A7E1D30A74E9D358BA634B1 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupportTests.swift; sourceTree = "<group>"; };
 		1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
 		2151B8D097AF9D3098ED16D7 /* CGSSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGSSpace.swift; sourceTree = "<group>"; };
 		25742CBF490BEC1233F661FD /* BasicOutfitState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BasicOutfitState.swift; sourceTree = "<group>"; };
@@ -149,6 +152,7 @@
 		5D869CDF80317230429414E1 /* PowerActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivityTests.swift; sourceTree = "<group>"; };
 		5F13DD9E9F8F782EEAE48FC2 /* Islet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Islet.entitlements; sourceTree = "<group>"; };
 		605C8A3B6F9015948DC073F0 /* LocationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceTests.swift; sourceTree = "<group>"; };
+		63FACDF43375E1DE88646B05 /* DragDropSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupport.swift; sourceTree = "<group>"; };
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
 		6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EqualizerBarsTests.swift; sourceTree = "<group>"; };
 		6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCoordinator.swift; sourceTree = "<group>"; };
@@ -226,6 +230,7 @@
 				0A6FA5F67CABA606F19ED731 /* DeviceCoordinatorTests.swift */,
 				A0EC5F0178A64AECEBD91C8C /* DiagnosticReportTests.swift */,
 				46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */,
+				1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */,
 				6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */,
 				E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */,
 				406030D1395E35FB24681FE8 /* InteractionStateTests.swift */,
@@ -341,6 +346,7 @@
 				28316551B58651959797184D /* DeviceActivity.swift */,
 				E87941F5DC2AA7BA8674AB0C /* DeviceCoordinator.swift */,
 				FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */,
+				63FACDF43375E1DE88646B05 /* DragDropSupport.swift */,
 				885DB8C610716B7530D89BDB /* FullscreenDetector.swift */,
 				71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */,
 				0EEA35677CE1730669284423 /* IslandPresentationState.swift */,
@@ -476,6 +482,7 @@
 				FFB8FF809780DAA08EC9B819 /* DeviceCoordinator.swift in Sources */,
 				A5CBE92E220E6C6C2FC10FF1 /* Diagnostics.swift in Sources */,
 				C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */,
+				AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */,
 				8CEEBDB51AC0041BDC1306AC /* FullscreenDetector.swift in Sources */,
 				6E7588C0E74ED25E45E3F1AE /* FullscreenSpaceProbe.swift in Sources */,
 				1C34C1BD974D50396F6713F0 /* IslandPresentationState.swift in Sources */,
@@ -522,6 +529,7 @@
 				16A051D140699708997B8A33 /* DeviceCoordinatorTests.swift in Sources */,
 				83ACBA698B65021287F454A4 /* DiagnosticReportTests.swift in Sources */,
 				FD503D3A7D28F74B8D86C930 /* DisplayResolverTests.swift in Sources */,
+				B8DE8D9FDE9ABC0AA193D43C /* DragDropSupportTests.swift in Sources */,
 				DB506F16085ECD1612616899 /* EqualizerBarsTests.swift in Sources */,
 				21D3560AA4C7B91581AA5272 /* FullscreenDetectorTests.swift in Sources */,
 				0B5D7C9F97587BFE2049F7D7 /* InteractionStateTests.swift in Sources */,

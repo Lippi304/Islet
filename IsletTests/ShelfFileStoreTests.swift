@@ -98,4 +98,24 @@ final class ShelfFileStoreTests: XCTestCase {
             XCTAssertEqual(error as? ShelfFileStoreError, .invalidFilename)
         }
     }
+
+    func testMakeSessionCopyHandlesDirectoryURL() throws {
+        // Open Question 3 (22-RESEARCH.md): confirms the existing FileManager.copyItem call
+        // already handles a dropped-folder URL by copying the whole directory tree. Production
+        // code unchanged -- this is a new test case only.
+        let nestedFolder = fixturesDir.appendingPathComponent("nestedFolder", isDirectory: true)
+        try FileManager.default.createDirectory(at: nestedFolder, withIntermediateDirectories: true)
+        let innerContents = Data("nested contents".utf8)
+        try innerContents.write(to: nestedFolder.appendingPathComponent("inner.txt"))
+
+        let localURL = try ShelfFileStore.makeSessionCopy(of: nestedFolder, id: UUID())
+
+        var isDirectory: ObjCBool = false
+        XCTAssertTrue(FileManager.default.fileExists(atPath: localURL.path, isDirectory: &isDirectory))
+        XCTAssertTrue(isDirectory.boolValue)
+
+        let copiedInner = localURL.appendingPathComponent("inner.txt")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: copiedInner.path))
+        XCTAssertEqual(try Data(contentsOf: copiedInner), innerContents)
+    }
 }
