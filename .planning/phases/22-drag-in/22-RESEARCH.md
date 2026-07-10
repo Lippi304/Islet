@@ -287,6 +287,10 @@ collapsedIsland
    - What we know: Official docs confirm `registerForDraggedTypes` is a supported NSWindow-level call, independent of any mention of `ignoresMouseEvents`. Community sources describe drag targeting as Window-Server-owned, separate from mouse-event dispatch.
    - What's unclear: No source directly states the interaction between `ignoresMouseEvents` specifically and drag delivery. This project's panel is also `.nonactivatingPanel` + `.statusBar` level + never-key — an atypical combination not found addressed in any source during this research.
    - Recommendation: Spike first (below), before any other Wave 1 task.
+   - **Resolution status (revision iteration 1):** Deliberately left unresolved at planning time --
+     resolves via 22-01's on-device spike task (22-01-PLAN.md Task 2). Record the empirical
+     PASSED/FAILED verdict in `22-01-SUMMARY.md` once executed; do not re-research this question,
+     per this file's own "Valid until" note.
 
 2. **If the spike shows drag delivery IS blocked while collapsed and click-through — what's the fallback?**
    - What we know: The current design (D-02) deliberately reuses the small hot-zone geometry, relying on click-through being irrelevant to drag delivery.
@@ -297,6 +301,10 @@ collapsedIsland
    - What we know: `ShelfItem` already stores an arbitrary `URL`/`localURL`; Phase 20's file-type icon lookup presumably uses `NSWorkspace.shared.icon(forFile:)` or similar, which does return a folder icon for directory URLs.
    - What's unclear: Whether `ShelfFileStore.makeSessionCopy` (built for individual files) correctly copies an entire folder tree (e.g., via `FileManager.copyItem` which does support directories) — not verified in this research pass; the planner should have a task confirm/test this against the existing `ShelfFileStoreTests.swift`.
    - Recommendation: Add a unit test for a folder-URL session-copy round-trip in Wave 0/1 gap-closure.
+   - **Resolution status (revision iteration 1):** Resolved by 22-02-PLAN.md Task 2 --
+     `testMakeSessionCopyHandlesDirectoryURL` in `IsletTests/ShelfFileStoreTests.swift` confirms
+     `ShelfFileStore.makeSessionCopy` correctly round-trips a directory tree, with zero production
+     code change.
 
 ## Recommended Spike
 
