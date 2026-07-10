@@ -208,6 +208,16 @@ final class NotchWindowController {
     private var mouseMonitor: Any?
     private var graceWorkItem: DispatchWorkItem?
 
+    // Phase 21 / SHELF-06 / D-03 — the shelf-item drag pin: while true, handleHoverExit's
+    // graceWorkItem defers the collapse. Released via BOTH a best-effort early signal
+    // (dragReleaseMonitor, a .leftMouseUp global monitor mirroring mouseMonitor's .mouseMoved
+    // idiom, armed only for the duration of an active drag) AND a guaranteed 20s safety net
+    // (dragPinSafetyNetWorkItem) so the pin can never outlive a real drag gesture indefinitely.
+    private var isDraggingShelfItem = false
+    private var dragPinSafetyNetWorkItem: DispatchWorkItem?
+    private let dragPinSafetyNetDuration: TimeInterval = 20.0
+    private var dragReleaseMonitor: Any?
+
     // WR-01: the pointer-in-hot-zone edge, tracked from RAW geometry — NOT derived from
     // `interaction.isHovering` (which is true for BOTH .hovering AND .expanded, so a
     // re-entry while expanded would never read as an enter edge and never cancel the
@@ -782,6 +792,9 @@ final class NotchWindowController {
 
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            // Phase 21 / SHELF-06 / D-03 — defer the collapse while a shelf-item drag is in
+            // flight; endShelfItemDrag() re-invokes handleHoverExit() once the drag ends.
+            guard !self.isDraggingShelfItem else { return }
             // Only collapse if the pointer is STILL outside (re-entry would have cancelled).
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                 self.interaction.phase = nextState(self.interaction.phase, .graceElapsed)
@@ -942,7 +955,8 @@ final class NotchWindowController {
                       onPrevious: { [weak self] in self?.nowPlayingMonitor?.previousTrack() },
                       onShelfItemTap: { [weak self] item in self?.handleShelfItemTap(item) },
                       onShelfItemDelete: { [weak self] id in self?.handleShelfItemDelete(id) },
-                      onShelfClearAll: { [weak self] in self?.handleShelfClearAll() })
+                      onShelfClearAll: { [weak self] in self?.handleShelfClearAll() },
+                      onShelfItemDragStarted: { [weak self] in self?.beginShelfItemDrag() })
             .environment(\.activityAccent, ActivitySettings.accent(for: accentIndex))
     }
 
@@ -1241,6 +1255,41 @@ final class NotchWindowController {
         resyncShelfViewState()
     }
 
+    // Phase 21 / SHELF-06 / D-03 — pins the island open for the duration of a shelf-item drag:
+    // cancels any pending grace-collapse, arms the guaranteed 20s safety net, and arms the
+    // best-effort early-release monitor (mirrors Pattern 1's .mouseMoved global monitor).
+    private func beginShelfItemDrag() {
+        isDraggingShelfItem = true
+        graceWorkItem?.cancel()
+        graceWorkItem = nil
+
+        dragPinSafetyNetWorkItem?.cancel()
+        let safetyNet = DispatchWorkItem { [weak self] in self?.endShelfItemDrag() }
+        dragPinSafetyNetWorkItem = safetyNet
+        DispatchQueue.main.asyncAfter(deadline: .now() + dragPinSafetyNetDuration, execute: safetyNet)
+
+        if dragReleaseMonitor == nil {
+            dragReleaseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] _ in
+                self?.endShelfItemDrag()
+            }
+        }
+    }
+
+    // Phase 21 / SHELF-06 / D-03 — idempotent (the safety net and the mouseUp monitor may both
+    // eventually fire, in either order; only the first call has any effect). Tears down the
+    // per-drag monitor (minimal always-on observation surface) and, only if the pointer is
+    // already outside the hot zone, re-invokes handleHoverExit() so the island resumes its
+    // normal grace-collapse countdown at the next natural transition (D-13-style).
+    private func endShelfItemDrag() {
+        guard isDraggingShelfItem else { return }
+        isDraggingShelfItem = false
+        dragPinSafetyNetWorkItem?.cancel()
+        dragPinSafetyNetWorkItem = nil
+        if let m = dragReleaseMonitor { NSEvent.removeMonitor(m) }
+        dragReleaseMonitor = nil
+        if !pointerInZone { handleHoverExit() }
+    }
+
     #if DEBUG
     // Pitfall 5 — real, on-disk sample files (not fabricated ShelfItem structs with synthetic
     // URLs) so icon lookup + click-to-open are realistic ahead of Phase 22's real drag-in.
@@ -1278,6 +1327,11 @@ final class NotchWindowController {
         if let o = defaultsObserver { NotificationCenter.default.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
         graceWorkItem?.cancel()
+
+        // Phase 21 / SHELF-06 (T-21-03): in case the controller deallocates mid-drag (e.g. app
+        // quit during a drag), cancel the safety net and remove the early-release monitor.
+        dragPinSafetyNetWorkItem?.cancel()
+        if let m = dragReleaseMonitor { NSEvent.removeMonitor(m) }
 
         // CHG-01 (security T-03-06): remove the IOPS run-loop source so the context pointer
         // (which holds this controller) can't be used after free, and cancel the pending ~3s
