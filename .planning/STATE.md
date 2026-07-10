@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: executing
-stopped_at: Phase 22 revised context gathered (hot-zone/Mission-Control fallback)
-last_updated: "2026-07-10T19:59:32.832Z"
-last_activity: 2026-07-10 -- Phase 22 execution started
+status: blocked
+stopped_at: Phase 22 execution aborted by user -- pivoting to a broader Notch architecture redesign
+last_updated: "2026-07-10T23:32:21.000Z"
+last_activity: 2026-07-10 -- Phase 22 22-03 on-device UAT failed twice (drag delivery never reached NotchPanel even after restoring draggingUpdated); user chose to abandon current approach and reconsider NotchPanel/NotchWindowController architecture broadly, possibly drawing on TheBoringNotch/DynamicNotchKit
 progress:
   total_phases: 7
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 22 (drag-in) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 22
-Last activity: 2026-07-10 -- Phase 22 execution started
+Phase: 22 (drag-in) — BLOCKED, execution aborted by user
+Plan: 1 of 3 complete (22-01); 22-02 complete (22-02); 22-03 in progress but NOT complete -- Task 3 on-device UAT FAILED twice, root cause not found before user paused to reconsider the broader architecture
+Status: Paused -- user wants to rebuild the Notch window/panel architecture more broadly before continuing drag-in, possibly drawing on reference implementations (TheBoringNotch, DynamicNotchKit)
+Last activity: 2026-07-10 -- Phase 22 22-03 checkpoint FAILED twice on-device; user aborted to reconsider architecture
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -113,6 +113,7 @@ None yet.
 - [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
 - [v1.3, Phase 22, on-device spike 22-01 — RESOLVED 2026-07-10] Assumption A1 CONFIRMED: AppKit drag-destination delivery (draggingEntered) does reach a click-through (ignoresMouseEvents=true), non-activating NSPanel — Pattern-1 architecture is technically sound. The new blocker found in the same on-device test (drop never completes because the drag path crosses macOS's top-edge Mission Control trigger before reaching the notch's small hot zone) is now resolved via `/gsd:discuss-phase 22`: D-02 is superseded by D-02b (drag-accept reuses the existing reserved expanded+wings footprint) + D-02c (require landing below the physical top edge) + D-05/D-06 (auto-expand and drag-hot feedback trigger off the same wider footprint) + D-07 (ordinary hover/click hot-zone stays unchanged, widening is drag-only). See `22-CONTEXT.md`. Next: `/gsd:plan-phase 22` to replan 22-02/22-03 against this.
 - [v1.3, from research] Open product decision, flagged for `/gsd:discuss-phase 20`: should the shelf render/suppress during collapsed "wings" transients (Charging/Device/Now-Playing-wings) mid-display, beyond the already-locked SHELF-09 (suppressed only during Charging/Device splashes)?
+- [v1.3, Phase 22, 22-03 Task 3 on-device UAT — ABORTED 2026-07-10, unresolved] Task 1/Task 2 (NotchPanel closure-forwarding + NotchWindowController drag handlers) built and compiled clean, but on-device the drag never reached NotchPanel at all (`draggingEntered` never fired) — confirmed NOT a geometry/positioning bug (ordinary hover/click worked fine in the same running build). Root-cause debugging found that 22-01's confirmed-working spike implemented `draggingUpdated(_:)` while 22-03's Task 1 omitted it (per the plan's now-disproven assumption that AppKit reuses `draggingEntered`'s return value without it); restoring `draggingUpdated(_:) -> .copy` did NOT fix it either — a second on-device retest still showed zero drag delivery. True root cause is still unknown. User then chose to abandon this plan/approach rather than continue debugging, in favor of reconsidering the Notch window/panel architecture more broadly (see Current Position). **Work preserved, not merged:** worktree `/Users/lippi304/conductor/repos/notch/.claude/worktrees/agent-a9e6341bfc04601a5` (branch `worktree-agent-a9e6341bfc04601a5`) still exists on disk with all 22-03 debugging commits (`326804d`, `35c3026`, `8fb5517`, `d1245e8`) — kept as reference per explicit user request, NOT merged into `gsd-new-project-setup`, NOT deleted. 22-02 (the pure seams, unrelated to the AppKit delivery bug) IS merged into main and safe to keep regardless of the architecture decision.
 
 ### Quick Tasks Completed
 
@@ -150,5 +151,6 @@ Resume file: .planning/phases/22-drag-in/22-CONTEXT.md
 
 ## Operator Next Steps
 
-- Run `/gsd:discuss-phase 22` to decide the drag-accept hot-zone fallback (wider zone during active drag and/or earlier drag-hover auto-expand, kept clear of macOS's top-edge Mission Control trigger) before executing 22-02/22-03
+- Decide how to approach the Notch window/panel architecture redesign the user wants before resuming Phase 22 — likely starts with `/gsd:explore` (Socratic ideation) to think through drawing on TheBoringNotch/DynamicNotchKit patterns before committing to a plan, since this may affect already-shipped phases (Hover/Wings/Shelf), not just Phase 22
+- The 22-03 debugging worktree (see Blockers/Concerns) is preserved at `/Users/lippi304/conductor/repos/notch/.claude/worktrees/agent-a9e6341bfc04601a5` for reference — not on the critical path, can be cleaned up later once its findings are no longer needed
 - Manually verify the 4 on-device/Cmd-U items in 20-VERIFICATION.md (empty-shelf click-through, non-empty-shelf interactivity, delete/clear-all animation smoothness, IslandResolverTests/ShelfViewStateTests via Cmd-U) — pre-existing, unrelated to Phase 22
