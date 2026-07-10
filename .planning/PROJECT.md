@@ -28,7 +28,7 @@ Not yet started — candidates remaining after v1.3 is scoped: capture WEATHER-0
 
 **Goal:** Add a drag-and-drop file shelf to the island — a temporary, session-only staging area for files, matching the polish of the existing activities.
 
-**Status: Phase 19 (Shelf Data Model) shipped 2026-07-09. Phases 20-22 (view, drag-out, drag-in) remaining.**
+**Status: Phase 19 (Shelf Data Model) and Phase 20 (Shelf View) shipped 2026-07-09; Phase 21 (Drag-Out, SHELF-06) shipped 2026-07-10. Phase 22 (drag-in) remaining.**
 
 **Target features:**
 - Drag a file onto the collapsed pill → island auto-expands, file lands in a shelf strip below the normal expanded view
@@ -138,11 +138,15 @@ _v1.2 (Now Playing Polish) is code-complete and on-device verified — both phas
 
 - [x] The shelf's core data and lifecycle contracts (`ShelfItem`, `ShelfLogic`, `ShelfFileStore`, `ShelfCoordinator`) exist as pure, Foundation-only, unit-tested logic with no persistence path whatsoever — a cleared or relaunched shelf is provably empty by construction. Zero coupling to `IslandResolver`/`TransientQueue`; the shelf is its own independent axis. Post-review hardening: `deleteSessionCopy` now validates its delete target lives under the shelf's own temp root (was an unvalidated recursive parent-directory delete), and a rejected duplicate append no longer orphans its just-made session-temp copy. (Phase 19)
 
+**Drag-Out (Phase 21 — SHELF-06):**
+
+- [x] A shelf item can be dragged out of the expanded island onto Finder or any other app via `.onDrag` + `NSItemProvider(contentsOf:)` (copy semantics — the item stays in the shelf, default system drag preview, silent no-op on a vanished backing file). The island pins open for the duration of the drag (best-effort `.leftMouseUp` release monitor + a 20s safety-net fallback) and resumes normal hover/grace-collapse promptly once the drag ends. On-device UAT surfaced and fixed two gaps beyond the original plan: the shelf strip was invisible because `NotchPillView.body`'s outer container frame hadn't grown to match `blobShape`'s Phase-20 shelf-height addition (commit `3b38f33`), and — added at explicit user request during UAT, beyond the original D-02 scope — a shelf item whose backing file is deleted externally is now auto-pruned on expand instead of sitting inert until manually trashed (commit `dfbde2d`). (Phase 21)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_v1.3 Notch Shelf — SHELF-01, SHELF-03 through SHELF-07, SHELF-09 remain, see REQUIREMENTS.md (Phases 20-22)._
+_v1.3 Notch Shelf — SHELF-01, SHELF-02 remain (Phase 22, drag-in), see REQUIREMENTS.md._
 
 ### Out of Scope
 
@@ -231,4 +235,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 — Phase 19 (Shelf Data Model, SHELF-08) shipped.*
+*Last updated: 2026-07-10 — Phase 21 (Drag-Out, SHELF-06) shipped.*
