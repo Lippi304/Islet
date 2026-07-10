@@ -303,6 +303,11 @@ collapsedIsland
    - What we know: The current design (D-02) deliberately reuses the small hot-zone geometry, relying on click-through being irrelevant to drag delivery.
    - What's unclear: Whether the fix would be (a) making the collapsed pill always drag-destination-interactive regardless of `ignoresMouseEvents` (if AppKit permits registering for drops even while a window ignores ordinary mouse events — untested), or (b) needing a wider always-on invisible drop-catcher region, which would be a CONTEXT.md decision change requiring a return to `/gsd:discuss-phase`.
    - Recommendation: If the spike fails, STOP and re-discuss D-02 with the user rather than silently widening scope — this is a locked decision, not implementation discretion.
+   - **RESOLVED (moot):** The spike did NOT show drag delivery blocked (A1 confirmed YES, Question 1
+     above) — this question's own premise never triggered. What DID come up instead was the
+     related-but-distinct Question 4 below (delivery works, but the small hot-zone is a bad drag
+     target geometrically). See Question 4 and `22-CONTEXT.md`'s Hot-Zone/Mission-Control Fallback
+     (D-02b/D-02c/D-05/D-06/D-07), implemented in the replanned `22-03-PLAN.md`.
 
 3. **Does a folder's URL alone (without enumerating contents) render sensibly as a shelf item (icon, name) in the existing Phase 20 `ShelfItemView`?**
    - What we know: `ShelfItem` already stores an arbitrary `URL`/`localURL`; Phase 20's file-type icon lookup presumably uses `NSWorkspace.shared.icon(forFile:)` or similar, which does return a folder icon for directory URLs.
@@ -317,6 +322,13 @@ collapsedIsland
    - What we know: `draggingEntered` fires correctly (A1 confirmed) when the drag actually reaches the hot zone. But the hot zone is sized/positioned for mouse hover/click (D-02's "reuse the existing hot-zone" locked decision), not for a drag session -- on-device, the user's cursor crosses into macOS's own top-edge Mission Control (F3) trigger zone before it reaches the small hot zone, and Mission Control interrupts the drag before `performDragOperation` can ever fire.
    - What's unclear: Whether the fix is (a) a wider always-interactive drop zone active only during an in-flight drag session (detected via `draggingEntered`/system drag-session notifications), (b) an earlier/more forgiving auto-expand trigger during drag-hover specifically (distinct from D-01's click hover timing), or (c) some combination, and how any of these stay clear of the Mission Control trigger geometry.
    - Recommendation: Not implementation discretion -- D-02 (hot-zone reuse) is a locked CONTEXT.md decision that this finding contradicts in practice. Return to `/gsd:discuss-phase 22` to decide the fallback before 22-02/22-03 proceed. This is the same escalation path Open Question 2 above already anticipated for an A1 failure, applied here to a partial/practical failure instead.
+   - **RESOLVED (`/gsd:discuss-phase 22` re-run, 2026-07-10):** D-02 is superseded by D-02b
+     (drag-accept reuses the existing `expandedZone` rect, not the tiny `hotZone`) + D-02c (an
+     explicit landing-margin below the physical top edge via the new `dragLandingMaxY` property) +
+     D-05/D-06 (the same wider region also drives the auto-expand and hover-bounce feedback
+     triggers) + D-07 (ordinary, non-drag hover/click hot-zone behavior is completely unchanged).
+     See `22-CONTEXT.md`'s "Hot-Zone/Mission-Control Fallback" subsection and the replanned
+     `22-03-PLAN.md` (`isWithinDragAcceptRegion(_:)`) for the implemented resolution.
 
 ## Recommended Spike
 

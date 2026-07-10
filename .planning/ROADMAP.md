@@ -238,7 +238,7 @@ Plans:
 
 - [x] 22-01-PLAN.md — On-device spike: confirm AppKit drag-destination delivery survives ignoresMouseEvents (Assumption A1), scaffold + checkpoint — PARTIAL: A1 core question confirmed (draggingEntered fires), but new blocker found (hot-zone too small/near screen-edge Mission Control trigger, drop never completes). See 22-01-SUMMARY.md and 22-RESEARCH.md Open Question 4.
 
-**BLOCKED — needs `/gsd:discuss-phase 22`** before Wave 2 can proceed: D-02 ("reuse the existing hot-zone as-is") is contradicted by on-device testing.
+**UNBLOCKED** — `/gsd:discuss-phase 22` resolved the hot-zone/Mission-Control blocker: D-02 ("reuse the existing hot-zone as-is") is superseded by D-02b (drag-accept reuses the existing expandedZone rect) + D-02c (require landing below the physical top edge, past a margin) + D-05/D-06 (auto-expand and drag-hot feedback trigger off the same wider region) + D-07 (ordinary hover/click hot-zone stays unchanged). 22-02/22-03 replanned against this (2026-07-10).
 
 **Wave 2** *(blocked on 22-01)*
 
@@ -246,4 +246,4 @@ Plans:
 
 **Wave 3** *(blocked on 22-02)*
 
-- [ ] 22-03-PLAN.md — NotchPanel permanent registration/forwarding + NotchWindowController drag-in handlers (D-01/D-02/D-03/D-04) + on-device UAT checkpoint
+- [ ] 22-03-PLAN.md — NotchPanel permanent registration/forwarding + NotchWindowController drag-in handlers (D-01/D-02b/D-02c/D-03/D-04/D-05/D-06) + on-device UAT checkpoint, including the D-02b/D-02c expandedZone + landing-margin boundary check

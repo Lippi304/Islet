@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
 status: executing
-stopped_at: Phase 22 revised context gathered (hot-zone/Mission-Control fallback) — unblocked, ready to replan 22-02/22-03
-last_updated: "2026-07-10T19:33:56.017Z"
-last_activity: 2026-07-10 -- discuss-phase 22 resolved the hot-zone/Mission-Control blocker (D-02 superseded by D-02b/D-02c/D-05/D-06/D-07); ready for /gsd:plan-phase 22 to replan 22-02/22-03
+stopped_at: Phase 22 revised context gathered (hot-zone/Mission-Control fallback)
+last_updated: "2026-07-10T19:57:12.256Z"
+last_activity: 2026-07-10 -- Phase 22 planning complete
 progress:
   total_phases: 7
   completed_phases: 3
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 22 (drag-in) — UNBLOCKED, needs replan
 Plan: 1 of 3 complete (22-01, PARTIAL verdict); 22-02/22-03 need replanning against the revised CONTEXT.md
-Status: Discuss-phase revision complete — D-02 (drag-accept zone) superseded by D-02b/D-02c/D-05/D-06/D-07 (see 22-CONTEXT.md). Next: /gsd:plan-phase 22 to replan 22-02/22-03.
-Last activity: 2026-07-10 -- discuss-phase 22 resolved the hot-zone/Mission-Control blocker
+Status: Ready to execute
+Last activity: 2026-07-10 -- Phase 22 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
