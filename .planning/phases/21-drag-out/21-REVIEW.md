@@ -14,7 +14,7 @@ findings:
   warning: 1
   info: 2
   total: 3
-status: issues_found
+status: fixed
 ---
 
 # Phase 21: Code Review Report
@@ -83,18 +83,10 @@ re-derive freshness from that event as currently wired either.
 **Fix:** Re-sample the live pointer position when ending the drag instead of trusting the frozen
 flag — reuse the existing `handlePointer` entry point, which both updates `pointerInZone`/
 `lastPointerLocation` from ground truth and correctly triggers `handleHoverExit()` if the pointer
-is now outside the zone:
-```swift
-private func endShelfItemDrag() {
-    guard isDraggingShelfItem else { return }
-    isDraggingShelfItem = false
-    dragPinSafetyNetWorkItem?.cancel()
-    dragPinSafetyNetWorkItem = nil
-    if let m = dragReleaseMonitor { NSEvent.removeMonitor(m) }
-    dragReleaseMonitor = nil
-    handlePointer(at: NSEvent.mouseLocation)   // re-sync from the CURRENT position, not the stale flag
-}
-```
+is now outside the zone.
+
+**Status: FIXED** — applied in `NotchWindowController.swift:1290` post-review (commit follows).
+Build verified green (`xcodebuild build -scheme Islet -configuration Debug` → `BUILD SUCCEEDED`).
 
 ## Info
 

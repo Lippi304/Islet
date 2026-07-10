@@ -1287,7 +1287,10 @@ final class NotchWindowController {
         dragPinSafetyNetWorkItem = nil
         if let m = dragReleaseMonitor { NSEvent.removeMonitor(m) }
         dragReleaseMonitor = nil
-        if !pointerInZone { handleHoverExit() }
+        // WR-01: pointerInZone is only kept fresh by the .mouseMoved monitor, which doesn't fire
+        // during an OS drag session — re-sample the live pointer instead of trusting the frozen
+        // flag, so a drag dropped outside the zone actually schedules the collapse.
+        handlePointer(at: NSEvent.mouseLocation)
     }
 
     #if DEBUG
