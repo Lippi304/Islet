@@ -291,6 +291,13 @@ collapsedIsland
      resolves via 22-01's on-device spike task (22-01-PLAN.md Task 2). Record the empirical
      PASSED/FAILED verdict in `22-01-SUMMARY.md` once executed; do not re-research this question,
      per this file's own "Valid until" note.
+   - **RESOLVED (on-device, 22-01-SUMMARY.md):** CONFIRMED YES -- `draggingEntered` fired reliably
+     for a drag started outside the hot zone, on this project's exact `.borderless` /
+     `.nonactivatingPanel` / `.statusBar`-level / `ignoresMouseEvents == true` panel. A1's core
+     technical claim holds; Pitfall 1 (event swallowing) does NOT occur. A **new, separate**
+     follow-on problem was discovered in the same test (drop never completes because the drag path
+     crosses macOS's own top-edge Mission Control trigger before reaching the hot zone) -- see Open
+     Question 4 below. This is a hot-zone geometry issue, not an A1/Pitfall-1 recurrence.
 
 2. **If the spike shows drag delivery IS blocked while collapsed and click-through — what's the fallback?**
    - What we know: The current design (D-02) deliberately reuses the small hot-zone geometry, relying on click-through being irrelevant to drag delivery.
@@ -305,6 +312,11 @@ collapsedIsland
      `testMakeSessionCopyHandlesDirectoryURL` in `IsletTests/ShelfFileStoreTests.swift` confirms
      `ShelfFileStore.makeSessionCopy` correctly round-trips a directory tree, with zero production
      code change.
+
+4. **NEW (raised by 22-01's on-device spike, 22-01-SUMMARY.md): the hot zone is too small and too close to the physical screen top edge to be a reliable drag target.**
+   - What we know: `draggingEntered` fires correctly (A1 confirmed) when the drag actually reaches the hot zone. But the hot zone is sized/positioned for mouse hover/click (D-02's "reuse the existing hot-zone" locked decision), not for a drag session -- on-device, the user's cursor crosses into macOS's own top-edge Mission Control (F3) trigger zone before it reaches the small hot zone, and Mission Control interrupts the drag before `performDragOperation` can ever fire.
+   - What's unclear: Whether the fix is (a) a wider always-interactive drop zone active only during an in-flight drag session (detected via `draggingEntered`/system drag-session notifications), (b) an earlier/more forgiving auto-expand trigger during drag-hover specifically (distinct from D-01's click hover timing), or (c) some combination, and how any of these stay clear of the Mission Control trigger geometry.
+   - Recommendation: Not implementation discretion -- D-02 (hot-zone reuse) is a locked CONTEXT.md decision that this finding contradicts in practice. Return to `/gsd:discuss-phase 22` to decide the fallback before 22-02/22-03 proceed. This is the same escalation path Open Question 2 above already anticipated for an A1 failure, applied here to a partial/practical failure instead.
 
 ## Recommended Spike
 
