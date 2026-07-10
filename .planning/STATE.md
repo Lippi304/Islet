@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: ready_to_plan
-stopped_at: Phase 20 complete (3/3) — ready to discuss Phase 21
-last_updated: 2026-07-10T00:05:00.000Z
-last_activity: 2026-07-10 -- Phase 20 gap closure (20-03) executed, CR-01 verified closed at code level
+status: planning
+stopped_at: Phase 21 context gathered
+last_updated: "2026-07-10T00:35:20.968Z"
+last_activity: 2026-07-10 -- Phase 20 (shelf-view) closed out, 6/6 must-haves verified at code level (4 items need on-device/Cmd-U manual confirmation, see 20-VERIFICATION.md)
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
   completed_plans: 4
-  percent: 14
+  percent: 29
 ---
 
 # Project State
@@ -143,9 +143,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-10T00:05:00.000Z
-Stopped at: Phase 20 (shelf-view) execution + gap closure complete, verification human_needed
-Resume file: .planning/phases/20-shelf-view/20-VERIFICATION.md
+Last session: 2026-07-10T00:35:20.963Z
+Stopped at: Phase 21 context gathered
+Resume file: .planning/phases/21-drag-out/21-CONTEXT.md
 
 ## Operator Next Steps
 
