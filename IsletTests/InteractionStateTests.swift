@@ -35,6 +35,18 @@ final class InteractionStateTests: XCTestCase {
         XCTAssertEqual(nextState(.collapsed, .clicked), .expanded)
     }
 
+    func testCollapsedDragEnteredExpands() {
+        XCTAssertEqual(nextState(.collapsed, .dragEntered), .expanded)
+    }
+
+    func testHoveringDragEnteredExpands() {
+        XCTAssertEqual(nextState(.hovering, .dragEntered), .expanded)
+    }
+
+    func testExpandedDragEnteredIsIdempotent() {
+        XCTAssertEqual(nextState(.expanded, .dragEntered), .expanded)
+    }
+
     func testExpandedPointerExitDefersCollapse() {
         // D-03: leaving an expanded island does not instantly collapse it; grace applies.
         XCTAssertEqual(nextState(.expanded, .pointerExited), .expanded)

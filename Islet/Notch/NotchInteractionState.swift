@@ -6,7 +6,7 @@ import CoreGraphics
 // feeds events in here. Keeping the choreography pure is what makes the most
 // bug-prone part (grace-delay races) unit-testable.
 enum InteractionPhase: Equatable { case collapsed, hovering, expanded }
-enum InteractionEvent: Equatable { case pointerEntered, pointerExited, clicked, graceElapsed }
+enum InteractionEvent: Equatable { case pointerEntered, pointerExited, clicked, graceElapsed, dragEntered }
 
 func nextState(_ current: InteractionPhase, _ event: InteractionEvent) -> InteractionPhase {
     switch (current, event) {
@@ -15,6 +15,11 @@ func nextState(_ current: InteractionPhase, _ event: InteractionEvent) -> Intera
     case (.hovering,  .graceElapsed):   return .collapsed  // D-03: grace elapsed, pointer out
     case (.hovering,  .clicked):        return .expanded   // D-02: expand on click only
     case (.collapsed, .clicked):        return .expanded   // click expands even if enter was missed
+    // Phase 22 / SHELF-01 (D-01/D-05): drag-enter auto-expands, same target as .clicked -- the
+    // CALLER (22-03) gates WHICH geometry triggers this event (D-02b/D-02c), this transition itself
+    // is geometry-agnostic
+    case (.hovering,  .dragEntered):    return .expanded
+    case (.collapsed, .dragEntered):    return .expanded
     case (.expanded,  .pointerExited):  return .expanded   // D-03: defer collapse
     case (.expanded,  .graceElapsed):   return .collapsed  // D-03: grace elapsed while expanded
     case (.expanded,  .pointerEntered): return .expanded   // stay expanded
