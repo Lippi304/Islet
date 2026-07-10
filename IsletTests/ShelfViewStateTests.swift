@@ -75,4 +75,9 @@ final class ShelfViewStateTests: XCTestCase {
         XCTAssertTrue(shouldOpenShelfItem(fileExists: true))
         XCTAssertFalse(shouldOpenShelfItem(fileExists: false))
     }
+
+    func testShouldBeginShelfItemDragGate() {
+        XCTAssertTrue(shouldBeginShelfItemDrag(fileExists: true))
+        XCTAssertFalse(shouldBeginShelfItemDrag(fileExists: false))
+    }
 }
