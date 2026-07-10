@@ -236,7 +236,9 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 22-01-PLAN.md — On-device spike: confirm AppKit drag-destination delivery survives ignoresMouseEvents (Assumption A1), scaffold + checkpoint
+- [x] 22-01-PLAN.md — On-device spike: confirm AppKit drag-destination delivery survives ignoresMouseEvents (Assumption A1), scaffold + checkpoint — PARTIAL: A1 core question confirmed (draggingEntered fires), but new blocker found (hot-zone too small/near screen-edge Mission Control trigger, drop never completes). See 22-01-SUMMARY.md and 22-RESEARCH.md Open Question 4.
+
+**BLOCKED — needs `/gsd:discuss-phase 22`** before Wave 2 can proceed: D-02 ("reuse the existing hot-zone as-is") is contradicted by on-device testing.
 
 **Wave 2** *(blocked on 22-01)*
 

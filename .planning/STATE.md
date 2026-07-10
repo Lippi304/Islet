@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: executing
-stopped_at: Phase 22 context gathered
-last_updated: "2026-07-10T18:14:15.064Z"
-last_activity: 2026-07-10 -- Phase 22 planning complete
+status: blocked
+stopped_at: Phase 22 Wave 1 (22-01) complete — PARTIAL verdict, blocked on hot-zone design decision
+last_updated: "2026-07-10T18:41:00.000Z"
+last_activity: 2026-07-10 -- Phase 22 22-01 spike executed; on-device test found new hot-zone/Mission-Control blocker; routed to discuss-phase 22
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
   percent: 43
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 22 — drag in
+**Current focus:** Phase 22 — drag-in
 
 ## Current Position
 
-Phase: 22
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-10 -- Phase 22 planning complete
+Phase: 22 (drag-in) — BLOCKED
+Plan: 1 of 3 complete (22-01, PARTIAL verdict)
+Status: Blocked — needs /gsd:discuss-phase 22 before Waves 2/3 (22-02, 22-03) can proceed
+Last activity: 2026-07-10 -- 22-01 spike executed on-device; A1 core question confirmed, but a new hot-zone/Mission-Control blocker found
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -111,7 +111,7 @@ None yet.
 [Issues that affect future work]
 
 - [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
-- [v1.3, from research] Phase 22 (Drag-In) rests on an unverified assumption — that `ignoresMouseEvents = true` blocks AppKit drag-destination delivery entirely — drawn from general AppKit knowledge, not a re-fetched Apple doc page. Needs an on-device spike at the start of Phase 22 before committing to the full drag-in architecture.
+- [v1.3, Phase 22, on-device spike 22-01] Assumption A1 CONFIRMED: AppKit drag-destination delivery (draggingEntered) does reach a click-through (ignoresMouseEvents=true), non-activating NSPanel — Pattern-1 architecture is technically sound. BUT a new blocker was found during the same on-device test: the drop never completes (performDragOperation never fires) because the drag path crosses macOS's own top-edge Mission Control (F3) trigger before reaching the notch's small hot zone. D-02 ("reuse the existing hot-zone as-is" for drag-accept) is contradicted in practice. Blocks 22-02/22-03 until `/gsd:discuss-phase 22` decides the fallback (22-RESEARCH.md Open Question 2 + new Open Question 4: wider drag-accept zone and/or earlier drag-hover auto-expand, positioned clear of the screen-edge Mission Control zone).
 - [v1.3, from research] Open product decision, flagged for `/gsd:discuss-phase 20`: should the shelf render/suppress during collapsed "wings" transients (Charging/Device/Now-Playing-wings) mid-display, beyond the already-locked SHELF-09 (suppressed only during Charging/Device splashes)?
 
 ### Quick Tasks Completed
@@ -144,11 +144,11 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-10T16:31:34.875Z
-Stopped at: Phase 22 context gathered
-Resume file: .planning/phases/22-drag-in/22-CONTEXT.md
+Last session: 2026-07-10T18:41:00.000Z
+Stopped at: Phase 22 Wave 1 (22-01) complete — PARTIAL, blocked on hot-zone design decision
+Resume file: .planning/phases/22-drag-in/22-01-SUMMARY.md
 
 ## Operator Next Steps
 
-- Manually verify the 4 on-device/Cmd-U items in 20-VERIFICATION.md (empty-shelf click-through, non-empty-shelf interactivity, delete/clear-all animation smoothness, IslandResolverTests/ShelfViewStateTests via Cmd-U)
-- Then start Phase 21 with `/gsd-discuss-phase 21`
+- Run `/gsd:discuss-phase 22` to decide the drag-accept hot-zone fallback (wider zone during active drag and/or earlier drag-hover auto-expand, kept clear of macOS's top-edge Mission Control trigger) before executing 22-02/22-03
+- Manually verify the 4 on-device/Cmd-U items in 20-VERIFICATION.md (empty-shelf click-through, non-empty-shelf interactivity, delete/clear-all animation smoothness, IslandResolverTests/ShelfViewStateTests via Cmd-U) — pre-existing, unrelated to Phase 22
