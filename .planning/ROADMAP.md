@@ -231,4 +231,17 @@ Plans:
   2. While a file is being dragged over the pill before release, the drop target shows visible "hot"/targeted feedback.
   3. Dragging a file (in or out) no longer freezes the hover/collapse state machine — the island still collapses normally afterward.
   4. The click-through panel correctly receives drag events without breaking normal click-through behavior for ordinary (non-drag) pointer movement.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 22-01-PLAN.md — On-device spike: confirm AppKit drag-destination delivery survives ignoresMouseEvents (Assumption A1), scaffold + checkpoint
+
+**Wave 2** *(blocked on 22-01)*
+
+- [ ] 22-02-PLAN.md — Pure seams: nextState .dragEntered event (D-01) + DragDropSupport.swift (URL extraction + D-04/non-file gate) + folder round-trip test
+
+**Wave 3** *(blocked on 22-02)*
+
+- [ ] 22-03-PLAN.md — NotchPanel permanent registration/forwarding + NotchWindowController drag-in handlers (D-01/D-02/D-03/D-04) + on-device UAT checkpoint
