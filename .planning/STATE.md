@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: blocked
-stopped_at: Phase 22 Wave 1 (22-01) complete — PARTIAL verdict, blocked on hot-zone design decision
-last_updated: "2026-07-10T18:41:00.000Z"
-last_activity: 2026-07-10 -- Phase 22 22-01 spike executed; on-device test found new hot-zone/Mission-Control blocker; routed to discuss-phase 22
+status: executing
+stopped_at: Phase 22 revised context gathered (hot-zone/Mission-Control fallback) — unblocked, ready to replan 22-02/22-03
+last_updated: "2026-07-10T19:33:56.017Z"
+last_activity: 2026-07-10 -- discuss-phase 22 resolved the hot-zone/Mission-Control blocker (D-02 superseded by D-02b/D-02c/D-05/D-06/D-07); ready for /gsd:plan-phase 22 to replan 22-02/22-03
 progress:
   total_phases: 7
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 22 (drag-in) — BLOCKED
-Plan: 1 of 3 complete (22-01, PARTIAL verdict)
-Status: Blocked — needs /gsd:discuss-phase 22 before Waves 2/3 (22-02, 22-03) can proceed
-Last activity: 2026-07-10 -- 22-01 spike executed on-device; A1 core question confirmed, but a new hot-zone/Mission-Control blocker found
+Phase: 22 (drag-in) — UNBLOCKED, needs replan
+Plan: 1 of 3 complete (22-01, PARTIAL verdict); 22-02/22-03 need replanning against the revised CONTEXT.md
+Status: Discuss-phase revision complete — D-02 (drag-accept zone) superseded by D-02b/D-02c/D-05/D-06/D-07 (see 22-CONTEXT.md). Next: /gsd:plan-phase 22 to replan 22-02/22-03.
+Last activity: 2026-07-10 -- discuss-phase 22 resolved the hot-zone/Mission-Control blocker
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -111,7 +111,7 @@ None yet.
 [Issues that affect future work]
 
 - [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
-- [v1.3, Phase 22, on-device spike 22-01] Assumption A1 CONFIRMED: AppKit drag-destination delivery (draggingEntered) does reach a click-through (ignoresMouseEvents=true), non-activating NSPanel — Pattern-1 architecture is technically sound. BUT a new blocker was found during the same on-device test: the drop never completes (performDragOperation never fires) because the drag path crosses macOS's own top-edge Mission Control (F3) trigger before reaching the notch's small hot zone. D-02 ("reuse the existing hot-zone as-is" for drag-accept) is contradicted in practice. Blocks 22-02/22-03 until `/gsd:discuss-phase 22` decides the fallback (22-RESEARCH.md Open Question 2 + new Open Question 4: wider drag-accept zone and/or earlier drag-hover auto-expand, positioned clear of the screen-edge Mission Control zone).
+- [v1.3, Phase 22, on-device spike 22-01 — RESOLVED 2026-07-10] Assumption A1 CONFIRMED: AppKit drag-destination delivery (draggingEntered) does reach a click-through (ignoresMouseEvents=true), non-activating NSPanel — Pattern-1 architecture is technically sound. The new blocker found in the same on-device test (drop never completes because the drag path crosses macOS's top-edge Mission Control trigger before reaching the notch's small hot zone) is now resolved via `/gsd:discuss-phase 22`: D-02 is superseded by D-02b (drag-accept reuses the existing reserved expanded+wings footprint) + D-02c (require landing below the physical top edge) + D-05/D-06 (auto-expand and drag-hot feedback trigger off the same wider footprint) + D-07 (ordinary hover/click hot-zone stays unchanged, widening is drag-only). See `22-CONTEXT.md`. Next: `/gsd:plan-phase 22` to replan 22-02/22-03 against this.
 - [v1.3, from research] Open product decision, flagged for `/gsd:discuss-phase 20`: should the shelf render/suppress during collapsed "wings" transients (Charging/Device/Now-Playing-wings) mid-display, beyond the already-locked SHELF-09 (suppressed only during Charging/Device splashes)?
 
 ### Quick Tasks Completed
@@ -144,9 +144,9 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 ## Session Continuity
 
-Last session: 2026-07-10T18:41:00.000Z
-Stopped at: Phase 22 Wave 1 (22-01) complete — PARTIAL, blocked on hot-zone design decision
-Resume file: .planning/phases/22-drag-in/22-01-SUMMARY.md
+Last session: 2026-07-10T19:33:56.009Z
+Stopped at: Phase 22 revised context gathered (hot-zone/Mission-Control fallback)
+Resume file: .planning/phases/22-drag-in/22-CONTEXT.md
 
 ## Operator Next Steps
 
