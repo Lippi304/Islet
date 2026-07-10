@@ -87,6 +87,9 @@ struct NotchPillView: View {
     var onShelfItemTap: (ShelfItem) -> Void = { _ in }
     var onShelfItemDelete: (UUID) -> Void = { _ in }
     var onShelfClearAll: () -> Void = {}
+    // Phase 21 / SHELF-06 — the drag-started signal, forwarded from ShelfItemView so the
+    // controller can pin the island open for the duration of a shelf-item drag (D-03).
+    var onShelfItemDragStarted: () -> Void = {}
 
     // The single shared morph identity (D-07): the collapsed and expanded blobs both
     // morph against this one geometry group via matchedGeometryEffect(id: "island").
@@ -295,7 +298,8 @@ struct NotchPillView: View {
                 ForEach(items, id: \.id) { item in
                     ShelfItemView(item: item,
                                   onTap: { onShelfItemTap(item) },
-                                  onDelete: { onShelfItemDelete(item.id) })
+                                  onDelete: { onShelfItemDelete(item.id) },
+                                  onDragStarted: { onShelfItemDragStarted() })
                 }
                 Button(action: onShelfClearAll) {
                     Image(systemName: "trash")
