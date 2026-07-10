@@ -1,8 +1,8 @@
 ---
 phase: 21-drag-out
 verified: 2026-07-10T03:56:00Z
-status: human_needed
-score: 6/6 must-haves verified in code
+status: passed
+score: 6/6 must-haves verified in code, 4/4 human UAT items passed
 overrides_applied: 0
 ---
 
@@ -10,8 +10,8 @@ overrides_applied: 0
 
 **Phase Goal:** Users can drag a file already staged in the shelf back out to Finder or any other app, using the item's own local copy — validated before the higher-risk drag-in work.
 **Verified:** 2026-07-10T03:56:00Z
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Status:** passed (upgraded from human_needed — all 4 items in 21-HUMAN-UAT.md confirmed passed 2026-07-10T15:55:00Z by the user on-device, after two UAT-discovered fixes: commit `3b38f33` (shelf row clipped by a stale outer-container frame height) and commit `dfbde2d` (auto-prune shelf items with deleted backing files, added at explicit user request)).
+**Re-verification:** No — initial verification, upgraded via human UAT sign-off
 
 ## Goal Achievement
 
