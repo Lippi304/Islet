@@ -214,7 +214,12 @@ Plans:
   1. User can drag a shelf item out of the strip onto the Finder desktop (or another app) and the real file lands there.
   2. Dragging out a shelf item whose backing file has since vanished fails gracefully (pruned or a no-op drag) rather than crashing.
   3. The expanded island's hover/grace-collapse behavior does not get stuck open after a drag-out gesture completes.
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+**Wave 1**
+
+- [ ] 21-01-PLAN.md — Pure drag-gate seam (shouldBeginShelfItemDrag) + ShelfItemView .onDrag drag source + NotchWindowController drag-pin lifecycle (D-01/D-02/D-03/D-04)
 
 ### Phase 22: Drag-In
 
