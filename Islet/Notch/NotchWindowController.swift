@@ -261,8 +261,8 @@ final class NotchWindowController {
     // bounce. The two seeds live here so Plan 05 tunes the feel in ONE place; each mutation
     // site spells out `withAnimation(.spring(response:dampingFraction:))` so the animation
     // is provably attached AT the state change (the view itself drives no animation, D-08).
-    private let springResponse: Double = 0.35
-    private let springDamping: Double = 0.65
+    private let springResponse: Double = 0.6
+    private let springDamping: Double = 0.62
 
     #if DEBUG
     // A1 probe seam (Pitfall 1): the monitor returns a non-nil token even when the OS gated

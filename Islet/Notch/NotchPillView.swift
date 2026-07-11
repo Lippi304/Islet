@@ -133,6 +133,22 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
+    // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
+    // material. Single source of truth for every fill site below (collapsedFill, blobShape,
+    // wingsShape, mediaWingsOrToast) so the collapsed pill, expanded island, and all activity
+    // wings render the SAME material, matching the iPhone Dynamic Island look. Pure black only
+    // (D-01: no grey mixed in) with a long opaque stretch and only a ~50% floor at the very
+    // bottom edge (D-02: never `.clear`) — starting values, tuned on-device in Task 3.
+    private static let islandMaterial = LinearGradient(
+        stops: [
+            .init(color: .black, location: 0.0),
+            .init(color: .black, location: 0.65),
+            .init(color: .black.opacity(0.5), location: 1.0),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
     // Phase 18 / NOW-05 — post-checkpoint ROUND 3 (on-device feedback, supersedes round 2's
     // standalone `toastSize` blob below): the user rejected a separate replacement shape and
     // asked for the EXISTING wings glance to stay pixel-identical, with a small text row
@@ -233,7 +249,7 @@ struct NotchPillView: View {
     // here — this ~40pt-tall content needs no camera-clearance pin, unlike mediaExpanded's
     // 84-100pt content (UI-SPEC.md explicitly corrects RESEARCH.md's `.padding(.top, 32)`).
     private var expandedIsland: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 20, shelfItems: shelfViewState.items) {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items) {
             HStack(spacing: 0) {
                 if let weather = outfit.weather {
                     weatherColumn(weather)
@@ -275,7 +291,7 @@ struct NotchPillView: View {
         let hasShelf = !shelfItems.isEmpty
         let height = Self.expandedSize.height + (hasShelf ? Self.shelfRowHeight : 0)
         return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
-            .fill(Color.black)
+            .fill(Self.islandMaterial)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.expandedSize.width, height: height)
             .overlay(alignment: .top) {
@@ -331,7 +347,7 @@ struct NotchPillView: View {
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
     private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flatter than the downward blob
-            .fill(Color.black)
+            .fill(Self.islandMaterial)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             .overlay(
@@ -394,7 +410,7 @@ struct NotchPillView: View {
         let toast = nowPlaying.songChangeToast
         let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)
         NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
-            .fill(Color.black)
+            .fill(Self.islandMaterial)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: height)
             .overlay(alignment: .top) {
@@ -648,7 +664,7 @@ struct NotchPillView: View {
         // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
         // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
         // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
-        return blobShape(topCornerRadius: 6, bottomCornerRadius: 20, alignment: .top, shelfItems: shelfViewState.items) {
+        return blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
                     HStack(alignment: .top, spacing: 10) {
@@ -713,7 +729,7 @@ struct NotchPillView: View {
     // expanded blob shape so the island still morphs; a single centered message. Distinct
     // from D-11 (.none + healthy → date/time): isHealthy is the orthogonal axis.
     private var mediaUnavailable: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 20, shelfItems: shelfViewState.items) {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items) {
             Text("Now Playing nicht verfügbar")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(.white)
@@ -725,11 +741,11 @@ struct NotchPillView: View {
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
     // D-02 shows a visible tint during development so a first-time builder can
     // confirm width / radius / position over the real notch.
-    private var collapsedFill: Color {
+    private var collapsedFill: some ShapeStyle {
         #if DEBUG
         return Color.red.opacity(0.6)
         #else
-        return Color.black
+        return Self.islandMaterial
         #endif
     }
     private var devOffset: CGFloat {
