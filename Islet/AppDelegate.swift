@@ -66,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The controller resolves the correct screen, positions the panel on the
         // notch, and re-positions on every screen-configuration change.
         let controller = NotchWindowController()
-        controller.start()
+        controller.start(isFirstLaunch: isFirstLaunch)
         self.notchController = controller
 
         // A menu-bar agent must NOT show its Settings window on launch — once
@@ -74,18 +74,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The SwiftUI Window(id:) scene creates its window at launch, so hide it
         // right after launch. orderOut keeps the window object alive, so
         // "Settings…" can re-show it instantly via makeKeyAndOrderFront below.
-        if isFirstLaunch {
-            // D-02/D-03: on a genuinely fresh install, skip the hide entirely
-            // (Pitfall 2's recommended fix) and auto-open Settings once instead,
-            // regardless of the notch-target display state.
-            didHideSettingsAtLaunch = true
-            DispatchQueue.main.async { [weak self] in
-                self?.openSettings()
-            }
-        } else {
-            DispatchQueue.main.async { [weak self] in
-                self?.hideSettingsWindowOnLaunch()
-            }
+        // Phase 26 / D-08: onboarding now lives entirely inside the notch panel
+        // (NotchWindowController.start(isFirstLaunch:)), so Settings must never
+        // auto-open on any launch, first or not — unconditionally hide it.
+        DispatchQueue.main.async { [weak self] in
+            self?.hideSettingsWindowOnLaunch()
         }
 
         #if DEBUG
