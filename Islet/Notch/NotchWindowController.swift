@@ -89,6 +89,12 @@ final class NotchWindowController {
     // `shelfCoordinator.logic.items` (mirrors nowPlayingState/outfitState's own ownership contract).
     private let shelfViewState = ShelfViewState()
 
+    // Phase 26 / ONBOARD-01 — the SEPARATE @Published onboarding-permissions model
+    // NotchPillView's Permissions step observes, mirroring shelfViewState's ownership
+    // contract. Plan 26-04 wires the real permission-request writes; this plan only needs
+    // the property to exist so makeRootView's non-defaulted onboardingState param compiles.
+    private let onboardingState = OnboardingViewState()
+
     // Phase 20 / SHELF-04/05/07 — owns the real Phase-19 append/remove/clear + disk-IO seam.
     // No `start()`-time construction needed (unlike deviceCoordinator, ShelfCoordinator has no
     // `[weak self]`-capturing closures to bind).
@@ -1087,6 +1093,7 @@ final class NotchWindowController {
                       presentationState: presentationState,
                       outfit: outfitState,
                       shelfViewState: shelfViewState,
+                      onboardingState: onboardingState,
                       onClick: { [weak self] in self?.handleClick() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
                       // monitor — no re-spawn, no focus steal.
