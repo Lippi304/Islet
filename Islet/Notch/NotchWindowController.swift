@@ -738,7 +738,11 @@ final class NotchWindowController {
         // sideways-wings frames so BOTH the Phase-2 expand AND the Phase-3 wings fit without
         // any runtime panel resize (resizing mid-activity would race the morph + hot-zone math).
         let wings = wingsFrame(collapsed: collapsedFrame, wingsSize: wingsSize)
-        let panelFrame = expandedFrame.union(wings)
+        // Phase 26 / ONBOARD-01/02 — the panel is sized once, up front, to the union of every
+        // possible content size (mirrors how `wings` was added as a second union member in
+        // Phase 3) so the onboarding card's real 240pt height is never resized mid-activity.
+        let onboardingFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: NotchPillView.onboardingSize)
+        let panelFrame = expandedFrame.union(wings).union(onboardingFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
@@ -894,9 +898,15 @@ final class NotchWindowController {
         guard let hotZone else { return nil }
         let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
         let shelfHeight = shelfViewState.items.isEmpty ? 0 : NotchPillView.shelfRowHeight
-        let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                              expandedSize: CGSize(width: expandedSize.width,
-                                                                    height: expandedSize.height + shelfHeight))
+        // Phase 26 / ONBOARD-01/02 — the onboarding card renders at its own taller fixed size
+        // (240pt vs. the 144pt expandedSize), independent of shelf state (onboarding's shelf is
+        // always empty, D-06). Scoping this branch to ONLY the geometry visibleContentZone()
+        // measures keeps syncClickThrough()'s own interactive-value logic untouched (CR-01
+        // discipline — see 26-PATTERNS.md).
+        let contentSize: CGSize = isOnboardingActive
+            ? NotchPillView.onboardingSize
+            : CGSize(width: expandedSize.width, height: expandedSize.height + shelfHeight)
+        let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: contentSize)
         return visibleFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
     }
 
@@ -979,6 +989,8 @@ final class NotchWindowController {
             // Phase 21 / SHELF-06 / D-03 — defer the collapse while a shelf-item drag is in
             // flight; endShelfItemDrag() re-invokes handleHoverExit() once the drag ends.
             guard !self.isDraggingShelfItem else { return }
+            // Phase 26 / ONBOARD-01 (D-09) — a forced onboarding session must never grace-collapse.
+            guard !self.isOnboardingActive else { return }
             // Only collapse if the pointer is STILL outside (re-entry would have cancelled).
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                 self.interaction.phase = nextState(self.interaction.phase, .graceElapsed)
@@ -1014,6 +1026,11 @@ final class NotchWindowController {
     // onTapGesture; runs the pure `.clicked` transition inside the spring. The panel is
     // already non-activating + never key, so this never steals focus (D-04).
     private func handleClick() {
+        // Phase 26 / ONBOARD-01 (D-09) — a stray tap on the onboarding card's background (which
+        // still bubbles up to blobShape's ancestor .onTapGesture) is a no-op during onboarding;
+        // the Next/Back/Grant/Finish buttons are real SwiftUI Buttons that already intercept
+        // their own taps before this ancestor gesture fires.
+        guard !isOnboardingActive else { return }
         let wasExpanded = interaction.isExpanded
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             interaction.phase = nextState(interaction.phase, .clicked)
