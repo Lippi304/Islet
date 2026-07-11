@@ -350,7 +350,21 @@ Plans:
   2. The permissions screen shows a one-line reason per permission (Bluetooth, Calendar, Location/WeatherKit), and its Continue/Grant action triggers the real system permission prompt for each, in sequence.
   3. The onboarding flow shows exactly once (persisted flag) and can be skipped/dismissed at any point.
   4. No gesture/feature tutorial screen appears anywhere in the flow.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 26-01-PLAN.md — Pure onboarding seams (TDD): OnboardingFlow.swift step reducer + launch gate functions, IslandResolver onboarding precedence, ActivitySettings key
+
+**Wave 2** *(blocked on 26-01)*
+
+- [ ] 26-02-PLAN.md — NotchPillView onboarding carousel view (4 steps per UI-SPEC) + OnboardingViewState
+- [ ] 26-03-PLAN.md — NotchWindowController launch-time gating (D-01) + AppDelegate hand-off
+
+**Wave 3** *(blocked on 26-02, 26-03)*
+
+- [ ] 26-04-PLAN.md — Step/permission/settings/finish handlers + on-device UAT checkpoint
 **UI hint**: yes
 
 ### Phase 27: Settings Sidebar Redesign
