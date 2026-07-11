@@ -305,7 +305,16 @@ Plans:
   2. While a file is being dragged over the pill before release, the drop target shows visible "hot"/targeted feedback.
   3. Drag-in works reliably across repeated on-device trials — closing the Phase 22 regression rather than repeating it.
   4. Ordinary (non-drag) hover/click/click-through behavior is unaffected by the new `DragApproachDetector`.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 24-01-PLAN.md — Isolated on-device spike (D-05/D-06): confirm DragApproachDetector global-monitor mechanism fires reliably for an inbound Finder drag, checkpoint-gated
+
+**Wave 2** *(blocked on 24-01)*
+
+- [ ] 24-02-PLAN.md — Full DragApproachDetector accept/shelf-landing logic (SHELF-01/SHELF-02) + on-device UAT checkpoint
 
 ### Phase 25: Visual/Material Theming Redesign
 
