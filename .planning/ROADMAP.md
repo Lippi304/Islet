@@ -284,8 +284,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 23-01-PLAN.md — NotchPanel.swift D-01 drag-scaffold removal + NotchPanelTests.swift regression assertion
-- [ ] 23-02-PLAN.md — NotchWindowController.swift reconstruction: properties/start()/monitor lifecycle + hosting-view/settings-apply/Now-Playing/shelf handlers/deinit
+- [x] 23-01-PLAN.md — NotchPanel.swift D-01 drag-scaffold removal + NotchPanelTests.swift regression assertion
+- [x] 23-02-PLAN.md — NotchWindowController.swift reconstruction: properties/start()/monitor lifecycle + hosting-view/settings-apply/Now-Playing/shelf handlers/deinit
 
 **Wave 2** *(blocked on 23-02, same-file sequencing)*
 
