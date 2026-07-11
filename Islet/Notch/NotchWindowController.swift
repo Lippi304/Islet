@@ -305,6 +305,14 @@ final class NotchWindowController {
     private var didLogFirstHover = false
     #endif
 
+    #if DEBUG
+    // Phase 24 / Plan 24-03 Task 1 — THROWAWAY spike instrumentation for the drop-interception
+    // premise (Assumption A5). Entirely #if DEBUG-gated, mirrors Plan 24-01's own throwaway-spike
+    // isolation discipline. Removed in Task 3 once the on-device spike (Task 2) is validated.
+    private var spikeInterceptTap: CFMachPort?
+    private var spikeInterceptRunLoopSource: CFRunLoopSource?
+    #endif
+
     func start() {
         // Phase 16 / D-02 — constructed here (not at declaration) so the [weak self]-capturing
         // closures bind a fully-initialised self, mirroring powerMonitor/nowPlayingMonitor's
@@ -394,6 +402,12 @@ final class NotchWindowController {
         // Never compiles into Release.
         #if DEBUG
         seedDebugShelfItems()
+        #endif
+
+        // Phase 24 / Plan 24-03 Task 1 — arm the throwaway spike (Assumption A5 validation).
+        // DEBUG-only, entirely disjoint from the production DragApproachDetector monitors above.
+        #if DEBUG
+        armSpikeDropInterceptTap()
         #endif
 
         // Phase 6 / APP-03 / D-09: observe UserDefaults so flipping a toggle (or the accent
@@ -758,6 +772,12 @@ final class NotchWindowController {
     // harmless idempotent no-op, and unconditionally clearing the flag next means a
     // geometrically-ambiguous Escape-cancel can never leave the island stuck expanded (T-24-04).
     private func handleDragApproachEnd() {
+        #if DEBUG
+        // Phase 24 / Plan 24-03 Task 1 — THROWAWAY diagnostic line (Assumption A7 / Pitfall A):
+        // does this existing dragEndMonitor path still fire for a .leftMouseUp the spike tap has
+        // already swallowed? Removed in Task 3 alongside the rest of the spike.
+        NSLog("[SPIKE-24-DIT] handleDragApproachEnd() fired (isDragApproaching=\(isDragApproaching))")
+        #endif
         guard isDragApproaching else { return }
         isDragApproaching = false
 
@@ -1441,6 +1461,48 @@ final class NotchWindowController {
     }
     #endif
 
+    #if DEBUG
+    // Phase 24 / Plan 24-03 Task 1 — THROWAWAY on-device probe of Assumption A5: does swallowing
+    // the terminating .leftMouseUp at .cgSessionEventTap/.defaultTap actually stop the
+    // WindowServer's own drag-completion delivery (Finder's Desktop same-volume move)? Callback is
+    // capture-less (a C function pointer, RESEARCH.md §4's shape) — `self` is threaded via
+    // `userInfo`/`Unmanaged`, NOT a [weak self] closure like every other monitor in this file.
+    private func armSpikeDropInterceptTap() {
+        NSLog("[SPIKE-24-DIT] AXIsProcessTrusted (pre-request) = \(AXIsProcessTrusted())")
+        let promptResult = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary)
+        NSLog("[SPIKE-24-DIT] AXIsProcessTrustedWithOptions(prompt:true) = \(promptResult)")
+
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: CGEventMask(1 << CGEventType.leftMouseUp.rawValue),
+            callback: { _, type, event, userInfo in
+                guard let userInfo else { return Unmanaged.passUnretained(event) }
+                let controller = Unmanaged<NotchWindowController>.fromOpaque(userInfo).takeUnretainedValue()
+                guard type == .leftMouseUp else { return Unmanaged.passUnretained(event) }
+                let inside = controller.isDragApproaching
+                NSLog("[SPIKE-24-DIT] leftMouseUp tick, isDragApproaching=\(inside)")
+                if inside {
+                    NSLog("[SPIKE-24-DIT] SWALLOWING this mouseUp")
+                    return nil
+                }
+                return Unmanaged.passUnretained(event)
+            },
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
+        ) else {
+            NSLog("[SPIKE-24-DIT] tapCreate returned nil — permission likely not granted")
+            return
+        }
+
+        let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+        spikeInterceptTap = tap
+        spikeInterceptRunLoopSource = runLoopSource
+    }
+    #endif
+
     deinit {
         // The screen-parameters observer lives on the DEFAULT center; the two fullscreen
         // observers live on NSWorkspace's OWN center — removing a workspace observer from the
@@ -1455,6 +1517,11 @@ final class NotchWindowController {
         // Phase 24 / SHELF-01 / SHELF-02 — tear down the production DragApproachDetector monitors.
         if let m = dragApproachMonitor { NSEvent.removeMonitor(m) }
         if let m = dragEndMonitor { NSEvent.removeMonitor(m) }
+        #if DEBUG
+        // Phase 24 / Plan 24-03 Task 1 — tear down the throwaway spike tap.
+        if let s = spikeInterceptRunLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), s, .commonModes) }
+        if let t = spikeInterceptTap { CGEvent.tapEnable(tap: t, enable: false) }
+        #endif
         graceWorkItem?.cancel()
 
         // Phase 21 / SHELF-06 (T-21-03): in case the controller deallocates mid-drag (e.g. app
