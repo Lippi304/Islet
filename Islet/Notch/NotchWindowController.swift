@@ -215,6 +215,15 @@ final class NotchWindowController {
     // (dragPinSafetyNetWorkItem) so the pin can never outlive a real drag gesture indefinitely.
     private var isDraggingShelfItem = false
     private var dragPinSafetyNetWorkItem: DispatchWorkItem?
+
+    // Phase 26 / ONBOARD-01/ONBOARD-03 (D-01/D-09) — the launch-time onboarding gate state,
+    // computed once at the top of start(isFirstLaunch:) from Plan 26-01's pure
+    // shouldShowOnboarding(...)/shouldSeedOnboardingCompletedForExistingUser(...) gates.
+    // onboardingStep feeds resolve(...)'s forced-flow precedence (IslandResolver.swift);
+    // isOnboardingActive gates the Bluetooth/Location/Calendar permission-triggering calls
+    // this same start() would otherwise fire eagerly (RESEARCH.md Pitfall 2).
+    private(set) var onboardingStep: OnboardingStep?
+    private var isOnboardingActive = false
     private let dragPinSafetyNetDuration: TimeInterval = 20.0
     private var dragReleaseMonitor: Any?
 
@@ -312,7 +321,22 @@ final class NotchWindowController {
     // (A5/A7/A6 all confirmed on-device: 24-03-SUMMARY.md).
     private var dropInterceptTap: DropInterceptTap?
 
-    func start() {
+    func start(isFirstLaunch: Bool) {
+        // Phase 26 / ONBOARD-01/ONBOARD-03 (D-01, RESEARCH.md Pitfall 2) — the launch-time
+        // onboarding gate, computed FIRST from Plan 26-01's pure functions before any
+        // permission-triggering monitor is touched below. A stored flag always wins; a
+        // genuinely fresh install (isFirstLaunch, no stored flag) shows onboarding, while an
+        // existing pre-Phase-26 user (no stored flag, NOT first launch) is grandfathered —
+        // seeded completed so they are never gated.
+        let storedCompleted = UserDefaults.standard.object(forKey: ActivitySettings.onboardingCompletedKey) as? Bool
+        if shouldSeedOnboardingCompletedForExistingUser(isFirstLaunch: isFirstLaunch, onboardingCompletedStored: storedCompleted) {
+            UserDefaults.standard.set(true, forKey: ActivitySettings.onboardingCompletedKey)
+        }
+        if shouldShowOnboarding(isFirstLaunch: isFirstLaunch, onboardingCompletedStored: storedCompleted) {
+            onboardingStep = .welcome
+            isOnboardingActive = true
+        }
+
         // Phase 16 / D-02 — constructed here (not at declaration) so the [weak self]-capturing
         // closures bind a fully-initialised self, mirroring powerMonitor/nowPlayingMonitor's
         // own start()-time construction.
@@ -389,12 +413,15 @@ final class NotchWindowController {
         // if the Devices toggle is on. Mirrors the power monitor's construction; handleDevice
         // feeds the pure device seam → the transient queue. (On-device BT UAT is the deferred
         // carry-over; the wiring is code-complete.)
-        if activityEnabled(ActivitySettings.deviceKey) { startBluetoothMonitor() }
+        if activityEnabled(ActivitySettings.deviceKey) && !isOnboardingActive { startBluetoothMonitor() }
 
         // Phase 14 / WEATHER-01 / CAL-01: start the outfit (weather + calendar) coarse-refresh
         // cycle. Unconditional — unlike the toggle-gated monitors above, this phase has no
-        // Settings toggle of its own (out of scope for 14-04).
-        startOutfitRefresh()
+        // Settings toggle of its own (out of scope for 14-04). Phase 26 / D-01: deferred while
+        // onboarding is active — Location/Calendar are among the permission-triggering calls
+        // this launch-time gate defers until the Permissions step (Plan 26-04) explicitly
+        // grants them.
+        if !isOnboardingActive { startOutfitRefresh() }
 
         // Phase 20 / SHELF-03/04/05/07 (Pitfall 5) — DEBUG-only hand-seed of real, on-disk sample
         // shelf items so the shelf strip is visually verifiable ahead of Phase 22's real drag-in.
@@ -402,6 +429,11 @@ final class NotchWindowController {
         #if DEBUG
         seedDebugShelfItems()
         #endif
+
+        // Phase 26 / ONBOARD-01 (D-09): a forced onboarding session starts already expanded —
+        // no animation wrapper, this is the initial launch state (mirrors `interaction.phase`'s
+        // own no-animation `.collapsed` default), not a live transition.
+        if isOnboardingActive { interaction.phase = .expanded }
 
         // Phase 6 / APP-03 / D-09: observe UserDefaults so flipping a toggle (or the accent
         // swatch) live-applies — start/stop the affected monitor, flush its standing/queued
@@ -415,6 +447,11 @@ final class NotchWindowController {
         // Phase 6: seed the first rendered presentation from the resolver (idle until an
         // activity fires) so the view starts from the single-arbiter verdict, not a stale value.
         renderPresentation()
+
+        // Phase 26 / ONBOARD-01: makes the panel immediately interactive at launch without
+        // requiring a hover tick first — mirrors handleHoverEnter()'s own post-mutation
+        // syncClickThrough() call.
+        if isOnboardingActive { syncClickThrough() }
 
         // Phase 10 / D-12: arm the best-effort one-shot proactive expiry re-check.
         scheduleTrialExpiryCheck()
@@ -489,12 +526,19 @@ final class NotchWindowController {
     // ONCE (D-01 — never re-requested on refresh, only cached in `lastLocation`), fetches
     // calendar immediately (no location dependency), then arms the 15-minute coarse refresh
     // (well under WeatherKit's 500k/month quota per RESEARCH.md).
-    private func startOutfitRefresh() {
-        guard outfitRefreshTimer == nil else { return }
+    // Phase 26 / ONBOARD-01 — split out of startOutfitRefresh() so Plan 26-04's Permissions-row
+    // Grant handler can call the location request independently, exactly like
+    // startBluetoothMonitor()/refreshCalendar() already are.
+    private func startLocationOnce() {
         locationProvider.requestOnce { [weak self] location in
             self?.lastLocation = location
             self?.refreshWeather()
         }
+    }
+
+    private func startOutfitRefresh() {
+        guard outfitRefreshTimer == nil else { return }
+        startLocationOnce()
         refreshCalendar()
         outfitRefreshTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { [weak self] _ in
             // Phase 15 / P15-ITEM5 (D-06) — skip the fetch entirely while hidden (fullscreen or
@@ -547,7 +591,8 @@ final class NotchWindowController {
                        nowPlaying: np,
                        nowPlayingHealthy: healthy,
                        hasPlayedSinceLaunch: nowPlayingState.hasPlayedSinceLaunch,
-                       isExpanded: interaction.isExpanded)
+                       isExpanded: interaction.isExpanded,
+                       onboardingStep: onboardingStep)
     }
 
     // Write the resolver's verdict to the @Published carrier the view observes. The CALLER owns
