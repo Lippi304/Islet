@@ -56,6 +56,12 @@ struct NotchPillView: View {
     // published — no ShelfCoordinator, no file I/O.
     @ObservedObject var shelfViewState: ShelfViewState
 
+    // Phase 26 / ONBOARD-01 — the SEPARATE @Published onboarding-permissions model,
+    // mirroring nowPlaying/presentationState/outfit/shelfViewState's existing ownership
+    // contract: the controller (Plan 26-04) always owns and injects a real instance, never
+    // defaulted. This view only RENDERS whatever is published — no permission-request logic.
+    @ObservedObject var onboardingState: OnboardingViewState
+
     // Phase 6 / D-11 / Pattern 4 — the persisted accent the controller injects on the hosting
     // view via `.environment(\.activityAccent, …)`. It tints ONLY the three lively leaf
     // elements (charging filling glyph, equalizer bars, device icon); the black island and the
@@ -90,6 +96,17 @@ struct NotchPillView: View {
     // Phase 21 / SHELF-06 — the drag-started signal, forwarded from ShelfItemView so the
     // controller can pin the island open for the duration of a shelf-item drag (D-03).
     var onShelfItemDragStarted: () -> Void = {}
+
+    // Phase 26 / ONBOARD-01 — the onboarding carousel's callbacks, plain closures mirroring
+    // the shelf-item callbacks above: the view stays AppKit-free, only REPORTS intent.
+    // NotchWindowController (Plan 26-04) owns these and forwards them to the real
+    // OnboardingFlow/permission-request/Settings-hop/finish logic. Defaulted to no-ops so the
+    // DEBUG #Previews build without a controller.
+    var onOnboardingNext: () -> Void = {}
+    var onOnboardingBack: () -> Void = {}
+    var onOnboardingGrant: (OnboardingPermission) -> Void = { _ in }
+    var onOnboardingOpenSettings: () -> Void = {}
+    var onOnboardingFinish: () -> Void = {}
 
     // The single shared morph identity (D-07): the collapsed and expanded blobs both
     // morph against this one geometry group via matchedGeometryEffect(id: "island").
@@ -167,6 +184,14 @@ struct NotchPillView: View {
     // re-derive it.
     static let shelfRowHeight: CGFloat = 56
 
+    // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
+    // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
+    // mid-animation" convention that added wingsSize/toastExtraHeight as sibling constants
+    // rather than resizing expandedSize itself). Width matches expandedSize's 360 exactly
+    // (no new panel width); height 240 is taller than expandedSize's 144 to fit the busiest
+    // step (3 permission rows + bottom nav) without clipping.
+    static let onboardingSize = CGSize(width: 360, height: 240)
+
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
         // expanded content grows DOWNWARD from the notch (RESEARCH Pattern 4: panel is
@@ -182,12 +207,11 @@ struct NotchPillView: View {
             // not to empty" (D-02 yield-to-ambient). The expanded media-health axis (D-12) rides
             // on the `.nowPlayingExpanded(_, healthy:)` flag.
             switch presentation {
-            case .onboarding:
-                // Phase 26 / D-09 — resolve(...) can now return this case (highest priority),
-                // but no caller passes a non-nil onboardingStep yet and no onboarding UI exists
-                // until Plans 26-02/26-03/26-04 build it; a placeholder keeps this switch
-                // exhaustive without pre-empting those plans' UI-SPEC.
-                EmptyView()
+            case .onboarding(let step):
+                // Phase 26 / ONBOARD-01 / D-09 — the forced-flow onboarding carousel
+                // (highest priority, resolve(...) puts it first). Plan 26-04 wires the
+                // closures below to real controller behavior.
+                onboardingCarousel(step)
             case .charging(let a):
                 wings(for: a)                                                    // D-02 rank 1 transient
             case .device(let d):
@@ -271,6 +295,178 @@ struct NotchPillView: View {
         }
     }
 
+    // Phase 26 / ONBOARD-01 — the notch-hosted onboarding carousel. Same call shape as
+    // expandedIsland (blobShape + content closure), shelfItems always empty (D-06: the shelf
+    // never shows during onboarding), height fixed to onboardingSize.height for all 4 steps
+    // (no per-step resize, 26-UI-SPEC.md Panel & Layout Contract).
+    private func onboardingCarousel(_ step: OnboardingStep) -> some View {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, height: Self.onboardingSize.height, shelfItems: []) {
+            VStack(alignment: .leading, spacing: 0) {
+                switch step {
+                case .welcome:
+                    onboardingWelcomeStep
+                case .trialLicenseBuy:
+                    onboardingTrialLicenseBuyStep
+                case .permissions:
+                    onboardingPermissionsStep
+                case .done:
+                    OnboardingDoneStep()
+                }
+                Spacer(minLength: 0)
+                onboardingNavRow(step)
+            }
+            .padding(.top, 32)         // camera-clearance, matches mediaExpanded's convention
+            .padding(.horizontal, 16)  // screen content padding
+            .padding(.bottom, 16)      // bottom nav row padding
+        }
+    }
+
+    // Step 1 — Welcome. Copywriting Contract: exact strings, verbatim.
+    private var onboardingWelcomeStep: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Meet Islet")
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            Text("Your notch, upgraded. Now Playing, charging, and a drag-and-drop shelf — always one glance away.")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // Step 2 — Trial/License/Buy. D-04: purely informational about the already-running
+    // trial; D-05 (LOCKED): both buttons ONLY hand off to Settings — no license logic here.
+    private var onboardingTrialLicenseBuyStep: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Your 3-day trial has started")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            Text("Enjoy full access for 3 days. Already have a key, or ready to buy?")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                chipButton("Enter License Key", action: onOnboardingOpenSettings)
+                chipButton("Buy Islet — €7.99", action: onOnboardingOpenSettings)
+            }
+            .padding(.top, 16)
+        }
+    }
+
+    // Step 3 — Permissions. D-02: one row per permission, each with its own independent
+    // Grant control.
+    private var onboardingPermissionsStep: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("A few permissions")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            Text("Grant what you'd like — skip the rest and enable them later in Settings.")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 8) {
+                permissionRow(icon: "antenna.radiowaves.left.and.right",
+                              label: "Bluetooth",
+                              reason: "Detect when your AirPods or headphones connect",
+                              granted: onboardingState.bluetoothGranted,
+                              onGrant: { onOnboardingGrant(.bluetooth) })
+                permissionRow(icon: "calendar",
+                              label: "Calendar",
+                              reason: "Show your next event right in the island",
+                              granted: onboardingState.calendarGranted,
+                              onGrant: { onOnboardingGrant(.calendar) })
+                permissionRow(icon: "location.fill",
+                              label: "Location",
+                              reason: "Power live weather in your glance",
+                              granted: onboardingState.locationGranted,
+                              onGrant: { onOnboardingGrant(.location) })
+            }
+            .padding(.top, 16)
+        }
+    }
+
+    // 26-UI-SPEC.md Permission row layout: icon 16px + Label/Reason text block + trailing
+    // Grant chip (nil, not yet attempted) / granted-state view (true/false, an attempt
+    // settled). D-03: a denial degrades to the SAME quiet grey text a never-asked row would
+    // never even reach (the Grant chip stays until an attempt settles the state) — never an
+    // error icon or dialog.
+    private func permissionRow(icon: String,
+                                label: String,
+                                reason: String,
+                                granted: Bool?,
+                                onGrant: @escaping () -> Void) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(.white.opacity(0.7))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(label)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                Text(reason)
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            if granted == nil {
+                chipButton("Grant", fontSize: 12, action: onGrant)
+            } else if granted == true {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12))
+                    Text("Granted")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                }
+                .foregroundStyle(.green)
+            } else {
+                // D-03 — deliberately NOT the codebase's existing checkmark/xmark pair (an
+                // xmark reads as a failure/error, which D-03 explicitly forbids here); no
+                // re-ask affordance inside onboarding, a skipped permission is granted later
+                // via Settings.
+                Text("Not granted")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // Step 4 (.done) renders via OnboardingDoneStep (below, own file-scope private struct) —
+    // its Launch-at-Login @State must be scoped to just this step's lifetime, not a
+    // NotchPillView property (which would leak across every other presentation case).
+
+    // Bottom nav row (26-UI-SPEC.md): Back leading (hidden on .welcome), primary CTA
+    // trailing. D-09: Back is always enabled, never a validation gate.
+    private func onboardingNavRow(_ step: OnboardingStep) -> some View {
+        HStack {
+            if step != .welcome {
+                chipButton("Back", action: onOnboardingBack)
+            }
+            Spacer()
+            switch step {
+            case .welcome, .trialLicenseBuy, .permissions:
+                chipButton("Next", action: onOnboardingNext)
+            case .done:
+                chipButton("Finish", action: onOnboardingFinish)
+            }
+        }
+        .padding(.top, 16)
+    }
+
+    // The shared chip style (Next/Back/Finish/Grant) — reuses the existing RoundedRectangle +
+    // Color.white.opacity(0.12) in-chrome control convention rather than inventing a new
+    // button primitive (26-UI-SPEC.md Button/chip style).
+    private func chipButton(_ label: String, fontSize: CGFloat = 14, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: fontSize, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.white.opacity(0.12))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
     // Phase 15 architecture audit item 2 — the shared downward-blob skeleton for
     // expandedIsland/mediaExpanded/mediaUnavailable, mirroring wingsShape(content:)'s
     // precedent (Finding 12): NotchShape → .fill → .matchedGeometryEffect → .frame →
@@ -289,21 +485,30 @@ struct NotchPillView: View {
     // The shelf row is appended BELOW each caller's own content, inside the SAME continuous
     // NotchShape/matchedGeometryEffect (D-07: no second shape, no cross-fade); each caller's own
     // `alignment` still governs ONLY its own content's box, unchanged from before this phase.
+    // Phase 26 / ONBOARD-01 — extended with an optional `height` override so
+    // onboardingCarousel(_:) can grow the blob to onboardingSize.height (240) without a
+    // second shape/fill mechanism. Every existing caller (expandedIsland, mediaExpanded,
+    // mediaUnavailable) omits the new parameter and falls back to `Self.expandedSize.height`
+    // -- byte-identical behavior to before this change. BOTH the outer shape frame
+    // (totalHeight) and the inner content frame (baseHeight) grow together, or the shape
+    // would be 240pt tall while the content stayed clipped to the old 144pt box.
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
+                                           height: CGFloat? = nil,
                                            shelfItems: [ShelfItem],
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = !shelfItems.isEmpty
-        let height = Self.expandedSize.height + (hasShelf ? Self.shelfRowHeight : 0)
+        let baseHeight = height ?? Self.expandedSize.height
+        let totalHeight = baseHeight + (hasShelf ? Self.shelfRowHeight : 0)
         return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
             .fill(Self.islandMaterial)
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.expandedSize.width, height: height)
+            .frame(width: Self.expandedSize.width, height: totalHeight)
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     content()
-                        .frame(width: Self.expandedSize.width, height: Self.expandedSize.height, alignment: alignment)
+                        .frame(width: Self.expandedSize.width, height: baseHeight, alignment: alignment)
                     if hasShelf {
                         shelfRow(shelfItems)
                             .transition(.opacity)
@@ -899,6 +1104,47 @@ struct ProgressBar: View {
     }
 }
 
+// Phase 26 / D-10 — the Done step's own small view, factored out so its Launch-at-Login
+// @State toggle is scoped to just this step's lifetime, not a NotchPillView property (which
+// would leak across every other presentation case). Near-verbatim mirror of
+// SettingsView.swift's existing toggle block (lines 67-86) — same underlying
+// SMAppService.mainApp state via LaunchAtLogin, no new/duplicate flag.
+private struct OnboardingDoneStep: View {
+    @State private var launchAtLogin = LaunchAtLogin.isEnabled
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("You're all set")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            Text("Islet is already running in your notch.")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+            Toggle("Launch Islet at login", isOn: $launchAtLogin)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.top, 16)
+                .onChange(of: launchAtLogin) { _, on in
+                    do {
+                        let result = try LaunchAtLogin.set(on)
+                        if on && LaunchAtLogin.requiresApproval {
+                            // macOS needs the user to approve the login item: keep the
+                            // toggle ON (pending) to match the System Settings deep-link.
+                            launchAtLogin = true
+                            LaunchAtLogin.openLoginItemsSettings()
+                        } else {
+                            // Reflect the TRUE resulting system state.
+                            launchAtLogin = result
+                        }
+                    } catch {
+                        // Revert the UI to the real system state on failure.
+                        launchAtLogin = LaunchAtLogin.isEnabled
+                    }
+                }
+        }
+    }
+}
+
 #if DEBUG
 // Build-time correctness artifact: proves BOTH layouts compile and render without
 // running the app. Each preview constructs a NotchInteractionState, sets the phase,
@@ -913,7 +1159,8 @@ struct ProgressBar: View {
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.idle),
                          outfit: BasicOutfitState(),
-                         shelfViewState: ShelfViewState())
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -932,7 +1179,8 @@ struct ProgressBar: View {
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.expandedIdle),
                          outfit: outfit,
-                         shelfViewState: ShelfViewState())
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -949,7 +1197,8 @@ struct ProgressBar: View {
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.charging(.charging(percent: 47))),
                          outfit: BasicOutfitState(),
-                         shelfViewState: ShelfViewState())
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -964,7 +1213,8 @@ struct ProgressBar: View {
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))),
                          outfit: BasicOutfitState(),
-                         shelfViewState: ShelfViewState())
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -981,7 +1231,8 @@ struct ProgressBar: View {
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa"))),
                          outfit: BasicOutfitState(),
-                         shelfViewState: ShelfViewState())
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -998,7 +1249,8 @@ struct ProgressBar: View {
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa"))),
                          outfit: BasicOutfitState(),
-                         shelfViewState: ShelfViewState())
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1015,7 +1267,8 @@ struct ProgressBar: View {
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true)),
                          outfit: BasicOutfitState(),
-                         shelfViewState: ShelfViewState())
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1031,7 +1284,8 @@ struct ProgressBar: View {
                          nowPlaying: np,
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.none, healthy: false)),
                          outfit: BasicOutfitState(),
-                         shelfViewState: ShelfViewState())
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
