@@ -74,12 +74,35 @@ final class DropInterceptTap {
         }
     }
 
+    // A location so far outside every real screen that no window (Finder's Desktop included)
+    // can ever be hit-tested there — CGEvent's coordinate space is CG's own top-left-origin
+    // "global display" space (NOT this file's usual AppKit bottom-left convention).
+    private static let offscreenDropLocation = CGPoint(x: -100_000, y: -100_000)
+
     // Pitfall B — pass through unmodified for EVERY event except the single specific
     // .leftMouseUp where shouldSwallow() is freshly re-evaluated (never cached) and true.
+    //
+    // Task 4 on-device UAT (round 1) found returning `nil` here — fully suppressing the event —
+    // also stops the WindowServer's own drag-session bookkeeping from ever seeing the release:
+    // the relocation-prevention premise held, but the dragged item's ghost image stayed visually
+    // stuck to the cursor afterward (only Escape or a second drag/drop released it). Consistent
+    // with .cgSessionEventTap sitting at "the point where session events ... are entering the
+    // window server" (Apple docs) — a fully consumed event never reaches the window server's own
+    // internal drag tracking either, not just Finder's Desktop (this is the SAME mechanism
+    // Pitfall A already proved for Islet's own dragEndMonitor).
+    //
+    // Fix: instead of consuming the event, relocate this REAL .leftMouseUp far outside every
+    // screen and let it continue (`Unmanaged.passUnretained`, not `nil`). The window server still
+    // receives a genuine release and ends the drag session normally (cursor lets go, ghost image
+    // clears) — but hit-tests against a location with no window at all, so no NSDraggingDestination
+    // (Finder's Desktop or otherwise) ever receives the drop, exactly like dropping a file over
+    // empty space with nothing underneath: cancelled, no file operation. shouldSwallow() reading
+    // isDragApproaching is unaffected by this — it still gates whether this branch runs at all.
     fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         guard type == .leftMouseUp, shouldSwallow() else { return Unmanaged.passUnretained(event) }
-        onIntercept()   // Pitfall A — shelf-landing invoked BEFORE returning nil
-        return nil
+        onIntercept()   // Pitfall A — shelf-landing invoked BEFORE relocating/returning the event
+        event.location = Self.offscreenDropLocation
+        return Unmanaged.passUnretained(event)
     }
 
     nonisolated func stop() {
