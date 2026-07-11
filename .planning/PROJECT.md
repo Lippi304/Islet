@@ -24,7 +24,24 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-**v1.4 (scoping in progress, 2026-07-11):** A NotchPanel/NotchWindowController architecture redesign (to resolve the Phase 22 drag-in blocker and give gestures/multi-view room to grow), plus Droppy-inspired scope: a first-launch onboarding flow (trial/license/buy choice + a permissions pre-explanation screen, no in-app tutorial), a visual/material redesign (frosted/glossy rather than fully transparent, slower/smoother springs, sidebar-categorized Settings), and a full calendar view as a third view alongside Home/Tray. SHELF-01/02 (drag-in) carry forward from v1.3 into this scope. Gesture-based swipe navigation was considered and explicitly deferred — not in v1.4 scope. Other standing candidates: formalize WEATHER-01/CAL-01/OUTFIT-01 as requirements, system HUD replacement, a countdown timer (all still Out of Scope below until picked up).
+Other standing candidates for a future milestone: formalize WEATHER-01/CAL-01/OUTFIT-01 as requirements, system HUD replacement, a countdown timer (all still Out of Scope below until picked up).
+
+## Current Milestone: v1.4 (name TBD)
+
+**Goal:** Redesign the NotchPanel/NotchWindowController architecture (to resolve the Phase 22 drag-in blocker and give the app room to grow), then layer on Droppy-inspired scope on top of the new foundation.
+
+**Status: Scoping in progress — requirements not yet formally defined.**
+
+**Target features:**
+- NotchPanel/NotchWindowController architecture redesign — informed by TheBoringNotch/DynamicNotchKit reference implementations, resolves the unidentified Phase 22 drag delivery blocker
+- SHELF-01/02 (drag-in) carried forward from v1.3, resolved against the new architecture
+- First-launch onboarding flow: trial/license-key/buy choice + a permissions pre-explanation screen (no in-app gesture tutorial)
+- Visual/material redesign: frosted/glossy pill (not fully transparent), slower/smoother spring animations, Settings redesigned with sidebar categories
+- Calendar full view as a third view alongside the existing Home (date/time/weather/calendar glance stays the default) and Tray (shelf)
+
+**Explicitly deferred:** gesture-based swipe navigation (skip-track/tuck-away/return) — touches the same event-delivery layer that just failed in Phase 22, kept out of scope until the architecture redesign proves itself.
+
+See `.planning/research/inspiration/notes.md` for the full Droppy reference material.
 
 ## Requirements
 

@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Notch Shelf
-status: Awaiting next milestone
-stopped_at: Phase 22 revised context gathered (hot-zone/Mission-Control fallback)
-last_updated: "2026-07-11T00:05:17.221Z"
-last_activity: 2026-07-11 — Milestone v1.3 completed and archived
+milestone: v1.4
+milestone_name: Architecture Redesign
+status: planning
+last_updated: "2026-07-11T00:15:02.556Z"
+last_activity: 2026-07-11
 progress:
-  total_phases: 7
-  completed_phases: 3
-  total_plans: 8
-  completed_plans: 7
-  percent: 43
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: Milestone v1.3 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-11 — Milestone v1.3 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-11 — Milestone v1.4 started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
