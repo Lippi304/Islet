@@ -310,7 +310,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 24-01-PLAN.md — Isolated on-device spike (D-05/D-06): confirm DragApproachDetector global-monitor mechanism fires reliably for an inbound Finder drag, checkpoint-gated
+- [x] 24-01-PLAN.md — Isolated on-device spike (D-05/D-06): confirm DragApproachDetector global-monitor mechanism fires reliably for an inbound Finder drag, checkpoint-gated
 
 **Wave 2** *(blocked on 24-01)*
 
