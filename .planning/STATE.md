@@ -4,8 +4,8 @@ milestone: v1.4
 milestone_name: Architecture Redesign
 status: executing
 stopped_at: Phase 25 UI-SPEC approved
-last_updated: "2026-07-11T11:02:35.058Z"
-last_activity: 2026-07-11 -- Phase 25 planning complete
+last_updated: "2026-07-11T11:07:27.778Z"
+last_activity: 2026-07-11 -- Phase 25 execution started
 progress:
   total_phases: 13
   completed_phases: 4
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 24 — drag in
+**Current focus:** Phase 25 — visual-material-theming-redesign
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-11 -- Phase 25 planning complete
+Phase: 25 (visual-material-theming-redesign) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 25
+Last activity: 2026-07-11 -- Phase 25 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
