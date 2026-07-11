@@ -218,6 +218,17 @@ final class NotchWindowController {
     private let dragPinSafetyNetDuration: TimeInterval = 20.0
     private var dragReleaseMonitor: Any?
 
+    #if DEBUG
+    // Phase 24 / SHELF-01 / A1 spike (24-01) — throwaway, DEBUG-only diagnostic monitors
+    // answering whether .leftMouseDragged/.leftMouseUp global monitors reliably observe a real
+    // Finder-initiated inbound drag on this project's exact panel/run-loop configuration.
+    // Superseded/removed by Plan 24-02 once the mechanism is confirmed; never compiles into
+    // Release (mirrors didLogFirstHover's existing guard).
+    private var spikeDragApproachMonitor: Any?
+    private var spikeDragEndMonitor: Any?
+    private var spikeDragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
+    #endif
+
     // WR-01: the pointer-in-hot-zone edge, tracked from RAW geometry — NOT derived from
     // `interaction.isHovering` (which is true for BOTH .hovering AND .expanded, so a
     // re-entry while expanded would never read as an enter edge and never cancel the
@@ -324,6 +335,17 @@ final class NotchWindowController {
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             self?.handlePointer(at: NSEvent.mouseLocation)
         }
+
+        #if DEBUG
+        // Phase 24 / SHELF-01 / A1 spike (24-01) — arm the throwaway inbound-drag probe
+        // monitors. Purely observational: no gating, no state change, NSLog only.
+        spikeDragApproachMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
+            self?.handleSpikeDragApproachTick()
+        }
+        spikeDragEndMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] _ in
+            self?.handleSpikeDragApproachEnd()
+        }
+        #endif
 
         // CHG-01 / CHG-02 (Plan 03 / Phase 6 D-09): register the LIVE IOKit power-source
         // notification ONLY if the Charging toggle is on (prefer stop → idle CPU ~0% when off).
@@ -668,6 +690,26 @@ final class NotchWindowController {
 
     // Pattern 1: every .mouseMoved tick hit-tests the GLOBAL pointer against the hot-zone.
     // No coordinate conversion — both `point` and `hotZone` are global bottom-left (Pitfall 6).
+    #if DEBUG
+    // Phase 24 / SHELF-01 / A1 spike (24-01) — observational only, no gating. Detects a real
+    // OS drag session via NSPasteboard(name: .drag) changeCount deltas (Pattern 4) and logs
+    // the dragged URL(s) via the existing fileURLs(from:) seam, tagged for easy Console filtering.
+    private func handleSpikeDragApproachTick() {
+        let pasteboard = NSPasteboard(name: .drag)
+        let count = pasteboard.changeCount
+        guard count != spikeDragPasteboardChangeCount else { return }
+        let delta = count - spikeDragPasteboardChangeCount
+        spikeDragPasteboardChangeCount = count
+        NSLog("[SPIKE-24] leftMouseDragged tick — changeCount delta=%d urls=%@ location=%@",
+              delta, fileURLs(from: pasteboard), NSStringFromPoint(NSEvent.mouseLocation))
+    }
+
+    private func handleSpikeDragApproachEnd() {
+        NSLog("[SPIKE-24] leftMouseUp — location=%@ urls=%@",
+              NSStringFromPoint(NSEvent.mouseLocation), fileURLs(from: NSPasteboard(name: .drag)))
+    }
+    #endif
+
     private func handlePointer(at point: CGPoint) {
         // CR-01 — stash the raw pointer location for syncClickThrough()/visibleContentZone(),
         // which need it but receive no point parameter themselves.
@@ -1336,6 +1378,11 @@ final class NotchWindowController {
         // Phase 6 / APP-03: the UserDefaults toggle/accent observer lives on the DEFAULT center.
         if let o = defaultsObserver { NotificationCenter.default.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
+        #if DEBUG
+        // Phase 24 / SHELF-01 / A1 spike (24-01) — tear down the throwaway probe monitors.
+        if let m = spikeDragApproachMonitor { NSEvent.removeMonitor(m) }
+        if let m = spikeDragEndMonitor { NSEvent.removeMonitor(m) }
+        #endif
         graceWorkItem?.cancel()
 
         // Phase 21 / SHELF-06 (T-21-03): in case the controller deallocates mid-drag (e.g. app
