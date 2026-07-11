@@ -34,41 +34,48 @@ A single fixed panel size is used for **all four** onboarding steps — no per-s
 
 ```swift
 // NotchPillView.swift — new constant, sibling to expandedSize/wingsSize
-static let onboardingSize = CGSize(width: 400, height: 300)
+static let onboardingSize = CGSize(width: 420, height: 320)
 ```
 
-- **Width 400** (revised from an initial 360 during on-device round-2 UAT, Droppy comparison) — wider than `expandedSize.width` (360) to give the pill-shaped Permissions rows real breathing room; `blobShape()` gained a matching optional `width` override parameter (mirrors the existing `height` override) so this is the only caller that deviates from `expandedSize.width`.
-- **Height 300** (revised from an initial 240 during the same round-2 pass) — the original 240 did not actually fit the busiest step (heading + 3 permission rows + bottom nav) without squeezing the nav row off-card; 300 was sized against the real on-device measured content, not just guessed generously up front.
+- **Width 420** (360 round 1 → 400 round 2 → 420 round 3, on-device UAT) — wider than `expandedSize.width` (360) to give the pill-shaped Permissions rows real breathing room; `blobShape()` gained a matching optional `width` override parameter (mirrors the existing `height` override) so this is the only caller that deviates from `expandedSize.width`. Still a "for now" iteration size, not final.
+- **Height 320** (240 round 1 → 300 round 2 → 320 round 3, on-device UAT) — round 1's 240 didn't fit the busiest step at all; round 3's +20pt gives the now vertically-centered content and the pinned nav row (see Screen structure below) more room. Still a "for now" iteration size, not final.
 - Extend `NotchWindowController.swift`'s panel-frame union (line ~690: `expandedFrame.union(wings)`) with `.union(onboardingFrame)`, exactly mirroring how `wingsFrame` was added.
 - Shape: reuse `blobShape(topCornerRadius: 6, bottomCornerRadius: 32, width: onboardingSize.width, height: onboardingSize.height, shelfItems: [])` — same chrome identity as `expandedIsland` (Phase 25 values, unchanged), shelf always empty during onboarding (code_context confirms shelf never shows here).
 
 ### Screen structure (all 4 steps share this skeleton)
 
-Revised in on-device round-2 UAT (Droppy comparison) — heading/body copy is now
-**horizontally centered**, not left-aligned; edge margins widened; Back/Next/Finish are
-icon-only circular buttons, not text chips:
+Round 2 (Droppy comparison): heading/body copy is now **horizontally centered**, not
+left-aligned; edge margins widened; Back/Next/Finish are icon-only circular buttons, not
+text chips. Round 3 (on-device UAT): content is now **vertically centered** too (was pinned
+flush to the top with a large empty gap above the nav row), and the nav row is a **fixed-position
+overlay** pinned to the bottom of the card — not the tail of the same content flow — so its
+Y position is identical on every step regardless of how much content sits above it:
 
 ```
 ┌─────────────────────────────────────┐
 │         (32pt camera clearance)      │
 │                                       │
-│           [Heading]                  │  ← step title, CENTERED
-│      [Body copy, 1-3 lines]          │  ← step explanation, CENTERED
 │                                       │
-│   ...step-specific content...        │  ← control rows (permission rows, toggle)
-│                                       │    stay full-width/left-aligned internally
-│  (‹)                            (›)  │  ← bottom nav row, circular icon buttons
+│           [Heading]                  │  ← step title, CENTERED
+│      [Body copy, 1-3 lines]          │  ← step explanation, CENTERED  } vertically
+│                                       │                                } centered as
+│   ...step-specific content...        │  ← control rows stay full-      } a group
+│                                       │    width/left-aligned inside  }
+│                                       │                                }
+│  (‹)                            (›)  │  ← bottom nav, PINNED overlay, fixed Y on every step
 └─────────────────────────────────────┘
 ```
 
 | Region | Value | Source |
 |--------|-------|--------|
-| Top camera-clearance padding | 32px | Reused verbatim from `mediaExpanded`'s `.padding(.top, 32)` — established convention, unchanged |
-| Screen horizontal content padding | 28px (revised from an initial 16px — round-2 UAT: 16px left text touching the card edge with no breathing room) | `onboardingCarousel`'s `.padding(.horizontal, 28)` |
-| Bottom nav row padding | 28px horizontal (inherited from the screen-level padding above), 20px bottom (revised from an initial 16px) | `onboardingCarousel`'s `.padding(.bottom, 20)` |
+| Top camera-clearance padding (floor) | 32px | Reused verbatim from `mediaExpanded`'s `.padding(.top, 32)` — established convention, unchanged. Acts as a floor above the vertically-centered content block, not a hard pin. |
+| Screen horizontal content padding | 28px (16px round 1 → 28px round 2, unchanged round 3) | `onboardingCarousel`'s `.padding(.horizontal, 28)` |
+| Content vertical centering (round 3) | `VStack(spacing: 0) { Spacer(); stepContent; Spacer() }` inside the top/horizontal padding, with `.padding(.bottom, navRowReservedHeight)` reserving room below so centered content never overlaps the pinned nav row | `onboardingCarousel` |
+| Nav row position (round 3) | `ZStack(alignment: .bottom)` overlay, NOT part of the content `VStack` — pinned at 28px horizontal / 20px bottom padding regardless of step | `onboardingCarousel` + `onboardingNavRow` |
+| `navRowReservedHeight` (round 3) | `navCircleDiameter (36) + 20 + 16` = 72px, reserved at the bottom of the centered-content block | New constant |
 | Heading → body gap | 8px | New |
 | Body → step-specific content gap | 12-16px | New |
-| Heading/body text alignment | **Centered** (revised from an initial left/`.leading` — round-2 UAT, Droppy comparison) via `VStack(alignment: .center)` + `.frame(maxWidth: .infinity)` on the text block, `.multilineTextAlignment(.center)` on wrapping body text | Applies to all 4 steps: Welcome, Trial/License/Buy, Permissions heading+subheading, Done |
+| Heading/body text alignment | **Centered** (round 2, Droppy comparison) via `VStack(alignment: .center)` + `.frame(maxWidth: .infinity)` on the text block, `.multilineTextAlignment(.center)` on wrapping body text | Applies to all 4 steps: Welcome, Trial/License/Buy, Permissions heading+subheading, Done |
 | Control-row alignment (permission rows, Launch-at-Login toggle) | Stays full-width / left-aligned internally via `.frame(maxWidth: .infinity, alignment: .leading)` on the row container — centering an icon+label+trailing-control row would be nonsensical | Permissions step's rows-VStack, Done step's Toggle |
 
 ### Bottom nav row (Next/Back — all 4 steps)
@@ -105,28 +112,33 @@ Reuses the exact existing icon-chip convention already in `NotchPillView.swift` 
 
 ### Permission row layout (Permissions step only, 3 rows)
 
-Revised in round-2 UAT: rows are now a **near-capsule pill** (Droppy comparison), not a bare `HStack` with no chrome of its own.
+Round 2 UAT: rows became a **near-capsule pill** (Droppy comparison), not a bare `HStack`
+with no chrome of its own. Round 3 UAT: text/icon/padding shrunk further and an extra
+horizontal inset added around the whole rows block — round 2's rows nearly spanned the
+card edge-to-edge; this is a deliberate, narrow exception to the shared 14px Label / 12px
+Body type scale used everywhere else in the carousel, scoped ONLY to these 3 rows.
 
 ```
-( [SF Symbol icon]  [Label — reason, 2 lines]           [Grant chip / state text] )
+   ( [SF Symbol icon]  [Label — reason, 2 lines]        [Grant chip / state text] )
 ```
 
 | Element | Value |
 |---------|-------|
-| Row background | `Capsule(style: .continuous).fill(Color.white.opacity(0.08))` — new, subtler than the 0.12 chip fill since it covers a much larger area |
-| Row padding | 12px horizontal, 8px vertical (inside the capsule) |
-| Row `HStack` spacing | 8px (icon → text block) — matches the row-to-row gap below for consistent vertical/horizontal rhythm; no 12px precedent exists for this specific icon-to-text relationship, so it stays on the standard 4/8/16 scale |
-| Icon | SF Symbol, 16px, `.foregroundStyle(.white.opacity(0.7))` |
-| Text block | `VStack(alignment: .leading, spacing: 4)` — Label above Reason |
-| Row-to-row gap | 6px (revised from an initial 8px — tightened slightly to help the 3-row list fit the panel height) |
+| Row background | `Capsule(style: .continuous).fill(Color.white.opacity(0.08))` — subtler than the 0.12 chip fill since it covers a much larger area |
+| Row padding | 10px horizontal, 6px vertical (12px/8px round 2 → 10px/6px round 3) |
+| Row `HStack` spacing | 6px (8px round 2 → 6px round 3) |
+| Icon | SF Symbol, 14px (16px round 2 → 14px round 3), `.foregroundStyle(.white.opacity(0.7))` |
+| Text block | `VStack(alignment: .leading, spacing: 4)` — Label above Reason; Label 13px semibold (was 14px), Reason 11px regular (was 12px) — round 3, scoped exception to the shared Typography scale |
+| Row-to-row gap | 6px (8px round 1 → 6px round 2/3) |
+| Rows-block outer inset (round 3) | Extra 8px horizontal padding around the whole 3-row `VStack`, applied AFTER its `.frame(maxWidth: .infinity)` fill — gives visible margin against the card edges instead of the pills nearly spanning edge-to-edge |
 | Icons (fixed, one per row, do not invent new symbols) | Bluetooth: `antenna.radiowaves.left.and.right` · Calendar: `calendar` · Location/Weather: `location.fill` |
 
 **Granted / not-granted state (D-03 — quiet, no alarm):**
 
 | State | Visual | Rationale |
 |-------|--------|-----------|
-| Granted | Green `checkmark` icon (12px) + "Granted" label, 12px regular, `.foregroundStyle(.green)` | Reuses the codebase's existing green-for-success convention (`isCharging ? Color.green`, license-activated `.foregroundStyle(.green)`) |
-| Not granted / skipped | No icon, plain "Not granted" text, 12px regular, `.foregroundStyle(.secondary)` | **Deliberately does NOT reuse the existing `checkmark`/`xmark` pair** (line 509, device-connection status) — an `xmark` reads as a failure/error, which D-03 explicitly forbids for a skipped/denied permission during onboarding. Grey, icon-less text is the quiet degrade this decision requires. |
+| Granted | Green `checkmark` icon (11px, was 12px) + "Granted" label, 11px regular (was 12px), `.foregroundStyle(.green)` | Reuses the codebase's existing green-for-success convention (`isCharging ? Color.green`, license-activated `.foregroundStyle(.green)`) |
+| Not granted / skipped | No icon, plain "Not granted" text, 11px regular (was 12px), `.foregroundStyle(.secondary)` | **Deliberately does NOT reuse the existing `checkmark`/`xmark` pair** (line 509, device-connection status) — an `xmark` reads as a failure/error, which D-03 explicitly forbids for a skipped/denied permission during onboarding. Grey, icon-less text is the quiet degrade this decision requires. |
 
 ---
 
@@ -204,12 +216,13 @@ Accent reserved for: the green "Granted" checkmark/label on the Permissions step
 
 ## Verification Notes for Executor
 
-- New constant: `NotchPillView.onboardingSize = CGSize(width: 400, height: 300)` — round-2 on-device UAT confirmed the original 360×240 both cramped the Permissions rows horizontally and clipped the bottom nav row vertically; 400×300 was sized against the real measured content, not just guessed generously up front. `blobShape()` gained a matching optional `width` override (mirrors the pre-existing `height` override).
+- New constant: `NotchPillView.onboardingSize = CGSize(width: 420, height: 320)` — grown across two on-device UAT rounds (360×240 → 400×300 → 420×320); each round's number was sized against real measured content, not guessed generously up front, and is still explicitly a "for now" iteration size, not final. `blobShape()` gained matching optional `width`/`height` override parameters (round 1 added `height`, round 2 added `width`).
 - `IslandPresentation.onboarding(OnboardingStep)` renders via `blobShape(topCornerRadius: 6, bottomCornerRadius: 32, width: onboardingSize.width, height: onboardingSize.height, shelfItems: [])` — same call shape as `expandedIsland`, no new shape/fill mechanism (RESEARCH.md Pattern 2).
 - Do NOT re-style or re-implement the license-key `TextField`/`activate()` flow or the Buy Now `NSWorkspace.shared.open` call — both route through the existing focusable Settings window unchanged (D-05/D-07, LOCKED). This spec's Copywriting Contract intentionally reuses their exact existing labels verbatim rather than re-authoring them.
 - The Permissions step's "Not granted" quiet state is a deliberate, explicit departure from the existing `checkmark`/`xmark` pair used elsewhere in `NotchPillView.swift` (device-connection status) — do not "fix" this by reusing `xmark`; see Color contract rationale.
 - Nav circle buttons (Back/Next/Finish) and the Grant/License/Buy chips must stay interactive for the panel's entire onboarding-active duration — this is a `syncClickThrough()` concern (RESEARCH.md Pattern 3, Pitfall 1), not a visual one; the 36px nav circle diameter and the 32px chip minimum tap target both exist to keep hit-testing reliable within `visibleContentZone()`.
-- **Round 2 revision (on-device UAT, Droppy comparison):** heading/body text centered (was left-aligned), screen padding widened (16→28 horizontal, 16→20 bottom), permission rows became pill-shaped capsules, Back/Next/Finish became icon-only circular buttons, panel grown to 400×300 (was 360×240). Control rows (permission rows, Launch-at-Login toggle) intentionally stayed left-aligned/full-width — only text copy centers. This revision supersedes the original left-aligned/text-chip-nav/360×240 values that appeared in this document's first approved draft.
+- **Round 2 revision (on-device UAT, Droppy comparison):** heading/body text centered (was left-aligned), screen padding widened (16→28 horizontal, 16→20 bottom), permission rows became pill-shaped capsules, Back/Next/Finish became icon-only circular buttons, panel grown to 400×300 (was 360×240). Control rows (permission rows, Launch-at-Login toggle) intentionally stayed left-aligned/full-width — only text copy centers.
+- **Round 3 revision (on-device UAT):** `onboardingCarousel` restructured from a single top-down `VStack` to a `ZStack(alignment: .bottom)` — step content now vertically centers (`Spacer()` on both sides) instead of pinning to the top, and the nav row moved to a separate overlay pinned at a fixed bottom offset (`navRowReservedHeight` reserves clearance below the centered content). This is a real bug fix, not just style: the old flowing-`VStack` layout meant nav row Y position depended on how much content sat above it, so the Permissions step's 3 rows pushed Back/Next further down than the other 3 steps' shorter content did — nav Y is now identical on every step by construction. Panel grown again to 420×320 (was 400×300). Permissions row text/icon/padding shrunk further (14/12px → 13/11px text, 12/8px → 10/6px padding) with an added 8px outer inset, scoped only to those 3 rows. This revision supersedes the round-2 values above where they conflict.
 
 ---
 
