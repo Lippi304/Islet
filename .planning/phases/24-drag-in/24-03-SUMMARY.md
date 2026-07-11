@@ -12,7 +12,7 @@ provides:
   - "Islet/Notch/DropInterceptTap.swift: a session CGEventTap that intercepts the terminating .leftMouseUp for an armed drag-approach region, invoking handleDragApproachEnd() directly (Pitfall A) then relocating the event off-screen and passing it through (NOT returning nil) — stops Finder's Desktop from relocating the original dragged file WITHOUT stranding the drag ghost image on the cursor"
   - "NotchWindowController wiring: dropInterceptTap lazily constructed+started on the first real drag-approach edge (D-11), stop() in deinit"
   - "On-device confirmation (Task 2 spike + Task 4 round-1 UAT) of Assumption A5 (relocation prevented), A7/Pitfall A (existing dragEndMonitor never fires for a fully-swallowed event — direct invocation was the right call), A6 (Accessibility, not Input Monitoring, gates tap creation), and a NEW finding: fully swallowing (nil) the event also starves the WindowServer's own drag-session-end bookkeeping, stranding the drag visual on the cursor — fixed by relocating+passing-through instead of swallowing"
-affects: [24-drag-in Task 4 re-verification, SHELF-01/SHELF-02 requirement closure]
+affects: [SHELF-01, SHELF-02, future raw-HID-event interception work]
 
 # Tech tracking
 tech-stack:
@@ -27,6 +27,7 @@ key-files:
   modified:
     - Islet/Notch/NotchWindowController.swift
     - project.yml
+    - .planning/REQUIREMENTS.md
 
 key-decisions:
   - "kAXTrustedCheckOptionPrompt (an Unmanaged<CFString>) must be unwrapped via .takeUnretainedValue() before use as a CFDictionary key — the RESEARCH.md interface sketch omitted this and the plain form does not compile"
@@ -37,22 +38,22 @@ patterns-established:
   - "Pattern: DropInterceptTap-shaped small owning type for any future raw-HID-event interception need — BluetoothMonitor-lifecycle-shaped (init/start/stop/deinit), never touches ignoresMouseEvents/syncClickThrough() (orthogonal to click-through hit-testing)"
   - "Pattern: when a CGEventTap needs to deny a drop target without breaking the OS-level drag-session lifecycle, relocate-and-pass-through beats swallow-with-nil — nil fully removes the event from the WindowServer's own internal bookkeeping, not just from downstream app observers"
 
-requirements-completed: []  # SHELF-01/SHELF-02 NOT YET marked complete — plan paused at Task 4 checkpoint (re-verification after round-1 fix still pending)
+requirements-completed: [SHELF-01, SHELF-02]
 
 # Metrics
-duration: ~1h so far (Tasks 1-3 + Task 4 round-1 fix; plan paused at Task 4 re-verification)
+duration: ~1h15m
 completed: 2026-07-11
 ---
 
-# Phase 24 Plan 03: Drop-Interception CGEventTap (Tasks 1-3 + Task 4 round-1 fix) Summary
+# Phase 24 Plan 03: Drop-Interception CGEventTap Summary
 
-**Production `DropInterceptTap` is built and wired in; Task 4's first on-device UAT round confirmed the core relocation-prevention premise but found the drag ghost image stayed stuck on the cursor after release — root-caused and fixed by relocating (not swallowing) the terminating event. The plan is PAUSED at Task 4's re-verification (blocking on-device human-verify checkpoint) — SHELF-01/SHELF-02 are not yet marked complete.**
+**Production `DropInterceptTap` (session CGEventTap) closes the drag-in data-loss gap: files land in the shelf, the original is never relocated, and (after a round-1 on-device fix) the drag cursor releases cleanly instead of staying stuck. Task 4's round-2 on-device UAT is APPROVED — all 4 tasks complete, SHELF-01/SHELF-02 done, and Plan 24-02's originally-paused Task 3 checkpoint is resolved/superseded by this plan.**
 
 ## Performance
 
-- **Tasks completed:** 3 of 4 (Tasks 1, 2, 3 fully done — Task 2 was a human-verify checkpoint, approved). Task 4 in progress: round 1 on-device UAT surfaced a real bug (stuck drag cursor), root-caused and fixed, awaiting round-2 re-verification.
-- **Files modified:** 4 (1 new: `DropInterceptTap.swift`)
-- **Status:** Paused at Task 4 re-verification (blocking on-device hardware UAT — cannot be automated or self-approved)
+- **Tasks completed:** 4 of 4 (Task 2 and Task 4 were on-device human-verify checkpoints, both approved — Task 4 required one fix-and-retry round per D-13)
+- **Files modified:** 5 (1 new: `DropInterceptTap.swift`; plus `NotchWindowController.swift`, `project.yml`, `Islet.xcodeproj/project.pbxproj`, `.planning/REQUIREMENTS.md`)
+- **Status:** COMPLETE — SHELF-01/SHELF-02 done, Plan 24-02 Task 3 resolved/superseded
 
 ## Accomplishments
 
@@ -64,7 +65,8 @@ completed: 2026-07-11
   - Ordinary clicking/dragging in other apps (Safari/TextEdit) unaffected; an Escape-cancelled drag left the island in a normal (not stuck) state.
   - One investigation round was needed first: the user's initial Console.app capture showed 0 of the spike's launch-time logs (only the existing `handleDragApproachEnd()` diagnostic line fired, 8/8 times, always `isDragApproaching=false`). Code review confirmed `armSpikeDropInterceptTap()` was correctly and unconditionally wired into `start()` with no early-return before its first `NSLog` — the missing logs were diagnosed as a Console.app capture-timing gap (opened *after* Cmd-R, per the original instructions, missing the one-shot launch-time lines), not a code bug. Re-running with Console opened and filtered *before* launch resolved it.
 - **Task 3:** Removed Task 1's entire spike (properties, `armSpikeDropInterceptTap()`, its `start()`/`deinit` call sites, the temporary `handleDragApproachEnd()` diagnostic line). Created `Islet/Notch/DropInterceptTap.swift` — a `BluetoothMonitor`-shaped owning type wrapping the production tap, with a periodic 5s `CGEvent.tapIsEnabled` health check (Pitfall C — this project's own prior Release-only signing incident) that tears down and reinstalls a silently-inert tap. Wired `dropInterceptTap` into `NotchWindowController`: lazily constructed and started on the first real drag-approach edge (`recheckDragAcceptRegion()`, D-11), `stop()` added to `deinit` alongside `bluetoothMonitor?.stop()`. Added the defensive `INFOPLIST_KEY_NSInputMonitoringUsageDescription` key to `project.yml` (Accessibility is the real gate; Input Monitoring may also be granted "for free" per RESEARCH.md). Both `Debug` and `Release` builds succeed.
-- **Task 4, round 1 (on-device UAT):** Core relocation-prevention premise held (single-file and multi-file+folder drags, Debug AND a Release re-sign/re-launch) — original files were never relocated. BUT: the dragged item's ghost image stayed visually attached to the cursor after release; the user had to press Escape or start a second drag/drop to release it. Root-caused (not guessed): `.cgSessionEventTap` sits at "the point where session events ... are entering the window server" (Apple docs) — returning `nil` fully suppresses the event before the WindowServer's OWN drag-session-completion bookkeeping ever sees it, not just Finder's Desktop and not just Islet's own `dragEndMonitor` (the same mechanism already proven by Pitfall A). Fix: `DropInterceptTap.handle()` now relocates the event's `location` to a point far outside every screen (`CGPoint(x: -100_000, y: -100_000)`, CG's own top-left-origin global-display coordinate space) and passes the REAL, now-relocated event through (`Unmanaged.passUnretained`) instead of returning `nil`. The window server receives a genuine release (drag session ends normally, cursor lets go) but hit-tests against a location with no window at all, so no `NSDraggingDestination` ever receives the drop — same net effect (no relocation) via a mechanism that also lets the drag-session-end signal through. `shelf-landing` (`onIntercept()`) still runs first, unchanged. Debug and Release builds both succeed after the fix; awaiting round-2 on-device re-verification.
+- **Task 4, round 1 (on-device UAT):** Core relocation-prevention premise held (single-file and multi-file+folder drags, Debug AND a Release re-sign/re-launch) — original files were never relocated. BUT: the dragged item's ghost image stayed visually attached to the cursor after release; the user had to press Escape or start a second drag/drop to release it. Root-caused (not guessed): `.cgSessionEventTap` sits at "the point where session events ... are entering the window server" (Apple docs) — returning `nil` fully suppresses the event before the WindowServer's OWN drag-session-completion bookkeeping ever sees it, not just Finder's Desktop and not just Islet's own `dragEndMonitor` (the same mechanism already proven by Pitfall A). Fix: `DropInterceptTap.handle()` now relocates the event's `location` to a point far outside every screen (`CGPoint(x: -100_000, y: -100_000)`, CG's own top-left-origin global-display coordinate space) and passes the REAL, now-relocated event through (`Unmanaged.passUnretained`) instead of returning `nil`. The window server receives a genuine release (drag session ends normally, cursor lets go) but hit-tests against a location with no window at all, so no `NSDraggingDestination` ever receives the drop — same net effect (no relocation) via a mechanism that also lets the drag-session-end signal through. `shelf-landing` (`onIntercept()`) still runs first, unchanged.
+- **Task 4, round 2 (on-device UAT, APPROVED):** User re-ran the full checklist against the round-1 fix. Every check passed: single-file and multi-file+folder drags land in the shelf with originals untouched, cursor now releases cleanly (no more stuck ghost image), hot-feedback still shows, 5+ repeated drags with no crash/stuck state, Escape-cancel leaves the island normal, other apps (Safari/TextEdit) unaffected, AND the fix survives a `-configuration Release` re-sign/re-launch cycle. SHELF-01/SHELF-02 complete; Plan 24-02's originally-paused Task 3 is resolved/superseded (its full checklist is re-covered by this task's own).
 
 ## Task Commits
 
@@ -72,16 +74,16 @@ completed: 2026-07-11
 2. **Task 2: On-device spike validation checkpoint** - approved by user (no code commit; investigation/re-test only)
 3. **Task 3: Production DropInterceptTap.swift + lazy wiring + spike removal** - `cd1a854` (feat)
 4. **Task 4 round-1 fix: stop swallowed leftMouseUp from stranding the drag cursor** - `1db9b0b` (fix)
+5. **Task 4 round-2: on-device UAT re-verification** - approved by user (no code commit)
 
-**Plan metadata (this pause point):** committed alongside this SUMMARY update.
-
-_Task 4 round-2 re-verification not yet executed — see "Plan Status" below._
+**Plan metadata (this completion):** `.planning/REQUIREMENTS.md` (SHELF-01/SHELF-02 marked complete) committed alongside this final SUMMARY update.
 
 ## Files Created/Modified
 
 - `Islet/Notch/DropInterceptTap.swift` - New: the production drop-interception `CGEventTap` wrapper (init/start/stop/handle, health-check timer). `handle()` relocates-and-passes-through the terminating `.leftMouseUp` rather than swallowing it (Task 4 round-1 fix).
 - `Islet/Notch/NotchWindowController.swift` - `dropInterceptTap` property, lazy construct+start in `recheckDragAcceptRegion()`, `stop()` in `deinit`; Task 1's spike fully removed.
 - `project.yml` - Added `INFOPLIST_KEY_NSInputMonitoringUsageDescription`; `xcodegen generate` re-run (regenerates `Islet.xcodeproj/project.pbxproj`, committed alongside).
+- `.planning/REQUIREMENTS.md` - SHELF-01/SHELF-02 marked complete (checkboxes + traceability table), via `gsd-sdk query requirements.mark-complete`.
 
 ## Decisions Made
 
@@ -114,7 +116,7 @@ _Task 4 round-2 re-verification not yet executed — see "Plan Status" below._
 - **Issue:** The core relocation-prevention premise held, but returning `nil` for the terminating `.leftMouseUp` also prevented the WindowServer's own drag-session-completion bookkeeping from ever seeing the release — the dragged item's ghost image stayed visually attached to the cursor until the user pressed Escape or performed a second drag/drop.
 - **Fix:** `DropInterceptTap.handle()` now relocates the event to `CGPoint(x: -100_000, y: -100_000)` (CG's top-left-origin global-display space) and passes the real, relocated event through instead of returning `nil` — the drag session ends normally (cursor releases) while still landing on a location with no valid drop target (no relocation).
 - **Files modified:** `Islet/Notch/DropInterceptTap.swift`
-- **Verification:** Debug and Release builds succeed; awaiting on-device round-2 re-verification (still at the Task 4 checkpoint).
+- **Verification:** Debug and Release builds succeed; confirmed on-device in round 2 (cursor releases cleanly, relocation-prevention still intact, Release pass included).
 - **Committed in:** `1db9b0b`
 
 **4. [Note, not a deviation requiring action] Task 1's `#if DEBUG` count acceptance criterion (carried over from prior report, now moot — spike fully removed in Task 3)**
@@ -127,26 +129,22 @@ _Task 4 round-2 re-verification not yet executed — see "Plan Status" below._
 ## Issues Encountered
 
 - Task 2's first on-device round showed 0 launch-time spike logs in Console.app, initially looking like a possible wiring bug. Root-caused as a Console.app capture-timing gap (filter applied after app launch, missing one-shot logs), not a code defect — confirmed by full code trace (call site, method body, no early return before the first log) before concluding no fix was needed. Re-test with Console opened first resolved it; this did not count against D-13's round cap since no code changed.
-- Task 4's first on-device round surfaced the stuck-drag-cursor bug documented above (Deviation 3). Investigated via CGEventTap/`.cgSessionEventTap` documentation semantics plus the project's own prior on-device evidence before writing any fix — not a blind guess. Counts as D-13's one allowed retry round for Task 4.
+- Task 4's first on-device round surfaced the stuck-drag-cursor bug documented above (Deviation 3). Investigated via CGEventTap/`.cgSessionEventTap` documentation semantics plus the project's own prior on-device evidence before writing any fix — not a blind guess. This was D-13's one allowed retry round for Task 4; round 2 confirmed the fix and was approved.
 
-## Plan Status: PAUSED at Task 4 (blocking human-verify checkpoint — round 2)
+## Plan Status: COMPLETE
 
-Per this plan's `<plan_context>`, Task 4 requires genuine on-device hardware verification (repeated real drags, a Release-configuration re-sign/re-launch cycle, cross-app click/drag regression checks) that cannot be automated or self-approved by this agent. Task 4's approval both completes SHELF-01/SHELF-02 and formally supersedes Plan 24-02's originally-paused Task 3 checkpoint.
-
-**Task 4 has NOT been approved yet.** Round 1 found and fixed the stuck-drag-cursor bug (Deviation 3); round 2 must re-confirm BOTH the original relocation-prevention checklist AND that the cursor now releases cleanly, with no regression. SHELF-01/SHELF-02 are NOT YET marked complete. `REQUIREMENTS.md` has not been touched — that update is part of Task 4's own completion, per this plan's `<success_criteria>`.
-
-See the accompanying checkpoint message (returned to the orchestrator) for the exact Xcode/Finder GUI steps needed to perform Task 4's round-2 on-device re-verification.
+All 4 tasks done, Task 4's round-2 on-device UAT (including the Release-configuration pass) approved by the user. SHELF-01/SHELF-02 are complete — `REQUIREMENTS.md` updated (checkboxes + traceability table) via `gsd-sdk query requirements.mark-complete SHELF-01 SHELF-02`. Per this plan's own `<success_criteria>`, Plan 24-02's originally-paused Task 3 checkpoint is **resolved/superseded** by this plan's Task 4 (its full on-device checklist is re-covered, plus the new interception-specific checks) — 24-02's Task 3 does not need to be separately re-run.
 
 ## User Setup Required
 
-None - no external service configuration required. Task 4 itself requires the user to build/run on-device (Debug) and separately build/run a `-configuration Release` build via Xcode's GUI — this is the checkpoint's own content, not separate setup.
+None - no external service configuration required.
 
 ## Next Phase Readiness
 
-- Blocked pending Task 4 round-2's on-device checkpoint reply ("approved" / narrow-bug retry / "failed").
-- If "approved": SHELF-01/SHELF-02 complete; `REQUIREMENTS.md` should be updated and Plan 24-02's Task 3 marked resolved/superseded (per this plan's `<success_criteria>`) as part of finishing this plan.
-- If "failed" (D-13's cap reached with the core premise itself now failing, not a narrow bug): this plan stops here; route to `/gsd:discuss-phase 24` to scope D-14's move-back mitigation as its own follow-up plan.
+- SHELF-01/SHELF-02 shipped and on-device verified (Debug + Release). Phase 24 (Drag-In) is complete.
+- The `DropInterceptTap`-shaped owning-type pattern (init/start/stop/deinit, health-check timer, relocate-and-pass-through over swallow-with-nil) is available as a precedent for any future raw-HID-event interception need.
+- No known blockers carried forward from this plan.
 
 ---
 *Phase: 24-drag-in*
-*Completed: N/A — paused mid-plan at Task 4 checkpoint, round 2 (2026-07-11)*
+*Completed: 2026-07-11*
