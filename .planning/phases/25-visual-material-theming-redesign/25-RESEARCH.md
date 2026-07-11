@@ -254,17 +254,19 @@ private let springDamping: Double = 0.62    // was 0.65 — more visible oversho
 | A3 | The bottom-of-gradient stop location (`0.65`) matches D-02's "long solid stretch, mild fade only near the very bottom" description well enough as a starting point | Pattern 1, Code Examples | Low — explicitly flagged as Claude's Discretion / on-device tunable in CONTEXT.md; wrong value is a 1-line tweak, not a rework |
 | A4 | `NotchShape`'s missing `animatableData` conformance causes a visible "snap" rather than a smooth interpolation of corner radius (vs. the frame-size interpolation, which IS smooth via `matchedGeometryEffect`) | Common Pitfalls #1 | Medium — if this reasoning is wrong (i.e., SwiftUI happens to still interpolate smoothly through some other mechanism, or the deltas are too small to perceive), then no `animatableData` fix is needed at all; if right and unaddressed, D-08's larger radius delta could look worse than intended. Either way, resolvable via a 3-line `animatableData` addition if it becomes visible during Plan execution's on-device tuning — does not block planning. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does the existing `graceDelay` (0.4s) need retuning alongside the spring, or does it stay fixed?**
    - What we know: `graceDelay` is a separate, independent constant governing how long after hover-exit the collapse fires; it was tuned together with the OLD spring values.
    - What's unclear: Whether a significantly slower spring (per D-05) will feel mismatched against an unchanged 0.4s grace window during rapid interaction.
    - Recommendation: Out of this phase's explicit scope (CONTEXT.md only calls out `springResponse`/`springDamping` as touched constants) — but flag to the planner as a "watch for during on-device tuning" item, not a blocker. If it surfaces as a real issue, it's a 1-line follow-up, not a new phase.
+   - **RESOLVED:** operationalized in 25-01-PLAN.md Task 3, check 6 — flagged as a follow-up if observed, not fixed in this phase.
 
 2. **Will `NotchShape` need an `animatableData` conformance added as part of D-08's larger bottom-corner-radius change?**
    - What we know: The property currently doesn't interpolate (Pitfall 1); D-09 confirms the CURRENT (smaller) radius deltas already read correctly to the user.
    - What's unclear: Whether D-08's bigger radius jump crosses a visibility threshold.
    - Recommendation: Treat as a contingency, not a required task — plan the gradient + spring work first, on-device-verify the D-08 radius change, and only add `animatableData` if a visible pop appears.
+   - **RESOLVED:** operationalized in 25-01-PLAN.md Task 3, check 5 — contingency 3-line fix applied only if a visible pop appears on-device.
 
 ## Environment Availability
 

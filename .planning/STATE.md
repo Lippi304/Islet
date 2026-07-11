@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
-status: planning
+status: executing
 stopped_at: Phase 25 UI-SPEC approved
-last_updated: "2026-07-11T10:51:23.734Z"
-last_activity: 2026-07-11
+last_updated: "2026-07-11T11:02:35.058Z"
+last_activity: 2026-07-11 -- Phase 25 planning complete
 progress:
   total_phases: 13
   completed_phases: 4
-  total_plans: 12
+  total_plans: 13
   completed_plans: 11
   percent: 31
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 24
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-11
+Status: Ready to execute
+Last activity: 2026-07-11 -- Phase 25 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
