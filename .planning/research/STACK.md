@@ -1,18 +1,10 @@
 # Stack Research
 
-**Domain:** Native macOS notch / "Dynamic Island" overlay utility (now-playing, charging & device activities, file shelf, HUDs, timer)
-**Researched:** 2026-06-26
-**Confidence:** HIGH on the core stack (Swift/SwiftUI/AppKit, window approach, distribution path); MEDIUM-HIGH on MediaRemote (private API, fast-moving), Bluetooth, and charging detection.
+**Domain:** macOS native notch-overlay utility — window-shell architecture redesign + onboarding/settings/theming/calendar feature layer (v1.4 "Architecture Redesign")
+**Researched:** 2026-07-11
+**Confidence:** HIGH (architecture redesign, onboarding, settings, calendar — all verified against current TheBoringNotch/DynamicNotchKit source + official Apple docs + Islet's own existing code) / MEDIUM (exact material tuning for the "glossy not fully transparent" look — a design-taste call, not an API-availability question)
 
----
-
-## TL;DR for a first-time builder
-
-Build a **menu-bar (LSUIElement / "agent") app in Swift + SwiftUI**, hosted inside a **borderless, non-activating `NSPanel`** that floats at `.statusBar`/`.mainMenu` window level across all Spaces and over full-screen apps. Animate the island's expand/collapse with **SwiftUI `spring` animations + `matchedGeometryEffect`**. Read Now Playing through the **`mediaremote-adapter`** dual-process bridge (the only thing that still works on macOS 15.4+). Detect charging with **IOKit `IOPSCopyPowerSourcesInfo`** and AirPods/Bluetooth with **`IOBluetooth` connect/disconnect notifications**. Ship via **direct download, code-signed with a Developer ID + notarized with `notarytool`** — never the Mac App Store, because MediaRemote is a private framework.
-
-The single highest-risk dependency is **MediaRemote access** (private, Apple keeps tightening it). Everything else is stable, documented Apple framework territory.
-
----
+> Superseded scope note: this file previously held the original v1.0 project-setup stack research (Swift/SwiftUI/AppKit, MediaRemote, IOKit, IOBluetooth, notarization). That stack is now shipped, validated, and documented in `CLAUDE.md`/`PROJECT.md` — it isn't re-litigated here. This file is scoped to v1.4's five research questions only (window-shell redesign, onboarding, sidebar Settings, glass theming, calendar view).
 
 ## Recommended Stack
 
@@ -20,579 +12,97 @@ The single highest-risk dependency is **MediaRemote access** (private, Apple kee
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| **Swift** | 6.x (Xcode 16+ default; you can use Swift 5 *language mode* to dodge strict-concurrency errors) | App language | The native, first-party language. For a beginner, use the **Swift 5 language mode** toggle in build settings at first — Swift 6's strict concurrency checking throws confusing compile errors that will slow you down. Move to Swift 6 mode later. |
-| **SwiftUI** | Ships with macOS 14/15 SDK | All island UI, animations, layout | Far gentler for a beginner than AppKit: declarative, live previews, and its `spring`/`matchedGeometryEffect` animations are *exactly* the Dynamic-Island morph effect. This is what TheBoringNotch uses. Build ~95% of the visible app here. |
-| **AppKit** | Ships with macOS SDK | The overlay *window* only (`NSPanel`), menu-bar item (`NSStatusItem`), global hover/event handling, IOKit/IOBluetooth glue | SwiftUI cannot create a borderless, non-activating, all-Spaces overlay window by itself. You drop into AppKit *only* for the window shell and a few system hooks, then host SwiftUI inside it via `NSHostingView`. Keep AppKit surface area small. |
-| **Xcode** | 16+ | IDE, build, sign, run, debug | Already installed. Use the GUI for signing/run; use `xcodebuild`/`notarytool` from Terminal only for the release build. |
-
-**Minimum deployment target: macOS 14.0 (Sonoma).**
-- Rationale: SwiftUI is meaningfully better and less buggy on 14+, `matchedGeometryEffect` and modern `Animation` APIs are solid, and notch hardware only exists on machines that easily run 14/15.
-- Consider **macOS 15.0 (Sequoia)** instead if you want the newest SwiftUI niceties and don't mind excluding users still on Sonoma. For v1 targeting your own notch MacBook, either is fine. **Recommendation: 14.0** for the slightly wider audience at near-zero cost.
-- Note: DynamicNotchKit advertises 13+, but you don't need to support 13 yourself.
+| `NSPanel` subclass (keep `NotchPanel`) | AppKit, macOS 14.0+ (current floor) | The one persistent overlay window | Confirmed correct by reading BOTH reference implementations' actual source: `BoringNotchWindow: NSPanel` (`.mainMenu + 3`, `collectionBehavior: [.fullScreenAuxiliary, .stationary, .canJoinAllSpaces, .ignoresCycle]`, `canBecomeKey/Main = false`) and DynamicNotchKit's `DynamicNotchPanel: NSPanel` (`.screenSaver` level, `[.borderless, .nonactivatingPanel]`, `[.canJoinAllSpaces, .stationary]`) are both, structurally, the *exact same shape* Islet already has. There is no better first-party primitive to redesign into — the redesign is about the **event-delivery pattern layered on top**, not the window class itself. |
+| Global `NSEvent` monitors for drag detection, NOT `NSDraggingDestination`/`registerForDraggedTypes` | AppKit, macOS 14.0+ | Detect an in-flight OS drag over the notch region and drive auto-expand | **This is the actual fix for the Phase 22 blocker.** TheBoringNotch's `DragDetector.swift` (fetched from `main`, 2026) does NOT register the panel as a drag destination at all — it uses `NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp])` plus a `NSPasteboard(name: .drag).changeCount` poll to detect that *real drag content* (not just a mouse-down) is in flight, then does a plain `CGRect.contains(NSEvent.mouseLocation)` hit-test against a `notchRegion` rect to fire `onDragEntersNotchRegion`/`onDragExitsNotchRegion`/`onDragMove` callbacks. This is the SAME monitor family `NotchWindowController.handlePointer` already uses for hover (`NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved])`) — it never touches the Window-Server drag-targeting pathway that Phase 22 found crosses into macOS's own Mission-Control top-edge trigger before `draggingEntered` can land. Once the region-entered callback fires, the SAME `.dragEntered`/expand transition Phase 22-02 already built (`InteractionEvent.dragEntered` in `NotchInteractionState.swift`, `DragDropSupport.swift`'s pure seams) drives the panel open — that pure-seam work is NOT wasted, it slots directly under this new AppKit-glue layer. |
+| SwiftUI `.onDrop(of:isTargeted:perform:)` on the now-expanded shelf view, for the actual drop payload | SwiftUI, macOS 10.15+ (already macOS 14+ floor) | Receive the `[NSItemProvider]` once the island has expanded and is genuinely hit-testable | Once `DragDetector`'s region-entered callback has expanded the island (flipping `ignoresMouseEvents` false via the existing `syncClickThrough()` arbiter, exactly as a real hover does today), the panel is no longer click-through — a plain SwiftUI `.onDrop` on the shelf view now works reliably because the geometry problem (drag crossing Mission Control before reaching a tiny click-through hot-zone) is gone: the island is already open and the drop target is now the full, real, interactive expanded frame. This keeps `ShelfCoordinator.append`/`ShelfFileStore.makeSessionCopy` (Phase 19, unchanged) as the landing seam, matching Islet's existing "pure seam, thin AppKit glue" convention. |
+| `NSVisualEffectView` bridged via `NSViewRepresentable` | AppKit, macOS 14.0+ | Frosted/glossy material behind the pill shape | Both reference implementations independently converged on this, not raw SwiftUI `Material`: DynamicNotchKit ships its own `VisualEffectView.swift` (`NSVisualEffectView`, configurable `material`/`blendingMode`, `state = .active`, `isEmphasized = true`) as its ONLY background technique. First-party AppKit API, ~15-line wrapper, already the exact shape of Islet's other thin-AppKit-bridge files (`NotchPanel.swift`, `CGSSpace.swift`). See the dedicated Theming section below for why raw `.ultraThinMaterial` is explicitly wrong for this project's stated taste. |
+| `NavigationSplitView` + `List(selection:)` + `NavigationLink(value:)` | SwiftUI, macOS 13.0+ (already macOS 14+ floor) | Sidebar-categorized Settings, System-Settings-style | Verified from BOTH the official `developer.apple.com/documentation/swiftui/navigationsplitview` docs AND TheBoringNotch's actual shipped `SettingsView.swift` (fetched from `main`): `NavigationSplitView { List(selection: $selectedTab) { NavigationLink(value: "General") { Label(...) } ... }.listStyle(SidebarListStyle()).toolbar(removing: .sidebarToggle).navigationSplitViewColumnWidth(200) } detail: { switch selectedTab { ... } }` — this is a byte-for-byte match of what CLAUDE.md's own STACK doc and the Droppy reference material call for. Zero new dependency; SwiftUI-native. |
+| `.toolbar(removing: .sidebarToggle)` | SwiftUI, **macOS 14.0+** | Hides the collapse/expand sidebar-toggle button so the sidebar reads as permanently fixed, matching System Settings | Confirmed macOS 14.0+/iOS 17.0+ via `developer.apple.com/documentation/SwiftUI/View/toolbar(removing:)` — exactly at Islet's existing deployment floor, no version bump needed. |
+| `EKEventStore` + `requestFullAccessToEvents()` (already in codebase) | EventKit, macOS 14.0+ | Fetch a month's worth of events for the calendar grid | Already validated, live, and shipping in `Islet/Calendar/CalendarService.swift` (`EventKitService.fetchUpcoming`) — the async `try await store.requestFullAccessToEvents()` API, `store.predicateForEvents(withStart:end:calendars:)`, `store.events(matching:)`. The month view is an ADDITIVE new method on the SAME `CalendarService` protocol (e.g. `fetchMonth(containing: Date, completion:)`), not a new dependency or a new access-request pathway. |
+| `EKEventStore` + `requestFullAccessToReminders()` + `EKReminder` | EventKit, macOS 14.0+ | Droppy-style "New Task" quick-add popover in the calendar view | Sibling async API to the already-used `requestFullAccessToEvents()` (same `EKEventStore`, same framework, same async-await shape) — HIGH confidence by direct analogy, not yet exercised in this codebase. **New Info.plist key required**: `NSRemindersFullAccessUsageDescription` (not currently in `project.yml` — only `NSCalendarsFullAccessUsageDescription`/`NSCalendarsUsageDescription` exist today). This is a genuinely NEW permission surface, which is exactly the kind of thing the onboarding permissions-pre-explanation screen (see below) should cover on first launch, per the Droppy reference pattern. |
+| Foundation `Calendar` + `DateComponents` | Foundation (stdlib) | Month-grid date math (weeks, day offsets, "today" highlighting) | Ladder rung 3 — this is pure calendar arithmetic (`Calendar.current.range(of:in:for:)`, `date(byAdding:to:)`, `component(.weekday, from:)`), fully covered by Foundation. No date-math library needed for a month grid. |
+| Plain `enum` step state + `ZStack`/`switch`/`.transition(.opacity)` + `withAnimation` | SwiftUI (stdlib) | First-launch onboarding carousel (trial/license/buy choice + permissions pre-explanation) | This is TheBoringNotch's actual shipped pattern, fetched from `OnboardingView.swift`: `enum OnboardingStep { case welcome, cameraPermission, calendarPermission, ..., finished }`, one root view holding `@State var step`, a `switch step` inside a `ZStack`, each case wrapped `.transition(.opacity)`, transitions driven by `withAnimation(.easeInOut(duration: 0.6)) { step = .next }`. Zero dependencies, no `TabView`/`PageTabViewStyle` (wrong tool here — Droppy/BoringNotch's onboarding is step-gated with per-screen Allow/Skip actions, not swipeable pages). |
 
 ### Supporting Libraries
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| **mediaremote-adapter** (`ungive/mediaremote-adapter`, with the Swift wrapper `ejbills/mediaremote-adapter`) | adapter v0.7.x (2026), BSD-3 | Now Playing info + play/pause/next/prev/seek on **macOS 15.4+** | **Required** for the Now Playing feature. This is the canonical modern solution — TheBoringNotch credits it. Add the Swift package, set `MediaRemoteAdapter.framework` to **Embed & Sign**. See the MediaRemote section for the why. |
-| **DynamicNotchKit** (`MrKai77/DynamicNotchKit`) | 1.1.0 (Apr 2026), MIT, macOS 13+ | Pre-built notch overlay window + SwiftUI hosting + non-notch fallback | **Optional accelerator.** Great for *transient notifications/popovers* from the notch and saves you the tricky window code. BUT it is oriented at transient `expand()`/`hide()` events, **not** a persistent always-visible compact island. Use it to learn the technique and possibly for HUD-style toasts; expect to write your own `NSPanel` for the always-on collapsed island. Decide in the planning phase. |
-| **Sparkle** (`sparkle-project/Sparkle`) | 2.x | Auto-update for direct-distributed apps | Add when you start shipping to real users. The standard, EdDSA-signed updater for non-App-Store macOS apps (TheBoringNotch uses an updater of this kind). Not needed for local dev. |
-| **(no third-party Bluetooth/power library)** | — | — | Use Apple's IOKit + IOBluetooth directly; the surface you need is tiny and adding a dependency isn't worth it. |
-
-> Reference implementations to read (don't depend on, but study): **TheBoringNotch** (`TheBoredTeam/boring.notch`, SwiftUI, macOS 14+, uses mediaremote-adapter) and **NotchDrop** (`Lakr233/NotchDrop`) for the file-shelf feature later.
-
-### Apple frameworks you'll link directly
-
-| Framework | Purpose | Notes / Confidence |
-|-----------|---------|--------------------|
-| **SwiftUI** | UI + animation | HIGH |
-| **AppKit** | `NSPanel`, `NSStatusItem`, `NSHostingView`, event monitors | HIGH |
-| **IOKit (IOPowerSources / IOPSKeys)** | Charging state, battery %, AC-connected | HIGH — `IOPSCopyPowerSourcesInfo` + `IOPSNotificationCreateRunLoopSource` for live updates |
-| **IOBluetooth** | AirPods/headphone connect & disconnect events | MEDIUM-HIGH — legacy but functional; has the connect/disconnect notification API you need |
-| **MediaRemote** (private, via adapter) | Now Playing | MEDIUM — works only through the adapter bridge on 15.4+ |
-| **Combine** (optional) | React to state streams (now-playing, power, BT) into SwiftUI | MEDIUM — `@Published`/`ObservableObject` is enough; Combine optional |
+_None._ Every capability above is covered by AppKit/SwiftUI/EventKit/Foundation, already linked by the app. No new SPM dependency is needed for any of the five sub-questions in this milestone.
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| **Xcode 16+** | Build, run, debug, sign during dev | For *development*, just run on your own Mac — no Developer account needed. Signing = "Sign to Run Locally" / automatic. |
-| **`xcodebuild`** | Scripted release builds | `xcodebuild -scheme … archive` to produce a `.app` for distribution. |
-| **`codesign`** | Sign the app with Developer ID | `--options runtime` (hardened runtime) is mandatory for notarization. |
-| **`xcrun notarytool`** | Submit to Apple Notary Service | Replaces the old `altool`. `notarytool submit --wait` then `xcrun stapler staple`. |
-| **`create-dmg`** (optional, Homebrew) | Package a nice `.dmg` for download | Notarize the `.dmg`, then staple it. |
-
----
-
-## Installation / setup (what the user actually does)
-
-```text
-# 1. In Xcode: File > New > Project > macOS > App
-#    - Interface: SwiftUI
-#    - Language: Swift
-#    - Set the target's "Swift Language Version" to 5 for now (Build Settings).
-#    - Set "macOS Deployment Target" = 14.0.
-#    - In Info.plist add  Application is agent (UIElement) = YES   (LSUIElement)
-#      so there's no Dock icon / app menu — it's a background notch utility.
-
-# 2. Add the Now Playing bridge via Swift Package Manager:
-#    File > Add Package Dependencies…  ->  https://github.com/ejbills/mediaremote-adapter.git
-#    Then: target > General > Frameworks > set MediaRemoteAdapter.framework to "Embed & Sign".
-
-# 3. (Optional) Add DynamicNotchKit the same way:
-#    https://github.com/MrKai77/DynamicNotchKit   (use 1.1.0+)
-
-# 4. (Later, for releases) Add Sparkle:
-#    https://github.com/sparkle-project/Sparkle
-```
-
-There is **no `npm install`** here — macOS native uses Swift Package Manager inside Xcode (a few clicks), not a JavaScript package manager.
-
----
-
-## The borderless notch-overlay window (the hard part, made concrete)
-
-This is the heart of the app and where SwiftUI alone won't do. Recommended recipe (HIGH confidence — this is the documented community pattern and what notch apps use):
-
-1. **Subclass `NSPanel`** (not `NSWindow`) with style mask `[.borderless, .nonactivatingPanel]`.
-   - `.nonactivatingPanel` = clicking the island does **not** steal focus from the app you're using. Essential for a HUD/island.
-2. Configure the panel:
-   - `isOpaque = false`, `backgroundColor = .clear` (the black rounded island is drawn by SwiftUI, not the window).
-   - `hasShadow = false`, `isMovable = false`, `ignoresMouseEvents` toggled per state.
-   - `level = .statusBar` (or `.mainMenu` / `.screenSaver`) so it sits **above** normal windows and at/over the menu-bar/notch region.
-   - `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]` so it appears on every Space and over full-screen apps and doesn't slide with Spaces.
-3. **Position it over the notch**: read `NSScreen.main` (the built-in display), use `screen.frame` plus `screen.safeAreaInsets`/`auxiliaryTopLeftArea`/`auxiliaryTopRightArea` to find the notch width and center the panel on the notch. `safeAreaInsets.top > 0` is a reliable "this screen has a notch" signal.
-4. **Host SwiftUI inside**: `panel.contentView = NSHostingView(rootView: IslandRootView())`.
-5. **Hover/click detection**: SwiftUI `.onHover` works for the visible island; add an AppKit local/global `NSEvent` monitor or a slightly larger transparent hit area to catch the hover *before* expansion if needed.
-
-**Shortcut:** DynamicNotchKit implements much of steps 1–4 already. Reasonable beginner path: prototype with DynamicNotchKit to *see it working fast*, then, if its transient-notification model doesn't fit the always-visible island, lift these settings into your own `NSPanel`.
-
----
-
-## Now Playing — the MediaRemote reality (read this carefully)
-
-**Verdict: use `mediaremote-adapter`. Do not call MediaRemote directly. Accept that this is a private API and the reason you're not on the App Store.** (Confidence: MEDIUM — accurate as of mid-2026, but this area changes with macOS releases.)
-
-What changed and why it matters:
-- The classic approach — `dlopen` MediaRemote.framework and call `MRMediaRemoteGetNowPlayingInfo` / register for now-playing notifications — **broke in macOS 15.4 (and 15.3 beta)**. Apple now restricts loading MediaRemote to Apple system apps (`com.apple.*`) and a few entitled binaries. Direct calls return `nil`. Tools like `nowplaying-cli` stopped working on 15.4.
-- **`mediaremote-adapter`** (`ungive/mediaremote-adapter`, BSD-3, actively maintained into 2026) restores full access by a **dual-process trick**: it invokes the system `/usr/bin/perl` (which carries an Apple bundle id entitled to MediaRemote), dynamically loads a helper framework there, and streams now-playing JSON back to your app over stdout. Playback commands (play/pause/next/prev/seek) flow back the same way. The Swift wrapper `ejbills/mediaremote-adapter` gives you `getTrackInfo {…}`, `play()`, `pause()`, `nextTrack()`, `setTime(seconds:)`.
-
-Risks to flag for the roadmap (these belong in PITFALLS too):
-- **Apple can break this again** in a future macOS. Mitigation: isolate all now-playing code behind one Swift protocol/service so swapping the implementation is a one-file change.
-- **App Store is impossible** with this (private framework + spawning perl). This confirms the project's existing decision: **direct + notarized only.**
-- **Notarization is fine** even though it's a private framework — notarization is an automated malware scan, *not* the App Store human review. Apps like Alcove ship notarized using exactly this category of technique.
-- **Artwork latency**: album art (`artworkData`) can lag a beat after metadata — design the UI to fill art in asynchronously.
-
----
-
-## Power / charging detection
-
-Use **IOKit power sources** (Confidence: HIGH):
-- Quick "is the charger plugged in?" → `IOPSCopyExternalPowerAdapterDetails()` non-nil, or check `kIOPSPowerSourceStateKey`.
-- Full state (charging?, battery %, time remaining) → `IOPSCopyPowerSourcesInfo()` + `IOPSCopyPowerSourcesList()`, then read `kIOPSIsChargingKey`, `kIOPSCurrentCapacityKey`, `kIOPSMaxCapacityKey`.
-- **Live updates** (to trigger the charging animation the moment the cable connects) → `IOPSNotificationCreateRunLoopSource` with a callback, added to the main run loop. This is the event hook the "plugged in" live-activity needs.
-
-`NSProcessInfo`/`ProcessInfo.thermalState` and low-power-mode flags exist but **don't** give charging/connected state — use IOKit. (Confidence: HIGH)
-
----
-
-## Bluetooth / AirPods connect events
-
-Use **`IOBluetooth`** (Confidence: MEDIUM-HIGH):
-- Register app-wide for connections: `IOBluetoothDevice.register(forConnectNotifications:selector:)`, and per-device `device.register(forDisconnectNotification:selector:)` for disconnects. These fire when AirPods/headphones connect or drop.
-- For AirPods specifically you'll match by device name/class.
-- **Caveat:** `IOBluetooth` is a *legacy* framework (Apple steers new BLE work to **Core Bluetooth**), but Core Bluetooth is designed for talking to BLE peripherals you act as a *central* for — it is **not** the right tool for "did a paired audio device connect to the system?". For classic connect/disconnect-of-paired-devices events, **IOBluetooth is still the correct and working choice on current macOS.** Keep an eye on deprecation in future releases.
-- An app-level Bluetooth entitlement may be required when sandboxed; since you are **not** sandboxing (private MediaRemote rules that out anyway), this is low-friction.
-
----
-
-## Animation approach (the Dynamic-Island feel)
-
-All in **SwiftUI** (Confidence: HIGH — this is the standard technique and exactly what produces the iPhone island morph):
-- Drive expand/collapse from a single `@State`/`@Published` `isExpanded` (and an enum for the activity kind).
-- Wrap state changes in `withAnimation(.spring(response:dampingFraction:))` — a snappy spring is what makes it feel "Apple".
-- Use **`matchedGeometryEffect`** with a shared `@Namespace` so elements (album art, the rounded black blob) appear to *morph* between compact and expanded layouts rather than cross-fade. This is the single most important trick for the "liquid" island look.
-- The black rounded shape is just a `RoundedRectangle`/`Capsule` whose corner radius and frame animate; match the notch's real corner radius for seamlessness.
-- Avoid Core Animation / hand-rolled `CALayer` animations — unnecessary complexity for a beginner when SwiftUI gives this for free.
-
----
-
-## Build / sign / notarize / distribute toolchain
-
-Direct, notarized distribution (Confidence: HIGH on the process). **No Developer account needed until you distribute** — local dev runs with automatic "sign to run locally."
-
-When ready to ship to others:
-1. **Apple Developer Program** — $99/yr. Create a **Developer ID Application** certificate (Xcode > Settings > Accounts > Manage Certificates > +).
-2. **Hardened Runtime ON** + needed entitlements; sign:
-   `codesign --force --options runtime --timestamp --sign "Developer ID Application: <Name> (<TeamID>)" --entitlements App.entitlements MyApp.app`
-   (sign embedded frameworks like `MediaRemoteAdapter.framework` first / use `--deep` carefully, or sign inside-out).
-3. **Package**: zip or, better, a `.dmg` (`create-dmg`).
-4. **Notarize**: `xcrun notarytool submit MyApp.dmg --apple-id <id> --team-id <TeamID> --password <app-specific-password> --wait`. (Store creds once with `notarytool store-credentials` to avoid passing them each time.)
-5. **Staple**: `xcrun stapler staple MyApp.dmg` so it launches offline without Gatekeeper warnings.
-
-`notarytool` (Xcode 13+) is the current tool; **`altool` is deprecated** — don't use it.
-
----
-
-## Alternatives Considered
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| SwiftUI for UI | Pure AppKit (`NSView`/Core Animation) | Only if you hit a SwiftUI wall on a specific custom effect. Far steeper for a beginner — not for v1. |
-| Roll your own `NSPanel` for the persistent island | **DynamicNotchKit** | Use DynamicNotchKit if your island is mostly transient notifications/HUDs, or to prototype fast. Switch to custom `NSPanel` for an always-visible compact island it doesn't natively model. |
-| `mediaremote-adapter` | AppleScript/JXA "now playing" scripts; `nowplaying-cli` | Fallback only — scripts are slower, app-specific (don't cover all players), and brittle. `nowplaying-cli` is broken on 15.4+. Adapter is strictly better. |
-| IOBluetooth for connect events | Core Bluetooth | Core Bluetooth only if you genuinely act as a BLE central to a custom peripheral — not for system paired-device connect events. |
-| macOS 14.0 target | macOS 15.0 target | Choose 15.0 if you only care about newest SwiftUI APIs and your own machine; choose 13.0 only if you must support very old hardware (you don't — notch Macs are recent). |
-| Sparkle for updates | Manual "download new version" / Homebrew cask | Manual is fine for a first private release; add Sparkle before a public launch. |
-
----
-
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| **Electron / web / Tauri** | Cannot make a true borderless notch overlay across Spaces, can't bridge MediaRemote, can't replace system HUDs cleanly. Both reference apps are native. | Swift + SwiftUI/AppKit |
-| **Mac App Store distribution** | MediaRemote is a private framework and you spawn a helper process — guaranteed rejection. | Direct download, **notarized** |
-| **Direct `dlopen` of MediaRemote.framework / `MRMediaRemoteGetNowPlayingInfo`** | **Broken on macOS 15.4+** for non-Apple apps; returns nil. | `mediaremote-adapter` bridge |
-| **`nowplaying-cli`** as a backend | Stopped working on 15.4+. | `mediaremote-adapter` |
-| **`altool`** for notarization | Deprecated/removed. | `xcrun notarytool` |
-| **App sandboxing** | Incompatible with the MediaRemote bridge (spawning perl) and some IOKit/IOBluetooth access. | Ship un-sandboxed, hardened-runtime, notarized (App-Store-incompatible anyway). |
-| **Swift 6 strict-concurrency mode (at the very start)** | Floods a beginner with `Sendable`/actor-isolation compile errors unrelated to the actual feature. | Start in **Swift 5 language mode**, migrate later. |
-| **Core Bluetooth for "did AirPods connect"** | Wrong abstraction; it's for being a BLE central, not observing system paired devices. | IOBluetooth connect/disconnect notifications |
-| **Combine-heavy architecture from day one** | Extra concepts for a beginner. | Plain `ObservableObject` + `@Published`; add Combine only where it clearly helps. |
-
----
-
-## Stack Patterns by Variant
-
-**If you want the fastest possible "it appears at the notch" win (recommended first step):**
-- Use **DynamicNotchKit** to render a SwiftUI view from the notch and confirm hover/expand works.
-- Because it removes the trickiest window code while you learn, then you can graduate to a custom `NSPanel`.
-
-**If the island must be *always visible* in its compact form (the Alcove look):**
-- Write a custom `NSPanel` (borderless, non-activating, `.statusBar` level, all-Spaces) holding an `NSHostingView`.
-- Because DynamicNotchKit centers on transient `expand()`/`hide()` events rather than a persistent compact pill.
-
-**If Now Playing breaks after a macOS update:**
-- Keep all now-playing behind one `NowPlayingService` protocol.
-- Because the MediaRemote bridge is the most likely thing Apple disrupts; isolation makes the fix a one-file swap.
-
----
-
-## Version Compatibility
-
-| Component | Compatible With | Notes |
-|-----------|------------------|-------|
-| SwiftUI `matchedGeometryEffect` + modern springs | macOS 14+ | Solid on 14/15; rationale for the 14.0 floor. |
-| `mediaremote-adapter` bridge | macOS through 15.4, 15.5+, and macOS 26 betas | The whole point of the adapter is forward-compat across the 15.4 break; still verify after each major macOS update. |
-| DynamicNotchKit 1.1.0 | macOS 13+ | You target 14+, so fine. |
-| `notarytool` | Xcode 13+ (you have 16) | Use it; not `altool`. |
-| IOBluetooth connect/disconnect APIs | Current macOS | Functional but legacy — watch for future deprecation. |
-| Swift 6 toolchain w/ Swift 5 language mode | Xcode 16 | Lets a beginner avoid strict concurrency while staying on the current compiler. |
-
----
-
-## Sources
-
-- TheBoringNotch — `github.com/TheBoredTeam/boring.notch` — SwiftUI, macOS 14+, uses mediaremote-adapter, NotchDrop-inspired shelf. (HIGH — primary open-source reference)
-- mediaremote-adapter — `github.com/ungive/mediaremote-adapter` (BSD-3, v0.7.x, May 2026) and Swift wrapper `github.com/ejbills/mediaremote-adapter`. (HIGH on existence/approach; MEDIUM on long-term stability)
-- LyricFever issue #94 & nowplaying-cli issue #28 — confirm MediaRemote direct access broke on macOS 15.3/15.4. (MEDIUM-HIGH, multiple corroborating community reports)
-- The Apple Wiki "Dev:MediaRemote.framework" — framework background. (MEDIUM)
-- DynamicNotchKit — `github.com/MrKai77/DynamicNotchKit`, v1.1.0 (Apr 2026), MIT, macOS 13+. (HIGH)
-- Apple Developer — `developer.apple.com/documentation/security/notarizing-macos-software-before-distribution`, `notarytool` docs, Xcode 16.2 release notes. (HIGH)
-- Apple Developer — `nonactivatingPanel` style mask; IOBluetooth / IOBluetoothDevice docs. (HIGH for window mask; MEDIUM-HIGH for IOBluetooth)
-- Apple Developer Forums thread 128048 — IOKit `IOPSCopyPowerSourcesInfo` / external power adapter detection for charging state. (MEDIUM-HIGH)
-- SwiftUI floating-panel / NSPanel pattern articles (Itsuki, fazm.ai, gaitatzis) — borderless non-activating overlay recipe with `collectionBehavior` all-Spaces. (MEDIUM, multiple sources agree)
-- matchedGeometryEffect + Dynamic Island animation tutorials (Design+Code, Better Programming) — confirm the spring + matched-geometry approach. (MEDIUM-HIGH)
-- BluetoothConnector — `github.com/lapfelix/BluetoothConnector` — real IOBluetooth usage on macOS. (MEDIUM)
-
----
-*Stack research for: native macOS notch / Dynamic Island utility*
-*Researched: 2026-06-26*
-
----
----
-
-# Stack Research Addendum: Trial + Licensing (Polar.sh) + Real Notarization
-
-**Domain:** Trial/licensing + payments (Polar.sh) + real notarized distribution — additions for the "Islet" monetization milestone
-**Researched:** 2026-07-05
-**Confidence:** MEDIUM-HIGH (Polar.sh API shape verified against current docs; Keychain/notarytool patterns verified against man pages and well-corroborated secondary sources; a couple of official Apple doc pages didn't render via fetch tooling this pass — flagged inline)
-
-This addendum covers ONLY the five new-feature additions for this milestone (trial, one-time purchase via Polar.sh, license validation/caching, trial-expiry lockout, real notarization). It does not re-research the core notch/overlay/MediaRemote/IOKit/IOBluetooth/Settings stack above, which is already validated and unchanged.
-
-## Recommended Stack
-
-### Core Technologies
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **URLSession + async/await** (Foundation, ships with Swift 5/6 toolchain) | Built-in | All HTTP calls to Polar.sh's REST API (checkout link open, license-key activate/validate) | Polar.sh has **no official Swift/Apple-platform SDK** (verified — only `@polar-sh/sdk` for Node/JS and a PHP SDK exist; the only Swift package under the "Polar" name on GitHub is the unrelated Polar Electro fitness BLE SDK). The API itself is a plain JSON REST API, small surface (2 endpoints you actually need), so `URLSession.shared.data(for:)` + `Codable` structs is a complete, dependency-free client. Matches the project's "no unnecessary complexity for a first-time programmer" constraint. |
-| **Security framework (Keychain Services)** | Ships with macOS SDK | Persist trial-start date + validated license state locally, tamper-resistant-enough and reinstall-resistant | `kSecClassGenericPassword` items survive app deletion/reinstall (unlike `UserDefaults`, which is trivially wiped or hand-edited in a plist), which is exactly the property you want for both trial-abuse resistance and "stay licensed after reinstall." No sandboxing entitlement is required to use it (see notes below). |
-| **`xcrun notarytool`** (ships with Xcode 13+; project's build machine is on Xcode 26.6) | Current | Replace the placeholder/dry-run notarization steps in `scripts/release.sh` with real submission | Already the tool the project chose (correctly — `altool` is removed). What's new this milestone is real credentials (Developer ID cert + API key or Apple ID app-specific password) now that a paid Developer account exists. No tool change needed, only wiring real auth. |
-
-### Supporting Libraries
-
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| **None (Foundation `Codable` + `URLSession` only)** | Built-in | Decode Polar's JSON responses (`ValidatedLicenseKey`, activation object) | Use plain `struct ...: Codable` models for the request/response shapes below. Do not add Alamofire or similar — the call volume (a handful of requests total, ever) doesn't justify a networking dependency. |
-| **(Optional, not required) `kishikawakatsumi/KeychainAccess`** | 4.2.x | Thin Swift wrapper over raw `SecItemAdd`/`SecItemCopyMatching` C API | Only add this if writing the ~40-line Keychain wrapper by hand feels like too much ceremony for the builder. Functionally equivalent to a hand-rolled wrapper; recommendation below is to hand-roll it (one more dependency isn't worth it for one small struct), but it's a reasonable escape hatch if the raw `Security` C API proves confusing. |
-
-### Development Tools
-
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| **`xcrun notarytool store-credentials`** | Store real notarization credentials once, outside of `release.sh` / source control | Run manually once per machine: either API-key based (`--key <p8 path> --key-id <id> --issuer <issuer>` for a **Team** key, or the same *without* `--issuer` for an **Individual** key — Individual keys are Xcode 26+ only and error 401 if you pass `--issuer`) or Apple-ID based (`--apple-id <id> --team-id <team> --password <app-specific-password>`). Saves to the login keychain under a profile name that `release.sh` references via `--keychain-profile`. Never put the raw key file or password in the repo. |
-| **App Store Connect API key (recommended over Apple ID)** | Auth for `notarytool` | Apple's own guidance favors API keys over Apple-ID + app-specific password (no 2FA prompt dependency, works headlessly in CI later). Generate a key with the "Developer" role (not "Admin") in App Store Connect → Users and Access → Integrations → Notary/API keys. Download the `.p8` once — Apple will not let you re-download it. |
-| **Developer ID Application certificate** | Code signing before notarization | Confirm this exists in Keychain Access / `security find-identity -v -p codesigning` before wiring real notarization — this is the one prerequisite the dry-run couldn't exercise. A Developer ID **Installer** cert is only needed if you ship a `.pkg`; since the pipeline already uses `hdiutil` to build a `.dmg`, you don't need the Installer cert. |
+| `curl`/GitHub REST API against `TheBoredTeam/boring.notch` and `MrKai77/DynamicNotchKit` `main` | Source verification for this research | Both repos' actual current `main`-branch source was fetched directly (not just READMEs) to confirm the window-class shape, the drag-detection technique, the Settings sidebar pattern, and the onboarding pattern — training-data knowledge of these two projects would have been stale/generic; the fetched source is what grounds every recommendation above. |
+| Xcode 26.6 / `xcodebuild` (existing) | Build gate | Unchanged from every prior phase; no new toolchain requirement introduced by this milestone. |
 
 ## Installation
 
 ```bash
-# No package manager changes required for Polar.sh integration —
-# URLSession + Codable + Security are all part of Foundation/the macOS SDK.
+# No new SPM packages. All APIs are first-party (AppKit/SwiftUI/EventKit/Foundation),
+# already linked via the existing Islet target.
 
-# Optional convenience wrapper (only if hand-rolling Keychain access feels too raw):
-# File > Add Package Dependencies… -> https://github.com/kishikawakatsumi/KeychainAccess.git
-
-# notarytool credential storage (run once, per dev machine, NOT in a script/repo):
-xcrun notarytool store-credentials "islet-notary" \
-  --key "/path/to/AuthKey_XXXXXXXXXX.p8" \
-  --key-id XXXXXXXXXX \
-  --issuer YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY   # omit --issuer entirely if using an Individual API key (Xcode 26+)
-
-# scripts/release.sh then references it by profile name, e.g.:
-xcrun notarytool submit "Islet.dmg" --keychain-profile "islet-notary" --wait
-xcrun stapler staple "Islet.dmg"
+# One new Info.plist key needed in project.yml (for the Reminders/task quick-add feature only):
+#   INFOPLIST_KEY_NSRemindersFullAccessUsageDescription: "<German user-facing string,
+#     matching the existing Bluetooth/Location/Calendar string style>"
 ```
-
-## Polar.sh Integration Details (verified against current docs, 2026)
-
-### 1. Checkout — use a Checkout Link, not the authenticated Checkout Sessions API
-
-Polar has two ways to start a purchase:
-
-- **Checkout Links** (dashboard-generated, public, long-lived URL, e.g. `https://polar.sh/checkout/<id>`) — **no authentication required to create or use**. This is the right fit here: create one Checkout Link for the €7.99 one-time-purchase product in the Polar dashboard, and have the app simply `NSWorkspace.shared.open(url)` it in the default browser. Optional query params (`customer_email`, `customer_name`, `locale`, `theme`, `reference_id`) let you prefill the checkout page.
-- **Checkout Sessions API** (`POST /v1/checkouts`) requires an **authenticated, secret** organization API token. **Do not call this from the shipped app** — any secret bearer token embedded in a distributed binary can be extracted (strings/binary inspection) and abused to mint free checkouts or access your organization's API. This is the single most important "don't" for this milestone.
-
-After purchase, Polar emails the license key to the buyer and shows it on their Polar customer portal — the app doesn't need to fetch or generate it; the user pastes it into a Settings/"Enter License Key" field.
-
-### 2. License key validation/activation — public, unauthenticated, desktop-safe endpoints
-
-Both endpoints Polar explicitly documents as safe to call directly from a native/desktop client (no secret key involved):
-
-**Activate** (call once, when the user first enters a key on a device):
-```
-POST https://api.polar.sh/v1/customer-portal/license-keys/activate
-Body: { "key": "<pasted-key>", "organization_id": "<your-org-uuid>", "label": "<device label, e.g. hostname>" }
-→ 200: { id: <activation_id>, license_key_id, label, license_key: { status, limit_activations, usage, limit_usage, expires_at, ... } }
-```
-Only needed if your license-key benefit has "device activations" enabled in the Polar dashboard (recommended — set a generous limit, e.g. 3-5, so a user re-buying a Mac or reinstalling isn't blocked). Store the returned `activation_id` — it strengthens later validation and lets you show "this key is used on N devices."
-
-**Validate** (call once when the key is entered, per the milestone's explicit design — see note below):
-```
-POST https://api.polar.sh/v1/customer-portal/license-keys/validate
-Body: { "key": "<pasted-key>", "organization_id": "<your-org-uuid>", "activation_id": "<from activate, optional>" }
-→ 200: ValidatedLicenseKey { status: granted|revoked|disabled, expires_at, limit_activations, usage, limit_usage, ... }
-→ 404: key not found   → 422: validation error
-```
-Both endpoints explicitly state: *"This endpoint doesn't require authentication and can be safely used on a public client, like a desktop application or a mobile app."* — confirming Polar designed this feature for exactly this use case (native/desktop apps), not just web SaaS.
-
-**Confidence:** HIGH on endpoint shape and no-auth-for-desktop guarantee (directly quoted from current Polar docs, `polar.sh/docs/api-reference/customer-portal/license-keys/{validate,activate}`, fetched 2026-07-05). MEDIUM on activation-limit UX defaults — verify current dashboard defaults when setting up the license-key benefit, as dashboard UI details weren't independently confirmed beyond docs text.
-
-### 3. Webhooks — not needed for this milestone
-
-Polar supports webhooks (`checkout.updated`, benefit-grant events, etc.), but those exist for **server-side** integrations that need to react to purchases asynchronously (e.g. provisioning a SaaS account). This app has no backend server and no account system — the client-side validate/activate flow above is the complete, sufficient integration. **Do not build a webhook receiver / server component for this milestone** — it would be unused complexity; the roadmap should explicitly scope this out.
-
-### 4. Local trial + license caching (Keychain)
-
-Recommended shape — a single Keychain item holding a small JSON blob, not multiple loose values:
-
-```swift
-struct LicenseState: Codable {
-    var firstLaunchDate: Date
-    var status: String        // "trial" | "licensed" | "expired" | "revoked"
-    var licenseKeyDisplay: String?   // Polar's masked `display_key`, never the raw key, for UI
-    var activationID: String?
-    var lastValidatedAt: Date?
-}
-```
-
-- `kSecClass`: `kSecClassGenericPassword`
-- `kSecAttrService`: your bundle identifier (e.g. `com.yourname.islet`)
-- `kSecAttrAccount`: a fixed constant, e.g. `"license-state"`
-- `kSecAttrAccessible`: **`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`** — "AfterFirstUnlock" (not "WhenUnlocked") so a menu-bar app that might be relaunched via a login item before the user has actively unlocked/interacted still finds its state; "ThisDeviceOnly" so the item is **not** synced via iCloud Keychain to the user's other Macs (you don't want one purchased license silently "just working" on a second machine via iCloud sync — activation limits on the Polar side plus this local flag are the two layers of enforcement).
-- Store `firstLaunchDate` in the *same* Keychain item on first run. Reading it back on every launch (rather than trusting `UserDefaults` or a plain file) is what makes the 3-day trial resistant to the obvious bypass (delete app → reinstall → fresh trial): the Keychain item outlives app deletion.
-
-**Non-sandboxed considerations (this app is intentionally not sandboxed, per existing project decision for the MediaRemote/perl bridge):** Keychain access on macOS is scoped by code signature (Team ID + a keychain-access-group derived from your app ID), **not** by the App Sandbox. Because you are not sandboxed, you do **not** need the `com.apple.security.application-groups` or sandboxed-keychain-sharing entitlements that a sandboxed app would need — a plain `SecItemAdd`/`SecItemCopyMatching`/`SecItemUpdate` call from your (consistently signed) app works with zero extra entitlements. This is a case where *not* sandboxing simplifies things further, not just a tradeoff. (MEDIUM confidence — Apple's own "Storing Keys in the Keychain" doc page didn't render via fetch tooling in this research pass; corroborated by multiple independent Keychain-usage writeups and is consistent with long-standing macOS Keychain ACL behavior. Worth a 10-minute manual smoke test during implementation: add an item, quit, relaunch, confirm no prompt/entitlement error appears.)
-
-**Honest limitation:** this is "tamper-resistant-enough," not DRM. A technically sophisticated user can still open Keychain Access.app and delete the item, or use `security delete-generic-password`, resetting their trial. Full anti-piracy hardening (code obfuscation, jailbreak-style integrity checks) is out of scope for an indie utility at this budget/skill level and would be a poor time investment — Polar's server-side `status: revoked/disabled` plus this local cache is the right amount of friction.
-
-### 5. Full lock on trial expiry
-
-This is pure app logic (no new library): on every launch, read the cached `LicenseState`, compute `trial_end = firstLaunchDate + 3 days`. If `status != "licensed"` and `now > trial_end`, show a blocking "trial expired, enter license key" view and skip initializing the notch overlay/activities entirely (don't just hide UI — actually gate the app's core init path, matching the milestone's "no functionality" requirement). Re-entering a key re-runs activate+validate and flips `status` to `"licensed"` on success, un-gating the app without a relaunch.
-
-## Real Notarization Toolchain — what changes vs. the existing dry-run
-
-The dry-run already proved the mechanical steps (archive → sign → `hdiutil` → notarize-placeholder → staple-placeholder). What's genuinely new now that a paid account exists:
-
-1. **Enroll in the Apple Developer Program** ($99/yr — already accounted for in project constraints) and confirm team is active in App Store Connect / developer.apple.com/account.
-2. **Generate a Developer ID Application certificate** (Xcode → Settings → Accounts → Manage Certificates → "+" → Developer ID Application, or via developer.apple.com/account/resources/certificates). Verify locally with `security find-identity -v -p codesigning` — you want to see `"Developer ID Application: <Your Name> (<TEAMID>)"` in the list, not just an ad-hoc/self-signed identity. No Developer ID Installer cert needed (you distribute via `.dmg`, not `.pkg`).
-3. **Create an API key for notarytool** in App Store Connect (Users and Access → Integrations → "Notary" or general API keys) with the **Developer** role — this is Apple's recommended auth method over Apple ID + app-specific password (no interactive 2FA/keychain prompt dependency, works unattended). Download the `.p8` file immediately (one-time download) and store it outside the repo (e.g. `~/.appstoreconnect/private_keys/`).
-4. **`xcrun notarytool store-credentials`** once per dev machine, saving the profile to the login keychain (see Installation above). `release.sh` then only ever references `--keychain-profile "islet-notary"` — no secrets touch the script or git history.
-5. **Update `scripts/release.sh`**: replace the SKIP-gated placeholder branch with the real `notarytool submit "$DMG_PATH" --keychain-profile "islet-notary" --wait` call, check its exit status / JSON output for `status: Accepted`, then `xcrun stapler staple "$DMG_PATH"`. Consider `--timeout` on `--wait` (Apple's notary service typically completes in under a few minutes, but can occasionally take much longer during outages) so CI/local runs don't hang indefinitely; on timeout, fall back to `notarytool log <submission-id>` to inspect failures rather than re-submitting blindly.
-6. **Hardened runtime**: already required for notarization and should already be enabled in the archive build (`codesign --options runtime`) since the dry-run pipeline exists — no new entitlement is needed specifically *for* Polar/licensing, since all networking goes through standard `URLSession` (no extra network entitlements needed for a non-sandboxed app) and Keychain access needs no entitlement either (see above). Confirm no entitlement regressions from adding these features (there shouldn't be any).
-
-**2026-era gotcha, verified:** if you generate an **Individual** API key (tied to your personal Apple ID rather than a Team) — available as an option starting Xcode 26 — you must **omit** `--issuer` entirely when calling `store-credentials`/`submit`; passing an issuer ID with an Individual key causes a 401 Unauthorized. Team-scoped API keys still require `--issuer`. Since the project's build machine is on Xcode 26.6 (per existing project memory), this distinction is directly relevant — decide which key type you generated in App Store Connect and match the flag usage accordingly. (MEDIUM-HIGH confidence — corroborated by the `@electron/notarize` README, which documents this against Apple's own notarytool behavior, and by Apple developer forum reports of the same 401; Apple's own TN3147 migration page didn't render via fetch tooling in this pass, so treat as MEDIUM-HIGH rather than HIGH and re-check the actual error message during implementation if a 401 appears.)
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| Polar.sh Checkout Links (static, no-auth) | Polar Checkout Sessions API (authenticated) | Only if you later build a real backend server that can hold the secret org API token server-side (e.g. for dynamic per-user pricing/discounts computed server-side). Not needed here. |
-| Raw `Security` framework Keychain wrapper (hand-rolled) | `KeychainAccess` (kishikawakatsumi) | If the raw `SecItemAdd`/`kSec...` dictionary-based C API feels too unfamiliar during implementation — it's a fine, well-maintained, MIT-licensed convenience wrapper, just an extra dependency for something Foundation already exposes. |
-| `notarytool` with App Store Connect API key auth | `notarytool` with Apple ID + app-specific password | If you don't want to manage a `.p8` key file, or the API key generation flow is confusing for a first-time setup — Apple ID auth still works, just prompts more and is slightly more fragile for unattended/CI use later. |
-| Cache validated license state in Keychain | Cache in a local file / `UserDefaults` with light obfuscation | Never for the license flag itself (trivially editable). A local file *is* fine as a secondary/UI-only cache of non-sensitive display data (e.g. showing "licensed" badge instantly without a Keychain read), but the source of truth must stay in Keychain. |
-| Validate once on key entry, trust cache afterward (per milestone spec) | Periodic best-effort re-validation (e.g. silently re-check online once every N days when network is available, falling back to cache on failure) | Consider this as a fast-follow enhancement, not this milestone — it lets you revoke a refunded/chargeback license without the user ever re-entering it, while still fully preserving offline-first behavior (revalidation is opportunistic, not required for the app to keep working). Flagged as an open question for the roadmap, not a hard requirement of this milestone's stated design. |
+| Keep custom `NotchPanel: NSPanel` + redesign the drag-detection layer | Rebuild the whole window shell on **DynamicNotchKit** | Only if Islet ever drops its "always-visible persistent compact pill" requirement. Reading `DynamicNotchKit.swift`'s actual `_expand`/`_compact`/`_hide` methods confirms it **tears down and recreates the `NSPanel` on every hide** (`deinitializeWindow()`/`initializeWindow()`), and its own doc comment says compact mode is unsupported on the `.floating` style. This is architecturally wrong for Islet's idle-pill-is-always-there design — do not adopt it as the window shell. It stays useful only as a technique reference (already used that way for the material-bridging pattern above). |
+| `NSVisualEffectView` bridge for material | Raw SwiftUI `Material`/`.ultraThinMaterial` as the pill's ONLY background | If the desired look genuinely is Apple's native, fully-adaptive translucency (the look the user explicitly said they DISLIKE about Droppy: "explicitly dislikes the fully-transparent glass look"). `.ultraThinMaterial` alone reads as too see-through for a small dark pill; `NSVisualEffectView` gives independent control over `material`/`blendingMode`/`isEmphasized` that a semi-opaque black overlay can sit on top of. |
+| Global `NSEvent` monitor + pasteboard poll for drag detection | `NSDraggingDestination`/`registerForDraggedTypes` on `NotchPanel` (Phase 22's original approach) | If a future redesign makes the collapsed pill's hot-zone large enough that it never needs to compete with Mission Control's own top-edge trigger (e.g., if Islet ever abandons `.statusBar`/top-edge positioning entirely). Given the notch sits right at the physical screen edge, this condition is unlikely to hold — the global-monitor technique is the durable fix, not a stopgap. |
+| Additive `fetchMonth(...)` method on the existing `CalendarService` protocol | A dedicated third-party SwiftUI calendar package (e.g. `HorizonCalendar`, `SwiftUICalendar`) | If the month-grid UI needs paging/infinite-scroll across many months, drag-to-select date ranges, or other calendar-app-grade UX beyond a single current-month grid + "Today" event list — none of which the Droppy reference screenshots (`6.png`/`7.png`, a static month grid + side list) call for. A single month grid is squarely inside Foundation `Calendar` math; don't reach for a package for it. |
+| `NavigationSplitView` inside the existing `Window(id: "settings")` scene | A brand-new custom sidebar built from `HSplitView`/`NSSplitViewController` | Only if `NavigationSplitView`'s macOS System-Settings visual parity (fixed 200-215pt sidebar, no toggle) proves insufficient for some specific interaction Islet needs later (e.g. resizable/collapsible categories) — not indicated by anything in the Droppy reference material, which shows exactly the fixed-sidebar System-Settings look `NavigationSplitView` already gives for free. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|--------------|
-| Polar's Checkout Sessions API (authenticated) called directly from the shipped app | Requires embedding a secret organization API token in a distributed binary — extractable via `strings`/disassembly, letting anyone forge checkouts or hit your account's API quota/data | Dashboard-generated Checkout Link (public, no secret, long-lived URL) opened via `NSWorkspace.shared.open` |
-| A custom backend server / webhook receiver for licensing | This is a menu-bar utility with no account system; Polar's activate/validate endpoints are explicitly designed to be called unauthenticated from desktop/mobile clients — a server adds hosting cost, complexity, and a new failure mode for zero benefit here | Direct client-side calls to `/v1/customer-portal/license-keys/{activate,validate}` |
-| `UserDefaults` (or a plain plist/JSON file) as the sole store for trial-start date or license status | Trivially resettable by editing/deleting a plist — defeats the entire trial-abuse-resistance goal | `kSecClassGenericPassword` Keychain item, which survives app deletion/reinstall |
-| Adding Alamofire or another networking library for ~2 API calls total | Unjustified dependency weight/complexity for a call volume this small; `URLSession` + `Codable` already does everything needed | Plain `URLSession.shared.data(for:)` with `async/await` |
-| `altool` for notarization | Deprecated/removed by Apple; not usable in current Xcode | `xcrun notarytool submit --wait` |
-| Storing notarization credentials (`.p8` key or app-specific password) inside `scripts/release.sh` or committed to git | Leaks Apple Developer credentials into version control/history | `xcrun notarytool store-credentials` once per machine into the login keychain; reference by `--keychain-profile` name only |
-| Adding App Sandbox entitlements to enable Keychain access | Unnecessary — the app is intentionally non-sandboxed already (for the MediaRemote/perl bridge), and Keychain access needs zero sandbox entitlements for a non-sandboxed, consistently-signed app | Plain `Security` framework calls, no new entitlements |
-| Rolling custom DRM/anti-tamper/obfuscation for the license check | Disproportionate engineering cost for an indie utility at this budget; real determined crackers bypass it anyway | Keychain-backed local cache + Polar's server-side `revoked`/`disabled` status is the appropriate amount of protection |
+| `NSDraggingDestination`/`registerForDraggedTypes` as the PRIMARY drag-in detection mechanism | This is the exact mechanism Phase 22 spiked and found technically works (`draggingEntered` does fire through the click-through panel — A1 confirmed) but is **practically blocked** by the small hot-zone crossing macOS's own Mission Control top-edge trigger before the drop can land. Continuing to build on it (even with a widened `expandedZone`-based accept region, as 22-03's abandoned plan attempted) keeps fighting the Window Server's own drag-targeting pathway instead of sidestepping it. | The global `NSEvent` monitor + `NSPasteboard(name: .drag)` technique (`DragDetector.swift` pattern) above — same event family as the existing, already-proven hover monitor. |
+| DynamicNotchKit as the literal window-shell dependency | Confirmed via source read: its whole model is transient expand()/compact()/hide() with the `NSPanel` destroyed and rebuilt on every hide (`deinitializeWindow()`). Wrong shape for Islet's persistent always-visible collapsed pill. | Keep the existing custom `NotchPanel: NSPanel`, informed by (not replaced by) both reference apps' window-config values. |
+| TheBoringNotch's `BoringNotchSkyLightWindow.swift` (a private SkyLight/CGS-backed window variant, file exists in their tree but was not the one analyzed in depth here) | Deeper private-API surface than Islet's own already-working, already-shipped `CGSSpace`-based fullscreen fix (Phase 9) needs. Islet's fullscreen-hide problem is ALREADY solved (dedicated max-level CGS Space the panel joins, additive to `.canJoinAllSpaces`) — there is no unmet need this would address, only added private-API risk. | Keep the existing `CGSSpace.swift` approach; do not chase a second, more invasive private-API window replacement for a problem that isn't open. |
+| Raw SwiftUI `.ultraThinMaterial`/`.regularMaterial` as the pill's base fill | Explicitly the disliked Droppy look per the milestone's own inspiration notes ("dislikes the fully-transparent glass look (prefers glossy/frosted with more opacity/substance)"). Native `Material` alone reads as too see-through at the small pill size. | `NSVisualEffectView` bridge (tunable material/blend/opacity) layered under a semi-opaque tint, OR a near-opaque `Color`/gradient base with a LOW-opacity `Material` overlay purely for the specular/glossy highlight, not as the primary fill. |
+| A third-party onboarding-carousel library (e.g. `PagerTabStripView`-style SwiftUI pagers) | The reference pattern (TheBoringNotch's own shipped onboarding) is a plain `enum` + `switch` + `.transition(.opacity)` — a step-gated flow with per-step Allow/Skip actions, not swipeable "pages." A pager library would fight this shape, not help it. | Plain SwiftUI `enum`/`switch`/`withAnimation`, as shown in Core Technologies above. |
+| `NSDragging`-style drag work growing `NotchPanel.swift` into a "kitchen sink" file | Matches this project's own established convention violation risk (CR-01's lesson: a second, parallel state-writer for the same flag caused a real regression). | Keep drag-region detection as its OWN thin AppKit-glue type (mirroring `DragDetector`'s single-responsibility shape), forwarding into the SAME `NotchInteractionState`/`syncClickThrough()` single-arbiter `NotchWindowController` already uses for hover — never a second, independent `ignoresMouseEvents` writer. |
 
 ## Stack Patterns by Variant
 
-**If you want stronger cross-reinstall trial enforcement later:**
-- Add a secondary, independent signal (e.g. the creation date of a marker file in `~/Library/Application Support/<bundle-id>/`, compared against the Keychain-stored `firstLaunchDate` — if they disagree by more than a small tolerance, treat as tampered) as defense-in-depth.
-- Because a single Keychain item is already good enough for v1 (delete+reinstall no longer resets the trial) — only add the second signal if you observe real abuse.
+**If the drag-region redesign fully replaces `NSDraggingDestination`:**
+- Delete the Phase 22-01 spike's `NSDraggingDestination` conformance + 4 stub methods from `NotchPanel.swift` (`registerForDraggedTypes`, `draggingEntered`/`draggingUpdated`/`draggingExited`/`performDragOperation`) entirely.
+- Add a new `DragRegionDetector` type (mirrors TheBoringNotch's `DragDetector.swift` 1:1 in shape: global `.leftMouseDown`/`.leftMouseDragged`/`.leftMouseUp` monitors + `NSPasteboard(name: .drag).changeCount` + a `notchRegion: CGRect` hit-test), owned by `NotchWindowController` alongside the existing `mouseMonitor`.
+- Because this is a clean swap of *detection mechanism only* — the pure seams from 22-02 (`InteractionEvent.dragEntered`, `DragDropSupport.fileURLs(from:)`/`shouldAcceptDrop(...)`) stay valid and are reused as-is; only the AppKit glue that FEEDS those seams changes.
 
-**If you later add a second product/tier (e.g. a "Pro" add-on) on Polar:**
-- Use `product_id` as a query param on the same Checkout Link (Polar supports multiple products per link) rather than creating a whole second link or backend.
-- Because Polar's Checkout Links already support multi-product selection natively — no code change needed, just dashboard configuration and a `benefit_id` check in the validate response.
+**If the Settings redesign needs the current single-Form content preserved during migration:**
+- Keep `SettingsView.swift`'s existing `Form`-based tab bodies as the `detail:` closure's per-case views initially (map 1:1 into `NavigationSplitView`'s `switch selectedTab` cases), and only re-organize/re-group individual controls into the new category boundaries (General/Appearance/Activities/Shelf/Calendar/License/About or similar) as a SEPARATE follow-up pass — de-risks the structural NavigationSplitView migration from the content reorganization.
+- Because this mirrors the project's own established "de-risk the risky part first, in its own phase" convention (e.g. v1.1's Trial→Settings-stub→real-Polar.sh sequencing).
+
+**If the frosted material needs to differ between the collapsed pill and the expanded/calendar views:**
+- Use TWO separate `NSVisualEffectView` configurations (different `material`, same `blendingMode: .withinWindow`) — e.g. a denser/darker one for the always-visible collapsed pill (barely any desktop shows through it anyway, at that size) and a slightly lighter one for the larger expanded/calendar surface where the "glossy, substantial" look matters more visually.
+- Because DynamicNotchKit's own `VisualEffectView` already exposes `material`/`blendingMode` as init parameters for exactly this reason — no new abstraction needed, just two call sites with different arguments.
 
 ## Version Compatibility
 
 | Component | Compatible With | Notes |
-|-----------|------------------|-------|
-| Polar.sh REST API `v1` (`api.polar.sh/v1/...`) | Any Swift/Foundation version (plain HTTPS/JSON) | No SDK version to pin; verify `organization_id` and product/benefit IDs are for the correct (Production, not Sandbox) Polar organization before shipping — Polar has separate production and sandbox environments with different base behavior/rate limits (Production: 500 req/min; Sandbox: 100 req/min — irrelevant at this app's call volume, but confirms you must point at the production API host, not a sandbox one, for real purchases). |
-| `xcrun notarytool` | Xcode 13+ (project is on Xcode 26.6) | Individual API key support (vs. only Team keys) is new as of Xcode 26 — matches this project's build machine per existing project memory (`build-machine-macos26-toolchain.md`). |
-| Keychain `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` | All current macOS versions, sandboxed or not | No SDK/OS version constraint; behavior is stable and long-standing. |
-| Non-sandboxed app + Keychain Services | Current macOS (project already ships un-sandboxed) | Confirmed no new entitlement needed; consistent with the project's existing non-sandboxing decision made for the MediaRemote bridge. |
+|-----------|-----------------|-------|
+| `.toolbar(removing: .sidebarToggle)` | macOS 14.0+ / iOS 17.0+ | Exactly at Islet's current `MACOSX_DEPLOYMENT_TARGET` (`project.yml`) — no floor change needed. |
+| `NavigationSplitView` | macOS 13.0+ | Below Islet's floor already — no compatibility risk. |
+| `EKEventStore.requestFullAccessToEvents()` / `requestFullAccessToReminders()` (async, no-completion-handler form) | macOS 14.0+ (built with Xcode 15+/SDK 17+) | Islet already builds with Xcode 26.6 against a far newer SDK; the async form is already in production use in `CalendarService.swift`. `requestFullAccessToReminders()` is the direct sibling API, same availability floor. |
+| `NSVisualEffectView` | macOS 10.10+ | Long-stable AppKit API; no compatibility risk at Islet's 14.0 floor. |
+| Global `NSEvent.addGlobalMonitorForEvents` + `NSPasteboard(name: .drag)` | macOS 10.x-era APIs | Already in production use in `NotchWindowController.swift` (hover monitor) and now confirmed used identically by TheBoringNotch's `DragDetector.swift` for the drag case — same monitor family, same permission model (Accessibility, already granted for hover to work today; no NEW permission prompt introduced by reusing it for drag). |
+| DynamicNotchKit 1.1.0 (2026-04-05) | macOS 13+, Swift 6.0 tools, one build-time-only dependency (`swift-docc-plugin`, docs generation only) | Not being adopted as a runtime dependency (see What NOT to Use) — noted here only because its `Package.swift` was fetched to confirm this and to confirm it introduces no *runtime* third-party dependency of its own even if it had been adopted. |
+| Islet's existing `Window(id: "settings")` scene vs. `NotchPanel` | No interaction — verified via `IsletApp.swift` | Settings is a fully separate `Window(id: "settings")` SwiftUI scene (`Window("Islet Settings", id: "settings") { SettingsView() }`), opened via a notification bridge from the menu-bar `AppDelegate`, entirely independent of `NotchWindowController`/`NotchPanel`'s `NSHostingView`. A `NavigationSplitView` living inside `SettingsView.swift`'s body has ZERO shared window/panel state with the notch overlay — no `ignoresMouseEvents`, no `.nonactivatingPanel`, no click-through arbitration crosses between them. The only actual coupling point is that Settings toggles write to `UserDefaults`, which `NotchWindowController`'s existing `defaultsObserver` already reads live (Phase 6 D-09) — this pattern is unaffected by the Settings UI's internal navigation structure. |
 
 ## Sources
 
-- `https://polar.sh/docs/api-reference/customer-portal/license-keys/validate` — fetched directly 2026-07-05; confirmed request/response shape, no-auth-for-desktop-clients statement. HIGH confidence.
-- `https://polar.sh/docs/api-reference/customer-portal/license-keys/activate` — fetched directly 2026-07-05; confirmed activation limits, label/meta/conditions fields, no-auth statement. HIGH confidence.
-- `https://polar.sh/docs/features/benefits/license-keys` — fetched 2026-07-05; confirmed end-to-end desktop-app workflow description, expiration/usage-limit features. MEDIUM-HIGH confidence.
-- `https://polar.sh/docs/features/checkout/links` — fetched 2026-07-05; confirmed Checkout Links are public/no-auth/long-lived vs. authenticated Checkout Sessions API, plus query param list. HIGH confidence.
-- WebSearch: "Polar.sh Swift SDK official" — confirmed no official Swift/Apple SDK exists for the billing platform (only Node.js `@polar-sh/sdk` and a PHP SDK; unrelated Polar Electro fitness BLE SDK is a false-positive naming collision). MEDIUM-HIGH confidence (absence-of-evidence claim, corroborated across multiple search results and the `polarsource` GitHub org listing).
-- `https://keith.github.io/xcode-man-pages/notarytool.1.html` — fetched 2026-07-05; confirmed `--key`/`--key-id`/`--issuer`, `--apple-id`/`--team-id`/`--password`, `--keychain-profile`, `store-credentials`, `--wait`/`--timeout` flag semantics. HIGH confidence (official man page mirror).
-- WebSearch corroborated by `@electron/notarize` README — confirmed Xcode 26+ Individual API key must omit `--issuer` or receives 401. MEDIUM-HIGH confidence (Apple's own TN3147 page did not render via fetch tooling this pass; recommend spot-checking during implementation).
-- WebSearch: Keychain `kSecClassGenericPassword` usage patterns (AdvancedSwift, Apple Developer Forums threads) — confirmed generic-password class, service/account/accessible attribute usage for local secret storage on macOS. MEDIUM confidence (Apple's canonical "Storing Keys in the Keychain" doc page did not render via fetch tooling this pass — no full official-doc corroboration obtained; recommend a short manual smoke test in-repo during implementation).
-- WebSearch: "Swift URLSession JSON POST async await" (multiple 2026-dated blog sources: oneuptime.com, avanderlee.com, swiftsenpai.com) — confirmed `URLSession.shared.data(for:)` + `Codable` + `async/await` is the current idiomatic, dependency-free pattern. HIGH confidence (converging, current sources; no Context7 entry exists for Foundation itself).
+- `github.com/TheBoredTeam/boring.notch` — fetched `main` branch directly via GitHub REST API tree listing + raw file fetches: `boringNotch/components/Notch/BoringNotchWindow.swift` (window config), `boringNotch/observers/DragDetector.swift` (drag-region detection technique — the key architectural finding), `boringNotch/components/Shelf/Services/ShelfDropService.swift` (drop-payload → `ShelfItem` mapping via `NSItemProvider`), `boringNotch/components/Settings/SettingsView.swift` + `SettingsWindowController.swift` (NavigationSplitView sidebar pattern), `boringNotch/components/Onboarding/OnboardingView.swift` (step-enum onboarding pattern). Deployment target "macOS 14 Sonoma or later" per repo README. HIGH confidence — actual current source, not README summary.
+- `github.com/MrKai77/DynamicNotchKit` — fetched `main` branch: `Package.swift` (swift-tools-version 6.0, `.macOS(.v13)`, one build-time doc-plugin dependency), `Sources/DynamicNotchKit/Utility/DynamicNotchPanel.swift` (window config), `Sources/DynamicNotchKit/Utility/VisualEffectView.swift` (material-bridge technique), `Sources/DynamicNotchKit/DynamicNotch/DynamicNotch.swift` (confirms transient/torn-down-on-hide window lifecycle — the reason it's rejected as the window-shell dependency). Latest release 1.1.0, 2026-04-05, fetched via GitHub Releases API. HIGH confidence.
+- `developer.apple.com/documentation/swiftui/navigationsplitview` — official docs, sidebar/detail column pattern. HIGH confidence.
+- `developer.apple.com/documentation/SwiftUI/View/toolbar(removing:)` — official docs, confirms macOS 14.0+/iOS 17.0+ availability. HIGH confidence.
+- `developer.apple.com/documentation/eventkit/ekeventstore/4162272-requestfullaccesstoevents` and the sibling Reminders API — official docs, confirms async no-completion-handler form and the `NSCalendarsFullAccessUsageDescription`/`NSRemindersFullAccessUsageDescription` Info.plist requirement. HIGH confidence.
+- `Islet/Notch/NotchPanel.swift`, `Islet/Notch/NotchWindowController.swift`, `Islet/Calendar/CalendarService.swift`, `Islet/IsletApp.swift`, `project.yml` — read directly from the current repo to ground every recommendation in what already exists (existing window config, existing hover-monitor pattern, existing EventKit seam, existing Settings-window hosting, existing Info.plist keys). HIGH confidence — primary source.
+- `.planning/phases/22-drag-in/22-RESEARCH.md`, `22-01-SUMMARY.md`, `22-02-SUMMARY.md` — read directly to understand exactly what was tried, what passed (A1: drag delivery survives `ignoresMouseEvents`), and what failed in practice (hot-zone geometry vs. Mission Control) — this is the blocker the drag-region-detector recommendation above is designed to route around. HIGH confidence — primary source.
 
 ---
-*Stack research for: Trial + Polar.sh licensing + real notarization additions to Islet (existing macOS notch app)*
-*Researched: 2026-07-05*
-
----
----
-
-# Stack Research Addendum: Drag-and-Drop File Shelf (v1.3 Notch Shelf)
-
-**Domain:** Native drag-and-drop (accept + drag-out) inside an existing borderless/click-through `NSPanel` overlay, plus file icon/thumbnail generation — additions for the "Notch Shelf" milestone
-**Researched:** 2026-07-09
-**Confidence:** MEDIUM-HIGH. The APIs themselves (`NSItemProvider`, `onDrop`, `Transferable`/`draggable`, `QLThumbnailGenerator`) are HIGH-confidence, current, official Apple APIs verified against the two most relevant open-source reference apps' actual shipped source (not just docs). The single riskiest claim — that `ignoresMouseEvents = true` does NOT block `NSDraggingDestination`/`onDrop` delivery — is not spelled out in Apple's prose docs, but is corroborated by (a) a working reference app (`NotchShelf`) whose collapsed-panel drag-to-open behavior is *only* explicable if this holds, (b) Apple's own "Dragging Destinations" doc describing drag delivery as a distinct message path independent of ordinary hit-testing, and (c) multiple independent community sources agreeing. Flag as MEDIUM-HIGH, not HIGH, and treat the first on-device drag test as the actual proof.
-
-This addendum covers ONLY the new-feature additions for the file-shelf milestone (accepting drops onto the click-through pill, auto-expand-on-drag-hover, dragging shelf items back out to Finder/other apps, file icon/thumbnail rendering). It does not re-research the core notch/overlay/MediaRemote/IOKit/IOBluetooth/licensing stack above, which is validated and unchanged. It verifies and refines — rather than just restates — the assumption already recorded in `PROJECT.md`: *"sauber machbar mit Standard-NSItemProvider-Drag&Drop in beide Richtungen, kein privates API nötig"* — **confirmed true**, with one important architectural nuance the assumption glossed over (see "The click-through integration" below).
-
-## TL;DR
-
-No new dependency is needed. Everything is built-in AppKit/SwiftUI/Foundation: `NSItemProvider` (+ SwiftUI's classic `.onDrop`) to **accept** drops of arbitrary file types from any app, the newer `Transferable` + `.draggable(_:)` (macOS 13+) to **drag items back out**, `QuickLookThumbnailing` (or, more simply, `NSWorkspace.icon(forFile:)`) for the per-item glyph, and a small, additive change to Islet's *existing* `syncClickThrough()`/`ignoresMouseEvents` machinery so a drag-hover can open the island even though the collapsed pill is normally click-through. The one thing to get right architecturally: **auto-expand-on-drag-hover must be driven by SwiftUI's `onDrop(isTargeted:)` callback, not by the existing global `.mouseMoved` monitor** — that monitor only observes `.mouseMoved` events, and macOS does not deliver `.mouseMoved` while a drag session (button held down) is in progress, so `NotchWindowController`'s current hover-detection path (`handlePointer`, `NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved])`) is structurally blind to a file being dragged over the notch. This has to be a second, independent trigger path into the same `syncClickThrough()`/expand logic, not a reuse of the existing one.
-
-## Recommended Stack
-
-### Core Technologies
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **`NSItemProvider` + SwiftUI `.onDrop(of:isTargeted:perform:)`** | Foundation/AppKit, ships with SDK (classic API, still current) | Accept a drop of one or more files (or other content) onto the shelf/pill | All three studied reference apps — `Lakr233/NotchDrop`, `TheBoredTeam/boring.notch`'s Shelf feature, and the purpose-built `waynele-growtrics/NotchShelf` — use exactly this API for the **inbound** side, not the newer `dropDestination(for:)`. Reason: an inbound drop can come from Finder, a browser, Mail, Slack, etc. with unpredictable/heterogeneous UTTypes, and `NSItemProvider`'s `loadItem`/`loadObject`/`loadInPlaceFileRepresentation` family handles that heterogeneity far more robustly than declaring one `Transferable` type to decode into. HIGH confidence — 3/3 shipped reference apps converge on this. |
-| **`Transferable` + SwiftUI `.draggable(_:)`** | macOS 13+ (Ventura), ships with SDK | Drag a shelf item back OUT to Finder/other apps | The modern, Apple-blessed replacement for `.onDrag`, introduced WWDC22. Since the project already targets macOS 14+, this is available for free. `NotchShelf`'s `ShelfItem: Transferable` conformance (a `FileRepresentation` + a `ProxyRepresentation` fallback, see gotcha below) is the concrete, working pattern to copy. MEDIUM-HIGH confidence — one real reference implementation plus WebSearch corroboration that `draggable`/`Transferable` is the current generation (superseding `.onDrag`) for macOS 13+. |
-| **`NSItemProvider` + SwiftUI `.onDrag { ... }`** | Foundation/AppKit, ships with SDK (classic API) | Alternative/fallback for drag-out if `Transferable`'s `FileRepresentation` proves flaky with a particular receiving app | `TheBoredTeam/boring.notch` — the most mature, most-referenced reference app in this project's own `STACK.md` — ships its *real*, current (2026) Shelf feature on the **classic** `NSItemProvider`-based `onDrag`, not `Transferable`. That's a meaningful signal: a team maintaining a polished, widely-used app chose the older, more manual, more battle-tested API for exactly this feature. Keep both in your toolbox; start with `.draggable`/`Transferable` (less code), fall back to `.onDrag`/`NSItemProvider` if a specific target app (Finder/Slack/Mail) rejects the drop. |
-| **`QuickLookThumbnailing` (`QLThumbnailGenerator`)** | Ships with SDK since macOS 10.15, current | Real content thumbnails (actual photo/PDF-page preview, not just a generic file-type icon) | This is what `boring.notch`'s current Shelf feature actually uses (`ThumbnailService`, an `actor` wrapping `QLThumbnailGenerator.shared.generateBestRepresentation(for:)`, `iconMode: true`, cached by path+size). It is the correct, non-deprecated API for real thumbnails (the old `QuickLook.framework` C API `QLThumbnailImageCreate` is deprecated). Matches the project's "Alcove-level polish" design north star better than a generic icon. HIGH confidence on the API; MEDIUM-HIGH on it being the *right* choice for a beginner (see the simpler alternative below). |
-| **`NSWorkspace.icon(forFile:)`** | Ships with SDK | Simplest possible per-item glyph (generic Finder icon, not real content preview) | This is what the purpose-built `NotchShelf` reference uses — one line, synchronous, zero async/actor complexity (native platform feature covers it). Fine for a first pass or if `QLThumbnailGenerator`'s async/actor machinery feels like too much ceremony; upgrade to `QLThumbnailGenerator` later purely as a visual-polish pass — it's an additive, isolated service, not an architecture change (see Stack Patterns by Variant). |
-| **`UniformTypeIdentifiers` (`UTType`)** | Ships with SDK | Declaring accepted drop types (`.fileURL`, `.item`, `.data`) and the `Transferable` `exportedContentType` | Already a transitive dependency of the above; no separate install. |
-
-### Supporting Libraries
-
-None. Every piece above is a first-party Apple framework already linked by the app (AppKit/SwiftUI/Foundation). No third-party drag-and-drop library exists that does this better, and the user's own pre-assessment ("kein privates API nötig") is correct — nothing here touches a private API, unlike the existing MediaRemote/fullscreen-CGS pieces of this app.
-
-### Development Tools
-
-No new tools. Standard Xcode/SwiftUI-preview workflow — with one caveat: Xcode Previews cannot simulate a real OS-level drag session, so the drop/drag-out paths are only truly testable by running the app and dragging real files from Finder (mirrors the project's existing "manual Cmd-U on hardware" pattern for MediaRemote/Bluetooth/fullscreen work).
-
-## The click-through panel integration (the trickiest part, resolved)
-
-This project's actual, current implementation (`Islet/Notch/NotchWindowController.swift`) does **not** use the "size the window to exactly the visible content" trick that `NotchDrop`/`boring.notch` use to achieve click-through. Instead it keeps one panel sized to the union of all activity frames and flips `panel.ignoresMouseEvents` at runtime via a single centralized `syncClickThrough()`:
-
-```swift
-private func syncClickThrough() {
-    let interactive = pointerInZone || interaction.isExpanded
-    panel?.ignoresMouseEvents = !interactive
-}
-```
-
-Two findings from studying a directly-analogous shipped implementation (`waynele-growtrics/NotchShelf`, whose `NotchWindowController` uses the *exact same* `ignoresMouseEvents`-toggle pattern as Islet, not the "resize to content" pattern):
-
-1. **`ignoresMouseEvents = true` does not block SwiftUI's `.onDrop(isTargeted:)`.** `NotchShelf`'s panel is constructed with `panel.ignoresMouseEvents = true` immediately at init ("collapsed by default: pass every click through") and its `NotchViewModel.isOpen` computed property is `state == .expanded || isDropTargeted` — meaning a drag hover alone (`isDropTargeted` flipping true from the `.onDrop(isTargeted:)` binding) visibly opens the panel *before* anything ever sets `ignoresMouseEvents = false`. The only way that code works at all is if drag-destination delivery (`draggingEntered`/`isTargeted`) reaches the view regardless of `ignoresMouseEvents`. This matches Apple's own "Dragging Destinations" documentation, which describes drag-and-drop delivery as its own message path (`NSDraggingDestination`) gated purely on registered pasteboard types, not on ordinary mouse hit-testing — and matches independent community reports found via search. **Practical consequence for Islet: you do NOT need to force `ignoresMouseEvents = false` before a drag can be detected.** Attach `.onDrop(of:isTargeted:)` to a view inside the existing `NSHostingView` exactly as today, and it will start reporting `isTargeted` transitions even while the collapsed pill is fully click-through.
-2. **The existing global `.mouseMoved` hover monitor cannot see a drag session.** Islet's hover/expand path is driven entirely by `NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved])` → `handlePointer(at:)`. While a drag is in progress (mouse button down, moving), AppKit posts `.leftMouseDragged` events, not `.mouseMoved` — a monitor scoped to `.mouseMoved` will not fire during a drag pass over the notch, confirmed by Apple's own event-type taxonomy (dragged vs. moved are distinct `NSEvent` types/masks). **This means the drag-triggered auto-expand cannot piggyback on `handlePointer`/`pointerInZone` at all — it needs its own signal.**
-
-**Concrete integration shape for the actual phase plan** (not fully resolved here — this is a stack/API recommendation, the phase plan should design the exact state-machine wiring):
-- Add a `@Published var isDropTargeted: Bool` (or fold it into the existing `NotchInteractionState`) fed by a `.onDrop(of: [.fileURL, .item], isTargeted: $isDropTargeted) { providers in ...; return true }` attached to a view that covers (at least) the collapsed pill's frame — mirroring `NotchDrop`'s separate, slightly-larger invisible `dragDetector` overlay so the hit-target is comfortable to drag onto, not pixel-perfect to the pill.
-- Feed `isDropTargeted` into `syncClickThrough()`'s `interactive` condition (`pointerInZone || interaction.isExpanded || isDropTargeted`) so the panel becomes interactive (to accept the eventual drop) the moment a drag is detected, exactly mirroring the existing pattern already in the file for hover/click.
-- Drive the actual expand animation (spring + `nextState(...)`) from the same `isTargeted` transition, as an ADDITIVE third trigger next to the existing `.pointerEntered`/`.clicked` transitions — not a reuse of `handlePointer`.
-- Return `true` synchronously from the `.onDrop` `perform` closure as soon as you're confident you can handle *some* item (matching `NotchDrop`'s `DispatchQueue.global().async { load(providers) }; return true` pattern) — a documented SwiftUI gotcha (Eclectic Light Company) is that computing the return value *inside* the async load block races the drop animation and can silently cancel it; decide synchronously, load asynchronously.
-
-## Auto-expand-on-drag-hover — behavior notes
-
-- `isTargeted` (the `.onDrop` binding) goes `true` the instant the OS-level drag enters the view's registered bounds and `false` on exit or drop — this is the correct, sufficient signal for "should the island pop open," matching exactly what `NotchDrop` (`dropTargeting` → `vm.notchOpen(.drag)`) and `NotchShelf` (`isDropTargeted` → `isOpen`) both do.
-- On exit (drag dragged back off the pill without dropping), close only if the *real* pointer isn't independently still hovering — `NotchDrop`'s `onChange(of: dropTargeting)` explicitly re-checks `NSEvent.mouseLocation` against the open rect before collapsing, to avoid a flicker-close if the user's cursor is still physically over the expanded area during the same gesture. Reuse the existing `expandedZone`/`hotZone` rects for this recheck rather than inventing new geometry.
-- No `wantsPeriodicDraggingUpdates` or manual `NSDraggingDestination` conformance is needed — SwiftUI's `.onDrop` already registers the underlying view for dragged types and delivers the `isTargeted` transitions; none of the three reference apps drop down to raw AppKit `registerForDraggedTypes` for this.
-
-## Drag files back OUT to Finder/other apps
-
-- **Primary path:** conform the shelf-item model to `Transferable`, mirroring `NotchShelf`'s `ShelfItem`:
-  ```swift
-  extension ShelfItem: Transferable {
-      static var transferRepresentation: some TransferRepresentation {
-          FileRepresentation(exportedContentType: .data, shouldAllowToOpenInPlace: false) { item in
-              // copy to a FRESH temp file per export, return SentTransferredFile
-          }
-          ProxyRepresentation { item in item.storageURL }   // see gotcha below
-      }
-  }
-  ```
-  Then `.draggable(item)` on the shelf cell view — that's the entire drag-out wiring, no manual pasteboard code.
-- **Documented gotcha (cite: `NotchShelf` source comment, corroborated by the general `Transferable`/Finder interop discussion in the WebSearch results):** *"A bare `FileRepresentation` is rejected by Finder/Slack on macOS 13/14; also vending the URL as a proxy makes the drop accept reliably."* Always pair `FileRepresentation` with a `ProxyRepresentation` returning the file's `URL` — this is a one-line addition, not a redesign, but skipping it produces an intermittent "drag out doesn't work in Finder" bug that is easy to lose hours to.
-- **Vend a fresh copy per export, never the live stored file directly** — `NotchShelf`'s own comment on this: *"a receiver that moves rather than copies can't destroy our stored original."* Since some drop targets (e.g. Mail attach, or a user doing a Finder *move* rather than copy) physically move/consume the source URL, always copy-to-a-throwaway-temp-path inside the `FileRepresentation` closure and hand out that copy, keeping the shelf's own on-disk original untouched.
-- **Fallback if `Transferable`/`FileRepresentation` misbehaves against a specific target app:** drop to the classic `.onDrag { NSItemProvider(...) }` + `provider.registerObject(url as NSURL, visibility: .all)` pattern — this is `boring.notch`'s actual real-world choice for its shipped Shelf feature, so treat it as a proven fallback, not a last resort.
-
-## File icon / thumbnail generation
-
-Two valid tiers, pick one to start and treat the other as a pure visual-polish upgrade later (no architecture change either way — both just fill an `NSImage` for the same cell view):
-
-1. **`NSWorkspace.shared.icon(forFile:)`** — one synchronous line, generic per-file-type icon (a PDF shows the generic PDF icon, not the first page; a photo shows the generic image-file icon, not the picture). Simplest possible starting point (`NotchShelf`'s actual choice).
-2. **`QLThumbnailGenerator.generateBestRepresentation(for:)`** (async, via `QLThumbnailGenerator.Request(fileAt:size:scale:representationTypes:)`, `iconMode = true`) — real content previews (an actual PDF-page render, an actual photo thumbnail). This is `boring.notch`'s real, current choice for its shipped Shelf, wrapped in a small `actor`-based cache service (~80 lines) to avoid redundant regeneration. Matches the "Alcove-level polish" design bar better, at the cost of async/actor code a first-time programmer will need explained.
-
-**Recommendation: start with `NSWorkspace.icon(forFile:)`** (native platform feature, zero threading complexity) and reserve `QLThumbnailGenerator` as an explicit, isolated follow-up polish pass once the shelf's core drag-in/drag-out/remove mechanics are proven on-device — this mirrors the project's own established pattern (Phase 4's Now Playing shipped basic art first, artwork-latency polish followed).
-
-## Alternatives Considered
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| Classic `NSItemProvider` + `.onDrop` for inbound drops | `.dropDestination(for: SomeTransferable.self, ...)` (macOS 13+) | Only if every source you need to accept from is under your control and always vends the exact same `Transferable` type — not the case here (arbitrary files from Finder/browsers/Mail). |
-| `Transferable` + `.draggable(_:)` for drag-out | Classic `.onDrag { NSItemProvider(...) }` | If `Transferable`'s `FileRepresentation` proves unreliable against a specific target app during on-device testing — `boring.notch` made exactly this call for its real shipped feature. |
-| `NSWorkspace.icon(forFile:)` for the cell glyph | `QLThumbnailGenerator` | Once the shelf's core mechanics are solid and you want Alcove-level real-content thumbnails (photo/PDF previews) rather than generic file-type icons. |
-| Additive `isDropTargeted` signal feeding the existing `syncClickThrough()` | Reusing the existing `.mouseMoved` global monitor for drag detection | Never — `.mouseMoved` is not delivered during an active drag session; this path is structurally incapable of seeing a drag hover, regardless of tuning. |
-| Copy dropped files into a private temp/app-support directory immediately, wipe at every launch (no `reload()` of a prior session) | Persisting shelf contents across relaunch, like `NotchDrop`/`boring.notch` do | Only if a future milestone changes the "purely session-temporary, cleared on app/Mac restart" requirement — the reference apps' own persistence (`reload()` from disk, `keepInterval` expiry) is explicitly the opposite of what this milestone specifies; don't copy that part of their design. |
-
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|--------------|
-| Any third-party drag-and-drop library (none of note exist for this) | Apple's own `NSItemProvider`/`Transferable`/`onDrop`/`draggable` APIs fully cover both directions; three independent shipped reference apps prove it end-to-end with zero third-party dependencies | First-party `NSItemProvider` + `Transferable`/SwiftUI drag-drop modifiers |
-| Manually implementing `NSDraggingDestination` (`registerForDraggedTypes`, `draggingEntered`/`performDragOperation` overrides) on a custom `NSView` | SwiftUI's `.onDrop`/`.draggable` already wrap this correctly; none of the three reference apps drop to raw AppKit for this feature — added complexity for no benefit | SwiftUI `.onDrop(of:isTargeted:perform:)` / `.draggable(_:)` |
-| Deprecated `QuickLook.framework` C API (`QLThumbnailImageCreate`) for thumbnails | Deprecated; `QuickLookThumbnailing`'s `QLThumbnailGenerator` is the current, non-deprecated replacement | `QLThumbnailGenerator.generateBestRepresentation(for:)`, or the simpler `NSWorkspace.icon(forFile:)` |
-| Trying to gate the drag-hover auto-expand behind the existing hover-based `ignoresMouseEvents`/`pointerInZone` machinery unmodified | `.mouseMoved` is not posted during an active drag; this path never fires for a drag session no matter how it's wired | A second, additive `isDropTargeted` signal from SwiftUI's own `.onDrop(isTargeted:)`, which is delivered independently of `ignoresMouseEvents` |
-| Computing the `.onDrop` `perform` closure's `Bool` return value from inside the async item-loading block | Documented SwiftUI gotcha — the drop succeeds/fails animation races the async load and can silently show a cancelled-drop animation even when the load later succeeds | Return `true` synchronously as soon as you accept responsibility for the items; do the actual (possibly failing) load asynchronously afterward, same as `NotchDrop`'s pattern |
-| Persisting the shelf's contents to survive an app relaunch (`reload()`-from-disk pattern) | Explicitly contradicts this milestone's "cleared on app restart or Mac restart" requirement, even though both mature reference apps (`NotchDrop`, `boring.notch`) do exactly this for their own (different) requirements | Copy dropped files into a private temp directory for in-session use only; never read that directory back in at the next `start()` |
-
-## Stack Patterns by Variant
-
-**If the beginner wants the absolute simplest first working version:**
-- `NSWorkspace.icon(forFile:)` for glyphs, classic `.onDrop`/`NSItemProvider` in, classic `.onDrag`/`NSItemProvider` out.
-- Because it avoids `Transferable`'s protocol-conformance boilerplate and `QLThumbnailGenerator`'s async/actor code entirely, at the cost of a slightly plainer look (generic icons, one extra manual `NSItemProvider` construction step for drag-out).
-
-**If Finder/Slack drag-out via `Transferable`/`FileRepresentation` misbehaves on-device:**
-- Fall back to the classic `.onDrag { NSItemProvider(...) }` pattern `boring.notch` actually ships.
-- Because that's the proven, real-world-shipped path for exactly this failure mode, not a hypothetical.
-
-**If real content thumbnails (photo/PDF preview) are wanted for Alcove-level polish:**
-- Add `QLThumbnailGenerator` behind a small, isolated cache actor (mirroring `boring.notch`'s `ThumbnailService`), swapped in for `NSWorkspace.icon(forFile:)` purely as a visual upgrade — no other code changes.
-- Because thumbnail generation is naturally isolable behind one function signature (`URL, CGSize -> NSImage?`), matching this project's own established isolation pattern for risky/swappable API surfaces (`NowPlayingService`, `WeatherService`, `CalendarService`).
-
-## Version Compatibility
-
-| Component | Compatible With | Notes |
-|-----------|------------------|-------|
-| `Transferable` / `.draggable(_:)` / `.dropDestination(for:)` | macOS 13+ (Ventura) | Project targets macOS 14+, so fully available; no floor-raising needed. |
-| Classic `.onDrag`/`.onDrop` + `NSItemProvider` | All current macOS | Long-stable API; still the *current, real* choice in the most mature reference app (`boring.notch`) for both drop-in and (for that app) drag-out. |
-| `QuickLookThumbnailing` (`QLThumbnailGenerator`) | macOS 10.15+ | No version gotcha at a macOS 14+ floor. |
-| `ignoresMouseEvents` + `NSDraggingDestination`/`onDrop` independence | Current macOS, behavior not officially documented by Apple in prose but empirically confirmed via a working reference app + Apple's architectural description of drag delivery | Re-verify with a real on-device drag test as the first executable step of implementation — this is the one claim in this addendum resting on inference + a working analog rather than an explicit Apple statement. |
-| Drag-and-drop as an implicit TCC/Powerbox-style grant for protected folders (Desktop/Documents/Downloads) | Current macOS | Dragging a file *into* an app is one of the recognized user-intent mechanisms (like an `NSOpenPanel` selection) that grants that specific file's access without a TCC prompt — confirmed via HackTricks' TCC writeup. Relevant because Islet is an unsandboxed `LSUIElement` background agent: expect NO extra permission prompt for accepting a drag-dropped file from a protected folder, unlike a hypothetical programmatic directory scan of `~/Desktop` (which would need Full Disk Access or a folder-specific TCC grant). |
-
-## Sources
-
-- `Lakr233/NotchDrop` (MIT, cloned 2026-07-09) — `NotchDrop/TrayDrop+View.swift`, `NotchDrop/NotchView.swift`, `NotchDrop/Ext+FileProvider.swift`, `NotchDrop/NotchWindow.swift` — confirmed classic `.onDrop(of: [.data], isTargeted:)`, the separate larger invisible `dragDetector` overlay, `onChange(of: dropTargeting)` re-checking real mouse location before closing, and the "return true synchronously, load async" pattern. HIGH confidence (read directly from shipped source).
-- `waynele-growtrics/NotchShelf` (cloned 2026-07-09) — `Sources/Notch/NotchWindow.swift`, `Sources/Notch/NotchViewModel.swift`, `Sources/Notch/NotchView.swift`, `Sources/Shelf/ShelfView.swift`, `Sources/Shelf/ShelfModel.swift`, `Sources/Shelf/ShelfItem.swift` — the single most load-bearing source for this addendum: an `ignoresMouseEvents`-toggling `NSPanel` (same architecture family as Islet's own, unlike `NotchDrop`/`boring.notch`'s resize-to-content approach), whose `isDropTargeted`-driven auto-open only makes sense if drag delivery bypasses `ignoresMouseEvents`; also the source of the `Transferable`/`FileRepresentation`+`ProxyRepresentation` Finder-compat gotcha and the "copy a fresh export, never the live original" comment. HIGH confidence (read directly from shipped source), MEDIUM-HIGH on the inferred `ignoresMouseEvents` behavior specifically (see caveat above).
-- `TheBoredTeam/boring.notch` (cloned 2026-07-09) — `boringNotch/components/Shelf/Services/ShelfDropService.swift`, `.../ThumbnailService.swift`, `.../ViewModels/ShelfItemViewModel.swift`, `.../NSItemProvider+LoadHelpers.swift`, `boringNotch/components/Notch/BoringNotchWindow.swift` — confirmed this project's most mature reference app uses classic `NSItemProvider`/`onDrag` for drag-out (not `Transferable`) and `QLThumbnailGenerator` (via a cached `actor` service) for real content thumbnails; confirmed its window class does not toggle `ignoresMouseEvents` at all (different click-through strategy than Islet's own). HIGH confidence (read directly from shipped source).
-- `Islet/Notch/NotchWindowController.swift` (this repository) — Islet's own current `syncClickThrough()`/`ignoresMouseEvents`/`handlePointer`/global `.mouseMoved` monitor implementation, read directly to ground the integration recommendation in the project's actual code, not a generic pattern. HIGH confidence (primary source).
-- Apple Developer Documentation — `developer.apple.com/documentation/appkit/nswindow/ignoresmouseevents` (fetched directly 2026-07-09, JSON API) — confirmed the property's bare semantics; does not itself discuss drag-and-drop interplay, hence the MEDIUM-HIGH (not HIGH) confidence on that specific claim.
-- Apple Developer Documentation — `developer.apple.com/library/archive/documentation/Cocoa/Conceptual/DragandDrop/Concepts/dragdestination.html` ("Dragging Destinations") — describes `NSDraggingDestination` message delivery as gated on registered pasteboard types during an active drag session, a distinct mechanism from ordinary mouse-event hit-testing. MEDIUM-HIGH (architectural description, not an explicit ignoresMouseEvents statement).
-- WebSearch, multiple queries on `ignoresMouseEvents` + `NSDraggingDestination`/`onDrop` interplay — converging community consensus that drag delivery has its own event path independent of `ignoresMouseEvents`. MEDIUM confidence (community sources, no single authoritative doc found saying this explicitly).
-- WebSearch — "SwiftUI on macOS: Drag and drop, and more" (Eclectic Light Company, eclecticlight.co) — confirmed the "return true synchronously, not from inside the async load block" gotcha via a documented real bug report in that article's comments. MEDIUM-HIGH.
-- WebSearch — HackTricks macOS TCC writeup (`hacktricks.wiki`) — confirmed drag-and-drop is a recognized implicit-consent/Powerbox-style mechanism for TCC-protected folders (Desktop/Documents/Downloads), distinct from a TCC-database grant. MEDIUM confidence (security-research secondary source, not an Apple doc, but specific and technically detailed).
-- WebSearch — general SwiftUI drag-and-drop evolution query — confirmed `Transferable`/`draggable(_:)`/`dropDestination(for:)` were introduced for iOS 16/macOS 13, superseding `onDrag`/`onDrop` as Apple's current-generation API, while `onDrag`/`onDrop` remain supported and, per the reference apps above, still the pragmatic choice for heterogeneous inbound drops. MEDIUM-HIGH (converges with training-data knowledge of the WWDC22 Transferable introduction).
-
----
-*Stack research for: Drag-and-drop file shelf additions to Islet (existing macOS notch app), v1.3 Notch Shelf milestone*
-*Researched: 2026-07-09*
-</content>
+*Stack research for: Islet v1.4 Architecture Redesign (NotchPanel/NotchWindowController redesign, onboarding, sidebar Settings, glassmorphic theming, calendar view)*
+*Researched: 2026-07-11*

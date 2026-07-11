@@ -1,262 +1,253 @@
-# Architecture Research — Drag-and-Drop File Shelf Integration into Islet
+# Architecture Research: NotchPanel/NotchWindowController Redesign (v1.4)
 
-**Domain:** Adding a session-only, drag-and-drop file shelf to an existing, shipped native macOS notch app with a proven single-arbiter (`IslandResolver`) + coordinator-extraction (`ActivityCoordinator`) architecture
-**Researched:** 2026-07-09
-**Confidence:** HIGH on integration points and existing-pattern extraction (verified by reading the real files: `NotchWindowController.swift`, `IslandResolver.swift`, `ActivityCoordinator.swift`, `DeviceCoordinator.swift`, `NotchPillView.swift`, `IslandPresentationState.swift`, `NotchInteractionState.swift`, `Islet.entitlements`); MEDIUM-HIGH on the `NSItemProvider` drag-in/out mechanics (corroborated by multiple independent sources, no official Apple sample matched exactly); LOW-MEDIUM on the exact "does the shelf show during a transient wings splash" behavior — that is a product call this doc flags rather than invents.
+**Domain:** macOS overlay-window shell + AppKit↔SwiftUI drag/hover bridge for a persistent notch "Dynamic Island" clone
+**Researched:** 2026-07-11
+**Confidence:** MEDIUM-HIGH (grounded in real reference-repo source reads + this project's own confirmed on-device debugging trail, not speculation)
 
-> Spot-check research, not green-field: this answers exactly where the file shelf plugs into an app that already has a proven "pure resolver decides content, a separate @Published axis rides underneath it, the view only renders" pattern (established for the Phase 18 song-change toast) and a proven "coordinator per activity domain" pattern (established for `DeviceCoordinator`, Phase 16) — and explains, with reasons grounded in the real code, why the shelf fits the FIRST pattern, not the second.
+> Supersedes the prior `ARCHITECTURE.md` (2026-07-09, v1.3 shelf-integration research) for the purposes of the v1.4 milestone. That doc's findings (shelf is a plain `@Published` axis, not an `ActivityCoordinator`; Islet is unsandboxed; session-only temp-copy data model) remain true and are preserved as "survives untouched" facts below — see `.planning/phases/19-shelf-data-model/` through `21-drag-out/` for the full original detail if needed.
 
----
+## Standard Architecture
 
-## The One Idea That Makes This Integration Make Sense
-
-**The file shelf is not a competing activity — it never has a rank, never enters `TransientQueue`, and never gets its own `ActivityCoordinator`.** It is a second, independent `@Published` axis that `NotchPillView` renders *underneath* whatever `IslandResolver.resolve(...)` already decided, gated only on `interaction.isExpanded`. Islet already has exactly this shape shipped and working: the Phase 18 song-change toast (`NowPlayingState.songChangeToast`, `songChangeToastGate(...)` in `IslandResolver.swift:87-89`) is deliberately **not** threaded through `resolve(...)`/`IslandPresentation` — its own doc comment says so explicitly, and calls out that this diverges from that phase's own pre-execution research on purpose, "permitted by CONTEXT.md's discretion note." The shelf is the same shape again: a sibling `@Published` field the controller sets directly, rendered by the view as an extra row, never touching the resolver's ranking.
-
-This one framing answers all four sub-questions in the prompt:
-
-1. **No `ShelfCoordinator`.** `ActivityCoordinator` (`Islet/Notch/ActivityCoordinator.swift`) is deliberately narrow — its own header says it is "a deliberate first slice ... NOT pre-sketched for the future Charging/NowPlaying/Outfit coordinators," sized to exactly what `DeviceCoordinator` needs: reach-back into the shared `TransientQueue` (`queueHead`/`enqueue`/`updateHead`) plus reacting to a promotion event. The shelf needs **none** of that — it never enqueues, never competes for the head, never gets promoted/demoted. Giving it a `ShelfCoordinator` behind that protocol would be building the shape for a problem the shelf doesn't have.
-2. **Plain `@Published` state is not just simpler, it is the *correct* fit** — mirroring `BasicOutfitState`/`NowPlayingState`/`IslandPresentationState`'s existing "plain published holder, no methods, no timers, no system frameworks" convention (`Islet/Notch/BasicOutfitState.swift` is the shortest, cleanest example of this).
-3. **It is a modifier on the current visible content, not a competing activity** — see "Interaction with IslandResolver" below for exactly how and where it renders.
-4. **Data model: a copy in an app-owned temp directory, addressed by a plain file `URL`** — not a security-scoped bookmark (irrelevant — Islet is un-sandboxed, confirmed below) and not raw `Data` (wasteful for drag-out, breaks `NSItemProvider(contentsOf:)`). See "Data Model & File Lifetime" below.
-
----
-
-## Confirmed: Islet is NOT sandboxed
-
-`Islet/Islet.entitlements` contains only `com.apple.security.cs.disable-library-validation`, `com.apple.developer.weatherkit`, and two `personal-information` keys (calendars, location) — **no `com.apple.security.app-sandbox` key at all**. This was already an architectural given (the private MediaRemote bridge + spawning `perl` rules out sandboxing entirely, per `CLAUDE.md`/`PROJECT.md`).
-
-This matters directly for the shelf's data model: **security-scoped bookmarks solve a sandboxed app's problem** (persisting file-read permission across app relaunches when the sandbox would otherwise revoke it). Islet has full filesystem access as the logged-in user already, and the shelf is explicitly session-only (cleared on restart) — there is no permission boundary to persist across, and no reason to ever call `startAccessingSecurityScopedResource()`. Don't build that machinery; it would be solving a problem this app doesn't have.
-
----
-
-## System Overview (current + proposed overlay)
+### System Overview — current Islet shell (what exists today)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  NotchWindowController (the existing single arbiter, ~1170 lines)        │
-│   existing: transientQueue, presentationState, interaction,              │
-│             chargingState, nowPlayingState, outfitState, deviceCoordinator│
-│   NEW: private let shelfState = ShelfState()          (plain holder,     │
-│        mirrors nowPlayingState/outfitState — no monitor, no start/stop)  │
-│   NEW: private let shelfImporter = ShelfFileImporter() (glue — NOT a     │
-│        coordinator; see "Why not a coordinator" below)                   │
-│   NEW: handleDrop(providers:) — called from the view's onDrop closure,  │
-│        expands the island (reuses `.clicked` via nextState — same path  │
-│        handleClick() already uses) if collapsed, then imports off-main  │
-│   Untouched: IslandResolver.resolve(...), TransientQueue, ActivityCoordinator,│
-│              DeviceCoordinator — the shelf never calls into any of these │
-├──────────────────────────────────────────────────────────────────────────┤
-│  NEW: Islet/Notch/Shelf*.swift  (mirrors the Notch/ pure-seam + thin-glue│
-│  split already used for PowerActivity/PowerSourceMonitor,                │
-│  NowPlayingPresentation/NowPlayingMonitor, DeviceActivity/DeviceCoordinator)│
-│                                                                            │
-│   ShelfItem.swift      — PURE value: id, originalURL, localURL, filename, │
-│                          addedAt. Foundation-only, Equatable.             │
-│   ShelfLogic.swift     — PURE total functions over [ShelfItem]: adding,   │
-│                          removing(id:), clearing. Unit-tested in ms,      │
-│                          mirrors PowerActivity/DeviceActivity's "pure     │
-│                          seam first" discipline — no NSItemProvider here. │
-│   ShelfState.swift     — @Published var items: [ShelfItem] = [].         │
-│                          Mirrors BasicOutfitState exactly: no methods.    │
-│   ShelfFileImporter.swift — GLUE: the ONLY file that imports UniformTypeIdentifiers│
-│                          / touches NSItemProvider. Resolves a dropped     │
-│                          NSItemProvider to a source URL, copies it to a   │
-│                          private temp dir off the main thread, hands back │
-│                          a ShelfItem via a completion closure on main.    │
-│                          NOT behind a protocol (see "No protocol seam    │
-│                          needed" below) — NSItemProvider is a stable,    │
-│                          public Foundation/AppKit API, not a fragile      │
-│                          private one like MediaRemote.                   │
-├──────────────────────────────────────────────────────────────────────────┤
-│  NotchPillView.swift                                                     │
-│   NEW: @ObservedObject var shelf: ShelfState  (new required param,       │
-│        mirrors outfit:/nowPlaying: — non-defaulted, always injected)     │
-│   NEW: shelfRow view — appended BELOW the existing `switch presentation` │
-│        content, `if !shelf.items.isEmpty` (SwiftUI removes its layout    │
-│        space entirely when the condition is false — matches the "extra  │
-│        area is transparent → invisible" Pattern 4 convention already     │
-│        used for the expanded/wings panel union)                          │
-│   NEW: .onDrop(...) on the collapsed-pill hot-zone view specifically     │
-│        (see "The click-through / drag-in collision" pitfall below)       │
-│   NEW: onDropFiles / onRemoveShelfItem / onClearShelf closures, mirroring│
-│        the existing onClick/onTogglePlayPause/onNext/onPrevious plain-   │
-│        closure convention exactly (view stays AppKit/UTType-free)        │
-│   Untouched: the `switch presentation { }` block, IslandPresentation,   │
-│              matchedGeometryEffect identity, all existing wing/blob shapes│
-└──────────────────────────────────────────────────────────────────────────┘
+│ NotchPanel (NSPanel) — 62 lines, window shell ONLY                        │
+│  .borderless + .nonactivatingPanel, .statusBar level, .canJoinAllSpaces   │
+│  + a SECOND dedicated max-level private CGS Space (Phase 9, additive)     │
+│  ignoresMouseEvents: true↔false, flipped ONLY by syncClickThrough()       │
+│  contentView = NSHostingView(NotchPillView)                               │
+│  [residual, unmerged-production] registerForDraggedTypes([.fileURL]) +    │
+│  4 NSDraggingDestination stub overrides (Phase 22 spike, still on disk,   │
+│  NOT wired to real logic — see "Current Blocker" below)                   │
+└──────────────────────────┬─────────────────────────────────────────────┘
+                            │ NSHostingView
+┌──────────────────────────▼─────────────────────────────────────────────┐
+│ NotchWindowController (AppKit/SwiftUI bridge, 1378 lines, single owner)   │
+│  • Global NSEvent.mouseMoved monitor → handlePointer() → pointerInZone/   │
+│    expandedZone/hotZone hit-test → syncClickThrough() [ONE arbiter]      │
+│  • nextState(_:_:) pure state machine (NotchInteractionState.swift) —    │
+│    hover/click/grace-collapse/(now) dragEntered → matchedGeometryEffect  │
+│  • Owns + constructs: NowPlayingMonitor, PowerSourceMonitor,             │
+│    BluetoothMonitor (behind DeviceCoordinator/ActivityCoordinator),      │
+│    ShelfCoordinator                                                      │
+│  • resolve(...) (IslandResolver.swift, pure) + TransientQueue = the      │
+│    ONE priority arbiter (Charging > Device > Now Playing)                │
+│  • renderPresentation()/makeRootView() → hosts NotchPillView (1017 ln)   │
+└──────────────────────────┬─────────────────────────────────────────────┘
+                            │
+        ┌───────────────────┼────────────────────┬─────────────────────┐
+        ▼                   ▼                    ▼                     ▼
+ PowerSourceMonitor  DeviceCoordinator/    NowPlayingMonitor      ShelfCoordinator
+ (IOKit, 112 ln)     BluetoothMonitor      (MediaRemote           (ShelfLogic +
+                     (262+157 ln, behind    adapter, 113 ln)      ShelfFileStore,
+                     ActivityCoordinator                          72 ln, zero
+                     protocol)                                    coupling to
+                                                                   IslandResolver)
 ```
 
-### Component Responsibilities
+### Component Responsibilities (current → post-redesign)
 
-| Component | Responsibility | New or existing |
-|-----------|-----------------|------------------|
-| `ShelfItem` | Pure value describing one dropped file (id, original + local URL, filename, timestamp) | NEW |
-| `ShelfLogic` | Pure total functions: append, remove-by-id, clear-all over `[ShelfItem]` | NEW |
-| `ShelfState` | `@Published var items: [ShelfItem]`, the view's data source | NEW |
-| `ShelfFileImporter` | Resolves an `NSItemProvider` → copies the file into a private temp dir off-main → hands back a `ShelfItem` | NEW |
-| `NotchWindowController` | Owns `shelfState`; wires drop-in (expand + import), per-item removal, clear-all, and temp-dir teardown into its existing spring/`updateVisibility()` discipline | MODIFIED |
-| `NotchPillView` | Renders the shelf row underneath the resolver's verdict; hosts `.onDrop` on the hot-zone; renders per-item delete + far-right delete-all icons; hosts `.onDrag`/item-provider for drag-out | MODIFIED |
-| `IslandResolver` / `IslandPresentation` / `TransientQueue` | Untouched — the shelf never participates in ranking | NOT TOUCHED |
-| `ActivityCoordinator` / `DeviceCoordinator` | Untouched — no `ShelfCoordinator` is created; see rationale above | NOT TOUCHED |
+| Component | Responsibility | Survives a shell rewrite? |
+|-----------|----------------|----------------------------|
+| `NotchPanel` | Window shell ONLY — styleMask/level/collectionBehavior/`ignoresMouseEvents` toggle point; zero business logic | **Rewritten** — this is the actual target of the redesign |
+| `NotchWindowController` | Single AppKit↔SwiftUI arbiter: hover hit-test, click-through, state machine drive, owns all monitors/coordinators, calls `resolve()` | **Rewritten at the AppKit-glue edges, preserved at the core** — monitor ownership and `resolve()`-calling move to the new shell verbatim; only geometry/hit-test/drag-registration internals change |
+| `NotchInteractionState.swift` (`nextState`, pure) | Hover/click/grace/drag-enter transitions | **Untouched** — pure Foundation-only reducer, zero AppKit surface, already has `.dragEntered` (built in Phase 22-02) |
+| `IslandResolver.swift` (`resolve`, pure) + `TransientQueue` | Charging > Device > Now Playing priority arbitration | **Untouched** — pure, zero AppKit surface, zero coupling to window mechanics |
+| `DeviceCoordinator` / `ActivityCoordinator` protocol | Bluetooth/device splash bookkeeping | **Untouched** — already an independently-testable seam (Phase 16), constructed by whichever controller replaces `NotchWindowController` |
+| `ShelfCoordinator` / `ShelfLogic` / `ShelfFileStore` | Shelf data model, session-only storage, dedup | **Untouched** — zero coupling to `IslandResolver`/window mechanics by design (Phase 19 D-01); the shelf is a plain `@Published` axis the view renders underneath whatever `resolve()` decided, never a competing `ActivityCoordinator` |
+| `NotchGeometry.swift` | `topPinnedFrame()`, notch/wings/expanded frame math | **Untouched** — pure geometry, no window-object dependency |
+| `CGSSpace.swift` (Phase 9, FS-01) | Dedicated max-level private CGS Space the panel joins once, additive to `.canJoinAllSpaces`, fixes fullscreen-enter flash | **Preserved as a decision, re-attached to whatever new panel object exists** — this is a hard-won, on-device-verified fix; the rewrite must re-join this same Space, not re-derive the fix |
+| `NotchPillView.swift` (SwiftUI, 1017 ln) | All visible rendering | **Mostly untouched** — theming/onboarding/calendar work happens here, layered on top of whatever shell exists |
+| `DragDropSupport.swift` (Phase 22-02) | `fileURLs(from:)` / `shouldAcceptDrop(isExpanded:urls:)` pure seams | **Untouched** — already unit-tested, reused verbatim by the new drag pattern below |
 
----
+## The Current Blocker, Diagnosed
 
-## Why not a coordinator (elaborated)
+### What is actually different between the WORKING spike and the FAILING production wiring
 
-`ActivityCoordinator`'s contract is exactly two methods: `handle(_ reading:)` and `activityPromoted()`. Both exist purely to let `DeviceCoordinator` reach back into the shared, value-type `TransientQueue` via six injected closures (`queueHead`, `enqueue`, `updateHead`, `presentTransientChange`, `renderPresentation`, `batteryForAddress` — see `DeviceCoordinator.swift:77-96`). A `ShelfCoordinator` conforming to that protocol would need to invent a `Reading` type and a meaningless `activityPromoted()` implementation, purely to satisfy a shape designed for queue-competing, rank-carrying activities. The shelf is neither — extracting a `ShelfCoordinator` "to follow the pattern" would be **pattern-matching the extraction shape, not the actual problem** the extraction solves (isolating stateful, TransientQueue-touching bookkeeping out of the controller). A plain `ShelfState` + `ShelfLogic` pure-function pair achieves the same testability (unit-test `ShelfLogic` in isolation, exactly as `PowerActivity`/`DeviceActivity`/`TrackSnapshot` are tested) without adopting a protocol built for a different problem.
+This is the single most load-bearing fact for this redesign, and it was sitting in this project's own git history, not previously synthesized. Comparing the three real commits:
 
-## No protocol-isolation seam needed for `NSItemProvider`
+1. **`7571001`** (22-01 spike, Task 2 verdict: `draggingEntered` CONFIRMED firing on-device) — `NotchPanel` implements exactly 4 protocol methods directly with logic inline: `draggingEntered` (NSLog + `.copy`), `draggingUpdated` (`.copy`), `draggingExited` (NSLog), `performDragOperation` (NSLog + `true`). No `draggingEnded`. No stored closures — bodies do real work.
+2. **`326804d`** (22-03 Task 1, first production wiring) — replaced the 4 inline bodies with **thin closure-forwarding stubs** (`onDraggingEntered`/`onDraggingExited`/`onDraggingEnded`/`onPerformDragOperation` closures set later by the controller) and **dropped `draggingUpdated` entirely**, based on a documented-but-wrong reading of `NSDragging.h` ("AppKit reuses `draggingEntered`'s returned operation for the whole hover session when a destination implements `draggingEntered` but not `draggingUpdated`"). On-device: `draggingEntered` never fired at all.
+3. **`d1245e8`** (restore `draggingUpdated`) — root-cause debugging (confirmed via a diagnostic `print` placed as the literal first line of `draggingEntered`, before any closure dereference) found that re-adding `draggingUpdated` was necessary but **still not sufficient** — a second on-device UAT still showed **zero delivery**, with the probe never printing even once. This is recorded in `22-03-PLAN.md`'s interfaces section and `STATE.md`'s Blockers/Concerns as genuinely unresolved.
 
-Islet's other protocol seams (`NowPlayingService`, `LicenseService`) exist specifically because they wrap a **fragile external dependency**: a private framework that already broke once (MediaRemote on macOS 15.4) or a third-party HTTP API. `NSItemProvider` / `UTType.fileURL` is a public, stable, decade-old AppKit/Foundation API with no history of Apple revoking it and no third-party service behind it. Wrapping it in a protocol would add a seam with no corresponding fragility to protect against — skip it; `ShelfFileImporter` can be a plain concrete class.
+So there are two distinct empirical findings, not one:
 
----
+- **Confirmed sub-cause (fixed, insufficient alone):** omitting `draggingUpdated(_:)` breaks `draggingEntered` delivery on this OS build, contradicting the documented Objective-C contract. This is real and reproducible (A→B: present in the working spike, absent in the first failing build, restoring it was the first fix attempt).
+- **Unresolved second failure:** even with `draggingUpdated` restored, delivery still failed on a second on-device run, with a probe planted directly inside the AppKit override (not the controller-side closure) still silent. The team's own commit message calls this "true cause still unknown," and that is an accurate characterization — do not treat it as solved.
 
-## Interaction with IslandResolver: modifier, not competitor
+### Ranked hypotheses for the residual failure (grounded, not speculative)
 
-`IslandPresentation` (`IslandResolver.swift:17-24`) stays exactly as-is — `idle`, `charging`, `device`, `nowPlayingWings`, `nowPlayingExpanded`, `expandedIdle`. The shelf is rendered by `NotchPillView.body` as **content appended after** the `switch presentation { ... }` block, inside the same outer `ZStack`/container, gated on a separate condition — not one more `case` in that switch.
+| # | Hypothesis | Grounding | Confidence |
+|---|------------|-----------|------------|
+| H1 | **Window-level `NSDraggingDestination` registration on an oversized, `ignoresMouseEvents`-toggling, never-key `NSPanel` is inherently fragile/non-reproducible on this OS build**, independent of any one code bug — i.e. the architecture itself (not a specific line) is the risk. | Neither reference implementation researched below uses this technique at all (see next section) — a strong absence-of-precedent signal. Islet's own 22-RESEARCH.md flagged this exact combination (`.nonactivatingPanel` + `.statusBar` + never-key + toggling `ignoresMouseEvents`) as "not found addressed in any source" (Assumption A3, MEDIUM confidence) before the phase even started. Two independent on-device failures against the identical architecture, with the second surviving the one documented fix attempt, is consistent with an unstable rather than a single-bug-fixable pattern. | MEDIUM-HIGH |
+| H2 | **A window-frame/geometry mismatch** — the drag literally never crossed the panel's real on-screen rect at the moment of the second test (stale `panelFrame`, a `setFrame` race against `positionAndShow`, or the Phase 20/21 shelf-height growth changing the reserved footprint's actual Y-origin in a way the accept-region math didn't account for) — meaning `draggingEntered` correctly never fired because the drag genuinely missed the window, not because delivery is broken. | The project's own commit `8fb5517` explicitly separates this from H1 by design ("distinguishes 'AppKit never calls this at all' ... from 'it fires but the isWithinDragAcceptRegion gate rejects every location'") — but the probe that would prove/disprove this (placed at the very top of `draggingEntered`, before any gate logic) never fired either. This does NOT rule out H2 — a probe at the top of an AppKit override still requires AppKit to have decided to call the override at all, so a geometry miss and a delivery failure look identical from that probe's vantage point. Not disproven, not proven. | MEDIUM |
+| H3 | **A second, competing drag-destination claim shadows the window-level one** — e.g. `NSHostingView`'s internal SwiftUI runtime silently registers its own drag-destination handling on the content view once any SwiftUI view in the tree uses drag-related modifiers elsewhere in the app (Phase 21's `.onDrag` for drag-OUT lives in the same view tree), and the Window Server picks the deepest/topmost registered destination at a given point, not necessarily the window itself. | Not directly evidenced in the debugging trail (no one tested this in isolation), but it is the exact "Anti-Pattern" 22-RESEARCH.md itself warned about ("Registering drag types on both the `NSHostingView` AND the `NotchPanel` window... choose ONE") — worth auditing for accidental double-registration in the rewrite even though Phase 22's plan deliberately avoided this pattern on paper. | LOW-MEDIUM |
+| H4 | **Swift `@objc` dynamic-dispatch resolution differs between a `final class` with only-protocol-satisfying (non-`override`) methods compiled as part of the full app target vs. an isolated spike** — some interaction with whole-module optimization, dead-code stripping, or the fact that 22-03 added extra methods (`draggingEnded`) and extra stored closure properties that the spike never had. | Weakest hypothesis — Swift/ObjC bridging for `@objc optional` protocol conformance does not typically depend on unrelated stored properties or additional protocol methods being present. Included only because it was the kind of surprising thing 22-01 already tripped once (the `override` vs. plain-conformance compile error) — i.e. this codebase has ALREADY hit one non-obvious Swift/AppKit interop gotcha in this exact file, raising the prior for a second, more elusive one. | LOW |
 
-**Recommended gate: `interaction.isExpanded && (presentation == .expandedIdle || presentation.isNowPlayingExpanded) && !shelf.items.isEmpty`** — i.e. the shelf only appends under the two genuinely-expanded, non-transient cases (`.expandedIdle`, `.nowPlayingExpanded`), matching the requirement text "appended below whatever else is showing **expanded**." This deliberately **excludes** the three collapsed "wings" cases (`.charging`, `.device`, `.nowPlayingWings`) — those are 32pt-tall flat strips with no vertical room for a shelf row, and D-04 in `resolve(...)` already establishes that a transient wins even over an expanded island, so a charging/device splash firing mid-expansion would otherwise need the shelf to disappear and reappear every ~3s, which would look broken. **This exclusion is a product decision, not a proven requirement** — flag it explicitly for `/gsd:discuss-phase` rather than treating it as settled; the requirement text is ambiguous about whether a file mid-drop during a charging splash should still show its shelf.
+**Recommendation:** treat this as an architecture question, not a bug-hunt. Don't re-attempt H2/H3/H4 diagnosis in isolation — the reference-implementation research below gives a concrete alternative that sidesteps H1 entirely, which is the highest-leverage move regardless of which hypothesis is actually true.
 
-This is structurally identical to how the Phase 18 toast is gated: `songChangeToastGate(activeTransient:isExpanded:toastEnabled:)` is a **separate pure function**, deliberately not merged into `resolve(...)`, evaluated by the controller, and rendered by the view as an extra `VStack` row (`mediaWingsOrToast`'s `toastTextRow`) — read `IslandResolver.swift:74-89`'s own comment block for the precedent this shelf integration should copy almost verbatim, substituting "shelf non-empty" for "toast content present."
+## Reference Implementation Findings (real source, fetched and read 2026-07-11)
 
----
+### TheBoringNotch (`TheBoredTeam/boring.notch`) — HIGH confidence, primary reference
 
-## Panel sizing: the real mechanical wrinkle
+Cloned and read directly (not summarized from memory). Three concrete, load-bearing findings:
 
-`NotchWindowController.positionAndShow(on:)` sizes the AppKit `NSPanel` **once, up front**, to `expandedNotchFrame(collapsed:expandedSize:).union(wingsFrame(...))` (`NotchWindowController.swift:592-599`) specifically so the SwiftUI spring morph never clips or triggers a mid-animation `panel.setFrame` (Pattern 4 / Pitfall 4, called out repeatedly in the file's comments). The Phase 18 toast avoided ever resizing the panel because its extra 32pt (`toastExtraHeight`) already fit inside the pre-existing headroom: `expandedSize.height` (144pt) is taller than the wings shape even with the toast row added (32 + 32 = 64pt), so the union frame already covered it.
+**1. Zero use of `NSDraggingDestination`/`registerForDraggedTypes` anywhere in the codebase.** Confirmed by an exhaustive repo-wide grep — the string does not appear once. Their window class (`BoringNotchWindow`/`BoringNotchSkyLightWindow`, both `NSPanel` subclasses) is structurally very close to Islet's `NotchPanel` (`.borderless`/`.nonactivatingPanel`-equivalent styleMask via `.utilityWindow`/`.hudWindow`, `canBecomeKey`/`canBecomeMain` both `false`, `.canJoinAllSpaces`/`.stationary`/`.fullScreenAuxiliary` collection behavior, `isReleasedWhenClosed = false`) — **but it never sets `ignoresMouseEvents` at all**, and never registers as an AppKit drag destination.
 
-**A shelf row does not automatically get this for free** — a horizontally-scrolling file strip needs real vertical space (icon + label + delete button, realistically ~56–72pt), and `expandedIsland`/`mediaExpanded`/`mediaUnavailable` are all sized via the shared `NotchPillView.expandedSize` constant (360×144) through the common `blobShape(...)` helper. Two options, and the second is the one to take:
+**2. Drag-in is a two-stage pipeline that never touches AppKit's native drag-destination API for the "detect approach" stage:**
+   - `DragDetector` (`boringNotch/observers/DragDetector.swift`) uses **global `NSEvent` monitors** for `.leftMouseDown`/`.leftMouseDragged`/`.leftMouseUp` (not `.mouseMoved`) plus **polling `NSPasteboard(name: .drag).changeCount`** after mouse-down to distinguish "an ordinary click-drag" from "an actual OS content-drag session in progress." Once a content-drag is confirmed AND `NSEvent.mouseLocation` (sampled on every `.leftMouseDragged` tick) enters a purely-geometric `notchRegion` rect derived straight from `screen.frame` — no window/registration involvement at all — it fires `onDragEntersNotchRegion`, which calls `viewModel.open()` to auto-expand.
+   - Only THEN, once the window is expanded and its content view genuinely occupies that screen real estate, does a SwiftUI `.onDrop(of:isTargeted:perform:)` modifier (`ContentView.swift`'s `dragDetector` computed view, a `Color.clear.contentShape(Rectangle())` background, conditionally present only `if vm.notchState == .closed`) receive the actual payload via `NSItemProvider`.
+   - This is architecturally the **opposite order** from what Islet's Phase 22 attempted: Islet tried to make the AppKit window itself the drag-destination FIRST (while collapsed/click-through), and derive auto-expand from that. TheBoringNotch detects approach via global mouse+pasteboard polling FIRST (bypassing AppKit drag-destination registration entirely for that stage), and only asks AppKit/SwiftUI's native drag machinery to do anything once the window is already expanded and non-click-through.
+   - Global `.leftMouseDragged` monitors DO fire during an active OS drag session (confirmed by this codebase working in production) — this is a useful, concrete data point for Islet's own Pitfall 3 finding that `.mouseMoved` freezes during a drag: `.mouseMoved` and `.leftMouseDragged` are different event types with different delivery guarantees during a modal drag-tracking loop; `.leftMouseDragged` survives, `.mouseMoved` does not.
 
-- **Wrong:** bake the extra height directly into `NotchPillView.expandedSize`. This makes every existing blob (including `expandedIdle`/`mediaExpanded` with an empty shelf) visually taller, showing dead black space below the existing content whenever the shelf is empty — a visible regression to the 90%-of-the-time empty-shelf case.
-- **Right (mirrors the toast precedent exactly):** reserve the headroom **only in the panel/window frame math**, not in the shared `expandedSize` constant used by every blob's `.frame(height:)`. Concretely: introduce `NotchPillView.shelfRowHeight` and change the value `NotchWindowController` feeds into `expandedNotchFrame(...)` to `expandedSize.height + shelfRowHeight` (an internal-to-the-controller constant, e.g. `panelExpandedSize`), while `blobShape(...)`'s own `.frame(height: Self.expandedSize.height)` stays untouched at 144pt as the *default*. Each blob-producing view that wants to host the shelf computes its **own** conditional total height the same way `mediaWingsOrToast` already does (`let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)`) — i.e. `let height = Self.expandedSize.height + (shelf.items.isEmpty ? 0 : Self.shelfRowHeight)`. The panel's pre-reserved (transparent) extra space absorbs the growth exactly like it already absorbs the toast row; no `panel.setFrame` call is ever needed for a shelf content change, preserving the existing "never resize for content changes" invariant.
+**3. Window frame is NOT click-through at all — SwiftUI's own hit-testing does the job `ignoresMouseEvents` does in Islet.** `windowSize` (`sizing/matters.swift`) equals the FULL open/expanded notch size (not just the small collapsed pill) — the NSPanel's frame is large and persistent, same idea as Islet's always-reserved footprint — yet zero `ignoresMouseEvents` toggling exists anywhere. This works because SwiftUI's `NSHostingView` hit-testing naturally passes clicks through transparent, non-interactive regions of the view tree down to whatever window is beneath (a `Color.clear` view WITHOUT an explicit `.contentShape`+gesture attached does not intercept ordinary clicks); only the specific `dragDetector` background view opts INTO hit-testing (via `.contentShape(Rectangle())` + `.onDrop`), and even that appears not to block ordinary mouse clicks, because `.onDrop`'s registration is (per Apple's own drag/mouse-dispatch separation, cited in Islet's own 22-RESEARCH.md) a distinct pathway from ordinary click hit-testing.
 
----
+### DynamicNotchKit (`MrKai77/DynamicNotchKit`) — HIGH confidence on existence, confirms it's the wrong tool for this
 
-## The click-through / drag-in collision — the one genuine open risk
+Cloned and read directly. **Zero drag-and-drop code anywhere in the package** (confirmed by the same exhaustive grep). `DynamicNotchPanel` is a minimal `NSPanel` subclass (27 lines) with `level = .screenSaver`, `.canJoinAllSpaces`/`.stationary`, and — critically — **`canBecomeKey: true`** (the opposite of both Islet's and TheBoringNotch's `false`). The whole package (`DynamicNotch.swift`) is an imperative `async` API (`await notch.expand()` / `.compact()` / `.hide()`) built for transient, activatable popovers, not a permanently-present, always-click-through-except-when-hovered island. This reconfirms the project's own original stack research verdict: DynamicNotchKit is not a candidate base for the persistent island shell, and it offers **no pattern at all** for the drag-in problem — it cannot be "borrowed from" here, only ruled out as noise.
 
-`NotchWindowController` only makes the panel interactive (`panel.ignoresMouseEvents = false`) while `pointerInZone || interaction.isExpanded` (`syncClickThrough()`, `NotchWindowController.swift:696-699`); otherwise the **entire window ignores all mouse events**, including drag sessions, so a drag can pass straight through to whatever sits behind the notch. The existing pointer-hover detection that flips this flag in time for a *click* to land works because it rides a **global** `NSEvent.mouseMoved` monitor (`NSEvent.addGlobalMonitorForEvents`, line 299) — this observes copies of events delivered to *other* apps and does not require Islet's own window to be interactive to fire. **A file-drag session is not delivered through that global monitor** — OS drag-and-drop (`NSDraggingDestination`) is only routed to windows that are already registered as valid drop targets *at the moment the drag enters their frame*, which is exactly the chicken-and-egg problem `ignoresMouseEvents = true` creates.
+### What to actually take from this research
 
-Concretely: today, before any hover/click, the panel is non-interactive over the entire notch area; a file dragged over the collapsed pill in that state would currently **not** trigger `.onDrop`, because the window itself isn't accepting drag events yet. This directly conflicts with the requirement "Drag a file onto the collapsed pill → island auto-expands." Two known mitigation directions (do not treat either as decided — this needs its own research/spike before implementation):
+The single concrete, evidence-grounded architectural recommendation: **stop registering `NSDraggingDestination` on the AppKit window (`NotchPanel`) entirely.** Replace it with the two-stage pattern TheBoringNotch actually ships in production:
+1. A global-event-monitor-based `DragApproachDetector` (new, small, ~100 lines, pure `NSEvent`/`NSPasteboard` — no `NSDraggingDestination` conformance anywhere) that detects an in-flight OS content-drag and its entry into a geometric region computed from existing `NotchGeometry.swift`/`expandedZone` math — this ELIMINATES both H1 (no window-level drag-destination registration to be fragile in the first place) and the original Mission-Control hot-zone problem (22-01's Open Question 4) for free, since detection never depends on the drag actually reaching a registered AppKit destination — only on `NSEvent.mouseLocation` crossing a rect, which is exactly the same global-coordinate math `handlePointer`/`pointerInZone` already do today.
+2. SwiftUI `.onDrop(of:isTargeted:perform:)` (Pattern 2 from Islet's own 22-RESEARCH.md, written but never attempted since the AppKit-direct path's spike falsely appeared to confirm A1) attached directly to the collapsed-pill/shelf content view, which only needs to actually receive events once the island is already expanded and interactive (i.e., after `syncClickThrough()` has already flipped `ignoresMouseEvents` false through the EXISTING, proven arbitration path) — removing any need to reason about whether AppKit drag delivery survives a click-through, never-key, dual-Space `NSPanel`, because by the time `.onDrop` needs to fire, the panel is already fully interactive by the pre-existing, shipped mechanism.
 
-1. Keep the small collapsed hot-zone rectangle **permanently drag-target-registered** (i.e. never gate drag acceptance behind the same `ignoresMouseEvents` toggle used for clicks) — e.g. by having the content view's `hitTest(_:)` return `nil` outside the visible pill (achieving click-pass-through via hit-testing) while leaving `ignoresMouseEvents` permanently `false` so `NSDraggingDestination` methods always fire. This is a bigger change to the existing click-through mechanism (currently a single window-level boolean, not a `hitTest` override) and needs on-device verification that it doesn't reintroduce accidental click-swallowing over the transparent panel margins.
-2. Detect a system-wide drag session starting (there is no clean public API for this cross-app — `NSPasteboard.general.changeCount` polling around drag events is the closest common workaround, and it's inelegant) and pre-emptively flip `ignoresMouseEvents = false` for the drag's duration.
+This is a genuinely different, lower-risk architecture than either "debug the AppKit path more" or "blindly rewrite everything" — it is a **targeted replacement of exactly the one AppKit mechanism that twice failed on-device**, reusing (not rewriting) `NotchGeometry.swift`, `handlePointer`'s global-coordinate conventions, `syncClickThrough()`, and every downstream `ShelfCoordinator`/`DragDropSupport.swift` seam Phase 22 already built and unit-tested.
 
-Flagging this prominently: **this is the single highest-uncertainty integration point in the whole feature** and should get its own `/gsd:discuss-phase` conversation and probably a tiny spike/prototype before the full shelf is built, exactly the kind of thing this research is supposed to surface rather than hand-wave past.
-
----
-
-## Data Model & File Lifetime
-
-**Recommended `ShelfItem`:**
-
-```swift
-struct ShelfItem: Identifiable, Equatable {
-    let id: UUID
-    let originalURL: URL   // informational only — where the user dragged it from
-    let localURL: URL      // Islet's OWN copy — the only URL ever read from or dragged out
-    let filename: String
-    let addedAt: Date
-}
-```
-
-**Why a copy, not a live reference to `originalURL`, and not a security-scoped bookmark:**
-
-- **Robustness against the source disappearing.** The requirement explicitly asks "what happens if the source file is deleted/moved while sitting in the shelf" — answering that cleanly requires the shelf to hold something that does **not** depend on the original path continuing to exist. Copying once, at drop time, into an app-owned temp directory means the shelf's own file is authoritative for the rest of the session; a later deletion/move/rename of the original is simply irrelevant.
-- **Drag-out needs a real, currently-valid file on disk.** `NSItemProvider(contentsOf: url)` (the standard, reliable mechanism for handing a file to Finder/another app via drag) requires `url` to point at an actual readable file for the duration of the drag. SwiftUI's file-promise-writer path is documented as unreliable/unsupported in practice (multiple independent sources agree the promise-based approach is the wrong tool here) — reading an existing file via `NSItemProvider(contentsOf:)` from the app's own temp copy sidesteps that whole problem category.
-- **No sandbox, so no bookmark needed at all.** Security-scoped bookmarks solve "persist read access across a sandboxed relaunch." Islet is unsandboxed and the shelf is explicitly session-only (cleared on restart) — there is no permission boundary and no persistence requirement to bridge.
-- **Not raw `Data` in memory.** Holding every dropped file as in-memory `Data` would (a) make `NSItemProvider(contentsOf:)` drag-out impossible without first writing it back to disk anyway, (b) balloon memory for an "unbounded capacity" shelf with large files (e.g. video), and (c) gives nothing a copy-to-temp-dir doesn't already give for free.
-
-**Lifecycle:**
-
-- **Copy location:** a private subdirectory under `FileManager.default.temporaryDirectory`, scoped per-launch (e.g. a UUID-named folder created once in `start()`), never Application Support or anywhere implying persistence intent.
-- **Copy timing:** perform the actual file copy **off the main thread** (background `DispatchQueue` or `Task.detached`), then hop back to main to construct the `ShelfItem` and mutate `shelfState.items` inside the existing `withAnimation(.spring(...))` convention — mirrors how every other mutation in `NotchWindowController` is already disciplined, and matters concretely here because dropped files (e.g. videos) can be large enough that a synchronous copy would visibly hitch the UI thread.
-- **Per-file removal:** delete that item's `localURL` copy from disk, then apply `ShelfLogic.removing(id:from:)`.
-- **Delete-all:** delete every item's `localURL`, then `shelfState.items = []`.
-- **App-quit / controller teardown:** best-effort `try? FileManager.default.removeItem(at: shelfTempDirectory)` in `deinit`, mirroring the file's existing owner-driven teardown discipline (`powerMonitor?.stop()`, `nowPlayingMonitor?.stop()`, etc.) — note the file's own known carried-over bug (`AppDelegate.quit()` calls `NSApp.terminate(nil)` without tearing down `NotchWindowController`, so `deinit` never runs on quit) means this cleanup currently would **not** run on quit either; either fix that pre-existing leak as part of this milestone or accept that macOS's own periodic temp-directory cleanup is the fallback (acceptable given these are always just copies, never the user's only copy of anything).
-- **App-launch:** best-effort delete of any stale shelf temp directory left over from a previous crashed session, before creating a fresh one.
-
----
-
-## Recommended Project Structure (new files)
+## Recommended Project Structure (post-redesign)
 
 ```
 Islet/Notch/
-├── ShelfItem.swift            # pure value type (Foundation only)
-├── ShelfLogic.swift           # pure functions: adding/removing/clearing over [ShelfItem]
-├── ShelfState.swift           # ObservableObject, @Published var items: [ShelfItem]
-├── ShelfFileImporter.swift    # glue: NSItemProvider → background copy → ShelfItem
-IsletTests/
-├── ShelfLogicTests.swift      # unit tests for the pure seam, written FIRST
+├── NotchPanel.swift              # UNCHANGED SHAPE: window shell only. Drops the
+│                                  #   NSDraggingDestination conformance + registerForDraggedTypes
+│                                  #   entirely (H1 elimination) — reverts to the pre-Phase-22 62-line
+│                                  #   shell plus whatever the redesign's other goals need (see below)
+├── NotchWindowController.swift   # Split candidate (see Sequencing) — hover/click-through/state-
+│                                  #   machine glue stays; monitor ownership stays; the NEW
+│                                  #   DragApproachDetector is owned here exactly like
+│                                  #   PowerSourceMonitor/BluetoothMonitor are today
+├── DragApproachDetector.swift    # NEW — global NSEvent .leftMouseDown/.leftMouseDragged/.leftMouseUp
+│                                  #   monitors + NSPasteboard(name: .drag) changeCount polling +
+│                                  #   region-entry callback, modeled directly on TheBoringNotch's
+│                                  #   DragDetector.swift (pattern reuse, not a copy)
+├── DragDropSupport.swift         # UNCHANGED — Phase 22-02's fileURLs(from:)/shouldAcceptDrop(...)
+│                                  #   pure seams already exist and are unit-tested; the new .onDrop
+│                                  #   closure calls these exactly as 22-03's handleDragPerform would
+│                                  #   have
+├── NotchInteractionState.swift   # UNCHANGED — .dragEntered event already exists (22-02)
+├── NotchGeometry.swift           # UNCHANGED — topPinnedFrame()/expandedZone math reused by the
+│                                  #   new DragApproachDetector's region computation
+├── IslandResolver.swift          # UNTOUCHED
+├── DeviceCoordinator.swift /
+│   ActivityCoordinator.swift     # UNTOUCHED
+└── CGSSpace.swift                # UNTOUCHED — re-attached to whatever NotchPanel instance exists
+                                   #   post-redesign; the Phase 9 fix is a decision, not code coupled
+                                   #   to any specific window-shell internals
+
+Islet/Shelf/                      # UNTOUCHED IN FULL — ShelfCoordinator/ShelfLogic/ShelfFileStore/
+                                   #   ShelfViewState have zero coupling to window mechanics by design
+                                   #   (Phase 19 D-01) and need no changes for this redesign
 ```
 
-No new top-level folder needed — this is exactly the same granularity as the existing `PowerActivity`/`PowerSourceMonitor`, `NowPlayingPresentation`/`NowPlayingMonitor`, `DeviceActivity`/`DeviceCoordinator` pure/glue pairs already living flat in `Islet/Notch/`.
+## Architectural Patterns
 
----
+### Pattern 1: Global-monitor drag detection, AppKit drag-destination only once already-interactive
 
-## Build Order (matches this project's existing pure-seam-first convention)
+**What:** Detect an in-flight OS drag and its approach toward the notch via `NSEvent.addGlobalMonitorForEvents` (`.leftMouseDown`/`.leftMouseDragged`/`.leftMouseUp`) plus `NSPasteboard(name: .drag).changeCount` polling — never via `NSDraggingDestination`/`registerForDraggedTypes` on the window. Only attach `.onDrop` (SwiftUI) to receive the actual payload, and only once the island state machine has already transitioned to expanded/interactive through the existing, proven `syncClickThrough()` path.
 
-This project has shipped every prior feature in the same order (`IslandResolver` before `NotchWindowController` wiring in Phase 6; `DeviceCoordinator` proven in isolation in Plan 16-01 *before* the controller was wired to it in Plan 16-02). Recommend the identical order here:
+**When to use:** Any time a click-through/`ignoresMouseEvents`-toggling overlay window needs to react to an approaching OS drag before the pointer/drag has "earned" interactivity through the normal hover/click path.
 
-1. **Pure seam first, no system APIs at all:** `ShelfItem` + `ShelfLogic`, fully unit-tested (append/remove/clear, and whatever dedupe policy is chosen) with zero `NSItemProvider`/`FileManager` involvement — hand-built `ShelfItem`s in tests, exactly like `TrackSnapshot`/`PowerReading`/`DeviceReading` are hand-built in their own test suites.
-2. **View, driven by hand-set preview state, no live drop yet:** add `shelf: ShelfState` to `NotchPillView`, the appended shelf row (icon/thumbnail + per-item trash + far-right delete-all), gated per the "Interaction with IslandResolver" section above, verified via `#Preview` blocks (mirroring the existing `#Preview("Charging Wings")` etc. convention) with a hand-populated `ShelfState`. Confirms panel-sizing math (the `shelfRowHeight` headroom question above) visually before any real drag exists.
-3. **Drag-OUT glue** (simpler than drag-in — no click-through collision): wire `.onDrag`/`NSItemProvider(contentsOf:)` on each rendered shelf item so files can already be dragged to Finder from a manually-seeded shelf, and wire per-item/delete-all buttons to the controller closures.
-4. **Drag-IN glue last, and treat the click-through collision as its own spike:** `ShelfFileImporter` (background copy) + the controller's `handleDrop(providers:)` (expand-if-collapsed + import) + resolving the `.onDrop`/`ignoresMouseEvents` interaction from the pitfall above — this is the step most likely to need on-device iteration, so sequencing it last means every other piece is already proven working before touching the riskiest part.
+**Trade-offs:** Slightly more code than a single AppKit registration (a whole new small class) — but it is a DIRECTLY PROVEN, shipped pattern (TheBoringNotch), whereas the AppKit-direct alternative has now failed twice on-device in this exact codebase with root cause still open. Given the milestone's own stated goal ("resolve the Phase 22 drag-in blocker"), proven-elsewhere beats unresolved-here.
 
----
+**Example (shape, not literal file):**
+```swift
+// DragApproachDetector.swift — mirrors TheBoringNotch's DragDetector.swift structurally
+final class DragApproachDetector {
+    var onDragEntersRegion: (() -> Void)?
+    var onDragExitsRegion: (() -> Void)?
+    private var region: CGRect   // supplied by NotchGeometry / expandedZone math, updated on resolve
+    private let dragPasteboard = NSPasteboard(name: .drag)
+    // .leftMouseDown → snapshot pasteboard.changeCount, arm
+    // .leftMouseDragged → if changeCount changed (real content-drag) AND mouseLocation.inside(region)
+    //                     → fire onDragEntersRegion exactly once (edge-detected, mirrors pointerInZone)
+    // .leftMouseUp → disarm
+}
+```
 
-## Anti-Patterns to Avoid
+### Pattern 2: Coordinator-split continuation (this project's own established convention)
 
-### Anti-Pattern 1: `ShelfCoordinator` behind `ActivityCoordinator`
-**What it would look like:** conforming a new type to `ActivityCoordinator`, inventing a `Reading` typealias and a no-op `activityPromoted()`.
-**Why it's wrong:** copies the *shape* of an extraction that exists to manage `TransientQueue` reach-back and rank-competition — neither applies to the shelf. Adds a protocol conformance with unused/meaningless methods.
-**Instead:** plain `ShelfState` (mirrors `BasicOutfitState`) + `ShelfLogic` pure functions.
+**What:** `NotchWindowController` has already been mid-split since Phase 16 (`DeviceCoordinator` behind `ActivityCoordinator`) — the roadmap itself anticipated Charging/NowPlaying/Shelf coordinator extractions as "planned... series." A window-shell rewrite is the natural forcing function to finish that split rather than doing it as separate future phases.
 
-### Anti-Pattern 2: Threading the shelf through `IslandPresentation`/`resolve(...)`
-**What it would look like:** adding a `.shelf([ShelfItem])` case or wrapping every existing case with shelf data.
-**Why it's wrong:** the shelf is orthogonal to *which* activity is showing, not a rank in the same competition — this would force every existing `IslandPresentation` case to also carry shelf data, bloating the enum the resolver's tests already cover, for a concern that has nothing to do with priority arbitration.
-**Instead:** a separate `@Published` field the view appends underneath the switch, exactly like the Phase 18 toast.
+**When to use:** Any time the rewrite touches `NotchWindowController`'s 1378 lines anyway — extracting a `HoverInteractionController` (owns `pointerInZone`/`hotZone`/`expandedZone`/`syncClickThrough`/the mouseMoved monitor) as its own testable unit, separate from a slimmer `NotchWindowController` that just wires monitors → `resolve()` → `renderPresentation()`, reduces the blast radius of the ACTUAL risky part (window/hover mechanics) from the safe part (activity plumbing).
 
-### Anti-Pattern 3: Referencing `originalURL` directly instead of copying
-**What it would look like:** storing only the dropped `URL` and reading from it whenever the shelf renders/drags-out.
-**Why it's wrong:** breaks the moment the source file is renamed, moved, or deleted while sitting in the shelf (explicitly one of this feature's required behaviors to get right); also fights `NSItemProvider(contentsOf:)`'s expectation of a stable, app-controlled file for drag-out.
-**Instead:** copy once at drop time into an app-owned temp directory; the shelf's own copy is authoritative.
+**Trade-offs:** More files, more indirection — but this project has already proven the pattern works cleanly once (Phase 16, zero product-behavior change, verified both by tests and on-device UAT) and explicitly said it intended to repeat it. Doing it now, forced by the drag fix, is lower-risk than doing it as an unplanned side effect of unrelated future phases.
 
-### Anti-Pattern 4: Baking shelf headroom into the shared `expandedSize` constant
-**What it would look like:** changing `NotchPillView.expandedSize` itself to include shelf height.
-**Why it's wrong:** every blob shape using `expandedSize` (idle glance, media expanded, unavailable) becomes visibly taller with dead black space even when the shelf is empty (the common case).
-**Instead:** reserve extra panel-frame headroom separately (controller-side constant), keep each blob view's own conditional height computation local, mirroring `mediaWingsOrToast`'s existing `height = wingsSize.height + (toast != nil ? toastExtraHeight : 0)` pattern.
+### Anti-Pattern to avoid: registering the SAME drag types on both the panel AND a SwiftUI view
 
----
+Islet's own 22-RESEARCH.md already flagged this ("Registering drag types on both the `NSHostingView` AND the `NotchPanel` window... pick ONE"). The redesign must actively DELETE the residual `registerForDraggedTypes([.fileURL])` + 4 stub overrides currently still sitting in `NotchPanel.swift` on disk (Phase 22-01's merged spike scaffold, confirmed present as of this research) before adding the new SwiftUI `.onDrop` — leaving both would recreate exactly the shadowing risk (Hypothesis H3) flagged above.
 
-## Integration Points (concrete file/line references)
+## De-Risking Sequencing (answers: how to rewrite without regressing 4 shipped milestones)
 
-| Integration point | File | Change |
-|---|---|---|
-| New pure value | `Islet/Notch/ShelfItem.swift` | NEW file |
-| New pure logic | `Islet/Notch/ShelfLogic.swift` | NEW file, unit-tested first |
-| New published state | `Islet/Notch/ShelfState.swift` | NEW file, mirrors `BasicOutfitState.swift` |
-| New glue (drag-in resolution + temp copy) | `Islet/Notch/ShelfFileImporter.swift` | NEW file |
-| Controller owns shelf state | `NotchWindowController.swift` (near line 93, alongside `outfitState`) | ADD `private let shelfState = ShelfState()` |
-| Controller wires drop-in | `NotchWindowController.swift` (near `handleClick()`, line 744) | ADD `handleDrop(providers:)` reusing `nextState(interaction.phase, .clicked)` for the auto-expand |
-| Controller wires teardown | `NotchWindowController.swift` `deinit` (line 1122) | ADD best-effort shelf-temp-dir removal |
-| View receives shelf state | `NotchPillView.swift` (near line 51, alongside `outfit`) | ADD `@ObservedObject var shelf: ShelfState` (non-defaulted) |
-| View renders shelf row | `NotchPillView.swift` `body` (after line 159's `switch`) | ADD conditional row, gated per "Interaction with IslandResolver" |
-| View accepts drops | `NotchPillView.swift` `collapsedIsland` (line 181) + expanded blob shapes | ADD `.onDrop(of: [.fileURL], ...)`, subject to the click-through pitfall above |
-| Panel sizing | `NotchWindowController.swift` `positionAndShow` (line 592) | Feed `expandedSize.height + shelfRowHeight` into `expandedNotchFrame(...)` instead of the raw constant |
-| `IslandResolver.swift` | — | **NOT TOUCHED** |
-| `ActivityCoordinator.swift` / `DeviceCoordinator.swift` | — | **NOT TOUCHED** |
+The 4 already-shipped, on-device-verified pillars this must not regress: **(a)** island positioning/fullscreen-hiding (Phases 1/2/9 — CGS Space, hot-zone, click-through), **(b)** activity priority arbitration (Phase 6 — `IslandResolver`/`TransientQueue`), **(c)** the shelf (Phases 19-21 — data model/view/drag-out), **(d)** licensing/trial (Phases 10-13 — entirely orthogonal to the window shell, zero touch expected).
 
----
+This project's own established convention — proven twice already (Phase 6/9's fullscreen work, and explicitly cited in the v1.3 roadmap-evolution note for Phase 19-22) — is: **isolate the single highest-uncertainty integration point in its own phase, sequenced so its failure doesn't block or corrupt everything else.** Phase 22 isolated the RIGHT kind of risk (drag-in) but at the WRONG layer (it assumed the existing window shell was sound and tried to bolt drag onto it). This time, the isolation needs to happen one layer down: isolate the **shell rewrite's foundational geometry/click-through/CGS-Space behavior FIRST** (the thing every other feature depends on), prove it regression-free against the 3 shippable pillars that touch the window (a/b/c) BEFORE attempting drag-in again — because drag-in's own research already exists and is unit-tested (22-02); what's missing is a sound shell to attach it to.
+
+**Recommended phase order:**
+
+1. **Shell parity phase** — rebuild `NotchPanel`/the AppKit-facing slice of `NotchWindowController` to the SAME external behavior as today (position/hide/hover/click/CGS-Space/click-through), with the residual Phase-22 `NSDraggingDestination` scaffold DELETED (not carried forward) and — if the coordinator-split (Pattern 2) is taken — `HoverInteractionController` extracted. Success criterion: byte-for-byte-equivalent on-device UAT re-run of Phase 2/6/9's existing checklists (hover/click-expand, click-through, multi-Space, fullscreen hide/restore, activity priority ordering unaffected). This phase touches (a) and (b) directly — it must not touch `IslandResolver.swift`, `DeviceCoordinator.swift`, or `Islet/Shelf/` at all (they have zero window-mechanics coupling by design, so a correct rewrite is provably a no-op for them). **This is the phase to isolate — it is the actual "unproven integration point" now, not drag-in.**
+2. **Drag-in via the new pattern** — add `DragApproachDetector` + the SwiftUI `.onDrop` wiring on top of the now-reproven shell, reusing 22-02's already-built-and-tested `DragDropSupport.swift`/`.dragEntered` seams verbatim. Because the pure seams already exist and are tested, this phase is materially smaller than Phase 22 was — it's wiring, not invention. This closes SHELF-01/02.
+3. **Theming/visual redesign (frosted pill, slower springs, sidebar Settings)** — layered entirely inside `NotchPillView.swift`/`SettingsView.swift`; no shell dependency once (1) is done. **Can run in parallel with (2)**, or even before it, since it never touches `NotchPanel`/`NotchWindowController` internals — only the SwiftUI content the panel hosts.
+4. **Onboarding flow** — a new first-launch view + a state flag gating it; touches `AppDelegate`/app-launch sequencing and Settings, not the notch shell's hover/click/drag mechanics at all. **Independent of (1)-(2), can run any time**, though sequencing it before "resume normal use" flows matters for UX polish (deciding trial/license/permissions before the user ever sees an island).
+5. **Calendar full view (third view alongside Home/Tray)** — this is the one item genuinely downstream of the shell work IF it needs its own interaction affordance to switch views (e.g., a swipe or tab control inside the expanded island) — but the milestone context explicitly **defers gesture-based navigation**, so the initial calendar view can likely be a plain state/tab addition inside the existing click-driven expand/collapse model (no new window-mechanics dependency). Confirm this against whatever UI-SPEC the calendar phase produces; if it turns out to need a NEW interaction affordance beyond click/hover, that affordance should be built on TOP of the reproven shell from (1), not before it.
+
+**Dependency summary:**
+- (1) is a hard prerequisite for (2) only — not for (3)/(4)/(5).
+- (3) and (4) can proceed in parallel with (1)/(2) — different files, zero shared surface.
+- (5) is soft-dependent on (1) only if it needs new interaction affordances; otherwise independent.
+- This means the milestone's phase ORDER does not need to be a strict single chain — (1) should go first because everything else nominally sits on top of "the shell still works," but (3)/(4) are legitimately parallelizable with (1)/(2) if the user wants throughput over strict sequencing. The one thing that must NOT happen is attempting (2) before (1) is proven — that is a re-run of exactly what just failed twice.
+
+## Scaling / Regression-Proofing Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| CGS Space re-attachment forgotten in the rewrite | Explicitly re-verify Phase 9's full on-device checklist (fullscreen-enter across all 3 trigger methods) as part of the Shell Parity phase's own UAT — do not assume "if it compiles it's fine," this fix was proven ONLY on-device originally too |
+| `IslandResolver`/`TransientQueue` accidentally touched during the split | Keep them untouched literally — the Shell Parity phase's task list should have an explicit "0 diff to IslandResolver.swift/DeviceCoordinator.swift" acceptance criterion, mirroring how Phase 22-03 itself enforced "0 diff to syncClickThrough()" for the CR-01 gotcha |
+| Shelf regressing during the shell rewrite | `ShelfCoordinator`/`ShelfLogic`/`ShelfFileStore` have zero window-mechanics coupling (Phase 19 D-01) — the Shell Parity phase should NOT need to touch `Islet/Shelf/` at all; if a diff shows up there, that's a signal the split boundary was drawn wrong |
+| A second "root cause unknown" outcome on the NEW drag pattern | Because Pattern 1 (global monitor + SwiftUI `.onDrop`) never depends on AppKit's window-level drag-destination candidacy at all, the specific unresolved H1/H2/H3/H4 failure modes from Phase 22 categorically cannot recur in the same shape — worth stating explicitly in the phase's own risk register so a future debugging session doesn't re-litigate the same dead end |
+
+## Anti-Patterns to Avoid (carried + new)
+
+### Anti-Pattern 1: A second `ignoresMouseEvents`/click-through writer
+Unchanged from Phase 22's own CR-01 lesson (project memory `cr01-clickthrough-or-defeat-gotcha`): any new state (drag-in-progress, view-switch-in-progress for the future calendar view, etc.) must route THROUGH `syncClickThrough()` as an additional input, never bypass it with a second direct `panel?.ignoresMouseEvents = ...` write.
+
+### Anti-Pattern 2: Rebuilding the shell and the drag feature in the same phase
+Exactly what made Phase 22 hard to diagnose — when the shell and the feature change together, an on-device failure can't tell you which layer broke. Sequencing (see above) deliberately proves the shell alone first.
+
+### Anti-Pattern 3: Adopting DynamicNotchKit or TheBoringNotch wholesale as a dependency
+Both were already correctly ruled out as base frameworks in the project's original stack research and remain ruled out here — DynamicNotchKit's transient/activatable model doesn't fit a persistent island, and TheBoringNotch is not designed to be imported as a library at all (it's an app, not a package). The correct move is **pattern reuse** (the `DragDetector` shape), not adoption.
+
+## Integration Points
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `NotchPanel` ↔ `NotchWindowController` | Thin closures (`onDraggingEntered`-style forwarding is REMOVED; replaced by `DragApproachDetector`'s own callback closures, owned by the controller exactly like `PowerSourceMonitor`'s callback) | `NotchPanel` keeps its existing "zero business logic, everything visible is SwiftUI hosted inside it" convention — the redesign does not change this contract, only what crosses it |
+| `NotchWindowController` ↔ `IslandResolver`/`TransientQueue` | Direct pure-function calls (`resolve(...)`), no protocol | Unchanged — the resolver has no knowledge of the window shell at all today and should continue to have none |
+| `NotchWindowController` ↔ `ShelfCoordinator` | Direct method calls (`append`, `resyncShelfViewState()`) | Unchanged — the new `DragApproachDetector`'s payload extraction ends at "I have `[URL]`," then hands off to the exact same `DragDropSupport.fileURLs(from:)` → `ShelfFileStore.makeSessionCopy` → `ShelfCoordinator.append` chain Phase 22-02/22-03 already built and tested |
+| `NotchWindowController` ↔ `CGSSpace` | Direct call at panel-creation time (`notchSpace.windows.insert(panel)`) | Unchanged — re-attach identically in the new shell |
 
 ## Sources
 
-- Direct reads of the real Islet codebase (HIGH confidence — these are facts about this project, not general claims): `NotchWindowController.swift`, `IslandResolver.swift`, `ActivityCoordinator.swift`, `DeviceCoordinator.swift`, `NotchPillView.swift`, `IslandPresentationState.swift`, `NotchInteractionState.swift`, `BasicOutfitState.swift`, `NowPlayingPresentation.swift`, `Islet.entitlements`, `.planning/PROJECT.md`.
-- [SwiftUI on macOS: Drag and drop, and more — The Eclectic Light Company](https://eclecticlight.co/2024/05/21/swiftui-on-macos-drag-and-drop-and-more/) — MEDIUM, corroborates `onDrop`/`NSItemProvider`/`public.file-url` mechanics on macOS.
-- [Implementing drag and drop with the SwiftUI modifiers — Create with Swift](https://www.createwithswift.com/implementing-drag-and-drop-with-the-swiftui-modifiers/) — MEDIUM, corroborates `.onDrag`/`.onDrop` API shape.
-- [SwiftUI drag & drop does not support file promises — Wade Tregaskis](https://wadetregaskis.com/swiftui-drag-drop-does-not-support-file-promises/) — MEDIUM-HIGH, directly informs the recommendation to drag out an existing real file (`NSItemProvider(contentsOf:)`) rather than attempt a file-promise-writer approach in SwiftUI.
-- [NSItemProvider — Apple Developer Documentation](https://developer.apple.com/documentation/foundation/nsitemprovider) — HIGH (official), confirms the general contract for conveying files during drag-and-drop.
-- Apple's documented behavior that a window with `ignoresMouseEvents == true` ignores all mouse-related events including drag sessions is drawn from general AppKit `NSWindow` documentation knowledge (MEDIUM confidence, not independently re-verified against a fetched doc page this session) — flagged as the basis for the click-through/drag-in pitfall above and explicitly called out as needing on-device/spike verification before implementation, not treated as settled fact.
+- **This project's own git history** (`gsd-new-project-setup` branch, commits `7571001`, `326804d`, `8fb5517`, `8af3e77`, `d1245e8`, `8dbd064`) — HIGH confidence, primary evidence for the H1-H4 hypothesis ranking; read directly via `git show`, not summarized from planning docs alone
+- `.planning/phases/22-drag-in/22-RESEARCH.md`, `22-CONTEXT.md`, `22-01-SUMMARY.md`, `22-02-SUMMARY.md`, `22-03-PLAN.md`, `22-VALIDATION.md`, `22-DISCUSSION-LOG.md` — HIGH confidence, full phase history including Apple-doc citations already gathered by prior research (`developer.apple.com/documentation/appkit/nswindow/registerfordraggedtypes(_:)`, `.../nsdraggingdestination`, `.../nsdragginginfo`, `.../swiftui/view/ondrop(of:istargeted:perform:)`)
+- `TheBoredTeam/boring.notch` (github.com, cloned + read directly 2026-07-11: `BoringNotchWindow.swift`, `BoringNotchSkyLightWindow.swift`, `DragDetector.swift`, `ContentView.swift`, `boringNotchApp.swift`, `sizing/matters.swift`) — HIGH confidence, primary reference implementation already credited by this project's own tech-stack research
+- `MrKai77/DynamicNotchKit` (github.com, cloned + read directly 2026-07-11: `DynamicNotchPanel.swift`, `DynamicNotch.swift`) — HIGH confidence on what exists (nothing relevant to drag), confirms prior "not suited as a base" verdict
+- `.planning/PROJECT.md` Key Decisions table — HIGH confidence, source for the CGS Space (Phase 9)/coordinator-split (Phase 16)/shelf-independence (Phase 19 D-01) decisions this redesign must preserve
+- `.planning/STATE.md` Blockers/Concerns — HIGH confidence, the authoritative failure timeline
+- Live read of `Islet/Notch/*.swift`, `Islet/Shelf/*.swift` (2026-07-11) — confirms current on-disk state, including the still-present, unwired Phase 22-01 spike scaffold in `NotchPanel.swift`
 
 ---
-*Architecture research for: Islet v1.3 "Notch Shelf" milestone*
-*Researched: 2026-07-09*
+*Architecture research for: Islet v1.4 NotchPanel/NotchWindowController redesign*
+*Researched: 2026-07-11*
