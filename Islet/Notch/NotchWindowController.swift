@@ -276,13 +276,14 @@ final class NotchWindowController {
     // A few px of slop around the collapsed pill so the hot-zone is comfortable to enter.
     private let hotZonePadding: CGFloat = 6
 
-    // Phase 24 / SHELF-01 / SHELF-02 (D-01/D-02c) — a generous margin below the absolute screen
-    // top edge, sized well above the measured collapsed-pill height (~32pt, project memory
-    // charging-connect-only-notch-size) to stay clear of the literal top-edge Mission-Control
-    // trigger that killed Phase 22's first on-device attempt ("maximally forgiving" framing).
+    // Phase 24 / SHELF-01 / SHELF-02 (D-01/D-02c) — a small buffer clearing only the literal
+    // 0px top screen edge / Mission-Control hot corner (Phase 22's original concern), NOT the
+    // whole collapsed-pill height. On-device Task 3 UAT found 40 excluded the ENTIRE pill body
+    // (topPinnedFrame puts the pill's Y range in [screenTop-32, screenTop]), making it
+    // geometrically impossible to drop directly on the pill — corrected to match
+    // hotZonePadding's own small-buffer scale; the pill/shelf area is the intended drop target.
     // Feeds dragLandingMaxY (positionAndShow's `target.frame.maxY - dragLandingMargin`).
-    // Tunable during this plan's Task 3 on-device UAT checkpoint if empirically wrong.
-    private let dragLandingMargin: CGFloat = 40
+    private let dragLandingMargin: CGFloat = 4
 
     // D-03 grace delay (within the 0.3–0.5s window). One place for Plan 05 to tune.
     private let graceDelay: TimeInterval = 0.4
