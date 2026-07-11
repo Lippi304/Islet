@@ -80,9 +80,9 @@ Reuses the exact existing icon-chip convention already in `NotchPillView.swift` 
 |----------|-------|
 | Shape | `RoundedRectangle(cornerRadius: 8, style: .continuous)` |
 | Fill | `Color.white.opacity(0.12)` |
-| Padding | 12px horizontal, 6px vertical (12px is a pre-existing chip-padding exception, matching sibling chip buttons already in this file — not a new deviation) |
+| Padding | 12px horizontal, 8px vertical (12px horizontal is a pre-existing chip-padding exception, matching sibling chip buttons already in this file — not a new deviation; 8px vertical is on-grid) |
 | Text | 14px semibold, `.foregroundStyle(.white)` (Next/Back/Finish) — Grant chip uses 12px semibold (smaller, inline per-row control) |
-| Min tap target | 32px height (icon/text chip touch-target floor, consistent with the existing 28×28 reserved-slot precedent, rounded up for reliable click-through hit-testing per Pattern 3) |
+| Min tap target | 32px height minimum — 14px text at 1.2 line-height (16.8px) + 8px vertical padding × 2 = ~33px total chip height, clearing the 32px floor (consistent with the existing 28×28 reserved-slot precedent, rounded up for reliable click-through hit-testing per Pattern 3) |
 
 ### Permission row layout (Permissions step only, 3 rows)
 
@@ -92,7 +92,7 @@ Reuses the exact existing icon-chip convention already in `NotchPillView.swift` 
 
 | Element | Value |
 |---------|-------|
-| Row `HStack` spacing | 12px (icon → text block) |
+| Row `HStack` spacing | 8px (icon → text block) — matches the row-to-row gap below for consistent vertical/horizontal rhythm; no 12px precedent exists for this specific icon-to-text relationship, so it stays on the standard 4/8/16 scale |
 | Icon | SF Symbol, 16px, `.foregroundStyle(.white.opacity(0.7))` |
 | Text block | `VStack(alignment: .leading, spacing: 4)` — Label above Reason |
 | Row-to-row gap | 8px |
