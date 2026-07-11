@@ -15,6 +15,7 @@ import Foundation
 // nowPlayingExpanded case's `healthy:` flag, kept orthogonal to the .none vs playing
 // snapshot — see NowPlayingPresentation.swift's header for why D-11 ≠ D-12.
 enum IslandPresentation: Equatable {
+    case onboarding(OnboardingStep)                        // Phase 26 D-09: highest priority -- forced flow, never pre-empted
     case idle                                              // collapsed, nothing to show
     case charging(ChargingActivity)                        // D-02 rank 1 transient
     case device(DeviceActivity)                            // D-02 rank 2 transient
@@ -35,7 +36,12 @@ func resolve(activeTransient: ActiveTransient?,
              nowPlaying: NowPlayingPresentation,
              nowPlayingHealthy: Bool,
              hasPlayedSinceLaunch: Bool,
-             isExpanded: Bool) -> IslandPresentation {
+             isExpanded: Bool,
+             onboardingStep: OnboardingStep? = nil) -> IslandPresentation {
+    // Phase 26 D-09: forced flow -- a forced onboarding session is never pre-empted by any
+    // transient or expanded state. Checked at the single arbiter, as the literal first
+    // statement, rather than as a scattered guard duplicated across call sites (T-26-02).
+    if let step = onboardingStep { return .onboarding(step) }
     switch activeTransient {                              // D-04: transient wins even over expanded
     case .charging(let a): return .charging(a)           // D-02 rank 1
     case .device(let d):   return .device(d)             // D-02 rank 2

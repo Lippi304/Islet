@@ -21,6 +21,10 @@ enum ActivitySettings {
     // not a live-activity source), but lives in this same enum because this file is the
     // shared key namespace between SettingsView and the controller.
     static let hideInFullscreenKey = "notch.hideInFullscreen"
+    // Phase 26 / T-26-03 — the onboarding-shown gate (shouldShowOnboarding(...)). Deliberately
+    // plain UserDefaults, NOT Keychain: this is an app-owned UX flag, not a security/anti-tampering
+    // boundary (unlike TRIAL-*/LIC-* state, which lives in a completely separate, unmodified store).
+    static let onboardingCompletedKey = "onboarding.completed"
 
     // D-12 curated palette (~5-6 swatches), NOT a free ColorPicker.
     // Index 0 = neutral default (D-12) — preserves today's white look.

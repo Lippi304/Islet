@@ -182,6 +182,12 @@ struct NotchPillView: View {
             // not to empty" (D-02 yield-to-ambient). The expanded media-health axis (D-12) rides
             // on the `.nowPlayingExpanded(_, healthy:)` flag.
             switch presentation {
+            case .onboarding:
+                // Phase 26 / D-09 — resolve(...) can now return this case (highest priority),
+                // but no caller passes a non-nil onboardingStep yet and no onboarding UI exists
+                // until Plans 26-02/26-03/26-04 build it; a placeholder keeps this switch
+                // exhaustive without pre-empting those plans' UI-SPEC.
+                EmptyView()
             case .charging(let a):
                 wings(for: a)                                                    // D-02 rank 1 transient
             case .device(let d):
