@@ -297,6 +297,8 @@ Plans:
 
 ### Phase 24: Drag-In
 
+**STATUS: BLOCKED, execution paused 2026-07-11.** Plan 24-01's spike confirmed the `DragApproachDetector` global-monitor mechanism reliably detects inbound Finder drags (PASSED). Plan 24-02's Tasks 1-2 are merged and on-device UAT confirmed the shelf-landing logic itself now works (after fixing a geometry margin and a `recheckDragAcceptRegion` self-disarm bug). BUT: because the panel is deliberately click-through/non-`NSDraggingDestination`, a real drop is never intercepted at the OS level — it falls through to the Finder Desktop underneath and, on a same-volume drag, gets MOVED there as an unwanted side effect (confirmed on-device). This is an architectural gap, not a small fix — see STATE.md Blockers/Concerns for full detail, including a concrete lead from the existing Droppy reference research (`.planning/research/inspiration/notes.md`): Droppy's own permission asks (Accessibility/Screen Recording/Input Monitoring) suggest a `CGEventTap`-based interception, not passive `NSEvent` monitors. Plan 24-02's Task 3 checkpoint is intentionally left open pending `/gsd:discuss-phase 24`.
+
 **Goal**: Users can drag a file, multiple files, or a folder onto the collapsed island and have it land in the shelf — retried on the reproven shell via a global-monitor detection pattern (`DragApproachDetector`) instead of `NSDraggingDestination`.
 **Depends on**: Phase 23 — hard dependency; retrying drag-in before shell parity closes would repeat Phase 22's exact failure mode.
 **Requirements**: SHELF-01, SHELF-02
