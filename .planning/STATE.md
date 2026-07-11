@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
-status: Ready to discuss
+status: executing
 stopped_at: Phase 26 UI-SPEC approved
-last_updated: "2026-07-11T16:33:19.835Z"
-last_activity: 2026-07-11
+last_updated: "2026-07-11T17:20:44.779Z"
+last_activity: 2026-07-11 -- Phase 26 execution started
 progress:
   total_phases: 13
   completed_phases: 6
-  total_plans: 16
+  total_plans: 20
   completed_plans: 15
   percent: 46
 ---
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 26 — onboarding flow
+**Current focus:** Phase 26 — onboarding-flow
 
 ## Current Position
 
-Phase: 26 (Phases 23-25 all complete: shell parity rewrite, drag-in, visual/material theming redesign)
-Plan: Not started
-Status: Ready to discuss
-Last activity: 2026-07-11
+Phase: 26 (onboarding-flow) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 26
+Last activity: 2026-07-11 -- Phase 26 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 

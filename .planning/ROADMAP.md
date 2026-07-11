@@ -355,7 +355,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 26-01-PLAN.md — Pure onboarding seams (TDD): OnboardingFlow.swift step reducer + launch gate functions, IslandResolver onboarding precedence, ActivitySettings key
+- [x] 26-01-PLAN.md — Pure onboarding seams (TDD): OnboardingFlow.swift step reducer + launch gate functions, IslandResolver onboarding precedence, ActivitySettings key
 
 **Wave 2** *(blocked on 26-01)*
 
