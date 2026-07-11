@@ -56,6 +56,12 @@ targets:
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst."
         INFOPLIST_KEY_NSCalendarsUsageDescription: "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an."
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an."
+        # Phase 24 / SHELF-01/02 (D-10) — defensive/inert-if-unused: Accessibility (not this key)
+        # is what actually gates DropInterceptTap's CGEventTap creation (Assumption A6, confirmed
+        # on-device), but some sources suggest an Accessibility-trusted app also gets Input
+        # Monitoring "for free," so both TCC entries may show up. There is no Accessibility
+        # equivalent Info.plist usage-description key for this API — do not add one.
+        INFOPLIST_KEY_NSInputMonitoringUsageDescription: "Islet nutzt diese Berechtigung, um beim Ablegen einer Datei in der Notch zu verhindern, dass Finder die Originaldatei verschiebt."
         GENERATE_INFOPLIST_FILE: YES                   # modern Xcode: synthesize Info.plist from build settings
         MARKETING_VERSION: "1.0"                       # -> CFBundleShortVersionString (D-14: 1.0 is the public launch)
         CURRENT_PROJECT_VERSION: "1"                   # -> CFBundleVersion (build number)

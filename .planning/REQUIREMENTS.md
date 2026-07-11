@@ -10,8 +10,8 @@ A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexp
 ### Architecture
 
 - [x] **ARCH-01**: The notch window shell (`NotchPanel`/`NotchWindowController`) is rebuilt with behavior identical to today — position on the built-in notch, hover/click/grace-collapse state machine, true-fullscreen hiding, click-through hit-testing, and multi-Space visibility all verified regression-free on-device — with the residual `NSDraggingDestination` scaffold from Phase 22 removed. Prerequisite for SHELF-01/02.
-- [ ] **SHELF-01**: User can drag a file, multiple files, or a folder onto the collapsed island — it auto-expands and the item(s) land in a shelf strip below the expanded view (carried forward from v1.3, blocked by Phase 22)
-- [ ] **SHELF-02**: Drop target shows "hot"/targeted visual feedback while a file is being dragged over, before release (carried forward from v1.3, blocked by Phase 22)
+- [x] **SHELF-01**: User can drag a file, multiple files, or a folder onto the collapsed island — it auto-expands and the item(s) land in a shelf strip below the expanded view (carried forward from v1.3, blocked by Phase 22)
+- [x] **SHELF-02**: Drop target shows "hot"/targeted visual feedback while a file is being dragged over, before release (carried forward from v1.3, blocked by Phase 22)
 
 ### Onboarding
 
@@ -73,8 +73,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ARCH-01 | Phase 23 | Complete |
-| SHELF-01 | Phase 24 | Pending |
-| SHELF-02 | Phase 24 | Pending |
+| SHELF-01 | Phase 24 | Complete |
+| SHELF-02 | Phase 24 | Complete |
 | ONBOARD-01 | Phase 26 | Pending |
 | ONBOARD-02 | Phase 26 | Pending |
 | ONBOARD-03 | Phase 26 | Pending |

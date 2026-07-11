@@ -45,6 +45,7 @@
 		6DA98B2B2107409BB8BD64FE /* CGSSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2151B8D097AF9D3098ED16D7 /* CGSSpace.swift */; };
 		6E7588C0E74ED25E45E3F1AE /* FullscreenSpaceProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */; };
 		730C2D90EDBDA9578FFD3D07 /* BasicOutfitState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25742CBF490BEC1233F661FD /* BasicOutfitState.swift */; };
+		73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C75C7435C3C840FC929C873C /* DropInterceptTap.swift */; };
 		75B9F62FA809ED170142A930 /* ShelfLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB460DC51BC6612D0A4A134 /* ShelfLogicTests.swift */; };
 		7604855295CC6043B60954AF /* LicenseManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */; };
 		774A2C14E09EB8BE82006A9B /* ActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */; };
@@ -181,6 +182,7 @@
 		B94FF8FB96D00B8442591E7B /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
 		BEFCAF742543C37096D4F714 /* BatteryIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryIndicator.swift; sourceTree = "<group>"; };
 		C2E70A8667DE9528FD2F0CFB /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
+		C75C7435C3C840FC929C873C /* DropInterceptTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropInterceptTap.swift; sourceTree = "<group>"; };
 		D2B811CCD53A0E77D86C48E5 /* WeatherCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCategory.swift; sourceTree = "<group>"; };
 		D2C09F7CB439DBC707F7E095 /* ShelfItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItem.swift; sourceTree = "<group>"; };
 		E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDetectorTests.swift; sourceTree = "<group>"; };
@@ -350,6 +352,7 @@
 				E87941F5DC2AA7BA8674AB0C /* DeviceCoordinator.swift */,
 				FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */,
 				63FACDF43375E1DE88646B05 /* DragDropSupport.swift */,
+				C75C7435C3C840FC929C873C /* DropInterceptTap.swift */,
 				885DB8C610716B7530D89BDB /* FullscreenDetector.swift */,
 				71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */,
 				0EEA35677CE1730669284423 /* IslandPresentationState.swift */,
@@ -486,6 +489,7 @@
 				A5CBE92E220E6C6C2FC10FF1 /* Diagnostics.swift in Sources */,
 				C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */,
 				AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */,
+				73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */,
 				8CEEBDB51AC0041BDC1306AC /* FullscreenDetector.swift in Sources */,
 				6E7588C0E74ED25E45E3F1AE /* FullscreenSpaceProbe.swift in Sources */,
 				1C34C1BD974D50396F6713F0 /* IslandPresentationState.swift in Sources */,
@@ -585,6 +589,7 @@
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
+				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "Islet nutzt diese Berechtigung, um beim Ablegen einer Datei in der Notch zu verhindern, dass Finder die Originaldatei verschiebt.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -741,6 +746,7 @@
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
+				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "Islet nutzt diese Berechtigung, um beim Ablegen einer Datei in der Notch zu verhindern, dass Finder die Originaldatei verschiebt.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

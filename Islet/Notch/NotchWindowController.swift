@@ -305,6 +305,13 @@ final class NotchWindowController {
     private var didLogFirstHover = false
     #endif
 
+    // Phase 24 / SHELF-01 / SHELF-02 (D-10) — the production drop-interception tap, closing the
+    // gap Plan 24-02's Task 3 UAT surfaced (Finder's Desktop relocating the original dragged
+    // file). Lazily constructed on the FIRST real drag-approach edge (D-11), not at app launch —
+    // see recheckDragAcceptRegion(). Supersedes Plan 24-03 Task 1's throwaway #if DEBUG spike
+    // (A5/A7/A6 all confirmed on-device: 24-03-SUMMARY.md).
+    private var dropInterceptTap: DropInterceptTap?
+
     func start() {
         // Phase 16 / D-02 — constructed here (not at declaration) so the [weak self]-capturing
         // closures bind a fully-initialised self, mirroring powerMonitor/nowPlayingMonitor's
@@ -748,6 +755,16 @@ final class NotchWindowController {
                 interaction.phase = nextState(interaction.phase, .dragEntered)
                 renderPresentation()
             }
+            // Phase 24 / SHELF-01 / SHELF-02 (D-10/D-11) — lazily construct the drop-interception
+            // tap on the FIRST real drag-approach edge, not at app launch. Idempotent start() is
+            // safe to call on every subsequent edge too.
+            if dropInterceptTap == nil {
+                dropInterceptTap = DropInterceptTap(
+                    shouldSwallow: { [weak self] in self?.isDragApproaching ?? false },
+                    onIntercept: { [weak self] in self?.handleDragApproachEnd() }
+                )
+            }
+            dropInterceptTap?.start()
         } else if !geometryInside && isDragApproaching {
             isDragApproaching = false
         }
@@ -1473,6 +1490,10 @@ final class NotchWindowController {
         // the owner. Mirrors powerMonitor.stop()'s owner-driven teardown.
         bluetoothMonitor?.stop()
         deviceCoordinator?.cancelPendingWork()
+
+        // Phase 24 / SHELF-01 / SHELF-02 (D-10): tear down the drop-interception tap — mirrors
+        // bluetoothMonitor?.stop()'s owner-driven teardown discipline exactly.
+        dropInterceptTap?.stop()
 
         // Phase 4 (security T-04-12): terminate the persistent MediaRemote child so no orphaned
         // perl / MediaRemoteAdapter process leaks after the controller dies, and cancel the
