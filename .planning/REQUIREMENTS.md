@@ -72,25 +72,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARCH-01 | TBD | Pending |
-| SHELF-01 | TBD | Pending |
-| SHELF-02 | TBD | Pending |
-| ONBOARD-01 | TBD | Pending |
-| ONBOARD-02 | TBD | Pending |
-| ONBOARD-03 | TBD | Pending |
-| VISUAL-01 | TBD | Pending |
-| VISUAL-02 | TBD | Pending |
-| SETTINGS-01 | TBD | Pending |
-| CALVIEW-01 | TBD | Pending |
-| CALVIEW-02 | TBD | Pending |
-| CALVIEW-03 | TBD | Pending |
-| CALVIEW-04 | TBD | Pending |
+| ARCH-01 | Phase 23 | Pending |
+| SHELF-01 | Phase 24 | Pending |
+| SHELF-02 | Phase 24 | Pending |
+| ONBOARD-01 | Phase 26 | Pending |
+| ONBOARD-02 | Phase 26 | Pending |
+| ONBOARD-03 | Phase 26 | Pending |
+| VISUAL-01 | Phase 25 | Pending |
+| VISUAL-02 | Phase 25 | Pending |
+| SETTINGS-01 | Phase 27 | Pending |
+| CALVIEW-01 | Phase 28 | Pending |
+| CALVIEW-02 | Phase 28 | Pending |
+| CALVIEW-03 | Phase 28 | Pending |
+| CALVIEW-04 | Phase 28 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 13 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 13
+- Mapped to phases: 13 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-11*
-*Last updated: 2026-07-11 — v1.4 requirements defined from research (STACK/FEATURES/ARCHITECTURE/PITFALLS/SUMMARY), pending roadmap.*
+*Last updated: 2026-07-11 — v1.4 roadmap created: Phases 23-28, 100% requirement coverage. Phase 23 (Shell Parity Rewrite) is a hard prerequisite for Phase 24 (Drag-In) only; Phases 25-28 (Theming, Onboarding, Settings, Calendar) are independent of the shell work.*

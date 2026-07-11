@@ -7,6 +7,7 @@
 - ✅ **v1.1 Trial & Paid Release** — Phases 10-13 (shipped 2026-07-08)
 - ✅ **v1.2 Now Playing Polish** — Phases 17-18 (shipped 2026-07-09)
 - ✅ **v1.3 Notch Shelf** — Phases 19-21 (shipped 2026-07-11, known gap: SHELF-01/02 drag-in deferred to v1.4)
+- 🚧 **v1.4 Architecture Redesign** — Phases 23-28 (in progress)
 
 ## Phases
 
@@ -71,6 +72,17 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 </details>
 
+### 🚧 v1.4 Architecture Redesign (In Progress)
+
+**Milestone Goal:** Redesign the `NotchPanel`/`NotchWindowController` architecture (resolving the Phase 22 drag-in blocker), then layer Droppy-inspired onboarding, a visual/material redesign, a sidebar Settings redesign, and a calendar full view on top of it. Gesture-based swipe navigation is explicitly deferred.
+
+- [ ] **Phase 23: Shell Parity Rewrite** - Rebuild NotchPanel/NotchWindowController with zero behavioral regression, dropping the residual NSDraggingDestination scaffold
+- [ ] **Phase 24: Drag-In** - DragApproachDetector wiring against Phase 22's already-proven pure seams
+- [ ] **Phase 25: Visual/Material Theming Redesign** - Shared frosted/glossy material fill + slower default spring
+- [ ] **Phase 26: Onboarding Flow** - First-launch carousel + permissions pre-explanation
+- [ ] **Phase 27: Settings Sidebar Redesign** - NavigationSplitView with General/Workspace/System/About sections
+- [ ] **Phase 28: Calendar Full View** - Month grid + day list + quick-add, sharing one EventKit service layer
+
 ## Phase Details
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
@@ -115,6 +127,8 @@ Plans:
 **v1.2:** 2/2 phases complete (100%) — see `.planning/milestones/v1.2-ROADMAP.md` for the full per-phase breakdown.
 
 **v1.3:** 3/3 shipped phases complete (100%) — see `.planning/milestones/v1.3-ROADMAP.md`. Phase 22 (drag-in, SHELF-01/02) blocked and not shipped; carried forward into v1.4.
+
+**v1.4:** 0/6 phases complete (0%) — Phase 23 (Shell Parity Rewrite) is first up; Phase 24 (Drag-In) has a hard dependency on Phase 23, Phases 25-28 have no shell dependency and may be resequenced for throughput.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -227,7 +241,7 @@ Plans:
 
 ### Phase 22: Drag-In
 
-**STATUS: BLOCKED, execution aborted 2026-07-10.** Wave 3 (22-03) failed on-device twice — `NotchPanel.draggingEntered` never fired despite clean compilation and a confirmed-working 22-01 spike using the same technique. Root cause not identified. Rather than continue debugging incrementally, the user chose to redesign the underlying `NotchPanel`/`NotchWindowController` architecture in v1.4. **SHELF-01/02 carry forward as requirements into v1.4** rather than resuming this phase as planned; Wave 1-2 (22-01 spike, 22-02 pure seams) remain merged to main and reusable. See STATE.md Blockers/Concerns and `.planning/milestones/v1.3-ROADMAP.md` for full details.
+**STATUS: BLOCKED, execution aborted 2026-07-10.** Wave 3 (22-03) failed on-device twice — `NotchPanel.draggingEntered` never fired despite clean compilation and a confirmed-working 22-01 spike using the same technique. Root cause not identified. Rather than continue debugging incrementally, the user chose to redesign the underlying `NotchPanel`/`NotchWindowController` architecture in v1.4. **SHELF-01/02 carry forward as requirements into v1.4** rather than resuming this phase as planned; Wave 1-2 (22-01 spike, 22-02 pure seams) remain merged to main and reusable. See STATE.md Blockers/Concerns and `.planning/milestones/v1.3-ROADMAP.md` for full details. **Superseded by:** Phase 23 (shell parity rewrite) and Phase 24 (drag-in retry via a `DragApproachDetector` global-monitor pattern, replacing `NSDraggingDestination` entirely) — this phase's Wave 3 (22-03) will not be resumed as planned.
 
 **Goal**: Users can drag a file, multiple files, or a folder onto the collapsed island and have it land in the shelf — the single highest-uncertainty integration point (click-through panel vs. drag delivery, `.mouseMoved` freezing mid-drag), spiked and sequenced last so every other piece is already proven.
 **Depends on**: Phase 21
@@ -253,3 +267,78 @@ Plans:
 **Wave 3** *(blocked on 22-02)*
 
 - [ ] 22-03-PLAN.md — NotchPanel permanent registration/forwarding + NotchWindowController drag-in handlers (D-01/D-02b/D-02c/D-03/D-04/D-05/D-06) + on-device UAT checkpoint, including the D-02b/D-02c expandedZone + landing-margin boundary check
+
+### Phase 23: Shell Parity Rewrite
+
+**Goal**: The notch window shell (`NotchPanel`/`NotchWindowController`) is rebuilt with behavior identical to today, clearing the one architectural prerequisite standing between the project and a working drag-in feature.
+**Depends on**: Phase 21 (last shipped v1.3 phase) — Phase 22 is superseded, not resumed. Hard prerequisite for Phase 24.
+**Requirements**: ARCH-01
+**Success Criteria** (what must be TRUE):
+  1. The island still positions on the built-in notch, morphs collapsed↔expanded on hover/click, and grace-collapses after ~0.4s — identical to today, verified on-device.
+  2. The island still hides in true fullscreen across all 3 trigger methods (green-button, menu bar, fullscreen video) and click-through still works with no dead-zone regressions.
+  3. The island still stays visible above all windows across all Spaces and correctly repositions through external-display/clamshell changes.
+  4. No `NSDraggingDestination` conformance or drag-stub overrides remain in `NotchPanel.swift`.
+  5. `IslandResolver.swift`, `DeviceCoordinator.swift`, and `Islet/Shelf/` show zero diff — the rewrite touched only window-shell code.
+**Plans**: TBD
+
+### Phase 24: Drag-In
+
+**Goal**: Users can drag a file, multiple files, or a folder onto the collapsed island and have it land in the shelf — retried on the reproven shell via a global-monitor detection pattern (`DragApproachDetector`) instead of `NSDraggingDestination`.
+**Depends on**: Phase 23 — hard dependency; retrying drag-in before shell parity closes would repeat Phase 22's exact failure mode.
+**Requirements**: SHELF-01, SHELF-02
+**Success Criteria** (what must be TRUE):
+  1. Dragging one or more files, or a folder, onto the collapsed island pill auto-expands it and each item lands in the shelf strip.
+  2. While a file is being dragged over the pill before release, the drop target shows visible "hot"/targeted feedback.
+  3. Drag-in works reliably across repeated on-device trials — closing the Phase 22 regression rather than repeating it.
+  4. Ordinary (non-drag) hover/click/click-through behavior is unaffected by the new `DragApproachDetector`.
+**Plans**: TBD
+
+### Phase 25: Visual/Material Theming Redesign
+
+**Goal**: The collapsed pill, expanded island, and activity wings read as a physical, glossy material instead of flat black, with a slower and more deliberate default spring.
+**Depends on**: None — independent of the shell work (Phases 23-24); touches `NotchPillView` rendering only, not the window shell.
+**Requirements**: VISUAL-01, VISUAL-02
+**Success Criteria** (what must be TRUE):
+  1. The collapsed pill, expanded island, and activity wings all render a non-fully-transparent frosted/glossy material fill from one shared material style.
+  2. The default expand/collapse spring feels noticeably slower and more deliberate than today's, with no dropped frames and no visible overshoot/bounce.
+  3. The material composites without visual artifacts mid-morph (collapse↔expand), verified on-device in the real never-focused panel.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 26: Onboarding Flow
+
+**Goal**: First-time users see a proper first-launch carousel — identity (trial/license/buy) and trust (permissions) — instead of today's passive Settings-only license flow.
+**Depends on**: None — independent of the shell work; touches `AppDelegate`'s first-launch sequencing and Settings.
+**Requirements**: ONBOARD-01, ONBOARD-02, ONBOARD-03
+**Success Criteria** (what must be TRUE):
+  1. First launch shows a carousel — hero screen → trial/license-key/buy choice → permissions pre-explanation → done — replacing the existing `isFirstLaunch` → `openSettings()` branch.
+  2. The permissions screen shows a one-line reason per permission (Bluetooth, Calendar, Location/WeatherKit), and its Continue/Grant action triggers the real system permission prompt for each, in sequence.
+  3. The onboarding flow shows exactly once (persisted flag) and can be skipped/dismissed at any point.
+  4. No gesture/feature tutorial screen appears anywhere in the flow.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 27: Settings Sidebar Redesign
+
+**Goal**: Settings is restructured from a single tabbed form into a sidebar-categorized layout, with every existing control preserved.
+**Depends on**: None — independent of the shell work; naturally hosts Phase 25's theming controls and Phase 26's permission/license state, so sequencing after those is convenient but not required.
+**Requirements**: SETTINGS-01
+**Success Criteria** (what must be TRUE):
+  1. Settings opens as a `NavigationSplitView` with sidebar sections General, Workspace (Shelf), System (Theming), and About/License.
+  2. Every existing toggle (activity toggles, launch-at-login, song-change toast, fullscreen-hide, etc.) and the accent-color picker are present and functional in their new section.
+  3. License and login-item state stays correctly synced when switching between sidebar sections — no stale state on section switch.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 28: Calendar Full View
+
+**Goal**: Users get a full calendar view — month grid, day detail, and quick-add — as a third view alongside Home and Tray, sharing one EventKit service layer with the existing glance.
+**Depends on**: None — independent of the shell work; soft-pairs with Phase 27's view-switcher slot but not a hard blocker.
+**Requirements**: CALVIEW-01, CALVIEW-02, CALVIEW-03, CALVIEW-04
+**Success Criteria** (what must be TRUE):
+  1. A third view (alongside Home and Tray) shows a month grid and the selected day's event list.
+  2. Selecting a day with no events shows an explicit empty state, not a blank area.
+  3. The user can quick-add either a calendar event or a reminder (their choice per entry) without leaving the island.
+  4. The full calendar view and the existing Home-glance "next event" feature both read through one shared EventKit service layer — no duplicated date/event logic.
+**Plans**: TBD
+**UI hint**: yes
