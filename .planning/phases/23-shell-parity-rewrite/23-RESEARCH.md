@@ -562,7 +562,7 @@ should not re-attempt it without first re-reading this finding.
 `Islet/Notch/*.swift` and `.planning/` phase history this session) or `[VERIFIED: git history]`
 (reconstructed UAT checklists, abort commit messages) — no user confirmation is needed for those.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Rewrite strategy: in-place vs. parallel-build-then-swap**
    - What we know: CONTEXT.md leaves this to Claude's discretion; project convention is 100%
@@ -573,6 +573,7 @@ should not re-attempt it without first re-reading this finding.
      buildable (`xcodebuild build -scheme Islet -configuration Debug`) — see Summary and the
      Anti-Patterns entry on live OS-registration duplication risk for the specific reasoning
      against a parallel-build window for this file.
+   - RESOLVED: planner adopted in-place rewrite in 23-02/23-03, exactly as recommended.
 
 2. **License-gating extraction (D-11/D-12/D-13) into its own coordinator**
    - What we know: Phase 16 already proved this codebase can cleanly extract bookkeeping behind a
@@ -583,6 +584,8 @@ should not re-attempt it without first re-reading this finding.
      planner is looking at the actual rewritten `updateVisibility()` body.
    - Recommendation: leave as a judgment call during execution, exactly as CONTEXT.md frames it;
      do not pre-commit to extraction in the plan if it adds risk.
+   - RESOLVED: planner did not force the extraction (documented in 23-02) — a single boolean
+     guard with 3 call sites doesn't warrant a whole coordinator, per CONTEXT.md's own guidance.
 
 3. **Whether to add a regression-specific on-device UAT step for the Phase-22 drag-delivery
    mystery (Pitfall 2), even though Phase 23 adds no drag code**
@@ -595,6 +598,8 @@ should not re-attempt it without first re-reading this finding.
    - Recommendation: Phase 23's planner should NOT attempt to solve this (out of scope, no drag
      code exists to test); Phase 24's researcher should treat "does the rewritten shell change
      anything about drag-event routing" as its own open question, informed by this section.
+   - RESOLVED: not solved in Phase 23 (correctly out of scope); panel-creation ordering explicitly
+     preserved and flagged in 23-03 as insurance; deferred to Phase 24's researcher as recommended.
 
 ## Environment Availability
 
