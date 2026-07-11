@@ -727,10 +727,19 @@ final class NotchWindowController {
     // Entering the accept region auto-expands the island via the existing pure .dragEntered
     // transition (D-04); leaving it again is a silent no-op — the normal grace-collapse timer
     // resumes on its own.
+    //
+    // Bugfix (Task 3 on-device UAT, round 2): the collapsed-origin gate (D-09 — only allow
+    // ARMING while still collapsed) must NOT also gate the exit/sustain check. Auto-expand sets
+    // interaction.isExpanded = true as its own side effect, so if `!interaction.isExpanded`
+    // were part of the exit condition, the very NEXT .leftMouseDragged tick after arming would
+    // read as "outside" regardless of pointer position and immediately disarm
+    // isDragApproaching — leaving handleDragApproachEnd()'s guard to bail out on every real
+    // drop. `!interaction.isExpanded` therefore appears ONLY in the rising-edge arm condition
+    // below; the exit condition depends purely on geometry.
     private func recheckDragAcceptRegion() {
         let point = NSEvent.mouseLocation
-        let inside = !interaction.isExpanded && isWithinDragAcceptRegion(point, zone: expandedZone, maxY: dragLandingMaxY)
-        if inside && !isDragApproaching {
+        let geometryInside = isWithinDragAcceptRegion(point, zone: expandedZone, maxY: dragLandingMaxY)
+        if geometryInside && !isDragApproaching && !interaction.isExpanded {
             isDragApproaching = true
             graceWorkItem?.cancel()
             graceWorkItem = nil
@@ -739,7 +748,7 @@ final class NotchWindowController {
                 interaction.phase = nextState(interaction.phase, .dragEntered)
                 renderPresentation()
             }
-        } else if !inside && isDragApproaching {
+        } else if !geometryInside && isDragApproaching {
             isDragApproaching = false
         }
     }
