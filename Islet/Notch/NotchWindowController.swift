@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import CoreLocation
+import CoreBluetooth
 
 // ISL-03 / ISL-06 — owns the overlay panel, keeps it on the correct display, and drives
 // the FOCUS-SAFE Alcove interaction (Plan 02-03).
@@ -539,6 +540,9 @@ final class NotchWindowController {
         locationProvider.requestOnce { [weak self] location in
             self?.lastLocation = location
             self?.refreshWeather()
+            // Phase 26 / ONBOARD-02 (D-03) — reflect the real outcome for the Permissions row.
+            // Harmless to set on every call, not just from onboarding — unread once inactive.
+            self?.onboardingState.locationGranted = (location != nil)
         }
     }
 
@@ -567,6 +571,9 @@ final class NotchWindowController {
     private func refreshCalendar() {
         calendarService.fetchUpcoming { [weak self] glance in
             self?.outfitState.calendar = glance
+            // Phase 26 / ONBOARD-02 (D-03) — reflect the real outcome for the Permissions row.
+            // Harmless to set on every call, not just from onboarding — unread once inactive.
+            self?.onboardingState.calendarGranted = (glance != nil)
         }
     }
 
@@ -1067,6 +1074,65 @@ final class NotchWindowController {
         syncClickThrough()
     }
 
+    // MARK: - Phase 26 / ONBOARD-01/02/03 — onboarding session handlers
+
+    // ONBOARD-01 (D-09) — the ONLY path Next/Back use. Mirrors handleClick's own
+    // withAnimation(...) { mutate; renderPresentation() } shape.
+    private func advanceOnboarding(_ event: OnboardingEvent) {
+        guard let step = onboardingStep else { return }
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            onboardingStep = nextOnboardingStep(step, event)
+            renderPresentation()
+        }
+    }
+
+    // ONBOARD-02 (D-02/D-03) — each row's Grant calls the SAME existing permission-request
+    // function every other feature already uses (never a second/duplicate request call); the
+    // outcome is read into onboardingState by that function's own completion closure.
+    private func grantOnboardingPermission(_ permission: OnboardingPermission) {
+        switch permission {
+        case .bluetooth:
+            startBluetoothMonitor()
+            // IOBluetoothDevice.register has no completion callback, so a one-shot delayed
+            // status read is the pragmatic, minimal way to reflect the real TCC outcome
+            // without hand-rolling a new permission API (T-26-06, accepted: worst case the
+            // row briefly shows a stale/neutral state for ~1s, purely cosmetic).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.onboardingState.bluetoothGranted = (CBManager.authorization == .allowedAlways)
+            }
+        case .calendar:
+            refreshCalendar()
+        case .location:
+            startLocationOnce()
+        }
+    }
+
+    // D-05 — the onboarding carousel's license-key/Buy hop, duplicating AppDelegate's own
+    // 3-line openSettings() body since NotchWindowController has no reference to AppDelegate.
+    private func openOnboardingSettings() {
+        NSApp.activate(ignoringOtherApps: true)
+        NotificationCenter.default.post(name: .openIsletSettings, object: nil)
+        NSApp.windows.first { $0.identifier?.rawValue == "settings" }?.makeKeyAndOrderFront(nil)
+    }
+
+    // ONBOARD-01/03 (D-08/D-09) — persists completion, collapses the island back to normal
+    // idle, and starts whatever start(isFirstLaunch:) deferred while onboarding was active
+    // (startBluetoothMonitor()/startOutfitRefresh() are both idempotent, safe even if a
+    // permission was already granted mid-onboarding).
+    private func finishOnboarding() {
+        UserDefaults.standard.set(true, forKey: ActivitySettings.onboardingCompletedKey)
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            isOnboardingActive = false
+            onboardingStep = nil
+            interaction.phase = nextState(interaction.phase, .clicked)
+            renderPresentation()
+        }
+        updateVisibility()
+        syncClickThrough()
+        if activityEnabled(ActivitySettings.deviceKey) { startBluetoothMonitor() }
+        startOutfitRefresh()
+    }
+
     // CHG-01 / CHG-02 — the live power event lands here (already on main; the monitor's
     // callback hopped). Maps the raw reading to a presentation via the PURE Plan-01 seam,
     // gates re-display to category transitions (Pitfall 4), and routes the splash through the
@@ -1165,7 +1231,12 @@ final class NotchWindowController {
                       onShelfItemTap: { [weak self] item in self?.handleShelfItemTap(item) },
                       onShelfItemDelete: { [weak self] id in self?.handleShelfItemDelete(id) },
                       onShelfClearAll: { [weak self] in self?.handleShelfClearAll() },
-                      onShelfItemDragStarted: { [weak self] in self?.beginShelfItemDrag() })
+                      onShelfItemDragStarted: { [weak self] in self?.beginShelfItemDrag() },
+                      onOnboardingNext: { [weak self] in self?.advanceOnboarding(.next) },
+                      onOnboardingBack: { [weak self] in self?.advanceOnboarding(.back) },
+                      onOnboardingGrant: { [weak self] permission in self?.grantOnboardingPermission(permission) },
+                      onOnboardingOpenSettings: { [weak self] in self?.openOnboardingSettings() },
+                      onOnboardingFinish: { [weak self] in self?.finishOnboarding() })
             .environment(\.activityAccent, ActivitySettings.accent(for: accentIndex))
     }
 
