@@ -218,16 +218,20 @@ final class NotchWindowController {
     private let dragPinSafetyNetDuration: TimeInterval = 20.0
     private var dragReleaseMonitor: Any?
 
-    #if DEBUG
-    // Phase 24 / SHELF-01 / A1 spike (24-01) — throwaway, DEBUG-only diagnostic monitors
-    // answering whether .leftMouseDragged/.leftMouseUp global monitors reliably observe a real
-    // Finder-initiated inbound drag on this project's exact panel/run-loop configuration.
-    // Superseded/removed by Plan 24-02 once the mechanism is confirmed; never compiles into
-    // Release (mirrors didLogFirstHover's existing guard).
-    private var spikeDragApproachMonitor: Any?
-    private var spikeDragEndMonitor: Any?
-    private var spikeDragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
-    #endif
+    // Phase 24 / SHELF-01 / SHELF-02 — the production DragApproachDetector monitors,
+    // superseding Plan 24-01's throwaway #if DEBUG spike (A1 confirmed: 24-01-SUMMARY.md).
+    // NOT DEBUG-gated — SHELF-01/02 must work in Release builds. Mirror mouseMonitor's own
+    // always-on arm-in-start()/disarm-in-deinit shape exactly.
+    private var dragApproachMonitor: Any?
+    private var dragEndMonitor: Any?
+    private var dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
+
+    // Phase 24 / SHELF-01 / SHELF-02 — the drag-approach edge-tracked flag, mirroring
+    // pointerInZone's own edge-tracking discipline immediately below: armed on a genuine
+    // pasteboard-changeCount-confirmed drag entering the accept region, disarmed
+    // unconditionally at every .leftMouseUp (handleDragApproachEnd's literal first action) so
+    // a geometrically-ambiguous Escape-cancel can never leave the island stuck expanded.
+    private var isDragApproaching = false
 
     // WR-01: the pointer-in-hot-zone edge, tracked from RAW geometry — NOT derived from
     // `interaction.isHovering` (which is true for BOTH .hovering AND .expanded, so a
@@ -258,12 +262,28 @@ final class NotchWindowController {
     // the island is expanded. nil until the first successful resolve.
     private var expandedZone: CGRect?
 
+    // Phase 24 / SHELF-01 / SHELF-02 (D-02c) — the new landing-margin boundary: a drag must be
+    // at or below this Y to land, keeping the accept region clear of the literal top screen
+    // edge. Set alongside hotZone/expandedZone in positionAndShow(), cleared alongside them in
+    // updateVisibility()'s hide branch so it can't go stale across a hide/show cycle (mirrors
+    // expandedZone's own stated discipline). nil until the first successful resolve.
+    private var dragLandingMaxY: CGFloat?
+
     // The expanded island size seed. Read from the view so the window frame and the SwiftUI
     // content can never drift to different expanded sizes (Plan 05 tunes it in one place).
     private let expandedSize = NotchPillView.expandedSize
 
     // A few px of slop around the collapsed pill so the hot-zone is comfortable to enter.
     private let hotZonePadding: CGFloat = 6
+
+    // Phase 24 / SHELF-01 / SHELF-02 (D-01/D-02c) — a small buffer clearing only the literal
+    // 0px top screen edge / Mission-Control hot corner (Phase 22's original concern), NOT the
+    // whole collapsed-pill height. On-device Task 3 UAT found 40 excluded the ENTIRE pill body
+    // (topPinnedFrame puts the pill's Y range in [screenTop-32, screenTop]), making it
+    // geometrically impossible to drop directly on the pill — corrected to match
+    // hotZonePadding's own small-buffer scale; the pill/shelf area is the intended drop target.
+    // Feeds dragLandingMaxY (positionAndShow's `target.frame.maxY - dragLandingMargin`).
+    private let dragLandingMargin: CGFloat = 4
 
     // D-03 grace delay (within the 0.3–0.5s window). One place for Plan 05 to tune.
     private let graceDelay: TimeInterval = 0.4
@@ -336,16 +356,15 @@ final class NotchWindowController {
             self?.handlePointer(at: NSEvent.mouseLocation)
         }
 
-        #if DEBUG
-        // Phase 24 / SHELF-01 / A1 spike (24-01) — arm the throwaway inbound-drag probe
-        // monitors. Purely observational: no gating, no state change, NSLog only.
-        spikeDragApproachMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
-            self?.handleSpikeDragApproachTick()
+        // Phase 24 / SHELF-01 / SHELF-02 — arm the production DragApproachDetector monitors.
+        // Always-on for the controller's whole lifetime (not session-scoped like
+        // dragReleaseMonitor), mirroring mouseMonitor's own shape exactly.
+        dragApproachMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
+            self?.handleDragApproachTick()
         }
-        spikeDragEndMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] _ in
-            self?.handleSpikeDragApproachEnd()
+        dragEndMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] _ in
+            self?.handleDragApproachEnd()
         }
-        #endif
 
         // CHG-01 / CHG-02 (Plan 03 / Phase 6 D-09): register the LIVE IOKit power-source
         // notification ONLY if the Charging toggle is on (prefer stop → idle CPU ~0% when off).
@@ -610,6 +629,7 @@ final class NotchWindowController {
             panel?.orderOut(nil)
             hotZone = nil
             expandedZone = nil
+            dragLandingMaxY = nil
             // WR-01: the hot-zone is gone, so the pointer is by definition no longer in it.
             // Clearing this here prevents a stale `true` from suppressing the next enter edge
             // after a show, which would skip the haptic + grace-cancel on re-entry.
@@ -667,6 +687,7 @@ final class NotchWindowController {
         // While expanded, the WHOLE expanded island (the panel union, padded) keeps it open so
         // the pointer can reach the transport controls without tripping the grace-collapse.
         expandedZone = panelFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
+        dragLandingMaxY = target.frame.maxY - dragLandingMargin
 
         let panel = self.panel ?? NotchPanel(contentRect: panelFrame)
         if self.panel == nil {
@@ -688,28 +709,81 @@ final class NotchWindowController {
         panel.orderFrontRegardless()                 // show WITHOUT activating the app — focus-safe (D-07)
     }
 
-    // Pattern 1: every .mouseMoved tick hit-tests the GLOBAL pointer against the hot-zone.
-    // No coordinate conversion — both `point` and `hotZone` are global bottom-left (Pitfall 6).
-    #if DEBUG
-    // Phase 24 / SHELF-01 / A1 spike (24-01) — observational only, no gating. Detects a real
-    // OS drag session via NSPasteboard(name: .drag) changeCount deltas (Pattern 4) and logs
-    // the dragged URL(s) via the existing fileURLs(from:) seam, tagged for easy Console filtering.
-    private func handleSpikeDragApproachTick() {
+    // Phase 24 / SHELF-01 / SHELF-02 — every .leftMouseDragged tick during a real OS drag
+    // session. Tracks a genuine pasteboard content change (Pattern 1/Pitfall 2 — an ordinary
+    // window-move/text-select drag never touches NSPasteboard(name: .drag)) purely to keep
+    // dragPasteboardChangeCount current; geometry is polled UNCONDITIONALLY on every tick
+    // (there is no draggingUpdated equivalent for a global monitor, Pattern 2).
+    private func handleDragApproachTick() {
         let pasteboard = NSPasteboard(name: .drag)
         let count = pasteboard.changeCount
-        guard count != spikeDragPasteboardChangeCount else { return }
-        let delta = count - spikeDragPasteboardChangeCount
-        spikeDragPasteboardChangeCount = count
-        NSLog("[SPIKE-24] leftMouseDragged tick — changeCount delta=%d urls=%@ location=%@",
-              delta, fileURLs(from: pasteboard), NSStringFromPoint(NSEvent.mouseLocation))
+        if count != dragPasteboardChangeCount {
+            dragPasteboardChangeCount = count
+        }
+        recheckDragAcceptRegion()
     }
 
-    private func handleSpikeDragApproachEnd() {
-        NSLog("[SPIKE-24] leftMouseUp — location=%@ urls=%@",
-              NSStringFromPoint(NSEvent.mouseLocation), fileURLs(from: NSPasteboard(name: .drag)))
+    // Edge-tracks isDragApproaching exactly like pointerInZone's shape in handlePointer(at:).
+    // Entering the accept region auto-expands the island via the existing pure .dragEntered
+    // transition (D-04); leaving it again is a silent no-op — the normal grace-collapse timer
+    // resumes on its own.
+    //
+    // Bugfix (Task 3 on-device UAT, round 2): the collapsed-origin gate (D-09 — only allow
+    // ARMING while still collapsed) must NOT also gate the exit/sustain check. Auto-expand sets
+    // interaction.isExpanded = true as its own side effect, so if `!interaction.isExpanded`
+    // were part of the exit condition, the very NEXT .leftMouseDragged tick after arming would
+    // read as "outside" regardless of pointer position and immediately disarm
+    // isDragApproaching — leaving handleDragApproachEnd()'s guard to bail out on every real
+    // drop. `!interaction.isExpanded` therefore appears ONLY in the rising-edge arm condition
+    // below; the exit condition depends purely on geometry.
+    private func recheckDragAcceptRegion() {
+        let point = NSEvent.mouseLocation
+        let geometryInside = isWithinDragAcceptRegion(point, zone: expandedZone, maxY: dragLandingMaxY)
+        if geometryInside && !isDragApproaching && !interaction.isExpanded {
+            isDragApproaching = true
+            graceWorkItem?.cancel()
+            graceWorkItem = nil
+            NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                interaction.phase = nextState(interaction.phase, .dragEntered)
+                renderPresentation()
+            }
+        } else if !geometryInside && isDragApproaching {
+            isDragApproaching = false
+        }
     }
-    #endif
 
+    // Phase 24 / SHELF-01 / SHELF-02 — every .leftMouseUp, real drag-drop or ordinary click
+    // alike. The guard makes an ordinary click (which fires .leftMouseUp constantly) a
+    // harmless idempotent no-op, and unconditionally clearing the flag next means a
+    // geometrically-ambiguous Escape-cancel can never leave the island stuck expanded (T-24-04).
+    private func handleDragApproachEnd() {
+        guard isDragApproaching else { return }
+        isDragApproaching = false
+
+        let point = NSEvent.mouseLocation
+        let pasteboard = NSPasteboard(name: .drag)
+        let urls = fileURLs(from: pasteboard)
+        // isExpanded: false is deliberate here — the collapsed-ORIGIN gate already happened via
+        // isDragApproaching's arm condition; interaction.isExpanded is already true by this
+        // point because recheckDragAcceptRegion's auto-expand already fired.
+        if shouldAcceptDrop(isExpanded: false, urls: urls),
+           isWithinDragAcceptRegion(point, zone: expandedZone, maxY: dragLandingMaxY) {
+            for url in urls {
+                let id = UUID()
+                guard let localURL = try? ShelfFileStore.makeSessionCopy(of: url, id: id) else { continue }
+                let item = ShelfItem(id: id, originalURL: url, localURL: localURL, filename: url.lastPathComponent, addedAt: Date())
+                shelfCoordinator.append(item)
+            }
+            resyncShelfViewState()
+        }
+        // Pitfall 3 — pointerInZone/lastPointerLocation/syncClickThrough() go stale during ANY
+        // OS drag session; re-sync unconditionally, mirroring endShelfItemDrag()'s own final line.
+        handlePointer(at: NSEvent.mouseLocation)
+    }
+
+    // Pattern 1: every .mouseMoved tick hit-tests the GLOBAL pointer against the hot-zone.
+    // No coordinate conversion — both `point` and `hotZone` are global bottom-left (Pitfall 6).
     private func handlePointer(at point: CGPoint) {
         // CR-01 — stash the raw pointer location for syncClickThrough()/visibleContentZone(),
         // which need it but receive no point parameter themselves.
@@ -1378,11 +1452,9 @@ final class NotchWindowController {
         // Phase 6 / APP-03: the UserDefaults toggle/accent observer lives on the DEFAULT center.
         if let o = defaultsObserver { NotificationCenter.default.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
-        #if DEBUG
-        // Phase 24 / SHELF-01 / A1 spike (24-01) — tear down the throwaway probe monitors.
-        if let m = spikeDragApproachMonitor { NSEvent.removeMonitor(m) }
-        if let m = spikeDragEndMonitor { NSEvent.removeMonitor(m) }
-        #endif
+        // Phase 24 / SHELF-01 / SHELF-02 — tear down the production DragApproachDetector monitors.
+        if let m = dragApproachMonitor { NSEvent.removeMonitor(m) }
+        if let m = dragEndMonitor { NSEvent.removeMonitor(m) }
         graceWorkItem?.cancel()
 
         // Phase 21 / SHELF-06 (T-21-03): in case the controller deallocates mid-drag (e.g. app

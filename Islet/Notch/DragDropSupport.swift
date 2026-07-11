@@ -17,3 +17,14 @@ func fileURLs(from pasteboard: NSPasteboard) -> [URL] {
 func shouldAcceptDrop(isExpanded: Bool, urls: [URL]) -> Bool {
     !isExpanded && !urls.isEmpty
 }
+
+// Phase 24 / SHELF-01 / SHELF-02 (D-02/D-02c) — the drag-landing accept-region gate. `zone` is
+// the caller's `expandedZone` (D-02, Phase 22's exact geometry, reused unchanged); `maxY` is the
+// caller's `dragLandingMaxY` (D-02c's new landing-margin boundary, keeping the accept region
+// clear of the literal top screen edge / Mission Control trigger). Kept as a pure top-level
+// function (not a method) so it is directly unit-testable via `@testable import Islet`, matching
+// this file's existing `fileURLs`/`shouldAcceptDrop` convention.
+func isWithinDragAcceptRegion(_ point: CGPoint, zone: CGRect?, maxY: CGFloat?) -> Bool {
+    guard let zone, let maxY else { return false }
+    return zone.contains(point) && point.y <= maxY
+}
