@@ -132,14 +132,17 @@ Body type scale used everywhere else in the carousel, scoped ONLY to these 3 row
 | Text block | `VStack(alignment: .leading, spacing: 4)` — Label above Reason; Label 13px semibold (was 14px), Reason 11px regular (was 12px) — round 3, scoped exception to the shared Typography scale |
 | Row-to-row gap | 6px (8px round 1 → 6px round 2/3) |
 | Rows-block outer inset (round 3) | Extra 8px horizontal padding around the whole 3-row `VStack`, applied AFTER its `.frame(maxWidth: .infinity)` fill — gives visible margin against the card edges instead of the pills nearly spanning edge-to-edge |
+| Granted-row border + glow (round 5) | `Capsule().strokeBorder(Color.green.opacity(0.5), lineWidth: 1)` overlay + `.shadow(color: .green.opacity(0.35), radius: 6)` — STATIC only, applied on top of the same capsule background, nil/false rows unaffected | See "GlowingShadow reference" note below |
 | Icons (fixed, one per row, do not invent new symbols) | Bluetooth: `antenna.radiowaves.left.and.right` · Calendar: `calendar` · Location/Weather: `location.fill` |
 
 **Granted / not-granted state (D-03 — quiet, no alarm):**
 
 | State | Visual | Rationale |
 |-------|--------|-----------|
-| Granted | Green `checkmark` icon only, 11px semibold, `.foregroundStyle(.green)` — round 4 (on-device UAT, Droppy comparison): the "Granted" text label was dropped as redundant next to the icon | Reuses the codebase's existing green-for-success convention (`isCharging ? Color.green`, license-activated `.foregroundStyle(.green)`) |
-| Not granted / skipped | No icon, plain "Not granted" text, 11px regular (was 12px), `.foregroundStyle(.secondary)` | **Deliberately does NOT reuse the existing `checkmark`/`xmark` pair** (line 509, device-connection status) — an `xmark` reads as a failure/error, which D-03 explicitly forbids for a skipped/denied permission during onboarding. Grey, icon-less text is the quiet degrade this decision requires. |
+| Granted | Green `checkmark` icon only, 11px semibold, `.foregroundStyle(.green)` — round 4 (on-device UAT, Droppy comparison): the "Granted" text label was dropped as redundant next to the icon. Round 5: the whole capsule also gets a thin green border + a subtle static glow (see table above) | Reuses the codebase's existing green-for-success convention (`isCharging ? Color.green`, license-activated `.foregroundStyle(.green)`) |
+| Not granted / skipped | No icon, plain "Not granted" text, 11px regular (was 12px), `.foregroundStyle(.secondary)`, no border/glow | **Deliberately does NOT reuse the existing `checkmark`/`xmark` pair** (line 509, device-connection status) — an `xmark` reads as a failure/error, which D-03 explicitly forbids for a skipped/denied permission during onboarding. Grey, icon-less text is the quiet degrade this decision requires. |
+
+**GlowingShadow reference note (round 5):** the user pasted a React/CSS "GlowingShadow" component (`@property`-driven hue-rotating animated glow) as inspiration — that snippet is web-only and does not run in native SwiftUI/AppKit. Per the user's explicit choice, this phase ships only the lightweight NATIVE approximation: a static `.overlay(Capsule().strokeBorder(...))` + a static `.shadow(...)`, no `TimelineView`/`Animation` loop, no color rotation. This matches 26-PATTERNS.md's "quiet, native" visual discipline — the glow is a subtle accent, not an attention-grabbing effect.
 
 ---
 
