@@ -167,6 +167,14 @@ struct NotchPillView: View {
     // re-derive it.
     static let shelfRowHeight: CGFloat = 56
 
+    // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
+    // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
+    // mid-animation" convention that added wingsSize/toastExtraHeight as sibling constants
+    // rather than resizing expandedSize itself). Width matches expandedSize's 360 exactly
+    // (no new panel width); height 240 is taller than expandedSize's 144 to fit the busiest
+    // step (3 permission rows + bottom nav) without clipping.
+    static let onboardingSize = CGSize(width: 360, height: 240)
+
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
         // expanded content grows DOWNWARD from the notch (RESEARCH Pattern 4: panel is
@@ -289,21 +297,30 @@ struct NotchPillView: View {
     // The shelf row is appended BELOW each caller's own content, inside the SAME continuous
     // NotchShape/matchedGeometryEffect (D-07: no second shape, no cross-fade); each caller's own
     // `alignment` still governs ONLY its own content's box, unchanged from before this phase.
+    // Phase 26 / ONBOARD-01 — extended with an optional `height` override so
+    // onboardingCarousel(_:) can grow the blob to onboardingSize.height (240) without a
+    // second shape/fill mechanism. Every existing caller (expandedIsland, mediaExpanded,
+    // mediaUnavailable) omits the new parameter and falls back to `Self.expandedSize.height`
+    // -- byte-identical behavior to before this change. BOTH the outer shape frame
+    // (totalHeight) and the inner content frame (baseHeight) grow together, or the shape
+    // would be 240pt tall while the content stayed clipped to the old 144pt box.
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
+                                           height: CGFloat? = nil,
                                            shelfItems: [ShelfItem],
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = !shelfItems.isEmpty
-        let height = Self.expandedSize.height + (hasShelf ? Self.shelfRowHeight : 0)
+        let baseHeight = height ?? Self.expandedSize.height
+        let totalHeight = baseHeight + (hasShelf ? Self.shelfRowHeight : 0)
         return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
             .fill(Self.islandMaterial)
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.expandedSize.width, height: height)
+            .frame(width: Self.expandedSize.width, height: totalHeight)
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     content()
-                        .frame(width: Self.expandedSize.width, height: Self.expandedSize.height, alignment: alignment)
+                        .frame(width: Self.expandedSize.width, height: baseHeight, alignment: alignment)
                     if hasShelf {
                         shelfRow(shelfItems)
                             .transition(.opacity)
