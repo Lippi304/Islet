@@ -317,7 +317,12 @@ Plans:
   2. The expand/collapse animation uses a fluid, deliberately-paced spring with a subtle bounce-in on open (matching the iPhone Dynamic Island's characteristic feel), with no dropped frames and no jarring overshoot beyond the intended subtle in-bounce.
   3. The material and animation changes apply only to the shared shell chrome — existing activity content views (Now Playing, Charging, idle glance) render unchanged inside the new chrome.
   4. The material composites without visual artifacts mid-morph (collapse↔expand), verified on-device in the real never-focused panel.
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+**Wave 1**
+
+- [ ] 25-01-PLAN.md — Shared gradient material (VISUAL-01, D-01/D-02/D-08) + spring retune (VISUAL-02, D-05/D-06/D-07) + on-device UAT checkpoint
 **UI hint**: yes
 
 ### Phase 26: Onboarding Flow
