@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
 status: planning
-stopped_at: Phase 25 context gathered
-last_updated: "2026-07-11T10:36:00.773Z"
+stopped_at: Phase 25 UI-SPEC approved
+last_updated: "2026-07-11T10:51:23.734Z"
 last_activity: 2026-07-11
 progress:
   total_phases: 13
@@ -168,9 +168,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-11T10:36:00.768Z
-Stopped at: Phase 25 context gathered
-Resume file: .planning/phases/25-visual-material-theming-redesign/25-CONTEXT.md
+Last session: 2026-07-11T10:51:23.730Z
+Stopped at: Phase 25 UI-SPEC approved
+Resume file: .planning/phases/25-visual-material-theming-redesign/25-UI-SPEC.md
 
 ## Operator Next Steps
 
