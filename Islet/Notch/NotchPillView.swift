@@ -507,6 +507,17 @@ struct NotchPillView: View {
             Capsule(style: .continuous)
                 .fill(Color.white.opacity(0.08))
         )
+        // Round 5 (on-device UAT) — a granted row gets a thin green border + a subtle static
+        // glow, ponytail: the STATIC native approximation of the user's pasted web
+        // "GlowingShadow" reference (React/CSS `@property` hue-rotating animation) — no
+        // TimelineView/Animation loop, no color rotation, just `.overlay` + `.shadow`, matching
+        // this app's existing quiet/native visual language (26-PATTERNS.md). nil/false rows are
+        // completely untouched (no border, no shadow).
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(Color.green.opacity(granted == true ? 0.5 : 0), lineWidth: 1)
+        )
+        .shadow(color: .green.opacity(granted == true ? 0.35 : 0), radius: 6)
     }
 
     // Step 4 (.done) renders via OnboardingDoneStep (below, own file-scope private struct) —
