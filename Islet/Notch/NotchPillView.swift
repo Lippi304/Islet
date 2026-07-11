@@ -485,13 +485,12 @@ struct NotchPillView: View {
             if granted == nil {
                 chipButton("Grant", fontSize: 11, action: onGrant)
             } else if granted == true {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 11))
-                    Text("Granted")
-                        .font(.system(size: 11, weight: .regular, design: .rounded))
-                }
-                .foregroundStyle(.green)
+                // Round 4 (on-device UAT, Droppy comparison) — checkmark only, "Granted" text
+                // label dropped (was redundant next to the icon). D-03 semantics unchanged:
+                // this is still the only state that gets an icon at all.
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.green)
             } else {
                 // D-03 — deliberately NOT the codebase's existing checkmark/xmark pair (an
                 // xmark reads as a failure/error, which D-03 explicitly forbids here); no
@@ -1226,9 +1225,10 @@ struct ProgressBar: View {
 private struct OnboardingDoneStep: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
 
-    // Round 2 (Droppy comparison) — heading/body centered, matching the other 3 steps; the
-    // toggle stays a left-to-right control row (same reasoning as the permission rows) via
-    // its own `.frame(maxWidth: .infinity, alignment: .leading)`.
+    // Round 2 (Droppy comparison) — heading/body centered, matching the other 3 steps.
+    // Round 4 (on-device UAT) — the toggle is ALSO centered now (was left-pinned, which stuck
+    // out relative to the centered text above it); unlike the Permissions rows (a multi-item
+    // list that genuinely needs left alignment), this single compact control reads fine centered.
     var body: some View {
         VStack(alignment: .center, spacing: 8) {
             Text("You're all set")
@@ -1238,10 +1238,15 @@ private struct OnboardingDoneStep: View {
                 .font(.system(size: 12, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            // Round 4 (on-device UAT) — centered (was .leading, which stuck out relative to
+            // the centered heading/body above it); `.fixedSize()` keeps the Toggle at its
+            // natural width so `.frame(maxWidth: .infinity, alignment: .center)` centers it
+            // as a compact control rather than stretching the switch to the full card width.
             Toggle("Launch Islet at login", isOn: $launchAtLogin)
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize()
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 16)
                 .onChange(of: launchAtLogin) { _, on in
                     do {
