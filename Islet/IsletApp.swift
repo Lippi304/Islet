@@ -20,12 +20,29 @@ struct IsletApp: App {
         // On macOS 26 a menu-bar (LSUIElement) agent cannot reliably open the
         // `Settings` scene via `openSettings`, so we use a plain Window we open
         // ourselves through the notification bridge below.
+        //
+        // Phase 26 round-6 on-device UAT bug: Settings kept appearing at launch despite
+        // AppDelegate's unconditional hideSettingsWindowOnLaunch(). Root cause: AppKit's own
+        // window-state restoration re-shows a `Window(id:)` scene's window automatically at
+        // launch if it was left open/visible in a PRIOR run's saved state (macOS persists this
+        // independent of anything AppDelegate does, and restoration can win the race against
+        // the async hide) -- repeated Xcode Stop/Cmd-R cycles during this UAT session are
+        // exactly the kind of abrupt-process-death that leaves that saved state behind.
+        // `.defaultLaunchBehavior(.suppressed)` (macOS 15+) is Apple's documented lever for
+        // "never auto-present this Scene's window at launch, including from restoration" --
+        // the correct fix at the source, not another after-the-fact hide. SwiftUI's
+        // `SceneBuilder` has no `if #available`/type-eraser path (confirmed: it lacks
+        // `buildLimitedAvailability`, and there is no `AnyScene`), so using this API at all
+        // required bumping the project's deployment target 14.0 -> 15.0 (see project.yml) --
+        // applied unconditionally here, no availability branch needed anymore.
+        // hideSettingsWindowOnLaunch() stays as cheap defense-in-depth alongside this.
         Window("Islet Settings", id: "settings") {
             SettingsView()
                 .modifier(OpenSettingsOnNotification())  // Notification bridge
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+        .defaultLaunchBehavior(.suppressed)
     }
 }
 

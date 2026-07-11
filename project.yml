@@ -7,7 +7,14 @@ name: Islet
 options:
   bundleIdPrefix: com.lippi304
   deploymentTarget:
-    macOS: "14.0"          # D-06: macOS 14.0 floor (notch Macs are recent)
+    # D-06 originally set this to 14.0 (notch Macs are recent). Bumped to 15.0 during
+    # Phase 26 round-6 on-device UAT: fixing a real bug (Settings window auto-reappearing
+    # at launch via AppKit's own window-state restoration, independent of AppDelegate's
+    # logic) requires `.defaultLaunchBehavior(.suppressed)` (macOS 15+ only), and SwiftUI's
+    # `SceneBuilder` has no `if #available`/type-eraser path to keep this optional -- it's
+    # this API or nothing. Zero real 14.0 users yet (pre-release), and the dev's own
+    # hardware is already macOS 26, so this is a safe floor to move now.
+    macOS: "15.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -23,7 +30,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"             # D/Pitfall 2: Swift 5 LANGUAGE MODE (avoid Swift 6 strict concurrency)
-    MACOSX_DEPLOYMENT_TARGET: "14.0" # D-06
+    MACOSX_DEPLOYMENT_TARGET: "15.0" # D-06 (bumped from 14.0, Phase 26 round 6 — see deploymentTarget comment above)
     ENABLE_HARDENED_RUNTIME: YES     # required later for notarization — keep on
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: "R7AGU84UX7"    # real Apple Developer Team (Pitfall 1 fix — WeatherKit needs a real entitled identity, not ad-hoc)
@@ -33,7 +40,7 @@ targets:
   Islet:
     type: application
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "15.0"
     sources:
       - path: Islet
     dependencies:
@@ -68,7 +75,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_APP_SANDBOX: NO                         # un-sandboxed (needed for later MediaRemote/IOKit work)
         SWIFT_VERSION: "5.0"
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
         ENABLE_HARDENED_RUNTIME: YES
         # BLOCKER fix (260705-mzj): embedded MediaRemoteAdapter.framework fails Library
         # Validation under Hardened Runtime (app + framework ad-hoc signed → different Team
@@ -83,7 +90,7 @@ targets:
   IsletTests:
     type: bundle.unit-test
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "15.0"
     sources:
       - path: IsletTests
     dependencies:
@@ -91,7 +98,7 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "5.0"
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.lippi304.IsletTests
         # Host the tests inside the app bundle so @testable import Islet resolves.
