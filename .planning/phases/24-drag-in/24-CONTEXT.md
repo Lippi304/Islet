@@ -1,6 +1,7 @@
 # Phase 24: Drag-In - Context
 
 **Gathered:** 2026-07-11
+**Updated:** 2026-07-11 (drop-interception architecture gap, post-Task-3 UAT)
 **Status:** Ready for planning
 
 <domain>
@@ -11,6 +12,16 @@ Users can drag a file, multiple files, or a folder from Finder (or any other app
 Out of scope for this phase: drag-out (Phase 21, already shipped), the shelf data model (Phase 19, already shipped), folder spring-loading/auto-navigating into dropped folder contents (a dropped folder is always one shelf item), and accepting drops while the island is already expanded (explicitly reconsidered and re-locked as out-of-scope below — deferred as a future idea, not built here).
 
 </domain>
+
+<update_20260711>
+## Update: Drop-Interception Architecture Gap (post-Task-3 UAT)
+
+Plan 24-02's Tasks 1-2 landed and were on-device UAT'd successfully: the `DragApproachDetector` global-monitor mechanism reliably detects drags and lands items in the shelf (two on-device fixes merged: `dragLandingMargin` correction, `recheckDragAcceptRegion` self-disarm fix — commits `e589150`/`2bebf84`). Task 3's on-device UAT then surfaced a real architecture gap, not a small bug:
+
+Because the panel is deliberately click-through (`ignoresMouseEvents`, no `NSDraggingDestination` — D-05's pivot away from Phase 22's twice-unexplained `draggingEntered` failure), the actual OS-level drag session is never intercepted by Islet at all. It falls through to whatever window is visually underneath the drop point — in practice, the Finder Desktop — which performs its own default same-volume MOVE operation. Confirmed on-device: the user's original file gets relocated to the Desktop as an unwanted side effect, even though the shelf correctly receives its own session copy in parallel.
+
+This update resolves how to fix that, captured as D-10 through D-15 below.
+</update_20260711>
 
 <decisions>
 ## Implementation Decisions
@@ -32,6 +43,14 @@ Out of scope for this phase: drag-out (Phase 21, already shipped), the shelf dat
 ### Scope boundary (reaffirmed from Phase 22)
 - **D-09 (LOCKED, reconsidered and re-confirmed):** Drag-in is accepted ONLY while the island is collapsed, exactly as ROADMAP Success Criteria #1 states ("onto the collapsed island pill"). Accepting drops while the island is already expanded (Now Playing, idle glance, open shelf) was explicitly raised and REJECTED as in-scope for this phase — it's a new capability beyond SHELF-01/02's wording. Captured as a deferred idea (see below), not built here.
 
+### Drop-interception fix (architecture gap, added post-Task-3 UAT, 2026-07-11)
+- **D-10:** Pursue **CGEventTap** first as the mechanism to stop the real OS drag session from reaching whatever's underneath (currently: Finder Desktop's default same-volume move). A tap's callback can swallow/modify an event before it propagates further (e.g., return NULL for the terminating `.leftMouseUp` so Finder's Desktop view never sees the drop complete). Rejected as the first choice: re-attempting a scoped `NSDraggingDestination` (the exact technique that silently failed to fire twice in Phase 22, root cause never identified — retrying without new insight is low-confidence) and the move-back mitigation (kept in reserve as the fallback, see D-14, not the primary approach).
+- **D-11:** Request the new **Input Monitoring** permission lazily, at first real use — the first time the user actually drags a file toward the collapsed island — not upfront during app launch. Islet's onboarding flow (Phase 26) doesn't exist yet, so there's no natural home for an upfront pre-explanation screen this phase; matches the project's general lazy-permission-ask preference. `.planning/research/inspiration/notes.md` (Droppy reference) shows the target pre-explanation pattern (one-line reason before the system prompt) to mirror once Phase 26 exists, but that polish is explicitly Phase 26's problem, not this phase's.
+- **D-12:** If the user denies (or never grants) Input Monitoring, drag-in silently falls back to today's behavior: the shelf still receives the file copy (already works), but the original file may still get relocated by the OS — no worse than the current known gap, no error dialog. Consistent with the codebase's existing silent-no-op precedent (D-07).
+- **D-13:** CGEventTap is itself a brand-new, unproven-in-this-codebase mechanism — same risk category `DragApproachDetector` was in before this phase started. Cap validation at **2 on-device rounds** (mirrors D-05/D-06: one implementation attempt + one fix-and-retry round). If still unreliable after the cap, stop and apply D-14's fallback rather than a fourth architecture pivot or indefinite debugging (same discipline as D-08).
+- **D-14:** If CGEventTap is abandoned after the capped rounds, ship with the **move-back mitigation** as the fallback: detect that the OS performed its default same-volume move and move the file back to its original location. Imperfect (heuristic, some edge-case risk — name collisions, timing races) but closes the data-loss risk without triggering a fourth full architecture pivot.
+- **D-15:** The tap swallows the terminating drag event for **every** drag landing in the accept zone, regardless of source app or volume — not scoped to only the specific same-volume-move risk. Detecting volume/operation-type ahead of the drop completing is fragile and adds a new failure surface for marginal precision gain; simplest and most consistent behavior wins here.
+
 ### Claude's Discretion
 - Exact AppKit/Foundation mechanism for the `DragApproachDetector` (which `NSEvent` types to monitor, how to read the systemwide drag pasteboard to obtain file URLs without `NSDraggingDestination`) — not discussed with the user; research/planner resolves this against the documented Phase 22 failure (empirical `draggingEntered`/`draggingUpdated` mismatch) and the existing `dragReleaseMonitor` global-monitor idiom already in `NotchWindowController`.
 - How "an active drag session" is detected to gate the widened accept zone — must route through the SAME single arbiter that already owns `ignoresMouseEvents`/`syncClickThrough()` per the architecture risk flagged in Phase 22's context (project memory `cr01-clickthrough-or-defeat-gotcha`) — NOT a parallel flag.
@@ -39,6 +58,8 @@ Out of scope for this phase: drag-out (Phase 21, already shipped), the shelf dat
 - Behavior when a drag carries non-file content (no file URL) — treat as a no-drop/reject, consistent with the shelf's file-only model.
 - Behavior when drag-in is attempted while a Charging/Device splash is actively suppressing the shelf (SHELF-09) — default to the same silent-no-op precedent already established elsewhere unless research surfaces a reason to special-case it.
 - Exact margin value for the landing-below-top-edge accept condition (D-02c inherited from Phase 22) — measure against the reserved footprint's existing height.
+- Exact CGEventTap event mask/tap location (`.cgSessionEventTap` vs `.cgAnnotatedSessionEventTap`, which event types to intercept beyond the terminating mouse-up) and how the Input Monitoring permission-check/prompt call is wired — not discussed with the user; research must validate whether swallowing a raw event actually prevents the Window Server's own drag-session completion (the STATE.md blocker note flags this as genuinely uncertain, not assumed to "just work"), same isolated-spike-first discipline as D-05 applied to this new mechanism.
+- Exact detection method for the D-14 move-back fallback (only needed if D-13's cap is hit) — e.g., comparing the original source path's existence post-drop vs. searching the likely destination — deferred until/unless the fallback is actually triggered, not designed preemptively.
 
 </decisions>
 
@@ -58,6 +79,11 @@ Out of scope for this phase: drag-out (Phase 21, already shipped), the shelf dat
 - `.planning/phases/22-drag-in/22-CONTEXT.md` — full record of the D-01 through D-07 decisions this phase carries forward (auto-expand timing, widened accept zone, hot feedback reuse, collapsed-only scope) plus the architecture-risk note about routing drag-state through the single `syncClickThrough()` arbiter.
 - `.planning/phases/23-shell-parity-rewrite/23-CONTEXT.md` — confirms the residual Phase-22 `NSDraggingDestination` scaffold was deleted entirely (D-01 in that phase) — Phase 24 builds the `DragApproachDetector` from scratch against the reproven shell, no old scaffold to reconcile.
 - `.planning/phases/21-drag-out/21-CONTEXT.md` — the CR-01 gotcha (project memory `cr01-clickthrough-or-defeat-gotcha`): `syncClickThrough()`'s expanded branch must stay a pure `visibleContentZone()` check, never OR'd with `pointerInZone` — this exact regression class must not be reintroduced by any new drag-session-active state.
+
+### Why D-10 through D-15 exist — the Task-3 architecture gap (MUST read before designing the interception fix)
+- `.planning/STATE.md` "Blockers/Concerns" (`[Phase 24, NEW 2026-07-11]` entry) — the canonical record of the Task 3 UAT finding: `DragApproachDetector` works, but the click-through panel never intercepts the real OS drag, so Finder's Desktop performs its own same-volume move on the original file. This entry is also the source of the CGEventTap lead (D-10).
+- `.planning/phases/24-drag-in/24-02-PLAN.md` — Task 3, paused mid-checkpoint (not approved, not skipped) — the concrete task this discussion unblocks.
+- `.planning/research/inspiration/notes.md` (line 10) — Droppy's permission pre-explanation screen (Accessibility, Screen Recording, Input Monitoring) — the reference pattern for D-11's eventual onboarding-quality permission ask (Phase 26 scope), and evidence Droppy likely uses the same CGEventTap-class mechanism.
 
 No other external specs — requirements fully captured in decisions above.
 
@@ -81,6 +107,9 @@ No other external specs — requirements fully captured in decisions above.
 
 ### Integration Points
 - `NotchWindowController` — the natural home for the new `DragApproachDetector` (parallel to how `dragReleaseMonitor` already lives there), wired into `syncClickThrough()` and the existing `expandedZone` geometry.
+
+### Post-Task-3 addition: no existing analog for CGEventTap
+- Unlike `DragApproachDetector` (which had `dragReleaseMonitor`/`mouseMonitor` as direct same-file precedent — see `24-PATTERNS.md`), **CGEventTap has zero precedent anywhere in this codebase.** This is a genuinely new mechanism (`CGEvent.tapCreate`, a new Info.plist Input Monitoring usage description, likely a new small owning type rather than forcing it into `NotchWindowController`) and needs its own research/pattern pass before planning — `24-PATTERNS.md`'s "no new files" conclusion was scoped to the original detection+shelf-landing work and does NOT extend to this fix.
 
 </code_context>
 

@@ -126,3 +126,67 @@
 ## Deferred Ideas
 
 - Accepting drag-in while the island is already expanded (Now Playing, idle glance, open shelf) — new capability beyond Phase 24's ROADMAP scope; candidate for a future phase/requirement.
+
+---
+
+## Addendum: Drop-Interception Architecture Gap (2026-07-11, post-Task-3 UAT)
+
+**Context:** Plan 24-02 Tasks 1-2 merged and passed on-device UAT. Task 3 UAT surfaced that the click-through panel never intercepts the real OS drag session, so Finder's Desktop performs its own same-volume move on the dragged file. Routed here per user's explicit request instead of patching further in the execution loop.
+
+### Interception mechanism
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| CGEventTap | Swallow the terminating drag event system-wide before Finder's Desktop sees it; new mechanism, needs its own spike, requires Input Monitoring permission | ✓ |
+| Re-attempt NSDraggingDestination (scoped) | Reuse Phase 22's original technique, only active during an approaching drag | |
+| Move-back mitigation | Let the OS move happen, then move the file back; no new permission, heuristic | |
+
+**User's choice:** CGEventTap (Recommended)
+
+### Permission UX timing
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Lazy, at first real use | Prompt only on first actual drag-in attempt; no onboarding flow exists yet (Phase 26) | ✓ |
+| Block drag-in until granted | Same timing, but no-op the whole feature until granted | |
+| Defer the ask to Phase 26 | Use a plain system prompt now, polish later | |
+
+**User's choice:** Lazy, at first real use (Recommended)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Fall back to today's behavior | Shelf still works, original file may still get relocated — no worse than now, silent | ✓ |
+| Disable drag-in entirely | No partial behavior if permission denied | |
+
+**User's choice:** Fall back to today's behavior (Recommended)
+
+### Validation budget / fallback
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| 2 rounds (matches D-05/D-06) | One implementation attempt + one fix-and-retry round | ✓ |
+| 1 round, fail fast | Lower risk tolerance given this is the third architecture pivot | |
+| No hard cap | Let the executor iterate as needed | |
+
+**User's choice:** 2 rounds (matches D-05/D-06) (Recommended)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Ship with move-back mitigation | Fall back to the heuristic approach as a stopgap | ✓ |
+| Ship with known limitation | Document and accept the current gap | |
+| Stop and re-discuss architecture | Same as Phase 22's abort pattern | |
+
+**User's choice:** Ship with move-back mitigation (Recommended)
+
+### Fix scope
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Always swallow while in zone | Simplest, most consistent, regardless of source app/volume | ✓ |
+| Only for detected same-volume moves | More surgical, requires fragile pre-drop volume detection | |
+
+**User's choice:** Always swallow while in zone (Recommended)
+
+### Deferred Ideas (addendum)
+
+None — discussion stayed within the drop-interception fix scope.
