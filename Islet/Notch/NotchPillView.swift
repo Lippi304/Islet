@@ -198,8 +198,11 @@ struct NotchPillView: View {
     // around the new pill-shaped permission rows, and grown from 240 to 300 — the original
     // 240 didn't actually fit the Permissions step's heading + 3 rows + nav without squeezing
     // the bottom nav row (the reported "Back/Next partially cut off" was this, not a repeat
-    // of the earlier clipping bug). Still ONE fixed size for all 4 steps.
-    static let onboardingSize = CGSize(width: 400, height: 300)
+    // of the earlier clipping bug).
+    // Round 3 on-device UAT: another +20pt/+20pt iteration (400x300 -> 420x320) to give the
+    // now-vertically-centered content and the pinned nav row more room to breathe. Still ONE
+    // fixed size for all 4 steps, and still a "for now" number, not a final one.
+    static let onboardingSize = CGSize(width: 420, height: 320)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -315,32 +318,55 @@ struct NotchPillView: View {
 
     // Phase 26 / ONBOARD-01 — the notch-hosted onboarding carousel. Same call shape as
     // expandedIsland (blobShape + content closure), shelfItems always empty (D-06: the shelf
-    // never shows during onboarding), height fixed to onboardingSize.height for all 4 steps
+    // never shows during onboarding), width/height fixed to onboardingSize for all 4 steps
     // (no per-step resize, 26-UI-SPEC.md Panel & Layout Contract).
+    // Round 3 (on-device UAT) — restructured from a single top-down VStack to a
+    // ZStack(alignment: .bottom): step content now vertically CENTERS via a Spacer() on
+    // both sides (was pinned flush to the top, leaving a large empty gap above the nav row);
+    // the nav row is now a SEPARATE overlay layer pinned at a fixed bottom padding, so its Y
+    // position is IDENTICAL on every step regardless of how much content sits above it —
+    // round 2's flowing VStack made the Permissions step's 3 rows push Back/Next further
+    // down than the other 3 steps (the reported cross-step inconsistency, a real bug: nav Y
+    // must not depend on sibling content height).
     private func onboardingCarousel(_ step: OnboardingStep) -> some View {
         blobShape(topCornerRadius: 6, bottomCornerRadius: 32,
                   width: Self.onboardingSize.width, height: Self.onboardingSize.height, shelfItems: []) {
-            VStack(alignment: .leading, spacing: 0) {
-                switch step {
-                case .welcome:
-                    onboardingWelcomeStep
-                case .trialLicenseBuy:
-                    onboardingTrialLicenseBuyStep
-                case .permissions:
-                    onboardingPermissionsStep
-                case .done:
-                    OnboardingDoneStep()
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    onboardingStepContent(step)
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+                .padding(.top, 32)         // camera-clearance floor, matches mediaExpanded's convention
+                .padding(.horizontal, 28)  // screen content padding (round 2, Droppy comparison)
+                // Round 3 — reserves room below the centered content so it never visually
+                // overlaps the nav row overlay pinned below it.
+                .padding(.bottom, Self.navRowReservedHeight)
+
                 onboardingNavRow(step)
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 20)
             }
-            .padding(.top, 32)         // camera-clearance, matches mediaExpanded's convention
-            // Round 2 (Droppy comparison) — 16 -> 28 horizontal / 16 -> 20 bottom: the
-            // original values left text touching the card edge with no breathing room.
-            .padding(.horizontal, 28)  // screen content padding
-            .padding(.bottom, 20)      // bottom nav row padding
         }
     }
+
+    @ViewBuilder
+    private func onboardingStepContent(_ step: OnboardingStep) -> some View {
+        switch step {
+        case .welcome:
+            onboardingWelcomeStep
+        case .trialLicenseBuy:
+            onboardingTrialLicenseBuyStep
+        case .permissions:
+            onboardingPermissionsStep
+        case .done:
+            OnboardingDoneStep()
+        }
+    }
+
+    // Round 3 — space reserved below the centered content so it never overlaps the pinned
+    // nav row (diameter + its own bottom padding + a small clearance gap).
+    private static let navRowReservedHeight: CGFloat = navCircleDiameter + 20 + 16
 
     // Step 1 — Welcome. Copywriting Contract: exact strings, verbatim. Round 2 (Droppy
     // comparison) — heading/body now centered (was `.leading`); `.frame(maxWidth: .infinity)`
@@ -417,6 +443,10 @@ struct NotchPillView: View {
                               onGrant: { onOnboardingGrant(.location) })
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            // Round 3 — extra horizontal inset so the pill rows show visible margin against
+            // the card edges instead of nearly spanning edge-to-edge (applied AFTER the
+            // maxWidth fill, so it insets the already-full-width block on both sides).
+            .padding(.horizontal, 8)
             .padding(.top, 12)
         }
         .frame(maxWidth: .infinity)
@@ -429,32 +459,37 @@ struct NotchPillView: View {
     // error icon or dialog.
     // Round 2 (Droppy comparison) — wrapped in a near-capsule pill background (was a bare
     // HStack with no chrome of its own), matching Droppy's fully-rounded permission rows.
+    // Round 3 — text/icon sizes and row padding shrunk slightly (14/12px -> 13/11px,
+    // 12/8px padding -> 10/6px), scoped ONLY to these Permissions rows, to leave more
+    // visible margin around the 3 pills within the fixed onboardingSize width. This is a
+    // deliberate, narrow exception to the shared 14px Label / 12px Body scale used
+    // everywhere else in the onboarding carousel (26-UI-SPEC.md Typography) — noted there.
     private func permissionRow(icon: String,
                                 label: String,
                                 reason: String,
                                 granted: Bool?,
                                 onGrant: @escaping () -> Void) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.7))
             VStack(alignment: .leading, spacing: 4) {
                 Text(label)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
                 Text(reason)
-                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .font(.system(size: 11, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
             if granted == nil {
-                chipButton("Grant", fontSize: 12, action: onGrant)
+                chipButton("Grant", fontSize: 11, action: onGrant)
             } else if granted == true {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                     Text("Granted")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .font(.system(size: 11, weight: .regular, design: .rounded))
                 }
                 .foregroundStyle(.green)
             } else {
@@ -463,12 +498,12 @@ struct NotchPillView: View {
                 // re-ask affordance inside onboarding, a skipped permission is granted later
                 // via Settings.
                 Text("Not granted")
-                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .font(.system(size: 11, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .background(
             Capsule(style: .continuous)
                 .fill(Color.white.opacity(0.08))
@@ -497,7 +532,9 @@ struct NotchPillView: View {
                 navCircleButton(systemName: "checkmark", filled: true, action: onOnboardingFinish)
             }
         }
-        .padding(.top, 16)
+        // Round 3 — the top padding that used to separate this row from flowing content above
+        // it is gone; onboardingCarousel now positions this row as a fixed-offset overlay, not
+        // as the tail of the same VStack, so no internal padding is needed here.
     }
 
     // Round 2 (Droppy comparison) — the circular Back/Next/Finish nav button: Back is an
