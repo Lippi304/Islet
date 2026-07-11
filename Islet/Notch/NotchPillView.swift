@@ -42,6 +42,12 @@ struct NotchPillView: View {
     @ObservedObject var presentationState: IslandPresentationState
     // Convenience so the body + previews read a plain enum.
     private var presentation: IslandPresentation { presentationState.presentation }
+    // Phase 26 bugfix (26-04 on-device UAT round 1) — the outer body frame needs this to
+    // grow to onboardingSize.height instead of expandedSize.height (see body's .frame below).
+    private var isOnboardingPresentation: Bool {
+        if case .onboarding = presentation { return true }
+        return false
+    }
 
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model (weather +
     // calendar), mirroring nowPlaying/presentationState's ownership contract: the controller
@@ -234,8 +240,16 @@ struct NotchPillView: View {
         // before ever reaching the screen, even though the AppKit panel itself was sized
         // correctly (visibleContentZone() already used this same hasShelf math for its
         // own, unrelated click-through purpose — that duplication is what let this drift).
+        // Phase 26 bugfix (26-04 on-device UAT round 1) — the SAME regression class hit
+        // onboardingCarousel: its blobShape grows to onboardingSize.height (240) but this
+        // outer frame stayed clamped to expandedSize.height (144), clipping off the
+        // bottomCornerRadius curve (squared-off look) and the bottom nav row (Next
+        // unreachable) alike. Mirrors the shelf fix exactly — grow this frame for the
+        // `.onboarding` case too.
         .frame(width: Self.expandedSize.width,
-               height: Self.expandedSize.height + (shelfViewState.items.isEmpty ? 0 : Self.shelfRowHeight),
+               height: isOnboardingPresentation
+                   ? Self.onboardingSize.height
+                   : Self.expandedSize.height + (shelfViewState.items.isEmpty ? 0 : Self.shelfRowHeight),
                alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
         // container level. A single ancestor .onTapGesture here would sit ABOVE the
