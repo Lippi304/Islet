@@ -1,7 +1,7 @@
 ---
 phase: 26
 slug: onboarding-flow
-status: draft
+status: approved
 shadcn_initialized: false
 preset: not applicable — native SwiftUI/AppKit app, no component-registry tooling
 created: 2026-07-11
@@ -190,11 +190,11 @@ Accent reserved for: the green "Granted" checkmark/label on the Permissions step
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS (N/A — no registry tooling in this stack)
+- [x] Dimension 1 Copywriting: FLAG (non-blocking — single-word wizard-nav CTAs are the standard convention, not a generic Submit/OK/Cancel violation)
+- [x] Dimension 2 Visuals: FLAG (non-blocking — primary visual anchor is implied by type scale but not stated outright; optional clarity improvement, no fix required)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: FLAG (non-blocking — one 12px value off the canonical scale, inherited verbatim from an existing sibling chip convention, not a new deviation)
+- [x] Dimension 6 Registry Safety: PASS (N/A — no registry tooling in this stack)
 
-**Approval:** pending
+**Approval:** approved — gsd-ui-checker verdict: APPROVED (3 non-blocking FLAGs, 0 BLOCKs)

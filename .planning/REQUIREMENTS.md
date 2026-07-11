@@ -17,7 +17,7 @@ A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexp
 
 - [ ] **ONBOARD-01**: First-launch flow presents a short carousel — hero screen, trial/license-key/buy choice, a permissions pre-explanation screen, then done — replacing today's passive Settings-only license flow
 - [ ] **ONBOARD-02**: The permissions pre-explanation screen shows a one-line reason per permission (Bluetooth, Calendar, Location/WeatherKit) and its "Continue"/"Grant" action directly triggers the real system permission prompt for each, in sequence
-- [ ] **ONBOARD-03**: The onboarding flow shows once (persisted flag), is skippable/dismissible, and does not include an in-app feature/gesture tutorial screen
+- [ ] **ONBOARD-03**: The onboarding flow shows once (persisted flag), is skippable per-step (each permission row, individually — no whole-flow exit before Done), and does not include an in-app feature/gesture tutorial screen
 
 ### Visual Redesign
 

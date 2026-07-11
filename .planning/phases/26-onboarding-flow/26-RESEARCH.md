@@ -515,9 +515,13 @@ against.
 | A2 | An existing user (pre-Phase-26 install, already has a `TrialManager.trialStartDate()`) must NOT see the onboarding carousel on their first post-upgrade launch | Pitfall 2 | If the migration/seeding logic is wrong, every existing beta tester is forced through onboarding unexpectedly — a real regression, not just cosmetic |
 | A3 | Reusing `UserDefaults.didChangeNotification` (rather than a new dedicated notification) is sufficient to resume the onboarding flow after a Settings round-trip | Anti-Patterns, Pitfall 3 | If the existing observer granularity is too coarse (fires on ANY UserDefaults write, not just the relevant key), the onboarding controller may need to explicitly re-check its own step's completion condition on every fire — a minor extra-work risk, not a correctness risk, since the existing 3 call sites already do exactly this (re-read the authoritative state, not the notification payload) |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does the onboarding permissions screen's 3-row layout fit in the existing 360×144
+1. **RESOLVED — Plan 26-02, Task 1.** `onboardingSize = CGSize(width: 360, height: 240)` added as a
+   dedicated panel union member (per Pattern 4's `wingsSize` precedent). Actual fit is confirmed
+   on-device per 26-UI-SPEC.md's Verification Notes before Task 1 commits.
+
+   Does the onboarding permissions screen's 3-row layout fit in the existing 360×144
    `expandedSize`, or does it need a larger, dedicated `onboardingSize` panel union member?**
    - What we know: the existing panel-sizing convention (Pattern 4) supports adding a third
      union member cleanly, following the exact precedent `wingsSize` set.
@@ -527,7 +531,14 @@ against.
      baked into Task 1. Reference `.planning/research/inspiration/notes.md` for Droppy's exact
      visual proportions if available.
 
-2. **How should a genuinely-existing user (pre-Phase-26 trial/license state) be prevented from
+2. **RESOLVED — Plan 26-01, Task 1 + Plan 26-03, Task 2.** Two pure, unit-tested functions —
+   `shouldShowOnboarding(isFirstLaunch:onboardingCompletedStored:)` and
+   `shouldSeedOnboardingCompletedForExistingUser(isFirstLaunch:onboardingCompletedStored:)` — plus a
+   new `ActivitySettings.onboardingCompletedKey` UserDefaults flag, consumed by
+   `NotchWindowController.start(isFirstLaunch:)`. Existing users are grandfathered (flag seeded
+   `true` without ever showing onboarding); mid-flow quit/relaunch resumes from the stored flag.
+
+   How should a genuinely-existing user (pre-Phase-26 trial/license state) be prevented from
    seeing onboarding on their first post-upgrade launch?**
    - What we know: `isFirstLaunch` (from `TrialManager.recordFirstLaunchIfNeeded()`) is FALSE for
      any user who already has a trial start date — so the naive gate
@@ -552,7 +563,11 @@ against.
      `NotchWindowController`, a quit mid-flow restarts from `.welcome`, not the exact step; decide
      if that's acceptable or if the step index itself needs persisting too).
 
-3. **Should skipped-permission re-grant get any Settings UI in this phase, or is it fully
+3. **RESOLVED — descoped, per this question's own recommendation.** No new Islet Settings UI for
+   permission re-grant is built in this phase; users go to System Settings → Privacy directly.
+   SETTINGS-01's sidebar redesign remains Phase 27 scope, untouched here.
+
+   Should skipped-permission re-grant get any Settings UI in this phase, or is it fully
    descoped to "user goes to System Settings → Privacy directly"?**
    - What we know: no Settings UI for this exists today (Pitfall 4).
    - What's unclear: whether D-07's wording ("later granted via Settings") implies Islet's OWN

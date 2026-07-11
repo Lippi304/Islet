@@ -348,7 +348,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. First launch shows a carousel — hero screen → trial/license-key/buy choice → permissions pre-explanation → done — replacing the existing `isFirstLaunch` → `openSettings()` branch.
   2. The permissions screen shows a one-line reason per permission (Bluetooth, Calendar, Location/WeatherKit), and its Continue/Grant action triggers the real system permission prompt for each, in sequence.
-  3. The onboarding flow shows exactly once (persisted flag) and can be skipped/dismissed at any point.
+  3. The onboarding flow shows exactly once (persisted flag) and is skippable per-step (each permission row, individually) — no whole-flow exit before the Done screen (D-09, locked).
   4. No gesture/feature tutorial screen appears anywhere in the flow.
 **Plans**: 4 plans
 

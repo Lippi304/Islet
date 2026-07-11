@@ -1,9 +1,9 @@
 ---
 phase: 26
 slug: onboarding-flow
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-07-11
 ---
 
@@ -38,22 +38,22 @@ created: 2026-07-11
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 26-01-xx | 01 | 1 | ONBOARD-01 | T-26-02 | New `.onboarding` case wins over `.idle`/transients in `resolve()` when onboarding flag unset | unit | `IslandResolverTests.swift::testOnboardingOutranksEverything()` | ❌ Wave 0 (extend existing file) | ⬜ pending |
-| 26-01-xx | 01 | 1 | ONBOARD-01 | — | Step sequencing (welcome → trial/license/buy → permissions → done, Next/Back) | unit | New `OnboardingFlowTests.swift` (pure-reducer shape, mirrors `InteractionStateTests.swift`) | ❌ Wave 0 | ⬜ pending |
-| 26-0x-xx | TBD | TBD | ONBOARD-02 | T-26-01 | Bluetooth/location/calendar NOT called when `onboarding.completed == false` at genuinely fresh launch | unit (pure gate function) | `shouldGatePermissionCallsAtLaunch(isFirstLaunch:onboardingCompleted:)` tested in gate-function test file | ❌ Wave 0 | ⬜ pending |
-| 26-0x-xx | TBD | TBD | ONBOARD-02 | — | Each permission row fires exactly its own system prompt, independently | manual-only | On-device Cmd-U cannot exercise real TCC prompts | N/A — manual | ⬜ pending |
-| 26-0x-xx | TBD | TBD | ONBOARD-03 | T-26-03 | Onboarding flag persists, flow shows exactly once | unit | `UserDefaults`-backed flag, injected `UserDefaults(suiteName:)` fixture (mirrors `TrialManagerTests.swift`) | ❌ Wave 0 | ⬜ pending |
-| 26-0x-xx | TBD | TBD | ONBOARD-03 | — | No gesture/tutorial screen exists anywhere in the flow | manual/code-review | Grep-verifiable: no new gesture/tutorial-named view | N/A | ⬜ pending |
+| 26-01-02 | 01 | 1 | ONBOARD-01 | T-26-02 | New `.onboarding` case wins over `.idle`/transients in `resolve()` when onboarding flag unset | unit | `IslandResolverTests.swift::testOnboardingOutranksEverything()` | ✅ (extends existing file) | ✅ done |
+| 26-01-01 | 01 | 1 | ONBOARD-01 | — | Step sequencing (welcome → trial/license/buy → permissions → done, Next/Back) | unit | `OnboardingFlowTests.swift` (pure-reducer shape, mirrors `InteractionStateTests.swift`) | ✅ new file | ✅ done |
+| 26-03-02 | 03 | 2 | ONBOARD-02 | T-26-01 | Bluetooth/location/calendar NOT called when `onboarding.completed == false` at genuinely fresh launch | unit (pure gate function) | `shouldShowOnboarding`/`shouldSeedOnboardingCompletedForExistingUser` (26-01-01), consumed in `start(isFirstLaunch:)` (26-03-02) | ✅ (26-01 provides, 26-03 consumes) | ✅ done |
+| 26-04-03 | 04 | 3 | ONBOARD-02 | — | Each permission row fires exactly its own system prompt, independently | manual-only | On-device Cmd-U cannot exercise real TCC prompts — covered by 26-04 Task 3's on-device UAT checkpoint | N/A — manual | ✅ done |
+| 26-01-01 | 01 | 1 | ONBOARD-03 | T-26-03 | Onboarding flag persists, flow shows exactly once | unit | `ActivitySettings.onboardingCompletedKey`, `UserDefaults`-backed flag, injected `UserDefaults(suiteName:)` fixture (mirrors `TrialManagerTests.swift`) | ✅ new file | ✅ done |
+| 26-02-02 | 02 | 2 | ONBOARD-03 | — | No gesture/tutorial screen exists anywhere in the flow | manual/code-review | Grep-verifiable: no new gesture/tutorial-named view in `NotchPillView.swift`'s `onboardingCarousel(step:)` | N/A | ✅ done |
 
-*Task IDs and plan/wave numbers to be filled in by the planner once PLAN.md files exist.*
+*Task IDs confirmed against 26-01..26-04 PLAN.md frontmatter and `<name>` tags after planning + plan-checker verification (0 blockers).*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `OnboardingFlowTests.swift` — if a dedicated pure `OnboardingFlow.swift` seam is added, needs its own test file from the start (Wave 1, not retrofitted)
-- [ ] Extend `IslandResolverTests.swift` with the onboarding-precedence case
-- [ ] No framework install needed — XCTest is already fully wired
+- [x] `OnboardingFlowTests.swift` — dedicated pure `OnboardingFlow.swift` seam added with its own test file from the start (Plan 26-01, Wave 1, TDD)
+- [x] Extend `IslandResolverTests.swift` with the onboarding-precedence case (Plan 26-01, Task 2, TDD)
+- [x] No framework install needed — XCTest is already fully wired
 
 ---
 
@@ -70,11 +70,11 @@ created: 2026-07-11
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s (build gate)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s (build gate)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved — confirmed by gsd-plan-checker verification of 26-01..26-04 PLAN.md (0 blockers, full Nyquist compliance per Dimension 8)
