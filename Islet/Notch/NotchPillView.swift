@@ -193,10 +193,13 @@ struct NotchPillView: View {
     // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
     // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
     // mid-animation" convention that added wingsSize/toastExtraHeight as sibling constants
-    // rather than resizing expandedSize itself). Width matches expandedSize's 360 exactly
-    // (no new panel width); height 240 is taller than expandedSize's 144 to fit the busiest
-    // step (3 permission rows + bottom nav) without clipping.
-    static let onboardingSize = CGSize(width: 360, height: 240)
+    // rather than resizing expandedSize itself).
+    // Round 2 on-device UAT (Droppy comparison): widened from 360 to 400 for breathing room
+    // around the new pill-shaped permission rows, and grown from 240 to 300 — the original
+    // 240 didn't actually fit the Permissions step's heading + 3 rows + nav without squeezing
+    // the bottom nav row (the reported "Back/Next partially cut off" was this, not a repeat
+    // of the earlier clipping bug). Still ONE fixed size for all 4 steps.
+    static let onboardingSize = CGSize(width: 400, height: 300)
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -245,8 +248,9 @@ struct NotchPillView: View {
         // outer frame stayed clamped to expandedSize.height (144), clipping off the
         // bottomCornerRadius curve (squared-off look) and the bottom nav row (Next
         // unreachable) alike. Mirrors the shelf fix exactly — grow this frame for the
-        // `.onboarding` case too.
-        .frame(width: Self.expandedSize.width,
+        // `.onboarding` case too. Round 2: also branches WIDTH now that onboardingSize is
+        // wider than expandedSize (400 vs 360).
+        .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
                    : Self.expandedSize.height + (shelfViewState.items.isEmpty ? 0 : Self.shelfRowHeight),
@@ -314,7 +318,8 @@ struct NotchPillView: View {
     // never shows during onboarding), height fixed to onboardingSize.height for all 4 steps
     // (no per-step resize, 26-UI-SPEC.md Panel & Layout Contract).
     private func onboardingCarousel(_ step: OnboardingStep) -> some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, height: Self.onboardingSize.height, shelfItems: []) {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32,
+                  width: Self.onboardingSize.width, height: Self.onboardingSize.height, shelfItems: []) {
             VStack(alignment: .leading, spacing: 0) {
                 switch step {
                 case .welcome:
@@ -330,52 +335,71 @@ struct NotchPillView: View {
                 onboardingNavRow(step)
             }
             .padding(.top, 32)         // camera-clearance, matches mediaExpanded's convention
-            .padding(.horizontal, 16)  // screen content padding
-            .padding(.bottom, 16)      // bottom nav row padding
+            // Round 2 (Droppy comparison) — 16 -> 28 horizontal / 16 -> 20 bottom: the
+            // original values left text touching the card edge with no breathing room.
+            .padding(.horizontal, 28)  // screen content padding
+            .padding(.bottom, 20)      // bottom nav row padding
         }
     }
 
-    // Step 1 — Welcome. Copywriting Contract: exact strings, verbatim.
+    // Step 1 — Welcome. Copywriting Contract: exact strings, verbatim. Round 2 (Droppy
+    // comparison) — heading/body now centered (was `.leading`); `.frame(maxWidth: .infinity)`
+    // makes the VStack claim the full card width so `alignment: .center` centers against the
+    // whole card, not just against its own intrinsic width; `.multilineTextAlignment(.center)`
+    // centers each wrapped line of the body copy too (VStack alignment alone only centers the
+    // text block as a unit).
     private var onboardingWelcomeStep: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .center, spacing: 8) {
             Text("Meet Islet")
                 .font(.system(size: 20, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             Text("Your notch, upgraded. Now Playing, charging, and a drag-and-drop shelf — always one glance away.")
                 .font(.system(size: 12, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
     }
 
     // Step 2 — Trial/License/Buy. D-04: purely informational about the already-running
     // trial; D-05 (LOCKED): both buttons ONLY hand off to Settings — no license logic here.
+    // Round 2 (Droppy comparison) — heading/body centered, same convention as Welcome; the
+    // CTA row centers as a block underneath (no maxWidth override needed there, it's short).
     private var onboardingTrialLicenseBuyStep: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .center, spacing: 8) {
             Text("Your 3-day trial has started")
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             Text("Enjoy full access for 3 days. Already have a key, or ready to buy?")
                 .font(.system(size: 12, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
             HStack(spacing: 8) {
                 chipButton("Enter License Key", action: onOnboardingOpenSettings)
                 chipButton("Buy Islet — €7.99", action: onOnboardingOpenSettings)
             }
             .padding(.top, 16)
         }
+        .frame(maxWidth: .infinity)
     }
 
     // Step 3 — Permissions. D-02: one row per permission, each with its own independent
-    // Grant control.
+    // Grant control. Round 2 (Droppy comparison) — heading/subheading centered (same
+    // convention); the permission ROWS stay a left-to-right control list (icon + text +
+    // trailing chip needs full width, centering that would be nonsensical), so only the
+    // heading/subheading get `alignment: .center` via the parent VStack — the rows-VStack
+    // gets an explicit `.frame(maxWidth: .infinity, alignment: .leading)` to keep filling
+    // the full width and hugging left internally regardless of the parent's centering.
     private var onboardingPermissionsStep: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .center, spacing: 8) {
             Text("A few permissions")
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             Text("Grant what you'd like — skip the rest and enable them later in Settings.")
                 .font(.system(size: 12, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 8) {
+                .multilineTextAlignment(.center)
+            VStack(alignment: .leading, spacing: 6) {
                 permissionRow(icon: "antenna.radiowaves.left.and.right",
                               label: "Bluetooth",
                               reason: "Detect when your AirPods or headphones connect",
@@ -392,8 +416,10 @@ struct NotchPillView: View {
                               granted: onboardingState.locationGranted,
                               onGrant: { onOnboardingGrant(.location) })
             }
-            .padding(.top, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 12)
         }
+        .frame(maxWidth: .infinity)
     }
 
     // 26-UI-SPEC.md Permission row layout: icon 16px + Label/Reason text block + trailing
@@ -401,6 +427,8 @@ struct NotchPillView: View {
     // settled). D-03: a denial degrades to the SAME quiet grey text a never-asked row would
     // never even reach (the Grant chip stays until an attempt settles the state) — never an
     // error icon or dialog.
+    // Round 2 (Droppy comparison) — wrapped in a near-capsule pill background (was a bare
+    // HStack with no chrome of its own), matching Droppy's fully-rounded permission rows.
     private func permissionRow(icon: String,
                                 label: String,
                                 reason: String,
@@ -439,6 +467,12 @@ struct NotchPillView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.08))
+        )
     }
 
     // Step 4 (.done) renders via OnboardingDoneStep (below, own file-scope private struct) —
@@ -447,25 +481,49 @@ struct NotchPillView: View {
 
     // Bottom nav row (26-UI-SPEC.md): Back leading (hidden on .welcome), primary CTA
     // trailing. D-09: Back is always enabled, never a validation gate.
+    // Round 2 (Droppy comparison) — Back/Next/Finish switched from text chips to icon-only
+    // circular buttons (navCircleButton below); both circles share one diameter so the
+    // HStack's default center-alignment keeps them vertically centered against each other.
     private func onboardingNavRow(_ step: OnboardingStep) -> some View {
         HStack {
             if step != .welcome {
-                chipButton("Back", action: onOnboardingBack)
+                navCircleButton(systemName: "arrow.left", filled: false, action: onOnboardingBack)
             }
             Spacer()
             switch step {
             case .welcome, .trialLicenseBuy, .permissions:
-                chipButton("Next", action: onOnboardingNext)
+                navCircleButton(systemName: "arrow.right", filled: true, action: onOnboardingNext)
             case .done:
-                chipButton("Finish", action: onOnboardingFinish)
+                navCircleButton(systemName: "checkmark", filled: true, action: onOnboardingFinish)
             }
         }
         .padding(.top, 16)
     }
 
-    // The shared chip style (Next/Back/Finish/Grant) — reuses the existing RoundedRectangle +
-    // Color.white.opacity(0.12) in-chrome control convention rather than inventing a new
-    // button primitive (26-UI-SPEC.md Button/chip style).
+    // Round 2 (Droppy comparison) — the circular Back/Next/Finish nav button: Back is an
+    // outlined stroke circle with a left arrow, Next/Finish are a solid white filled circle
+    // with an arrow/checkmark icon (Finish uses a checkmark rather than an arrow — same
+    // solid-white-circle language, distinct icon for a terminal action; design judgment,
+    // not spec-mandated). Replaces the earlier text chip nav per on-device feedback.
+    private static let navCircleDiameter: CGFloat = 36
+
+    private func navCircleButton(systemName: String, filled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(filled ? Color.black : Color.white)
+                .frame(width: Self.navCircleDiameter, height: Self.navCircleDiameter)
+                .background(Circle().fill(filled ? Color.white : Color.clear))
+                .overlay(Circle().strokeBorder(Color.white.opacity(filled ? 0 : 0.4), lineWidth: 1.5))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // The shared chip style (Grant, Enter License Key, Buy Islet) — reuses the existing
+    // RoundedRectangle + Color.white.opacity(0.12) in-chrome control convention rather than
+    // inventing a new button primitive (26-UI-SPEC.md Button/chip style). Round 2: Back/
+    // Next/Finish moved off this style onto navCircleButton above; this remains the style
+    // for the inline Grant/License/Buy actions, unchanged.
     private func chipButton(_ label: String, fontSize: CGFloat = 14, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
@@ -500,29 +558,34 @@ struct NotchPillView: View {
     // NotchShape/matchedGeometryEffect (D-07: no second shape, no cross-fade); each caller's own
     // `alignment` still governs ONLY its own content's box, unchanged from before this phase.
     // Phase 26 / ONBOARD-01 — extended with an optional `height` override so
-    // onboardingCarousel(_:) can grow the blob to onboardingSize.height (240) without a
+    // onboardingCarousel(_:) can grow the blob to onboardingSize.height without a
     // second shape/fill mechanism. Every existing caller (expandedIsland, mediaExpanded,
     // mediaUnavailable) omits the new parameter and falls back to `Self.expandedSize.height`
     // -- byte-identical behavior to before this change. BOTH the outer shape frame
     // (totalHeight) and the inner content frame (baseHeight) grow together, or the shape
-    // would be 240pt tall while the content stayed clipped to the old 144pt box.
+    // would be taller than the content stayed clipped to the old 144pt box.
+    // Round 2 (Droppy comparison) — mirrors the same optional-override pattern with a
+    // `width` parameter so onboardingCarousel can also widen to onboardingSize.width;
+    // every other caller again omits it and falls back to `Self.expandedSize.width`.
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
+                                           width: CGFloat? = nil,
                                            height: CGFloat? = nil,
                                            shelfItems: [ShelfItem],
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = !shelfItems.isEmpty
+        let baseWidth = width ?? Self.expandedSize.width
         let baseHeight = height ?? Self.expandedSize.height
         let totalHeight = baseHeight + (hasShelf ? Self.shelfRowHeight : 0)
         return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
             .fill(Self.islandMaterial)
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.expandedSize.width, height: totalHeight)
+            .frame(width: baseWidth, height: totalHeight)
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     content()
-                        .frame(width: Self.expandedSize.width, height: baseHeight, alignment: alignment)
+                        .frame(width: baseWidth, height: baseHeight, alignment: alignment)
                     if hasShelf {
                         shelfRow(shelfItems)
                             .transition(.opacity)
@@ -1126,17 +1189,22 @@ struct ProgressBar: View {
 private struct OnboardingDoneStep: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
 
+    // Round 2 (Droppy comparison) — heading/body centered, matching the other 3 steps; the
+    // toggle stays a left-to-right control row (same reasoning as the permission rows) via
+    // its own `.frame(maxWidth: .infinity, alignment: .leading)`.
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .center, spacing: 8) {
             Text("You're all set")
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             Text("Islet is already running in your notch.")
                 .font(.system(size: 12, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
             Toggle("Launch Islet at login", isOn: $launchAtLogin)
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 16)
                 .onChange(of: launchAtLogin) { _, on in
                     do {
@@ -1156,6 +1224,7 @@ private struct OnboardingDoneStep: View {
                     }
                 }
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
