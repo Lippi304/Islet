@@ -258,12 +258,27 @@ final class NotchWindowController {
     // the island is expanded. nil until the first successful resolve.
     private var expandedZone: CGRect?
 
+    // Phase 24 / SHELF-01 / SHELF-02 (D-02c) — the new landing-margin boundary: a drag must be
+    // at or below this Y to land, keeping the accept region clear of the literal top screen
+    // edge. Set alongside hotZone/expandedZone in positionAndShow(), cleared alongside them in
+    // updateVisibility()'s hide branch so it can't go stale across a hide/show cycle (mirrors
+    // expandedZone's own stated discipline). nil until the first successful resolve.
+    private var dragLandingMaxY: CGFloat?
+
     // The expanded island size seed. Read from the view so the window frame and the SwiftUI
     // content can never drift to different expanded sizes (Plan 05 tunes it in one place).
     private let expandedSize = NotchPillView.expandedSize
 
     // A few px of slop around the collapsed pill so the hot-zone is comfortable to enter.
     private let hotZonePadding: CGFloat = 6
+
+    // Phase 24 / SHELF-01 / SHELF-02 (D-01/D-02c) — a generous margin below the absolute screen
+    // top edge, sized well above the measured collapsed-pill height (~32pt, project memory
+    // charging-connect-only-notch-size) to stay clear of the literal top-edge Mission-Control
+    // trigger that killed Phase 22's first on-device attempt ("maximally forgiving" framing).
+    // Feeds dragLandingMaxY (positionAndShow's `target.frame.maxY - dragLandingMargin`).
+    // Tunable during this plan's Task 3 on-device UAT checkpoint if empirically wrong.
+    private let dragLandingMargin: CGFloat = 40
 
     // D-03 grace delay (within the 0.3–0.5s window). One place for Plan 05 to tune.
     private let graceDelay: TimeInterval = 0.4
@@ -610,6 +625,7 @@ final class NotchWindowController {
             panel?.orderOut(nil)
             hotZone = nil
             expandedZone = nil
+            dragLandingMaxY = nil
             // WR-01: the hot-zone is gone, so the pointer is by definition no longer in it.
             // Clearing this here prevents a stale `true` from suppressing the next enter edge
             // after a show, which would skip the haptic + grace-cancel on re-entry.
@@ -667,6 +683,7 @@ final class NotchWindowController {
         // While expanded, the WHOLE expanded island (the panel union, padded) keeps it open so
         // the pointer can reach the transport controls without tripping the grace-collapse.
         expandedZone = panelFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
+        dragLandingMaxY = target.frame.maxY - dragLandingMargin
 
         let panel = self.panel ?? NotchPanel(contentRect: panelFrame)
         if self.panel == nil {
