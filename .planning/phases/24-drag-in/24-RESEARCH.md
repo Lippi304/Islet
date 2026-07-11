@@ -26,6 +26,14 @@
 **Scope boundary (reaffirmed from Phase 22)**
 - **D-09 (LOCKED, reconsidered and re-confirmed):** Drag-in is accepted ONLY while the island is collapsed, exactly as ROADMAP Success Criteria #1 states. Accepting drops while already expanded was explicitly raised and REJECTED as in-scope — deferred idea, not built here.
 
+**Drop-interception fix (architecture gap, added post-Task-3 UAT, 2026-07-11)**
+- **D-10:** Pursue **CGEventTap** first as the mechanism to stop the real OS drag session from reaching whatever's underneath (currently: Finder Desktop's default same-volume move). A tap's callback can swallow/modify an event before it propagates further (e.g., return NULL for the terminating `.leftMouseUp` so Finder's Desktop view never sees the drop complete). Rejected as the first choice: re-attempting a scoped `NSDraggingDestination` (the exact technique that silently failed to fire twice in Phase 22, root cause never identified — retrying without new insight is low-confidence) and the move-back mitigation (kept in reserve as the fallback, see D-14, not the primary approach).
+- **D-11:** Request the new **Input Monitoring** permission lazily, at first real use — the first time the user actually drags a file toward the collapsed island — not upfront during app launch. Islet's onboarding flow (Phase 26) doesn't exist yet, so there's no natural home for an upfront pre-explanation screen this phase; matches the project's general lazy-permission-ask preference. `.planning/research/inspiration/notes.md` (Droppy reference) shows the target pre-explanation pattern (one-line reason before the system prompt) to mirror once Phase 26 exists, but that polish is explicitly Phase 26's problem, not this phase's.
+- **D-12:** If the user denies (or never grants) Input Monitoring, drag-in silently falls back to today's behavior: the shelf still receives the file copy (already works), but the original file may still get relocated by the OS — no worse than the current known gap, no error dialog. Consistent with the codebase's existing silent-no-op precedent (D-07).
+- **D-13:** CGEventTap is itself a brand-new, unproven-in-this-codebase mechanism — same risk category `DragApproachDetector` was in before this phase started. Cap validation at **2 on-device rounds** (mirrors D-05/D-06: one implementation attempt + one fix-and-retry round). If still unreliable after the cap, stop and apply D-14's fallback rather than a fourth architecture pivot or indefinite debugging (same discipline as D-08).
+- **D-14:** If CGEventTap is abandoned after the capped rounds, ship with the **move-back mitigation** as the fallback: detect that the OS performed its default same-volume move and move the file back to its original location. Imperfect (heuristic, some edge-case risk — name collisions, timing races) but closes the data-loss risk without triggering a fourth full architecture pivot.
+- **D-15:** The tap swallows the terminating drag event for **every** drag landing in the accept zone, regardless of source app or volume — not scoped to only the specific same-volume-move risk. Detecting volume/operation-type ahead of the drop completing is fragile and adds a new failure surface for marginal precision gain; simplest and most consistent behavior wins here.
+
 ### Claude's Discretion
 - Exact AppKit/Foundation mechanism for the `DragApproachDetector` (which `NSEvent` types to monitor, how to read the systemwide drag pasteboard to obtain file URLs without `NSDraggingDestination`) — resolved by this research below.
 - How "an active drag session" is detected to gate the widened accept zone — must route through the SAME single arbiter that already owns `ignoresMouseEvents`/`syncClickThrough()` (project memory `cr01-clickthrough-or-defeat-gotcha`) — NOT a parallel flag.
@@ -33,6 +41,8 @@
 - Behavior when a drag carries non-file content (no file URL) — treat as a no-drop/reject, consistent with the shelf's file-only model.
 - Behavior when drag-in is attempted while a Charging/Device splash is actively suppressing the shelf (SHELF-09) — default to the same silent-no-op precedent unless research surfaces a reason to special-case it.
 - Exact margin value for the landing-below-top-edge accept condition (D-02c inherited from Phase 22) — measure against the reserved footprint's existing height.
+- Exact CGEventTap event mask/tap location (`.cgSessionEventTap` vs `.cgAnnotatedSessionEventTap`, which event types to intercept beyond the terminating mouse-up) and how the Input Monitoring permission-check/prompt call is wired — not discussed with the user; research must validate whether swallowing a raw event actually prevents the Window Server's own drag-session completion (the STATE.md blocker note flags this as genuinely uncertain, not assumed to "just work"), same isolated-spike-first discipline as D-05 applied to this new mechanism.
+- Exact detection method for the D-14 move-back fallback (only needed if D-13's cap is hit) — e.g., comparing the original source path's existence post-drop vs. searching the likely destination — deferred until/unless the fallback is actually triggered, not designed preemptively.
 
 ### Deferred Ideas (OUT OF SCOPE)
 - **Accepting drag-in while the island is already expanded** — explicitly raised during discussion and rejected as in-scope for Phase 24 (D-09). If wanted, this is a new capability for a future phase/requirement.
@@ -43,7 +53,7 @@
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| SHELF-01 | User can drag a file, multiple files, or a folder onto the collapsed island — it auto-expands and the item(s) land in a shelf strip below the expanded view | `## Architecture Patterns` (Patterns 1-4: detection, edge-tracked auto-expand, geometry reuse, drop-inference-at-mouseUp), `## Code Examples`, `## Recommended Spike` |
+| SHELF-01 | User can drag a file, multiple files, or a folder onto the collapsed island — it auto-expands and the item(s) land in a shelf strip below the expanded view | `## Architecture Patterns` (Patterns 1-4: detection, edge-tracked auto-expand, geometry reuse, drop-inference-at-mouseUp), `## Code Examples`, `## Recommended Spike`, and `## CGEventTap Drop-Interception Research` below for the drop-interception fix |
 | SHELF-02 | Drop target shows "hot"/targeted visual feedback while a file is being dragged over, before release | Pattern 2 (same hover-bounce spring, now gated by the detector's edge-tracked accept-region check) |
 </phase_requirements>
 
@@ -67,6 +77,7 @@ This phase replaces Phase 22's `NSDraggingDestination` registration (which myste
 | Click-through / hit-test gating (`ignoresMouseEvents`) | Client (`NotchWindowController.syncClickThrough()`) | — | Orthogonal to this phase's detection mechanism (see Pattern 3) — global monitors bypass window hit-testing entirely, so the single arbiter is touched only at drag-end for pointer re-sync, never on the drop's critical path |
 | File/folder URL extraction from the drag pasteboard | Client (`DragDropSupport.swift`, unchanged Phase 22 pure seam) | — | `fileURLs(from:)` already accepts any `NSPasteboard`, confirmed by its own existing tests using arbitrary named pasteboards |
 | Landing dropped items into the shelf | Client (`ShelfCoordinator.append` + `ShelfFileStore` copy-in, Phase 19, unchanged) | — | This phase is purely a new caller |
+| Drop-completion interception (swallowing the terminating raw HID event so Finder's Desktop never sees the drop) | Client (new `CGEventTap`-based type, see `## CGEventTap Drop-Interception Research` below) | — | Sits BELOW the AppKit/`NSEvent` layer — a session-level Core Graphics event tap, not a window-level or Application-level construct; genuinely new tier of intervention for this codebase |
 
 There is no server/backend tier in this app — everything is local AppKit/SwiftUI process, consistent with every prior phase.
 
@@ -79,6 +90,7 @@ No new external dependencies. 100% first-party Apple frameworks, all already lin
 |-----------|---------|------------|
 | AppKit (`NSEvent.addGlobalMonitorForEvents(matching:handler:)`) | Passive systemwide event observation — already used twice in this codebase (`mouseMonitor`, `dragReleaseMonitor`) | HIGH — production-proven in this exact codebase |
 | AppKit (`NSPasteboard(name: .drag)`, `changeCount`, `readObjects(forClasses:options:)`) | Reading dragged file/folder URLs from the systemwide drag pasteboard without being the drop destination | MEDIUM — mechanism cross-verified via WebSearch (multiple independent sources agree), not found stated in an official Apple doc page (fetch attempts on `developer.apple.com/documentation/appkit/nspasteboard/name/drag` returned 404/no-body during this research session) |
+| Core Graphics (`CGEvent.tapCreate`, `CFMachPortCreateRunLoopSource`, `CFRunLoopAddSource`) | Session-level raw event tap to swallow the terminating `.leftMouseUp` before Finder's Desktop sees the drop complete | MEDIUM — mechanism and API shape are HIGH confidence (official Apple docs + multiple cross-verified code examples), but its EFFECT on an in-flight WindowServer drag session is genuinely unverified — see `## CGEventTap Drop-Interception Research` below |
 
 ### Package Legitimacy Audit
 
@@ -131,29 +143,40 @@ Finder / other app (drag source, owns its OWN modal drag-tracking run loop —
 │        tracking IS frozen while ANY drag session, inbound or outbound,  │
 │        is in flight, so pointerInZone/lastPointerLocation must be       │
 │        explicitly re-synced the instant the drag ends)                  │
+│                                                                          │
+│  [POST-TASK-3 ADDITION] DropInterceptTap (new type, see CGEventTap      │
+│  section below): a CGEventTap at .cgSessionEventTap, tapping ONLY       │
+│  .leftMouseUp, .defaultTap options — conditionally returns nil for      │
+│  the SAME event dragEndMonitor above would accept, so the raw HID       │
+│  event never reaches Finder's Desktop view underneath. Reads the SAME   │
+│  isDragApproaching/expandedZone/dragLandingMaxY state (via a narrow     │
+│  callback interface) to decide whether to swallow — never a second     │
+│  parallel state machine.                                                │
 └───────────────────────────────────────────────────────────────────────┘
         │
         ▼
 ShelfCoordinator (Phase 19, unchanged) ──► ShelfViewState ──► NotchPillView shelf row (Phase 20, unchanged)
 ```
 
-A reader can trace: Finder drag → systemwide event observed by Islet's own global monitors (no registration, no callback contract with the drag source) → `NSPasteboard(name: .drag)` polled for content → geometry-gated auto-expand reuses the exact `.dragEntered` pure transition already shipped in Phase 22-02 → drop is INFERRED at `.leftMouseUp` (not delivered via any AppKit drag-destination callback) → dropped URLs flow through the UNCHANGED Phase 19 `ShelfCoordinator.append` seam → the UNCHANGED Phase 20 shelf view re-renders.
+A reader can trace: Finder drag → systemwide event observed by Islet's own global monitors (no registration, no callback contract with the drag source) → `NSPasteboard(name: .drag)` polled for content → geometry-gated auto-expand reuses the exact `.dragEntered` pure transition already shipped in Phase 22-02 → at release, the NEW `DropInterceptTap` swallows the raw terminating event before Finder's Desktop ever sees it (if the accept region is armed) → drop is INFERRED at `.leftMouseUp` by Islet's own passive monitor (not delivered via any AppKit drag-destination callback) → dropped URLs flow through the UNCHANGED Phase 19 `ShelfCoordinator.append` seam → the UNCHANGED Phase 20 shelf view re-renders.
 
 ### Recommended Project Structure
 
-No new files required — fits entirely inside the existing `NotchWindowController.swift`, reusing `DragDropSupport.swift` and `NotchInteractionState.swift` unchanged:
+No new files required for the detection layer — fits entirely inside the existing `NotchWindowController.swift`, reusing `DragDropSupport.swift` and `NotchInteractionState.swift` unchanged. **The post-Task-3 `DropInterceptTap` addition IS a new file** (see `## CGEventTap Drop-Interception Research` §5 below for the rationale):
 ```
 Islet/Notch/
 ├── NotchPanel.swift              # UNCHANGED — stays a zero-drag-code window shell (23-CONTEXT.md D-01)
 ├── NotchWindowController.swift   # + dragApproachMonitor/dragEndMonitor properties (mirrors mouseMonitor/
 │                                  #   dragReleaseMonitor's exact shape) + handleDragApproachTick/End methods
+│                                  #   + owns one DropInterceptTap instance (post-Task-3 addition)
 ├── NotchInteractionState.swift   # UNCHANGED — .dragEntered event + nextState transitions already exist
 │                                  #   (survived Phase 22-02, confirmed present in current codebase)
-└── DragDropSupport.swift         # UNCHANGED — fileURLs(from:)/shouldAcceptDrop(isExpanded:urls:) reused
-                                   #   as-is against NSPasteboard(name: .drag)
+├── DragDropSupport.swift         # UNCHANGED — fileURLs(from:)/shouldAcceptDrop(isExpanded:urls:) reused
+│                                  #   as-is against NSPasteboard(name: .drag)
+└── DropInterceptTap.swift        # NEW (post-Task-3) — small standalone CGEventTap owning type; see below
 ```
 
-**Recommendation on the "DragApproachDetector" name (ROADMAP wording):** keep this as inline stored properties + private methods on `NotchWindowController`, exactly mirroring how `mouseMonitor`/`dragReleaseMonitor` are today — NOT a new extracted Swift type. The ROADMAP's naming refers to the *detection pattern*, not a mandated new class; this file has zero extracted monitor types today (Pitfall/anti-pattern: don't introduce the first one for a single call site — see Don't Hand-Roll below).
+**Recommendation on the "DragApproachDetector" name (ROADMAP wording):** keep this as inline stored properties + private methods on `NotchWindowController`, exactly mirroring how `mouseMonitor`/`dragReleaseMonitor` are today — NOT a new extracted Swift type. The ROADMAP's naming refers to the *detection pattern*, not a mandated new class; this file has zero extracted monitor types today (Pitfall/anti-pattern: don't introduce the first one for a single call site — see Don't Hand-Roll below). **This recommendation is unchanged for the detection layer.** The new `DropInterceptTap` type is a SEPARATE post-Task-3 concern with its own justification (see below) — it does not contradict this "no new types" conclusion, which was explicitly scoped to the original detection+shelf-landing work only (confirmed in `24-PATTERNS.md`'s own "Post-Task-3 addition" note).
 
 ### Pattern 1: Detect a real external drag via `.leftMouseDragged` + `NSPasteboard(name: .drag)` changeCount, NOT `.mouseMoved`
 
@@ -273,7 +296,7 @@ private func handleDragApproachEnd() {
 
 | Problem | Don't Build | Use Instead | Why |
 |---------|-------------|-------------|-----|
-| Detecting an external drag-and-drop session without being the destination | A custom `CGEventTap` / Accessibility-API-based drag observer | `NSEvent.addGlobalMonitorForEvents` (already proven twice in this codebase) + `NSPasteboard(name: .drag)` | `CGEventTap` requires the separate, heavier Input Monitoring privilege and no permission-prompt precedent exists in this app; `NSEvent` global monitors are the established, lighter-weight mechanism this codebase already ships with |
+| Detecting an external drag-and-drop session without being the destination | A custom `CGEventTap` / Accessibility-API-based drag observer | `NSEvent.addGlobalMonitorForEvents` (already proven twice in this codebase) + `NSPasteboard(name: .drag)` | `CGEventTap` requires the separate, heavier Input Monitoring/Accessibility privilege and no permission-prompt precedent exists in this app; `NSEvent` global monitors are the established, lighter-weight mechanism this codebase already ships with. **(Note: the Task-3 finding shows a `CGEventTap` IS still needed, but only for the narrow drop-interception fix, not for detection — detection stays on the `NSEvent` mechanism above.)** |
 | Extracting file URLs from a drag pasteboard | New pasteboard-type parsing | `DragDropSupport.swift`'s existing `fileURLs(from:)` | Already built, tested, and confirmed to work against ANY named `NSPasteboard` (its own tests use arbitrary fresh pasteboards) — zero reason to duplicate |
 | Copying the dropped file into session storage | New copy logic | `ShelfFileStore.makeSessionCopy(of:id:)` (Phase 19, unchanged) | Already built, tested, sole owner of the session-copy contract |
 | Deduping a re-dropped file already in the shelf | New dedup logic | `ShelfCoordinator.append` → `ShelfLogic.append`'s existing dedup (Phase 19) | Already handles silent no-op on duplicate |
@@ -405,23 +428,25 @@ This spike is cheap (well under an hour, no permanent code committed if it fails
 | Quick run command | `xcodebuild -project Islet.xcodeproj -scheme Islet -configuration Debug build` (BUILD gate only) |
 | Full suite command | Manual Cmd-U in Xcode GUI — `xcodebuild test` hangs headlessly in this environment (project memory `xcodebuild-test-headless-hang`) |
 
-**Critical caveat, unchanged from Phase 22:** the core SHELF-01/SHELF-02 behavior (does a drag actually get detected and land) is fundamentally **not unit-testable** — it requires a real Window Server drag session, which no XCTest harness exercises. Automated tests can only cover the PURE seams (URL extraction — already covered by `DragDropSupportTests.swift`; the edge-detection logic for one-shot auto-expand if extracted as a pure function; `isWithinDragAcceptRegion`'s geometry math if extracted as a pure function). The actual "does the drag get detected, does the drop land" question is exclusively a manual/on-device verification item, mirrored by the spike above.
+**Critical caveat, unchanged from Phase 22:** the core SHELF-01/SHELF-02 behavior (does a drag actually get detected and land) is fundamentally **not unit-testable** — it requires a real Window Server drag session, which no XCTest harness exercises. Automated tests can only cover the PURE seams (URL extraction — already covered by `DragDropSupportTests.swift`; the edge-detection logic for one-shot auto-expand if extracted as a pure function; `isWithinDragAcceptRegion`'s geometry math if extracted as a pure function). The actual "does the drag get detected, does the drop land" question is exclusively a manual/on-device verification item, mirrored by the spike above. **The post-Task-3 `CGEventTap` interception is likewise fundamentally not unit-testable** — swallowing a raw HID event's effect on the WindowServer's own drag-session bookkeeping can only be observed by a real on-device drag against real Finder, exactly as flagged in `## CGEventTap Drop-Interception Research` below.
 
 ### Phase Requirements → Test Map
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
 | SHELF-01 | Dropped file/folder URLs become `ShelfItem`s in drop order, collapsed-only | unit (pure extraction/append logic) | `xcodebuild test -only-testing:IsletTests/DragDropSupportTests` (via Cmd-U) | ✅ `DragDropSupportTests.swift` exists and already covers `fileURLs(from:)`/`shouldAcceptDrop` |
 | SHELF-01 | The drag is actually detected by the global monitors and the drop lands | manual-only | N/A — no automated harness can simulate a real OS drag session | ❌ Wave 0 gap — this is the spike itself, and the phase's own manual/human-UAT step |
+| SHELF-01 | The dragged file is NOT relocated by Finder's own default same-volume move (post-Task-3 fix) | manual-only | N/A — requires a real Finder Desktop drop target and a real drag session | ❌ New Wave 0 gap — the `DropInterceptTap` on-device validation round(s) per D-13 |
 | SHELF-02 | Hot/targeted feedback shows before release | manual-only (visual) + unit (edge-detection logic pure function, if extracted) | Manual Cmd-R visual check; a new unit test for `isWithinDragAcceptRegion`'s pure geometry math is recommended | ❌ Wave 0 gap — new pure-function test needed once the geometry helper exists |
 
 ### Sampling Rate
 - **Per task commit:** `xcodebuild -project Islet.xcodeproj -scheme Islet -configuration Debug build` (build-only gate, matches every prior phase's convention)
 - **Per wave merge:** Same build gate + manual Cmd-U for any new/changed pure-seam unit tests + a manual on-device drag verification pass
-- **Phase gate:** Full manual on-device UAT (drag single file, multiple files, a folder, an Escape-cancel) before `/gsd:verify-work` — this phase cannot be verification-complete without human hands-on testing
+- **Phase gate:** Full manual on-device UAT (drag single file, multiple files, a folder, an Escape-cancel, AND — post-Task-3 — confirm the original file stays in its source location after a drop) before `/gsd:verify-work` — this phase cannot be verification-complete without human hands-on testing
 
 ### Wave 0 Gaps
 - [ ] A pure-function unit test for `isWithinDragAcceptRegion(_:)`'s geometry math (expandedZone + landing-margin), testable without any real drag session — new for this phase, since `dragLandingMaxY` does not currently exist in the codebase
 - [ ] The spike itself (no automated harness possible — manual on-device only)
+- [ ] The post-Task-3 `DropInterceptTap` on-device validation round(s) — no automated harness possible (see `## CGEventTap Drop-Interception Research` below)
 
 ## Security Domain
 
@@ -443,6 +468,7 @@ This spike is cheap (well under an hour, no permanent code committed if it fails
 | Stale drag-pasteboard content falsely accepted as a new drop (Pitfall 2) | Spoofing / Tampering (of the app's own state, not a real external attacker) | The `isDragApproaching` session-tracking gate (armed only by a genuine `changeCount` delta observed while in-region) is the mitigation — never trust raw pasteboard presence alone |
 | Dropped file path traversal / symlink pointing outside sandbox | Tampering | Not applicable — unchanged from Phase 22: this app is NOT sandboxed, and `ShelfFileStore.makeSessionCopy` already validates before any I/O; no new trust boundary introduced by switching detection mechanisms |
 | A stuck `isDragApproaching` pin never releasing (island stuck expanded, violating Success Criterion #3) | Denial of Service (self, availability) | `handleDragApproachEnd()` unconditionally clears the flag before any accept logic runs (Pitfall 5) — a geometrically-ambiguous cancel can never leave the pin stuck, per D-07's silent-failure reliability bar |
+| A system-wide `CGEventTap` swallowing MORE than the single intended terminating event, breaking ordinary clicks/drags elsewhere on the OS (post-Task-3) | Denial of Service (self and system-wide UX, not a security compromise, but a severe usability regression) | See `## CGEventTap Drop-Interception Research` §2/Pitfalls below — the tap's callback must return `Unmanaged.passUnretained(event)` (pass through unmodified) for every event except the single specific `.leftMouseUp` landing inside the armed accept region; a health-check + graceful-disable path is required so a malfunctioning tap can never globally freeze mouse input |
 
 ## Sources
 
@@ -468,3 +494,180 @@ This spike is cheap (well under an hour, no permanent code committed if it fails
 
 **Research date:** 2026-07-11
 **Valid until:** 30 days (stable Apple framework APIs; the on-device spike result, once run, should be recorded permanently in the phase's task notes/SUMMARY rather than re-researched, exactly as 22-01-SUMMARY.md did)
+
+---
+
+## CGEventTap Drop-Interception Research (Post-Task-3 Addition)
+
+**Researched:** 2026-07-11 (same session, added after Plan 24-02 Task 3's on-device UAT surfaced the drop-interception architecture gap — see `24-CONTEXT.md` D-10 through D-15 and `STATE.md` Blockers/Concerns)
+**Domain:** Using a `CGEventTap` (a Core Graphics session-level raw-event tap, sitting BELOW the AppKit/`NSEvent` layer used by the rest of this phase) to swallow the terminating `.leftMouseUp` of an inbound Finder drag, so Finder's own Desktop window never sees the drop complete and never performs its default same-volume move.
+**Confidence:** LOW-MEDIUM overall. The API mechanics (tap creation, run loop wiring, permission checks) are HIGH confidence — standard, well-documented Core Graphics APIs. **The one load-bearing question — does consuming the event actually stop the WindowServer's own internal drag-completion bookkeeping — could NOT be confirmed from official documentation or real-world precedent in this research session.** This is exactly the uncertainty CONTEXT.md flags, and it is NOT resolved here; it requires the D-13-capped on-device spike.
+
+### 1. Does swallowing a raw event via CGEventTap actually prevent drag-session completion? (THE load-bearing question)
+
+**Short answer: genuinely unverified, but there is a plausible (not proven) technical argument FOR it working, undercut by the fact that no real-world app appears to use this specific technique for this specific purpose — the established apps in this exact product category (Yoink, Dropzone) solve the problem a structurally DIFFERENT way that sidesteps the question entirely.**
+
+**The architectural case FOR it working `[ASSUMED — reasoned from tap-location semantics, not confirmed by an authoritative source]`:**
+A `CGEventTap` inserted with `.defaultTap` and placed with `.headInsertEventTap` sits at the very front of the WindowServer's own event-dispatch pipeline for that tap location — this is the literal purpose of the API: to let a client inspect and optionally cancel (`return nil`) an event BEFORE any downstream consumer (other apps, other taps, and in principle the WindowServer's own internal subsystems that are fed from the same event queue) receives it. If the WindowServer's drag-and-drop tracking state machine consumes its "has the button been released" signal from the same central event stream that feeds the tap, swallowing that event at the earliest available tap location should, in principle, prevent the drag machine from ever recording the release — precisely the mechanism this technique relies on for keyboard remapping tools like Karabiner-Elements (session-level, non-kext mode) and BetterTouchTool, both of which are widely used to intercept and altogether cancel raw input system-wide.
+
+**Circumstantial evidence the tap DOES sit upstream of drag-tracking, not just app dispatch:** a BetterTouchTool community report (`community.folivora.ai`) describes a CGEventTap installed by that app causing an observable ~150-200ms delay at the START of every drag gesture system-wide, attributed to the tap's own event-filtering overhead `[MEDIUM: community forum report, not an Apple source, but a concrete field observation of a shipping app's tap interacting with the live drag-tracking pipeline]`. A delay is not the same as full prevention, but it demonstrates the tap sits in a position where it measurably affects the timing/delivery of the SAME drag-tracking machinery this phase needs to defeat — i.e., the tap is not merely a bystander copy-observer parallel to drag-tracking, it is upstream of it in the same pipeline. This is the strongest piece of evidence found this session, and it is still indirect.
+
+**The case AGAINST assuming it works, or at least for treating it as unproven:**
+1. **No real app in this exact category (Yoink, Dropzone, CleanShot X) appears to use this technique for this purpose.** WebSearch on all three found no technical description of a CGEventTap-based drop-interception mechanism. Yoink's actual documented mechanism is structurally different and much simpler: it fades in a REAL overlay window the instant any drag starts (detected via drag-session observation, likely similar `NSPasteboard(name:.drag)`-polling to this phase's own detection layer) and that overlay is a genuine `NSDraggingDestination` — so when the user drops onto Yoink's shelf, Yoink simply wins the OS's normal drop-target hit-test, the same way any two overlapping windows compete for a drop. **Yoink never needs to intercept or cancel an already-in-flight drop onto a DIFFERENT window (e.g., Finder's Desktop) — it avoids the problem by visually and functionally becoming the target instead.** This is a meaningfully different (and more conventional) architecture than D-10's approach, and its total absence from the research trail for "how do drag utilities solve this" is itself a signal: the CGEventTap-swallow technique for this specific purpose may be a novel approach without established precedent, not a known-working technique this research simply couldn't find better sources for.
+2. **The Window Server's drag session may not be driven by the same raw-event queue a session-level tap observes.** Apple's own drag-and-drop implementation is old (predates CGEventTap, which arrived with Mac OS X 10.4/10.5-era APIs) and its internal plumbing is undocumented/private. It is plausible — and cannot be ruled out from this session's available sources — that the WindowServer's drag tracker is fed via a separate, lower-level mechanism (e.g. directly from the HID event stream or an internal Mach message dedicated to drag state, bypassing the `CGSession`-level tap-visible queue used for ordinary click dispatch) that a `.cgSessionEventTap`-located tap (the only location available to a non-root app — see §2) never sees at all. If so, consuming the copy delivered to the tap would have ZERO effect on the drag session's completion — the WindowServer would still internally believe the mouse button was released and would proceed to call `performDragOperation` on whatever real window is under the pointer, exactly as today.
+
+**Verdict:** This is not a settled question. The technique is architecturally plausible and has one piece of indirect supporting field evidence (BTT's drag-start delay), but it has no confirmed working precedent for this exact use case, and the established real-world apps in this product category solve the underlying problem a different way that never required answering this question. **Treat this as the single highest-risk unknown in the entire drop-interception fix — exactly as CONTEXT.md's own framing states — and do not write the shelf-landing/move-back branch logic until the D-13-capped spike empirically confirms or refutes it.**
+
+### 2. Correct tap configuration
+
+**Tap location — `.cgSessionEventTap` is the only realistic choice for a normal (non-root) app `[VERIFIED: developer.apple.com/documentation/coregraphics/cgeventtaplocation — cross-referenced across multiple pages this session, HIGH confidence]`:**
+- `.cghidEventTap` ("the point where HID system events enter the window server") is the EARLIEST possible interception point and would be the theoretically strongest choice for §1's question — but **Apple's own documentation states taps may only be placed at this location by a process running as the root user; for any other user, `CGEventTapCreate` returns `NULL`.** Islet runs as the logged-in user, never root, and there is no plan to change that (and doing so would be a drastic, unacceptable architecture change for a notarized consumer app). **This location is not available to this project — do not attempt it.**
+- `.cgSessionEventTap` ("the point where HID system and remote-control events enter the current login session") is the practical earliest point available to a normal user-space app, and is what essentially every third-party remapping/monitoring tool (Hammerspoon, BetterTouchTool, Karabiner-Elements' non-kernel-extension mode) uses. **Recommended tap location for this fix.**
+- `.cgAnnotatedSessionEventTap` ("the point where annotated events are delivered to your application," i.e. after accessibility annotation has already been applied, closer to per-app dispatch) is a LATER point in the pipeline than `.cgSessionEventTap` — if the WindowServer's own drag bookkeeping happens anywhere between the session tap and the annotated-session tap (plausible, unconfirmed), tapping here would be too late. **Do not use this location for the swallow; `.cgSessionEventTap` is strictly earlier and therefore strictly safer for this purpose.**
+
+**Placement — `.headInsertEventTap`:** Places this tap at the head of the list of taps active at `.cgSessionEventTap` for this event type, so it is evaluated before any OTHER tap a different process might have installed at the same location (e.g., if the user also runs BetterTouchTool/Hammerspoon). `.tailAppendEventTap` would let other taps see (and potentially already act on) the event first, which only matters if multiple taps exist simultaneously — but `.headInsertEventTap` is the conventional, safer default with no downside for this project's single-tap use case `[CITED: developer.apple.com/documentation/coregraphics/cgeventtapplacement, HIGH]`.
+
+**Options — `.defaultTap`, NOT `.listenOnly` (confirmed by the task brief and re-verified this session):** `.listenOnly` taps receive events for observation only; **any value the callback returns is ignored — the event always continues downstream unmodified.** Only `.defaultTap` allows the callback's return value (`nil` = swallow, or a modified/passed-through `Unmanaged<CGEvent>` = continue) to actually change what happens to the event. Since D-15 requires swallowing, `.defaultTap` is the only option that can work at all — this is settled, not in question.
+
+**Event mask — recommend `.leftMouseUp` ONLY, not the full `leftMouseDown`→`leftMouseDragged`→`leftMouseUp` span, with an important caveat flagged for the spike:**
+D-10/D-15 frame the fix as swallowing "the terminating event" specifically, and the existing `DragApproachDetector` (Plan 24-02, already shipped and on-device confirmed) already handles ALL of the approach/auto-expand/geometry detection via its own passive `NSEvent` global monitors on `.leftMouseDragged`/`.leftMouseUp` — the new tap does not need to duplicate that detection, only add the ability to CANCEL the one specific terminating event when `isDragApproaching` is true. A minimal mask (`CGEventMask(1 << CGEventType.leftMouseUp.rawValue)`) keeps the tap's footprint as small as possible, which matters for the pitfall below (interaction with Plan 24-02's own monitors). **Open question flagged for the spike, not resolved here:** if the WindowServer's drag-tracking state is latched in earlier during `.leftMouseDown`/`.leftMouseDragged` (e.g., it may decide "this is a same-volume move onto the Desktop" based on cumulative gesture state well before the final release, independent of whether the terminating mouse-up specifically is later consumed) then swallowing only `.leftMouseUp` might be provably insufficient — the spike must observe whether the file still gets relocated even with the mouse-up swallowed, which would indicate the drag's fate was already sealed earlier in the gesture and D-14's fallback is the only real option regardless of tap configuration.
+
+### 3. Input Monitoring vs. Accessibility permission — an important correction to the task brief's framing
+
+**This is a significant, load-bearing finding that should be surfaced to the planner and re-confirmed with the user before D-11's wording is locked into a plan.**
+
+Multiple independent sources (Apple Developer Forums thread 122492, cross-referenced against a second forum thread and a GitHub issue discussing `CGEvent.tapCreate`) state that **the permission actually required depends on the tap's `options`, not just on using `CGEventTap` in general:**
+- **`.listenOnly` taps → require Input Monitoring** (`kTCCServiceListenEvent`, checked/requested via `CGPreflightListenEventAccess()`/`CGRequestListenEventAccess()`, `NSInputMonitoringUsageDescription` shown in the system prompt).
+- **`.defaultTap` taps (which this fix requires, per §2) → require Accessibility** (`kTCCServiceAccessibility`, checked via `AXIsProcessTrusted()`, requested/prompted via `AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt: true] as CFDictionary)`). `[MEDIUM: two independent Apple Developer Forum threads state this explicitly and consistently; could not cross-verify against a current (2026) official Apple doc page in this session — flagged as an open item for the spike to confirm empirically on the actual Tahoe build machine, since TCC behavior has shifted across macOS versions before]`
+- One of the same sources adds a practical simplification: **if the app already holds Accessibility trust, Input Monitoring is implicitly satisfied too** — Accessibility is described as the broader-scoped permission of the two for this purpose.
+
+**Practical implication for D-11/D-12:** since D-15 requires `.defaultTap` (swallowing is impossible with `.listenOnly`), the permission this feature actually needs is most likely **Accessibility**, not Input Monitoring as D-11's current wording assumes. This means:
+- The correct preflight check is `AXIsProcessTrusted()`, not `CGPreflightListenEventAccess()`/`IOHIDCheckAccess()`.
+- The correct request call is `AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt: true] as CFDictionary)`, not `CGRequestListenEventAccess()`.
+- Accessibility's system prompt does **not** display a custom one-line `Info.plist` usage-description string the way Input Monitoring's does — the user is directed to System Settings → Privacy & Security → Accessibility to manually enable the checkbox, with no equivalent to `NSInputMonitoringUsageDescription`'s inline reason text. If an inline explanation is wanted (matching the Droppy reference pattern D-11 cites), it has to be Islet's OWN pre-explanation UI shown before calling the trust-check API, not a system-provided string.
+- `NSInputMonitoringUsageDescription` may still be worth adding defensively (it is inert if unused, and some sources suggest Accessibility-trusted apps get Input Monitoring "for free" — meaning both TCC entries could plausibly show up in System Settings), but **`NSAccessibilityUsageDescription` is not a real Info.plist key for this API** (Accessibility's prompt is not gated by a custom description string the way camera/bluetooth/input-monitoring are) — do not invent one.
+
+**Recommendation:** the planner should treat "which permission, exactly" as a task-level checkpoint to verify empirically during the spike (`AXIsProcessTrusted()` before tap creation; log whether the system shows an Accessibility prompt, an Input Monitoring prompt, both, or neither) rather than assume D-11's "Input Monitoring" wording is correct as written. This does not change D-11's underlying INTENT (ask lazily, at first real use) — only the specific API surface and prompt text involved.
+
+**What happens if `CGEventTapCreate`/`CGEvent.tapCreate` returns `nil` (permission denied or otherwise refused):** confirmed straightforward and matches D-12's already-locked graceful-fallback framing — `tapCreate` simply returns `nil` (Optional), no exception/crash. The correct pattern is a `guard let tap = CGEvent.tapCreate(...) else { return }` at setup time: if `nil`, skip installing the run-loop source entirely and leave the feature disabled for that session — exactly the "tap creation fails, skip the tap, everything else still works" behavior D-12 describes. This part IS confirmed technically simple; the only real uncertainty is which permission API/prompt gates it (above) and the code-signing caveat below.
+
+**Code-signing caveat specific to this project (worth flagging given this project's own prior Hardened-Runtime signing incident):** a 2026 field report (`danielraffel.me`) documents that CGEventTaps can become "functionally inert" (the tap object is created successfully, `tapCreate` does NOT return `nil`, but the callback silently never fires) after an app is re-signed and re-launched via Launch Services/Finder, theorized to be caused by TCC re-evaluating permission grants against a changed code identity. The article's own mitigation: **periodically call `CGEvent.tapIsEnabled(tap:)` (e.g. every few seconds) and reinstall the tap if it has silently gone inert** — "a non-nil tap is not a healthy tap." Given this project's own prior real incident with Hardened Runtime + re-signing breaking a different mechanism (embedded `MediaRemoteAdapter.framework`, project memory `release-library-validation-crash`, gated specifically behind `-configuration Release` builds), **this health-check pattern should be treated as a real, non-optional part of the implementation for this project specifically, not generic defensive paranoia** — test explicitly in a Release-configuration build, not just Debug, mirroring how the MediaRemoteAdapter issue only manifested in Release.
+
+### 4. Run loop integration
+
+Standard, well-documented, HIGH confidence — no project-specific uncertainty here:
+
+```swift
+// Source: cross-verified across multiple independent code examples (Medium/Gaitatzis article,
+// several GitHub reference implementations) — consistent, HIGH confidence for the mechanics.
+guard let tap = CGEvent.tapCreate(
+    tap: .cgSessionEventTap,
+    place: .headInsertEventTap,
+    options: .defaultTap,
+    eventsOfInterest: CGEventMask(1 << CGEventType.leftMouseUp.rawValue),
+    callback: { proxy, type, event, userInfo in
+        // `userInfo` carries an Unmanaged<DropInterceptTap> passed at tapCreate time
+        // (this callback is a C function pointer, NOT a Swift closure capturing `self` —
+        // context must be threaded through `userInfo`, a real difference from this codebase's
+        // existing NSEvent-monitor closures, which DO capture [weak self] directly).
+        guard let userInfo else { return Unmanaged.passUnretained(event) }
+        let intercept = Unmanaged<DropInterceptTap>.fromOpaque(userInfo).takeUnretainedValue()
+        return intercept.handle(type: type, event: event)
+    },
+    userInfo: Unmanaged.passUnretained(self).toOpaque()
+) else {
+    // D-12's graceful fallback — no tap, feature silently disabled for this session
+    return
+}
+let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+CGEvent.tapEnable(tap: tap, enable: true)
+```
+
+**Main run loop, not a dedicated thread — same conclusion as the existing `NSEvent` monitors, and for the same underlying reason:** the callback needs to read/write `isDragApproaching`, `expandedZone`, `dragLandingMaxY` — the SAME `@MainActor`-adjacent AppKit state the existing `handleDragApproachTick`/`handleDragApproachEnd` already touch on the main run loop (per this codebase's existing Swift-5-language-mode, not-yet-strict-concurrency setup per `CLAUDE.md`). `CFRunLoopAddSource(CFRunLoopGetMain(), ..., .commonModes)` is the correct, conventional choice — using `.commonModes` (not just `.defaultMode`) matters so the tap keeps firing even while the run loop is in a modal/tracking mode for some OTHER reason (e.g., a menu is open), mirroring why AppKit's own event-tracking-mode considerations matter elsewhere in this research (Pitfall 1).
+
+**One real difference from the existing `NSEvent.addGlobalMonitorForEvents` monitors worth flagging for the planner:** the CGEventTap callback is a C function pointer (or a capture-less Swift closure convertible to one), NOT a `[weak self]`-capturing closure like every existing monitor in this file. Context must be threaded through the `userInfo: UnsafeMutableRawPointer?` parameter using `Unmanaged<T>.passUnretained(self).toOpaque()` at creation and `Unmanaged<T>.fromOpaque(userInfo).takeUnretainedValue()` inside the callback. This is a meaningfully different, more manual-memory-management-flavored idiom than anything else in this file — direct supporting evidence for §5's recommendation to isolate this in its own small type rather than bolt it onto `NotchWindowController` inline.
+
+### 5. New owning type — recommend a small standalone `DropInterceptTap`, breaking from this phase's own "no new types" convention, deliberately
+
+**Recommendation: YES, a new small standalone type — e.g. `Islet/Notch/DropInterceptTap.swift` — owned by (held as a property on) `NotchWindowController`, not folded into it inline.** This deliberately departs from the rest of Phase 24's "no new files/types" convention (`24-PATTERNS.md`'s own stated bias, correctly applied to the `NSEvent`-based detection layer above), for reasons specific to THIS piece only:
+
+1. **Genuinely different code shape.** As shown in §4, the tap's callback is a C-function-pointer-style callback threading context through `Unmanaged<T>`/`UnsafeMutableRawPointer`, not a `[weak self]` closure — a meaningfully different idiom from every other monitor in `NotchWindowController.swift`. Mixing manual-memory-management-flavored glue into the same file as the rest of the controller's ARC-managed, closure-capturing code is a legitimate readability/maintainability cost, not a stylistic preference.
+2. **A materially larger, more failure-prone lifecycle than a one-line `NSEvent.addGlobalMonitorForEvents` call.** Per §3, this includes: a permission preflight/request step, `nil`-on-failure handling (D-12), run-loop-source add/remove, `tapEnable`/`tapDisable`, AND (per the code-signing caveat) an ongoing periodic `tapIsEnabled()` health check with reinstall-on-failure logic. This is enough independent moving state that it earns its own encapsulation boundary, the same way this project already isolates its OTHER highest-risk/most-likely-to-break external integration (`MediaRemoteAdapter`) behind a dedicated `NowPlayingService`-style seam per `CLAUDE.md`'s own explicit architecture note ("isolate all now-playing code behind one Swift protocol/service so swapping the implementation is a one-file change").
+3. **Directly matches D-13's own risk framing and D-14's fallback path.** If the on-device spike (capped at 2 rounds per D-13) shows CGEventTap does NOT work (§1's uncertainty resolves negatively) and the team falls back to D-14's move-back mitigation instead, having this entire mechanism isolated in one file makes it a clean, low-risk DELETION (remove `DropInterceptTap.swift`, remove the one property/two calls in `NotchWindowController` that reference it) rather than an unpicking exercise scattered through the controller.
+4. **Zero regression to the CR-01 single-arbiter discipline.** The new type should expose the narrowest possible interface back into `NotchWindowController` — e.g. a stored closure or weak delegate reference the controller supplies at construction time (`shouldSwallow: () -> Bool` reading the SAME `isDragApproaching`/`isWithinDragAcceptRegion(...)` state Plan 24-02 already introduced, not a second parallel flag) — and must NEVER itself touch `ignoresMouseEvents`/`syncClickThrough()`. It only decides whether to return `nil` or pass the event through; all shelf-landing/acceptance logic stays exactly where Plan 24-02 already put it (`handleDragApproachEnd()`).
+
+**Design sketch (illustrative shape, not final code — planner to detail exactly):**
+```swift
+// Islet/Notch/DropInterceptTap.swift — NEW file, post-Task-3 addition
+final class DropInterceptTap {
+    private var machPort: CFMachPort?
+    private var runLoopSource: CFRunLoopSource?
+    private let shouldSwallow: () -> Bool   // reads NotchWindowController's existing isDragApproaching +
+                                              // isWithinDragAcceptRegion(NSEvent.mouseLocation) — no new state
+
+    init(shouldSwallow: @escaping () -> Bool) { self.shouldSwallow = shouldSwallow }
+
+    func start() {
+        guard AXIsProcessTrusted() else { return }   // D-12 — no prompt yet at construction time;
+                                                       // caller decides WHEN to request (lazy, D-11)
+        // ... tapCreate/CFMachPortCreateRunLoopSource/CFRunLoopAddSource per §4 ...
+    }
+
+    func stop() {
+        if let runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes) }
+        if let machPort { CGEvent.tapEnable(tap: machPort, enable: false) }
+        machPort = nil
+        runLoopSource = nil
+    }
+
+    fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        guard type == .leftMouseUp, shouldSwallow() else { return Unmanaged.passUnretained(event) }
+        return nil   // swallow — Finder's Desktop (or whatever's underneath) never sees this mouseUp
+    }
+}
+```
+
+**A critical integration risk this design sketch surfaces, worth its own Pitfall entry below:** since `handle(...)` returns `nil` (fully suppressing the event) whenever `shouldSwallow()` is true, and Islet's OWN existing `dragEndMonitor` (`NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp])`, Plan 24-02) is ALSO just a downstream consumer of that same event stream — it is genuinely unclear whether Islet's own passive monitor would still fire for an event Islet's own tap just suppressed. See Pitfall A below; this materially affects the planner's wiring design (whether shelf-landing must be triggered directly from inside `DropInterceptTap.handle(...)` rather than relying on the separate, pre-existing `dragEndMonitor` path).
+
+### 6. Failure/fallback path (D-14) — move-back mitigation, brief per CONTEXT.md's explicit deferral
+
+Per CONTEXT.md's own instruction, this is deliberately NOT designed in full here — only the general shape and known risks, so a future planner isn't starting from zero if D-13's cap is hit.
+
+**General approach:** `handleDragApproachEnd()` already captures the accepted `urls: [URL]` (the ORIGINAL source URLs, read from `NSPasteboard(name: .drag)`) before the shelf copy is made. After the drop, schedule a short delayed check (e.g. `DispatchQueue.main.asyncAfter(deadline: .now() + 0.3-0.5)`, tuned empirically) that calls `FileManager.default.fileExists(atPath: originalURL.path)` for each accepted URL. If the original no longer exists at its source path, assume Finder performed its default same-volume move to the Desktop (the specific, confirmed failure mode from Task 3's UAT) and attempt `FileManager.default.moveItem(at: presumedDesktopURL, to: originalURL)` where `presumedDesktopURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop").appendingPathComponent(originalURL.lastPathComponent)`.
+
+**Known edge-case risks (flagged, not resolved):**
+- **Name collisions:** if a file with the same name already existed on the Desktop before the drop, Finder's own move operation would have auto-renamed the just-moved file (e.g. "photo 2.jpg"), breaking the naive `lastPathComponent`-based guess entirely — the move-back would either silently fail (source doesn't exist at the guessed path) or, worse, move back the WRONG (pre-existing) file.
+- **Timing races:** the delay between "our drop-acceptance logic runs" and "Finder's own async move operation actually completes on disk" is unmeasured and may vary (multi-file drags, slow/network volumes, Time Machine or Spotlight indexing contention); too short a delay produces a false "still exists" read before Finder's move actually lands; too long a delay risks the user visibly seeing (and reacting to) the file briefly vanish from its original location before Islet moves it back.
+- **Multi-file/folder drags amplify both risks independently per item** — a partial success (some files moved back correctly, others not, due to independent collisions/timing per file) is a plausible, messy outcome that would need its own defined behavior (silent partial success per D-07's precedent, most likely, but not decided here).
+- **This mitigation is inherently reactive/heuristic**, not a real interception — it cannot prevent the brief moment where the file is genuinely absent from its original location, which may itself be user-visible or trigger OTHER Finder/Spotlight side effects (e.g., a `.fileprovider` sync, an open Finder window's UI briefly showing the file gone) that this research has not investigated, consistent with CONTEXT.md's explicit instruction to defer this design.
+
+### Pitfalls (post-Task-3 addition)
+
+#### Pitfall A: The tap swallowing an event may ALSO prevent Islet's own passive `NSEvent` monitor from seeing it
+**What goes wrong:** `DropInterceptTap.handle(...)` returns `nil` for the terminating `.leftMouseUp` to stop Finder's Desktop from seeing it — but Islet's OWN `dragEndMonitor` (the pre-existing `NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp])` from Plan 24-02, which triggers `handleDragApproachEnd()` and lands the file in the shelf) may ALSO be a downstream consumer of the same now-suppressed event, and may simply never fire for that specific mouse-up either.
+**Why it happens:** `NSEvent`'s global-monitor API is itself understood to be implemented on top of the same session-level event-tap infrastructure `CGEventTap` exposes directly — if that is accurate, an event fully consumed (`nil`-returned) by a `.defaultTap` positioned with `.headInsertEventTap` would never reach ANY later observer in the same pipeline, including Islet's own separate monitor, regardless of which process registered it.
+**How to avoid:** Do not assume the existing `dragEndMonitor`/`handleDragApproachEnd()` path will still fire for a swallowed event. The safer design is to trigger the EXISTING shelf-landing logic (`handleDragApproachEnd()`, unchanged from Plan 24-02) directly from INSIDE `DropInterceptTap.handle(...)`'s swallow branch (via the same narrow callback-injection pattern used for `shouldSwallow`), rather than relying on two independent consumers of the same event to both fire correctly. This must be explicitly verified in the spike — log from BOTH the tap callback and the existing `dragEndMonitor` closure on the same test drag, and confirm empirically whether both fire, only the tap does, or (worst case) neither does reliably.
+**Warning signs:** Files "disappearing" from the drag entirely — no relocation to Desktop (the tap worked!) but ALSO nothing lands in the shelf (the existing detection monitor never got its copy of the now-consumed event).
+
+#### Pitfall B: Over-broad event mask silently breaking ordinary system-wide clicks or drags
+**What goes wrong:** If the tap's mask or `shouldSwallow()` guard is even slightly too broad (e.g., a bug that makes `shouldSwallow()` return `true` outside the intended narrow window), EVERY `.leftMouseUp` system-wide gets swallowed — meaning every click anywhere on the Mac stops registering its release, a severe, system-wide usability regression far worse than anything the existing `NSEvent`-only detection layer could ever cause (since NSEvent global monitors can only OBSERVE, never consume).
+**Why it happens:** This is the first mechanism in this codebase with the theoretical power to break input SYSTEM-WIDE, not just within Islet's own window — a materially higher blast radius than anything else in this file.
+**How to avoid:** `shouldSwallow()` must be as narrow as technically possible — gate on BOTH `isDragApproaching` (already edge-tracked, cleared unconditionally per Pitfall 4/5 in the main research above) AND a fresh `isWithinDragAcceptRegion(NSEvent.mouseLocation)` recheck at the moment of the callback itself (not a stale value), exactly mirroring `handleDragApproachEnd()`'s own existing double-check. Recommend the spike explicitly test "click and drag normally in other apps (Safari, TextEdit, Finder windows) while Islet is running with the tap installed" as its own pass/fail scenario, not just the notch-specific drag tests.
+**Warning signs:** Any report (including from the developer's own daily use) of clicks anywhere on the system "not registering" or requiring an extra click, while Islet is running.
+
+#### Pitfall C: A silently-disabled tap gives a false sense of security (the code-signing race, §3)
+**What goes wrong:** After a Release build re-sign/re-launch cycle, the tap may install successfully (`tapCreate` returns non-`nil`) but never actually fire — silently regressing to today's known bug (file relocated to Desktop) with NO error surfaced anywhere, and no indication anything is wrong short of noticing the relocation bug is back.
+**Why it happens:** Documented field behavior (§3) — TCC's identity-based re-evaluation after re-signing can leave a tap "functionally inert" without `tapCreate`/`tapIsEnabled` reporting a problem at creation time.
+**How to avoid:** Implement the periodic `CGEvent.tapIsEnabled(tap:)` health check with reinstall-on-failure from the start (not as a later hardening pass) — treat it as core to this feature's correctness for THIS project specifically, given the project's own prior real Release-only signing incident (project memory `release-library-validation-crash`). Explicitly test in a `-configuration Release` build, not just Debug, mirroring how that prior incident only manifested in Release.
+**Warning signs:** The relocation bug reappearing intermittently, especially after a fresh Release build/re-launch, with no other code change to explain it.
+
+### Assumptions Log (post-Task-3 addition)
+
+| # | Claim | Section | Risk if Wrong |
+|---|-------|---------|---------------|
+| A5 | Consuming (`nil`-returning) the terminating `.leftMouseUp` at `.cgSessionEventTap`/`.defaultTap`/`.headInsertEventTap` prevents the WindowServer's own internal drag-session completion logic from running, stopping Finder's Desktop from performing its default same-volume move | §1 (THE load-bearing question) | HIGH — if wrong, D-10's entire chosen mechanism cannot work regardless of how correctly everything else (permissions, run loop, mask) is implemented; this is exactly why D-13 caps validation at 2 on-device rounds before falling back to D-14, and why this research explicitly does NOT claim this works |
+| A6 | `.defaultTap` requires Accessibility permission (`AXIsProcessTrusted`), not Input Monitoring (`CGPreflightListenEventAccess`), contradicting D-11's "Input Monitoring" framing | §3 | MEDIUM — if wrong (i.e., if current macOS actually gates `.defaultTap` mouse-event taps via Input Monitoring same as `.listenOnly`), the permission-check code the planner writes based on this finding would check/request the wrong TCC service, causing the tap to silently never activate even with correct code otherwise — must be empirically confirmed in the spike, not assumed from this research alone |
+| A7 | Islet's own pre-existing `dragEndMonitor` (`NSEvent` global monitor) will still fire for a `.leftMouseUp` that `DropInterceptTap`'s own tap has consumed (`nil`-returned) in the same process | Pitfall A | HIGH — if Islet's own detection monitor stops firing for a self-consumed event, the shelf-landing logic (already shipped, Plan 24-02) would silently stop working for exactly the case this fix is meant to enable, trading one bug (file relocated) for another (nothing lands in the shelf at all) — must be verified directly in the spike by logging from both consumers on the same test drag |
+| A8 | No existing macOS utility in the drag/shelf category (Yoink, Dropzone, CleanShot X, or the Droppy reference app) uses a CGEventTap-based swallow-the-terminating-event technique for this exact purpose — they solve the underlying problem by becoming a real `NSDraggingDestination` overlay instead | §1 | LOW — does not block implementation (this research doesn't need precedent to proceed with the spike per D-10's explicit choice), but if this assumption is wrong and such a precedent exists and could be found, it would meaningfully upgrade §1's confidence from unverified to precedented; worth a follow-up search if the spike's first round is ambiguous |
+

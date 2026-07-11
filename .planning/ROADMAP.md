@@ -297,7 +297,7 @@ Plans:
 
 ### Phase 24: Drag-In
 
-**STATUS: BLOCKED, execution paused 2026-07-11.** Plan 24-01's spike confirmed the `DragApproachDetector` global-monitor mechanism reliably detects inbound Finder drags (PASSED). Plan 24-02's Tasks 1-2 are merged and on-device UAT confirmed the shelf-landing logic itself now works (after fixing a geometry margin and a `recheckDragAcceptRegion` self-disarm bug). BUT: because the panel is deliberately click-through/non-`NSDraggingDestination`, a real drop is never intercepted at the OS level — it falls through to the Finder Desktop underneath and, on a same-volume drag, gets MOVED there as an unwanted side effect (confirmed on-device). This is an architectural gap, not a small fix — see STATE.md Blockers/Concerns for full detail, including a concrete lead from the existing Droppy reference research (`.planning/research/inspiration/notes.md`): Droppy's own permission asks (Accessibility/Screen Recording/Input Monitoring) suggest a `CGEventTap`-based interception, not passive `NSEvent` monitors. Plan 24-02's Task 3 checkpoint is intentionally left open pending `/gsd:discuss-phase 24`.
+**STATUS: PLANNED, execution paused 2026-07-11.** Plan 24-01's spike confirmed the `DragApproachDetector` global-monitor mechanism reliably detects inbound Finder drags (PASSED). Plan 24-02's Tasks 1-2 are merged and on-device UAT confirmed the shelf-landing logic itself now works (after fixing a geometry margin and a `recheckDragAcceptRegion` self-disarm bug). BUT: because the panel is deliberately click-through/non-`NSDraggingDestination`, a real drop is never intercepted at the OS level — it falls through to the Finder Desktop underneath and, on a same-volume drag, gets MOVED there as an unwanted side effect (confirmed on-device). `/gsd:discuss-phase 24` resolved this as an architecture gap requiring a new `CGEventTap`-based interception mechanism (D-10 through D-15), and `/gsd:plan-phase 24` has now produced Plan 24-03 (spike-first, mirroring 24-01/24-02's own discipline) to close it. Plan 24-02's Task 3 checkpoint remains open — Plan 24-03's own Task 4 checkpoint supersedes/resolves it once approved.
 
 **Goal**: Users can drag a file, multiple files, or a folder onto the collapsed island and have it land in the shelf — retried on the reproven shell via a global-monitor detection pattern (`DragApproachDetector`) instead of `NSDraggingDestination`.
 **Depends on**: Phase 23 — hard dependency; retrying drag-in before shell parity closes would repeat Phase 22's exact failure mode.
@@ -307,7 +307,7 @@ Plans:
   2. While a file is being dragged over the pill before release, the drop target shows visible "hot"/targeted feedback.
   3. Drag-in works reliably across repeated on-device trials — closing the Phase 22 regression rather than repeating it.
   4. Ordinary (non-drag) hover/click/click-through behavior is unaffected by the new `DragApproachDetector`.
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 **Wave 1**
@@ -316,7 +316,11 @@ Plans:
 
 **Wave 2** *(blocked on 24-01)*
 
-- [ ] 24-02-PLAN.md — Full DragApproachDetector accept/shelf-landing logic (SHELF-01/SHELF-02) + on-device UAT checkpoint
+- [ ] 24-02-PLAN.md — Full DragApproachDetector accept/shelf-landing logic (SHELF-01/SHELF-02) + on-device UAT checkpoint — Tasks 1-2 merged, Task 3 paused (drop-interception architecture gap, resolved by 24-03)
+
+**Wave 3** *(blocked on 24-02)*
+
+- [ ] 24-03-PLAN.md — Drop-interception fix (D-10 through D-15): spike-first CGEventTap validation, then production `DropInterceptTap` + on-device UAT superseding 24-02's Task 3
 
 ### Phase 25: Visual/Material Theming Redesign
 
