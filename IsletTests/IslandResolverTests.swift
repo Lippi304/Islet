@@ -58,6 +58,21 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(device, .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)))
     }
 
+    // Phase 26 / ONBOARD-01/T-26-02: D-09's hardest precedence case -- a forced onboarding
+    // session outranks EVERY other input, even a standing Charging transient over an
+    // expanded, healthy, actively-playing island. onboardingStep is checked as the literal
+    // first statement of resolve(...), before `switch activeTransient` is even reached, so no
+    // combination of the other four parameters can ever bypass it.
+    func testOnboardingOutranksEverything() {
+        let r = resolve(activeTransient: .charging(.charging(percent: 47)),
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        onboardingStep: .permissions)
+        XCTAssertEqual(r, .onboarding(.permissions))
+    }
+
     func testNoTransientWhilePlayingReturnsToWings() {
         // D-02 ambient yield (rank 3): with no transient and media playing, the resolver
         // yields to the now-playing wings — NOT idle.
