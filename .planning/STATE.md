@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
-status: Blocked — see Blockers/Concerns below
-stopped_at: Phase 24 context updated — drop-interception architecture gap resolved (CGEventTap)
-last_updated: "2026-07-11T13:13:45.259Z"
-last_activity: 2026-07-11 -- Phase 24 Plan 24-02 Tasks 1-2 merged, Task 3 UAT surfaced an architectural gap
+status: ready_to_plan
+stopped_at: Phase 24 complete (3/3) — ready to discuss Phase 25
+last_updated: 2026-07-11T15:45:26.228Z
+last_activity: 2026-07-11 -- Phase 24 execution started
 progress:
   total_phases: 13
   completed_phases: 5
-  total_plans: 15
-  completed_plans: 13
+  total_plans: 16
+  completed_plans: 15
   percent: 38
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 24 — drag-in
+**Current focus:** Phase 26 — onboarding flow
 
 ## Current Position
 
-Phase: 24 (drag-in) — BLOCKED (awaiting architecture decision)
-Plan: 2 of 2 (24-01 complete; 24-02 Tasks 1-2 merged, Task 3 checkpoint paused)
-Status: Blocked — see Blockers/Concerns below
-Last activity: 2026-07-11 -- Phase 24 Plan 24-02 Tasks 1-2 merged, Task 3 UAT surfaced an architectural gap
+Phase: 26 (Phases 23-25 all complete: shell parity rewrite, drag-in, visual/material theming redesign)
+Plan: Not started
+Status: Ready to discuss
+Last activity: 2026-07-11
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -43,13 +43,13 @@ memory `a1-bluetooth-usage-key-required`), so no further action is needed there 
 
 Progress (v1.3): [██████████] 100% (Phases 19-21 shipped; Phase 22 blocked, superseded by v1.4 Phases 23-24)
 
-Progress (v1.4): [░░░░░░░░░░] 0% (0/6 phases — Phase 23 ready to plan)
+Progress (v1.4): [█████░░░░░] 50% (3/6 phases — Phases 23-25 complete; Phase 26 next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 60
+- Total plans completed: 63
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -77,6 +77,7 @@ Progress (v1.4): [░░░░░░░░░░] 0% (0/6 phases — Phase 23 re
 | 21 | 1 | - | - |
 | 23 | 4 | - | - |
 | 25 | 1 | - | - |
+| 24 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -123,7 +124,7 @@ None yet.
 - [v1.3→v1.4, Phase 22, ABORTED 2026-07-10, superseded] `NotchPanel.draggingEntered` never fired on-device twice despite a confirmed-working spike using the same technique; root cause never identified. Resolution is architectural, not incremental: Phase 23 rebuilds the shell (dropping `NSDraggingDestination` entirely), Phase 24 retries drag-in via a global-monitor `DragApproachDetector` pattern instead. Research flags this pattern as itself unproven in this codebase and recommends its own isolated on-device validation rounds during Phase 24 planning/execution, not an assumption it "just works." Work preserved, not merged: worktree `/Users/lippi304/conductor/repos/notch/.claude/worktrees/agent-a9e6341bfc04601a5` (branch `worktree-agent-a9e6341bfc04601a5`) still holds the 22-03 debugging commits, kept as reference per explicit user request. 22-02's pure seams (`DragDropSupport.swift`, `.dragEntered` state) ARE merged and reusable by Phase 24.
 - [v1.4, from research] Open product decisions flagged for discuss-phase, not yet locked: (1) Phase 26 onboarding — permissions pre-explanation screen must stay educational-only with real permission requests kept lazy-at-first-use, to avoid racing/duplicating the existing `AppDelegate.isFirstLaunch` hook; (2) Phase 28 calendar — whether the existing Calendar authorization is already full (not read-only) access, and whether quick-add targets Calendar events vs. Reminders (determines if a new `NSRemindersFullAccessUsageDescription` Info.plist key is needed), must be verified against actual Phase 14 code before implementation.
 - [v1.3, from research] Open product decision, flagged for `/gsd:discuss-phase 20`: should the shelf render/suppress during collapsed "wings" transients (Charging/Device/Now-Playing-wings) mid-display, beyond the already-locked SHELF-09 (suppressed only during Charging/Device splashes)?
-- [Phase 24, NEW 2026-07-11] Plan 24-02's Task 3 on-device UAT confirmed the `DragApproachDetector` global-monitor mechanism reliably detects drags and lands items in the shelf (two on-device fixes applied and verified: `dragLandingMargin` 40→4pt geometry correction, and a `recheckDragAcceptRegion` self-disarm logic bug where `!interaction.isExpanded` incorrectly gated the sustain/exit condition, not just the rising edge — both merged, commits `e589150`/`2bebf84`). BUT: because the panel is deliberately click-through/non-`NSDraggingDestination` (D-05's pivot away from Phase 22's twice-unexplained `draggingEntered` failure), the real OS-level drag session is never intercepted — it falls through to whatever window is visually underneath (the Finder Desktop), which on a same-volume drag performs its own default MOVE. Confirmed on-device: the original file is relocated to the Desktop as an unwanted side effect, even though the shelf also correctly receives its own session copy. This is an architectural gap, not a small implementation bug. **Concrete lead for `/gsd:discuss-phase 24`:** `.planning/research/inspiration/notes.md` (line 10) already documents that Droppy's own permissions pre-explanation screen asks for **Accessibility, Screen Recording, AND Input Monitoring** — none of which Islet's current passive-`NSEvent`-monitor approach needs. This strongly suggests Droppy intercepts/consumes the drag at a lower level via a `CGEventTap` (requires Input Monitoring; unlike `NSEvent` global monitors, a tap's callback CAN swallow/modify an event before it propagates further, e.g. return NULL to prevent the underlying app from ever seeing the terminating `.leftMouseUp`), possibly combined with Screen Recording for rendering its own drag-image preview. Worth researching CGEventTap-based consumption as the primary candidate before falling back to a scoped `NSDraggingDestination` overlay (a new spike-worthy architecture question either way). Plan 24-02 Task 3 checkpoint is intentionally left OPEN (not approved, not skipped) pending this decision. User explicitly agreed to route through `/gsd:discuss-phase 24` rather than patch further in the execution loop.
+- [Phase 24, RESOLVED 2026-07-11] Plan 24-02's Task 3 on-device UAT found that because the panel is deliberately click-through/non-`NSDraggingDestination` (D-05's pivot away from Phase 22's twice-unexplained `draggingEntered` failure), a real drop's OS-level drag session was never intercepted — it fell through to the Finder Desktop underneath, which on a same-volume drag performed its own default MOVE, relocating the original file even though the shelf also correctly received its own session copy. `/gsd:discuss-phase 24` scoped a `CGEventTap`-based fix (D-10 through D-15), and Plan 24-03 implemented and on-device-validated it: swallowing/redirecting the terminating `.leftMouseUp` via a new `DropInterceptTap` (`Islet/Notch/DropInterceptTap.swift`) prevents the relocation. One round-1 finding during Task 4 UAT — fully swallowing the event stranded the drag ghost image on the cursor (the WindowServer's own drag-session bookkeeping never saw a release signal) — was fixed by redirecting the event to an off-screen coordinate (`CGEventSetLocation`) instead of discarding it outright, letting the WindowServer end the drag cleanly while still denying Finder a valid drop target. Plan 24-03's Task 4 checkpoint (including a Release-configuration pass) is approved; this resolves/supersedes Plan 24-02's Task 3. SHELF-01/SHELF-02 are both complete.
 
 ### Quick Tasks Completed
 
@@ -179,4 +180,4 @@ Resume file: .planning/phases/24-drag-in/24-CONTEXT.md
 ## Operator Next Steps
 
 - Run `/gsd-verify-work 25` to confirm Phase 25's goals (VISUAL-01/02) were really achieved, not just tasks checked off.
-- **Phase 24 is blocked** — run `/gsd:discuss-phase 24` to resolve the drop-interception architecture gap (file relocated to Desktop on real drops) before Plan 24-02's Task 3 checkpoint can be re-attempted and the phase closed out. See Blockers/Concerns above for full detail.
+- Phase 24 is complete (SHELF-01/SHELF-02 done, drop-interception gap resolved via `DropInterceptTap`). Next up: `/gsd:discuss-phase 26` (Onboarding Flow).

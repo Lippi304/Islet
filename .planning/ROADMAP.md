@@ -77,7 +77,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 **Milestone Goal:** Redesign the `NotchPanel`/`NotchWindowController` architecture (resolving the Phase 22 drag-in blocker), then layer Droppy-inspired onboarding, a black-to-transparent gradient + fluid Dynamic-Island-style animation visual redesign, a sidebar Settings redesign (including a new Theming section), and a calendar full view on top of it. Gesture-based swipe navigation is explicitly deferred.
 
 - [x] **Phase 23: Shell Parity Rewrite** - Rebuild NotchPanel/NotchWindowController with zero behavioral regression, dropping the residual NSDraggingDestination scaffold (completed 2026-07-11)
-- [ ] **Phase 24: Drag-In** - DragApproachDetector wiring against Phase 22's already-proven pure seams
+- [x] **Phase 24: Drag-In** - DragApproachDetector wiring against Phase 22's already-proven pure seams (completed 2026-07-11)
 - [x] **Phase 25: Visual/Material Theming Redesign** - Black-to-transparent gradient material + fluid bouncy Dynamic-Island-style animation (completed 2026-07-11)
 - [ ] **Phase 26: Onboarding Flow** - First-launch carousel + permissions pre-explanation
 - [ ] **Phase 27: Settings Sidebar Redesign** - NavigationSplitView with General/Workspace/System/About sections, incl. new Theming section (VISUAL-03)
@@ -128,7 +128,7 @@ Plans:
 
 **v1.3:** 3/3 shipped phases complete (100%) — see `.planning/milestones/v1.3-ROADMAP.md`. Phase 22 (drag-in, SHELF-01/02) blocked and not shipped; carried forward into v1.4.
 
-**v1.4:** 0/6 phases complete (0%) — Phase 23 (Shell Parity Rewrite) is first up; Phase 24 (Drag-In) has a hard dependency on Phase 23, Phases 25-28 have no shell dependency and may be resequenced for throughput.
+**v1.4:** 3/6 phases complete (50%) — Phases 23 (Shell Parity Rewrite), 24 (Drag-In), and 25 (Visual/Material Theming Redesign) are done; Phases 26-28 have no shell dependency and may be resequenced for throughput.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -297,7 +297,7 @@ Plans:
 
 ### Phase 24: Drag-In
 
-**STATUS: PLANNED, execution paused 2026-07-11.** Plan 24-01's spike confirmed the `DragApproachDetector` global-monitor mechanism reliably detects inbound Finder drags (PASSED). Plan 24-02's Tasks 1-2 are merged and on-device UAT confirmed the shelf-landing logic itself now works (after fixing a geometry margin and a `recheckDragAcceptRegion` self-disarm bug). BUT: because the panel is deliberately click-through/non-`NSDraggingDestination`, a real drop is never intercepted at the OS level — it falls through to the Finder Desktop underneath and, on a same-volume drag, gets MOVED there as an unwanted side effect (confirmed on-device). `/gsd:discuss-phase 24` resolved this as an architecture gap requiring a new `CGEventTap`-based interception mechanism (D-10 through D-15), and `/gsd:plan-phase 24` has now produced Plan 24-03 (spike-first, mirroring 24-01/24-02's own discipline) to close it. Plan 24-02's Task 3 checkpoint remains open — Plan 24-03's own Task 4 checkpoint supersedes/resolves it once approved.
+**STATUS: COMPLETE 2026-07-11.** Plan 24-01's spike confirmed the `DragApproachDetector` global-monitor mechanism reliably detects inbound Finder drags (PASSED). Plan 24-02's Tasks 1-2 shipped the shelf-landing logic (after fixing a geometry margin and a `recheckDragAcceptRegion` self-disarm bug), but on-device UAT surfaced an architecture gap: because the panel is deliberately click-through/non-`NSDraggingDestination`, a real drop was never intercepted at the OS level — it fell through to the Finder Desktop underneath and, on a same-volume drag, got MOVED there as an unwanted side effect. `/gsd:discuss-phase 24` scoped the fix (D-10 through D-15: a `CGEventTap`-based `DropInterceptTap`), and Plan 24-03 closed it — spike-first validation confirmed swallowing the terminating `.leftMouseUp` prevents the relocation, and a round-1 on-device finding (the drag ghost image got stranded on the cursor when the event was fully swallowed) was fixed by redirecting the event to an off-screen coordinate instead of discarding it outright, letting the WindowServer end the drag cleanly while still denying Finder a valid drop target. Plan 24-03's Task 4 on-device UAT (including a Release-configuration pass) is approved, resolving/superseding Plan 24-02's Task 3 checkpoint. SHELF-01/SHELF-02 are both complete.
 
 **Goal**: Users can drag a file, multiple files, or a folder onto the collapsed island and have it land in the shelf — retried on the reproven shell via a global-monitor detection pattern (`DragApproachDetector`) instead of `NSDraggingDestination`.
 **Depends on**: Phase 23 — hard dependency; retrying drag-in before shell parity closes would repeat Phase 22's exact failure mode.
@@ -316,11 +316,11 @@ Plans:
 
 **Wave 2** *(blocked on 24-01)*
 
-- [ ] 24-02-PLAN.md — Full DragApproachDetector accept/shelf-landing logic (SHELF-01/SHELF-02) + on-device UAT checkpoint — Tasks 1-2 merged, Task 3 paused (drop-interception architecture gap, resolved by 24-03)
+- [x] 24-02-PLAN.md — Full DragApproachDetector accept/shelf-landing logic (SHELF-01/SHELF-02) + on-device UAT checkpoint — Tasks 1-2 merged, Task 3 paused (drop-interception architecture gap, resolved by 24-03)
 
 **Wave 3** *(blocked on 24-02)*
 
-- [ ] 24-03-PLAN.md — Drop-interception fix (D-10 through D-15): spike-first CGEventTap validation, then production `DropInterceptTap` + on-device UAT superseding 24-02's Task 3
+- [x] 24-03-PLAN.md — Drop-interception fix (D-10 through D-15): spike-first CGEventTap validation, then production `DropInterceptTap` + on-device UAT superseding 24-02's Task 3
 
 ### Phase 25: Visual/Material Theming Redesign
 
