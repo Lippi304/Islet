@@ -76,7 +76,8 @@ Y position is identical on every step regardless of how much content sits above 
 | Heading → body gap | 8px | New |
 | Body → step-specific content gap | 12-16px | New |
 | Heading/body text alignment | **Centered** (round 2, Droppy comparison) via `VStack(alignment: .center)` + `.frame(maxWidth: .infinity)` on the text block, `.multilineTextAlignment(.center)` on wrapping body text | Applies to all 4 steps: Welcome, Trial/License/Buy, Permissions heading+subheading, Done |
-| Control-row alignment (permission rows, Launch-at-Login toggle) | Stays full-width / left-aligned internally via `.frame(maxWidth: .infinity, alignment: .leading)` on the row container — centering an icon+label+trailing-control row would be nonsensical | Permissions step's rows-VStack, Done step's Toggle |
+| Control-row alignment (permission rows) | Stays full-width / left-aligned internally via `.frame(maxWidth: .infinity, alignment: .leading)` on the row container — a multi-item icon+label+trailing-control LIST genuinely needs left alignment | Permissions step's rows-VStack |
+| Launch-at-Login toggle alignment (round 4) | **Centered** via `.fixedSize()` + `.frame(maxWidth: .infinity, alignment: .center)` (was left-aligned/full-width in round 2 — a single compact control, unlike the Permissions row list, reads fine centered and was sticking out relative to the centered text above it) | Done step's Toggle |
 
 ### Bottom nav row (Next/Back — all 4 steps)
 
@@ -137,7 +138,7 @@ Body type scale used everywhere else in the carousel, scoped ONLY to these 3 row
 
 | State | Visual | Rationale |
 |-------|--------|-----------|
-| Granted | Green `checkmark` icon (11px, was 12px) + "Granted" label, 11px regular (was 12px), `.foregroundStyle(.green)` | Reuses the codebase's existing green-for-success convention (`isCharging ? Color.green`, license-activated `.foregroundStyle(.green)`) |
+| Granted | Green `checkmark` icon only, 11px semibold, `.foregroundStyle(.green)` — round 4 (on-device UAT, Droppy comparison): the "Granted" text label was dropped as redundant next to the icon | Reuses the codebase's existing green-for-success convention (`isCharging ? Color.green`, license-activated `.foregroundStyle(.green)`) |
 | Not granted / skipped | No icon, plain "Not granted" text, 11px regular (was 12px), `.foregroundStyle(.secondary)` | **Deliberately does NOT reuse the existing `checkmark`/`xmark` pair** (line 509, device-connection status) — an `xmark` reads as a failure/error, which D-03 explicitly forbids for a skipped/denied permission during onboarding. Grey, icon-less text is the quiet degrade this decision requires. |
 
 ---
@@ -165,11 +166,11 @@ Font family: San Francisco system font, `.system(size:weight:design: .rounded)` 
 | Secondary (30%) — chip background | `Color.white.opacity(0.12)` | Grant/Enter-License-Key/Buy-Islet button chips — the existing in-chrome control convention |
 | Secondary — permission row pill background (revised round 2) | `Color.white.opacity(0.08)` | The 3 Permissions rows' `Capsule` background — subtler than the chip fill since it covers a much larger area |
 | Secondary — nav circle (revised round 2) | Back: transparent fill + `Color.white.opacity(0.4)` stroke · Next/Finish: `Color.white` fill, black icon | Replaces the original Back/Next/Finish chip fill |
-| Accent (10%) | `Color.green` | **Reserved exclusively for the "Granted" permission state's checkmark + label.** Not used on any button, heading, or the primary CTA — matches Phase 25's "no new tint introduced" precedent (VISUAL-01 D-03) |
+| Accent (10%) | `Color.green` | **Reserved exclusively for the granted-permission state's checkmark icon** (round 4: icon only, "Granted" text label dropped). Not used on any button, heading, or the primary CTA — matches Phase 25's "no new tint introduced" precedent (VISUAL-01 D-03) |
 | Destructive | n/a | No destructive actions in this phase's scope (permission skip/deny is a quiet no-op, not destructive) |
 | Text on chrome | `Color.white` (primary) / `.secondary` (body, captions, "Not granted") | Matches Phase 25's Color contract verbatim |
 
-Accent reserved for: the green "Granted" checkmark/label on the Permissions step only — nowhere else.
+Accent reserved for: the green granted-permission checkmark icon on the Permissions step only — nowhere else.
 
 ---
 
@@ -191,7 +192,7 @@ Accent reserved for: the green "Granted" checkmark/label on the Permissions step
 | Step 3 — Calendar row reason | "Show your next event right in the island" |
 | Step 3 — Location row reason | "Power live weather in your glance" |
 | Step 3 — per-row action | "Grant" |
-| Step 3 — granted state | "Granted" (green) |
+| Step 3 — granted state | Green checkmark icon only, no text label (round 4 — was "Granted" text) |
 | Step 3 — not-granted/skipped state | "Not granted" (grey, quiet — D-03, never an error) |
 | Step 3 — primary CTA | "Next" |
 | Step 4 — Done heading | "You're all set" |
