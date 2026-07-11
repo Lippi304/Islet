@@ -359,8 +359,8 @@ Plans:
 
 **Wave 2** *(blocked on 26-01)*
 
-- [ ] 26-02-PLAN.md — NotchPillView onboarding carousel view (4 steps per UI-SPEC) + OnboardingViewState
-- [ ] 26-03-PLAN.md — NotchWindowController launch-time gating (D-01) + AppDelegate hand-off
+- [x] 26-02-PLAN.md — NotchPillView onboarding carousel view (4 steps per UI-SPEC) + OnboardingViewState
+- [x] 26-03-PLAN.md — NotchWindowController launch-time gating (D-01) + AppDelegate hand-off
 
 **Wave 3** *(blocked on 26-02, 26-03)*
 
