@@ -30,7 +30,7 @@ Other standing candidates for a future milestone: formalize WEATHER-01/CAL-01/OU
 
 **Goal:** Redesign the NotchPanel/NotchWindowController architecture (to resolve the Phase 22 drag-in blocker and give the app room to grow), then layer on Droppy-inspired scope on top of the new foundation.
 
-**Status: 1/6 phases shipped.** Phase 23 (Shell Parity Rewrite) shipped 2026-07-11 with zero behavioral regression, on-device UAT approved. Phase 24 (Drag-In) is next — unblocked now that the architecture prerequisite is cleared.
+**Status: 2/6 phases shipped.** Phase 23 (Shell Parity Rewrite) shipped 2026-07-11 with zero behavioral regression, on-device UAT approved. Phase 25 (Visual/Material Theming Redesign) shipped 2026-07-11 — gradient material + spring retune, on-device UAT approved (executed out of numeric order; Phase 24 Drag-In remains next up).
 
 **Target features:**
 - NotchPanel/NotchWindowController architecture redesign — informed by TheBoringNotch/DynamicNotchKit reference implementations, resolves the unidentified Phase 22 drag delivery blocker
@@ -151,6 +151,12 @@ _v1.2 (Now Playing Polish) is code-complete and on-device verified — both phas
 
 - [x] `NotchPanel`/`NotchWindowController` reconstructed in place with zero behavioral regression — the Phase-22 `NSDraggingDestination` drag scaffold is fully removed (with a `testPanelHasNoDraggingDestinationResidue` regression guard), and every other line (positioning, hover/click/grace-collapse, fullscreen hiding, the CR-01 click-through fix, multi-Space visibility) was re-verified against the pre-rewrite implementation and found to already match byte-for-byte — 2 files touched project-wide, `IslandResolver.swift`/`DeviceCoordinator.swift`/`Islet/Shelf/` show zero diff. Closed out via a blocking human on-device UAT checkpoint (20 items incl. the CR-01 hover→expand→move-down trace) the user explicitly approved. Clears the architectural prerequisite for Phase 24 (Drag-In). (Phase 23)
 
+**Visual/Material Theming Redesign (Phase 25 — VISUAL-01, VISUAL-02):**
+
+- [x] Shared black-to-transparent vertical gradient material (`islandMaterial`) replaces flat black fills across the collapsed pill, expanded island, and all activity wings; expanded-blob bottom corner radius raised 20→32pt for a rounder, more Dynamic-Island-like silhouette. Pure rendering-value change confined to `NotchPillView.swift`/`NotchWindowController.swift` — no new files/types, individual activity content untouched. (Phase 25 — VISUAL-01)
+- [x] Spring animation retuned (response 0.35→0.6, damping 0.65→0.62) for a slower, single-overshoot morph matching the iPhone Dynamic Island's characteristic bounce, applied uniformly through the existing shared spring constants. (Phase 25 — VISUAL-02)
+- On-device UAT (7-point checklist: gradient depth, pure black, corner roundness, spring feel, no morph artifacts, rapid hover-enter/exit, activity-content regression) passed on first attempt on real notch hardware — the documented `NotchShape.swift` `animatableData` contingency was not needed. VISUAL-03 (Settings theming section) intentionally out of this phase, carried to Phase 27.
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
@@ -230,6 +236,7 @@ _v1.4 (scoping in progress) — SHELF-01/02 (drag-in, carried from v1.3) plus ne
 | v1.3 closed as shipped-with-a-known-gap rather than left permanently open | SHELF-01/02 (drag-in) blocked twice on-device with an unidentified root cause; leaving v1.3 open indefinitely while pursuing a broader architecture redesign would misrepresent what actually shipped (data model, view, drag-out are real, verified, and independently valuable) | ✓ v1.3 shipped 2026-07-11 — SHELF-01/02 carried forward as requirements into v1.4 |
 | Phase 22 drag-in abandoned in favor of a NotchPanel/NotchWindowController architecture redesign, rather than continuing incremental debugging | Two on-device UAT failures with `draggingEntered` never firing, root cause unidentified even after restoring the 22-01 spike's exact working technique — explicit user call to stop debugging blind and reconsider the window/panel architecture more broadly (referencing TheBoringNotch/DynamicNotchKit) | ✓ Phase 23 shipped 2026-07-11 — shell rebuilt with zero behavioral regression, on-device UAT approved; Phase 24 can now retry drag-in on the reproven shell |
 | v1.4 scope expanded beyond the architecture redesign to include Droppy-inspired onboarding, visual redesign, and a calendar view — but explicitly NOT gesture-based swipe navigation | User found a competitor app ("Droppy") on Reddit during v1.3's blocked window; gestures would touch the same event-delivery layer that just failed and was deliberately kept out of scope until the architecture redesign proves itself first | Pending — v1.4 scoping in progress |
+| Phase 25 (Visual/Material Theming) executed ahead of Phase 24 (Drag-In) in numeric order | Pure rendering-value change with no dependency on the architecture redesign's drag-in outcome — could ship independently without blocking or being blocked | ✓ Phase 25 shipped 2026-07-11 — gradient material + spring retune, on-device UAT approved |
 
 ## Evolution
 
@@ -249,4 +256,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-11 — Phase 23 (Shell Parity Rewrite) shipped, v1.4's first phase, clearing the architecture prerequisite for Phase 24 (Drag-In).*
+*Last updated: 2026-07-11 — Phase 25 (Visual/Material Theming Redesign) shipped, v1.4's second phase; gradient material + spring retune on-device UAT approved.*
