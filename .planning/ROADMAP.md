@@ -279,7 +279,21 @@ Plans:
   3. The island still stays visible above all windows across all Spaces and correctly repositions through external-display/clamshell changes.
   4. No `NSDraggingDestination` conformance or drag-stub overrides remain in `NotchPanel.swift`.
   5. `IslandResolver.swift`, `DeviceCoordinator.swift`, and `Islet/Shelf/` show zero diff — the rewrite touched only window-shell code.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 23-01-PLAN.md — NotchPanel.swift D-01 drag-scaffold removal + NotchPanelTests.swift regression assertion
+- [ ] 23-02-PLAN.md — NotchWindowController.swift reconstruction: properties/start()/monitor lifecycle + hosting-view/settings-apply/Now-Playing/shelf handlers/deinit
+
+**Wave 2** *(blocked on 23-02, same-file sequencing)*
+
+- [ ] 23-03-PLAN.md — NotchWindowController.swift reconstruction: the safety-critical single-arbiter core (updateVisibility/positionAndShow/syncClickThrough/hover-click state machine)
+
+**Wave 3** *(blocked on 23-01, 23-03)*
+
+- [ ] 23-04-PLAN.md — Zero-diff + build gate verification, Cmd-U test suite, and the consolidated ~20-item on-device UAT checkpoint
 
 ### Phase 24: Drag-In
 
