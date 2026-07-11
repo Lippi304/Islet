@@ -289,7 +289,7 @@ Plans:
 
 **Wave 2** *(blocked on 23-02, same-file sequencing)*
 
-- [ ] 23-03-PLAN.md — NotchWindowController.swift reconstruction: the safety-critical single-arbiter core (updateVisibility/positionAndShow/syncClickThrough/hover-click state machine)
+- [x] 23-03-PLAN.md — NotchWindowController.swift reconstruction: the safety-critical single-arbiter core (updateVisibility/positionAndShow/syncClickThrough/hover-click state machine)
 
 **Wave 3** *(blocked on 23-01, 23-03)*
 
