@@ -78,7 +78,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 - [x] **Phase 23: Shell Parity Rewrite** - Rebuild NotchPanel/NotchWindowController with zero behavioral regression, dropping the residual NSDraggingDestination scaffold (completed 2026-07-11)
 - [ ] **Phase 24: Drag-In** - DragApproachDetector wiring against Phase 22's already-proven pure seams
-- [ ] **Phase 25: Visual/Material Theming Redesign** - Black-to-transparent gradient material + fluid bouncy Dynamic-Island-style animation
+- [x] **Phase 25: Visual/Material Theming Redesign** - Black-to-transparent gradient material + fluid bouncy Dynamic-Island-style animation (completed 2026-07-11)
 - [ ] **Phase 26: Onboarding Flow** - First-launch carousel + permissions pre-explanation
 - [ ] **Phase 27: Settings Sidebar Redesign** - NavigationSplitView with General/Workspace/System/About sections, incl. new Theming section (VISUAL-03)
 - [ ] **Phase 28: Calendar Full View** - Month grid + day list + quick-add, sharing one EventKit service layer
@@ -322,7 +322,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 25-01-PLAN.md — Shared gradient material (VISUAL-01, D-01/D-02/D-08) + spring retune (VISUAL-02, D-05/D-06/D-07) + on-device UAT checkpoint
+- [x] 25-01-PLAN.md — Shared gradient material (VISUAL-01, D-01/D-02/D-08) + spring retune (VISUAL-02, D-05/D-06/D-07) + on-device UAT checkpoint
 **UI hint**: yes
 
 ### Phase 26: Onboarding Flow

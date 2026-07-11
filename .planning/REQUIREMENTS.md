@@ -21,8 +21,8 @@ A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexp
 
 ### Visual Redesign
 
-- [ ] **VISUAL-01**: The collapsed pill, expanded island, and activity wings render with one shared vertical alpha-gradient material — opaque/solid black nearest the physical notch, increasingly transparent toward the bottom edge — replacing the current flat fill. Individual activity content views (Now Playing, Charging, idle glance) are unaffected — only the shared shell chrome changes.
-- [ ] **VISUAL-02**: The expand/collapse animation uses a fluid, deliberately-paced spring with a subtle bounce-in on open, matching the characteristic feel of the iPhone Dynamic Island — no dropped frames, no jarring overshoot beyond the intended subtle in-bounce
+- [x] **VISUAL-01**: The collapsed pill, expanded island, and activity wings render with one shared vertical alpha-gradient material — opaque/solid black nearest the physical notch, increasingly transparent toward the bottom edge — replacing the current flat fill. Individual activity content views (Now Playing, Charging, idle glance) are unaffected — only the shared shell chrome changes.
+- [x] **VISUAL-02**: The expand/collapse animation uses a fluid, deliberately-paced spring with a subtle bounce-in on open, matching the characteristic feel of the iPhone Dynamic Island — no dropped frames, no jarring overshoot beyond the intended subtle in-bounce
 - [ ] **VISUAL-03**: A new Theming section in Settings lets the user customize the shell's material/surface style, per-element accent colors, and choose among alternate app icon variants
 
 ### Settings Redesign
@@ -78,8 +78,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ONBOARD-01 | Phase 26 | Pending |
 | ONBOARD-02 | Phase 26 | Pending |
 | ONBOARD-03 | Phase 26 | Pending |
-| VISUAL-01 | Phase 25 | Pending |
-| VISUAL-02 | Phase 25 | Pending |
+| VISUAL-01 | Phase 25 | Complete |
+| VISUAL-02 | Phase 25 | Complete |
 | VISUAL-03 | Phase 27 | Pending |
 | SETTINGS-01 | Phase 27 | Pending |
 | CALVIEW-01 | Phase 28 | Pending |

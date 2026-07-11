@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
-status: executing
-stopped_at: Phase 25 UI-SPEC approved
-last_updated: "2026-07-11T11:07:27.778Z"
-last_activity: 2026-07-11 -- Phase 25 execution started
+status: verifying
+stopped_at: Phase 25 Plan 01 complete — on-device UAT approved
+last_updated: "2026-07-11T11:21:23.252Z"
+last_activity: 2026-07-11 -- Phase 25 Plan 01 executed and on-device UAT approved
 progress:
   total_phases: 13
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 11
-  percent: 31
+  completed_plans: 12
+  percent: 38
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 25 (visual-material-theming-redesign) — EXECUTING
+Phase: 25 (visual-material-theming-redesign) — COMPLETE
 Plan: 1 of 1
-Status: Executing Phase 25
-Last activity: 2026-07-11 -- Phase 25 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-07-11 -- Phase 25 Plan 01 executed and on-device UAT approved
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -83,6 +83,7 @@ Progress (v1.4): [░░░░░░░░░░] 0% (0/6 phases — Phase 23 re
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 25 P01 | 9min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.2 roadmap] Phase 18 (song-change toast) sequenced after Phase 17 (launch gating) — both track "is this the first real playback transition after launch" state, so gating ships and settles first before the toast is layered on top
 - [v1.3 roadmap] Phase order 19→20→21→22 (model → view → drag-out → drag-in) follows research's codebase-grounded build order: pure-seam-first is this project's own established convention (`IslandResolver`, `DeviceCoordinator`), and the one genuinely uncertain integration point — drag delivery through the click-through `NSPanel` — is isolated in its own last phase (22) so a spike/iteration there doesn't block the rest of the feature
 - [v1.4 roadmap] Phase 23 (Shell Parity Rewrite) must complete and be fully on-device UAT'd before Phase 24 (Drag-In) starts — hard dependency, per research's explicit warning that re-attempting drag-in before the shell is reproven repeats Phase 22's exact failure mode. Phases 25-28 (Theming, Onboarding, Settings Sidebar, Calendar) have no dependency on the shell work and may be resequenced for throughput.
+- [Phase 25]: [Phase 25] Gradient stops (0/0.65/1.0) and 32pt corner radius, plus spring constants (response 0.6, damping 0.62), confirmed correct on first on-device UAT pass — no iteration or NotchShape.swift animatableData contingency needed
 
 ### Roadmap Evolution
 
@@ -168,10 +170,11 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-11T10:51:23.730Z
-Stopped at: Phase 25 UI-SPEC approved
-Resume file: .planning/phases/25-visual-material-theming-redesign/25-UI-SPEC.md
+Last session: 2026-07-11T11:21:13.769Z
+Stopped at: Phase 25 Plan 01 complete — on-device UAT approved
+Resume file: None
 
 ## Operator Next Steps
 
-- Run `/gsd-discuss-phase 23` to work through assumptions/risks for the Shell Parity Rewrite before planning it (per project workflow convention).
+- Run `/gsd-verify-work 25` to confirm Phase 25's goals (VISUAL-01/02) were really achieved, not just tasks checked off.
+- Phase 24 (Drag-In) is now unblocked (Phase 23 shell rewrite complete) and ready to discuss/plan next.
