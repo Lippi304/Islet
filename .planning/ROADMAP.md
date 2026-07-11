@@ -76,7 +76,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 **Milestone Goal:** Redesign the `NotchPanel`/`NotchWindowController` architecture (resolving the Phase 22 drag-in blocker), then layer Droppy-inspired onboarding, a visual/material redesign, a sidebar Settings redesign, and a calendar full view on top of it. Gesture-based swipe navigation is explicitly deferred.
 
-- [ ] **Phase 23: Shell Parity Rewrite** - Rebuild NotchPanel/NotchWindowController with zero behavioral regression, dropping the residual NSDraggingDestination scaffold
+- [x] **Phase 23: Shell Parity Rewrite** - Rebuild NotchPanel/NotchWindowController with zero behavioral regression, dropping the residual NSDraggingDestination scaffold (completed 2026-07-11)
 - [ ] **Phase 24: Drag-In** - DragApproachDetector wiring against Phase 22's already-proven pure seams
 - [ ] **Phase 25: Visual/Material Theming Redesign** - Shared frosted/glossy material fill + slower default spring
 - [ ] **Phase 26: Onboarding Flow** - First-launch carousel + permissions pre-explanation
@@ -293,7 +293,7 @@ Plans:
 
 **Wave 3** *(blocked on 23-01, 23-03)*
 
-- [ ] 23-04-PLAN.md — Zero-diff + build gate verification, Cmd-U test suite, and the consolidated ~20-item on-device UAT checkpoint
+- [x] 23-04-PLAN.md — Zero-diff + build gate verification, Cmd-U test suite, and the consolidated ~20-item on-device UAT checkpoint
 
 ### Phase 24: Drag-In
 
