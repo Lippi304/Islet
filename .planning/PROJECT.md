@@ -4,7 +4,7 @@
 
 ## What This Is
 
-A native macOS app that turns the MacBook's notch into an interactive "Dynamic Island" — the same idea Apple ships on the iPhone, brought to the Mac. A black, rounded island sits around the camera/notch and expands on hover/click to show live activities. **Shipped in v1.0/v1.0.1:** now-playing media controls with working transport and a progress bar, a charging activity, a Bluetooth/AirPods device-connected activity, and a minimal settings window with three activity toggles + accent theming — all arbitrated by a single priority resolver so activities coexist gracefully. **Shipped in v1.1:** Islet is now a real, sellable product — a tamper-resistant 3-day free trial with hard lockout, a one-time €7.99 purchase via Polar.sh (live checkout, online validation, offline-capable Keychain cache), and a genuinely Developer-ID-notarized release pipeline. **Also shipped (ahead of formal milestone scope):** a weather + calendar + date glance in the expanded idle view. **Shipped in v1.2:** the Now Playing glance no longer appears at launch for an already-paused track (only a real Play does it), and genuine song changes show a brief fading title+artist toast with its own Settings toggle. A drag-and-drop file shelf, system HUD replacement, and a countdown timer remain planned for a future milestone, not yet built.
+A native macOS app that turns the MacBook's notch into an interactive "Dynamic Island" — the same idea Apple ships on the iPhone, brought to the Mac. A black, rounded island sits around the camera/notch and expands on hover/click to show live activities. **Shipped in v1.0/v1.0.1:** now-playing media controls with working transport and a progress bar, a charging activity, a Bluetooth/AirPods device-connected activity, and a minimal settings window with three activity toggles + accent theming — all arbitrated by a single priority resolver so activities coexist gracefully. **Shipped in v1.1:** Islet is now a real, sellable product — a tamper-resistant 3-day free trial with hard lockout, a one-time €7.99 purchase via Polar.sh (live checkout, online validation, offline-capable Keychain cache), and a genuinely Developer-ID-notarized release pipeline. **Also shipped (ahead of formal milestone scope):** a weather + calendar + date glance in the expanded idle view. **Shipped in v1.2:** the Now Playing glance no longer appears at launch for an already-paused track (only a real Play does it), and genuine song changes show a brief fading title+artist toast with its own Settings toggle. **Shipped in v1.3:** a session-only drag-and-drop file shelf — files can be staged in a horizontally-scrolling strip below the expanded island and dragged back out to Finder/other apps — though dragging files *in* by dropping them onto the collapsed island is not yet working (blocked, carried into v1.4). System HUD replacement and a countdown timer remain planned for a future milestone, not yet built.
 
 It is for Mac users who love the iPhone Dynamic Island and want it on their MacBook without paying for the existing closed-source apps (Alcove, DynamicLake). Built by a first-time programmer with the goal of a polished, possibly sellable product down the line.
 
@@ -14,6 +14,8 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current State
 
+**v1.3 Notch Shelf shipped 2026-07-11 with a known gap** (Phases 19-21, see `.planning/milestones/v1.3-ROADMAP.md`). 7 of 9 v1.3 requirements shipped and on-device verified: the shelf data model, the full shelf view (icons, per-item/delete-all trash, click-to-open, correct gating), and drag-out to Finder/other apps. **SHELF-01/02 (drag-in) did not ship** — Phase 22 spiked successfully (AppKit drag delivery does reach a click-through `NSPanel`) but then failed on-device twice for an unidentified reason (`draggingEntered` never fired despite a working spike using the same technique). Rather than keep debugging incrementally, the user chose to redesign the underlying `NotchPanel`/`NotchWindowController` architecture — this becomes the anchor of v1.4, alongside new scope inspired by a competitor app ("Droppy," found on Reddit): a first-launch onboarding flow, a visual/material redesign, and a full-screen calendar view. See `.planning/research/inspiration/notes.md` for the reference material. SHELF-01/02 carry forward as requirements into v1.4.
+
 **v1.2 Now Playing Polish shipped 2026-07-09** (Phases 17-18, see `.planning/milestones/v1.2-ROADMAP.md`). All 3 v1.2 requirements (NOW-04, NOW-05, NOW-06) shipped and on-device verified. The Now Playing glance no longer fires at launch for a merely-paused track, and genuine song changes surface a brief title+artist toast (independent 2s dismiss, its own Settings toggle) — both refined through on-device iteration.
 
 **v1.1 Trial & Paid Release shipped 2026-07-08** (Phases 10-13, see `.planning/milestones/v1.1-ROADMAP.md`). All 7 v1.1 requirements (TRIAL-01/02/03, LIC-01/02/03, DIST-01) shipped and verified on-device. Islet is now a genuinely distributable, sellable product: real Developer-ID signing/notarization, a Keychain-backed tamper-resistant trial with hard lockout, and live Polar.sh purchase + offline-capable validation.
@@ -22,25 +24,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-Not yet started — candidates remaining after v1.3 is scoped: capture WEATHER-01/CAL-01/OUTFIT-01 as formal requirements, system HUD replacement, or a countdown timer (all still Out of Scope below until picked up).
-
-## Current Milestone: v1.3 Notch Shelf
-
-**Goal:** Add a drag-and-drop file shelf to the island — a temporary, session-only staging area for files, matching the polish of the existing activities.
-
-**Status: Phase 19 (Shelf Data Model) and Phase 20 (Shelf View) shipped 2026-07-09; Phase 21 (Drag-Out, SHELF-06) shipped 2026-07-10. Phase 22 (drag-in) remaining.**
-
-**Target features:**
-- Drag a file onto the collapsed pill → island auto-expands, file lands in a shelf strip below the normal expanded view
-- Shelf strip is appended below whatever else is showing expanded (Now Playing, idle glance, etc.) whenever it has content
-- Files can be dragged back out to Finder or any other app
-- Each file shows an icon/thumbnail with its own small trash icon for individual removal
-- A "delete all" trash icon on the far right of the strip
-- Unbounded capacity — strip scrolls horizontally
-- Purely session-temporary — cleared on manual delete, app restart, or Mac restart; never persisted to disk
-- Standard `NSItemProvider` drag & drop in both directions — no private API needed
-
-(Prior context, retained: Phase 15 (Architecture Refactor — Mechanical Fixes & DI Seams) and Phase 16 (NotchWindowController Device Coordinator Extraction) both completed 2026-07-08 ahead of any formal milestone — see Validated Requirements below for details.)
+**v1.4 (scoping in progress, 2026-07-11):** A NotchPanel/NotchWindowController architecture redesign (to resolve the Phase 22 drag-in blocker and give gestures/multi-view room to grow), plus Droppy-inspired scope: a first-launch onboarding flow (trial/license/buy choice + a permissions pre-explanation screen, no in-app tutorial), a visual/material redesign (frosted/glossy rather than fully transparent, slower/smoother springs, sidebar-categorized Settings), and a full calendar view as a third view alongside Home/Tray. SHELF-01/02 (drag-in) carry forward from v1.3 into this scope. Gesture-based swipe navigation was considered and explicitly deferred — not in v1.4 scope. Other standing candidates: formalize WEATHER-01/CAL-01/OUTFIT-01 as requirements, system HUD replacement, a countdown timer (all still Out of Scope below until picked up).
 
 ## Requirements
 
@@ -138,6 +122,10 @@ _v1.2 (Now Playing Polish) is code-complete and on-device verified — both phas
 
 - [x] The shelf's core data and lifecycle contracts (`ShelfItem`, `ShelfLogic`, `ShelfFileStore`, `ShelfCoordinator`) exist as pure, Foundation-only, unit-tested logic with no persistence path whatsoever — a cleared or relaunched shelf is provably empty by construction. Zero coupling to `IslandResolver`/`TransientQueue`; the shelf is its own independent axis. Post-review hardening: `deleteSessionCopy` now validates its delete target lives under the shelf's own temp root (was an unvalidated recursive parent-directory delete), and a rejected duplicate append no longer orphans its just-made session-temp copy. (Phase 19)
 
+**Shelf View (Phase 20 — SHELF-03, SHELF-04, SHELF-05, SHELF-07, SHELF-09):**
+
+- [x] The expanded island renders a horizontally-scrolling shelf strip below whatever else is showing (Now Playing, idle glance, etc.) whenever it has content — each item shows a file-type icon with its own trash icon, a single "delete all" trash clears everything at once, clicking an item opens it in its default app, and the strip is suppressed while a Charging or Device wings splash is actively showing. On-device UAT closed a click-through regression (CR-01: an invisible 56pt band under an empty shelf was silently swallowing clicks) by scoping `syncClickThrough()`'s hit-test to the actual visible blob rect instead of the full static panel. (Phase 20)
+
 **Drag-Out (Phase 21 — SHELF-06):**
 
 - [x] A shelf item can be dragged out of the expanded island onto Finder or any other app via `.onDrag` + `NSItemProvider(contentsOf:)` (copy semantics — the item stays in the shelf, default system drag preview, silent no-op on a vanished backing file). The island pins open for the duration of the drag (best-effort `.leftMouseUp` release monitor + a 20s safety-net fallback) and resumes normal hover/grace-collapse promptly once the drag ends. On-device UAT surfaced and fixed two gaps beyond the original plan: the shelf strip was invisible because `NotchPillView.body`'s outer container frame hadn't grown to match `blobShape`'s Phase-20 shelf-height addition (commit `3b38f33`), and — added at explicit user request during UAT, beyond the original D-02 scope — a shelf item whose backing file is deleted externally is now auto-pruned on expand instead of sitting inert until manually trashed (commit `dfbde2d`). (Phase 21)
@@ -146,7 +134,7 @@ _v1.2 (Now Playing Polish) is code-complete and on-device verified — both phas
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_v1.3 Notch Shelf — SHELF-01, SHELF-02 remain (Phase 22, drag-in), see REQUIREMENTS.md._
+_v1.4 (scoping in progress) — SHELF-01/02 (drag-in, carried from v1.3) plus new Droppy-inspired scope: architecture redesign, onboarding flow, visual redesign, calendar full view. Formal REQUIREMENTS.md not yet written — see Next Milestone Goals above and `.planning/research/inspiration/notes.md`._
 
 ### Out of Scope
 
@@ -169,6 +157,7 @@ _v1.3 Notch Shelf — SHELF-01, SHELF-02 remain (Phase 22, drag-in), see REQUIRE
 - **v1.0 codebase state (shipped 2026-07-02):** ~4,500 LOC Swift across 7 phases (176 files touched total), 131 passing unit tests (`IsletTests`). Every threat register across the project's plans is dispositioned (mitigate/accept), verified in `06-SECURITY.md`.
 - **v1.0.1 codebase state (shipped 2026-07-04):** +2 phases, 141 passing unit tests (`IsletTests`, up from 131). The fullscreen-enter island flash — previously accepted as permanent window-server-timing debt — is now genuinely fixed via a dedicated CGS Space (Phase 9).
 - **v1.1 codebase state (shipped 2026-07-08, includes Phase 14):** ~6,900 LOC Swift, 185 passing unit tests (`IsletTests`, up from 141). Added Keychain-backed trial/license persistence, `PolarLicenseService`, a real Developer-ID notarization pipeline, and WeatherKit/EventKit services behind their own protocol seams. A real Apple Developer account and paid Polar.sh integration are now live (no more placeholders).
+- **v1.3 codebase state (shipped 2026-07-11, includes Phases 15/16 architecture refactor + Phase 17/18 v1.2 + Phase 19-21 shelf):** ~9,200 LOC Swift, 261 passing unit tests (up from 185 at v1.1 close). Added the session-only shelf stack (`ShelfItem`/`ShelfLogic`/`ShelfFileStore`/`ShelfCoordinator`), its full view (icons, trash, click-to-open, gating), and outbound drag-to-Finder — all with zero persistence and zero coupling to `IslandResolver`/`TransientQueue`. Phase 22 (drag-in) code remains on disk but unshipped: 22-01 (spike) and 22-02 (pure seams) are merged; 22-03's `NotchPanel`/`NotchWindowController` wiring is not, and the debugging worktree with the failed attempts is preserved separately for reference (see STATE.md).
 - **Known technical debt carried into next milestone planning:**
   - Four non-blocking code-review findings from `06-REVIEW.md`: inconsistent charging/device wing accent-tinting (WR-01), accent-change view-tree rehost breaking `matchedGeometryEffect` continuity (WR-02), a missing `withAnimation` wrapper on the Now-Playing health-check callback (WR-03), and a low-probability `BluetoothMonitor` data race (WR-04).
   - WR-01/WR-02 (Phase 9, info): `CGSSpace.swift` has no validation of CGS private-API return values, and assumes an `Int`/`Int32` width fits `CGSSpaceSetAbsoluteLevel`'s one passed value. Low severity.
@@ -216,6 +205,10 @@ _v1.3 Notch Shelf — SHELF-01, SHELF-02 remain (Phase 22, drag-in), see REQUIRE
 | Phase 14 (weather/calendar/date) executed inside the v1.1 working window but excluded from the v1.1 milestone close | Its requirements (WEATHER-01/CAL-01/OUTFIT-01) were never part of v1.1's Milestone Goal or REQUIREMENTS.md — closing v1.1 as Phases 10-13 keeps the archive accurate to what was actually scoped | Phase 14 stays on the live ROADMAP as completed, unarchived work — formal requirement capture deferred to next milestone |
 | Song-change toast: skip (not queue/interrupt) when Charging/Device splash is active; suppress entirely while manually expanded; rapid skips restart the timer in place rather than queueing each one | Mirrors existing `resolve()` precedence and `TransientQueue.updateHead()`/Phase 17 D-03 gate precedents rather than inventing new queueing logic | ✓ Phase 18 — all three rules verified on-device |
 | Toast design iterated on-device across 5 rounds to a minimal fading text row under the unchanged wings capsule, with its own independent ~2s dismiss (not the shared 3.0s `activityDuration`) | User's on-device feedback overrode the pre-execution 18-UI-SPEC.md draft each round; final shape ships shorter and simpler than originally speced | ✓ Phase 18 — approved after round 5, UI-SPEC updated to match |
+| v1.3 phase order 19→20→21→22 (model → view → drag-out → drag-in) with the drag-in risk isolated in the final phase | Pure-seam-first is this project's established convention; isolating the one genuinely uncertain integration point (drag delivery through the click-through `NSPanel`) meant a spike/iteration there wouldn't block the rest of the feature | ✓ Phases 19-21 shipped clean; Phase 22 isolation worked exactly as intended — the failure stayed contained to Phase 22 |
+| v1.3 closed as shipped-with-a-known-gap rather than left permanently open | SHELF-01/02 (drag-in) blocked twice on-device with an unidentified root cause; leaving v1.3 open indefinitely while pursuing a broader architecture redesign would misrepresent what actually shipped (data model, view, drag-out are real, verified, and independently valuable) | ✓ v1.3 shipped 2026-07-11 — SHELF-01/02 carried forward as requirements into v1.4 |
+| Phase 22 drag-in abandoned in favor of a NotchPanel/NotchWindowController architecture redesign, rather than continuing incremental debugging | Two on-device UAT failures with `draggingEntered` never firing, root cause unidentified even after restoring the 22-01 spike's exact working technique — explicit user call to stop debugging blind and reconsider the window/panel architecture more broadly (referencing TheBoringNotch/DynamicNotchKit) | Pending — v1.4 scoping in progress |
+| v1.4 scope expanded beyond the architecture redesign to include Droppy-inspired onboarding, visual redesign, and a calendar view — but explicitly NOT gesture-based swipe navigation | User found a competitor app ("Droppy") on Reddit during v1.3's blocked window; gestures would touch the same event-delivery layer that just failed and was deliberately kept out of scope until the architecture redesign proves itself first | Pending — v1.4 scoping in progress |
 
 ## Evolution
 
@@ -235,4 +228,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-10 — Phase 21 (Drag-Out, SHELF-06) shipped.*
+*Last updated: 2026-07-11 — v1.3 Notch Shelf shipped (with a known gap: SHELF-01/02 drag-in carried to v1.4).*

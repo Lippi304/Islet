@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Notch Shelf
-status: blocked
-stopped_at: Phase 22 execution aborted by user -- pivoting to a broader Notch architecture redesign
-last_updated: "2026-07-10T23:32:21.000Z"
-last_activity: 2026-07-10 -- Phase 22 22-03 on-device UAT failed twice (drag delivery never reached NotchPanel even after restoring draggingUpdated); user chose to abandon current approach and reconsider NotchPanel/NotchWindowController architecture broadly, possibly drawing on TheBoringNotch/DynamicNotchKit
+status: Awaiting next milestone
+stopped_at: Phase 22 revised context gathered (hot-zone/Mission-Control fallback)
+last_updated: "2026-07-11T00:05:17.221Z"
+last_activity: 2026-07-11 — Milestone v1.3 completed and archived
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 43
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 22 (drag-in) — BLOCKED, execution aborted by user
-Plan: 1 of 3 complete (22-01); 22-02 complete (22-02); 22-03 in progress but NOT complete -- Task 3 on-device UAT FAILED twice, root cause not found before user paused to reconsider the broader architecture
-Status: Paused -- user wants to rebuild the Notch window/panel architecture more broadly before continuing drag-in, possibly drawing on reference implementations (TheBoringNotch, DynamicNotchKit)
-Last activity: 2026-07-10 -- Phase 22 22-03 checkpoint FAILED twice on-device; user aborted to reconsider architecture
+Phase: Milestone v1.3 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-11 — Milestone v1.3 completed and archived
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -143,6 +143,23 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 **v1.2 close (2026-07-09):** `gsd-sdk query audit-open` flagged 8 quick-tasks (260705-l4i, 260705-mzj, 260708-nnu, 260708-nzj, 260708-ol8, 260708-u47, 260709-glz, 260709-gvy) as status `missing`. All 8 have completed PLAN.md + SUMMARY.md on disk and are already logged "Complete ✓" in the Quick Tasks Completed table above — acknowledged as a tool status-detection false positive, not real open work, and unrelated to v1.2's phases (17-18). No action needed.
 
+**v1.3 close (2026-07-11):** `gsd-sdk query audit-open` flagged 10 items, all acknowledged and deferred:
+
+| Category | Item | Status |
+|----------|------|--------|
+| quick_task | 260705-l4i-idle-notch-soll-unsichtbar-mit-der-hardw | missing (same false positive as v1.2 close) |
+| quick_task | 260705-mzj-release-build-crash-fix-disable-library- | missing (same false positive as v1.2 close) |
+| quick_task | 260708-nnu-das-wetter-icon-wolken-symbol-im-notch-b | missing (same false positive as v1.2 close) |
+| quick_task | 260708-nzj-wetter-icon-animation-symboleffect-pulse | missing (same false positive as v1.2 close) |
+| quick_task | 260708-ol8-bump-marketing-version-in-project-yml-fr | missing (same false positive as v1.2 close) |
+| quick_task | 260708-u47-settings-button-hinzuf-gen-um-einen-fehl | missing (same false positive as v1.2 close) |
+| quick_task | 260709-glz-fullscreen-sichtbarkeit-der-notch-als-ei | missing (same false positive as v1.2 close) |
+| quick_task | 260709-gvy-settingsview-tabview-umbau-general-appea | missing (same false positive as v1.2 close) |
+| uat_gaps | Phase 21: 21-HUMAN-UAT.md | resolved, 0 pending scenarios — not real open work |
+| verification_gaps | Phase 20: 20-VERIFICATION.md | human_needed — pre-existing, unrelated to v1.3 scope; the 4 on-device/Cmd-U checks remain in Operator Next Steps below |
+
+Additionally, v1.3's own scope closes with a known gap: **SHELF-01/02 (drag-in, Phase 22) remain unshipped** — Phase 22 was blocked twice on-device (AppKit drag delivery never reached `NotchPanel`, root cause unidentified) and the user chose to abandon the incremental fix in favor of a broader NotchPanel/NotchWindowController architecture redesign. SHELF-01/02 carry forward as requirements into the v1.4 milestone rather than being dropped.
+
 ## Session Continuity
 
 Last session: 2026-07-10T19:33:56.009Z
@@ -151,6 +168,4 @@ Resume file: .planning/phases/22-drag-in/22-CONTEXT.md
 
 ## Operator Next Steps
 
-- Decide how to approach the Notch window/panel architecture redesign the user wants before resuming Phase 22 — likely starts with `/gsd:explore` (Socratic ideation) to think through drawing on TheBoringNotch/DynamicNotchKit patterns before committing to a plan, since this may affect already-shipped phases (Hover/Wings/Shelf), not just Phase 22
-- The 22-03 debugging worktree (see Blockers/Concerns) is preserved at `/Users/lippi304/conductor/repos/notch/.claude/worktrees/agent-a9e6341bfc04601a5` for reference — not on the critical path, can be cleaned up later once its findings are no longer needed
-- Manually verify the 4 on-device/Cmd-U items in 20-VERIFICATION.md (empty-shelf click-through, non-empty-shelf interactivity, delete/clear-all animation smoothness, IslandResolverTests/ShelfViewStateTests via Cmd-U) — pre-existing, unrelated to Phase 22
+- Start the next milestone with /gsd-new-milestone

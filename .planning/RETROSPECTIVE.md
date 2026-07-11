@@ -75,6 +75,42 @@
 
 ---
 
+## Milestone: v1.3 — Notch Shelf
+
+**Shipped:** 2026-07-11 (with a known gap)
+**Phases:** 3 shipped (19-21) of 4 planned | **Plans:** 5 executed (+ 3 more on the abandoned Phase 22) | **Sessions:** 2 (2026-07-09 → 2026-07-11)
+
+### What Was Built
+- A pure, Foundation-only shelf stack (`ShelfItem`/`ShelfLogic`/`ShelfFileStore`/`ShelfCoordinator`) with zero persistence path and zero coupling to `IslandResolver`/`TransientQueue` (Phase 19, SHELF-08)
+- The full shelf view — horizontally-scrolling strip, per-item + delete-all trash, click-to-open, correct gating alongside Charging/Device splashes (Phase 20, SHELF-03/04/05/07/09)
+- Drag-out to Finder/other apps via `.onDrag` + `NSItemProvider(contentsOf:)`, with a drag-pin keeping the island open for the gesture's duration (Phase 21, SHELF-06)
+- **Not built:** drag-in (SHELF-01/02) — Phase 22 spiked the core technical question successfully (AppKit drag delivery does reach a click-through `NSPanel`) but then failed on-device twice for an unidentified reason, `draggingEntered` never firing even after restoring the exact working technique from the spike.
+
+### What Worked
+- **Isolating the highest-uncertainty integration point in its own final phase** (research's own recommendation, followed in the v1.3 roadmap) worked exactly as designed — when Phase 22 failed, the damage stayed contained to Phase 22. Phases 19-21 shipped clean, tested, and independently valuable regardless of how drag-in resolves.
+- **Pure-seam-first discipline held again** — the shelf's data model, view-state mirror, and drag-out gate were all unit-tested before any AppKit wiring, consistent with `IslandResolver`/`DeviceCoordinator` precedent.
+- **On-device UAT kept finding real integration gaps pure-seam testing can't catch** — Phase 20's CR-01 (invisible click-swallowing band under an empty shelf) and Phase 21's outer-container-height bug were both real product bugs invisible to unit tests, caught only by actually running the app.
+
+### What Was Inefficient
+- **A confirmed-working technique (22-01's `draggingUpdated(_:)`) was dropped in 22-03's plan on a disproven assumption** ("AppKit reuses `draggingEntered`'s return value without it") and restoring it later did not fix the regression — meaning the actual root cause was never isolated before the user chose to abandon the phase. Two full on-device UAT cycles were spent without a clear diagnostic signal.
+- **No systematic bisection was run against the working 22-01 spike** — the debugging session compared plan assumptions to the spike's code, but never diffed the actual runtime registration/forwarding path step-by-step against the spike to find exactly where delivery broke. A future drag/AppKit-integration debugging session should keep a known-working reference build side-by-side sooner.
+- **PROJECT.md's Validated Requirements section silently missed Phase 20** (Shelf View) — Phase 19 and Phase 21 both got entries at their respective phase closes, but Phase 20 never did, only caught during this milestone-close review. Same root-cause class as v1.0/v1.2's REQUIREMENTS.md-sync lesson, just hitting PROJECT.md this time instead.
+
+### Patterns Established
+- **A milestone can close "shipped with a known gap"** rather than staying open indefinitely — when a subset of a milestone's requirements ship real, tested, independently-valuable work and the remainder is blocked on a decision needing broader scope (here: an architecture redesign), closing the milestone and carrying the blocked requirement(s) forward as a fresh-milestone requirement is more honest than leaving MILESTONES.md permanently "in progress."
+- **A failed phase's historical record is worth preserving, not deleting** — Phase 22's plans, spike findings, and even the debugging worktree (kept off the merge path but on disk) stay valuable input for whatever replaces it.
+
+### Key Lessons
+1. When an on-device integration bug resists a plan's stated assumption fix, treat the *previous* known-working state as ground truth and diff against it directly (build config, registration order, exact API surface) rather than reasoning from the plan's assumptions about *why* it should work — 22-03's fix attempt reasoned from a disproven assumption instead of comparing against 22-01's actual working code.
+2. Add "update PROJECT.md Validated Requirements" as an explicit phase-close checklist item, not just REQUIREMENTS.md — this is the second milestone in a row (v1.2 had the REQUIREMENTS.md variant) where a phase-close bookkeeping step silently didn't happen and was only caught at the next milestone-close audit.
+3. Isolating a genuinely uncertain integration point in its own final phase (this project's second time doing this, after Phase 6/Phase 9's fullscreen work) is a pattern worth keeping — it correctly contained this milestone's one real failure to a single phase instead of destabilizing the whole shelf feature.
+
+### Cost Observations
+- Sessions: 2 (2026-07-09 initial build, 2026-07-10→11 Phase 22 debugging + abort + milestone close)
+- Notable: 3 of 4 planned phases shipped in roughly one day; the 4th consumed a comparable amount of session time on its own without resolving, which is what triggered the broader architecture-redesign decision rather than a 4th debugging attempt
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -85,6 +121,7 @@
 | v1.0.1 | — (retrospective not captured at close) | 3 (7-9) | Progress bar + fullscreen-flash root-cause fix via dedicated CGS Space |
 | v1.1 | — (retrospective not captured at close) | 4 (10-13) | Trial/lockout, Polar.sh licensing, real notarization |
 | v1.2 | 1 | 2 (17-18) | Smallest milestone to date; on-device iteration used as the actual design process for Phase 18 |
+| v1.3 | 2 | 3 shipped of 4 planned (19-21; Phase 22 blocked/aborted) | First milestone to close "shipped with a known gap" — blocked drag-in requirement carried forward instead of the milestone staying open indefinitely |
 
 ### Cumulative Quality
 
@@ -94,8 +131,10 @@
 | v1.0.1 | 141 (XCTest) | Not measured | none |
 | v1.1 | 185 (XCTest) | Not measured | none |
 | v1.2 | 185+ (4 new `IslandResolverTests` + toast seam tests; exact count not re-tallied) | Not measured | none |
+| v1.3 | 261 (XCTest) | Not measured | none |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Planning-artifact bookkeeping (ROADMAP.md checkboxes, REQUIREMENTS.md checkboxes, debug-session/UAT status fields) drifts silently unless actively audited — `gsd-sdk query audit-open` is the tool that catches it, run it proactively, not just at milestone close. **Recurred at v1.2 close** (NOW-04 sat unchecked after Phase 17) — this is now a confirmed repeat pattern, not a one-off.
+1. Planning-artifact bookkeeping (ROADMAP.md checkboxes, REQUIREMENTS.md checkboxes, PROJECT.md Validated Requirements, debug-session/UAT status fields) drifts silently unless actively audited — `gsd-sdk query audit-open` catches some of this, but not PROJECT.md drift, so a milestone-close read-through is still needed. **Recurred at v1.2 close** (NOW-04 sat unchecked after Phase 17) **and again at v1.3 close** (Phase 20's Validated Requirements entry was never added) — a confirmed repeat pattern across 3 milestones now, not a one-off.
 2. The retrospective-append step itself gets skipped under time pressure (v1.0.1 and v1.1 both shipped without a retrospective section, only backfilled retroactively at v1.2 close) — treat it as a required milestone-close step, not optional polish.
+3. When an on-device integration bug resists a plan's stated-assumption fix, diff against the last known-working reference implementation directly rather than reasoning further from the (possibly wrong) assumption — v1.3's Phase 22 spent two full UAT cycles reasoning from a disproven assumption before the user chose to abandon it for a broader architecture redesign.

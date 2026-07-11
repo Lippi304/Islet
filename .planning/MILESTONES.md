@@ -1,5 +1,23 @@
 # Milestones
 
+## v1.3 Notch Shelf (Shipped: 2026-07-11)
+
+**Phases completed:** 3 phases (19-21), 5 plans, 12 tasks
+
+**Key accomplishments:**
+
+- Pure Foundation-only ShelfItem/ShelfLogic/ShelfFileStore/ShelfCoordinator stack — real FileManager session-temp copy-in on add and delete-on-removal wired through a thin coordinator, zero persistence path, zero AppKit/SwiftUI/IslandResolver coupling.
+- Shelf strip renders inside the expanded island (file-type icons, per-item trash, delete-all trash) as a conditionally-taller extension of the existing blobShape, with a regression test proving SHELF-09's transient-outranks-expanded gating needed zero new resolver code.
+- `NotchWindowController` now owns a real `ShelfCoordinator`, routes tap/delete/clear-all through it with the D-04 missing-file guard, reserves the panel's window height for the shelf band unconditionally, and hand-seeds 3 real on-disk sample files in DEBUG builds.
+- Scoped `syncClickThrough()`'s hit-test to the actual visible blob rect (`visibleContentZone()`) instead of the full static panel, closing the invisible 56pt click-swallowing band under an empty shelf, and extracted a single `resyncShelfViewState(animated:)` helper so shelf delete/clear-all animate with the standard spring instead of snapping instantly.
+- Drag-out shipped: a shelf item can be dragged onto Finder or any other app via `.onDrag` + `NSItemProvider(contentsOf:)`, with a drag-pin keeping the island open for the gesture's duration and a UAT-discovered auto-prune for items whose backing file vanished externally.
+
+### Known Gaps
+
+- **SHELF-01, SHELF-02 (drag-in) — not shipped.** Phase 22 spiked successfully (AppKit drag delivery does reach a click-through `NSPanel`) but then hit a second, separate blocker on-device twice: dragging never reached `NotchPanel` at all (`draggingEntered` never fired) even after restoring the working spike's `draggingUpdated(_:)` handler — root cause never identified. Rather than continue debugging incrementally, the user chose to abandon the current `NotchPanel`/`NotchWindowController` architecture in favor of a broader redesign (see v1.4). SHELF-01/02 carry forward as requirements into v1.4; Phase 22's pure seams (22-02) remain merged and reusable, Phase 22's debugging worktree is preserved for reference (see STATE.md).
+
+---
+
 ## v1.2 Now Playing Polish (Shipped: 2026-07-09)
 
 **Phases completed:** 2 phases, 3 plans, 9 tasks
