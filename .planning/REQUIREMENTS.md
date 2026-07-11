@@ -5,7 +5,7 @@
 
 ## v1.4 Requirements — Architecture Redesign
 
-A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexplained Phase 22 drag-in blocker, informed by TheBoringNotch/DynamicNotchKit reference implementations), plus Droppy-inspired scope: a first-launch onboarding flow, a frosted/glossy visual redesign, a sidebar-categorized Settings window, and a calendar full view. Gesture-based swipe navigation was explicitly considered and deferred.
+A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexplained Phase 22 drag-in blocker, informed by TheBoringNotch/DynamicNotchKit reference implementations), plus Droppy-inspired scope: a first-launch onboarding flow, a black-to-transparent gradient + fluid Dynamic-Island-style animation + Theming settings visual redesign, a sidebar-categorized Settings window, and a calendar full view. Gesture-based swipe navigation was explicitly considered and deferred.
 
 ### Architecture
 
@@ -21,8 +21,9 @@ A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexp
 
 ### Visual Redesign
 
-- [ ] **VISUAL-01**: The collapsed pill, expanded island, and activity wings render with a non-fully-transparent frosted/glossy material fill (not the current fill), using one shared material style across all three
-- [ ] **VISUAL-02**: The default spring animation is slower and more deliberate than today's while remaining smooth (no dropped frames, no visible bounce/overshoot)
+- [ ] **VISUAL-01**: The collapsed pill, expanded island, and activity wings render with one shared vertical alpha-gradient material — opaque/solid black nearest the physical notch, increasingly transparent toward the bottom edge — replacing the current flat fill. Individual activity content views (Now Playing, Charging, idle glance) are unaffected — only the shared shell chrome changes.
+- [ ] **VISUAL-02**: The expand/collapse animation uses a fluid, deliberately-paced spring with a subtle bounce-in on open, matching the characteristic feel of the iPhone Dynamic Island — no dropped frames, no jarring overshoot beyond the intended subtle in-bounce
+- [ ] **VISUAL-03**: A new Theming section in Settings lets the user customize the shell's material/surface style, per-element accent colors, and choose among alternate app icon variants
 
 ### Settings Redesign
 
@@ -41,9 +42,8 @@ Deferred to a future milestone, not in this roadmap.
 
 ### Architecture Redesign Polish
 
-- **ARCH-P1**: Animation Speed presets (Turtle/Human/Cheetah/Falcon-style) exposed as a Settings control
+- **ARCH-P1**: Animation Speed presets (Turtle/Human/Cheetah/Falcon-style) exposed as a Settings control, beyond v1.4's single fluid default curve (VISUAL-02)
 - **ARCH-P2**: "Permissions Overview — X of Y granted" rollup row in Settings + a "Replay onboarding" button in About
-- **ARCH-P3**: Extended theming — surface-style picker (e.g. flat vs. glass) and per-element color pickers beyond the existing accent color
 - **ARCH-P4**: `.glassEffect()`/Liquid Glass progressive enhancement, gated behind macOS 26.0+ (defer until the pre-26 install base is small enough, or the deployment floor is reconsidered)
 
 ### Other candidates (not yet scoped)
@@ -80,6 +80,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ONBOARD-03 | Phase 26 | Pending |
 | VISUAL-01 | Phase 25 | Pending |
 | VISUAL-02 | Phase 25 | Pending |
+| VISUAL-03 | Phase 27 | Pending |
 | SETTINGS-01 | Phase 27 | Pending |
 | CALVIEW-01 | Phase 28 | Pending |
 | CALVIEW-02 | Phase 28 | Pending |
@@ -87,8 +88,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CALVIEW-04 | Phase 28 | Pending |
 
 **Coverage:**
-- v1.4 requirements: 13 total
-- Mapped to phases: 13 (100%)
+- v1.4 requirements: 14 total
+- Mapped to phases: 14 (100%)
 - Unmapped: 0
 
 ---

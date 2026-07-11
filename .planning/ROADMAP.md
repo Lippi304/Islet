@@ -74,13 +74,13 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 ### 🚧 v1.4 Architecture Redesign (In Progress)
 
-**Milestone Goal:** Redesign the `NotchPanel`/`NotchWindowController` architecture (resolving the Phase 22 drag-in blocker), then layer Droppy-inspired onboarding, a visual/material redesign, a sidebar Settings redesign, and a calendar full view on top of it. Gesture-based swipe navigation is explicitly deferred.
+**Milestone Goal:** Redesign the `NotchPanel`/`NotchWindowController` architecture (resolving the Phase 22 drag-in blocker), then layer Droppy-inspired onboarding, a black-to-transparent gradient + fluid Dynamic-Island-style animation visual redesign, a sidebar Settings redesign (including a new Theming section), and a calendar full view on top of it. Gesture-based swipe navigation is explicitly deferred.
 
 - [x] **Phase 23: Shell Parity Rewrite** - Rebuild NotchPanel/NotchWindowController with zero behavioral regression, dropping the residual NSDraggingDestination scaffold (completed 2026-07-11)
 - [ ] **Phase 24: Drag-In** - DragApproachDetector wiring against Phase 22's already-proven pure seams
-- [ ] **Phase 25: Visual/Material Theming Redesign** - Shared frosted/glossy material fill + slower default spring
+- [ ] **Phase 25: Visual/Material Theming Redesign** - Black-to-transparent gradient material + fluid bouncy Dynamic-Island-style animation
 - [ ] **Phase 26: Onboarding Flow** - First-launch carousel + permissions pre-explanation
-- [ ] **Phase 27: Settings Sidebar Redesign** - NavigationSplitView with General/Workspace/System/About sections
+- [ ] **Phase 27: Settings Sidebar Redesign** - NavigationSplitView with General/Workspace/System/About sections, incl. new Theming section (VISUAL-03)
 - [ ] **Phase 28: Calendar Full View** - Month grid + day list + quick-add, sharing one EventKit service layer
 
 ## Phase Details
@@ -309,13 +309,14 @@ Plans:
 
 ### Phase 25: Visual/Material Theming Redesign
 
-**Goal**: The collapsed pill, expanded island, and activity wings read as a physical, glossy material instead of flat black, with a slower and more deliberate default spring.
+**Goal**: The collapsed pill, expanded island, and activity wings share one black-to-transparent vertical-gradient material (opaque/solid black nearest the physical notch, increasingly transparent toward the bottom edge) instead of a flat or uniform frosted/glossy fill, animated with the fluid, deliberately-paced, gently-bouncy open/collapse feel of the iPhone Dynamic Island. Touches only the shared shell chrome (pill/expanded frame/wings material + animation curve); does NOT touch any individual activity's content rendering (Now Playing, Charging/Battery, Clock/Calendar idle glance) — those keep their current views unchanged inside the new chrome, since they'll be revisited in their own future system overhauls. Theming customization (VISUAL-03) is descoped to Phase 27, which already needs a "System (Theming)" Settings section.
 **Depends on**: None — independent of the shell work (Phases 23-24); touches `NotchPillView` rendering only, not the window shell.
 **Requirements**: VISUAL-01, VISUAL-02
 **Success Criteria** (what must be TRUE):
-  1. The collapsed pill, expanded island, and activity wings all render a non-fully-transparent frosted/glossy material fill from one shared material style.
-  2. The default expand/collapse spring feels noticeably slower and more deliberate than today's, with no dropped frames and no visible overshoot/bounce.
-  3. The material composites without visual artifacts mid-morph (collapse↔expand), verified on-device in the real never-focused panel.
+  1. The collapsed pill, expanded island, and activity wings all render one shared vertical alpha-gradient material — opaque/solid black nearest the physical notch, increasingly transparent toward the bottom edge — replacing the current flat fill.
+  2. The expand/collapse animation uses a fluid, deliberately-paced spring with a subtle bounce-in on open (matching the iPhone Dynamic Island's characteristic feel), with no dropped frames and no jarring overshoot beyond the intended subtle in-bounce.
+  3. The material and animation changes apply only to the shared shell chrome — existing activity content views (Now Playing, Charging, idle glance) render unchanged inside the new chrome.
+  4. The material composites without visual artifacts mid-morph (collapse↔expand), verified on-device in the real never-focused panel.
 **Plans**: TBD
 **UI hint**: yes
 
@@ -334,13 +335,14 @@ Plans:
 
 ### Phase 27: Settings Sidebar Redesign
 
-**Goal**: Settings is restructured from a single tabbed form into a sidebar-categorized layout, with every existing control preserved.
-**Depends on**: None — independent of the shell work; naturally hosts Phase 25's theming controls and Phase 26's permission/license state, so sequencing after those is convenient but not required.
-**Requirements**: SETTINGS-01
+**Goal**: Settings is restructured from a single tabbed form into a sidebar-categorized layout, with every existing control preserved, and gains a new Theming section (VISUAL-03, descoped from Phase 25) to customize the Phase 25 gradient shell's appearance.
+**Depends on**: None — independent of the shell work; naturally sequenced after Phase 25 (theming controls need the gradient material to exist) and Phase 26's permission/license state, though not a hard blocker.
+**Requirements**: SETTINGS-01, VISUAL-03
 **Success Criteria** (what must be TRUE):
   1. Settings opens as a `NavigationSplitView` with sidebar sections General, Workspace (Shelf), System (Theming), and About/License.
   2. Every existing toggle (activity toggles, launch-at-login, song-change toast, fullscreen-hide, etc.) and the accent-color picker are present and functional in their new section.
   3. License and login-item state stays correctly synced when switching between sidebar sections — no stale state on section switch.
+  4. The System (Theming) section lets the user customize the shell's material/surface style, per-element accent colors, and choose among alternate app icon variants.
 **Plans**: TBD
 **UI hint**: yes
 
