@@ -56,6 +56,28 @@ enum ActivitySettings {
     static func accent(for index: Int) -> Color {
         palette.indices.contains(index) ? palette[index] : palette[defaultAccentIndex]
     }
+
+    // Phase 27 / D-08: seeds the 3 new per-element accent keys from the
+    // existing single accentIndexKey exactly once, so an existing user's
+    // accent look is preserved across the upgrade instead of silently
+    // resetting to the default swatch. Idempotent — a no-op once any of the
+    // 3 new keys has a value (already migrated, or the user already changed
+    // one in the new Theming section) and a no-op on a fresh install (no
+    // legacy value to seed from).
+    static func migrateLegacyAccentIfNeeded(defaults: UserDefaults = .standard) {
+        let alreadyMigrated = defaults.object(forKey: nowPlayingAccentKey) != nil
+            || defaults.object(forKey: chargingAccentKey) != nil
+            || defaults.object(forKey: deviceAccentKey) != nil
+        guard !alreadyMigrated else { return }
+
+        // T-27-03: `as? Int` guard — silently no-ops on a corrupted/missing
+        // legacy value rather than force-casting/crashing.
+        guard let legacy = defaults.object(forKey: accentIndexKey) as? Int else { return }
+
+        defaults.set(legacy, forKey: nowPlayingAccentKey)
+        defaults.set(legacy, forKey: chargingAccentKey)
+        defaults.set(legacy, forKey: deviceAccentKey)
+    }
 }
 
 // 06-RESEARCH §Pattern 4 — the single accent source the three lively leaf views
