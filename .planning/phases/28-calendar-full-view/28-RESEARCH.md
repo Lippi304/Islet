@@ -327,17 +327,19 @@ func fetchMonth(containing date: Date, completion: @escaping ([EventInput]) -> V
 
 **If this table is empty:** N/A — see above; none of these assumptions carry a functional risk beyond "extra Info.plist string" or "self-correcting compile error."
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact `SelectedView`/switcher-state ownership: new field on `NotchInteractionState`, or a new sibling `@Published` model?**
    - What we know: every prior feature (shelf, onboarding, outfit) got its OWN small `@Published` model rather than growing `NotchInteractionState`; `NotchInteractionState` itself only holds `phase`/`collapsedNotchSize` today.
    - What's unclear: whether "which view is selected" is interaction-state-shaped (like `phase`) or feature-state-shaped (like `shelfViewState`).
    - Recommendation: follow the established precedent — a new small model (e.g. `ViewSwitcherState`) — for consistency, but this is genuinely a planner-level call, not a blocking unknown.
+   - RESOLVED: Plan 28-01 creates `ViewSwitcherState` as a new sibling `@Published` model, per the recommendation.
 
 2. **Does month-navigation refetch on every prev/next tap, or does the controller prefetch adjacent months?**
    - What we know: `fetchUpcoming`'s existing 2-day window is small and refetched fresh each call; a month view's data volume is larger but still trivially small for a local EventKit query.
    - What's unclear: whether prefetching the next/prev month improves perceived snappiness enough to matter for a notch-sized UI (no user-facing loading spinner space).
    - Recommendation: start with fetch-on-navigate (simplest, matches existing `fetchUpcoming` call pattern); revisit only if on-device UAT shows a visible fetch-lag on month-nav taps (consistent with this project's established "tune after first on-device pass" convention).
+   - RESOLVED: Plan 28-04's `handleCalendarMonthChange` fetches on-navigate, per the recommendation.
 
 ## Environment Availability
 
