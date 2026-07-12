@@ -23,6 +23,7 @@
 		21DD22351526B5DCB2A38A65 /* NotchPillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65127041FDE5365C865095B1 /* NotchPillView.swift */; };
 		2586E152318B70467587E51C /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */; };
 		2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C997928190396DADC0ADA29 /* NotchWindowController.swift */; };
+		2F75ED15F35CB39A20ED54AB /* ActivitySettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54DE6734ABC75FD146F9FCF /* ActivitySettingsTests.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
 		34071739EA3C6FAD089AEA67 /* MediaRemoteAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */; };
 		344AC320C82085AB24E1F3EC /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */; };
@@ -187,6 +188,7 @@
 		B94FF8FB96D00B8442591E7B /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
 		BEFCAF742543C37096D4F714 /* BatteryIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryIndicator.swift; sourceTree = "<group>"; };
 		C2E70A8667DE9528FD2F0CFB /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
+		C54DE6734ABC75FD146F9FCF /* ActivitySettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivitySettingsTests.swift; sourceTree = "<group>"; };
 		C75C7435C3C840FC929C873C /* DropInterceptTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropInterceptTap.swift; sourceTree = "<group>"; };
 		D2B811CCD53A0E77D86C48E5 /* WeatherCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCategory.swift; sourceTree = "<group>"; };
 		D2C09F7CB439DBC707F7E095 /* ShelfItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItem.swift; sourceTree = "<group>"; };
@@ -235,6 +237,7 @@
 		2A6EFEBFBF547E6277E6C69F /* IsletTests */ = {
 			isa = PBXGroup;
 			children = (
+				C54DE6734ABC75FD146F9FCF /* ActivitySettingsTests.swift */,
 				8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */,
 				AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */,
 				0A6FA5F67CABA606F19ED731 /* DeviceCoordinatorTests.swift */,
@@ -542,6 +545,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2F75ED15F35CB39A20ED54AB /* ActivitySettingsTests.swift in Sources */,
 				B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */,
 				3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */,
 				16A051D140699708997B8A33 /* DeviceCoordinatorTests.swift in Sources */,
@@ -603,6 +607,8 @@
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
 				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "Islet nutzt diese Berechtigung, um beim Ablegen einer Datei in der Notch zu verhindern, dass Finder die Originaldatei verschiebt.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswaehlst.";
+				INFOPLIST_KEY_NSRemindersUsageDescription = "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswaehlst.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -760,6 +766,8 @@
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
 				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "Islet nutzt diese Berechtigung, um beim Ablegen einer Datei in der Notch zu verhindern, dass Finder die Originaldatei verschiebt.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswaehlst.";
+				INFOPLIST_KEY_NSRemindersUsageDescription = "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswaehlst.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
