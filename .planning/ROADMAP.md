@@ -404,5 +404,19 @@ Plans:
   2. Selecting a day with no events shows an explicit empty state, not a blank area.
   3. The user can quick-add either a calendar event or a reminder (their choice per entry) without leaving the island.
   4. The full calendar view and the existing Home-glance "next event" feature both read through one shared EventKit service layer — no duplicated date/event logic.
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 28-01-PLAN.md — Pure seams: CalendarGlance.swift day/month-bucketing (daysInMonth, events(on:)) + ViewSwitcherState/SelectedView + CalendarViewState/QuickAddKind data contracts, TDD
+- [ ] 28-02-PLAN.md — CalendarService.swift extension: fetchMonth, createEvent, createReminder (lazy Reminders permission, D-04) + project.yml Reminders keys (D-05)
+
+**Wave 2** *(blocked on 28-01)*
+
+- [ ] 28-03-PLAN.md — ShelfViewState.isVisible/forcedByTray + IslandResolver .calendarExpanded/SelectedView + NotchPillView switcher pill + calendarFullView (month grid + day list + empty state + quick-add popover)
+
+**Wave 3** *(blocked on 28-02, 28-03)*
+
+- [ ] 28-04-PLAN.md — NotchWindowController wiring (resolver/click-through/panel-geometry + switcher/month-nav/day-select/quick-add handlers) + on-device UAT checkpoint
