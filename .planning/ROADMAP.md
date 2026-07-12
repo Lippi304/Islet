@@ -383,7 +383,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 27-01-PLAN.md — ActivitySettings.swift Theming data model (MaterialStyle, 4 new keys/EnvironmentKeys) + migration seeding + ActivitySettingsTests.swift
+- [x] 27-01-PLAN.md — ActivitySettings.swift Theming data model (MaterialStyle, 4 new keys/EnvironmentKeys) + migration seeding + ActivitySettingsTests.swift
 
 **Wave 2** *(blocked on 27-01)*
 

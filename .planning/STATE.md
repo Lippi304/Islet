@@ -4,8 +4,8 @@ milestone: v1.4
 milestone_name: Architecture Redesign
 status: executing
 stopped_at: Phase 27 UI-SPEC approved
-last_updated: "2026-07-12T19:52:14.520Z"
-last_activity: 2026-07-12 -- Phase 27 planning complete
+last_updated: "2026-07-12T19:53:41.684Z"
+last_activity: 2026-07-12 -- Phase 27 execution started
 progress:
   total_phases: 13
   completed_phases: 7
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 26 — onboarding-flow
+**Current focus:** Phase 27 — settings-sidebar-redesign
 
 ## Current Position
 
-Phase: 26 (onboarding-flow) — COMPLETE (4/4 plans)
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-07-12 -- Phase 27 planning complete
+Phase: 27 (settings-sidebar-redesign) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 27
+Last activity: 2026-07-12 -- Phase 27 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
