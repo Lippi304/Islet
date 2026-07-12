@@ -450,14 +450,23 @@ struct NotchPillView: View {
     // first EventKit fetch settles).
     private var dayListColumn: some View {
         let dayEvents = calendarViewState.monthEvents.map { events(on: calendarViewState.selectedDay, events: $0) }
-        return Group {
-            if let dayEvents {
-                if dayEvents.isEmpty {
-                    calendarEmptyState
-                } else {
-                    dayEventsList(dayEvents)
+        return VStack(alignment: .trailing, spacing: 4) {
+            // CALVIEW-03 — the "+ Add" trigger, top-right of the day-list column
+            // (28-UI-SPEC.md Layout Contract).
+            HStack {
+                Spacer()
+                QuickAddPopover(onSubmit: onQuickAdd)
+            }
+            Group {
+                if let dayEvents {
+                    if dayEvents.isEmpty {
+                        calendarEmptyState
+                    } else {
+                        dayEventsList(dayEvents)
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
@@ -1451,6 +1460,76 @@ struct ProgressBar: View {
         guard seconds.isFinite else { return "0:00" }
         let s = max(0, Int(seconds.rounded()))
         return String(format: "%d:%02d", s / 60, s % 60)
+    }
+}
+
+// Phase 28 / CALVIEW-03 — the "+ Add" trigger + its in-panel quick-add popover, factored out
+// so its transient @State (isShowing/kind/title) is scoped to just this control's lifetime,
+// not a NotchPillView property (which would leak across every other presentation case) — same
+// reasoning already documented for OnboardingDoneStep's Launch-at-Login @State below. Reports
+// intent via `onSubmit` (kind, title) unmodified — no EventKit/EKEventStore code in this view
+// file (T-28-03: the value is only ever assigned to EKEvent.title/EKReminder.title in Plan 04).
+private struct QuickAddPopover: View {
+    @State private var isShowing = false
+    @State private var kind: QuickAddKind = .event
+    @State private var title = ""
+    let onSubmit: (QuickAddKind, String) -> Void
+
+    // The trigger button. `chipButton`'s exact visual convention (RoundedRectangle +
+    // Color.white.opacity(0.12) fill, 28-UI-SPEC.md "Quick-add control chrome") — mirrored here
+    // rather than called on `NotchPillView` directly, since a sibling file-scope private struct
+    // has no access to another type's private instance method.
+    var body: some View {
+        Button(action: { isShowing = true }) {
+            Text("+ Add")
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.white.opacity(0.12))
+                )
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $isShowing) {
+            quickAddContent
+        }
+    }
+
+    // Event/Reminder choice (D-03, exact user-facing nouns) via the SAME segmented Picker
+    // convention SettingsView.swift's Theming material picker already uses verbatim — do not
+    // hand-roll a custom toggle. Submit label swaps with `kind` — never a generic "Save".
+    private var quickAddContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Type", selection: $kind) {
+                Text("Event").tag(QuickAddKind.event)
+                Text("Reminder").tag(QuickAddKind.reminder)
+            }
+            .pickerStyle(.segmented)
+            TextField("What's this for?", text: $title)
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+            Button(action: {
+                onSubmit(kind, title)
+                title = ""
+                isShowing = false
+            }) {
+                Text(kind == .event
+                     ? "Add Event"
+                     : "Add Reminder")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.white.opacity(0.12))
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .frame(width: 220)
     }
 }
 
