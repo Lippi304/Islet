@@ -1133,6 +1133,71 @@ final class NotchWindowController {
         syncClickThrough()
     }
 
+    // Phase 28 / CALVIEW-01/02/04 — routes through the SAME `calendarService` property
+    // refreshCalendar() already uses (never a second EventKitService instance, CALVIEW-04's
+    // single-EKEventStore structural check).
+    private func refreshCalendarMonth() {
+        calendarService.fetchMonth(containing: calendarViewState.visibleMonth) { [weak self] events in
+            self?.calendarViewState.monthEvents = events
+        }
+    }
+
+    // Phase 28 / CALVIEW-01 — wired from NotchPillView's switcher pill taps. D-02's Tray
+    // reconciliation force-reveals an otherwise-empty shelf strip without a dedicated resolver
+    // case (see ShelfViewState.forcedByTray's header comment); Pitfall 4 resets the calendar to
+    // today/this-month on every Calendar selection so a stale prior month never flashes (D-07:
+    // today selected by default on open).
+    private func handleSwitcherSelect(_ view: SelectedView) {
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            viewSwitcherState.selectedView = view
+            shelfViewState.forcedByTray = (view == .tray)
+            if view == .calendar {
+                calendarViewState.selectedDay = Date()
+                calendarViewState.visibleMonth = Date()
+                calendarViewState.monthEvents = nil
+            }
+            renderPresentation()
+        }
+        syncClickThrough()
+        if view == .calendar {
+            refreshCalendarMonth()
+        }
+    }
+
+    // Phase 28 / CALVIEW-01 (D-08) — prev/next month navigation. Clears monthEvents before the
+    // fetch settles (Pitfall 4 — avoids showing the OLD month's events under the NEW month's
+    // grid for one frame); guards against a nil Calendar.date(byAdding:) result rather than
+    // crashing on a calendar-arithmetic edge case.
+    private func handleCalendarMonthChange(_ delta: Int) {
+        guard let newMonth = Calendar.current.date(byAdding: .month, value: delta, to: calendarViewState.visibleMonth) else { return }
+        calendarViewState.visibleMonth = newMonth
+        calendarViewState.monthEvents = nil
+        refreshCalendarMonth()
+    }
+
+    // Phase 28 / CALVIEW-01 — day selection only changes which day's events render; no
+    // shape/size change, so no spring animation is needed.
+    private func handleCalendarDaySelect(_ day: Date) {
+        calendarViewState.selectedDay = day
+    }
+
+    // Phase 28 / CALVIEW-03 — quick-add for both Event and Reminder, routed through the SAME
+    // shared CalendarService (CALVIEW-04). Event defaults to a 1-hour duration starting at the
+    // selected day (no time picker exists per the UI-SPEC's Copywriting Contract) and refreshes
+    // the month afterward so it appears in the day list immediately; Reminder has no rendering
+    // surface in this phase (CALVIEW-03 is create-only for reminders), so no refresh is needed.
+    private func handleQuickAdd(_ kind: QuickAddKind, title: String) {
+        let day = calendarViewState.selectedDay
+        switch kind {
+        case .event:
+            calendarService.createEvent(title: title, start: day, end: day.addingTimeInterval(3600)) { [weak self] _ in
+                self?.refreshCalendarMonth()
+            }
+        case .reminder:
+            calendarService.createReminder(title: title, dueDate: day) { _ in }
+        }
+    }
+
     // MARK: - Phase 26 / ONBOARD-01/02/03 — onboarding session handlers
 
     // ONBOARD-01 (D-09) — the ONLY path Next/Back use. Mirrors handleClick's own
@@ -1313,7 +1378,11 @@ final class NotchWindowController {
                       onOnboardingBack: { [weak self] in self?.advanceOnboarding(.back) },
                       onOnboardingGrant: { [weak self] permission in self?.grantOnboardingPermission(permission) },
                       onOnboardingOpenSettings: { [weak self] in self?.openOnboardingSettings() },
-                      onOnboardingFinish: { [weak self] in self?.finishOnboarding() })
+                      onOnboardingFinish: { [weak self] in self?.finishOnboarding() },
+                      onSwitcherSelect: { [weak self] view in self?.handleSwitcherSelect(view) },
+                      onCalendarMonthChange: { [weak self] delta in self?.handleCalendarMonthChange(delta) },
+                      onCalendarDaySelect: { [weak self] day in self?.handleCalendarDaySelect(day) },
+                      onQuickAdd: { [weak self] kind, title in self?.handleQuickAdd(kind, title: title) })
             .environment(\.nowPlayingAccent, ActivitySettings.accent(for: theme.nowPlaying))
             .environment(\.chargingAccent, ActivitySettings.accent(for: theme.charging))
             .environment(\.deviceAccent, ActivitySettings.accent(for: theme.device))
