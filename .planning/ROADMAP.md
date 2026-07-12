@@ -128,7 +128,7 @@ Plans:
 
 **v1.3:** 3/3 shipped phases complete (100%) — see `.planning/milestones/v1.3-ROADMAP.md`. Phase 22 (drag-in, SHELF-01/02) blocked and not shipped; carried forward into v1.4.
 
-**v1.4:** 3/6 phases complete (50%) — Phases 23 (Shell Parity Rewrite), 24 (Drag-In), and 25 (Visual/Material Theming Redesign) are done; Phases 26-28 have no shell dependency and may be resequenced for throughput.
+**v1.4:** 5/6 phases complete (83%) — Phases 23 (Shell Parity Rewrite), 24 (Drag-In), 25 (Visual/Material Theming Redesign), 26 (Onboarding Flow), and 27 (Settings Sidebar Redesign) are done; only Phase 28 (Calendar Full View) remains.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 

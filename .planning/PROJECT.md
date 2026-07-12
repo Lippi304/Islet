@@ -30,7 +30,7 @@ Other standing candidates for a future milestone: formalize WEATHER-01/CAL-01/OU
 
 **Goal:** Redesign the NotchPanel/NotchWindowController architecture (to resolve the Phase 22 drag-in blocker and give the app room to grow), then layer on Droppy-inspired scope on top of the new foundation.
 
-**Status: 2/6 phases shipped.** Phase 23 (Shell Parity Rewrite) shipped 2026-07-11 with zero behavioral regression, on-device UAT approved. Phase 25 (Visual/Material Theming Redesign) shipped 2026-07-11 — gradient material + spring retune, on-device UAT approved (executed out of numeric order; Phase 24 Drag-In remains next up).
+**Status: 5/6 phases shipped.** Phase 23 (Shell Parity Rewrite), 24 (Drag-In), and 25 (Visual/Material Theming Redesign) shipped 2026-07-11. Phase 26 (Onboarding Flow) shipped 2026-07-12. Phase 27 (Settings Sidebar Redesign) shipped 2026-07-12 — NavigationSplitView sidebar + new Theming section, on-device UAT approved after fixing 2 real regressions found during the checkpoint (Settings window not opening; sidebar navigation unresponsive — see 27-04-SUMMARY.md). Only Phase 28 (Calendar Full View) remains.
 
 **Target features:**
 - NotchPanel/NotchWindowController architecture redesign — informed by TheBoringNotch/DynamicNotchKit reference implementations, resolves the unidentified Phase 22 drag delivery blocker
@@ -157,6 +157,12 @@ _v1.2 (Now Playing Polish) is code-complete and on-device verified — both phas
 - [x] Spring animation retuned (response 0.35→0.6, damping 0.65→0.62) for a slower, single-overshoot morph matching the iPhone Dynamic Island's characteristic bounce, applied uniformly through the existing shared spring constants. (Phase 25 — VISUAL-02)
 - On-device UAT (7-point checklist: gradient depth, pure black, corner roundness, spring feel, no morph artifacts, rapid hover-enter/exit, activity-content regression) passed on first attempt on real notch hardware — the documented `NotchShape.swift` `animatableData` contingency was not needed. VISUAL-03 (Settings theming section) intentionally out of this phase, carried to Phase 27.
 
+**Settings Sidebar Redesign + Theming (Phase 27 — SETTINGS-01, VISUAL-03):**
+
+- [x] `SettingsView` restructured from a 3-tab `TabView` into a `NavigationSplitView` sidebar (General/Workspace/System/About), every existing control relocated verbatim, no section-switch state staleness. (Phase 27 — SETTINGS-01)
+- [x] New System (Theming) section: a Gradient/Solid Black material-style picker plus 3 independent per-element accent pickers (Now Playing/Charging/Device), replacing the single shared accent index; live-applies to the pill/expanded island/wings via the existing UserDefaults-observer re-host pipeline. A one-time migration seeds the 3 new keys from the legacy single accent so existing users' accent choice carries forward. (Phase 27 — VISUAL-03)
+- On-device UAT checkpoint found and fixed 2 real regressions that no automated build/grep check could catch: Settings not opening at all via the menu bar icon (`.defaultLaunchBehavior(.suppressed)` silently prevented the Settings `Window(id:)` scene from ever being created), and the sidebar navigation being completely unresponsive to clicks (`List(selection:)` never registered a click regardless of 3 fix attempts; replaced with a plain `Button`-based row implementation). Both root-caused via targeted diagnostic instrumentation rather than static reasoning alone. Full 10-step on-device walkthrough approved. (Phase 27)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
@@ -257,4 +263,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-11 — Phase 25 (Visual/Material Theming Redesign) shipped, v1.4's second phase; gradient material + spring retune on-device UAT approved.*
+*Last updated: 2026-07-12 — Phase 27 (Settings Sidebar Redesign) shipped, v1.4's fifth phase; NavigationSplitView sidebar + Theming section, on-device UAT approved after fixing 2 regressions found during the checkpoint. Only Phase 28 (Calendar Full View) remains.*
