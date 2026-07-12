@@ -464,10 +464,14 @@ final class NotchWindowController {
         // within view updates", trapped by Xcode's SwiftUI Runtime Issue breakpoint right at
         // this file's `panel.contentView = NSHostingView(...)` construction). Root cause:
         // `start()` runs synchronously inside `AppDelegate.applicationDidFinishLaunching`,
-        // which itself fires WHILE SwiftUI's own App/Scene graph (this app's `Window(id:
-        // "settings")` scene, per IsletApp.swift) is still mid-setup for launch -- mutating
-        // `@Published` state synchronously in that window races SwiftUI's own in-flight
-        // update transaction. `interaction.phase = .expanded` was the ONE new mutation Phase
+        // which itself fires WHILE SwiftUI's own App/Scene graph (IsletApp.swift's `body`)
+        // is still mid-setup for launch -- mutating `@Published` state synchronously in
+        // that window races SwiftUI's own in-flight update transaction. (Plan 27-04: the
+        // Settings window IsletApp.swift originally referenced here was later replaced by
+        // an AppKit-owned NSWindow in AppDelegate — see AppDelegate.showSettingsWindow() —
+        // but this race is about the App struct's own Scene-graph setup in general, not
+        // specifically that removed scene, so the fix below still applies.)
+        // `interaction.phase = .expanded` was the ONE new mutation Phase
         // 26 added directly to this synchronous launch path (every other mutation here, like
         // `renderPresentation()` above, predates this phase and was never in this exact
         // reentrant position). Hopping to the next main run-loop turn is the standard,

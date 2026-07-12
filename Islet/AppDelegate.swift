@@ -4,8 +4,19 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menu: NSMenu!
-    private var didHideSettingsAtLaunch = false
     private var licenseObserver: NSObjectProtocol?
+    private var settingsObserver: NSObjectProtocol?
+    // Plan 27-04 checkpoint fix: a plain AppKit NSWindow that AppDelegate owns
+    // and creates lazily on first real open request. Replaces a SwiftUI
+    // `Window(id: "settings")` scene whose notification bridge lived INSIDE
+    // that window's own (not-yet-created) content view — a circular
+    // dependency that silently never bootstrapped once `.defaultLaunchBehavior
+    // (.suppressed)` kept the scene from auto-creating at launch (confirmed
+    // on-device: `NSApp.windows` never contained a "settings"-identified
+    // window at click time). AppDelegate is unconditionally alive for the
+    // app's whole lifetime, so this has no equivalent "never created" failure
+    // mode, and needs no restoration/suppression handling at all.
+    private var settingsWindow: NSWindow?
     // Phase 1: owns the notch overlay panel. Retained for the app's lifetime so the
     // panel and its screen-change observer stay alive (a dropped controller would
     // tear down the overlay). Parallel to `statusItem`.
@@ -68,6 +79,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.applyMenuBarClickRouting(isLicensed: LicenseState.shared.isEntitled)
         }
 
+        // Plan 27-04 checkpoint fix: AppDelegate itself listens for the open-request
+        // (posted by this file's openSettings() and by NotchWindowController's
+        // onboarding Settings-hop) and shows its own AppKit-owned window. Since
+        // AppDelegate exists for the app's entire lifetime, this observer is always
+        // registered by the time either caller can possibly post — no ordering
+        // dependency on a SwiftUI Scene/View having been created first.
+        settingsObserver = NotificationCenter.default.addObserver(
+            forName: .openIsletSettings, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.showSettingsWindow()
+        }
+
         // Phase 1: build and show the notch overlay on the built-in notched display.
         // The controller resolves the correct screen, positions the panel on the
         // notch, and re-positions on every screen-configuration change.
@@ -75,39 +98,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.start(isFirstLaunch: isFirstLaunch)
         self.notchController = controller
 
-        // A menu-bar agent must NOT show its Settings window on launch — once
-        // "Launch at login" is enabled it would otherwise pop up on every login.
-        // The SwiftUI Window(id:) scene creates its window at launch, so hide it
-        // right after launch. orderOut keeps the window object alive, so
-        // "Settings…" can re-show it instantly via makeKeyAndOrderFront below.
-        // Phase 26 / D-08: onboarding now lives entirely inside the notch panel
-        // (NotchWindowController.start(isFirstLaunch:)), so Settings must never
-        // auto-open on any launch, first or not — unconditionally hide it.
-        DispatchQueue.main.async { [weak self] in
-            self?.hideSettingsWindowOnLaunch()
-        }
-
         #if DEBUG
         setupDebugMenu()
         #endif
     }
 
-    // The SwiftUI Window(id:) NSWindow may not exist yet on the first run-loop
-    // pass after launch, so a single orderOut can match nothing and let the
-    // window flash on screen. Retry briefly until the window appears, hide it
-    // once, then stop (so a window the user later opens is never re-hidden).
-    private func hideSettingsWindowOnLaunch(attempt: Int = 0) {
-        guard !didHideSettingsAtLaunch else { return }
-        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "settings" }) {
-            window.isRestorable = false          // don't let macOS restore it next launch
-            window.isReleasedWhenClosed = false  // keep the window alive after a close
-            window.orderOut(nil)                 // hide without destroying the window
-            didHideSettingsAtLaunch = true
-        } else if attempt < 50 {                 // ~1s of 20ms retries until it exists
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
-                self?.hideSettingsWindowOnLaunch(attempt: attempt + 1)
-            }
+    // Plan 27-04 checkpoint fix: created lazily on first real request instead of
+    // at launch, so there is no "auto-appears on launch" class of bug to guard
+    // against at all (the pre-existing hideSettingsWindowOnLaunch()/
+    // .defaultLaunchBehavior(.suppressed)/window-restoration workarounds this
+    // replaces all existed only because the old SwiftUI Window(id:) scene DID
+    // auto-create+auto-show at launch and had to be fought back into hiding).
+    private func showSettingsWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = settingsWindow {
+            window.makeKeyAndOrderFront(nil)
+            return
         }
+        let hosting = NSHostingController(rootView: SettingsView())
+        let window = NSWindow(contentViewController: hosting)
+        window.title = "Islet Settings"
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        // Matches the identifier the pre-existing NotchWindowController.swift
+        // onboarding-hop fallback (`NSApp.windows.first { $0.identifier?.rawValue
+        // == "settings" }`) already looks for — no change needed there.
+        window.identifier = NSUserInterfaceItemIdentifier("settings")
+        window.isReleasedWhenClosed = false  // keep it alive across close, like the old window
+        window.center()
+        settingsWindow = window
+        window.makeKeyAndOrderFront(nil)
     }
 
     // D-05: while locked, a click has nothing useful to do except jump straight
@@ -128,14 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() {
-        // macOS-26-correct: activate the (background-agent) app first, THEN open
-        // the window, or it appears behind other apps / silently no-ops.
-        NSApp.activate(ignoringOtherApps: true)
         NotificationCenter.default.post(name: .openIsletSettings, object: nil)
-        // Fallback to ensure the window is front-most even on first open, before
-        // the SwiftUI notification bridge has a chance to run.
-        NSApp.windows.first { $0.identifier?.rawValue == "settings" }?
-            .makeKeyAndOrderFront(nil)
     }
 
     @objc private func quit() {
