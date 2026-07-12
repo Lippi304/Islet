@@ -415,7 +415,7 @@ Plans:
 
 **Wave 2** *(blocked on 28-01)*
 
-- [ ] 28-03-PLAN.md — ShelfViewState.isVisible/forcedByTray + IslandResolver .calendarExpanded/SelectedView + NotchPillView switcher pill + calendarFullView (month grid + day list + empty state + quick-add popover)
+- [x] 28-03-PLAN.md — ShelfViewState.isVisible/forcedByTray + IslandResolver .calendarExpanded/SelectedView + NotchPillView switcher pill + calendarFullView (month grid + day list + empty state + quick-add popover)
 
 **Wave 3** *(blocked on 28-02, 28-03)*
 
