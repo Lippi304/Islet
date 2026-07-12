@@ -22,6 +22,7 @@ enum IslandPresentation: Equatable {
     case nowPlayingWings(NowPlayingPresentation)           // D-02 rank 3 ambient (collapsed glance)
     case nowPlayingExpanded(NowPlayingPresentation, healthy: Bool) // D-12 expanded media / "nicht verfügbar"
     case expandedIdle                                      // expanded, healthy, nothing playing (date/time)
+    case calendarExpanded                                  // Phase 28 / CALVIEW-01: month grid + day list
 }
 
 // The transient currently owning the island (the queue's head). Charging and device are
@@ -37,6 +38,7 @@ func resolve(activeTransient: ActiveTransient?,
              nowPlayingHealthy: Bool,
              hasPlayedSinceLaunch: Bool,
              isExpanded: Bool,
+             selectedView: SelectedView = .home,
              onboardingStep: OnboardingStep? = nil) -> IslandPresentation {
     // Phase 26 D-09: forced flow -- a forced onboarding session is never pre-empted by any
     // transient or expanded state. Checked at the single arbiter, as the literal first
@@ -50,6 +52,10 @@ func resolve(activeTransient: ActiveTransient?,
     if isExpanded {
         if !nowPlayingHealthy { return .nowPlayingExpanded(nowPlaying, healthy: false) } // D-12
         if nowPlaying != .none { return .nowPlayingExpanded(nowPlaying, healthy: true) }
+        // Phase 28 / CALVIEW-01 — Tray is deliberately NOT its own case here (D-02): its
+        // force-reveal is a view/controller concern (ShelfViewState.forcedByTray, Task 1),
+        // so only Calendar gets a new resolver branch.
+        if selectedView == .calendar { return .calendarExpanded }
         return .expandedIdle
     }
     // Phase 17 / NOW-04 — D-01/D-03: the launch gate applies ONLY to this ambient branch; the
