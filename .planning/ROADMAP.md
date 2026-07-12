@@ -387,8 +387,8 @@ Plans:
 
 **Wave 2** *(blocked on 27-01)*
 
-- [ ] 27-02-PLAN.md — NotchPillView.swift AnyShapeStyle material branch + per-element accent call sites, NotchWindowController.swift single-read-site theme pipeline
-- [ ] 27-03-PLAN.md — SettingsView.swift NavigationSplitView restructure (General/Workspace/System/About) + Theming section UI + Diagnostics.swift 3-accent report
+- [x] 27-02-PLAN.md — NotchPillView.swift AnyShapeStyle material branch + per-element accent call sites, NotchWindowController.swift single-read-site theme pipeline
+- [x] 27-03-PLAN.md — SettingsView.swift NavigationSplitView restructure (General/Workspace/System/About) + Theming section UI + Diagnostics.swift 3-accent report
 
 **Wave 3** *(blocked on 27-02, 27-03)*
 
