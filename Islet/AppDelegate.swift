@@ -28,6 +28,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // runs inside start().
         let isFirstLaunch = TrialManager.shared.recordFirstLaunchIfNeeded()
 
+        // Phase 27 / VISUAL-03 / D-08: must run before controller.start() so the
+        // panel's first show already reads the migrated (not default) accent —
+        // same "before controller.start()" ordering constraint as the trial
+        // recording above.
+        ActivitySettings.migrateLegacyAccentIfNeeded()
+
         // Create the menu-bar status item. variableLength = sized to its content.
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
