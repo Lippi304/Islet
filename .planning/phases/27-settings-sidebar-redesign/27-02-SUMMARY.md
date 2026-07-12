@@ -101,3 +101,7 @@ None - no external service configuration required.
 ---
 *Phase: 27-settings-sidebar-redesign*
 *Completed: 2026-07-12*
+
+## Self-Check: PASSED
+
+All created/modified files verified present; all 3 task/summary commit hashes (ed2bcb7, 1b5468f, a9ee7cc) verified in git log.
