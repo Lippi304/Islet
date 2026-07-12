@@ -437,11 +437,6 @@ final class NotchWindowController {
         seedDebugShelfItems()
         #endif
 
-        // Phase 26 / ONBOARD-01 (D-09): a forced onboarding session starts already expanded —
-        // no animation wrapper, this is the initial launch state (mirrors `interaction.phase`'s
-        // own no-animation `.collapsed` default), not a live transition.
-        if isOnboardingActive { interaction.phase = .expanded }
-
         // Phase 6 / APP-03 / D-09: observe UserDefaults so flipping a toggle (or the accent
         // swatch) live-applies — start/stop the affected monitor, flush its standing/queued
         // transient, re-inject the accent, and re-render. UserDefaults posts on the thread that
@@ -453,12 +448,38 @@ final class NotchWindowController {
 
         // Phase 6: seed the first rendered presentation from the resolver (idle until an
         // activity fires) so the view starts from the single-arbiter verdict, not a stale value.
+        // Safe to run synchronously here: this call already predates Phase 26 (Phase 6) and
+        // its outcome for a non-onboarding launch is `.idle`/whatever the resolver computes
+        // from already-quiescent state — it never raced SwiftUI's own launch-time update pass.
         renderPresentation()
 
-        // Phase 26 / ONBOARD-01: makes the panel immediately interactive at launch without
-        // requiring a hover tick first — mirrors handleHoverEnter()'s own post-mutation
-        // syncClickThrough() call.
-        if isOnboardingActive { syncClickThrough() }
+        // Phase 26 / ONBOARD-01 (D-09) round-7 fix (on-device crash: "Publishing changes from
+        // within view updates", trapped by Xcode's SwiftUI Runtime Issue breakpoint right at
+        // this file's `panel.contentView = NSHostingView(...)` construction). Root cause:
+        // `start()` runs synchronously inside `AppDelegate.applicationDidFinishLaunching`,
+        // which itself fires WHILE SwiftUI's own App/Scene graph (this app's `Window(id:
+        // "settings")` scene, per IsletApp.swift) is still mid-setup for launch -- mutating
+        // `@Published` state synchronously in that window races SwiftUI's own in-flight
+        // update transaction. `interaction.phase = .expanded` was the ONE new mutation Phase
+        // 26 added directly to this synchronous launch path (every other mutation here, like
+        // `renderPresentation()` above, predates this phase and was never in this exact
+        // reentrant position). Hopping to the next main run-loop turn is the standard,
+        // understood fix for AppDelegate-triggered ObservableObject mutations racing SwiftUI's
+        // App-lifecycle setup -- NOT a blind wrapper: it is scoped to exactly the two calls
+        // that didn't exist before this phase, letting `applicationDidFinishLaunching` (and
+        // SwiftUI's own launch-time transaction) fully return first. The onboarding CARD
+        // itself is unaffected -- `renderPresentation()` above already set
+        // `presentationState.presentation = .onboarding(.welcome)` synchronously, since the
+        // resolver's onboarding-first precedence doesn't depend on `interaction.isExpanded`
+        // at all; only the collapse-guard/click-through side effects that DO depend on
+        // `interaction.isExpanded` are deferred by a single run-loop tick (imperceptible).
+        if isOnboardingActive {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.interaction.phase = .expanded
+                self.syncClickThrough()
+            }
+        }
 
         // Phase 10 / D-12: arm the best-effort one-shot proactive expiry re-check.
         scheduleTrialExpiryCheck()
