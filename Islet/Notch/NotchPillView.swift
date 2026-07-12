@@ -70,7 +70,7 @@ struct NotchPillView: View {
 
     // Phase 27 / VISUAL-03 / D-06/D-08 — the controller injects 3 INDEPENDENT per-element
     // accents on the hosting view via `.environment(\.nowPlayingAccent, …)` /
-    // `\.chargingAccent` / `\.deviceAccent`, replacing the single shared `activityAccent` this
+    // `\.chargingAccent` / `\.deviceAccent`, replacing the single shared accent key this
     // view used before this phase. Each tints ONLY its own lively leaf element (now-playing
     // equalizer/progress bar, charging glyph, device icon) — the black island and the expanded
     // chrome stay untinted (D-10), and changing one element's accent never affects the other
