@@ -276,7 +276,7 @@ struct NotchPillView: View {
         .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
-                   : Self.expandedSize.height + (shelfViewState.items.isEmpty ? 0 : Self.shelfRowHeight),
+                   : Self.expandedSize.height + (shelfViewState.isVisible ? Self.shelfRowHeight : 0),
                alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
         // container level. A single ancestor .onTapGesture here would sit ABOVE the
@@ -320,7 +320,8 @@ struct NotchPillView: View {
     // here — this ~40pt-tall content needs no camera-clearance pin, unlike mediaExpanded's
     // 84-100pt content (UI-SPEC.md explicitly corrects RESEARCH.md's `.padding(.top, 32)`).
     private var expandedIsland: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items) {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items,
+                  shelfVisible: shelfViewState.isVisible) {
             HStack(spacing: 0) {
                 if let weather = outfit.weather {
                     weatherColumn(weather)
@@ -350,7 +351,8 @@ struct NotchPillView: View {
     // must not depend on sibling content height).
     private func onboardingCarousel(_ step: OnboardingStep) -> some View {
         blobShape(topCornerRadius: 6, bottomCornerRadius: 32,
-                  width: Self.onboardingSize.width, height: Self.onboardingSize.height, shelfItems: []) {
+                  width: Self.onboardingSize.width, height: Self.onboardingSize.height, shelfItems: [],
+                  shelfVisible: false) {
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
@@ -640,8 +642,9 @@ struct NotchPillView: View {
                                            width: CGFloat? = nil,
                                            height: CGFloat? = nil,
                                            shelfItems: [ShelfItem],
+                                           shelfVisible: Bool,
                                            @ViewBuilder content: () -> Content) -> some View {
-        let hasShelf = !shelfItems.isEmpty
+        let hasShelf = shelfVisible
         let baseWidth = width ?? Self.expandedSize.width
         let baseHeight = height ?? Self.expandedSize.height
         let totalHeight = baseHeight + (hasShelf ? Self.shelfRowHeight : 0)
@@ -1019,7 +1022,8 @@ struct NotchPillView: View {
         // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
         // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
         // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
-        return blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items) {
+        return blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+                          shelfVisible: shelfViewState.isVisible) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
                     HStack(alignment: .top, spacing: 10) {
@@ -1084,7 +1088,8 @@ struct NotchPillView: View {
     // expanded blob shape so the island still morphs; a single centered message. Distinct
     // from D-11 (.none + healthy → date/time): isHealthy is the orthogonal axis.
     private var mediaUnavailable: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items) {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items,
+                  shelfVisible: shelfViewState.isVisible) {
             Text("Now Playing nicht verfügbar")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(.white)
