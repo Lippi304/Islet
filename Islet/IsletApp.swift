@@ -40,6 +40,18 @@ struct IsletApp: App {
             SettingsView()
                 .modifier(OpenSettingsOnNotification())  // Notification bridge
         }
+        // Plan 27-04 Task 2 UAT fix: unlike Form/TabView (SettingsView's shape before
+        // Plan 27-03), NavigationSplitView does not report a simple, single ideal size
+        // to `.windowResizability(.contentSize)` — its ideal size is derived from the
+        // sidebar/detail columns' own layout, which is ambiguous the moment the detail
+        // pane switches content (our `switch selection` in SettingsView.body). Relying
+        // on content-size inference alone left the window created with a
+        // degenerate/near-zero frame, so "Settings…" appeared to do nothing on click
+        // even though the window and its NotificationCenter subscription were alive.
+        // `.defaultSize` gives the Scene an explicit initial size (matching
+        // SettingsView's `.frame(width: 520, height: 380)`) that does not depend on
+        // NavigationSplitView's own ideal-size computation.
+        .defaultSize(width: 520, height: 380)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
         .defaultLaunchBehavior(.suppressed)
