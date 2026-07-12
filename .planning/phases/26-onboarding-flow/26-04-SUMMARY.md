@@ -158,3 +158,7 @@ None - no external service configuration required. (The macOS 15.0 deployment ta
 ---
 *Phase: 26-onboarding-flow*
 *Completed: 2026-07-12*
+
+## Self-Check: PASSED
+
+All 8 files and all 16 commits (2 automated tasks, 7 UAT-round fix commits and their doc-sync commits, the deployment-target decision commit, and this SUMMARY's own commit) verified present in the repo.
