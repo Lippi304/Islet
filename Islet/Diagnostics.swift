@@ -39,7 +39,8 @@ enum DiagnosticReport {
     }
 
     static func text(licenseStatus: LicenseStatus, launchAtLogin: Bool, chargingEnabled: Bool,
-                      nowPlayingEnabled: Bool, deviceEnabled: Bool, accentIndex: Int,
+                      nowPlayingEnabled: Bool, deviceEnabled: Bool,
+                      nowPlayingAccentIndex: Int, chargingAccentIndex: Int, deviceAccentIndex: Int,
                       nowPlayingHealthy: Bool?) -> String {
         let timestamp = ISO8601DateFormatter().string(from: Date())
         let bridgeLine: String
@@ -66,7 +67,9 @@ enum DiagnosticReport {
         Charging: \(chargingEnabled ? "on" : "off")
         Now Playing: \(nowPlayingEnabled ? "on" : "off")
         Devices: \(deviceEnabled ? "on" : "off")
-        Accent index: \(accentIndex)
+        Now Playing Accent: \(nowPlayingAccentIndex)
+        Charging Accent: \(chargingAccentIndex)
+        Device Accent: \(deviceAccentIndex)
 
         Now Playing bridge: \(bridgeLine)
         """
