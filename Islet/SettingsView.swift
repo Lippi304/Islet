@@ -31,14 +31,19 @@ struct SettingsView: View {
     // for existing users, fresh installs read ON).
     @AppStorage(ActivitySettings.songChangeToastKey) private var songChangeToastEnabled = true
     @AppStorage(ActivitySettings.deviceKey)     private var deviceEnabled = true
-    // Phase 27 / D-07 (Task 2 responsibility) — this single global accent index is
-    // replaced by 3 per-element @AppStorage keys. Left untouched in Task 1; the
-    // swatch-circle picker below is likewise unmoved/unwired until Task 2.
-    @AppStorage(ActivitySettings.accentIndexKey) private var accentIndex = ActivitySettings.defaultAccentIndex
-
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
+
+    // Phase 27 / VISUAL-03 (D-05/D-07) — the material-style preset and the 3
+    // independent per-element accent indices, replacing the single global
+    // accentIndexKey. SwiftUI's native `@AppStorage` overload for any
+    // `RawRepresentable where RawValue == String` reads/writes/falls back to
+    // the declared default automatically (T-27-06) — no manual Binding needed.
+    @AppStorage(ActivitySettings.materialStyleKey) private var materialStyle: ActivitySettings.MaterialStyle = .gradient
+    @AppStorage(ActivitySettings.nowPlayingAccentKey) private var nowPlayingAccentIndex = ActivitySettings.defaultAccentIndex
+    @AppStorage(ActivitySettings.chargingAccentKey) private var chargingAccentIndex = ActivitySettings.defaultAccentIndex
+    @AppStorage(ActivitySettings.deviceAccentKey) private var deviceAccentIndex = ActivitySettings.defaultAccentIndex
 
     // Phase 27 / SETTINGS-01 — sidebar section identity (D-01–D-04, UI-SPEC §Sidebar
     // Structure). Order and copy are locked: General, Workspace, System, About.
@@ -80,9 +85,7 @@ struct SettingsView: View {
             case .workspace:
                 workspaceSection
             case .system:
-                // Task 2 fills this in with the material-style picker + 3 accent
-                // swatch rows (UI-SPEC §System/Theming).
-                Text("TODO")
+                systemSection
             case .about:
                 aboutSection
             case .none:
@@ -205,20 +208,41 @@ struct SettingsView: View {
         .padding(20)
     }
 
-    // Phase 27 / D-07 — Task 2 will factor this into a private
-    // `swatchRow(selection:)` taking a `Binding<Int>` and wire it into the System
-    // (Theming) section against 3 separate @AppStorage keys. Content unchanged
-    // from today's Appearance-tab picker; left unreferenced by `body` in this task.
-    @ViewBuilder private var legacyAccentSwatchRow: some View {
+    // D-04/D-05/D-07 — System (Theming): material-style segmented picker + 3
+    // independent per-element accent swatch rows (UI-SPEC §System/Theming).
+    private var systemSection: some View {
+        Form {
+            Section("Appearance Style") {
+                Picker("Style", selection: $materialStyle) {
+                    Text("Gradient").tag(MaterialStyle.gradient)
+                    Text("Solid Black").tag(MaterialStyle.solidBlack)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            Section("Accent Colors") {
+                LabeledContent("Now Playing") { swatchRow(selection: $nowPlayingAccentIndex) }
+                LabeledContent("Charging") { swatchRow(selection: $chargingAccentIndex) }
+                LabeledContent("Device") { swatchRow(selection: $deviceAccentIndex) }
+            }
+        }
+        .padding(20)
+    }
+
+    // D-07 — the existing curated swatch-circle picker (today's Appearance-tab
+    // Accent row), factored into a reusable row bound to any of the 3
+    // independent accent Bindings so each lively leaf element gets its own
+    // picker without a second color-picker component (UI-SPEC Don't-Hand-Roll).
+    @ViewBuilder private func swatchRow(selection: Binding<Int>) -> some View {
         HStack(spacing: 10) {
             ForEach(ActivitySettings.palette.indices, id: \.self) { i in
                 Circle()
                     .fill(ActivitySettings.palette[i])
                     .frame(width: 22, height: 22)
                     .overlay(
-                        Circle().strokeBorder(.primary, lineWidth: accentIndex == i ? 2 : 0)
+                        Circle().strokeBorder(.primary, lineWidth: selection.wrappedValue == i ? 2 : 0)
                     )
-                    .onTapGesture { accentIndex = i }
+                    .onTapGesture { selection.wrappedValue = i }
             }
         }
     }
@@ -305,7 +329,9 @@ struct SettingsView: View {
             chargingEnabled: chargingEnabled,
             nowPlayingEnabled: nowPlayingEnabled,
             deviceEnabled: deviceEnabled,
-            accentIndex: accentIndex,
+            nowPlayingAccentIndex: nowPlayingAccentIndex,
+            chargingAccentIndex: chargingAccentIndex,
+            deviceAccentIndex: deviceAccentIndex,
             nowPlayingHealthy: (NSApp.delegate as? AppDelegate)?.notchController?.nowPlayingState.isHealthy
         )
 
