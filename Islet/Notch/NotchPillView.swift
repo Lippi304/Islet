@@ -48,6 +48,16 @@ struct NotchPillView: View {
         if case .onboarding = presentation { return true }
         return false
     }
+    // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Visibility") — the switcher pill shows only when
+    // the island is expanded AND no time-sensitive activity (Charging/Device splash, Now-
+    // Playing wings) is being shown, mirroring SHELF-09's suppression precedent: `.expandedIdle`
+    // and `.calendarExpanded` only.
+    private var showsSwitcherRow: Bool {
+        switch presentation {
+        case .expandedIdle, .calendarExpanded: return true
+        default: return false
+        }
+    }
 
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model (weather +
     // calendar), mirroring nowPlaying/presentationState's ownership contract: the controller
@@ -67,6 +77,16 @@ struct NotchPillView: View {
     // contract: the controller (Plan 26-04) always owns and injects a real instance, never
     // defaulted. This view only RENDERS whatever is published — no permission-request logic.
     @ObservedObject var onboardingState: OnboardingViewState
+
+    // Phase 28 / CALVIEW-01/04 — the SEPARATE @Published switcher-selection model, mirroring
+    // shelfViewState/onboardingState's existing ownership contract: the controller (Plan 04)
+    // always owns and injects a real instance, never defaulted. This view only RENDERS whatever
+    // is published and reports taps via onSwitcherSelect — no precedence re-deciding here (the
+    // resolver's `resolve(...)` is still the single arbiter, Pattern 3).
+    @ObservedObject var viewSwitcherState: ViewSwitcherState
+    // Phase 28 / CALVIEW-01/02 — the SEPARATE @Published calendar-view model, same ownership
+    // contract. This view only RENDERS visibleMonth/selectedDay/monthEvents.
+    @ObservedObject var calendarViewState: CalendarViewState
 
     // Phase 27 / VISUAL-03 / D-06/D-08 — the controller injects 3 INDEPENDENT per-element
     // accents on the hosting view via `.environment(\.nowPlayingAccent, …)` /
@@ -121,6 +141,17 @@ struct NotchPillView: View {
     var onOnboardingGrant: (OnboardingPermission) -> Void = { _ in }
     var onOnboardingOpenSettings: () -> Void = {}
     var onOnboardingFinish: () -> Void = {}
+
+    // Phase 28 / CALVIEW-01/02 — the switcher-pill and calendar-navigation callbacks, plain
+    // closures mirroring the onboarding callbacks above: the view stays AppKit/EventKit-free,
+    // only REPORTS intent. NotchWindowController (Plan 04) owns these. Defaulted to no-ops so
+    // the DEBUG #Previews build without a controller.
+    var onSwitcherSelect: (SelectedView) -> Void = { _ in }
+    var onCalendarMonthChange: (Int) -> Void = { _ in }
+    var onCalendarDaySelect: (Date) -> Void = { _ in }
+    // Phase 28 / CALVIEW-03 — the quick-add report closure (Task 3): (kind, title) forwarded
+    // unmodified, no EventKit/EKEventStore code in this view file.
+    var onQuickAdd: (QuickAddKind, String) -> Void = { _, _ in }
 
     // The single shared morph identity (D-07): the collapsed and expanded blobs both
     // morph against this one geometry group via matchedGeometryEffect(id: "island").
@@ -210,6 +241,12 @@ struct NotchPillView: View {
     // re-derive it.
     static let shelfRowHeight: CGFloat = 56
 
+    // Phase 28 / CALVIEW-01 (28-UI-SPEC.md Layout Contract "Switcher pill") — the
+    // Home/Tray/Calendar switcher's own reserved row height, appended below `blobShape`'s
+    // content the same architectural way as `shelfRowHeight` (independent, coexisting growth —
+    // see `blobShape`'s `showSwitcher` parameter below). A starting point for on-device tuning.
+    static let switcherRowHeight: CGFloat = 44
+
     // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
     // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
     // mid-animation" convention that added wingsSize/toastExtraHeight as sibling constants
@@ -256,6 +293,8 @@ struct NotchPillView: View {
                 mediaUnavailable                                                 // D-12 "nicht verfügbar"
             case .expandedIdle:
                 expandedIsland                                                   // D-11 date/time (healthy, no media)
+            case .calendarExpanded:
+                calendarFullView                                                 // Phase 28 / CALVIEW-01: month grid + day list
             case .idle:
                 collapsedIsland                                                  // idle pill
             }
@@ -276,7 +315,9 @@ struct NotchPillView: View {
         .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
-                   : Self.expandedSize.height + (shelfViewState.isVisible ? Self.shelfRowHeight : 0),
+                   : Self.expandedSize.height
+                       + (shelfViewState.isVisible ? Self.shelfRowHeight : 0)
+                       + (showsSwitcherRow ? Self.switcherRowHeight : 0),
                alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
         // container level. A single ancestor .onTapGesture here would sit ABOVE the
@@ -321,7 +362,7 @@ struct NotchPillView: View {
     // 84-100pt content (UI-SPEC.md explicitly corrects RESEARCH.md's `.padding(.top, 32)`).
     private var expandedIsland: some View {
         blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfViewState.isVisible) {
+                  shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             HStack(spacing: 0) {
                 if let weather = outfit.weather {
                     weatherColumn(weather)
@@ -335,6 +376,134 @@ struct NotchPillView: View {
             }
             .padding(.horizontal, 16)
         }
+    }
+
+    // Phase 28 / CALVIEW-01/02 (28-UI-SPEC.md "Calendar full view") — the month grid + day
+    // list. Reuses blobShape exactly like expandedIsland (same 360pt width, same
+    // expandedSize.height base) with the switcher row always shown (this presentation IS one of
+    // the two showsSwitcherRow cases). Month grid LEFT, day list RIGHT, a thin divider between —
+    // both read through Plan 01's pure `daysInMonth(for:)`/`events(on:events:)` functions, never
+    // a re-implementation (RESEARCH.md Anti-Pattern: no Date()/Date.now threaded into month math).
+    private var calendarFullView: some View {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items,
+                  shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
+            HStack(spacing: 0) {
+                monthGridColumn
+                Rectangle()
+                    .fill(Color.white.opacity(0.1))
+                    .frame(width: 1)
+                    .padding(.horizontal, 12)
+                dayListColumn
+                    .frame(maxWidth: .infinity, alignment: .top)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    // LEFT column — month/year header (13px semibold) flanked by prev/next chevrons, over a
+    // 7-column day grid (28×28pt cells, 4px gap). Selected day gets a weight bump (11px
+    // semibold vs. regular), matched via `Calendar.current.isDate(_:inSameDayAs:)` — same
+    // idiom `nextRelevantEvent`/`calendarColumn` already use elsewhere in this file. Taps only
+    // REPORT intent via `onCalendarMonthChange`/`onCalendarDaySelect` (Pattern 3: no navigation
+    // math lives in the view).
+    private var monthGridColumn: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Button(action: { onCalendarMonthChange(-1) }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                Spacer()
+                Text(calendarViewState.visibleMonth, format: .dateTime.month(.wide).year())
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                Spacer()
+                Button(action: { onCalendarMonthChange(1) }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+            }
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(28), spacing: 4), count: 7), spacing: 4) {
+                ForEach(Array(daysInMonth(for: calendarViewState.visibleMonth).enumerated()), id: \.offset) { _, day in
+                    if let day {
+                        let isSelected = Calendar.current.isDate(day, inSameDayAs: calendarViewState.selectedDay)
+                        Text(day, format: .dateTime.day())
+                            .font(.system(size: 11, weight: isSelected ? .semibold : .regular, design: .rounded))
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .onTapGesture { onCalendarDaySelect(day) }
+                    } else {
+                        Color.clear.frame(width: 28, height: 28)   // leading pad cell — no view
+                    }
+                }
+            }
+        }
+    }
+
+    // RIGHT column — the selected day's event list. `dayEvents == nil` (monthEvents not yet
+    // fetched) renders nothing — NEVER the empty state (Pitfall 4: distinguishes loading from a
+    // confirmed-zero-events day so CALVIEW-02's "No events today" never flashes before the
+    // first EventKit fetch settles).
+    private var dayListColumn: some View {
+        let dayEvents = calendarViewState.monthEvents.map { events(on: calendarViewState.selectedDay, events: $0) }
+        return Group {
+            if let dayEvents {
+                if dayEvents.isEmpty {
+                    calendarEmptyState
+                } else {
+                    dayEventsList(dayEvents)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    // CALVIEW-02 — the explicit empty state (Copywriting Contract: exact strings; bold "+ Add"
+    // matches the real quick-add trigger label added in Task 3, "point at the real control").
+    private var calendarEmptyState: some View {
+        VStack(spacing: 4) {
+            Text("No events today")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            (Text("Tap ") + Text("+ Add").fontWeight(.bold) + Text(" to create one."))
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // The scrollable event rows, reusing `calendarColumn`'s exact title/color-dot/time
+    // convention (T-14-06 MANDATORY: `.lineLimit(1)`/`.truncationMode(.tail)` on untrusted
+    // EventKit titles). `ScrollView(.vertical)` so >3-4 rows scroll instead of overflowing the
+    // 144pt content box (28-UI-SPEC.md Layout Contract "Day-list scroll").
+    private func dayEventsList(_ dayEvents: [EventInput]) -> some View {
+        ScrollView(.vertical) {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(dayEvents.enumerated()), id: \.offset) { _, event in
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color(red: event.colorRed, green: event.colorGreen, blue: event.colorBlue))
+                            .frame(width: 6, height: 6)
+                        Text(event.title)
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 4)
+                        Text(event.start, format: .dateTime.hour().minute())
+                            .font(.system(size: 11, weight: .regular, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                }
+            }
+        }
+        .scrollIndicators(.never)
     }
 
     // Phase 26 / ONBOARD-01 — the notch-hosted onboarding carousel. Same call shape as
@@ -636,6 +805,11 @@ struct NotchPillView: View {
     // Round 2 (Droppy comparison) — mirrors the same optional-override pattern with a
     // `width` parameter so onboardingCarousel can also widen to onboardingSize.width;
     // every other caller again omits it and falls back to `Self.expandedSize.width`.
+    // Phase 28 / CALVIEW-01 (28-UI-SPEC.md Verification Notes) — extended with a `showSwitcher`
+    // parameter mirroring `shelfItems`/`hasShelf`'s exact precedent: the switcher row is its OWN
+    // independent reserved row (not squeezed into the content box), appended between `content()`
+    // and the shelf row so both rows coexist without one clobbering the other's space (content ->
+    // switcher -> shelf, top to bottom).
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
@@ -643,11 +817,14 @@ struct NotchPillView: View {
                                            height: CGFloat? = nil,
                                            shelfItems: [ShelfItem],
                                            shelfVisible: Bool,
+                                           showSwitcher: Bool = false,
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = shelfVisible
         let baseWidth = width ?? Self.expandedSize.width
         let baseHeight = height ?? Self.expandedSize.height
-        let totalHeight = baseHeight + (hasShelf ? Self.shelfRowHeight : 0)
+        let totalHeight = baseHeight
+            + (showSwitcher ? Self.switcherRowHeight : 0)
+            + (hasShelf ? Self.shelfRowHeight : 0)
         return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
             .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
@@ -656,6 +833,9 @@ struct NotchPillView: View {
                 VStack(spacing: 0) {
                     content()
                         .frame(width: baseWidth, height: baseHeight, alignment: alignment)
+                    if showSwitcher {
+                        switcherRow
+                    }
                     if hasShelf {
                         shelfRow(shelfItems)
                             .transition(.opacity)
@@ -663,9 +843,30 @@ struct NotchPillView: View {
                 }
             }
             // D-05: this single ancestor gesture already covered content's own empty space
-            // before this phase; it now ALSO covers the shelf row's empty space "for free" —
-            // only ShelfItemView's own scoped tap/trash gestures intercept before it.
+            // before this phase; it now ALSO covers the switcher/shelf rows' empty space "for
+            // free" — only ShelfItemView's own scoped tap/trash gestures and the switcher's own
+            // Button taps intercept before it.
             .onTapGesture { onClick() }
+    }
+
+    // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Switcher pill") — the 3-icon Home/Tray/Calendar
+    // switcher, reusing `navCircleButton` verbatim (same circular nav-button visual language as
+    // onboarding's Back/Next/Finish). `filled:` marks whichever icon matches
+    // `viewSwitcherState.selectedView`; each tap only REPORTS intent via `onSwitcherSelect` — no
+    // precedence re-deciding here (Pattern 3: the resolver stays the single arbiter).
+    private var switcherRow: some View {
+        HStack(spacing: 8) {
+            navCircleButton(systemName: "house.fill",
+                             filled: viewSwitcherState.selectedView == .home,
+                             action: { onSwitcherSelect(.home) })
+            navCircleButton(systemName: "tray.fill",
+                             filled: viewSwitcherState.selectedView == .tray,
+                             action: { onSwitcherSelect(.tray) })
+            navCircleButton(systemName: "calendar",
+                             filled: viewSwitcherState.selectedView == .calendar,
+                             action: { onSwitcherSelect(.calendar) })
+        }
+        .frame(height: Self.switcherRowHeight)
     }
 
     // Phase 20 / SHELF-03/05 — the horizontally-scrolling shelf strip: per-item icon+caption+
@@ -1321,7 +1522,9 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.idle),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
-                         onboardingState: OnboardingViewState())
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1341,7 +1544,9 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.expandedIdle),
                          outfit: outfit,
                          shelfViewState: ShelfViewState(),
-                         onboardingState: OnboardingViewState())
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1359,7 +1564,9 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.charging(.charging(percent: 47))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
-                         onboardingState: OnboardingViewState())
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1375,7 +1582,9 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
-                         onboardingState: OnboardingViewState())
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1393,7 +1602,9 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa"))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
-                         onboardingState: OnboardingViewState())
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1411,7 +1622,9 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa"))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
-                         onboardingState: OnboardingViewState())
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1429,7 +1642,9 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true)),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
-                         onboardingState: OnboardingViewState())
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))
@@ -1446,7 +1661,9 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.none, healthy: false)),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
-                         onboardingState: OnboardingViewState())
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
         .frame(width: NotchPillView.expandedSize.width,
                height: NotchPillView.expandedSize.height)
         .background(Color.gray.opacity(0.3))

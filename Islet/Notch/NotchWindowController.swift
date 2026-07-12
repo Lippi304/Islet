@@ -96,6 +96,14 @@ final class NotchWindowController {
     // the property to exist so makeRootView's non-defaulted onboardingState param compiles.
     private let onboardingState = OnboardingViewState()
 
+    // Phase 28 / CALVIEW-01/02/04 — the SEPARATE @Published switcher-selection + calendar-view
+    // models NotchPillView's switcher pill and calendarFullView observe, mirroring
+    // shelfViewState/onboardingState's ownership contract. Plan 04 wires the real
+    // controller behavior (data fetch, permission requests, panel geometry); this plan (28-03)
+    // only needs the properties to exist so makeRootView's non-defaulted params compile.
+    private let viewSwitcherState = ViewSwitcherState()
+    private let calendarViewState = CalendarViewState()
+
     // Phase 20 / SHELF-04/05/07 — owns the real Phase-19 append/remove/clear + disk-IO seam.
     // No `start()`-time construction needed (unlike deviceCoordinator, ShelfCoordinator has no
     // `[weak self]`-capturing closures to bind).
@@ -1270,6 +1278,8 @@ final class NotchWindowController {
                       outfit: outfitState,
                       shelfViewState: shelfViewState,
                       onboardingState: onboardingState,
+                      viewSwitcherState: viewSwitcherState,
+                      calendarViewState: calendarViewState,
                       onClick: { [weak self] in self?.handleClick() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
                       // monitor — no re-spawn, no focus steal.

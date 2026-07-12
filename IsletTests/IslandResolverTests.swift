@@ -211,6 +211,77 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .nowPlayingExpanded(.playing(title: "Song", artist: "Artist"), healthy: true))
     }
 
+    // MARK: resolve(...) — Phase 28 / CALVIEW-01 selectedView precedence
+
+    func testCalendarSelectedExpandedReturnsCalendarExpanded() {
+        // No active transient, no now-playing, expanded + Calendar selected -> .calendarExpanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .calendar)
+        XCTAssertEqual(r, .calendarExpanded)
+    }
+
+    func testMediaOutranksCalendarSelection() {
+        // D-02: media still outranks the calendar selection even when expanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .calendar)
+        XCTAssertEqual(r, .nowPlayingExpanded(.playing(title: "Song", artist: "Artist"), healthy: true))
+    }
+
+    func testTransientOutranksCalendarSelection() {
+        // D-04: a standing transient always outranks the calendar selection.
+        let r = resolve(activeTransient: .charging(.charging(percent: 50)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .calendar)
+        XCTAssertEqual(r, .charging(.charging(percent: 50)))
+    }
+
+    func testTraySelectedReturnsExpandedIdleNotItsOwnCase() {
+        // D-02: Tray is deliberately NOT its own IslandPresentation case -- force-reveal is a
+        // view/controller concern (ShelfViewState.forcedByTray), the resolver still yields
+        // .expandedIdle.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .tray)
+        XCTAssertEqual(r, .expandedIdle)
+    }
+
+    func testCalendarSelectedNotExpandedIsIdle() {
+        // Collapsed island ignores selectedView entirely -> .idle.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        selectedView: .calendar)
+        XCTAssertEqual(r, .idle)
+    }
+
+    func testOnboardingOutranksCalendarSelection() {
+        // D-09: forced onboarding still outranks everything, including selectedView.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .calendar,
+                        onboardingStep: .welcome)
+        XCTAssertEqual(r, .onboarding(.welcome))
+    }
+
     // MARK: TransientQueue — D-03 bounded, de-duped, sequential coexistence
 
     private let charging = ActiveTransient.charging(.charging(percent: 50))
