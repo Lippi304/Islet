@@ -16,6 +16,9 @@ enum ActivitySettings {
     static let nowPlayingKey = "activity.nowPlaying"
     static let songChangeToastKey = "activity.songChangeToast"
     static let deviceKey     = "activity.device"
+    // Phase 27 / VISUAL-03 / D-08: this key is now read ONLY as the legacy
+    // migration source (see migrateLegacyAccentIfNeeded below) — never as a
+    // live rendering key. The 3 per-element accent keys below replace it.
     static let accentIndexKey = "accentIndex"
     // Quick task 260709-glz — NOT an "activity" toggle (it gates fullscreen visibility,
     // not a live-activity source), but lives in this same enum because this file is the
@@ -25,6 +28,22 @@ enum ActivitySettings {
     // plain UserDefaults, NOT Keychain: this is an app-owned UX flag, not a security/anti-tampering
     // boundary (unlike TRIAL-*/LIC-* state, which lives in a completely separate, unmodified store).
     static let onboardingCompletedKey = "onboarding.completed"
+
+    // Phase 27 / VISUAL-03: the island's material look — a flat black fill
+    // ("solidBlack") or the Phase 25 vertical gradient ("gradient", the
+    // existing shipped default). Corrupted/unknown UserDefaults values parse
+    // to nil; every read site applies `?? .gradient` (T-27-01).
+    enum MaterialStyle: String, CaseIterable {
+        case gradient, solidBlack
+    }
+    static let materialStyleKey = "theming.materialStyle"
+
+    // Phase 27 / VISUAL-03: per-element accent keys, one per lively leaf
+    // element, replacing the single accentIndexKey as the live rendering
+    // source. Seeded once from accentIndexKey by migrateLegacyAccentIfNeeded.
+    static let nowPlayingAccentKey = "accent.nowPlaying"
+    static let chargingAccentKey = "accent.charging"
+    static let deviceAccentKey = "accent.device"
 
     // D-12 curated palette (~5-6 swatches), NOT a free ColorPicker.
     // Index 0 = neutral default (D-12) — preserves today's white look.
@@ -40,14 +59,53 @@ enum ActivitySettings {
 }
 
 // 06-RESEARCH §Pattern 4 — the single accent source the three lively leaf views
-// read. Plan 04 sets this once on the hosting view (from the persisted
-// accentIndex) and the glyph / equalizer bars / device icon read it via
-// `@Environment(\.activityAccent)`. Defaults to neutral white so views render
-// correctly even before the controller wires it.
+// read today. Plan 02 (NotchPillView/NotchWindowController) migrates its 3
+// read/write sites over to the 4 new per-element keys below; kept here
+// unchanged in this plan so the existing call sites keep compiling until that
+// migration lands (deviation from the plan's literal "replace" wording —
+// Rule 3: avoid a cross-plan build break from a foundation-only plan).
 private struct ActivityAccentKey: EnvironmentKey { static let defaultValue: Color = .white }
 extension EnvironmentValues {
     var activityAccent: Color {
         get { self[ActivityAccentKey.self] }
         set { self[ActivityAccentKey.self] = newValue }
+    }
+}
+
+// Phase 27 / VISUAL-03: the 4 new EnvironmentKeys — one per lively leaf
+// element (now-playing glyph/equalizer, charging wings, device icon) plus the
+// island material style, so each element can carry its own accent
+// independently. Plan 02 wires these on the hosting view and migrates the
+// leaf views off `activityAccent` above. Each accent defaults to neutral
+// white (today's look); the material style defaults to .gradient (the Phase
+// 25 shipped default) so views render correctly even before the controller
+// wires them.
+private struct NowPlayingAccentKey: EnvironmentKey { static let defaultValue: Color = .white }
+private struct ChargingAccentKey: EnvironmentKey { static let defaultValue: Color = .white }
+private struct DeviceAccentKey: EnvironmentKey { static let defaultValue: Color = .white }
+// Bare alias so read sites (and this file's own EnvironmentKey plumbing) can
+// say `MaterialStyle` instead of the fully-qualified `ActivitySettings.MaterialStyle`.
+typealias MaterialStyle = ActivitySettings.MaterialStyle
+
+private struct IslandMaterialStyleKey: EnvironmentKey {
+    static let defaultValue: MaterialStyle = .gradient
+}
+
+extension EnvironmentValues {
+    var nowPlayingAccent: Color {
+        get { self[NowPlayingAccentKey.self] }
+        set { self[NowPlayingAccentKey.self] = newValue }
+    }
+    var chargingAccent: Color {
+        get { self[ChargingAccentKey.self] }
+        set { self[ChargingAccentKey.self] = newValue }
+    }
+    var deviceAccent: Color {
+        get { self[DeviceAccentKey.self] }
+        set { self[DeviceAccentKey.self] = newValue }
+    }
+    var islandMaterialStyle: MaterialStyle {
+        get { self[IslandMaterialStyleKey.self] }
+        set { self[IslandMaterialStyleKey.self] = newValue }
     }
 }
