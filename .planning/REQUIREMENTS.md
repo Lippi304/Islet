@@ -15,9 +15,9 @@ A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexp
 
 ### Onboarding
 
-- [ ] **ONBOARD-01**: First-launch flow presents a short carousel — hero screen, trial/license-key/buy choice, a permissions pre-explanation screen, then done — replacing today's passive Settings-only license flow
-- [ ] **ONBOARD-02**: The permissions pre-explanation screen shows a one-line reason per permission (Bluetooth, Calendar, Location/WeatherKit) and its "Continue"/"Grant" action directly triggers the real system permission prompt for each, in sequence
-- [ ] **ONBOARD-03**: The onboarding flow shows once (persisted flag), is skippable per-step (each permission row, individually — no whole-flow exit before Done), and does not include an in-app feature/gesture tutorial screen
+- [x] **ONBOARD-01**: First-launch flow presents a short carousel — hero screen, trial/license-key/buy choice, a permissions pre-explanation screen, then done — replacing today's passive Settings-only license flow
+- [x] **ONBOARD-02**: The permissions pre-explanation screen shows a one-line reason per permission (Bluetooth, Calendar, Location/WeatherKit) and its "Continue"/"Grant" action directly triggers the real system permission prompt for each, in sequence
+- [x] **ONBOARD-03**: The onboarding flow shows once (persisted flag), is skippable per-step (each permission row, individually — no whole-flow exit before Done), and does not include an in-app feature/gesture tutorial screen
 
 ### Visual Redesign
 
@@ -75,9 +75,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ARCH-01 | Phase 23 | Complete |
 | SHELF-01 | Phase 24 | Complete |
 | SHELF-02 | Phase 24 | Complete |
-| ONBOARD-01 | Phase 26 | Pending |
-| ONBOARD-02 | Phase 26 | Pending |
-| ONBOARD-03 | Phase 26 | Pending |
+| ONBOARD-01 | Phase 26 | Complete |
+| ONBOARD-02 | Phase 26 | Complete |
+| ONBOARD-03 | Phase 26 | Complete |
 | VISUAL-01 | Phase 25 | Complete |
 | VISUAL-02 | Phase 25 | Complete |
 | VISUAL-03 | Phase 27 | Pending |

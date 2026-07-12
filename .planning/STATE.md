@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
 status: executing
-stopped_at: Phase 26 UI-SPEC approved
-last_updated: "2026-07-11T17:20:44.779Z"
-last_activity: 2026-07-11 -- Phase 26 execution started
+stopped_at: Phase 26 complete (26-04 on-device UAT approved, 7 rounds)
+last_updated: "2026-07-12T18:49:46.619Z"
+last_activity: 2026-07-12 -- Plan 26-04 (onboarding interactive wiring + on-device UAT) complete
 progress:
   total_phases: 13
-  completed_phases: 6
+  completed_phases: 8
   total_plans: 20
-  completed_plans: 15
-  percent: 46
+  completed_plans: 20
+  percent: 62
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 26 (onboarding-flow) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 26
-Last activity: 2026-07-11 -- Phase 26 execution started
+Phase: 26 (onboarding-flow) — COMPLETE (4/4 plans)
+Plan: 4 of 4
+Status: All plans complete, on-device UAT approved (7 rounds). Ready for /gsd-verify-work 26 or next phase.
+Last activity: 2026-07-12 -- Plan 26-04 (onboarding interactive wiring + on-device UAT) complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -43,7 +43,7 @@ memory `a1-bluetooth-usage-key-required`), so no further action is needed there 
 
 Progress (v1.3): [██████████] 100% (Phases 19-21 shipped; Phase 22 blocked, superseded by v1.4 Phases 23-24)
 
-Progress (v1.4): [█████░░░░░] 50% (3/6 phases — Phases 23-25 complete; Phase 26 next)
+Progress (v1.4): [██████░░░░] 67% (4/6 phases — Phases 23-26 complete; Phase 27 next)
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress (v1.4): [█████░░░░░] 50% (3/6 phases — Phases 23-
 
 *Updated after each plan completion*
 | Phase 25 P01 | 9min | 3 tasks | 2 files |
+| Phase 26 P04 | 25h (7 UAT rounds) | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.3 roadmap] Phase order 19→20→21→22 (model → view → drag-out → drag-in) follows research's codebase-grounded build order: pure-seam-first is this project's own established convention (`IslandResolver`, `DeviceCoordinator`), and the one genuinely uncertain integration point — drag delivery through the click-through `NSPanel` — is isolated in its own last phase (22) so a spike/iteration there doesn't block the rest of the feature
 - [v1.4 roadmap] Phase 23 (Shell Parity Rewrite) must complete and be fully on-device UAT'd before Phase 24 (Drag-In) starts — hard dependency, per research's explicit warning that re-attempting drag-in before the shell is reproven repeats Phase 22's exact failure mode. Phases 25-28 (Theming, Onboarding, Settings Sidebar, Calendar) have no dependency on the shell work and may be resequenced for throughput.
 - [Phase 25]: [Phase 25] Gradient stops (0/0.65/1.0) and 32pt corner radius, plus spring constants (response 0.6, damping 0.62), confirmed correct on first on-device UAT pass — no iteration or NotchShape.swift animatableData contingency needed
+- [Phase 26]: Onboarding carousel visuals iterated across 5 on-device UAT rounds vs. a Droppy reference (centered text, 400->420 wide/300->320 tall panel, pill permission rows, circular nav, static glow); 26-UI-SPEC.md updated each round to stay truthful
+- [Phase 26]: macOS deployment target bumped 14.0 -> 15.0 (user-approved) to fix a Settings-window auto-restore-at-launch bug via .defaultLaunchBehavior(.suppressed), which has no availability-guard path in SwiftUI's SceneBuilder
 
 ### Roadmap Evolution
 
@@ -173,9 +176,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-11T16:33:19.824Z
-Stopped at: Phase 26 UI-SPEC approved
-Resume file: .planning/phases/26-onboarding-flow/26-UI-SPEC.md
+Last session: 2026-07-12T18:49:46.615Z
+Stopped at: Phase 26 complete (26-04 on-device UAT approved, 7 rounds)
+Resume file: None
 
 ## Operator Next Steps
 
