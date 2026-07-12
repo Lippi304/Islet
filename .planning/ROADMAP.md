@@ -377,8 +377,22 @@ Plans:
   2. Every existing toggle (activity toggles, launch-at-login, song-change toast, fullscreen-hide, etc.) and the accent-color picker are present and functional in their new section.
   3. License and login-item state stays correctly synced when switching between sidebar sections — no stale state on section switch.
   4. The System (Theming) section lets the user customize the shell's material/surface style and per-element accent colors.
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 27-01-PLAN.md — ActivitySettings.swift Theming data model (MaterialStyle, 4 new keys/EnvironmentKeys) + migration seeding + ActivitySettingsTests.swift
+
+**Wave 2** *(blocked on 27-01)*
+
+- [ ] 27-02-PLAN.md — NotchPillView.swift AnyShapeStyle material branch + per-element accent call sites, NotchWindowController.swift single-read-site theme pipeline
+- [ ] 27-03-PLAN.md — SettingsView.swift NavigationSplitView restructure (General/Workspace/System/About) + Theming section UI + Diagnostics.swift 3-accent report
+
+**Wave 3** *(blocked on 27-02, 27-03)*
+
+- [ ] 27-04-PLAN.md — Build gate + dead-reference sweep + consolidated on-device UAT checkpoint
 
 ### Phase 28: Calendar Full View
 
