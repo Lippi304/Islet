@@ -34,7 +34,9 @@ final class DiagnosticReportTests: XCTestCase {
             chargingEnabled: true,
             nowPlayingEnabled: false,
             deviceEnabled: true,
-            accentIndex: 2,
+            nowPlayingAccentIndex: 2,
+            chargingAccentIndex: 1,
+            deviceAccentIndex: 3,
             nowPlayingHealthy: true
         )
 
@@ -46,7 +48,9 @@ final class DiagnosticReportTests: XCTestCase {
         XCTAssertTrue(text.contains("Charging: on"))
         XCTAssertTrue(text.contains("Now Playing: off"))
         XCTAssertTrue(text.contains("Devices: on"))
-        XCTAssertTrue(text.contains("Accent index: 2"))
+        XCTAssertTrue(text.contains("Now Playing Accent: 2"))
+        XCTAssertTrue(text.contains("Charging Accent: 1"))
+        XCTAssertTrue(text.contains("Device Accent: 3"))
         XCTAssertTrue(text.contains("Now Playing bridge: available"))
     }
 
@@ -57,7 +61,9 @@ final class DiagnosticReportTests: XCTestCase {
             chargingEnabled: false,
             nowPlayingEnabled: false,
             deviceEnabled: false,
-            accentIndex: 0,
+            nowPlayingAccentIndex: 0,
+            chargingAccentIndex: 0,
+            deviceAccentIndex: 0,
             nowPlayingHealthy: false
         )
 
@@ -71,7 +77,9 @@ final class DiagnosticReportTests: XCTestCase {
             chargingEnabled: false,
             nowPlayingEnabled: false,
             deviceEnabled: false,
-            accentIndex: 0,
+            nowPlayingAccentIndex: 0,
+            chargingAccentIndex: 0,
+            deviceAccentIndex: 0,
             nowPlayingHealthy: nil
         )
 
