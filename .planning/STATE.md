@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
-status: executing
-stopped_at: Phase 26 complete (26-04 on-device UAT approved, 7 rounds)
-last_updated: "2026-07-12T18:49:46.619Z"
+status: verifying
+stopped_at: Phase 27 context gathered
+last_updated: "2026-07-12T19:05:18.910Z"
 last_activity: 2026-07-12 -- Plan 26-04 (onboarding interactive wiring + on-device UAT) complete
 progress:
   total_phases: 13
-  completed_phases: 8
+  completed_phases: 7
   total_plans: 20
-  completed_plans: 20
-  percent: 62
+  completed_plans: 19
+  percent: 54
 ---
 
 # Project State
@@ -176,9 +176,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-12T18:49:46.615Z
-Stopped at: Phase 26 complete (26-04 on-device UAT approved, 7 rounds)
-Resume file: None
+Last session: 2026-07-12T19:05:18.905Z
+Stopped at: Phase 27 context gathered
+Resume file: .planning/phases/27-settings-sidebar-redesign/27-CONTEXT.md
 
 ## Operator Next Steps
 
