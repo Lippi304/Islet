@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
-status: executing
-stopped_at: Phase 27 UI-SPEC approved
-last_updated: "2026-07-12T19:53:41.684Z"
+status: ready_to_plan
+stopped_at: Phase 27 complete (4/4) — ready to discuss Phase 28
+last_updated: 2026-07-12T22:34:02.296Z
 last_activity: 2026-07-12 -- Phase 27 execution started
 progress:
   total_phases: 13
   completed_phases: 7
   total_plans: 24
-  completed_plans: 19
+  completed_plans: 23
   percent: 54
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 27 — settings-sidebar-redesign
+**Current focus:** Phase 28 — calendar full view
 
 ## Current Position
 
-Phase: 27 (settings-sidebar-redesign) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 27
-Last activity: 2026-07-12 -- Phase 27 execution started
+Phase: 28
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-12
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -49,7 +49,7 @@ Progress (v1.4): [██████░░░░] 67% (4/6 phases — Phases 23-
 
 **Velocity:**
 
-- Total plans completed: 63
+- Total plans completed: 67
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -78,6 +78,7 @@ Progress (v1.4): [██████░░░░] 67% (4/6 phases — Phases 23-
 | 23 | 4 | - | - |
 | 25 | 1 | - | - |
 | 24 | 3 | - | - |
+| 27 | 4 | - | - |
 
 **Recent Trend:**
 
