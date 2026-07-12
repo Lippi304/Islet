@@ -68,12 +68,20 @@ struct NotchPillView: View {
     // defaulted. This view only RENDERS whatever is published — no permission-request logic.
     @ObservedObject var onboardingState: OnboardingViewState
 
-    // Phase 6 / D-11 / Pattern 4 — the persisted accent the controller injects on the hosting
-    // view via `.environment(\.activityAccent, …)`. It tints ONLY the three lively leaf
-    // elements (charging filling glyph, equalizer bars, device icon); the black island and the
-    // expanded chrome stay untinted (D-10). Defaults to `.white` (the EnvironmentKey default)
-    // so previews render the neutral look before the controller wires a swatch.
-    @Environment(\.activityAccent) private var accent
+    // Phase 27 / VISUAL-03 / D-06/D-08 — the controller injects 3 INDEPENDENT per-element
+    // accents on the hosting view via `.environment(\.nowPlayingAccent, …)` /
+    // `\.chargingAccent` / `\.deviceAccent`, replacing the single shared `activityAccent` this
+    // view used before this phase. Each tints ONLY its own lively leaf element (now-playing
+    // equalizer/progress bar, charging glyph, device icon) — the black island and the expanded
+    // chrome stay untinted (D-10), and changing one element's accent never affects the other
+    // two. All 3 default to `.white` (the EnvironmentKey default) so previews render the
+    // neutral look before the controller wires a swatch.
+    @Environment(\.nowPlayingAccent) private var nowPlayingAccent
+    @Environment(\.chargingAccent) private var chargingAccent
+    @Environment(\.deviceAccent) private var deviceAccent
+    // Phase 27 / VISUAL-03 — the island material look (Gradient vs Solid Black), read here so
+    // `islandFill` below can branch per-user-preference at all 4 fill sites.
+    @Environment(\.islandMaterialStyle) private var materialStyle
 
     // D-02 — the CLICK-to-expand callback. The view stays AppKit-free: it only reports
     // "the pill was tapped" via this plain closure. NotchWindowController owns the
@@ -162,7 +170,7 @@ struct NotchPillView: View {
     // wings render the SAME material, matching the iPhone Dynamic Island look. Pure black only
     // (D-01: no grey mixed in) with a long opaque stretch and only a ~50% floor at the very
     // bottom edge (D-02: never `.clear`) — starting values, tuned on-device in Task 3.
-    private static let islandMaterial = LinearGradient(
+    private static let gradientMaterial = LinearGradient(
         stops: [
             .init(color: .black, location: 0.0),
             .init(color: .black, location: 0.65),
@@ -171,6 +179,18 @@ struct NotchPillView: View {
         startPoint: .top,
         endPoint: .bottom
     )
+    // Phase 27 / VISUAL-03 (D-06) — the flat Solid Black alternative material, selected via
+    // the Theming preference instead of the gradient above.
+    private static let solidBlackMaterial = Color.black
+    // Phase 27 / VISUAL-03 (D-06) — the single source of truth all 4 fill sites below read:
+    // branches Gradient vs Solid Black per `materialStyle`, type-erased via AnyShapeStyle since
+    // the two branches (LinearGradient vs Color) are not the same concrete ShapeStyle type.
+    private var islandFill: AnyShapeStyle {
+        switch materialStyle {
+        case .gradient: return AnyShapeStyle(Self.gradientMaterial)
+        case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
+        }
+    }
 
     // Phase 18 / NOW-05 — post-checkpoint ROUND 3 (on-device feedback, supersedes round 2's
     // standalone `toastSize` blob below): the user rejected a separate replacement shape and
@@ -626,7 +646,7 @@ struct NotchPillView: View {
         let baseHeight = height ?? Self.expandedSize.height
         let totalHeight = baseHeight + (hasShelf ? Self.shelfRowHeight : 0)
         return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
-            .fill(Self.islandMaterial)
+            .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: baseWidth, height: totalHeight)
             .overlay(alignment: .top) {
@@ -682,7 +702,7 @@ struct NotchPillView: View {
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
     private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flatter than the downward blob
-            .fill(Self.islandMaterial)
+            .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             .overlay(
@@ -714,7 +734,7 @@ struct NotchPillView: View {
                     .foregroundStyle(isCharging ? Color.green : Color.white.opacity(0.6))
                     .padding(.leading, 12)
                 Spacer()                                             // clears the physical camera bridge
-                BatteryIndicator(level: percent, accent: accent)     // RIGHT — same indicator as the device glance
+                BatteryIndicator(level: percent, accent: chargingAccent)     // RIGHT — same indicator as the device glance
                     .padding(.trailing, 14)
             }
         }
@@ -745,7 +765,7 @@ struct NotchPillView: View {
         let toast = nowPlaying.songChangeToast
         let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)
         NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
-            .fill(Self.islandMaterial)
+            .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: height)
             .overlay(alignment: .top) {
@@ -772,7 +792,7 @@ struct NotchPillView: View {
             artThumbnail(art, side: Self.wingsSize.height - 8, corner: 6)  // LEFT wing
                 .padding(.leading, 22)   // inset from the outer notch edge (user request)
             Spacer()                                            // clears the physical camera bridge
-            EqualizerBars(isPlaying: isPlaying, tint: accent)  // RIGHT wing — D-02 bars (D-11 accent)
+            EqualizerBars(isPlaying: isPlaying, tint: nowPlayingAccent)  // RIGHT wing — D-02 bars (D-11 accent)
                 .padding(.trailing, 24)  // inset from the outer notch edge (user request)
         }
         .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
@@ -823,7 +843,7 @@ struct NotchPillView: View {
                     // D-11 (Phase 6): the device glyph picks up the persisted accent. The
                     // D-03 disconnected-dimming rides on top as opacity, so a disconnected
                     // device still reads as dimmed regardless of the accent hue.
-                    .foregroundStyle(accent.opacity(iconOpacity))
+                    .foregroundStyle(deviceAccent.opacity(iconOpacity))
                     .padding(.leading, 12)
                 Spacer()                                      // clears the physical camera bridge
                 deviceTrailing(isConnected: isConnected, battery: battery)   // RIGHT wing
@@ -843,7 +863,7 @@ struct NotchPillView: View {
         } else {
             Image(systemName: isConnected ? "checkmark" : "xmark")
                 .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(isConnected ? accent : Color.white.opacity(0.5))
+                .foregroundStyle(isConnected ? deviceAccent : Color.white.opacity(0.5))
         }
     }
 
@@ -1017,7 +1037,7 @@ struct NotchPillView: View {
                                 .truncationMode(.tail)
                         }
                         Spacer(minLength: 6)
-                        EqualizerBars(isPlaying: isPlaying, tint: accent)   // D-11 accent on the bars
+                        EqualizerBars(isPlaying: isPlaying, tint: nowPlayingAccent)   // D-11 accent on the bars
                             .frame(height: 40)    // center the bars vertically against the art row (like the collapsed wing) — not top-hanging
                     }
                     // Finding 15 (06-10): tap-to-toggle scoped ONLY to this non-button top row
@@ -1028,7 +1048,7 @@ struct NotchPillView: View {
                     .onTapGesture { onClick() }
                     // PBAR-01: the D-09 reserved seek-bar spacer is now the real display-only
                     // progress bar (elapsed/total labels + accent-filled track).
-                    ProgressBar(position: nowPlaying.position, isPlaying: isPlaying, tint: accent)
+                    ProgressBar(position: nowPlaying.position, isPlaying: isPlaying, tint: nowPlayingAccent)
                     // Bottom: centered control row.
                     HStack(spacing: 0) {
                         Color.clear.frame(width: 28, height: 28)   // reserved Shuffle slot (D-09, not built)
@@ -1076,11 +1096,11 @@ struct NotchPillView: View {
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
     // D-02 shows a visible tint during development so a first-time builder can
     // confirm width / radius / position over the real notch.
-    private var collapsedFill: some ShapeStyle {
+    private var collapsedFill: AnyShapeStyle {
         #if DEBUG
-        return Color.red.opacity(0.6)
+        return AnyShapeStyle(Color.red.opacity(0.6))
         #else
-        return Self.islandMaterial
+        return islandFill
         #endif
     }
     private var devOffset: CGFloat {
