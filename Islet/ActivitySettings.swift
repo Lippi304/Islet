@@ -80,28 +80,14 @@ enum ActivitySettings {
     }
 }
 
-// 06-RESEARCH §Pattern 4 — the single accent source the three lively leaf views
-// read today. Plan 02 (NotchPillView/NotchWindowController) migrates its 3
-// read/write sites over to the 4 new per-element keys below; kept here
-// unchanged in this plan so the existing call sites keep compiling until that
-// migration lands (deviation from the plan's literal "replace" wording —
-// Rule 3: avoid a cross-plan build break from a foundation-only plan).
-private struct ActivityAccentKey: EnvironmentKey { static let defaultValue: Color = .white }
-extension EnvironmentValues {
-    var activityAccent: Color {
-        get { self[ActivityAccentKey.self] }
-        set { self[ActivityAccentKey.self] = newValue }
-    }
-}
-
 // Phase 27 / VISUAL-03: the 4 new EnvironmentKeys — one per lively leaf
 // element (now-playing glyph/equalizer, charging wings, device icon) plus the
 // island material style, so each element can carry its own accent
-// independently. Plan 02 wires these on the hosting view and migrates the
-// leaf views off `activityAccent` above. Each accent defaults to neutral
-// white (today's look); the material style defaults to .gradient (the Phase
-// 25 shipped default) so views render correctly even before the controller
-// wires them.
+// independently. Plan 02 wires these on the hosting view; the leaf views read
+// them directly (the old single shared accent key was removed once the
+// migration landed). Each accent defaults to neutral white (today's look);
+// the material style defaults to .gradient (the Phase 25 shipped default) so
+// views render correctly even before the controller wires them.
 private struct NowPlayingAccentKey: EnvironmentKey { static let defaultValue: Color = .white }
 private struct ChargingAccentKey: EnvironmentKey { static let defaultValue: Color = .white }
 private struct DeviceAccentKey: EnvironmentKey { static let defaultValue: Color = .white }
