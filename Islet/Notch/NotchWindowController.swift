@@ -136,11 +136,18 @@ final class NotchWindowController {
     // its bookkeeping simply sits idle when the Devices toggle is off, exactly as the old fields did.
     private var deviceCoordinator: DeviceCoordinator!
 
-    // Phase 6 / APP-03 — the last accent index applied to the hosting view. UserDefaults posts
+    // Phase 27 / VISUAL-03 — the last theme applied to the hosting view: 3 independent
+    // per-element accent indices plus the material style. UserDefaults posts
     // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
-    // the controller only re-hosts the view (to re-inject the Environment accent) when THIS value
-    // actually changed — avoids needless re-hosting churn. Seeded lazily on the first apply.
-    private var appliedAccentIndex: Int?
+    // the controller only re-hosts the view (to re-inject the Environment values) when ANY of
+    // these 4 actually changed — avoids needless re-hosting churn. Seeded lazily on the first apply.
+    private struct AppliedTheme: Equatable {
+        var nowPlaying: Int
+        var charging: Int
+        var device: Int
+        var materialStyle: ActivitySettings.MaterialStyle
+    }
+    private var appliedTheme: AppliedTheme?
 
     // Phase 6 / APP-03 / D-09 — the UserDefaults observer token. Flipping an activity toggle (or
     // the accent swatch) posts UserDefaults.didChangeNotification; the controller re-reads the
@@ -781,12 +788,12 @@ final class NotchWindowController {
 
         let panel = self.panel ?? NotchPanel(contentRect: panelFrame)
         if self.panel == nil {
-            // Phase 6 / D-11 — host the view with the persisted accent injected on the
-            // `\.activityAccent` Environment value (read by the 3 lively leaf elements). The view
-            // observes presentationState (the resolver's verdict) for the single-arbiter render.
-            let index = UserDefaults.standard.integer(forKey: ActivitySettings.accentIndexKey)
-            appliedAccentIndex = index
-            panel.contentView = NSHostingView(rootView: makeRootView(accentIndex: index))
+            // Phase 27 / VISUAL-03 — host the view with the persisted theme (3 per-element
+            // accents + material style) injected on the Environment. The view observes
+            // presentationState (the resolver's verdict) for the single-arbiter render.
+            let theme = currentTheme()
+            appliedTheme = theme
+            panel.contentView = NSHostingView(rootView: makeRootView(theme: theme))
             self.panel = panel
             // FS-01 (Candidate C, additive) — join the dedicated max-level Space exactly ONCE,
             // here at panel creation (never re-synced per show/hide cycle, RESEARCH.md
@@ -1233,10 +1240,26 @@ final class NotchWindowController {
 
     // MARK: - Phase 6: hosting view + live settings application (APP-03 / D-09 / D-11)
 
-    // Build the SwiftUI root with the accent injected on the Environment (D-11). Extracted so the
-    // initial host AND the live accent re-apply (applyAccentIfChanged) share ONE construction.
+    // Phase 27 / VISUAL-03 — the single read-site for all 4 theming preferences (T-27-05: only
+    // assembles raw ints/the material style here; the actual accent(for:) clamp happens once,
+    // inside makeRootView, never here). Called from exactly 2 sites: initial panel creation and
+    // applyAccentIfChanged — no second raw UserDefaults read site for these keys (Pitfall 3).
+    private func currentTheme() -> AppliedTheme {
+        AppliedTheme(
+            nowPlaying: UserDefaults.standard.integer(forKey: ActivitySettings.nowPlayingAccentKey),
+            charging: UserDefaults.standard.integer(forKey: ActivitySettings.chargingAccentKey),
+            device: UserDefaults.standard.integer(forKey: ActivitySettings.deviceAccentKey),
+            // T-27-04: a missing/corrupted stored string falls back to .gradient.
+            materialStyle: ActivitySettings.MaterialStyle(
+                rawValue: UserDefaults.standard.string(forKey: ActivitySettings.materialStyleKey) ?? ""
+            ) ?? .gradient
+        )
+    }
+
+    // Build the SwiftUI root with the theme injected on the Environment (D-11). Extracted so the
+    // initial host AND the live re-apply (applyAccentIfChanged) share ONE construction.
     // accent(for:) clamps an out-of-range index to the neutral default (T-06-11 — never crashes).
-    private func makeRootView(accentIndex: Int) -> some View {
+    private func makeRootView(theme: AppliedTheme) -> some View {
         NotchPillView(interaction: interaction,
                       nowPlaying: nowPlayingState,
                       presentationState: presentationState,
@@ -1258,7 +1281,10 @@ final class NotchWindowController {
                       onOnboardingGrant: { [weak self] permission in self?.grantOnboardingPermission(permission) },
                       onOnboardingOpenSettings: { [weak self] in self?.openOnboardingSettings() },
                       onOnboardingFinish: { [weak self] in self?.finishOnboarding() })
-            .environment(\.activityAccent, ActivitySettings.accent(for: accentIndex))
+            .environment(\.nowPlayingAccent, ActivitySettings.accent(for: theme.nowPlaying))
+            .environment(\.chargingAccent, ActivitySettings.accent(for: theme.charging))
+            .environment(\.deviceAccent, ActivitySettings.accent(for: theme.device))
+            .environment(\.islandMaterialStyle, theme.materialStyle)
     }
 
     // APP-03 / D-09 — a UserDefaults write (toggle flip or accent swatch) lands here on main.
@@ -1354,13 +1380,15 @@ final class NotchWindowController {
         }
     }
 
-    // D-11 — re-host the view (re-injecting the Environment accent) only when the persisted index
-    // actually changed, so unrelated defaults writes don't churn the hosting view.
+    // D-11 — re-host the view (re-injecting the Environment theme) only when any of the 4
+    // persisted theming preferences actually changed, so unrelated defaults writes don't churn
+    // the hosting view. Name kept as applyAccentIfChanged (this codebase's "extend, don't
+    // duplicate the pipeline" convention) even though it now covers all 4 preferences.
     private func applyAccentIfChanged() {
-        let index = UserDefaults.standard.integer(forKey: ActivitySettings.accentIndexKey)
-        guard index != appliedAccentIndex else { return }
-        appliedAccentIndex = index
-        if let panel { panel.contentView = NSHostingView(rootView: makeRootView(accentIndex: index)) }
+        let theme = currentTheme()
+        guard theme != appliedTheme else { return }
+        appliedTheme = theme
+        if let panel { panel.contentView = NSHostingView(rootView: makeRootView(theme: theme)) }
     }
 
     // Phase 4 / NOW-01/02/03 — a live media update lands here (already on main; the wrapper
