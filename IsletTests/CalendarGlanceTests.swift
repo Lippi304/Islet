@@ -80,4 +80,56 @@ final class CalendarGlanceTests: XCTestCase {
         let result = nextRelevantEvent(events: [], now: Date())
         XCTAssertNil(result)
     }
+
+    // Phase 28 / CALVIEW-01: daysInMonth(for:calendar:) grid-generation tests.
+
+    func testDaysInMonthJuly2026HasCorrectDayCountAndLeadingPadding() {
+        // Given July 2026 (31 real days, starts on a Wednesday = weekday component 4 with a
+        // Sunday-first calendar), daysInMonth pads with 3 leading nils so July 1 lands in the
+        // Wednesday column, followed by exactly 31 non-nil days.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        calendar.firstWeekday = 1
+        let july2026 = calendar.date(from: DateComponents(year: 2026, month: 7, day: 1))!
+        let days = daysInMonth(for: july2026, calendar: calendar)
+        XCTAssertEqual(days.compactMap { $0 }.count, 31)
+        XCTAssertEqual(days.prefix(while: { $0 == nil }).count, 3)
+    }
+
+    func testDaysInMonthLeapYearFebruary2028DoesNotCrash() {
+        // Given February 2028 (a leap year), daysInMonth returns exactly 29 non-nil days
+        // without crashing.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let feb2028 = calendar.date(from: DateComponents(year: 2028, month: 2, day: 1))!
+        let days = daysInMonth(for: feb2028, calendar: calendar)
+        XCTAssertEqual(days.compactMap { $0 }.count, 29)
+    }
+
+    // Phase 28 / CALVIEW-02: events(on:events:calendar:) day-filter tests.
+
+    func testEventsOnDayReturnsOnlyMatchingDaySortedAscending() {
+        // Given events across two different days, events(on:events:) returns only the ones
+        // matching `day`, sorted by start ascending.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let day = calendar.date(from: DateComponents(year: 2026, month: 7, day: 15))!
+        let otherDay = calendar.date(from: DateComponents(year: 2026, month: 7, day: 16))!
+        let later = EventInput(title: "Later", start: calendar.date(byAdding: .hour, value: 14, to: day)!,
+                                end: calendar.date(byAdding: .hour, value: 15, to: day)!,
+                                colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let earlier = EventInput(title: "Earlier", start: calendar.date(byAdding: .hour, value: 9, to: day)!,
+                                  end: calendar.date(byAdding: .hour, value: 10, to: day)!,
+                                  colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let otherDayEvent = EventInput(title: "Other Day", start: otherDay, end: otherDay.addingTimeInterval(3600),
+                                        colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let result = events(on: day, events: [later, otherDayEvent, earlier], calendar: calendar)
+        XCTAssertEqual(result, [earlier, later])
+    }
+
+    func testEventsOnDayReturnsEmptyArrayForEmptyEventsWithoutCrashing() {
+        // T-14-02: an empty events array must never crash -- returns [].
+        let result = events(on: Date(), events: [])
+        XCTAssertEqual(result, [])
+    }
 }
