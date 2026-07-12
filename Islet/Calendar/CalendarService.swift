@@ -17,6 +17,11 @@ protocol CalendarService: AnyObject {
     /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
     ///   Settles `nil` on Calendar access denial (D-03) — never retries, never re-prompts.
     func fetchUpcoming(completion: @escaping (CalendarGlance?) -> Void)
+
+    /// Fetch all events in the calendar month containing `date`, for the full calendar view.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   Settles `[]` (never `nil`) on Calendar access denial — never retries, never re-prompts.
+    func fetchMonth(containing date: Date, completion: @escaping ([EventInput]) -> Void)
 }
 
 final class EventKitService: CalendarService {
@@ -50,6 +55,41 @@ final class EventKitService: CalendarService {
             }
             let glance = nextRelevantEvent(events: mapped, now: Date())
             await MainActor.run { completion(glance) }
+        }
+    }
+
+    func fetchMonth(containing date: Date, completion: @escaping ([EventInput]) -> Void) {
+        Task {
+            let granted = (try? await store.requestFullAccessToEvents()) ?? false
+            guard granted else {
+                // D-03 (mirrored): access denied — settle [], no retry, no re-prompt.
+                await MainActor.run { completion([]) }
+                return
+            }
+
+            let calendar = Calendar.current
+            guard let interval = calendar.dateInterval(of: .month, for: date) else {
+                await MainActor.run { completion([]) }
+                return
+            }
+
+            // D-02: ALL active calendars, no per-calendar filter (same as fetchUpcoming).
+            let calendars = store.calendars(for: .event)
+            let predicate = store.predicateForEvents(withStart: interval.start, end: interval.end,
+                                                      calendars: calendars)
+            let events = store.events(matching: predicate)
+            let mapped = events.map { ek -> EventInput in
+                var red = 1.0, green = 1.0, blue = 1.0
+                if let rgb = ek.calendar.color.usingColorSpace(.deviceRGB) {
+                    red = Double(rgb.redComponent)
+                    green = Double(rgb.greenComponent)
+                    blue = Double(rgb.blueComponent)
+                }
+                // T-14-06: ek.title is UNTRUSTED — passed through as a plain String only.
+                return EventInput(title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
+                                  colorRed: red, colorGreen: green, colorBlue: blue)
+            }
+            await MainActor.run { completion(mapped) }
         }
     }
 }
