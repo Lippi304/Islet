@@ -645,7 +645,18 @@ final class NotchWindowController {
                        nowPlayingHealthy: healthy,
                        hasPlayedSinceLaunch: nowPlayingState.hasPlayedSinceLaunch,
                        isExpanded: interaction.isExpanded,
+                       selectedView: viewSwitcherState.selectedView,
                        onboardingStep: onboardingStep)
+    }
+
+    // Phase 28 / CALVIEW-01 — mirrors NotchPillView's own `isOnboardingPresentation`/
+    // `showsSwitcherRow` pattern (see that file's header comment) so the panel-geometry and
+    // click-through math here stay in lockstep with what the view actually renders.
+    private func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
+        switch presentation {
+        case .expandedIdle, .calendarExpanded: return true
+        default: return false
+        }
     }
 
     // Write the resolver's verdict to the @Published carrier the view observes. The CALLER owns
@@ -776,9 +787,13 @@ final class NotchWindowController {
         // regression this unconditional reservation caused is fixed separately, by scoping the
         // hit-test in syncClickThrough()/visibleContentZone() to the actual visible blob rect,
         // NOT by resizing the panel. See visibleContentZone() below.
+        // Phase 28 / CALVIEW-01 — the switcher row is reserved in this UNION exactly like
+        // shelfRowHeight was added in Phase 20: unconditionally, so the panel never needs a
+        // live resize when the switcher row first appears (the visible black shape still only
+        // grows into it conditionally, per NotchPillView.body's own frame math).
         let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                expandedSize: CGSize(width: expandedSize.width,
-                                                                     height: expandedSize.height + NotchPillView.shelfRowHeight))
+                                                                     height: expandedSize.height + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
 
         // CHG-01 / Pattern 4: the wings extend SIDEWAYS, so the panel must also cover the
         // flat wings strip. Size the panel ONCE to the UNION of the downward-expanded and the
@@ -944,7 +959,11 @@ final class NotchWindowController {
     private func visibleContentZone() -> CGRect? {
         guard let hotZone else { return nil }
         let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
-        let shelfHeight = shelfViewState.items.isEmpty ? 0 : NotchPillView.shelfRowHeight
+        // Phase 28 / CALVIEW-04, Pitfall 3 — the 3rd and final call site reading through
+        // ShelfViewState.isVisible (items non-empty OR Tray force-reveal) instead of the raw
+        // `.items.isEmpty` check; see project memory cr01-clickthrough-or-defeat-gotcha.
+        let shelfHeight = shelfViewState.isVisible ? NotchPillView.shelfRowHeight : 0
+        let switcherHeight = showsSwitcherRow(for: presentationState.presentation) ? NotchPillView.switcherRowHeight : 0
         // Phase 26 / ONBOARD-01/02 — the onboarding card renders at its own taller fixed size
         // (240pt vs. the 144pt expandedSize), independent of shelf state (onboarding's shelf is
         // always empty, D-06). Scoping this branch to ONLY the geometry visibleContentZone()
@@ -952,7 +971,7 @@ final class NotchWindowController {
         // discipline — see 26-PATTERNS.md).
         let contentSize: CGSize = isOnboardingActive
             ? NotchPillView.onboardingSize
-            : CGSize(width: expandedSize.width, height: expandedSize.height + shelfHeight)
+            : CGSize(width: expandedSize.width, height: expandedSize.height + shelfHeight + switcherHeight)
         let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: contentSize)
         return visibleFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
     }
