@@ -23,7 +23,7 @@ A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexp
 
 - [x] **VISUAL-01**: The collapsed pill, expanded island, and activity wings render with one shared vertical alpha-gradient material — opaque/solid black nearest the physical notch, increasingly transparent toward the bottom edge — replacing the current flat fill. Individual activity content views (Now Playing, Charging, idle glance) are unaffected — only the shared shell chrome changes.
 - [x] **VISUAL-02**: The expand/collapse animation uses a fluid, deliberately-paced spring with a subtle bounce-in on open, matching the characteristic feel of the iPhone Dynamic Island — no dropped frames, no jarring overshoot beyond the intended subtle in-bounce
-- [ ] **VISUAL-03**: A new Theming section in Settings lets the user customize the shell's material/surface style, per-element accent colors, and choose among alternate app icon variants
+- [ ] **VISUAL-03**: A new Theming section in Settings lets the user customize the shell's material/surface style and per-element accent colors
 
 ### Settings Redesign
 
@@ -48,6 +48,7 @@ Deferred to a future milestone, not in this roadmap.
 
 ### Other candidates (not yet scoped)
 
+- Alternate app icon variants — descoped from Phase 27/VISUAL-03 (D-09/D-10): no icon assets exist yet; needs user-supplied icon files or a proper icon-design pass, not a Claude-generated placeholder
 - WEATHER-01, CAL-01, OUTFIT-01 — formalize the already-shipped Phase 14 weather/calendar/date glance as requirements
 - System HUD replacement (volume/brightness/etc.) — Settings' "System" sidebar section is the natural future home
 - Countdown timer

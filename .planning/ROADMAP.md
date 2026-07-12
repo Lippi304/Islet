@@ -376,7 +376,7 @@ Plans:
   1. Settings opens as a `NavigationSplitView` with sidebar sections General, Workspace (Shelf), System (Theming), and About/License.
   2. Every existing toggle (activity toggles, launch-at-login, song-change toast, fullscreen-hide, etc.) and the accent-color picker are present and functional in their new section.
   3. License and login-item state stays correctly synced when switching between sidebar sections — no stale state on section switch.
-  4. The System (Theming) section lets the user customize the shell's material/surface style, per-element accent colors, and choose among alternate app icon variants.
+  4. The System (Theming) section lets the user customize the shell's material/surface style and per-element accent colors.
 **Plans**: TBD
 **UI hint**: yes
 
