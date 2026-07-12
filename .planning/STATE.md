@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Architecture Redesign
-status: ready_to_plan
-stopped_at: Phase 27 complete (4/4) — ready to discuss Phase 28
-last_updated: 2026-07-12T22:34:02.296Z
-last_activity: 2026-07-12 -- Phase 27 execution started
+status: planning
+stopped_at: Phase 28 context gathered
+last_updated: "2026-07-12T22:45:19.635Z"
+last_activity: 2026-07-12
 progress:
   total_phases: 13
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 24
   completed_plans: 23
-  percent: 54
+  percent: 62
 ---
 
 # Project State
@@ -177,9 +177,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-12T19:27:17.549Z
-Stopped at: Phase 27 UI-SPEC approved
-Resume file: .planning/phases/27-settings-sidebar-redesign/27-UI-SPEC.md
+Last session: 2026-07-12T22:45:19.630Z
+Stopped at: Phase 28 context gathered
+Resume file: .planning/phases/28-calendar-full-view/28-CONTEXT.md
 
 ## Operator Next Steps
 
