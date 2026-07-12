@@ -80,7 +80,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 24: Drag-In** - DragApproachDetector wiring against Phase 22's already-proven pure seams (completed 2026-07-11)
 - [x] **Phase 25: Visual/Material Theming Redesign** - Black-to-transparent gradient material + fluid bouncy Dynamic-Island-style animation (completed 2026-07-11)
 - [x] **Phase 26: Onboarding Flow** - First-launch carousel + permissions pre-explanation (completed 2026-07-12)
-- [ ] **Phase 27: Settings Sidebar Redesign** - NavigationSplitView with General/Workspace/System/About sections, incl. new Theming section (VISUAL-03)
+- [x] **Phase 27: Settings Sidebar Redesign** - NavigationSplitView with General/Workspace/System/About sections, incl. new Theming section (VISUAL-03) (completed 2026-07-12)
 - [ ] **Phase 28: Calendar Full View** - Month grid + day list + quick-add, sharing one EventKit service layer
 
 ## Phase Details
@@ -392,7 +392,7 @@ Plans:
 
 **Wave 3** *(blocked on 27-02, 27-03)*
 
-- [ ] 27-04-PLAN.md — Build gate + dead-reference sweep + consolidated on-device UAT checkpoint
+- [x] 27-04-PLAN.md — Build gate + dead-reference sweep + consolidated on-device UAT checkpoint
 
 ### Phase 28: Calendar Full View
 
