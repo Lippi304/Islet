@@ -74,9 +74,31 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(SidebarSection.allCases, selection: $selection) { section in
-                Label(section.title, systemImage: section.icon)
+            // Plan 27-04 checkpoint fix: List(selection:) never registered a single click
+            // on-device across 3 attempts (Scene-hosted, AppKit-hosted, .sidebar list style +
+            // .contentShape) — confirmed via diagnostic instrumentation that `selection` never
+            // changed regardless. Falling back to plain Buttons (already proven to respond
+            // reliably in this same window, e.g. "Save Diagnostic Report…") bypasses whatever
+            // is wrong with List's row-selection routing on this setup entirely.
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(SidebarSection.allCases) { section in
+                    Button {
+                        selection = section
+                    } label: {
+                        Label(section.title, systemImage: section.icon)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(selection == section ? Color.accentColor.opacity(0.25) : .clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
             }
+            .padding(8)
             .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
         } detail: {
             switch selection {
