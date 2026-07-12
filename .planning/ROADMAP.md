@@ -410,8 +410,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 28-01-PLAN.md — Pure seams: CalendarGlance.swift day/month-bucketing (daysInMonth, events(on:)) + ViewSwitcherState/SelectedView + CalendarViewState/QuickAddKind data contracts, TDD
-- [ ] 28-02-PLAN.md — CalendarService.swift extension: fetchMonth, createEvent, createReminder (lazy Reminders permission, D-04) + project.yml Reminders keys (D-05)
+- [x] 28-01-PLAN.md — Pure seams: CalendarGlance.swift day/month-bucketing (daysInMonth, events(on:)) + ViewSwitcherState/SelectedView + CalendarViewState/QuickAddKind data contracts, TDD
+- [x] 28-02-PLAN.md — CalendarService.swift extension: fetchMonth, createEvent, createReminder (lazy Reminders permission, D-04) + project.yml Reminders keys (D-05)
 
 **Wave 2** *(blocked on 28-01)*
 
