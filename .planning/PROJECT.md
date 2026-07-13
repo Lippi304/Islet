@@ -24,24 +24,22 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-Other standing candidates for a future milestone: formalize WEATHER-01/CAL-01/OUTFIT-01 as requirements, system HUD replacement, a countdown timer (all still Out of Scope below until picked up).
+Other standing candidates for a future milestone: system HUD replacement, a countdown timer (still Out of Scope below until picked up).
 
-## Current Milestone: v1.4 (name TBD)
+## Current Milestone: v1.5 (Home Focus & Widget Redesign, name TBD)
 
-**Goal:** Redesign the NotchPanel/NotchWindowController architecture (to resolve the Phase 22 drag-in blocker and give the app room to grow), then layer on Droppy-inspired scope on top of the new foundation.
+**Goal:** Declutter Home to music-only, consolidate all file-drop behavior into Tray (with a Droppy-style Drop/AirDrop/Mail destination choice), redesign Weather as an iOS-widget-style card, widen/enlarge the Tray file layout, and give the expanded-state notch silhouette an outward-flaring top edge.
 
-**Status: 6/6 phases shipped — milestone complete.** Phase 23 (Shell Parity Rewrite), 24 (Drag-In), and 25 (Visual/Material Theming Redesign) shipped 2026-07-11. Phase 26 (Onboarding Flow) shipped 2026-07-12. Phase 27 (Settings Sidebar Redesign) shipped 2026-07-12 — NavigationSplitView sidebar + new Theming section, on-device UAT approved after fixing 2 real regressions found during the checkpoint (Settings window not opening; sidebar navigation unresponsive — see 27-04-SUMMARY.md). Phase 28 (Calendar Full View) shipped 2026-07-13 after 6 rounds of on-device UAT plus a code-review-and-fix pass — see CALVIEW-01..04 in Validated below for the final (user-amended) shape.
+**Status: Requirements being defined.**
 
 **Target features:**
-- NotchPanel/NotchWindowController architecture redesign — informed by TheBoringNotch/DynamicNotchKit reference implementations, resolves the unidentified Phase 22 drag delivery blocker
-- SHELF-01/02 (drag-in) carried forward from v1.3, resolved against the new architecture
-- First-launch onboarding flow: trial/license-key/buy choice + a permissions pre-explanation screen (no in-app gesture tutorial)
-- Visual/material redesign: frosted/glossy pill (not fully transparent), slower/smoother spring animations, Settings redesigned with sidebar categories
-- Calendar full view, expanded on-device into a 4-view switcher (Home/Tray/Calendar/Weather) — see CALVIEW-01..04
+- Home shows ONLY Now Playing — live controls while something plays, cover+title (no live controls) for the last-played track while paused/stopped; the time/weather/calendar glance is fully removed from Home (Weather and Calendar already have their own switcher tabs).
+- File shelf/Tray becomes the sole home for file drops — the additive shelf-strip-reveal on other tabs (Home/Calendar/Weather) is removed. Dropping a file from any tab opens a Droppy-style Quick Action picker with destination choices: Drop (stage into Tray, existing behavior), AirDrop, Mail — reference: Droppy's "Quick Action Layout" screenshot.
+- Tray view widened with larger file icons so more files are visible side-by-side, matching Droppy's file-forward layout.
+- Weather redesigned as an iOS-widget-style card (location, condition icon, current temp, H/L) — a compact widget is the default; a Settings toggle switches to an extended widget adding a multi-day forecast strip (requires a new WeatherKit forecast call, previously deferred in Phase 28 — now explicitly requested). Reference screenshot captured showing target layout (Local / 16° Cloudy H:24 L:15 / 6-day forecast row).
+- NotchShape gains an outward flare transition into the top screen edge, applied ONLY to the expanded state — the idle/collapsed pill silhouette is explicitly unchanged (stays flush/straight into the edge as today).
 
-**Explicitly deferred:** gesture-based swipe navigation (skip-track/tuck-away/return) — touches the same event-delivery layer that just failed in Phase 22, kept out of scope until the architecture redesign proves itself.
-
-See `.planning/research/inspiration/notes.md` for the full Droppy reference material.
+See `.planning/research/inspiration/notes.md` for the Droppy reference material (additional Quick-Action and widget reference screenshots captured during v1.5 discussion — see discussion log once written).
 
 ## Requirements
 
@@ -176,7 +174,7 @@ _v1.4 (Architecture Redesign) is code-complete — all 6 phases shipped 2026-07-
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_v1.4 shipped (see Validated above) — no active scope right now. Next milestone not yet started; see Next Milestone Goals above._
+_v1.5 (Home Focus & Widget Redesign) requirements being defined — see Current Milestone above. REQUIREMENTS.md not yet written._
 
 ### Out of Scope
 
@@ -275,4 +273,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-13 — Phase 28 (Calendar Full View) shipped, v1.4's sixth and final phase. 6 rounds of on-device UAT expanded the original 3-icon Calendar view into a 4-icon switcher (Home/Tray/Calendar/Weather) with a "smart Home" that shows Now-Playing when active; a post-approval code review then closed 2 further critical bugs. v1.4 (Architecture Redesign) is now code-complete — `/gsd:complete-milestone` is available whenever the 2 remaining `28-HUMAN-UAT.md` items are confirmed.*
+*Last updated: 2026-07-13 — Milestone v1.5 (Home Focus & Widget Redesign) started. Goal: Home becomes music-only, file drops consolidate into Tray with a Droppy-style Drop/AirDrop/Mail destination picker, Tray widens with larger icons, Weather becomes an iOS-widget-style card (compact default, extended-with-forecast optional), and the expanded-state notch silhouette gains an outward top-edge flare. v1.4 (Architecture Redesign) remains code-complete with 2 items in `28-HUMAN-UAT.md` still pending final on-device re-confirmation — `/gsd:complete-milestone` for v1.4 can be run whenever convenient.*

@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Architecture Redesign
-status: milestone_complete
-stopped_at: Milestone complete (Phase 28 was final phase)
-last_updated: 2026-07-13T14:14:11.786Z
-last_activity: 2026-07-12 -- Phase 28 execution started
+milestone: v1.5
+milestone_name: Home Focus & Widget Redesign
+status: planning
+last_updated: "2026-07-13T14:29:58.795Z"
+last_activity: 2026-07-13
 progress:
-  total_phases: 13
-  completed_phases: 8
-  total_plans: 28
-  completed_plans: 27
-  percent: 62
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 28
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-07-13
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-13 — Milestone v1.5 started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
