@@ -649,20 +649,6 @@ final class NotchWindowController {
                        onboardingStep: onboardingStep)
     }
 
-    // Phase 28 / CALVIEW-01 — mirrors NotchPillView's own `isOnboardingPresentation`/
-    // `showsSwitcherRow` pattern (see that file's header comment) so the panel-geometry and
-    // click-through math here stay in lockstep with what the view actually renders.
-    // 28-04 on-device UAT round 3: `.nowPlayingExpanded` added — see NotchPillView.swift's
-    // mirrored property for the reasoning.
-    // 28-04 round 4 — `.weatherExpanded` added, mirroring NotchPillView.swift's own update.
-    // 28-04 round 5 — `.trayExpanded` added, mirroring NotchPillView.swift's own update.
-    private func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
-        switch presentation {
-        case .expandedIdle, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded: return true
-        default: return false
-        }
-    }
-
     // Write the resolver's verdict to the @Published carrier the view observes. The CALLER owns
     // the spring wrapper (so the morph is attached AT the originating mutation, D-08) — this just
     // assigns. Every head/expanded/now-playing mutation ends by calling this + updateVisibility().

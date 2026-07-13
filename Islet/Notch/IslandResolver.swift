@@ -55,6 +55,20 @@ enum ActiveTransient: Equatable {
     case device(DeviceActivity)
 }
 
+// WR-01 fix (28-REVIEW.md) — the SINGLE shared definition of which IslandPresentation cases
+// show the switcher row. Both NotchPillView (rendering) and NotchWindowController (panel/
+// click-through geometry) used to maintain their own hand-duplicated copy of this exact case
+// list, each with a comment noting it "mirrors" the other — nothing enforced that agreement, and
+// CR-01/CR-02 in the same review demonstrated exactly this failure mode (a case added to one
+// switch and forgotten in the other silently desyncs render vs. click-through geometry). Both
+// call sites now reference this one function instead.
+func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
+    switch presentation {
+    case .expandedIdle, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded: return true
+    default: return false
+    }
+}
+
 // TOTAL pure reducer. The single ranking authority (D-05).
 func resolve(activeTransient: ActiveTransient?,
              nowPlaying: NowPlayingPresentation,

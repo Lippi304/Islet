@@ -61,19 +61,12 @@ struct NotchPillView: View {
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Visibility") — the switcher pill shows only when
     // the island is expanded AND no time-sensitive activity (Charging/Device splash, Now-
     // Playing wings glance) is being shown, mirroring SHELF-09's suppression precedent.
-    // 28-04 on-device UAT round 3: `.nowPlayingExpanded` (both healthy/unavailable) is a
-    // long-lived, user-entered full-expanded state — not a brief transient like the wings
-    // glance — so it keeps the switcher too, per the corrected 28-UI-SPEC.md row.
-    // 28-04 round 4 — `.weatherExpanded` added, same reasoning as `.calendarExpanded`.
-    // 28-04 round 5 — `.trayExpanded` added (Tray's own dedicated view, replacing the old
-    // additive-strip force-reveal); this same boolean now also selects the shared
-    // `switcherContentHeight` box in `blobShape` (see that constant's doc comment), so a
-    // per-case `isCalendarPresentation`-style predicate is no longer needed here.
+    // WR-01 fix (28-REVIEW.md) — this used to hand-duplicate NotchWindowController's own copy
+    // of the same case list (each file's comment noted it "mirrors" the other, but nothing
+    // enforced that). Both now call the single shared `showsSwitcherRow(for:)` in
+    // IslandResolver.swift so the render and click-through geometry can never desync again.
     private var showsSwitcherRow: Bool {
-        switch presentation {
-        case .expandedIdle, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded: return true
-        default: return false
-        }
+        Islet.showsSwitcherRow(for: presentation)
     }
 
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model (weather +
