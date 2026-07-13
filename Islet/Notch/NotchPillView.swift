@@ -205,30 +205,14 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
-    // SHAPE-01 (v1.5, Phase 29) — D-01/D-05 REVISED AGAIN 2026-07-13 (round 6, on-device UAT):
-    // the round-5 concave-sweep design pulled the whole top edge down away from the true screen
-    // edge outside its narrow band, which read as "not at the edge at all" on-device. The flush
-    // top edge is now restored (see NotchShape.swift's doc comment) and the flare reads as a
-    // curved outward shoulder bulge instead. `topFlareWidth` is once again the shared, fixed
-    // OUTWARD MARGIN (how far the shoulder bulges past rect.minX/rect.maxX) every covered
-    // expanded presentation uses identically — both the wide 360pt Home/Tray/Calendar/Weather
-    // blob and the narrower 290pt Charging/Device wings get the SAME absolute value (D-05).
-    // A starting point for on-device tuning (D-02); the bulge's vertical extent is capped by
-    // `topCornerRadius` (6pt in every call site here), so this stays a shallow shoulder, not a
-    // trumpet. NotchWindowController.swift reads this SAME constant to widen its panel-frame
-    // reservation by `2 * topFlareWidth` (the bulge extends past the presentation's own rect
-    // again, unlike round 5's converge-back-to-rect design) — do not let the two drift.
-    // ROUND 10 (2026-07-13) confirmed the full render pipeline end-to-end on real hardware (a
-    // diagnostic green stroke traced a continuous, unbroken bulge outline; see NotchWindowController
-    // and body's own outer frame, both widened by `2 * topFlareWidth`, for the fix that made this
-    // work). ROUND 11 (2026-07-13, same day, post-confirmation visual pass) — the mechanism being
-    // proven correct just exposed the real remaining complaint: the 20pt bulge read as timid next
-    // to the Droppy reference screenshot's much larger, sweeping flare ("das ist ja nichts im
-    // Vergleich zu dem wie wir es machen wollten"). Doubled to 40pt — a confidently dramatic width,
-    // short of the raw 50pt diagnostic value that was purely for visibility-testing, not a real
-    // proportions target. This value is a purely horizontal outward margin — unlike bulgeDepth, it
-    // never consumes vertical wall budget, so it needs no per-call-site safety check.
-    static let topFlareWidth: CGFloat = 40
+    // SHAPE-01 (v1.5, Phase 29) — D-01/D-05 final design: `topFlareWidth` is the total width of
+    // the fixed, narrow top band NotchShape sweeps outward from (see that file's doc comment) —
+    // matches the physical notch cutout (~179pt, measured on this hardware), the SAME absolute
+    // value every covered presentation uses (D-05), regardless of its own full width (360pt
+    // Home/Tray/Calendar/Weather blob vs. 290pt Charging/Device wings). Unlike the earlier
+    // shoulder-bulge detour, the sweep stays entirely within each presentation's own rect — no
+    // panel-frame or SwiftUI-content-root widening is needed for this design.
+    static let topFlareWidth: CGFloat = 179
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
@@ -407,23 +391,10 @@ struct NotchPillView: View {
         // unlike onboarding — non-onboarding cases stack the shelf/switcher row additions on
         // top, since (unlike onboarding) their blobShape calls pass real `shelfItems`/
         // `showSwitcher`.
-        // SHAPE-01 round 10 bugfix (on-device UAT: flare confirmed zero-visible-effect even
-        // after the round-9 renderWidth fix) — ROOT CAUSE, verified via a headless ImageRenderer
-        // repro (not just re-reading the code): the isolated test proved matchedGeometryEffect
-        // makes NO difference to the overflow (identical result with/without it attached) — the
-        // real cause is that THIS outer frame is the SwiftUI content ROOT's own reported size,
-        // and NSHostingView/ImageRenderer rasterizes into a backing store sized to exactly that
-        // reported size. blobShape/wingsShape's own renderWidth-then-baseWidth double-frame
-        // trick correctly paints the bulge past their OWN local baseWidth box (a plain `.frame()`
-        // never clips at the View-layout level) — but those overflow pixels still fall outside
-        // THIS outer frame's reported width, and content painted beyond the root's own reported
-        // size is never rasterized at all (not "clipped" in the masksToBounds sense — there's
-        // simply no backing-store pixel there). NotchWindowController.swift already widens the
-        // AppKit PANEL by `2 * topFlareWidth` (round 6) for exactly this reason; this outer
-        // SwiftUI-level frame was the one remaining unwidened boundary. Onboarding never flares
-        // (topFlareWidth defaults to 0 there via onboardingCarousel's own blobShape call, which
-        // omits it), so only the non-onboarding branch needs the extra margin.
-        .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width + 2 * Self.topFlareWidth,
+        // SHAPE-01 (Phase 29) — the flare sweep stays entirely within each presentation's own
+        // rect (no outward overflow past rect.minX/rect.maxX), so this outer frame needs no
+        // extra margin for it, unlike the earlier shoulder-bulge detour.
+        .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
                    : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
@@ -1128,24 +1099,8 @@ struct NotchPillView: View {
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
         let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius, topFlareWidth: Self.topFlareWidth)
-        // SHAPE-01 bugfix (round 9, stroke-diagnostic on-device UAT) — the shoulder bulge
-        // deliberately paints `topFlareWidth` points PAST rect.minX/rect.maxX on each side
-        // (NotchShape.swift). A `.frame()` no wider than `baseWidth` gives the shape NO backing
-        // pixels there at all — that's why the bulge/flush-top region silently never rendered in
-        // the fill (every earlier round's "flat, no bulge" report) and showed a stroke gap in
-        // the diagnostic overlay, even though the path itself is a valid, continuous, closed
-        // contour (verified via CGPath element-by-element inspection — zero NaN/degenerate
-        // segments, before and after this fix). `renderWidth` gives the fill + stroke a real
-        // canvas that wide; the SECOND, narrower `.frame(width: baseWidth...)` right after it
-        // restores the original LOGICAL layout footprint for every downstream consumer
-        // (matchedGeometryEffect's morph target, the content overlay below, the outer body
-        // frame, panel-sizing math) — a plain `.frame()` never clips, so the wider render is
-        // free to overflow past that narrower reported footprint, centered, exactly like the
-        // bulge needs.
-        let renderWidth = baseWidth + 2 * Self.topFlareWidth
         return shape
             .fill(islandFill)
-            .frame(width: renderWidth, height: totalHeight)
             .frame(width: baseWidth, height: totalHeight)
             .matchedGeometryEffect(id: "island", in: ns)
             .overlay(alignment: .top) {
@@ -1230,13 +1185,8 @@ struct NotchPillView: View {
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
     private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 6, topFlareWidth: Self.topFlareWidth)   // flatter than the downward blob
-        // SHAPE-01 bugfix (round 9) — same renderWidth widening as blobShape above; see that
-        // function's doc comment for the full root-cause explanation (the bulge paints past
-        // rect bounds, which a frame no wider than wingsSize.width has no pixels for).
-        let renderWidth = Self.wingsSize.width + 2 * Self.topFlareWidth
         return shape
             .fill(islandFill)
-            .frame(width: renderWidth, height: Self.wingsSize.height)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             .matchedGeometryEffect(id: "island", in: ns)
             .overlay(
