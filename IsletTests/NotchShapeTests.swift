@@ -38,15 +38,17 @@ final class NotchShapeTests: XCTestCase {
         XCTAssertGreaterThan(cgBounds.height, 0, "The closed path needs a positive-height bounding box.")
     }
 
-    // SHAPE-01 (v1.5, Phase 29) — D-01/D-05 final design: a fixed NARROW top band, sweeping
-    // monotonically outward (never reversing) down to the shape's own full rect width, then
-    // merging into the unmodified topCornerRadius corner transition. This replaces an earlier
-    // "shoulder bulge" design (swing-out-then-back past the rect) that read as "eine Kugel"/a
-    // ball-knob on-device — see 29-CONTEXT.md's "Post-D-01/D-05 implementation detour" section.
+    // SHAPE-01 (v1.5, Phase 29) — FINAL, user-confirmed design: the wide sides of the top edge
+    // stay FLUSH with `rect.minY` exactly like the pre-Phase-29 shape, and only a narrow band
+    // centered on `rect.midX` (matching the physical camera footprint) dips DOWN by a shallow
+    // amount, with smooth quad-curve transitions. This replaces two reverted detours (a
+    // monotonic narrow-to-wide funnel, then a "shoulder bulge" that read as "eine Kugel"/a
+    // ball-knob on-device) that both put the geometry at the OUTER corners instead of the
+    // CENTER — see 29-CONTEXT.md's "Post-D-01/D-05 implementation detour and final
+    // confirmation" section for the full history.
     //
     // Tests below use wingsShape's real, tightest call-site combo (topCornerRadius: 6,
-    // bottomCornerRadius: 6, topFlareWidth: 179) at wingsShape's real 290x32 size, since that is
-    // the site the flareDepth safety clamp (NotchShape.swift) is specifically checked against.
+    // bottomCornerRadius: 6, topFlareWidth: 179) at wingsShape's real 290x32 size.
     private let wingsRect = CGRect(x: 0, y: 0, width: 290, height: 32)
     private let wingsTopCornerRadius: CGFloat = 6
     private let wingsBottomCornerRadius: CGFloat = 6
@@ -69,26 +71,37 @@ final class NotchShapeTests: XCTestCase {
                        "topFlareWidth: 0 must produce an identical bounding box to omitting the argument entirely.")
     }
 
-    func testFlatTopRunIsNarrowBandNotFullWidth() {
-        // The defining structural change vs. the earlier shoulder-bulge design: the flush run at
-        // rect.minY spans only the narrow band, NOT the full rect width. Just outside the band on
-        // either side, at y ≈ rect.minY, the path must NOT be filled yet (the sweep hasn't widened
-        // out that far at the very top).
+    func testWideSidesStayFlushWithTheTopEdge() {
+        // The defining structural change vs. both reverted detours: near the OUTER corners
+        // (away from the centered camera notch), the top edge must be flush at rect.minY --
+        // exactly like the unflared shape. This is the "wide sides never move" invariant.
         let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
             .path(in: wingsRect).cgPath
-        let bandHalfWidth = wingsFlareWidth / 2
-        let justInsideBand = CGPoint(x: wingsRect.midX - bandHalfWidth + 1, y: wingsRect.minY + 0.1)
-        let justOutsideBand = CGPoint(x: wingsRect.minX + 1, y: wingsRect.minY + 0.1)
-        XCTAssertTrue(flaredPath.contains(justInsideBand, using: .winding),
-                      "Just inside the narrow band, at the very top edge, must be filled.")
-        XCTAssertFalse(flaredPath.contains(justOutsideBand, using: .winding),
-                       "Near the rect's own left edge, at the very top, must NOT be filled -- the top run is a narrow band, not full width (unlike the reverted shoulder-bulge design).")
+        let justInsideLeftWall = CGPoint(x: wingsRect.minX + wingsTopCornerRadius + 1, y: wingsRect.minY + 0.1)
+        let justInsideRightWall = CGPoint(x: wingsRect.maxX - wingsTopCornerRadius - 1, y: wingsRect.minY + 0.1)
+        XCTAssertTrue(flaredPath.contains(justInsideLeftWall, using: .winding),
+                      "Just past the left corner curve, at the very top edge, must be filled -- the wide side is flush, unchanged from the unflared shape.")
+        XCTAssertTrue(flaredPath.contains(justInsideRightWall, using: .winding),
+                      "Just before the right corner curve, at the very top edge, must be filled -- the wide side is flush, unchanged from the unflared shape.")
+    }
+
+    func testCenteredNotchDipsBelowTheTopEdge() {
+        // The defining new geometry: directly under rect.midX (the physical camera), the shape
+        // must NOT be filled at rect.minY (a recess exists there) but MUST be filled a little
+        // further down (the notch floor), proving the dip is real and centered.
+        let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsRect).cgPath
+        let centerAtTopEdge = CGPoint(x: wingsRect.midX, y: wingsRect.minY + 0.1)
+        let centerAtNotchFloor = CGPoint(x: wingsRect.midX, y: wingsRect.minY + 7.9)
+        XCTAssertFalse(flaredPath.contains(centerAtTopEdge, using: .winding),
+                       "Directly under the camera, at the true top edge, must NOT be filled -- the notch has receded here.")
+        XCTAssertTrue(flaredPath.contains(centerAtNotchFloor, using: .winding),
+                      "Directly under the camera, at the notch's own (shallow) floor depth, must be filled.")
     }
 
     func testFlaredPathBoundingBoxNeverExceedsTheRect() {
-        // Structural change from the shoulder-bulge design (which deliberately bulged PAST
-        // rect.minX/rect.maxX): the monotonic sweep design never widens beyond the rect it was
-        // given -- no horizontal overflow, no render-canvas widening needed anywhere upstream.
+        // The centered dip is a pure inward recess -- it must never widen the shape beyond the
+        // rect it was given, no horizontal overflow, no render-canvas widening needed upstream.
         let bounds = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
             .path(in: wingsRect).cgPath.boundingBox
         XCTAssertGreaterThanOrEqual(bounds.minX, wingsRect.minX - 0.01,
@@ -98,14 +111,14 @@ final class NotchShapeTests: XCTestCase {
     }
 
     func testFlaredPathReachesTheRectsFullWidth() {
-        // The sweep must actually converge to the rect's own full width lower down (not stop
-        // short) -- confirms the funnel completes, it doesn't just stay narrow forever.
+        // The flush wide sides must still reach the rect's own left/right edges (via the
+        // unmodified topCornerRadius corner curves) -- the dip only affects the center.
         let bounds = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
             .path(in: wingsRect).cgPath.boundingBox
         XCTAssertEqual(bounds.minX, wingsRect.minX, accuracy: 0.5,
-                       "The sweep must reach the rect's own left edge.")
+                       "The flush left side must still reach the rect's own left edge.")
         XCTAssertEqual(bounds.maxX, wingsRect.maxX, accuracy: 0.5,
-                       "The sweep must reach the rect's own right edge.")
+                       "The flush right side must still reach the rect's own right edge.")
     }
 
     func testFlaredPathStaysClosedAndNonEmpty() {
@@ -162,30 +175,24 @@ final class NotchShapeTests: XCTestCase {
         XCTAssertGreaterThan(elementCount, 0, "The flared path must contain at least one drawing element.")
     }
 
-    // The flareDepth safety clamp mirrors NotchShape.swift's `path(in:)` formula exactly, so
-    // this file's expectations never go stale if that formula's constants change.
-    private func expectedFlareDepth(rectHeight: CGFloat, topCornerRadius: CGFloat, bottomCornerRadius: CGFloat) -> CGFloat {
-        let desiredFlareDepth: CGFloat = 18
-        return min(desiredFlareDepth, max(0, rectHeight - topCornerRadius - bottomCornerRadius - 4))
-    }
-
-    func testFlaredPathCornerRoundingSurvivesTheSweep() {
-        // The topCornerRadius corner-cut, shifted down by flareDepth, must still carve a real
-        // fillet -- not get erased or overlapped by the sweep above it (the exact failure class
-        // an earlier round of this design hit before flareDepth existed as its own dedicated span).
-        let flareDepth = expectedFlareDepth(rectHeight: wingsRect.height, topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius)
-        let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+    func testOuterCornersAreUnchangedFromTheUnflaredShape() {
+        // The final design leaves the outer topCornerRadius corner-cut completely untouched --
+        // unlike both reverted detours, it is never shifted down. Its bounding box (by
+        // comparison to the unflared shape's own corner region) must match, proving the corner
+        // geometry is byte-identical regardless of topFlareWidth.
+        let flaredCorner = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsRect).cgPath
+        let unflaredCorner = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: 0)
             .path(in: wingsRect).cgPath
         let cornerNotchMidpoint = CGPoint(x: wingsRect.maxX - wingsTopCornerRadius / 2,
-                                          y: wingsRect.minY + flareDepth + wingsTopCornerRadius / 2)
-        XCTAssertFalse(flaredPath.contains(cornerNotchMidpoint, using: .winding),
-                       "The corner-cut's own notch (shifted down by flareDepth) must stay excluded from the fill -- proving the rounding survives the sweep.")
-        // And just inside the wall, at the same height, must still be filled -- confirms this
-        // is a real diagonal fillet, not an accidentally-empty shape.
+                                          y: wingsRect.minY + wingsTopCornerRadius / 2)
+        XCTAssertEqual(flaredCorner.contains(cornerNotchMidpoint, using: .winding),
+                       unflaredCorner.contains(cornerNotchMidpoint, using: .winding),
+                       "The outer corner-cut's own fillet region must render identically with and without the centered notch -- the outer corners never move.")
         let justInsideTheWall = CGPoint(x: wingsRect.maxX - wingsTopCornerRadius - 5,
-                                        y: wingsRect.minY + flareDepth + wingsTopCornerRadius / 2)
-        XCTAssertTrue(flaredPath.contains(justInsideTheWall, using: .winding),
-                      "Just inside the wall at the same height, the fill must still be present.")
+                                        y: wingsRect.minY + wingsTopCornerRadius / 2)
+        XCTAssertTrue(flaredCorner.contains(justInsideTheWall, using: .winding),
+                      "Just inside the wall at the corner's own (unshifted) height, the fill must still be present.")
     }
 
     func testFlaredPathHasNoSelfOverlap() {
