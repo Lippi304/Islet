@@ -48,6 +48,14 @@ struct NotchPillView: View {
         if case .onboarding = presentation { return true }
         return false
     }
+    // 28-04 on-device UAT bugfix — mirrors `isOnboardingPresentation`'s pattern exactly (a
+    // dedicated content-height override needs a predicate the outer body `.frame` can branch
+    // on). Reuses the `presentation` enum switch directly rather than adding a redundant
+    // controller-level bool — `showsSwitcherRow` above already establishes this idiom.
+    private var isCalendarPresentation: Bool {
+        if case .calendarExpanded = presentation { return true }
+        return false
+    }
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Visibility") — the switcher pill shows only when
     // the island is expanded AND no time-sensitive activity (Charging/Device splash, Now-
     // Playing wings) is being shown, mirroring SHELF-09's suppression precedent: `.expandedIdle`
@@ -247,6 +255,29 @@ struct NotchPillView: View {
     // see `blobShape`'s `showSwitcher` parameter below). A starting point for on-device tuning.
     static let switcherRowHeight: CGFloat = 44
 
+    // Phase 28-04 on-device UAT bugfix — calendarFullView's real content (month-nav header +
+    // a worst-case 6-row day grid) does NOT fit inside `expandedSize.height` (144pt), unlike
+    // every other non-onboarding presentation. Without this override, `blobShape`'s content
+    // frame silently centered the oversized content, spilling it equally above AND below the
+    // 144pt box — the overflow ABOVE rendered directly under the physical camera notch
+    // (mirrors the exact regression class documented at `onboardingSize` below, and at
+    // `expandedSize`'s own math comment). Mirrors `onboardingSize`'s pattern: a dedicated
+    // content-height override, calendar's own box grows DOWNWARD only (alignment: .top in
+    // `calendarFullView` below), never re-centers into the camera band. Box math:
+    //   32  (top notch clearance, matches mediaExpanded's .padding(.top, 32) convention)
+    // + 20  (month/year header row: chevrons + 13pt semibold label)
+    // +  8  (monthGridColumn's own VStack spacing between header and grid)
+    // + 188 (WORST CASE 6-row day grid: `daysInMonth(for:)` can pad up to 6 leading empty
+    //        cells + 31 real days = 37 cells / 7 columns = 6 rows; 6*28 + 5*4 gap = 188.
+    //        28pt cells / 4pt gaps are D-locked minimums, not tunable down to fit a smaller box)
+    // + 18  (bottom inset — room for the bottomCornerRadius:32 curve, same reasoning as
+    //        expandedSize's own +12 but slightly more generous since calendar content is denser)
+    // = 266.
+    // Unlike `expandedSize`, this is a CONTENT height only (excludes switcher/shelf rows,
+    // which `blobShape`/`body`'s outer `.frame` still add on top of this — same convention as
+    // `expandedSize.height` itself never including those rows).
+    static let calendarContentHeight: CGFloat = 266
+
     // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
     // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
     // mid-animation" convention that added wingsSize/toastExtraHeight as sibling constants
@@ -312,10 +343,15 @@ struct NotchPillView: View {
         // unreachable) alike. Mirrors the shelf fix exactly — grow this frame for the
         // `.onboarding` case too. Round 2: also branches WIDTH now that onboardingSize is
         // wider than expandedSize (400 vs 360).
+        // 28-04 on-device UAT bugfix — added an `isCalendarPresentation` branch mirroring
+        // `isOnboardingPresentation`'s: calendarFullView's content box uses
+        // `calendarContentHeight` (266) instead of `expandedSize.height` (144), but — unlike
+        // onboarding — still stacks the shelf/switcher row additions on top, since (unlike
+        // onboarding) calendar's blobShape call still passes real `shelfItems`/`showSwitcher`.
         .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
-                   : Self.expandedSize.height
+                   : (isCalendarPresentation ? Self.calendarContentHeight : Self.expandedSize.height)
                        + (shelfViewState.isVisible ? Self.shelfRowHeight : 0)
                        + (showsSwitcherRow ? Self.switcherRowHeight : 0),
                alignment: .top)
@@ -385,7 +421,15 @@ struct NotchPillView: View {
     // both read through Plan 01's pure `daysInMonth(for:)`/`events(on:events:)` functions, never
     // a re-implementation (RESEARCH.md Anti-Pattern: no Date()/Date.now threaded into month math).
     private var calendarFullView: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items,
+        // 28-04 on-device UAT bugfix — `alignment: .top` + `height: calendarContentHeight`
+        // (was: default `.center` + default `expandedSize.height`). The month grid's real
+        // content is taller than 144pt; centering it in that box spilled the overflow equally
+        // above AND below, and the ABOVE half rendered under the camera notch. Top-pinning +
+        // a real, big-enough reserved box (mirrors mediaExpanded's `alignment: .top` +
+        // `.padding(.top, 32)` convention) makes the island grow DOWNWARD only, same as every
+        // other expanded presentation.
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top,
+                  height: Self.calendarContentHeight, shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             HStack(spacing: 0) {
                 monthGridColumn
@@ -397,6 +441,7 @@ struct NotchPillView: View {
                     .frame(maxWidth: .infinity, alignment: .top)
             }
             .padding(.horizontal, 16)
+            .padding(.top, 32)   // camera/notch clearance — matches mediaExpanded's convention
         }
     }
 

@@ -804,7 +804,17 @@ final class NotchWindowController {
         // possible content size (mirrors how `wings` was added as a second union member in
         // Phase 3) so the onboarding card's real 240pt height is never resized mid-activity.
         let onboardingFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: NotchPillView.onboardingSize)
-        let panelFrame = expandedFrame.union(wings).union(onboardingFrame)
+        // 28-04 on-device UAT bugfix — calendarFullView's content box (calendarContentHeight,
+        // 266pt) is taller than expandedSize.height (144pt) alone, so `expandedFrame` above
+        // (which only reserves expandedSize + shelf + switcher) was too short — the panel
+        // window itself clipped the bottom of the calendar content, and syncClickThrough's
+        // hot-zone/expandedZone math (both derived from this same panelFrame union) was wrong
+        // too. Reserved unconditionally in the union exactly like `onboardingFrame`/`wings` —
+        // worst-case reservation, transparent when unused, no live resize needed.
+        let calendarFrame = expandedNotchFrame(collapsed: collapsedFrame,
+                                               expandedSize: CGSize(width: expandedSize.width,
+                                                                     height: NotchPillView.calendarContentHeight + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
+        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(calendarFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
@@ -969,9 +979,19 @@ final class NotchWindowController {
         // always empty, D-06). Scoping this branch to ONLY the geometry visibleContentZone()
         // measures keeps syncClickThrough()'s own interactive-value logic untouched (CR-01
         // discipline — see 26-PATTERNS.md).
+        // 28-04 on-device UAT bugfix — calendarExpanded's content box is taller than
+        // expandedSize.height (see NotchPillView.calendarContentHeight's math comment); without
+        // this branch the click-through zone stayed clamped to the old 144pt-based height even
+        // after positionAndShow's panel reservation grew, defeating hover/click over the lower
+        // portion of the real (now taller) calendar content. Reuses the `presentation` enum
+        // switch directly, mirroring `showsSwitcherRow(for:)`'s existing idiom, rather than
+        // adding a redundant controller-level bool alongside `isOnboardingActive`.
+        let isCalendarActive: Bool
+        if case .calendarExpanded = presentationState.presentation { isCalendarActive = true } else { isCalendarActive = false }
         let contentSize: CGSize = isOnboardingActive
             ? NotchPillView.onboardingSize
-            : CGSize(width: expandedSize.width, height: expandedSize.height + shelfHeight + switcherHeight)
+            : CGSize(width: expandedSize.width,
+                     height: (isCalendarActive ? NotchPillView.calendarContentHeight : expandedSize.height) + shelfHeight + switcherHeight)
         let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: contentSize)
         return visibleFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
     }
