@@ -973,7 +973,14 @@ final class NotchWindowController {
         // ShelfViewState.isVisible (real items only, post-28-04-round-5 forcedByTray removal)
         // instead of the raw `.items.isEmpty` check; see project memory
         // cr01-clickthrough-or-defeat-gotcha.
-        let shelfHeight = shelfViewState.isVisible ? NotchPillView.shelfRowHeight : 0
+        // CR-01 fix (28-REVIEW.md) — trayFullView deliberately renders with `shelfVisible:
+        // false` (its own content IS the files view, so the additive shelf strip must never
+        // append a second time below it), so blobShape never adds shelfRowHeight while Tray is
+        // showing. Without this presentation-aware exclusion, a non-empty shelf made this
+        // hit-test zone 56pt taller than what Tray actually draws — the extra band is blank/
+        // transparent, but clicks landing in it were swallowed instead of passing through.
+        let isTrayPresentation: Bool = { if case .trayExpanded = presentationState.presentation { return true }; return false }()
+        let shelfHeight = (shelfViewState.isVisible && !isTrayPresentation) ? NotchPillView.shelfRowHeight : 0
         let switcherRowShowing = showsSwitcherRow(for: presentationState.presentation)
         let switcherHeight = switcherRowShowing ? NotchPillView.switcherRowHeight : 0
         // Phase 26 / ONBOARD-01/02 — the onboarding card renders at its own taller fixed size
@@ -1192,6 +1199,14 @@ final class NotchWindowController {
     private func handleCalendarMonthChange(_ delta: Int) {
         guard let newMonth = Calendar.current.date(byAdding: .month, value: delta, to: calendarViewState.visibleMonth) else { return }
         calendarViewState.visibleMonth = newMonth
+        // CR-02 fix (28-REVIEW.md) — `selectedDay` must stay inside the newly-visible month.
+        // Left untouched, a stale selectedDay from before navigating (typically "today", seeded
+        // when Calendar opened) silently outlived the month change; handleQuickAdd(_:title:)
+        // unconditionally reads selectedDay, so quick-add could create an event/reminder on a
+        // day in a different, no-longer-displayed month with zero error or confirmation.
+        if !Calendar.current.isDate(calendarViewState.selectedDay, equalTo: newMonth, toGranularity: .month) {
+            calendarViewState.selectedDay = newMonth   // keep selection inside the visible month
+        }
         calendarViewState.monthEvents = nil
         refreshCalendarMonth()
     }

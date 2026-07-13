@@ -48,6 +48,16 @@ struct NotchPillView: View {
         if case .onboarding = presentation { return true }
         return false
     }
+    // CR-01 fix (28-REVIEW.md) — mirrors NotchWindowController.visibleContentZone()'s own
+    // isTrayPresentation exclusion: trayFullView renders with shelfVisible: false (its content
+    // IS the files view), so it never actually grows by shelfRowHeight. This outer frame is
+    // currently harmless to leave un-excluded (the panel is already reserved to the max union
+    // height), but drifting from the click-through math here is exactly the failure class CR-01
+    // closes — keep both frames in lockstep.
+    private var isTrayPresentation: Bool {
+        if case .trayExpanded = presentation { return true }
+        return false
+    }
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Visibility") — the switcher pill shows only when
     // the island is expanded AND no time-sensitive activity (Charging/Device splash, Now-
     // Playing wings glance) is being shown, mirroring SHELF-09's suppression precedent.
@@ -376,7 +386,7 @@ struct NotchPillView: View {
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
                    : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
-                       + (shelfViewState.isVisible ? Self.shelfRowHeight : 0)
+                       + ((shelfViewState.isVisible && !isTrayPresentation) ? Self.shelfRowHeight : 0)
                        + (showsSwitcherRow ? Self.switcherRowHeight : 0),
                alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
