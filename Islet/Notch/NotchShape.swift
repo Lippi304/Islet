@@ -13,17 +13,21 @@ struct NotchShape: Shape {
     // math below is unchanged, so the silhouette stays valid at every interpolated step.
     var topCornerRadius: CGFloat = 6
     var bottomCornerRadius: CGFloat = 14
-    // SHAPE-01 (v1.5) — D-01/D-05 REVISED 2026-07-13 during Task 3 on-device UAT: the original
-    // "subtle outward widen" read as imperceptible on-device. The user provided a concrete
-    // reference (Droppy's shelf widget) and confirmed the flare should be a PRONOUNCED CONCAVE
-    // sweep instead: the top edge stays NARROW (a fixed width matching the physical notch
-    // cutout, D-05) for a short flat run, then curves outward/downward — like the neck of a
-    // wine glass opening into its bowl — until it reaches the presentation's own already-
-    // existing full rect width, at which point the UNCHANGED topCornerRadius transition takes
-    // over exactly as it always has. `topFlareWidth` is now that fixed NARROW TOP-BAND WIDTH
-    // (not an added outward margin, as the pre-revision version of this property was). Defaults
-    // to `0` (today's flush top edge, no band/no flare) so `collapsedIsland`/`mediaWingsOrToast`,
-    // which never pass it, stay pixel-identical (Success Criterion #2).
+    // SHAPE-01 (v1.5) — D-01/D-05 REVISED AGAIN 2026-07-13 (round 6, on-device UAT): the
+    // concave-sweep design (round 5) pulled the ENTIRE top edge outside the narrow band down
+    // by `flareDepth` before reaching the rect's real width — on a real notch that reads as
+    // "not at the screen edge at all", since every prior round (and the whole pre-Phase-29
+    // app) has the top edge flush with the true screen/notch top across its FULL width, no
+    // exceptions. That flush-top invariant is restored below: the flat top run always spans
+    // `rect.minX...rect.maxX` at `rect.minY`, full width, exactly like the `topFlareWidth == 0`
+    // branch. The flare now reads purely as a curved outward "shoulder" bulge that starts right
+    // where the flush top ends and merges back into the EXISTING topCornerRadius corner
+    // transition's own endpoint — un-shifted, no y-offset applied to it — so everything
+    // downstream (the straight walls + bottom corners) is untouched. `topFlareWidth` is once
+    // again an added OUTWARD MARGIN (how far past rect.minX/rect.maxX the shoulder bulges), the
+    // same semantic the pre-round-5 property used, not a band width. Defaults to `0` (today's
+    // flush edge, no bulge) so `collapsedIsland`/`mediaWingsOrToast`, which never pass it, stay
+    // pixel-identical (Success Criterion #2).
     var topFlareWidth: CGFloat = 0
     func path(in rect: CGRect) -> Path {
         var p = Path()
@@ -46,51 +50,39 @@ struct NotchShape: Shape {
             return p
         }
 
-        // Flared path (D-01/D-05 revised). `bandWidth` is clamped to rect.width defensively (a
-        // future presentation narrower than the fixed band constant must not invert the shape).
-        // `flareDepth` is how far DOWN (y) the sweep travels before reaching the full rect width —
-        // capped at 20pt and at 35% of the rect's own height so short presentations (the 32pt-tall
-        // wings strip) still leave room for the corner radii + a straight wall beneath the sweep.
-        let bandWidth = min(topFlareWidth, rect.width)
-        let bandLeft = rect.midX - bandWidth / 2
-        let bandRight = rect.midX + bandWidth / 2
-        let flareDepth = min(20, rect.height * 0.35)
-        // Where the full rect width is reached — i.e. where the UNCHANGED topCornerRadius
-        // transition begins, shifted down from rect.minY by flareDepth.
-        let topY = rect.minY + flareDepth
+        // Flared path (round 6 — flush-top shoulder bulge). `bulge` is how far past
+        // rect.minX/rect.maxX the shoulder swings out before curving back in.
+        let bulge = topFlareWidth
 
-        p.move(to: CGPoint(x: bandLeft, y: rect.minY))
-        p.addLine(to: CGPoint(x: bandRight, y: rect.minY)) // the narrow flat top-band run
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY)) // FULL-WIDTH flush top run — never recessed
 
-        // RIGHT concave sweep: band edge -> (rect.maxX, topY), where the existing topCornerRadius
-        // corner curve takes over. This uses a CUBIC addCurve, deliberately deviating from
-        // 29-PATTERNS.md's quad-curve-only convention (documented there for the earlier, now-
-        // superseded straight-widen design): a quad curve has a single control point and can only
-        // bulge toward it, producing one simple arc. The Droppy-reference "wine glass" profile
-        // needs an S-shaped curve that stays close to the narrow neck for most of the depth and
-        // then flares rapidly only near the bottom — that requires two independent control
-        // points, which only a cubic Bezier provides (D-02 fallback, 29-CONTEXT.md).
-        p.addCurve(to: CGPoint(x: rect.maxX, y: topY),
-                   control1: CGPoint(x: bandRight, y: rect.minY + flareDepth * 0.8),
-                   control2: CGPoint(x: rect.maxX, y: rect.minY + flareDepth * 0.2))
+        // RIGHT shoulder bulge: (rect.maxX, rect.minY) -> the topCornerRadius transition's own
+        // UNCHANGED, un-shifted endpoint (rect.maxX - topCornerRadius, rect.minY +
+        // topCornerRadius). A CUBIC addCurve (not a quad) is required here — a quad curve has a
+        // single control point and can only arc toward it, producing one simple bow; a real
+        // "swing out past the edge, then curve back in" shoulder needs two independent control
+        // points pulling in different directions, which only a cubic Bezier provides.
+        p.addCurve(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius),
+                   control1: CGPoint(x: rect.maxX + bulge, y: rect.minY + topCornerRadius * 0.15),
+                   control2: CGPoint(x: rect.maxX + bulge * 0.25, y: rect.minY + topCornerRadius * 0.9))
 
-        // Existing topCornerRadius transition — UNCHANGED math, shifted down by flareDepth.
-        p.addQuadCurve(to: CGPoint(x: rect.maxX - topCornerRadius, y: topY + topCornerRadius),
-                       control: CGPoint(x: rect.maxX - topCornerRadius, y: topY))
+        // Downstream math from here is 100% the existing, unmodified topCornerRadius/
+        // bottomCornerRadius corner + wall geometry (identical to the topFlareWidth == 0 branch
+        // above, just re-entered after the bulge instead of after a plain quad curve).
         p.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius))
         p.addQuadCurve(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY),
                        control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY))
         p.addLine(to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY))
         p.addQuadCurve(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius),
                        control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: topY + topCornerRadius))
-        p.addQuadCurve(to: CGPoint(x: rect.minX, y: topY),
-                       control: CGPoint(x: rect.minX + topCornerRadius, y: topY))
+        p.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius))
 
-        // LEFT concave sweep — mirror of the right sweep, closing the path back at the band.
-        p.addCurve(to: CGPoint(x: bandLeft, y: rect.minY),
-                   control1: CGPoint(x: rect.minX, y: rect.minY + flareDepth * 0.2),
-                   control2: CGPoint(x: bandLeft, y: rect.minY + flareDepth * 0.8))
+        // LEFT shoulder bulge — mirror of the right, closing the path back at the flush top's
+        // start (rect.minX, rect.minY).
+        p.addCurve(to: CGPoint(x: rect.minX, y: rect.minY),
+                   control1: CGPoint(x: rect.minX - bulge * 0.25, y: rect.minY + topCornerRadius * 0.9),
+                   control2: CGPoint(x: rect.minX - bulge, y: rect.minY + topCornerRadius * 0.15))
         return p
     }
 }

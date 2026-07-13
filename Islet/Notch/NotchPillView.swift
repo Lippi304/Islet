@@ -205,21 +205,20 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
-    // SHAPE-01 (v1.5, Phase 29) — D-01/D-05 REVISED 2026-07-13 during Task 3 on-device UAT: the
-    // original "subtle outward widen" (10pt margin) read as imperceptible against a 290-360pt-
-    // wide shape. The user provided a concrete reference (Droppy's shelf widget) and confirmed a
-    // pronounced CONCAVE flare instead — see NotchShape.swift's doc comment for the geometry.
-    // `topFlareWidth` is now the ONE shared, fixed NARROW TOP-BAND WIDTH every covered expanded
-    // presentation uses identically (both the wide 360pt Home/Tray/Calendar/Weather blob and the
-    // narrower 290pt Charging/Device wings get the SAME absolute value, matching the physical
-    // notch cutout, not a proportionally-scaled one) — D-05's consistency intent carries over
-    // unchanged even though the value's meaning does not. 179pt approximates the physical notch
-    // cutout width measured on the build machine (project memory: build-machine notch measured
-    // 179×32pt); tune on-device against the real hardware per D-02. NotchWindowController.swift
-    // no longer needs to widen the panel frame for this value (the flare converges on the
-    // existing rect width rather than bulging past it — see NotchShape.swift), so this constant
-    // is now read ONLY here.
-    static let topFlareWidth: CGFloat = 179
+    // SHAPE-01 (v1.5, Phase 29) — D-01/D-05 REVISED AGAIN 2026-07-13 (round 6, on-device UAT):
+    // the round-5 concave-sweep design pulled the whole top edge down away from the true screen
+    // edge outside its narrow band, which read as "not at the edge at all" on-device. The flush
+    // top edge is now restored (see NotchShape.swift's doc comment) and the flare reads as a
+    // curved outward shoulder bulge instead. `topFlareWidth` is once again the shared, fixed
+    // OUTWARD MARGIN (how far the shoulder bulges past rect.minX/rect.maxX) every covered
+    // expanded presentation uses identically — both the wide 360pt Home/Tray/Calendar/Weather
+    // blob and the narrower 290pt Charging/Device wings get the SAME absolute value (D-05).
+    // A starting point for on-device tuning (D-02); the bulge's vertical extent is capped by
+    // `topCornerRadius` (6pt in every call site here), so this stays a shallow shoulder, not a
+    // trumpet. NotchWindowController.swift reads this SAME constant to widen its panel-frame
+    // reservation by `2 * topFlareWidth` (the bulge extends past the presentation's own rect
+    // again, unlike round 5's converge-back-to-rect design) — do not let the two drift.
+    static let topFlareWidth: CGFloat = 14
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,

@@ -40,10 +40,14 @@ final class NotchShapeTests: XCTestCase {
 
     // SHAPE-01 (v1.5, Phase 29): topFlareWidth default + path geometry.
     //
-    // D-01/D-05 REVISED 2026-07-13 during Task 3 on-device UAT: the flare is now a pronounced
-    // CONCAVE sweep (narrow top-band -> full rect width -> unchanged topCornerRadius transition),
-    // not the earlier straight-line outward widen. `topFlareWidth` is now the fixed NARROW
-    // TOP-BAND WIDTH itself (not an added margin) — see NotchShape.swift's doc comment.
+    // D-01/D-05 REVISED AGAIN 2026-07-13 (round 6, on-device UAT): the round-5 concave sweep
+    // pulled the top edge away from the true screen/notch edge outside its narrow band, which
+    // read as "not at the edge at all" on a real device. The flare is now a curved outward
+    // "shoulder" bulge that starts only AFTER a full-width flush top run (matching every other
+    // round and the pre-Phase-29 shape) and merges back into the existing topCornerRadius
+    // transition's own unshifted endpoint. `topFlareWidth` is once again the fixed OUTWARD
+    // MARGIN (how far past rect.minX/rect.maxX the shoulder bulges) — see NotchShape.swift's
+    // doc comment.
 
     func testTopFlareWidthDefaultsToZero() {
         XCTAssertEqual(NotchShape().topFlareWidth, 0,
@@ -62,30 +66,40 @@ final class NotchShapeTests: XCTestCase {
                        "topFlareWidth: 0 must produce an identical bounding box to omitting the argument entirely.")
     }
 
-    func testNonZeroTopFlareWidthReachesTheFullRectWidthBelowTheBand() {
-        // The concave sweep still converges on rect.minX/rect.maxX (the presentation's own full
-        // width, unchanged) — only the TOP of the shape narrows, the overall silhouette does not
-        // bulge past the rect the way the earlier (superseded) straight-widen design did.
-        let bounds = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14, topFlareWidth: 60)
-            .path(in: rect).cgPath.boundingBox
-        XCTAssertEqual(bounds.minX, rect.minX, accuracy: 0.01,
-                       "The flared path must still reach the rect's left edge (full width) below the band.")
-        XCTAssertEqual(bounds.maxX, rect.maxX, accuracy: 0.01,
-                       "The flared path must still reach the rect's right edge (full width) below the band.")
-    }
-
-    func testNonZeroTopFlareWidthProducesANarrowTopBand() {
-        // Just below the very top edge, only the narrow center band is filled -- a point well
-        // outside the band (but still well inside the rect horizontally) must NOT be part of the
-        // shape yet, proving the top reads as a narrow neck, not a full-width flat top.
+    func testNonZeroTopFlareWidthKeepsTheTopEdgeFlushAcrossFullWidth() {
+        // The hard regression this round fixes: the flat top run must span the shape's FULL
+        // width, flush at rect.minY -- never recessed downward the way the round-5 concave sweep
+        // was outside its narrow band. Points near both top corners, just below the very top
+        // edge, must already be filled at full width.
         let flaredPath = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14, topFlareWidth: 60)
             .path(in: rect).cgPath
-        let centerOfBand = CGPoint(x: rect.midX, y: rect.minY + 0.5)
-        XCTAssertTrue(flaredPath.contains(centerOfBand, using: .winding),
-                      "The center of the narrow top-band must be filled.")
-        let wellOutsideBand = CGPoint(x: rect.minX + 10, y: rect.minY + 0.5)
-        XCTAssertFalse(flaredPath.contains(wellOutsideBand, using: .winding),
-                       "A point near the rect's edge, just below the top, must NOT be filled yet -- the top band is narrow, not full-width.")
+        let nearLeftEdge = CGPoint(x: rect.minX + 1, y: rect.minY + 0.5)
+        let nearRightEdge = CGPoint(x: rect.maxX - 1, y: rect.minY + 0.5)
+        XCTAssertTrue(flaredPath.contains(nearLeftEdge, using: .winding),
+                      "The top edge must be flush (filled) near the left corner, full width -- not recessed downward.")
+        XCTAssertTrue(flaredPath.contains(nearRightEdge, using: .winding),
+                      "The top edge must be flush (filled) near the right corner, full width -- not recessed downward.")
+    }
+
+    func testFlaredPathTopBoundsStaysAtRectMinY() {
+        // The bounding box's own top must sit exactly at rect.minY -- proving no part of the top
+        // edge is pulled down/away from the true screen edge, the exact user-reported bug this
+        // round fixes ("Gar nicht mehr am Rand dran").
+        let bounds = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14, topFlareWidth: 60)
+            .path(in: rect).cgPath.boundingBox
+        XCTAssertEqual(bounds.minY, rect.minY, accuracy: 0.01,
+                       "The flared path's topmost point must stay at rect.minY -- flush with the true screen edge.")
+    }
+
+    func testNonZeroTopFlareWidthBulgesPastTheRectWidth() {
+        // Unlike the round-5 concave sweep (which stayed within the rect), the shoulder bulge
+        // genuinely extends past rect.minX/rect.maxX -- this is the visible "flare" itself.
+        let bounds = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14, topFlareWidth: 60)
+            .path(in: rect).cgPath.boundingBox
+        XCTAssertLessThan(bounds.minX, rect.minX,
+                          "The shoulder bulge must extend past the rect's left edge.")
+        XCTAssertGreaterThan(bounds.maxX, rect.maxX,
+                             "The shoulder bulge must extend past the rect's right edge.")
     }
 
     func testFlaredPathStaysClosedAndNonEmpty() {
@@ -97,22 +111,18 @@ final class NotchShapeTests: XCTestCase {
         XCTAssertGreaterThan(cgBounds.height, 0, "The flared closed path needs a positive-height bounding box.")
     }
 
-    func testFlaredPathStillCutsAwayTheTopCornerRoundingNotch() {
-        // The topCornerRadius corner curve is UNCHANGED math, just shifted down by flareDepth to
-        // where the sweep converges on the full rect width. This proves the corner is still
-        // visibly rounded (not flattened to square) at that (shifted) transition point, even with
-        // a non-zero topFlareWidth -- regression coverage for the round-4 zero-tangent bug that
-        // erased corner rounding in the earlier (superseded) straight-widen design.
+    func testFlaredPathShoulderMergesAtTheUnshiftedTopCornerRadiusEndpoint() {
+        // The shoulder bulge must merge back into the topCornerRadius transition's own UNCHANGED,
+        // un-shifted endpoint (rect.maxX - topCornerRadius, rect.minY + topCornerRadius) -- not a
+        // flareDepth-shifted position (the round-5 bug this round fixes). The straight wall
+        // immediately below that endpoint must already be at the plain unflared x-position,
+        // proving the downstream corner/wall geometry is byte-identical to the topFlareWidth == 0
+        // case, only the bulge above it differs.
         let topCornerRadius: CGFloat = 6
         let flaredPath = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: 14, topFlareWidth: 60)
             .path(in: rect).cgPath
-        let flareDepth = min(20, rect.height * 0.35)
-        let topY = rect.minY + flareDepth
-        // Just inside the left edge, barely below where the sweep reaches full width -- this
-        // point sits in the "notch" topCornerRadius cuts away; if the corner rounding were
-        // erased (flattened to square), this point would incorrectly report as inside the fill.
-        let notchPoint = CGPoint(x: rect.minX + 1, y: topY + 0.5)
-        XCTAssertFalse(flaredPath.contains(notchPoint, using: .winding),
-                       "The topCornerRadius notch must stay cut away (corner still rounded) even when topFlareWidth > 0.")
+        let onTheUnflaredWall = CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius + 1)
+        XCTAssertTrue(flaredPath.contains(onTheUnflaredWall, using: .winding),
+                      "Just below the shoulder's merge point, the straight wall must already sit at the plain unflared x-position.")
     }
 }
