@@ -36,7 +36,7 @@ key-decisions:
 
 patterns-established: []
 
-requirements-completed: []  # CALVIEW-01/03/04 code-complete but NOT yet marked done -- see Checkpoint Status below; requirements are only marked complete once the on-device UAT checkpoint (Task 3) is approved.
+requirements-completed: [CALVIEW-01, CALVIEW-03, CALVIEW-04]  # Approved by user after round 6 on-device UAT -- see Checkpoint Status below.
 
 # Metrics
 duration: 5min
@@ -45,15 +45,16 @@ completed: 2026-07-13
 
 # Phase 28 Plan 04: Calendar Full View Controller Wiring Summary
 
-**NotchWindowController now feeds the live switcher selection into the pure resolver, reserves panel geometry for the switcher row, and implements the switcher/month-nav/day-select/quick-add handlers — Calendar Full View is code-complete pending on-device UAT.**
+**NotchWindowController now feeds the live switcher selection into the pure resolver, reserves panel geometry for the switcher row, and implements the switcher/month-nav/day-select/quick-add handlers — Calendar Full View is complete and APPROVED after a 6-round on-device UAT arc.**
 
 ## Performance
 
-- **Duration:** ~5 min (Tasks 1-2 only; Task 3 is a human-verify checkpoint, not yet run)
+- **Duration:** ~5 min (Tasks 1-2); Task 3 (on-device UAT) ran 6 rounds across the same session
 - **Started:** 2026-07-13T01:41:50+02:00
 - **Completed (Tasks 1-2):** 2026-07-13T01:45:54+02:00
-- **Tasks:** 2 of 3 complete (Task 3 is the on-device UAT checkpoint — awaiting user)
-- **Files modified:** 1
+- **Task 3 approved:** 2026-07-13 (round 6, after fixing the switcher icon hit-test area)
+- **Tasks:** 3 of 3 complete
+- **Files modified:** 1 (Task 1-2 scope); see Deviations below for the additional files touched during the UAT-driven fix rounds
 
 ## Accomplishments
 - `currentPresentation()` now passes `selectedView: viewSwitcherState.selectedView` into `resolve(...)`, so a Calendar switcher selection actually reaches the resolver's `.calendarExpanded` branch (added in Plan 28-03)
@@ -68,10 +69,13 @@ Each task was committed atomically:
 
 1. **Task 1: State ownership + resolver/click-through/panel-geometry wiring** - `152aba4` (feat)
 2. **Task 2: Switcher/month-nav/day-select/quick-add handlers + makeRootView wiring** - `26f32f8` (feat)
-3. **Task 3: On-device UAT** - IN PROGRESS (checkpoint:human-verify; round 1 found the camera-notch
-   overlap bug documented above, fixed at `cff1a12`; round 2 found the switcher-pill suppression
-   bug documented below, fixed at `3326f1f`; round 6 found the switcher icon hit-test bug, fixed
-   at `1edf772` — awaiting round 6 approval)
+3. **Task 3: On-device UAT** - APPROVED (checkpoint:human-verify; 6 rounds — round 1 found the
+   camera-notch overlap bug, fixed at `cff1a12`; round 2 found the switcher-pill suppression bug,
+   fixed at `3326f1f`; round 4 found the resolver-precedence bug plus a user-confirmed scope
+   expansion (smart Home, new Weather tab, calendar visual pass), fixed/added at `b46c4eb`/
+   `c301a03`/`fecebff`; round 5 found calendar density/misclick issues and added a dedicated Tray
+   view, fixed at `53be4d6`/`73f170f`; round 6 found the switcher icon hit-test bug, fixed at
+   `1edf772` — user typed "approved" after round 6 re-verification)
 
 ## Files Created/Modified
 - `Islet/Notch/NotchWindowController.swift` - resolver/geometry wiring (Task 1) + handlers/makeRootView wiring (Task 2)
@@ -305,19 +309,39 @@ None - no external service configuration required.
 
 ## Checkpoint Status
 
-**Task 3 (on-device UAT) round 1 found a real bug (camera-notch overlap on the calendar view);
-round 2 found a second real bug (switcher pill missing during Now Playing expanded); round 3
-found a third real bug (resolver precedence — Calendar unreachable during media) plus a
-user-confirmed scope expansion (smart Home, new Weather tab, calendar visual pass); round 4
-found calendar density too spacious, a real misclick/notch-close bug, and requested a dedicated
-Tray view; round 5 held on re-verification but round 6 found a new real bug (switcher icon
-ring/padding area not tappable, only the glyph). All are now fixed/built; round 6
-(re-verification) is pending.** This plan is
-`autonomous: false` and Task 3 is a `checkpoint:human-verify` gate covering all 4 of this
-phase's ROADMAP Success Criteria and CALVIEW-01/02/03/04. Per the executor's protocol,
-execution stopped here again after the change — see the CHECKPOINT REACHED block in the final
-response for the full walkthrough the user needs to re-run (Cmd-R build + manual verification +
-Cmd-U regression pass), with special attention to:
+**APPROVED.** The user typed "approved" after round 6 on-device re-verification, confirming all
+4 of this phase's ROADMAP Success Criteria and CALVIEW-01/02/03/04 are observably true. This plan
+is `autonomous: false` and Task 3 was a `checkpoint:human-verify` gate; per the executor's
+protocol, execution paused after each round's fix until the user's explicit approval was
+received.
+
+### The 6-round UAT arc, summarized
+
+Task 3 took 6 rounds to reach approval, and each round found a genuine issue rather than a false
+alarm — worth reading in full below, but in short: round 1 caught the calendar month-grid
+overlapping the physical camera notch (a `.frame()` centering overflow, fixed by top-pinning the
+content with explicit camera-clearance padding, mirroring the existing onboarding-view pattern).
+Round 2 caught the Home/Tray/Calendar switcher pill disappearing while Now Playing was expanded
+(originally-designed behavior that turned out to be a real UX bug once music is a long-lived,
+user-entered state — extended `showsSwitcherRow` to cover `.nowPlayingExpanded`). Round 4 caught
+a resolver-precedence bug that made Calendar permanently unreachable via the switcher whenever
+Now-Playing was non-`.none` (even paused) — fixed by checking `selectedView` before Now-Playing in
+`IslandResolver.resolve(...)` — and, in the same round, the user confirmed a genuine scope
+expansion: "smart Home" (Home now shows Now-Playing controls when something is playing, the idle
+glance otherwise — a deliberate reversal of the phase's original locked decision) plus an
+entirely new 4th switcher tab, Weather, showing current-conditions-only data reused verbatim from
+the existing `WeatherGlance`/`WeatherKitService`. Round 5, working from real Droppy reference
+screenshots for the first time, tightened the calendar grid density (28×28pt → 18×18pt cells),
+root-caused and fixed an intermittent misclick/notch-close bug (the switcher row's on-screen
+position was shifting per-presentation because each view reserved a different content height —
+unified into one shared `switcherContentHeight` constant enforced inside `blobShape` itself), and
+added a dedicated Tray view (files-only, its own resolver case, replacing the earlier
+additive-shelf-strip-under-Home behavior). Round 6 caught a hit-testing bug where only a switcher
+icon's glyph pixels — not the full circular tap target around it — registered clicks, fixed with
+a single `.contentShape(Circle())`. Round 5's re-verification then held clean into round 6, and
+round 6's fix was the last change needed before approval.
+
+The walkthrough the user ran covered (verbatim, for the historical record):
 1. The month grid's top row still clears the camera notch with a visible gap (round 1 fix
    still holds).
 2. The switcher pill now shows **4 icons** (Home/Tray/Calendar/Weather) and stays visible while
@@ -351,20 +375,22 @@ Cmd-U regression pass), with special attention to:
    today, a small dot under days with events, and rounded-card day-list rows — reads as
    intentional polish (now validated against real Droppy reference screenshots as of round 5).
 
-**Until Task 3 is approved:**
-- `requirements-completed` in this SUMMARY's frontmatter is intentionally left empty — CALVIEW-01/02/03/04 should NOT be marked complete in REQUIREMENTS.md/ROADMAP.md until the user types "approved".
-- Phase 28 (and v1.4) should NOT be considered shipped.
+All 9 points above were confirmed by the user on round 6 re-verification, plus round 6's own
+switcher icon hit-test fix. **The user typed "approved."**
+
+- `requirements-completed` in this SUMMARY's frontmatter now lists CALVIEW-01/03/04 — the
+  orchestrator will mark them complete in REQUIREMENTS.md/ROADMAP.md.
+- Phase 28 (and the v1.4 milestone it completes) is shipped.
 
 ## Next Phase Readiness
 
 - Tasks 1-2 are code-complete and committed; the Debug build is green (verified again after
-  round 5's density/geometry/Tray changes).
-- Task 3 (on-device UAT) is the sole remaining item for Phase 28 and the entire v1.4 milestone.
-- A follow-up agent (or the user directly) should run Cmd-R in Xcode and walk through the 9
-  `how-to-verify` steps in `28-04-PLAN.md`'s Task 3 PLUS the 9 round-5 focus points above, then
-  report "approved" or the specific issue found. Also decide: is a real weather forecast wanted
-  as a follow-up, or is current-conditions-only sufficient?
+  every UAT-driven fix round, through round 6).
+- Task 3 (on-device UAT) is APPROVED — all 4 ROADMAP Success Criteria and CALVIEW-01/02/03/04
+  are confirmed observably true on-device.
+- Open follow-up (not blocking this phase): is a real weather forecast wanted for the new
+  Weather tab, or is current-conditions-only sufficient? Left as a decision for a future phase.
 
 ---
 *Phase: 28-calendar-full-view*
-*Completed: 2026-07-13 (Tasks 1-2 code-complete; Task 3 checkpoint round 5 pending re-verification)*
+*Completed: 2026-07-13 (all 3 tasks complete; Task 3 on-device UAT approved after 6 rounds)*
