@@ -214,16 +214,11 @@ struct NotchPillView: View {
     // tuning feedback ("the transition needs to kick in earlier and stretch further outward, right
     // now it's minimal/too small") widened this from the physical-camera-accurate 179pt to a more
     // stylized, deliberately larger value that reads clearly at both call-site widths without
-    // dominating either. The dip is a pure inward recess (no outward overflow), so no panel-frame
-    // or SwiftUI-content-root widening is needed for this design.
-    static let topFlareWidth: CGFloat = 220
-
-    // DIAGNOSTIC — REVERT AFTER THIS TEST. Gates the stroke-outline + on-screen value-dump
-    // probes re-added in `blobShape()` below (same technique that broke open the earlier
-    // frame-width bug this phase hit) — proves definitively whether the centered-notch dip
-    // geometry is actually rendering with the expected values before assuming the plain black
-    // fill is "just too subtle."
-    static let diagnosticStrokeOutline = true
+    // dominating either. Round-3 (deeper dip confirmed correct via diagnostic, just too subtle):
+    // widened again alongside NotchShape's depth bump (14 -> 24) so the now-noticeably-deeper dip
+    // still reads as a soft dimple rather than a narrow slot. The dip is a pure inward recess (no
+    // outward overflow), so no panel-frame or SwiftUI-content-root widening is needed.
+    static let topFlareWidth: CGFloat = 240
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
@@ -1110,10 +1105,6 @@ struct NotchPillView: View {
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
         let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius, topFlareWidth: Self.topFlareWidth)
-        // DIAGNOSTIC — REVERT AFTER THIS TEST: mirrors NotchShape.path(in:)'s own
-        // `min(desiredNotchDepth, rect.height / 2)` clamp so the on-screen label below shows
-        // the ACTUAL depth this call site's rect permits, not just the source constant.
-        let diagNotchDepth = min(CGFloat(14), totalHeight / 2)
         return shape
             .fill(islandFill)
             .frame(width: baseWidth, height: totalHeight)
@@ -1129,30 +1120,6 @@ struct NotchPillView: View {
                         shelfRow(shelfItems)
                             .transition(.opacity)
                     }
-                }
-            }
-            // DIAGNOSTIC — REVERT AFTER THIS TEST: a bright lime stroke traced on the EXACT
-            // SAME `shape` instance used for the fill above, so any dip in the actual geometry
-            // shows up unmistakably even if the plain black fill doesn't read as different.
-            .overlay(
-                Group {
-                    if Self.diagnosticStrokeOutline {
-                        shape.stroke(Color(red: 0.2, green: 1.0, blue: 0.2), lineWidth: 2)
-                    }
-                }
-            )
-            // DIAGNOSTIC — REVERT AFTER THIS TEST: on-screen dump of the actual computed
-            // geometry values feeding NotchShape at render time for this call site — proves
-            // the code path is reached with the values we expect, independent of any
-            // fill/stroke rendering quirk.
-            .overlay(alignment: .bottomTrailing) {
-                if Self.diagnosticStrokeOutline {
-                    Text("notch: w=\(Int(Self.topFlareWidth)) depth=\(String(format: "%.1f", diagNotchDepth)) rect=\(Int(baseWidth))x\(Int(totalHeight))")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.yellow)
-                        .padding(4)
-                        .background(Color.black.opacity(0.75))
-                        .padding(4)
                 }
             }
             // D-05: this single ancestor gesture already covered content's own empty space

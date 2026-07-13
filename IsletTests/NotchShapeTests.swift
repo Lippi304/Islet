@@ -90,10 +90,14 @@ final class NotchShapeTests: XCTestCase {
         // The defining new geometry: directly under rect.midX (the physical camera), the shape
         // must NOT be filled at rect.minY (a recess exists there) but MUST be filled a little
         // further down (the notch floor), proving the dip is real and centered.
+        // Round-3 depth bump: NotchShape's `desiredNotchDepth` is now 24, but wingsRect is only
+        // 32pt tall, so the `min(desiredNotchDepth, rect.height / 2)` clamp caps the actual depth
+        // at 16 here (still deeper than round 2's unclamped 14) -- the floor point below targets
+        // just under that clamped 16, not the unclamped 24 a taller (blob) rect would get.
         let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
             .path(in: wingsRect).cgPath
         let centerAtTopEdge = CGPoint(x: wingsRect.midX, y: wingsRect.minY + 0.1)
-        let centerAtNotchFloor = CGPoint(x: wingsRect.midX, y: wingsRect.minY + 13.9)
+        let centerAtNotchFloor = CGPoint(x: wingsRect.midX, y: wingsRect.minY + 15.9)
         XCTAssertFalse(flaredPath.contains(centerAtTopEdge, using: .winding),
                        "Directly under the camera, at the true top edge, must NOT be filled -- the notch has receded here.")
         XCTAssertTrue(flaredPath.contains(centerAtNotchFloor, using: .winding),

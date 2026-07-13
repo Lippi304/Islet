@@ -56,11 +56,18 @@ struct NotchShape: Shape {
         let notchLeftX = rect.midX - notchHalfWidth
         let notchRightX = rect.midX + notchHalfWidth
 
-        // Dimple depth — a clear, deliberate dip without reading as a hole (round-2 on-device
-        // tuning feedback: the previous 8pt capped depth was "too small"). Clamped so a tiny
-        // rect (tightest call site: wingsShape at 290x32, rect.height/2 == 16) can never invert
-        // the dip; 14 stays comfortably under that ceiling.
-        let desiredNotchDepth: CGFloat = 14
+        // Dimple depth — round-3 on-device feedback: the stroke-outline + on-screen debug-value
+        // diagnostic (since reverted) PROVED 14pt was rendering exactly as coded, it just read
+        // as too subtle at that depth. Deepened to 24 for a clearly visible dimple. Clamped so a
+        // tiny rect can never invert the dip — at wingsShape's tight 290x32 call site,
+        // `rect.height / 2 == 16`, so wings gets capped to 16pt (still deeper than the old 14pt)
+        // while every taller call site (blob views, all well over 48pt tall) gets the full 24pt.
+        // Kept as ONE target depth with a safety clamp (simplest, matches this file's existing
+        // pattern) rather than an adaptive per-rect formula — wings' shallower dip is an
+        // acceptable, physically-forced exception (a 32pt-tall strip genuinely cannot fit as deep
+        // a dip as a 144pt+ blob without inverting the wall), not a regression of D-05's "same
+        // fixed value everywhere" intent.
+        let desiredNotchDepth: CGFloat = 24
         let notchDepth = min(desiredNotchDepth, rect.height / 2)
 
         // Each side of the dip is a smooth S-curve (two quad curves, sharing a tangent at their
