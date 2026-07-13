@@ -993,6 +993,7 @@ struct NotchPillView: View {
                 .frame(width: Self.navCircleDiameter, height: Self.navCircleDiameter)
                 .background(Circle().fill(filled ? Color.white : Color.clear))
                 .overlay(Circle().strokeBorder(Color.white.opacity(filled ? 0 : 0.4), lineWidth: 1.5))
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
     }
