@@ -444,7 +444,12 @@ Plans:
   1. Every expanded presentation (Home, Tray, Calendar, Weather, Charging/Device wings) shows the new outward-flaring top edge instead of today's flush vertical edge.
   2. The collapsed/idle pill renders pixel-identical to today — no shape, size, or position regression.
   3. The flare animates smoothly as part of the existing collapse↔expand spring morph, with no visual glitches, artifacts, or dropped frames.
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+**Wave 1**
+
+- [ ] 29-01-PLAN.md — NotchShape topFlareWidth property + blobShape()/wingsShape() wiring + on-device UAT (panel-frame clipping check, contingency fix)
 **UI hint**: yes
 
 ### Phase 30: Home Music-Only
