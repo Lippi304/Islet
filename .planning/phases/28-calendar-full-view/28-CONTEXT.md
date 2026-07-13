@@ -19,6 +19,38 @@ Out of scope: full calendar CRUD (edit/delete/recurring, multi-calendar manageme
 - **D-01 (LOCKED):** A 3-icon switcher pill (Home / Tray / Calendar) sits below the expanded island, Droppy-style — the active view highlighted. This resolves the deferred idea from `25-CONTEXT.md` ("3-icon view-switcher pill... likely home: Phase 28"), which flagged this as a new navigation capability, not a material question.
 - **D-02:** Today's codebase has no Home/Tray "view switching" at all — `IslandPresentation` (`IslandPresentationState.swift`/`IslandResolver.swift`) is a single-arbiter enum switched over in `NotchPillView`, and the Phase 24 shelf is rendered *additively* (grows the pill height by `shelfRowHeight` whenever `shelfViewState.items` is non-empty) on top of whatever presentation is active — it is not its own presentation case. The Calendar Full View should become a new `IslandPresentation` case (e.g. `.calendarExpanded`), and the switcher pill's "Tray" icon most likely needs to force-reveal the shelf strip as its own selectable state rather than only appearing when items exist. Exact reconciliation between "switcher selects Tray" and "shelf auto-grows on drop" is Claude's/planner's discretion — must not break Phase 24's existing auto-expand-on-drop behavior.
 
+#### Addendum — 28-04 round 4 (on-device UAT, user-confirmed decision reversal)
+
+During 28-04's Task 3 on-device UAT checkpoint (round 4), the user reported two real bugs and
+requested a genuine, explicitly-confirmed scope expansion beyond this phase's original locked
+design (confirmed via the orchestrator's clarifying questions before implementation — not a
+guess):
+
+1. **Resolver precedence bug fixed:** `IslandResolver.resolve(...)`'s `isExpanded` branch
+   checked Now-Playing BEFORE `selectedView`, so once `nowPlaying != .none` (true even while
+   merely PAUSED) Calendar became permanently unreachable via the switcher — "clicking
+   Calendar shows nothing" / "navigation disappears during music". Explicit switcher selection
+   (Calendar, Weather) is now checked BEFORE Now-Playing in `resolve(...)`.
+2. **"Smart Home" — a DELIBERATE REVERSAL of this phase's earlier research note.**
+   `.planning/research/inspiration/notes.md` originally stated: "Islet should **keep its
+   current default** (date/time/weather/calendar), not copy [Droppy's] Now Playing default."
+   The user re-decided this ON-DEVICE during round 4: **Home now shows Now-Playing controls
+   when something is playing, and falls back to the idle date/time glance when nothing is
+   playing** — i.e. Home itself became "smart" the way Droppy's own default view already is,
+   but ONLY for Home; selecting Tray/Calendar/Weather is never hijacked by Now-Playing. This
+   was confirmed explicitly via the orchestrator's clarifying question before any code was
+   written, per this project's deviation-authorization discipline (a locked decision may only
+   be reversed with explicit, traceable user re-confirmation, never silently overwritten).
+3. **New 4th switcher tab: Weather**, user-specified order Home / Tray / Calendar / Weather
+   (the existing three left untouched, Weather simply appended). Weather is
+   **current-conditions-only** (see `28-UI-SPEC.md`'s "Weather full view" section) — no
+   forecast fetch was added; whether a real forecast is wanted is an open follow-up question
+   for the user, not decided in this round.
+4. A visual restyle pass was applied to the calendar full view — see `28-UI-SPEC.md`'s
+   "28-04 round 4 visual pass" note for the Droppy-reference-image caveat (the images
+   `notes.md` cites for the calendar grid/switcher do not actually exist in
+   `.planning/research/inspiration/` — all 31 files on disk are Settings screenshots).
+
 ### Quick-add: Event vs. Reminder + permission timing
 - **D-03 (LOCKED):** Quick-add lets the user choose per-entry: Calendar Event or Reminder (CALVIEW-03, both literally required).
 - **D-04 (LOCKED):** The Reminders (`EKReminder`/`EKReminderStore`) permission prompt fires lazily, the first time the user picks "Reminder" in quick-add — not during onboarding (Phase 26 is already shipped and scoped to only Bluetooth/Calendar/Location) and not eagerly at app launch. Mirrors `LocationProvider`'s existing lazy-request-on-first-use pattern.

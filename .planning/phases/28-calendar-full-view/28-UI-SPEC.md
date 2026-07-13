@@ -52,13 +52,14 @@ A new fixed-height row, always below whatever the current `blobShape` content is
 
 | Property | Value | Source |
 |----------|-------|--------|
-| Row height | 44pt (reuses `Self.shelfRowHeight`-style reserved-row pattern; new constant, do not repurpose `shelfRowHeight` itself since shelf and switcher are independently visible) | New — sized for 3 circular icon buttons at comfortable tap size |
+| Row height | 44pt (reuses `Self.shelfRowHeight`-style reserved-row pattern; new constant, do not repurpose `shelfRowHeight` itself since shelf and switcher are independently visible) | New — sized for 4 circular icon buttons at comfortable tap size |
 | Icon button diameter | 36pt (reuses `navCircleDiameter` exactly — same circular nav-button visual language as onboarding's Back/Next/Finish) | Reused: `navCircleDiameter` |
-| Icon gap | 8px between the 3 buttons, horizontally centered as a group | New |
+| Icon gap | 8px between the 4 buttons, horizontally centered as a group | New |
 | Active icon | Solid white filled circle, black glyph (reuses `navCircleButton(filled: true)` exactly) | Reused: `navCircleButton` |
 | Inactive icon | Outlined stroke circle, white glyph at `.white.opacity(0.6)` (matches this file's existing "unselected/idle" opacity convention seen on device glyphs, e.g. line 734/846) | New combination of existing tokens |
-| Icons (SF Symbols) | Home: `house.fill` / Tray: `tray.fill` / Calendar: `calendar` | New — Home/Tray reuse the exact concept names ROADMAP already uses; `calendar` is the direct SF Symbol match for CALVIEW |
-| Visibility | Shown whenever the island is expanded into a long-lived, user-entered state, AND hidden during brief time-sensitive transients (Charging/Device splash, the small collapsed Now-Playing wings glance) — same suppression precedent as the shelf row (SHELF-09) | Resolves Claude's-Discretion item in `28-CONTEXT.md` — visible during `.expandedIdle`, `.calendarExpanded`, `.nowPlayingExpanded` (both healthy and "nicht verfügbar"), and the Tray/shelf-forced state; still hidden during `.charging`/`.device`/`.nowPlayingWings`/`.onboarding`. Amended 28-04 on-device UAT round 3: user reported "no navigation while music is playing" — `.nowPlayingExpanded` was originally excluded but on real use is a long-lived state that should keep the switcher, unlike the transient wings glance. |
+| Icons (SF Symbols) | Home: `house.fill` / Tray: `tray.fill` / Calendar: `calendar` / Weather: `cloud.sun.fill` | New — Home/Tray reuse the exact concept names ROADMAP already uses; `calendar` is the direct SF Symbol match for CALVIEW; `cloud.sun.fill` added 28-04 round 4 for the new Weather tab |
+| Order | Home, Tray, Calendar, Weather (left to right) — Weather appended as the 4th icon, the existing three left untouched | 28-04 round 4, user-specified |
+| Visibility | Shown whenever the island is expanded into a long-lived, user-entered state, AND hidden during brief time-sensitive transients (Charging/Device splash, the small collapsed Now-Playing wings glance) — same suppression precedent as the shelf row (SHELF-09) | Resolves Claude's-Discretion item in `28-CONTEXT.md` — visible during `.expandedIdle`, `.calendarExpanded`, `.weatherExpanded`, `.nowPlayingExpanded` (both healthy and "nicht verfügbar"), and the Tray/shelf-forced state; still hidden during `.charging`/`.device`/`.nowPlayingWings`/`.onboarding`. Amended 28-04 on-device UAT round 3: user reported "no navigation while music is playing" — `.nowPlayingExpanded` was originally excluded but on real use is a long-lived state that should keep the switcher, unlike the transient wings glance. Amended again 28-04 round 4 (precedence fix + "smart Home"): Calendar/Weather selections are now checked BEFORE Now-Playing in the resolver, so they stay reachable via the switcher regardless of playback state; only Home falls back to showing Now-Playing when something is playing (and the idle glance otherwise) — see `28-CONTEXT.md`'s D-01/D-02 addendum for the full rationale. |
 
 ### Calendar full view (`.calendarExpanded`, D-07/D-08)
 
@@ -72,6 +73,43 @@ Reuses `blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: ...)` 
 | Month grid header | Month name + prev/next chevron buttons (`chevron.left`/`chevron.right`, 12pt, `.white.opacity(0.7)`) flanking the centered month label | New — reuses this file's existing small-chevron icon weight/opacity convention (e.g. weather-column glyphs) |
 | Day-list row | `HStack(spacing: 8)` — small color dot (from `EventInput.colorRed/Green/Blue`, existing Phase 14 convention) + event title (`.lineLimit(1)`, T-14-06 truncation precedent) + time | New, reuses Phase 14's event-color-dot data already flowing through `EventInput`/`CalendarGlance` |
 | Day-list scroll | `ScrollView(.vertical)` when day has >3-4 events (144pt content box is short — do not attempt to fit unlimited events unscrolled) | New |
+
+**28-04 round 4 visual pass (Droppy reference caveat):** the specific calendar month-grid
+screenshot notes.md cites (images 6-7, "month grid + Today list", "New Task popover +
+empty-state") does not actually exist among the 31 PNGs in
+`.planning/research/inspiration/` — on direct inspection every one of the 31 files is a
+Droppy **Settings** screenshot (General/Droplets/Shelf/Basket/Clipboard/Lock
+Screen/Droppy Cloud/HUDs/Theming/Accessibility/License/About), never a live notch-overlay
+capture of the switcher pill or the calendar view. `notes.md`'s image numbering does not
+match the files on disk. Applied the closest faithful substitute instead of inventing an
+unrelated style: Droppy's own dominant, product-wide visual language — circular/capsule
+badges, seen everywhere in the real screenshots (the License "Trial Active" chip, the Lock
+Screen "Rounded — Compact circular layout" battery/weather rings, every settings row's
+rounded-card container). Applied to the month grid: a filled circle behind the selected day
+(was font-weight only), a thin ring around today when not selected, and a small dot under
+days that have events — all within the same 28×28pt D-locked cell (no height-math change).
+Applied to the day list: each event row now sits in a subtle rounded card
+(`Color.white.opacity(0.06)`, 8pt corner radius) instead of a bare row, matching the
+rounded-card language used throughout every real Droppy screenshot on file.
+
+---
+
+## Weather full view (`.weatherExpanded`, 28-04 round 4 — user-confirmed scope expansion)
+
+New 4th switcher tab, added after Calendar. **Current-conditions-only** — the existing
+`WeatherGlance`/`WeatherKitService` seam (`Islet/Weather/WeatherService.swift`) only ever
+fetches CURRENT category + temperature, no forecast/hourly/multi-day data. This view
+deliberately renders only that existing data, styled larger than the small `weatherColumn`
+glance; it does **not** add a forecast call or a new data model — that would need a new
+WeatherKit fetch and is flagged back to the user as a separate follow-up decision, not
+silently built.
+
+| Region | Value | Source |
+|--------|-------|--------|
+| Content padding | `.padding(.top, 32)` camera-clearance pin (matches `mediaExpanded`/`calendarFullView`'s convention) | Reused |
+| Layout | Centered `VStack`: large weather icon (44pt, reuses `weatherIcon(for:)`'s exact SF Symbol mapping) over the temperature (32pt semibold, same locale-aware `.formatted(.measurement(...))` string `weatherColumn` already uses) over a plain category label (13pt secondary — "Sunny"/"Cloudy"/"Rain"/"Snow") | New, reuses existing icon/formatting logic verbatim per the plan's explicit instruction |
+| Empty/unavailable state | "Wetter nicht verfügbar" — mirrors `mediaUnavailable`'s "nicht verfügbar" tone/style exactly | New, reused convention |
+| Content height | Fits inside the existing `expandedSize.height` (144pt) base — unlike `calendarExpanded`, no dedicated `weatherContentHeight` override was needed (icon 44 + temp 32 + label ~14 + 32pt clearance + inset ≈ 144pt); all three geometry call sites therefore need no per-case height change beyond `showsSwitcherRow`'s existing uniform switcher-row addition | Verified against `NotchPillView.calendarContentHeight`'s own worked-math convention |
 
 ---
 
