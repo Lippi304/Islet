@@ -56,16 +56,24 @@ struct NotchShape: Shape {
         let notchLeftX = rect.midX - notchHalfWidth
         let notchRightX = rect.midX + notchHalfWidth
 
-        // Shallow "dimple" depth — gentle, not a deep recess (D-02: exact value is on-device
-        // discretion). Clamped so a tiny rect can never invert the dip.
-        let desiredNotchDepth: CGFloat = 8
+        // Dimple depth — a clear, deliberate dip without reading as a hole (round-2 on-device
+        // tuning feedback: the previous 8pt capped depth was "too small"). Clamped so a tiny
+        // rect (tightest call site: wingsShape at 290x32, rect.height/2 == 16) can never invert
+        // the dip; 14 stays comfortably under that ceiling.
+        let desiredNotchDepth: CGFloat = 14
         let notchDepth = min(desiredNotchDepth, rect.height / 2)
 
         // Each side of the dip is a smooth S-curve (two quad curves, sharing a tangent at their
         // midpoint) so the transition reads as continuous rather than a hard corner: flush-flat
-        // in, floor-flat out. `transitionRadius` is the horizontal span each half of the S
-        // consumes; clamped so the flat notch floor can never invert even for a narrow notch.
-        let transitionRadius = min(notchDepth, notchHalfWidth / 4)
+        // in, floor-flat out. Round-2 on-device tuning feedback: tying `transitionRadius` to
+        // `notchDepth` (round 1) made it a tiny sliver relative to the notch's own width, so the
+        // curve looked like it "kicked in" abruptly right at the notch's outer edge, with a long
+        // flat floor between the two curves. `transitionRadius` is now a FRACTION of
+        // `notchHalfWidth` instead — independent of depth — so the S-curve consumes most of the
+        // notch's footprint and reads as a gradual, wide easing rather than a narrow dimple.
+        // Clamped to leave at least a sliver of flat floor (never lets the floor invert or
+        // collapse to a degenerate zero-length line).
+        let transitionRadius = min(notchHalfWidth * 0.4, notchHalfWidth / 2 - 1)
         let rightMidX = notchRightX - transitionRadius
         let leftMidX = notchLeftX + transitionRadius
         let floorRightX = notchRightX - 2 * transitionRadius

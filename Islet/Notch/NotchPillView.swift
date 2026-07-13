@@ -208,13 +208,15 @@ struct NotchPillView: View {
     // SHAPE-01 (v1.5, Phase 29) — FINAL corrected design (see NotchShape.swift's doc comment and
     // 29-CONTEXT.md's "Post-D-01/D-05 implementation detour and final confirmation"): `topFlareWidth`
     // is the width of the narrow, centered camera-notch DIP — the wide sides stay flush with the
-    // true screen edge exactly like before Phase 29, and only this centered band dips down. Matches
-    // the physical camera cutout (~179pt, measured on this hardware, close to the collapsed pill's
-    // own width), the SAME absolute value every covered presentation uses (D-05), regardless of its
-    // own full width (360pt Home/Tray/Calendar/Weather blob vs. 290pt Charging/Device wings). The
-    // dip is a pure inward recess (no outward overflow), so no panel-frame or SwiftUI-content-root
-    // widening is needed for this design.
-    static let topFlareWidth: CGFloat = 179
+    // true screen edge exactly like before Phase 29, and only this centered band dips down. The
+    // SAME absolute value every covered presentation uses (D-05), regardless of its own full width
+    // (360pt Home/Tray/Calendar/Weather blob vs. 290pt Charging/Device wings). Round-2 on-device
+    // tuning feedback ("the transition needs to kick in earlier and stretch further outward, right
+    // now it's minimal/too small") widened this from the physical-camera-accurate 179pt to a more
+    // stylized, deliberately larger value that reads clearly at both call-site widths without
+    // dominating either. The dip is a pure inward recess (no outward overflow), so no panel-frame
+    // or SwiftUI-content-root widening is needed for this design.
+    static let topFlareWidth: CGFloat = 220
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,

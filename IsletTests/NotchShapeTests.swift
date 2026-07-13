@@ -48,11 +48,12 @@ final class NotchShapeTests: XCTestCase {
     // confirmation" section for the full history.
     //
     // Tests below use wingsShape's real, tightest call-site combo (topCornerRadius: 6,
-    // bottomCornerRadius: 6, topFlareWidth: 179) at wingsShape's real 290x32 size.
+    // bottomCornerRadius: 6, topFlareWidth: 220 — round-2 on-device tuning, widened from 179)
+    // at wingsShape's real 290x32 size.
     private let wingsRect = CGRect(x: 0, y: 0, width: 290, height: 32)
     private let wingsTopCornerRadius: CGFloat = 6
     private let wingsBottomCornerRadius: CGFloat = 6
-    private let wingsFlareWidth: CGFloat = 179
+    private let wingsFlareWidth: CGFloat = 220
 
     func testTopFlareWidthDefaultsToZero() {
         XCTAssertEqual(NotchShape().topFlareWidth, 0,
@@ -92,7 +93,7 @@ final class NotchShapeTests: XCTestCase {
         let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
             .path(in: wingsRect).cgPath
         let centerAtTopEdge = CGPoint(x: wingsRect.midX, y: wingsRect.minY + 0.1)
-        let centerAtNotchFloor = CGPoint(x: wingsRect.midX, y: wingsRect.minY + 7.9)
+        let centerAtNotchFloor = CGPoint(x: wingsRect.midX, y: wingsRect.minY + 13.9)
         XCTAssertFalse(flaredPath.contains(centerAtTopEdge, using: .winding),
                        "Directly under the camera, at the true top edge, must NOT be filled -- the notch has receded here.")
         XCTAssertTrue(flaredPath.contains(centerAtNotchFloor, using: .winding),
