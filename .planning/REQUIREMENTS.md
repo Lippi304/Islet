@@ -31,10 +31,10 @@ A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexp
 
 ### Calendar Full View
 
-- [ ] **CALVIEW-01**: A calendar full view — month grid + the selected day's event list — is available as a third view alongside the existing Home (idle glance, stays default) and Tray (shelf) views
-- [ ] **CALVIEW-02**: The calendar view shows an explicit empty state when the selected day has no events
-- [ ] **CALVIEW-03**: A lightweight quick-add lets the user create either a calendar event or a reminder (their choice per entry) without leaving the island
-- [ ] **CALVIEW-04**: The full calendar view and the existing Home-glance "next event" feature share one EventKit service layer rather than duplicating date/event logic
+- [x] **CALVIEW-01**: A calendar full view — month grid + the selected day's event list — is available as a third view alongside the existing Home (idle glance, stays default) and Tray (shelf) views
+- [x] **CALVIEW-02**: The calendar view shows an explicit empty state when the selected day has no events
+- [x] **CALVIEW-03**: A lightweight quick-add lets the user create either a calendar event or a reminder (their choice per entry) without leaving the island
+- [x] **CALVIEW-04**: The full calendar view and the existing Home-glance "next event" feature share one EventKit service layer rather than duplicating date/event logic
 
 ## v2 Requirements
 
@@ -83,10 +83,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VISUAL-02 | Phase 25 | Complete |
 | VISUAL-03 | Phase 27 | Complete |
 | SETTINGS-01 | Phase 27 | Complete |
-| CALVIEW-01 | Phase 28 | Pending |
-| CALVIEW-02 | Phase 28 | Pending |
-| CALVIEW-03 | Phase 28 | Pending |
-| CALVIEW-04 | Phase 28 | Pending |
+| CALVIEW-01 | Phase 28 | Complete |
+| CALVIEW-02 | Phase 28 | Complete |
+| CALVIEW-03 | Phase 28 | Complete |
+| CALVIEW-04 | Phase 28 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 14 total
