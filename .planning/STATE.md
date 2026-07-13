@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
-status: executing
-stopped_at: Phase 29 complete (SHAPE-01 on-device UAT approved)
-last_updated: "2026-07-14T00:19:00.000Z"
-last_activity: 2026-07-14 -- Phase 29 (NotchShape Flare) complete, on-device UAT approved
+status: completed
+stopped_at: Phase 30 context gathered
+last_updated: "2026-07-13T23:03:04.887Z"
+last_activity: 2026-07-14 -- Phase 29 complete, on-device UAT approved
 progress:
   total_phases: 19
   completed_phases: 10
@@ -186,9 +186,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-14T00:19:00.000Z
-Stopped at: Phase 29 complete (SHAPE-01 on-device UAT approved)
-Resume file: None
+Last session: 2026-07-13T23:03:04.883Z
+Stopped at: Phase 30 context gathered
+Resume file: .planning/phases/30-home-music-only/30-CONTEXT.md
 
 ## Operator Next Steps
 
