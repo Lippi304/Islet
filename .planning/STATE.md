@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
 status: completed
-stopped_at: Phase 30 context gathered
-last_updated: "2026-07-13T23:03:04.887Z"
+stopped_at: Phase 30 UI-SPEC approved
+last_updated: "2026-07-13T23:09:54.503Z"
 last_activity: 2026-07-14 -- Phase 29 complete, on-device UAT approved
 progress:
   total_phases: 19
@@ -186,9 +186,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-13T23:03:04.883Z
-Stopped at: Phase 30 context gathered
-Resume file: .planning/phases/30-home-music-only/30-CONTEXT.md
+Last session: 2026-07-13T23:09:54.496Z
+Stopped at: Phase 30 UI-SPEC approved
+Resume file: .planning/phases/30-home-music-only/30-UI-SPEC.md
 
 ## Operator Next Steps
 
