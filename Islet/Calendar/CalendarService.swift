@@ -55,17 +55,7 @@ final class EventKitService: CalendarService {
                                                       end: Date().addingTimeInterval(2 * 24 * 3600),
                                                       calendars: calendars)
             let events = store.events(matching: predicate)
-            let mapped = events.map { ek -> EventInput in
-                var red = 1.0, green = 1.0, blue = 1.0
-                if let rgb = ek.calendar.color.usingColorSpace(.deviceRGB) {
-                    red = Double(rgb.redComponent)
-                    green = Double(rgb.greenComponent)
-                    blue = Double(rgb.blueComponent)
-                }
-                // T-14-06: ek.title is UNTRUSTED — passed through as a plain String only.
-                return EventInput(title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
-                                  colorRed: red, colorGreen: green, colorBlue: blue)
-            }
+            let mapped = events.map { mapToEventInput($0) }
             let glance = nextRelevantEvent(events: mapped, now: Date())
             await MainActor.run { completion(glance) }
         }
@@ -91,19 +81,25 @@ final class EventKitService: CalendarService {
             let predicate = store.predicateForEvents(withStart: interval.start, end: interval.end,
                                                       calendars: calendars)
             let events = store.events(matching: predicate)
-            let mapped = events.map { ek -> EventInput in
-                var red = 1.0, green = 1.0, blue = 1.0
-                if let rgb = ek.calendar.color.usingColorSpace(.deviceRGB) {
-                    red = Double(rgb.redComponent)
-                    green = Double(rgb.greenComponent)
-                    blue = Double(rgb.blueComponent)
-                }
-                // T-14-06: ek.title is UNTRUSTED — passed through as a plain String only.
-                return EventInput(title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
-                                  colorRed: red, colorGreen: green, colorBlue: blue)
-            }
+            let mapped = events.map { mapToEventInput($0) }
             await MainActor.run { completion(mapped) }
         }
+    }
+
+    // WR-04 fix (28-REVIEW.md) — factored out of fetchUpcoming/fetchMonth, which each
+    // hand-rolled an identical ~10-line EKEvent -> EventInput RGB-extraction block with the
+    // same 1.0/1.0/1.0 fallback. A future fix (e.g. a colorspace edge case) now applies to
+    // both call sites at once.
+    private func mapToEventInput(_ ek: EKEvent) -> EventInput {
+        var red = 1.0, green = 1.0, blue = 1.0
+        if let rgb = ek.calendar.color.usingColorSpace(.deviceRGB) {
+            red = Double(rgb.redComponent)
+            green = Double(rgb.greenComponent)
+            blue = Double(rgb.blueComponent)
+        }
+        // T-14-06: ek.title is UNTRUSTED — passed through as a plain String only.
+        return EventInput(title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
+                          colorRed: red, colorGreen: green, colorBlue: blue)
     }
 
     func createEvent(title: String, start: Date, end: Date, completion: @escaping (Bool) -> Void) {
