@@ -1470,11 +1470,11 @@ struct NotchPillView: View {
                     HStack(spacing: 0) {
                         Color.clear.frame(width: 28, height: 28)   // reserved Shuffle slot (D-09, not built)
                         Spacer()
-                        transportButton("backward.fill", action: onPrevious)        // ⏪
+                        TransportButton(systemName: "backward.fill", action: onPrevious)        // ⏪
                         Spacer()
-                        transportButton("playpause.fill", action: onTogglePlayPause) // ⏯
+                        TransportButton(systemName: "playpause.fill", action: onTogglePlayPause) // ⏯
                         Spacer()
-                        transportButton("forward.fill", action: onNext)             // ⏩
+                        TransportButton(systemName: "forward.fill", action: onNext)             // ⏩
                         Spacer()
                         Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
                     }
@@ -1485,16 +1485,32 @@ struct NotchPillView: View {
             }
     }
 
-    // A single transport button (NOW-02). `.buttonStyle(.plain)` so the tap fires without
-    // system chrome; the closure is the only thing that leaves the view (focus-safe).
-    private func transportButton(_ systemName: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 28, height: 28)
+    // D-05 — a single transport button (NOW-02) with a hover-triggered rounded-rectangle
+    // background. A plain function can't hold @State, so this is a small private View struct.
+    // `.buttonStyle(.plain)` so the tap fires without system chrome; the closure is the only
+    // thing that leaves the view (focus-safe). Only the 3 real transport buttons use this —
+    // the reserved Shuffle/Repeat placeholder slots stay plain Color.clear frames (not
+    // interactive, no hover box).
+    private struct TransportButton: View {
+        let systemName: String
+        let action: () -> Void
+        @State private var isHovering = false
+
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: systemName)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(isHovering ? Color.white.opacity(0.12) : Color.clear)
+                    )
+            }
+            .frame(width: 32, height: 32)
+            .buttonStyle(.plain)
+            .onHover { isHovering = $0 }
         }
-        .buttonStyle(.plain)
     }
 
     // D-12 — the "Now Playing nicht verfügbar" health state (adapter blocked/dead). Same

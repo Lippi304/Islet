@@ -1565,6 +1565,17 @@ final class NotchWindowController {
             nowPlayingState.position = resolvePublishedPosition(previous: previous, previousPosition: previousPosition,
                                                                   incoming: p, incomingPosition: playbackPosition(from: snapshot),
                                                                   now: Date().timeIntervalSince1970)
+            // Plan 30-02 / HOME-02: capture the sticky last-played track for Home's
+            // .homeLastPlayed state. Runs BEFORE the artwork nil-clear branch below (Pitfall 1)
+            // so it always sees the same `art`/`p` the artwork logic is about to consume.
+            // `art ?? nowPlayingState.artwork` mirrors the artwork-latency fallback documented
+            // just below (a momentarily-nil `art` for the same track keeps whatever's showing).
+            // Never cleared on .paused/.none — lastKnownTrack is deliberately independent of
+            // nowPlayingState.artwork's own clear-on-.none behavior (D-08).
+            if case .playing(let title, let artist) = p {
+                nowPlayingState.lastKnownTrack = LastPlayedTrack(title: title, artist: artist,
+                                                                  artwork: art ?? nowPlayingState.artwork)
+            }
             // 06-10 Finding 16: a nil `art` no longer unconditionally overwrites the artwork.
             // Album art can arrive a beat after metadata (documented latency), so a nil
             // callback for the SAME track (isSameTrack(previous, p)) retains whatever's
