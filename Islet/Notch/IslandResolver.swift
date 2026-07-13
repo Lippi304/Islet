@@ -19,11 +19,18 @@ import Foundation
 // Weather) is now checked BEFORE Now-Playing; Now-Playing only wins when `selectedView ==
 // .home` -- the user-confirmed "smart Home" reversal of the earlier locked idle-default
 // decision (28-CONTEXT.md D-01/D-02 addendum): Home shows Now-Playing when something is
-// playing, and falls back to the idle glance otherwise. Tray is UNCHANGED by this fix -- it
-// still has no resolver case (see the comment inside resolve(...) below) because its
-// force-reveal is a purely additive view/controller strip (ShelfViewState.forcedByTray/
-// isVisible) appended below whichever presentation renders, so it already coexists correctly
-// with Now-Playing without any resolver branch.
+// playing, and falls back to the idle glance otherwise.
+//
+// 28-04 round 5 (on-device UAT, user-reported UX gap) — Tray becomes its OWN resolver case
+// (`.trayExpanded`), checked at the SAME priority tier as Calendar/Weather (before
+// Now-Playing). This supersedes the earlier D-02 reconciliation (round 4 and prior), under
+// which Tray had deliberately NO resolver case and instead force-revealed the additive shelf
+// strip under whichever OTHER presentation was active (`ShelfViewState.forcedByTray`). Users
+// wanted explicit Tray selection to show a DEDICATED, focused files-only view (mirroring
+// Calendar/Weather), not "Home plus a shelf strip" -- see 28-CONTEXT.md's round-5 addendum.
+// Phase 24's auto-reveal-on-drop (files appearing under Home/Calendar/Weather/NowPlaying when
+// dropped there) is UNCHANGED -- it never depended on `forcedByTray`, only on
+// `ShelfViewState.isVisible`'s `!items.isEmpty` half, so it coexists correctly with this fix.
 
 // What the island renders. The expanded media health (D-12) rides on the
 // nowPlayingExpanded case's `healthy:` flag, kept orthogonal to the .none vs playing
@@ -38,6 +45,7 @@ enum IslandPresentation: Equatable {
     case expandedIdle                                      // expanded, healthy, nothing playing (date/time)
     case calendarExpanded                                  // Phase 28 / CALVIEW-01: month grid + day list
     case weatherExpanded                                   // 28-04 round 4: current-conditions full view
+    case trayExpanded                                      // 28-04 round 5: dedicated files-only Tray view
 }
 
 // The transient currently owning the island (the queue's head). Charging and device are
@@ -65,13 +73,14 @@ func resolve(activeTransient: ActiveTransient?,
     case nil: break
     }
     if isExpanded {
-        // Phase 28 / CALVIEW-01, 28-04 round 4 — Tray is deliberately NOT its own case here
-        // (D-02): its force-reveal is a view/controller concern (ShelfViewState.forcedByTray),
-        // so only Calendar/Weather get their own resolver branches, checked BEFORE Now-Playing
-        // (round 4 precedence fix, see this file's header comment) so an explicit switcher
-        // selection is never hijacked by media playback.
+        // Phase 28 / CALVIEW-01, 28-04 round 4/5 — Calendar/Weather/Tray each get their own
+        // resolver branch, checked BEFORE Now-Playing (round 4 precedence fix, see this file's
+        // header comment) so an explicit switcher selection is never hijacked by media
+        // playback. Tray joined this tier in round 5 (see header comment) -- it no longer
+        // relies on ShelfViewState.forcedByTray to force-reveal a strip under another case.
         if selectedView == .calendar { return .calendarExpanded }
         if selectedView == .weather { return .weatherExpanded }
+        if selectedView == .tray { return .trayExpanded }
         // Home (default) — the "smart Home" behavior (round 4, user-confirmed): Now-Playing
         // wins over the idle glance when present, exactly like before this fix; the only
         // change is that this branch is no longer reached for an explicit Calendar/Weather

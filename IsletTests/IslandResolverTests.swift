@@ -293,17 +293,51 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .charging(.charging(percent: 50)))
     }
 
-    func testTraySelectedReturnsExpandedIdleNotItsOwnCase() {
-        // D-02: Tray is deliberately NOT its own IslandPresentation case -- force-reveal is a
-        // view/controller concern (ShelfViewState.forcedByTray), the resolver still yields
-        // .expandedIdle.
+    func testTraySelectedExpandedReturnsTrayExpanded() {
+        // 28-04 round 5: Tray is now its OWN IslandPresentation case, at the same priority
+        // tier as Calendar/Weather -- no active transient, no now-playing, expanded + Tray
+        // selected -> .trayExpanded.
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: true,
                         hasPlayedSinceLaunch: true,
                         isExpanded: true,
                         selectedView: .tray)
-        XCTAssertEqual(r, .expandedIdle)
+        XCTAssertEqual(r, .trayExpanded)
+    }
+
+    func testTraySelectionOutranksMedia() {
+        // 28-04 round 5: same precedence fix as Calendar/Weather -- an explicit Tray selection
+        // wins over Now-Playing even while expanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .tray)
+        XCTAssertEqual(r, .trayExpanded)
+    }
+
+    func testTransientOutranksTraySelection() {
+        // D-04: a standing transient always outranks the tray selection too.
+        let r = resolve(activeTransient: .charging(.charging(percent: 50)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .tray)
+        XCTAssertEqual(r, .charging(.charging(percent: 50)))
+    }
+
+    func testTraySelectedNotExpandedIsIdle() {
+        // Collapsed island ignores selectedView entirely -> .idle.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        selectedView: .tray)
+        XCTAssertEqual(r, .idle)
     }
 
     func testCalendarSelectedNotExpandedIsIdle() {

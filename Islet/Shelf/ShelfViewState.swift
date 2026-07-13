@@ -7,14 +7,18 @@ import Foundation
 final class ShelfViewState: ObservableObject {
     @Published var items: [ShelfItem] = []
 
-    // Phase 28 / CALVIEW-04, Pitfall 3 (CR-01 click-through regression class) — the controller
-    // (Plan 04) sets this true while Tray is the selected switcher view, force-revealing an
-    // otherwise-empty shelf strip. `isVisible` is the ONE source of truth every shelf-visibility
-    // check must read (blobShape, the body's outer .frame, and NotchWindowController's
-    // visibleContentZone()) — never patch one call site with an inline OR while leaving siblings
-    // on the old `.items.isEmpty` check (see project memory cr01-clickthrough-or-defeat-gotcha).
-    @Published var forcedByTray = false
-    var isVisible: Bool { !items.isEmpty || forcedByTray }
+    // Phase 28 / CALVIEW-04, Pitfall 3 (CR-01 click-through regression class) — `isVisible` is
+    // the ONE source of truth every shelf-visibility check must read (blobShape, the body's
+    // outer .frame, and NotchWindowController's visibleContentZone()) — never patch one call
+    // site with an inline check while leaving siblings on a different one (see project memory
+    // cr01-clickthrough-or-defeat-gotcha).
+    // 28-04 round 5 — `forcedByTray` (28-03/28-04's "select Tray -> force-reveal the additive
+    // shelf strip under Home" reconciliation) is removed: Tray is now its OWN
+    // `IslandPresentation` case (`.trayExpanded`, IslandResolver.swift), rendered as a
+    // dedicated files-only view, so no OTHER presentation's additive shelf strip ever needs
+    // force-revealing on Tray selection anymore. Phase 24's auto-reveal-on-drop (the reason
+    // this type exists at all) is unaffected — it only ever depended on `!items.isEmpty`.
+    var isVisible: Bool { !items.isEmpty }
 }
 
 // Phase 20 / SHELF-04 / D-04 — the missing-file-click gate as an explicit, testable pure seam,
