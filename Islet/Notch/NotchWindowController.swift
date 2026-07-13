@@ -787,15 +787,21 @@ final class NotchWindowController {
         // covers Home/Tray/Calendar/Weather/NowPlaying uniformly. The separate `calendarFrame`
         // union member from rounds 1-4 is gone: a calendar-only reservation is no longer taller
         // than every other switcher-row presentation's own (now-shared) reservation.
+        // SHAPE-01 (v1.5, Phase 29) — D-01/D-05 REVISED 2026-07-13: the earlier straight-widen
+        // flare design bulged PAST expandedSize.width/wingsSize.width, so this frame briefly
+        // needed a `+ 2 * NotchPillView.topFlareWidth` reservation (see git history). The
+        // redesigned concave-sweep flare (NotchShape.swift) converges back onto the presentation's
+        // OWN existing rect width instead of bulging past it, so no extra panel-frame width is
+        // needed here anymore -- reverted back to the plain sizes.
         let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                               expandedSize: CGSize(width: expandedSize.width + 2 * NotchPillView.topFlareWidth,
+                                               expandedSize: CGSize(width: expandedSize.width,
                                                                      height: NotchPillView.switcherContentHeight + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
 
         // CHG-01 / Pattern 4: the wings extend SIDEWAYS, so the panel must also cover the
         // flat wings strip. Size the panel ONCE to the UNION of the downward-expanded and the
         // sideways-wings frames so BOTH the Phase-2 expand AND the Phase-3 wings fit without
         // any runtime panel resize (resizing mid-activity would race the morph + hot-zone math).
-        let wings = wingsFrame(collapsed: collapsedFrame, wingsSize: CGSize(width: wingsSize.width + 2 * NotchPillView.topFlareWidth, height: wingsSize.height))
+        let wings = wingsFrame(collapsed: collapsedFrame, wingsSize: wingsSize)
         // Phase 26 / ONBOARD-01/02 — the panel is sized once, up front, to the union of every
         // possible content size (mirrors how `wings` was added as a second union member in
         // Phase 3) so the onboarding card's real 240pt height is never resized mid-activity.
