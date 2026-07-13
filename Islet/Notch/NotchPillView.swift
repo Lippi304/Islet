@@ -210,15 +210,18 @@ struct NotchPillView: View {
     // is the width of the narrow, centered camera-notch DIP — the wide sides stay flush with the
     // true screen edge exactly like before Phase 29, and only this centered band dips down. The
     // SAME absolute value every covered presentation uses (D-05), regardless of its own full width
-    // (360pt Home/Tray/Calendar/Weather blob vs. 290pt Charging/Device wings). Round-2 on-device
-    // tuning feedback ("the transition needs to kick in earlier and stretch further outward, right
-    // now it's minimal/too small") widened this from the physical-camera-accurate 179pt to a more
-    // stylized, deliberately larger value that reads clearly at both call-site widths without
-    // dominating either. Round-3 (deeper dip confirmed correct via diagnostic, just too subtle):
-    // widened again alongside NotchShape's depth bump (14 -> 24) so the now-noticeably-deeper dip
-    // still reads as a soft dimple rather than a narrow slot. The dip is a pure inward recess (no
-    // outward overflow), so no panel-frame or SwiftUI-content-root widening is needed.
-    static let topFlareWidth: CGFloat = 240
+    // (360pt Home/Tray/Calendar/Weather blob vs. 290pt Charging/Device wings).
+    // ROOT-CAUSE CORRECTION (round 4): rounds 2-3 pushed this UP (179 -> 220 -> 240) chasing
+    // "make the dip more visible," but that was backwards — re-examining the Droppy reference
+    // proportions shows the narrow camera band is a MINORITY of the shelf's width (~20%), with
+    // the wide flush sides the large majority. At 240 on a 360pt blob the "notch" consumed 67%
+    // of the width, leaving almost no flush margin to actually flush — the opposite of the
+    // reference and the real reason "nothing changes outward from center" kept being reported.
+    // Brought back down to 179 — the physical-camera-accurate value (this machine's measured
+    // notch is 179x32pt) and the correct starting point rounds 2-3 should never have moved away
+    // from. Depth (24) and the transition-radius formula are unaffected by this correction — they
+    // were never the problem.
+    static let topFlareWidth: CGFloat = 179
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
