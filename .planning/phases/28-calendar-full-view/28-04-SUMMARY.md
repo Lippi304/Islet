@@ -68,7 +68,8 @@ Each task was committed atomically:
 
 1. **Task 1: State ownership + resolver/click-through/panel-geometry wiring** - `152aba4` (feat)
 2. **Task 2: Switcher/month-nav/day-select/quick-add handlers + makeRootView wiring** - `26f32f8` (feat)
-3. **Task 3: On-device UAT** - NOT STARTED (checkpoint:human-verify, awaiting user)
+3. **Task 3: On-device UAT** - IN PROGRESS (checkpoint:human-verify; round 1 found the camera-notch
+   overlap bug documented above, fixed at `cff1a12` — awaiting round 2 approval)
 
 ## Files Created/Modified
 - `Islet/Notch/NotchWindowController.swift` - resolver/geometry wiring (Task 1) + handlers/makeRootView wiring (Task 2)
@@ -78,7 +79,52 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None — plan executed exactly as written. All 5 acceptance-criteria greps for Task 1 and all 6 for Task 2 passed on the first attempt; the Debug build gate passed after each task with zero compile errors.
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] Calendar full view overlapped the camera notch on first on-device UAT pass**
+- **Found during:** Task 3 (on-device UAT, round 1) — user reported the month grid's top rows
+  hidden behind the physical camera, while the switcher pill/shelf row below rendered correctly.
+- **Root cause:** `calendarFullView`'s `blobShape(...)` call omitted an explicit `height:`, so
+  its `content()` slot defaulted to `.frame(height: Self.expandedSize.height, alignment: .center)`
+  (144pt, centered). The real month-grid + day-list content (header + a worst-case 6-row
+  `LazyVGrid` of 28×28pt cells) is ~216-220pt tall — well over 144pt — and centering an
+  oversized child in a `.frame()` (a layout proposal, not a clip) spills the overflow equally
+  above AND below the box. The upward half landed directly under the camera cutout, because the
+  panel's `.overlay(alignment: .top)` pins flush to the notch. Same regression class already
+  fixed twice before in this file (Phase 21 SHELF-06, Phase 26 onboarding) — see the inline
+  comments at `NotchPillView.swift` around `isOnboardingPresentation`/`onboardingSize`.
+- **Fix:** Mirrored the established onboarding pattern rather than reinventing it:
+  - Added `NotchPillView.calendarContentHeight` (266pt, math documented inline: 32pt top
+    camera-clearance + 20pt header + 8pt spacing + 188pt worst-case 6-row grid + 18pt bottom
+    inset for the `bottomCornerRadius: 32` curve). 28×28pt cells / 4pt gaps were kept exactly
+    as spec'd (D-locked minimums per 28-UI-SPEC.md) rather than shrunk to fit the old 144pt box —
+    the math shows a legible 6-row grid genuinely needs ~220pt of content height, so a
+    dedicated taller reserved size (route (b) from the bugfix brief) was the correct choice
+    over trying to compress the grid into the original box (route (a)).
+  - `calendarFullView`'s `blobShape(...)` call now passes `alignment: .top` and
+    `height: Self.calendarContentHeight`, plus a `.padding(.top, 32)` on its content — the
+    exact same "top-pin + camera-clearance padding" convention `mediaExpanded` already uses.
+  - Added `isCalendarPresentation` (mirrors `isOnboardingPresentation`) so `body`'s outer
+    `.frame` never clips shorter than `blobShape`'s own now-taller visible shape.
+  - `NotchWindowController.positionAndShow` unions a `calendarFrame` reservation (mirrors
+    `onboardingFrame`/`wings`) into the static panel-geometry union, unconditionally.
+  - `NotchWindowController.visibleContentZone` gets a matching `isCalendarActive` branch —
+    reuses the `presentationState.presentation` enum switch directly (matching the existing
+    `showsSwitcherRow(for:)` idiom) rather than adding a redundant controller-level bool
+    alongside `isOnboardingActive`.
+  - All three call sites (SwiftUI content frame, static panel reservation, dynamic
+    click-through zone) now agree on the same `calendarContentHeight` value.
+- **Files modified:** `Islet/Notch/NotchPillView.swift`, `Islet/Notch/NotchWindowController.swift`
+- **Commit:** `cff1a12`
+- **Visual fidelity:** the existing grid-left/day-list-right layout, divider, color-dot +
+  title + time event rows, and "+ Add" quick-add popover already matched the Droppy reference
+  (`notes.md` images 6-7) structurally per the original 28-UI-SPEC.md — this fix only corrects
+  the geometry (content now grows downward, clear of the camera, instead of overlapping it).
+  No further visual restructuring was needed; the on-device UAT round 2 should confirm the
+  restored clearance reads as polished as the other views.
+
+All other Task 1/2 acceptance-criteria greps passed on the first attempt; the Debug build gate
+passed after each task with zero compile errors (and again after this bugfix).
 
 ## Issues Encountered
 
@@ -90,7 +136,14 @@ None - no external service configuration required.
 
 ## Checkpoint Status
 
-**Task 3 (on-device UAT) has NOT been executed.** This plan is `autonomous: false` and Task 3 is a `checkpoint:human-verify` gate covering all 4 of this phase's ROADMAP Success Criteria and CALVIEW-01/02/03/04. Per the executor's protocol, execution stopped here — see the CHECKPOINT REACHED block in the final response for the full walkthrough the user needs to run (Cmd-R build + 9-step manual verification + Cmd-U regression pass).
+**Task 3 (on-device UAT) round 1 found a real bug (camera-notch overlap on the calendar view),
+now fixed — round 2 is pending.** This plan is `autonomous: false` and Task 3 is a
+`checkpoint:human-verify` gate covering all 4 of this phase's ROADMAP Success Criteria and
+CALVIEW-01/02/03/04. Per the executor's protocol, execution stopped here again after the fix —
+see the CHECKPOINT REACHED block in the final response for the full walkthrough the user needs
+to re-run (Cmd-R build + 9-step manual verification + Cmd-U regression pass), with special
+attention to confirming the month grid's top row now clears the camera notch with a visible
+gap, same as the media/shelf views.
 
 **Until Task 3 is approved:**
 - `requirements-completed` in this SUMMARY's frontmatter is intentionally left empty — CALVIEW-01/02/03/04 should NOT be marked complete in REQUIREMENTS.md/ROADMAP.md until the user types "approved".
