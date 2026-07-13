@@ -42,7 +42,8 @@ enum IslandPresentation: Equatable {
     case device(DeviceActivity)                            // D-02 rank 2 transient
     case nowPlayingWings(NowPlayingPresentation)           // D-02 rank 3 ambient (collapsed glance)
     case nowPlayingExpanded(NowPlayingPresentation, healthy: Bool) // D-12 expanded media / "nicht verfügbar"
-    case expandedIdle                                      // expanded, healthy, nothing playing (date/time)
+    case homeLastPlayed                                    // Phase 30 / HOME-02: Home, nothing playing now, but something played this session
+    case homeEmpty                                         // Phase 30 / HOME-03: Home, nothing has played this session
     case calendarExpanded                                  // Phase 28 / CALVIEW-01: month grid + day list
     case weatherExpanded                                   // 28-04 round 4: current-conditions full view
     case trayExpanded                                      // 28-04 round 5: dedicated files-only Tray view
@@ -64,7 +65,7 @@ enum ActiveTransient: Equatable {
 // call sites now reference this one function instead.
 func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
     switch presentation {
-    case .expandedIdle, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded: return true
+    case .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded: return true
     default: return false
     }
 }
@@ -101,7 +102,10 @@ func resolve(activeTransient: ActiveTransient?,
         // selection.
         if !nowPlayingHealthy { return .nowPlayingExpanded(nowPlaying, healthy: false) } // D-12
         if nowPlaying != .none { return .nowPlayingExpanded(nowPlaying, healthy: true) }
-        return .expandedIdle
+        // Phase 30 / HOME-02/HOME-03 — Home's no-media sub-states, gated on whether ANYTHING
+        // has played this session (replaces the old unconditional .expandedIdle fallback).
+        if hasPlayedSinceLaunch { return .homeLastPlayed }
+        return .homeEmpty
     }
     // Phase 17 / NOW-04 — D-01/D-03: the launch gate applies ONLY to this ambient branch; the
     // isExpanded branch above is untouched, so a manual expand always reveals the real state.

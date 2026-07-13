@@ -35,4 +35,20 @@ final class NowPlayingState: ObservableObject {
     // nil when any raw field is missing. The ProgressBar view derives the drift-corrected
     // elapsed time from this via currentElapsedSeconds(...), never storing a ticking value.
     @Published var position: PlaybackPosition?
+    // Phase 30 / HOME-02 — D-07/D-08: the most-recently-playing track, kept ALIVE across the
+    // transition to `.none` (unlike `presentation`/`artwork`, which the controller clears on
+    // stop). Session-only — never persisted, never reset except by app relaunch (fresh process
+    // state). Overwritten every time a NEW track starts .playing (D-08), never frozen on first
+    // capture. Plan 02 (NotchWindowController.swift) populates it; this plan only declares the
+    // contract.
+    @Published var lastKnownTrack: LastPlayedTrack? = nil
+}
+
+// Phase 30 / HOME-02 — the sticky last-played snapshot's data contract. Plain struct, no
+// Equatable conformance: nothing in this phase compares two instances, and a hand-written
+// `==` ignoring `NSImage` would exist for zero consumers.
+struct LastPlayedTrack {
+    let title: String
+    let artist: String
+    let artwork: NSImage?
 }
