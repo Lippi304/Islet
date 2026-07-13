@@ -137,6 +137,16 @@ final class NotchShapeTests: XCTestCase {
         XCTAssertGreaterThan(cgBounds.height, 0, "The flared closed path needs a positive-height bounding box.")
     }
 
+    // ROUND 8 (post-diagnostic pacing fix) -- `bulgeDepth` is no longer a flat hardcoded
+    // constant; it is adaptive per-rect (see NotchShape.swift's round-8 comment). This helper
+    // mirrors that EXACT formula so this file's own tests never go stale again the way the
+    // round-7 hardcoded `bulgeDepth: CGFloat = 15` did after the diagnostic round changed it --
+    // must stay in sync with NotchShape.swift's `path(in:)`.
+    private func expectedBulgeDepth(rectHeight: CGFloat, topCornerRadius: CGFloat, bottomCornerRadius: CGFloat) -> CGFloat {
+        let desiredBulgeDepth: CGFloat = 45
+        return min(desiredBulgeDepth, max(0, rectHeight * 0.7 - topCornerRadius - bottomCornerRadius))
+    }
+
     func testFlaredPathCornerRoundingSurvivesTheBulge() {
         // ROUND 7 regression test: the actual bug this round fixes. Round 6's cubic curve
         // crammed the outward bulge AND the topCornerRadius corner-cut into the same 6pt of
@@ -148,7 +158,7 @@ final class NotchShapeTests: XCTestCase {
         // With `bulgeDepth` giving the corner-cut its own shifted-down span, that same halfway
         // point -- shifted down by `bulgeDepth` -- must now be EXCLUDED (outside the fill),
         // proving the topCornerRadius rounding survives the bulge.
-        let bulgeDepth: CGFloat = 15 // must match NotchShape.swift's private constant
+        let bulgeDepth = expectedBulgeDepth(rectHeight: wingsRect.height, topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius)
         let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
             .path(in: wingsRect).cgPath
         let cornerNotchMidpoint = CGPoint(x: wingsRect.maxX - wingsTopCornerRadius / 2,

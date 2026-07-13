@@ -68,28 +68,40 @@ struct NotchShape: Shape {
         // the corner-cut notch surviving intact at its new (shifted) location, and the bulge's
         // own boundary tracing one smooth outward hump reaching the full `bulge` extent.
         let bulge = topFlareWidth
-        // DIAGNOSTIC — REVERT AFTER THIS TEST: temporarily bumped to isolate whether the flare
-        // mechanism renders AT ALL on real hardware, independent of whether 15pt is a tasteful
-        // final value (7 rounds of "verified correct on paper" have all read as invisible
-        // on-device). The plan's suggested example (40) was checked against the tightest real
-        // call site — wingsShape (topCornerRadius: 6, bottomCornerRadius: 6, height 32) — and
-        // found UNSAFE: 40 + 6 + 6 = 52 > 32 inverts the wall exactly like the round-4/round-7
-        // self-overlap regressions this file's history already hit. Capped to 18, the largest
-        // value that keeps wingsShape's wall positive: (32 - 6) - (18 + 6) = 2pt wall (vs. the
-        // original 15's 5pt wall) — still a real, non-inverted corner-cut. Revert to 15 once
-        // this diagnostic round answers the working-vs-not question.
-        let bulgeDepth: CGFloat = 18
+        // ROUND 8 (post-diagnostic pacing fix, on-device UAT 2026-07-13): the diagnostic round
+        // confirmed the mechanism itself (bulge + red fill both rendered exactly as expected on
+        // real hardware). The remaining complaint was PACING, not visibility: a single small
+        // hardcoded `bulgeDepth` (15, before the diagnostic bumped it to 18) had to serve BOTH
+        // the tall `blobShape()` presentations (Home/Tray/Calendar/Weather, 240pt+ of vertical
+        // room) AND the tight `wingsShape()` strip (290x32, only 32pt total) — sized to just barely
+        // fit the tightest case, it made every presentation's taper read as an abrupt "poof out,
+        // snap back" even where there was plenty of room for a slow, graceful curve. `bulgeDepth`
+        // is now ADAPTIVE per-rect: a generous target on tall presentations, safely clamped so it
+        // never eats into (or inverts) the straight wall beneath it on tight ones. The 0.7 reserves
+        // 30% of the rect's own height (plus both corner radii) as an untouchable wall floor —
+        // never `bulgeDepth + topCornerRadius + bottomCornerRadius > rect.height`.
+        let desiredBulgeDepth: CGFloat = 45
+        let bulgeDepth = min(desiredBulgeDepth, max(0, rect.height * 0.7 - topCornerRadius - bottomCornerRadius))
+
+        // The apex (the outward peak) sits at 30% of `bulgeDepth`, not the midpoint. On-device
+        // feedback specifically named the RETURN leg (bulge -> back to normal width) as the
+        // abrupt "snap" ("geht raus, aber dann sofort wieder zurück, nicht der langsame Übergang").
+        // Moving the apex earlier gives the return leg ~70% of the available depth to resolve
+        // gradually (the graceful "wine glass neck" taper), while the initial outward swing stays
+        // comparatively quick — matching the reported shape exactly (quick out, slow back) rather
+        // than splitting the depth evenly between both legs.
+        let apexFraction: CGFloat = 0.3
 
         p.move(to: CGPoint(x: rect.minX, y: rect.minY))
         p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY)) // FULL-WIDTH flush top run — never recessed
 
         // RIGHT shoulder: two chained quad curves sharing an on-curve apex at the outward peak
-        // (rect.maxX + bulge, rect.minY + bulgeDepth / 2) swing the edge out and back to touch
-        // x == rect.maxX again at y == rect.minY + bulgeDepth — then the topCornerRadius
+        // (rect.maxX + bulge, rect.minY + bulgeDepth * apexFraction) swing the edge out and back
+        // to touch x == rect.maxX again at y == rect.minY + bulgeDepth — then the topCornerRadius
         // corner-cut curve continues from there, an EXACT copy of the unflared branch's own
         // corner math above, just shifted down by bulgeDepth (its shape, and therefore the
         // rounding it cuts, is untouched).
-        let rightApex = CGPoint(x: rect.maxX + bulge, y: rect.minY + bulgeDepth / 2)
+        let rightApex = CGPoint(x: rect.maxX + bulge, y: rect.minY + bulgeDepth * apexFraction)
         p.addQuadCurve(to: rightApex, control: CGPoint(x: rect.maxX + bulge, y: rect.minY))
         p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + bulgeDepth),
                        control: CGPoint(x: rect.maxX + bulge, y: rect.minY + bulgeDepth))
@@ -112,7 +124,7 @@ struct NotchShape: Shape {
         // -> bulge -> close at the flush top's start).
         p.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.minY + bulgeDepth),
                        control: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + bulgeDepth))
-        let leftApex = CGPoint(x: rect.minX - bulge, y: rect.minY + bulgeDepth / 2)
+        let leftApex = CGPoint(x: rect.minX - bulge, y: rect.minY + bulgeDepth * apexFraction)
         p.addQuadCurve(to: leftApex, control: CGPoint(x: rect.minX - bulge, y: rect.minY + bulgeDepth))
         p.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.minY), control: CGPoint(x: rect.minX - bulge, y: rect.minY))
         return p
