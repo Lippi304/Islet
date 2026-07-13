@@ -1,46 +1,40 @@
 # Requirements: Notch — Dynamic Island for Mac (Islet)
 
-**Defined:** 2026-07-11
+**Defined:** 2026-07-13
 **Core Value:** The notch becomes a beautiful, reliable "island" that shows now-playing media and reacts when you plug in the charger or connect a device — it must feel native, smooth, and as polished as the iPhone Dynamic Island.
 
-## v1.4 Requirements — Architecture Redesign
+## v1.5 Requirements — Home Focus & Widget Redesign
 
-A `NotchPanel`/`NotchWindowController` window-shell rewrite (resolving the unexplained Phase 22 drag-in blocker, informed by TheBoringNotch/DynamicNotchKit reference implementations), plus Droppy-inspired scope: a first-launch onboarding flow, a black-to-transparent gradient + fluid Dynamic-Island-style animation + Theming settings visual redesign, a sidebar-categorized Settings window, and a calendar full view. Gesture-based swipe navigation was explicitly considered and deferred.
+Home is decluttered to music-only (dropping the idle weather/calendar/date fallback now that Weather and Calendar have their own switcher tabs), file drops consolidate entirely into Tray with a Droppy-style Drop/AirDrop/Mail destination picker, Tray widens with larger file tiles, Weather is redesigned as an iOS-widget-style card (compact default, extended-with-forecast optional), and the expanded-state notch silhouette gains an outward-flaring top-edge transition — the idle/collapsed pill stays exactly as-is.
 
-### Architecture
+### Home
 
-- [x] **ARCH-01**: The notch window shell (`NotchPanel`/`NotchWindowController`) is rebuilt with behavior identical to today — position on the built-in notch, hover/click/grace-collapse state machine, true-fullscreen hiding, click-through hit-testing, and multi-Space visibility all verified regression-free on-device — with the residual `NSDraggingDestination` scaffold from Phase 22 removed. Prerequisite for SHELF-01/02.
-- [x] **SHELF-01**: User can drag a file, multiple files, or a folder onto the collapsed island — it auto-expands and the item(s) land in a shelf strip below the expanded view (carried forward from v1.3, blocked by Phase 22)
-- [x] **SHELF-02**: Drop target shows "hot"/targeted visual feedback while a file is being dragged over, before release (carried forward from v1.3, blocked by Phase 22)
+- [ ] **HOME-01**: Home shows live Now-Playing transport controls whenever something is playing (unchanged from today)
+- [ ] **HOME-02**: When paused/stopped, Home shows the last-played track's cover+title, without live transport controls
+- [ ] **HOME-03**: When nothing has been played this session, Home shows an explicit empty state — the time/weather/calendar fallback glance is removed entirely (Weather/Calendar keep their own switcher tabs)
 
-### Onboarding
+### Tray
 
-- [x] **ONBOARD-01**: First-launch flow presents a short carousel — hero screen, trial/license-key/buy choice, a permissions pre-explanation screen, then done — replacing today's passive Settings-only license flow
-- [x] **ONBOARD-02**: The permissions pre-explanation screen shows a one-line reason per permission (Bluetooth, Calendar, Location/WeatherKit) and its "Continue"/"Grant" action directly triggers the real system permission prompt for each, in sequence
-- [x] **ONBOARD-03**: The onboarding flow shows once (persisted flag), is skippable per-step (each permission row, individually — no whole-flow exit before Done), and does not include an in-app feature/gesture tutorial screen
+- [ ] **TRAY-01**: File-shelf content is visible only on the Tray tab — the additive shelf-strip-reveal on Home/Calendar/Weather is removed
+- [ ] **TRAY-02**: Dropping a file (from any tab) shows a Droppy-style Quick Action destination picker: Drop / AirDrop / Mail
+- [ ] **TRAY-03**: Choosing "Drop" stages the file into the Tray as today and switches the view to Tray so the result is visible
+- [ ] **TRAY-04**: Choosing "AirDrop" invokes the system AirDrop share sheet for the file; choosing "Mail" composes a new email with the file attached (Mail.app-only attachment support — documented, not silently discovered)
+- [ ] **TRAY-05**: The Tray view is widened with larger file tiles so more files are visible side-by-side
 
-### Visual Redesign
+### Weather
 
-- [x] **VISUAL-01**: The collapsed pill, expanded island, and activity wings render with one shared vertical alpha-gradient material — opaque/solid black nearest the physical notch, increasingly transparent toward the bottom edge — replacing the current flat fill. Individual activity content views (Now Playing, Charging, idle glance) are unaffected — only the shared shell chrome changes.
-- [x] **VISUAL-02**: The expand/collapse animation uses a fluid, deliberately-paced spring with a subtle bounce-in on open, matching the characteristic feel of the iPhone Dynamic Island — no dropped frames, no jarring overshoot beyond the intended subtle in-bounce
-- [x] **VISUAL-03**: A new Theming section in Settings lets the user customize the shell's material/surface style and per-element accent colors
+- [ ] **WEATHER-01**: Weather tab shows a compact iOS-widget-style card by default — location, condition icon, current temperature, high/low
+- [ ] **WEATHER-02**: A Settings toggle switches Weather to an extended widget adding a multi-day forecast row (day, icon, temp)
 
-### Settings Redesign
+### Shape
 
-- [x] **SETTINGS-01**: The Settings window is restructured from a single tabbed form into a sidebar-categorized layout with sections General, Workspace (Shelf), System (Theming), and About/License — existing toggles and the accent-color picker preserved, no functional regression
-
-### Calendar Full View
-
-- [x] **CALVIEW-01**: A calendar full view — month grid + the selected day's event list — is available as a third view alongside the existing Home (idle glance, stays default) and Tray (shelf) views
-- [x] **CALVIEW-02**: The calendar view shows an explicit empty state when the selected day has no events
-- [x] **CALVIEW-03**: A lightweight quick-add lets the user create either a calendar event or a reminder (their choice per entry) without leaving the island
-- [x] **CALVIEW-04**: The full calendar view and the existing Home-glance "next event" feature share one EventKit service layer rather than duplicating date/event logic
+- [ ] **SHAPE-01**: The expanded-state notch silhouette gains an outward-flaring top-edge transition into the screen bezel; the idle/collapsed pill shape stays exactly as it is today
 
 ## v2 Requirements
 
 Deferred to a future milestone, not in this roadmap.
 
-### Architecture Redesign Polish
+### Architecture Redesign Polish (carried from v1.4)
 
 - **ARCH-P1**: Animation Speed presets (Turtle/Human/Cheetah/Falcon-style) exposed as a Settings control, beyond v1.4's single fluid default curve (VISUAL-02)
 - **ARCH-P2**: "Permissions Overview — X of Y granted" rollup row in Settings + a "Replay onboarding" button in About
@@ -49,23 +43,22 @@ Deferred to a future milestone, not in this roadmap.
 ### Other candidates (not yet scoped)
 
 - Alternate app icon variants — descoped from Phase 27/VISUAL-03 (D-09/D-10): no icon assets exist yet; needs user-supplied icon files or a proper icon-design pass, not a Claude-generated placeholder
-- WEATHER-01, CAL-01, OUTFIT-01 — formalize the already-shipped Phase 14 weather/calendar/date glance as requirements
 - System HUD replacement (volume/brightness/etc.) — Settings' "System" sidebar section is the natural future home
 - Countdown timer
-- Gesture-based swipe navigation (skip-track/tuck-away/return) — explicitly deferred this milestone; touches the same event-delivery layer as drag-in, revisit only after the architecture redesign is proven stable
+- Gesture-based swipe navigation (skip-track/tuck-away/return) — touches the same event-delivery layer as drag-in, revisit only after the architecture redesign is proven stable over time
+- "Open Tray After Drop" convenience setting for the Quick Action picker's "Drop" outcome — Droppy-precedented, not in this milestone's explicit ask (research: FEATURES.md)
+- Hourly forecast, weather alerts, radar — the milestone's own reference only asks for a daily forecast row (research: FEATURES.md)
+- User-configurable flare depth/amount for SHAPE-01 — fixed design language for now
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| TheBoringNotch or DynamicNotchKit as a runtime dependency | Research confirmed Islet's own custom `NSPanel` shell is structurally correct; only the drag-detection mechanism changes, not the window primitive itself |
-| Full plugin-marketplace ("Droplets") Settings section | Islet has no plugin architecture; building one is far beyond this milestone's scope — individual widget ideas may be mined directly into Islet's own features later, never as a marketplace |
-| Clipboard manager, floating "Basket," Lock Screen widgets, cloud file sharing | Droppy features with no Islet equivalent and no product need identified; explicitly ruled out during scoping |
-| In-app gesture/feature tutorial during onboarding | Explicitly rejected by the user; onboarding stays to identity (trial/license) + trust (permissions) only |
-| Full calendar CRUD (edit/delete/recurring events, multi-calendar management) | Quick-add only; anything more complex sends the user to Calendar.app/Reminders.app, matching the "lightweight" framing |
-| `EventKitUI`/`EKEventEditViewController` for quick-add | Confirmed to have no macOS/AppKit availability; quick-add is hand-built SwiftUI calling `EKEventStore`/`EKReminder` directly |
-| Quick-launch-apps 3rd view-switcher slot (Droppy's own pattern) | Calendar full view was explicitly chosen instead |
-| Gesture-based swipe navigation | Touches the same event-delivery layer that just failed in Phase 22; deferred until the architecture redesign is proven (see v2 candidates) |
+| `NSSharingServicePicker` (the generic system share picker) | Research found the Services/Sharing menu machinery likely requires a key window; Islet's `NotchPanel` is deliberately never-key/non-activating. A custom 3-button SwiftUI picker calling `NSSharingService(named:).perform(withItems:)` directly is used instead. |
+| WidgetKit / a real macOS widget extension | The "iOS-widget-style" ask (WEATHER-01/02) is purely visual — a styled card inside the existing panel, not a system widget extension |
+| Full multi-day/hourly weather data beyond the daily forecast row | Anti-feature per research — the milestone's reference only shows a daily strip, not hourly/alerts/radar |
+| Mail attachment support on non-Mail.app default clients | `NSSharingService(.composeEmail)` is confirmed Mail.app-specific for attachments; other clients degrade to an unattached `mailto:` — accepted limitation, not solved this milestone |
+| OUTFIT-01 (the original combined weather+calendar+date Home glance) | Being actively removed from Home per HOME-03, not formalized — its calendar half already shipped independently as CALVIEW-01..04 |
 
 ## Traceability
 
@@ -73,26 +66,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARCH-01 | Phase 23 | Complete |
-| SHELF-01 | Phase 24 | Complete |
-| SHELF-02 | Phase 24 | Complete |
-| ONBOARD-01 | Phase 26 | Complete |
-| ONBOARD-02 | Phase 26 | Complete |
-| ONBOARD-03 | Phase 26 | Complete |
-| VISUAL-01 | Phase 25 | Complete |
-| VISUAL-02 | Phase 25 | Complete |
-| VISUAL-03 | Phase 27 | Complete |
-| SETTINGS-01 | Phase 27 | Complete |
-| CALVIEW-01 | Phase 28 | Complete |
-| CALVIEW-02 | Phase 28 | Complete |
-| CALVIEW-03 | Phase 28 | Complete |
-| CALVIEW-04 | Phase 28 | Complete |
+| _pending roadmap creation_ | | |
 
 **Coverage:**
-- v1.4 requirements: 14 total
-- Mapped to phases: 14 (100%)
-- Unmapped: 0
+- v1.5 requirements: 10 total
+- Mapped to phases: 0 (0%)
+- Unmapped: 10
 
 ---
-*Requirements defined: 2026-07-11*
-*Last updated: 2026-07-11 — v1.4 roadmap created: Phases 23-28, 100% requirement coverage. Phase 23 (Shell Parity Rewrite) is a hard prerequisite for Phase 24 (Drag-In) only; Phases 25-28 (Theming, Onboarding, Settings, Calendar) are independent of the shell work.*
+*Requirements defined: 2026-07-13*
+*Last updated: 2026-07-13 — v1.5 (Home Focus & Widget Redesign) requirements defined after 4-agent research (Stack/Features/Architecture/Pitfalls, see `.planning/research/SUMMARY.md`). Research recommends 6 phases with the Quick Action picker (TRAY-02/04) isolated last as the highest-risk item, mirroring v1.3/v1.4's Phase 22-24 drag-in risk-isolation precedent.*
