@@ -74,4 +74,25 @@ final class NotchShapeTests: XCTestCase {
         XCTAssertGreaterThan(cgBounds.width, 0, "The flared closed path needs a positive-width bounding box.")
         XCTAssertGreaterThan(cgBounds.height, 0, "The flared closed path needs a positive-height bounding box.")
     }
+
+    func testFlaredPathStillCutsAwayTheTopCornerRoundingNotch() {
+        // Regression for a real bug: an earlier `path(in:)` used a pair of bridging quad-curves
+        // whose control point equaled one of their own endpoints (a zero-tangent degenerate
+        // curve). That degenerate curve mathematically collapses to a flat line — same as
+        // today's plain `addLine` bridge — but the zero-tangent construct visibly regressed the
+        // topCornerRadius corner rounding to a flat, square corner on-device (screenshot-
+        // confirmed). This test proves the "notch" — the small sliver just outside the rounded
+        // corner curve, right at the flat top's very edge — stays EXCLUDED from the fill (i.e.
+        // the corner is still visibly rounded, not filled solid/square) even with a non-zero
+        // topFlareWidth.
+        let flaredPath = NotchShape(topCornerRadius: 6, bottomCornerRadius: 32, topFlareWidth: 10)
+            .path(in: rect).cgPath
+        // Just inside the rect's original (pre-flare) top-left corner, barely below the flat
+        // top edge — this point sits in the "notch" that topCornerRadius cuts away; if the
+        // corner rounding were erased (flattened to square), this point would incorrectly
+        // report as inside the fill.
+        let notchPoint = CGPoint(x: rect.minX + 1, y: rect.minY + 0.5)
+        XCTAssertFalse(flaredPath.contains(notchPoint, using: .winding),
+                       "The topCornerRadius notch must stay cut away (corner still rounded) even when topFlareWidth > 0.")
+    }
 }
