@@ -98,7 +98,18 @@ struct NotchShape: Shape {
         // never eats into (or inverts) the straight wall beneath it on tight ones. The 0.7 reserves
         // 30% of the rect's own height (plus both corner radii) as an untouchable wall floor —
         // never `bulgeDepth + topCornerRadius + bottomCornerRadius > rect.height`.
-        let desiredBulgeDepth: CGFloat = 45
+        // ROUND 11 (2026-07-13, post-pipeline-confirmation visual pass) — the rendering pipeline
+        // is now proven end-to-end (on-device green stroke traced a continuous bulge); the
+        // remaining complaint was pure scale ("das ist ja nichts im Vergleich zu dem wie wir es
+        // machen wollten" vs. the Droppy reference). Raised from 45 to 65 in step with
+        // NotchPillView's topFlareWidth going from 20 to 40 (same doubling, keeping the width:depth
+        // pacing ratio the round-8 tuning established). The tightest call site (wingsShape, 290×32,
+        // topCornerRadius/bottomCornerRadius 6/6) already clamps far below either ceiling: max(0,
+        // 32*0.7 - 6 - 6) = max(0, 22.4 - 12) = 10.4, so `min(65, 10.4) == 10.4` — identical to what
+        // round 8 already computed there (`min(45, 10.4) == 10.4`), no behavior change for wings.
+        // Wall floor stays real and non-inverted: 32 - (6 topCornerRadius + 10.4 bulgeDepth + 6
+        // bottomCornerRadius) = 9.6pt of straight wall remains before the bottom corner starts.
+        let desiredBulgeDepth: CGFloat = 65
         let bulgeDepth = min(desiredBulgeDepth, max(0, rect.height * 0.7 - topCornerRadius - bottomCornerRadius))
 
         // The apex (the outward peak) sits at 30% of `bulgeDepth`, not the midpoint. On-device

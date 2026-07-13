@@ -226,7 +226,7 @@ final class NotchShapeTests: XCTestCase {
     // round-7 hardcoded `bulgeDepth: CGFloat = 15` did after the diagnostic round changed it --
     // must stay in sync with NotchShape.swift's `path(in:)`.
     private func expectedBulgeDepth(rectHeight: CGFloat, topCornerRadius: CGFloat, bottomCornerRadius: CGFloat) -> CGFloat {
-        let desiredBulgeDepth: CGFloat = 45
+        let desiredBulgeDepth: CGFloat = 65
         return min(desiredBulgeDepth, max(0, rectHeight * 0.7 - topCornerRadius - bottomCornerRadius))
     }
 

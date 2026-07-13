@@ -218,41 +218,17 @@ struct NotchPillView: View {
     // trumpet. NotchWindowController.swift reads this SAME constant to widen its panel-frame
     // reservation by `2 * topFlareWidth` (the bulge extends past the presentation's own rect
     // again, unlike round 5's converge-back-to-rect design) — do not let the two drift.
-    // ROUND 8 (post-diagnostic pacing fix, on-device UAT 2026-07-13): the diagnostic round
-    // confirmed the flare mechanism renders correctly — a 50pt bulge was clearly visible on real
-    // hardware. Now that NotchShape.swift's `bulgeDepth` tapers slowly and gradually instead of
-    // abruptly (see that file's round-8 comment), a much smaller, tasteful width reads as visible
-    // and proportionate rather than cartoonish. This value is a purely horizontal outward margin —
-    // unlike bulgeDepth, it never consumes vertical wall budget, so it needs no per-call-site
-    // safety check.
-    static let topFlareWidth: CGFloat = 20
-
-    // DIAGNOSTIC — REVERT AFTER THIS TEST (round 9, 2026-07-13): geometry math checks out on
-    // paper for the real mediaExpanded call site (bulgeDepth == 45, the full adaptive ceiling),
-    // but the user reports zero visible bulge on real hardware even after a verified clean
-    // rebuild. This flag draws a bright, unmissable stroke ON the exact same `NotchShape`
-    // instance used for the fill, in both `blobShape()`/`wingsShape()`, so the user can trace
-    // the real on-screen silhouette against the black fill — distinguishing "the flare isn't
-    // being painted at all" (wiring bug) from "it IS painted, just too subtle to see in solid
-    // black" (visibility-only, needs a wider topFlareWidth). Not a final visual element.
-    //
-    // ROUND 10 (2026-07-13) — round 9's `renderWidth` fix (widening blobShape/wingsShape's OWN
-    // frame by `2 * topFlareWidth`) still produced ZERO visible change on a genuinely clean
-    // rebuild — the stroke gap persisted identically. Root cause verified via a headless
-    // ImageRenderer repro of this exact modifier structure (see 29-01 execution notes): the bug
-    // was NEVER `matchedGeometryEffect` (an isolated test with/without it attached produced
-    // byte-identical output both times) — it was `body`'s OWN outer `.frame(width:
-    // expandedSize.width...)` below, which sets the SwiftUI content ROOT's reported size and
-    // therefore the rasterization canvas NSHostingView allocates for it. blobShape/wingsShape's
-    // renderWidth trick correctly painted the bulge past their own local box, but those pixels
-    // still fell outside the ROOT's unwidened canvas and were never rasterized at all — same
-    // class of fix NotchWindowController.swift's panel-width contingency already applied one
-    // layer further out (the AppKit panel), just missing at this one remaining boundary. That
-    // outer frame is now widened by the same `2 * topFlareWidth` margin (see `body` below) — the
-    // stroke traces the SAME shape/geometry as before this round, unchanged; only its ENCLOSING
-    // canvas grew, so the full outline should now render with no gap. Still active for one more
-    // on-device confirmation round.
-    private static let diagnosticStrokeOutline = true
+    // ROUND 10 (2026-07-13) confirmed the full render pipeline end-to-end on real hardware (a
+    // diagnostic green stroke traced a continuous, unbroken bulge outline; see NotchWindowController
+    // and body's own outer frame, both widened by `2 * topFlareWidth`, for the fix that made this
+    // work). ROUND 11 (2026-07-13, same day, post-confirmation visual pass) — the mechanism being
+    // proven correct just exposed the real remaining complaint: the 20pt bulge read as timid next
+    // to the Droppy reference screenshot's much larger, sweeping flare ("das ist ja nichts im
+    // Vergleich zu dem wie wir es machen wollten"). Doubled to 40pt — a confidently dramatic width,
+    // short of the raw 50pt diagnostic value that was purely for visibility-testing, not a real
+    // proportions target. This value is a purely horizontal outward margin — unlike bulgeDepth, it
+    // never consumes vertical wall budget, so it needs no per-call-site safety check.
+    static let topFlareWidth: CGFloat = 40
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
@@ -1172,16 +1148,6 @@ struct NotchPillView: View {
             .frame(width: renderWidth, height: totalHeight)
             .frame(width: baseWidth, height: totalHeight)
             .matchedGeometryEffect(id: "island", in: ns)
-            // DIAGNOSTIC — REVERT AFTER THIS TEST: bright stroke tracing the EXACT same shape
-            // instance used for the fill above, so the real silhouette is visible against black.
-            // Framed to the SAME widened renderWidth as the fill above — otherwise the stroke
-            // alone would still suffer the exact clipping bug this fix corrects.
-            .overlay {
-                if Self.diagnosticStrokeOutline {
-                    shape.stroke(Color.green, lineWidth: 2)
-                        .frame(width: renderWidth, height: totalHeight)
-                }
-            }
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     content()
@@ -1273,15 +1239,6 @@ struct NotchPillView: View {
             .frame(width: renderWidth, height: Self.wingsSize.height)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             .matchedGeometryEffect(id: "island", in: ns)
-            // DIAGNOSTIC — REVERT AFTER THIS TEST: bright stroke tracing the EXACT same shape
-            // instance used for the fill above, so the real silhouette is visible against black.
-            // Framed to the SAME widened renderWidth as the fill above (see blobShape's comment).
-            .overlay {
-                if Self.diagnosticStrokeOutline {
-                    shape.stroke(Color.green, lineWidth: 2)
-                        .frame(width: renderWidth, height: Self.wingsSize.height)
-                }
-            }
             .overlay(
                 content()
                     .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
