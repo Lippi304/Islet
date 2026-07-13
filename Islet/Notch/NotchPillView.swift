@@ -350,8 +350,15 @@ struct NotchPillView: View {
                 mediaExpanded(p, art: nowPlaying.artwork)                        // NOW-01/02 controls (healthy)
             case .nowPlayingExpanded(_, false):
                 mediaUnavailable                                                 // D-12 "nicht verfügbar"
-            case .expandedIdle:
-                expandedIsland                                                   // D-11 date/time (healthy, no media)
+            case .homeLastPlayed:
+                // Phase 30 / HOME-02 (D-04): synthesize a .paused presentation from the sticky
+                // last-played snapshot and feed the SAME mediaExpanded(_:art:) the live state
+                // uses -- no second parallel view.
+                mediaExpanded(.paused(title: nowPlaying.lastKnownTrack?.title ?? "",
+                                       artist: nowPlaying.lastKnownTrack?.artist ?? ""),
+                              art: nowPlaying.lastKnownTrack?.artwork)
+            case .homeEmpty:
+                homeEmptyState                                                   // Phase 30 / HOME-03
             case .calendarExpanded:
                 calendarFullView                                                 // Phase 28 / CALVIEW-01: month grid + day list
             case .weatherExpanded:
@@ -425,36 +432,27 @@ struct NotchPillView: View {
             .onTapGesture { onClick() }
     }
 
-    // EXPANDED — the same black blob grown to the compact expanded size. Phase 14 / D-07:
-    // the placeholder date/time readout is now a 3-column glance — weather LEFT, time+date
-    // CENTER, calendar RIGHT — per UI-SPEC.md's Spacing Scale. The blob carries the SAME
-    // matchedGeometryEffect id so SwiftUI morphs the single shape from the collapsed pill to
-    // here (no cross-fade). Either side column is simply absent (not an error state) when its
-    // `outfit` field is nil (D-01/D-03/D-04); default (centered) overlay alignment is correct
-    // here — this ~40pt-tall content needs no camera-clearance pin, unlike mediaExpanded's
-    // 84-100pt content (UI-SPEC.md explicitly corrects RESEARCH.md's `.padding(.top, 32)`).
-    private var expandedIsland: some View {
-        // 28-04 round 5 — alignment: .top + .padding(.top, 32) added so Home's content sits at
-        // the SAME camera-clearance-pinned position as every other switcher-row presentation
-        // (mediaExpanded/calendarFullView/weatherFullView's existing convention), now that
-        // `blobShape` grows Home's content box to the shared `switcherContentHeight` (see that
-        // constant's doc comment) — centering here would just leave a bigger, uneven gap above
-        // the glance instead of a consistent gap below it, above the switcher row.
+    // Phase 30 / HOME-03 — the empty state: nothing has played this session. Copied verbatim
+    // from `trayEmptyState`'s structure (D-09, LOCKED) with the icon/copy swapped (D-10,
+    // LOCKED). Same blobShape/showSwitcher convention every other Home/switcher-row
+    // presentation uses.
+    private var homeEmptyState: some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
-            HStack(spacing: 0) {
-                if let weather = outfit.weather {
-                    weatherColumn(weather)
-                }
-                Spacer()
-                centerColumn
-                Spacer()
-                if let calendarGlance = outfit.calendar {
-                    calendarColumn(calendarGlance)
-                }
+            VStack(spacing: 4) {
+                Image(systemName: "music.note")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.white.opacity(0.4))
+                Text("Nothing Playing")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("Start something in Spotify or Music.")
+                    .font(.system(size: 11, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
+            .padding(.top, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -1342,36 +1340,6 @@ struct NotchPillView: View {
         }
     }
 
-    // Phase 14 / D-07 — CENTER column of the expandedIdle 3-column glance: time (large,
-    // semibold) over date (small, secondary grey). Fully static (D-05) — no TimelineView, no
-    // animation attached to either Text.
-    private var centerColumn: some View {
-        VStack(spacing: 2) {
-            Text(Date.now, format: .dateTime.hour().minute())
-                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(.white)
-            Text(Date.now, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
-                .font(.system(size: 11, weight: .regular, design: .rounded))
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    // Phase 14 / WEATHER-01 / D-06 — LEFT column: the animated category icon over the
-    // (static, D-05) temperature, formatted locale-aware via `.formatted()` (no manual
-    // Celsius/Fahrenheit conversion, mirroring the file header contract in WeatherService.swift).
-    private func weatherColumn(_ weather: WeatherGlance) -> some View {
-        VStack(spacing: 4) {
-            weatherIcon(for: weather.category)
-                .font(.system(size: 20))
-            Text(weather.temperature.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(.white)
-        }
-        .frame(width: 90)
-    }
-
     // Phase 14 / D-06 — static weather icon per user request: no `.symbolEffect`, no
     // animation. Just the SF Symbol with multicolor rendering.
     @ViewBuilder
@@ -1390,33 +1358,6 @@ struct NotchPillView: View {
             Image(systemName: "cloud.snow.fill")
                 .symbolRenderingMode(.multicolor)
         }
-    }
-
-    // Phase 14 / CAL-01 / D-07 — RIGHT column: Today/Tomorrow label, the event title + the
-    // event's own calendar-color dot, and the start time. `.lineLimit(1)` + `.truncationMode(
-    // .tail)` on the title is MANDATORY (V5 — T-14-06 mitigation): EKEvent.title is untrusted
-    // external data from subscribed/shared calendars.
-    private func calendarColumn(_ glance: CalendarGlance) -> some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            Text(glance.isToday ? "Today" : "Tomorrow")
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
-            HStack(spacing: 4) {
-                Text(glance.title)
-                    .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Circle()
-                    .fill(Color(red: glance.colorRed, green: glance.colorGreen, blue: glance.colorBlue))
-                    .frame(width: 6, height: 6)
-            }
-            Text(glance.startDate, format: .dateTime.hour().minute())
-                .font(.system(size: 10, weight: .regular, design: .rounded))
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-        }
-        .frame(width: 100, alignment: .trailing)
     }
 
     // D-02 — map the device glyph to an SF Symbol name. All chosen names are valid SF Symbols; a
@@ -1884,16 +1825,12 @@ private struct OnboardingDoneStep: View {
 #Preview("Expanded") {
     let state = NotchInteractionState()
     state.phase = .expanded
-    // Phase 14: demonstrates the D-07 3-column layout — weather left, calendar right.
-    let outfit = BasicOutfitState()
-    outfit.weather = WeatherGlance(category: .rain, temperature: Measurement(value: 14, unit: .celsius))
-    outfit.calendar = CalendarGlance(title: "Team Sync", startDate: .now, isToday: true,
-                                      colorRed: 0.2, colorGreen: 0.5, colorBlue: 0.9)
-    // Phase 6: `.expandedIdle` → the D-11 date/time (expanded, healthy, no media).
+    // Phase 30 / HOME-02: `.homeLastPlayed` → the last-played track rendered through the same
+    // mediaExpanded(_:art:) view the live state uses (D-04).
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
-                         presentationState: IslandPresentationState(.expandedIdle),
-                         outfit: outfit,
+                         presentationState: IslandPresentationState(.homeLastPlayed),
+                         outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),

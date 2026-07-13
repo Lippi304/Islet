@@ -191,14 +191,26 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertTrue(songChangeToastGate(activeTransient: nil, isExpanded: false, toastEnabled: true))
     }
 
-    func testExpandedHealthyNoMediaIsExpandedIdle() {
-        // D-12: expanded, healthy API, nothing playing → the expanded idle (date/time) view.
+    func testExpandedHealthyNoMediaHasPlayedShowsLastPlayed() {
+        // Phase 30 / HOME-02: expanded, healthy API, nothing playing now but something played
+        // this session → the last-played state.
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: true,
                         hasPlayedSinceLaunch: true,
                         isExpanded: true)
-        XCTAssertEqual(r, .expandedIdle)
+        XCTAssertEqual(r, .homeLastPlayed)
+    }
+
+    func testExpandedHealthyNoMediaNeverPlayedShowsEmpty() {
+        // Phase 30 / HOME-03: expanded, healthy API, nothing has played this session → the
+        // explicit empty state.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true)
+        XCTAssertEqual(r, .homeEmpty)
     }
 
     func testExpandedHealthyPlayingShowsMediaControls() {
@@ -270,16 +282,28 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .nowPlayingExpanded(.playing(title: "Song", artist: "Artist"), healthy: true))
     }
 
-    func testHomeSelectedNoMediaReturnsExpandedIdle() {
-        // 28-04 round 4 "smart Home": explicit Home selection + nothing playing -> the idle
-        // date/time glance, unchanged.
+    func testHomeSelectedNoMediaHasPlayedShowsLastPlayed() {
+        // Phase 30 / HOME-02: explicit Home selection + nothing playing now but something
+        // played this session -> the last-played state.
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: true,
                         hasPlayedSinceLaunch: true,
                         isExpanded: true,
                         selectedView: .home)
-        XCTAssertEqual(r, .expandedIdle)
+        XCTAssertEqual(r, .homeLastPlayed)
+    }
+
+    func testHomeSelectedNoMediaNeverPlayedShowsEmpty() {
+        // Phase 30 / HOME-03: explicit Home selection + nothing has played this session -> the
+        // explicit empty state.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
     }
 
     func testTransientOutranksCalendarSelection() {
