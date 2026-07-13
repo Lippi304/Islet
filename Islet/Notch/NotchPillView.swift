@@ -205,6 +205,14 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
+    // SHAPE-01 (v1.5, Phase 29, D-05) — the ONE shared, fixed outward top-edge flare
+    // width every covered expanded presentation uses identically: both the wide 360pt
+    // Home/Tray/Calendar/Weather blob and the narrower 290pt Charging/Device wings get
+    // the SAME absolute value, not a proportionally-scaled one. NotchWindowController.swift
+    // also reads this constant for its panel-frame reservation, mirroring how it already
+    // reads wingsSize/onboardingSize/switcherContentHeight from this file.
+    static let topFlareWidth: CGFloat = 10
+
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
     // wingsShape, mediaWingsOrToast) so the collapsed pill, expanded island, and all activity
@@ -1086,7 +1094,7 @@ struct NotchPillView: View {
         let totalHeight = baseHeight
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
-        return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
+        return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius, topFlareWidth: Self.topFlareWidth)
             .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: baseWidth, height: totalHeight)
@@ -1171,7 +1179,7 @@ struct NotchPillView: View {
     // corner radius and height must vary with the toast, so it builds its own NotchShape
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
     private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)   // flatter than the downward blob
+        NotchShape(topCornerRadius: 6, bottomCornerRadius: 6, topFlareWidth: Self.topFlareWidth)   // flatter than the downward blob
             .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
