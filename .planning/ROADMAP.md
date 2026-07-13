@@ -468,7 +468,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 30-01-PLAN.md — NowPlayingState.lastKnownTrack contract + IslandResolver .homeLastPlayed/.homeEmpty cases + NotchPillView routing/homeEmptyState + test rewrite
+- [x] 30-01-PLAN.md — NowPlayingState.lastKnownTrack contract + IslandResolver .homeLastPlayed/.homeEmpty cases + NotchPillView routing/homeEmptyState + test rewrite
 
 **Wave 2** *(blocked on 30-01)*
 

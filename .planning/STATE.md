@@ -4,8 +4,8 @@ milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
 status: executing
 stopped_at: Phase 30 UI-SPEC approved
-last_updated: "2026-07-13T23:38:21.710Z"
-last_activity: 2026-07-13 -- Phase 30 planning complete
+last_updated: "2026-07-13T23:43:52.693Z"
+last_activity: 2026-07-13 -- Phase 30 execution started
 progress:
   total_phases: 19
   completed_phases: 10
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 29 complete — Phase 30 (Home Music-Only) next
+**Current focus:** Phase 30 — home-music-only
 
 ## Current Position
 
-Phase: 29 (notchshape-flare) — COMPLETE
-Plan: 1 of 1 (complete)
-Status: Ready to execute
-Last activity: 2026-07-13 -- Phase 30 planning complete
+Phase: 30 (home-music-only) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 30
+Last activity: 2026-07-13 -- Phase 30 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
