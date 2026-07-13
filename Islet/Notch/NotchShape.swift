@@ -50,39 +50,65 @@ struct NotchShape: Shape {
             return p
         }
 
-        // Flared path (round 6 — flush-top shoulder bulge). `bulge` is how far past
-        // rect.minX/rect.maxX the shoulder swings out before curving back in.
+        // Flared path (round 7 — shoulder bulge gets its own vertical depth). `bulge` is how
+        // far past rect.minX/rect.maxX the shoulder swings out before curving back in.
+        //
+        // Round 6's single cubic curve crammed BOTH the outward swing (~14pt) AND the
+        // topCornerRadius corner-cut (6pt radius) into just 6pt of vertical room. Sampling the
+        // actual rendered geometry (not just "build succeeded") proved that curve's two
+        // control points, both pulled outward within that tiny span, made the corner-cut notch
+        // get re-filled by the bulge's own path, erasing the rounding entirely (same failure
+        // class as round 4/`8f69742`) while ALSO capping the visible bulge far short of `bulge`
+        // (~6.8pt actual vs 14pt requested) since there wasn't room for the curve to swing out
+        // properly. `bulgeDepth` below decouples the two: the bulge gets its own dedicated span
+        // to swing out and back BEFORE the (byte-identical, just y-shifted) topCornerRadius
+        // corner-cut curve begins. Geometrically verified (not just built) via a throwaway
+        // CGPath.contains scan across the tightest real call site (wingsShape's 290x32 rect) —
+        // confirms: zero winding/evenOdd disagreements (a simple, non-self-overlapping path),
+        // the corner-cut notch surviving intact at its new (shifted) location, and the bulge's
+        // own boundary tracing one smooth outward hump reaching the full `bulge` extent.
         let bulge = topFlareWidth
+        // Fits every real flared call site without inverting the wall: the tightest is
+        // wingsShape (topCornerRadius: 6, bottomCornerRadius: 6, height 32) — 15 + 6 + 6 = 27,
+        // leaving a real (if narrow) 5pt straight wall; every blobShape call site (height
+        // 144+) has ample room to spare.
+        let bulgeDepth: CGFloat = 15
 
         p.move(to: CGPoint(x: rect.minX, y: rect.minY))
         p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY)) // FULL-WIDTH flush top run — never recessed
 
-        // RIGHT shoulder bulge: (rect.maxX, rect.minY) -> the topCornerRadius transition's own
-        // UNCHANGED, un-shifted endpoint (rect.maxX - topCornerRadius, rect.minY +
-        // topCornerRadius). A CUBIC addCurve (not a quad) is required here — a quad curve has a
-        // single control point and can only arc toward it, producing one simple bow; a real
-        // "swing out past the edge, then curve back in" shoulder needs two independent control
-        // points pulling in different directions, which only a cubic Bezier provides.
-        p.addCurve(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius),
-                   control1: CGPoint(x: rect.maxX + bulge, y: rect.minY + topCornerRadius * 0.15),
-                   control2: CGPoint(x: rect.maxX + bulge * 0.25, y: rect.minY + topCornerRadius * 0.9))
+        // RIGHT shoulder: two chained quad curves sharing an on-curve apex at the outward peak
+        // (rect.maxX + bulge, rect.minY + bulgeDepth / 2) swing the edge out and back to touch
+        // x == rect.maxX again at y == rect.minY + bulgeDepth — then the topCornerRadius
+        // corner-cut curve continues from there, an EXACT copy of the unflared branch's own
+        // corner math above, just shifted down by bulgeDepth (its shape, and therefore the
+        // rounding it cuts, is untouched).
+        let rightApex = CGPoint(x: rect.maxX + bulge, y: rect.minY + bulgeDepth / 2)
+        p.addQuadCurve(to: rightApex, control: CGPoint(x: rect.maxX + bulge, y: rect.minY))
+        p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + bulgeDepth),
+                       control: CGPoint(x: rect.maxX + bulge, y: rect.minY + bulgeDepth))
+        p.addQuadCurve(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + bulgeDepth + topCornerRadius),
+                       control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + bulgeDepth))
 
         // Downstream math from here is 100% the existing, unmodified topCornerRadius/
         // bottomCornerRadius corner + wall geometry (identical to the topFlareWidth == 0 branch
-        // above, just re-entered after the bulge instead of after a plain quad curve).
+        // above, just re-entered after the bulge+corner-cut instead of after a plain quad curve
+        // — only the wall's start point moved down by bulgeDepth, its end/shape is untouched).
         p.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius))
         p.addQuadCurve(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY),
                        control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY))
         p.addLine(to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY))
         p.addQuadCurve(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius),
                        control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius))
+        p.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + bulgeDepth + topCornerRadius))
 
-        // LEFT shoulder bulge — mirror of the right, closing the path back at the flush top's
-        // start (rect.minX, rect.minY).
-        p.addCurve(to: CGPoint(x: rect.minX, y: rect.minY),
-                   control1: CGPoint(x: rect.minX - bulge * 0.25, y: rect.minY + topCornerRadius * 0.9),
-                   control2: CGPoint(x: rect.minX - bulge, y: rect.minY + topCornerRadius * 0.15))
+        // LEFT shoulder — exact mirror of the right, traversed in reverse (wall -> corner-cut
+        // -> bulge -> close at the flush top's start).
+        p.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.minY + bulgeDepth),
+                       control: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + bulgeDepth))
+        let leftApex = CGPoint(x: rect.minX - bulge, y: rect.minY + bulgeDepth / 2)
+        p.addQuadCurve(to: leftApex, control: CGPoint(x: rect.minX - bulge, y: rect.minY + bulgeDepth))
+        p.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.minY), control: CGPoint(x: rect.minX - bulge, y: rect.minY))
         return p
     }
 }

@@ -48,6 +48,17 @@ final class NotchShapeTests: XCTestCase {
     // transition's own unshifted endpoint. `topFlareWidth` is once again the fixed OUTWARD
     // MARGIN (how far past rect.minX/rect.maxX the shoulder bulges) — see NotchShape.swift's
     // doc comment.
+    //
+    // ROUND 7 (on-device UAT again): round 6's cubic curve crammed the bulge AND the
+    // topCornerRadius corner-cut into the same 6pt of vertical room, which erased the corner
+    // rounding (same failure class as round 4) and rendered as a perfectly square corner with
+    // no visible bulge either. `bulgeDepth` (NotchShape.swift) now gives the bulge its own
+    // vertical span, so the corner-cut curve's endpoint is SHIFTED DOWN by `bulgeDepth` instead
+    // of sitting at `rect.minY + topCornerRadius` — the tests below use `topCornerRadius: 6,
+    // bottomCornerRadius: 6` (wingsShape's real, tightest call-site combo, at wingsShape's real
+    // 290x32 size) instead of round 6's `bottomCornerRadius: 14` at 200x32, which was never an
+    // actual flared call site and is too short to fit `bulgeDepth` (15) + `topCornerRadius` (6)
+    // + `bottomCornerRadius` (14) without inverting the wall.
 
     func testTopFlareWidthDefaultsToZero() {
         XCTAssertEqual(NotchShape().topFlareWidth, 0,
@@ -66,15 +77,24 @@ final class NotchShapeTests: XCTestCase {
                        "topFlareWidth: 0 must produce an identical bounding box to omitting the argument entirely.")
     }
 
+    // Round 7's tests use wingsShape's REAL call-site combo (topCornerRadius: 6,
+    // bottomCornerRadius: 6, topFlareWidth: 14) at wingsShape's REAL 290x32 size -- the
+    // tightest actual flared call site, and the one `bulgeDepth`'s safety margin was
+    // specifically checked against (NotchShape.swift's doc comment).
+    private let wingsRect = CGRect(x: 0, y: 0, width: 290, height: 32)
+    private let wingsTopCornerRadius: CGFloat = 6
+    private let wingsBottomCornerRadius: CGFloat = 6
+    private let wingsFlareWidth: CGFloat = 14
+
     func testNonZeroTopFlareWidthKeepsTheTopEdgeFlushAcrossFullWidth() {
-        // The hard regression this round fixes: the flat top run must span the shape's FULL
+        // The hard regression a prior round fixed: the flat top run must span the shape's FULL
         // width, flush at rect.minY -- never recessed downward the way the round-5 concave sweep
         // was outside its narrow band. Points near both top corners, just below the very top
         // edge, must already be filled at full width.
-        let flaredPath = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14, topFlareWidth: 60)
-            .path(in: rect).cgPath
-        let nearLeftEdge = CGPoint(x: rect.minX + 1, y: rect.minY + 0.5)
-        let nearRightEdge = CGPoint(x: rect.maxX - 1, y: rect.minY + 0.5)
+        let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsRect).cgPath
+        let nearLeftEdge = CGPoint(x: wingsRect.minX + 1, y: wingsRect.minY + 0.5)
+        let nearRightEdge = CGPoint(x: wingsRect.maxX - 1, y: wingsRect.minY + 0.5)
         XCTAssertTrue(flaredPath.contains(nearLeftEdge, using: .winding),
                       "The top edge must be flush (filled) near the left corner, full width -- not recessed downward.")
         XCTAssertTrue(flaredPath.contains(nearRightEdge, using: .winding),
@@ -83,46 +103,87 @@ final class NotchShapeTests: XCTestCase {
 
     func testFlaredPathTopBoundsStaysAtRectMinY() {
         // The bounding box's own top must sit exactly at rect.minY -- proving no part of the top
-        // edge is pulled down/away from the true screen edge, the exact user-reported bug this
-        // round fixes ("Gar nicht mehr am Rand dran").
-        let bounds = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14, topFlareWidth: 60)
-            .path(in: rect).cgPath.boundingBox
-        XCTAssertEqual(bounds.minY, rect.minY, accuracy: 0.01,
+        // edge is pulled down/away from the true screen edge, the exact user-reported bug a
+        // prior round fixed ("Gar nicht mehr am Rand dran").
+        let bounds = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsRect).cgPath.boundingBox
+        XCTAssertEqual(bounds.minY, wingsRect.minY, accuracy: 0.01,
                        "The flared path's topmost point must stay at rect.minY -- flush with the true screen edge.")
     }
 
     func testNonZeroTopFlareWidthBulgesPastTheRectWidth() {
         // Unlike the round-5 concave sweep (which stayed within the rect), the shoulder bulge
-        // genuinely extends past rect.minX/rect.maxX -- this is the visible "flare" itself.
-        let bounds = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14, topFlareWidth: 60)
-            .path(in: rect).cgPath.boundingBox
-        XCTAssertLessThan(bounds.minX, rect.minX,
+        // genuinely extends past rect.minX/rect.maxX by roughly the full `topFlareWidth` -- this
+        // is the visible "flare" itself, and the exact regression round 6's cramped 6pt-tall
+        // cubic curve failed (it only reached ~half the requested extent).
+        let bounds = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsRect).cgPath.boundingBox
+        XCTAssertLessThan(bounds.minX, wingsRect.minX,
                           "The shoulder bulge must extend past the rect's left edge.")
-        XCTAssertGreaterThan(bounds.maxX, rect.maxX,
+        XCTAssertGreaterThan(bounds.maxX, wingsRect.maxX,
                              "The shoulder bulge must extend past the rect's right edge.")
+        XCTAssertEqual(bounds.minX, wingsRect.minX - wingsFlareWidth, accuracy: 0.5,
+                       "The bulge must reach roughly the full topFlareWidth extent on the left, not collapse to a fraction of it.")
+        XCTAssertEqual(bounds.maxX, wingsRect.maxX + wingsFlareWidth, accuracy: 0.5,
+                       "The bulge must reach roughly the full topFlareWidth extent on the right, not collapse to a fraction of it.")
     }
 
     func testFlaredPathStaysClosedAndNonEmpty() {
         // Mirrors testCustomRadiiProduceAClosedNonEmptyPath, with a non-zero topFlareWidth.
-        let path = NotchShape(topCornerRadius: 6, bottomCornerRadius: 14, topFlareWidth: 60).path(in: rect)
+        let path = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth).path(in: wingsRect)
         let cgBounds = path.cgPath.boundingBox
         XCTAssertFalse(path.cgPath.isEmpty, "Flared closed pill path must be non-empty.")
         XCTAssertGreaterThan(cgBounds.width, 0, "The flared closed path needs a positive-width bounding box.")
         XCTAssertGreaterThan(cgBounds.height, 0, "The flared closed path needs a positive-height bounding box.")
     }
 
-    func testFlaredPathShoulderMergesAtTheUnshiftedTopCornerRadiusEndpoint() {
-        // The shoulder bulge must merge back into the topCornerRadius transition's own UNCHANGED,
-        // un-shifted endpoint (rect.maxX - topCornerRadius, rect.minY + topCornerRadius) -- not a
-        // flareDepth-shifted position (the round-5 bug this round fixes). The straight wall
-        // immediately below that endpoint must already be at the plain unflared x-position,
-        // proving the downstream corner/wall geometry is byte-identical to the topFlareWidth == 0
-        // case, only the bulge above it differs.
-        let topCornerRadius: CGFloat = 6
-        let flaredPath = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: 14, topFlareWidth: 60)
-            .path(in: rect).cgPath
-        let onTheUnflaredWall = CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius + 1)
-        XCTAssertTrue(flaredPath.contains(onTheUnflaredWall, using: .winding),
-                      "Just below the shoulder's merge point, the straight wall must already sit at the plain unflared x-position.")
+    func testFlaredPathCornerRoundingSurvivesTheBulge() {
+        // ROUND 7 regression test: the actual bug this round fixes. Round 6's cubic curve
+        // crammed the outward bulge AND the topCornerRadius corner-cut into the same 6pt of
+        // vertical room, and the bulge's own path re-filled the corner-cut notch -- rendering as
+        // a perfectly square corner with NO rounding at all (confirmed via a throwaway
+        // CGPath.contains scan during diagnosis: round 6's geometry included a point at the
+        // corner-cut's own halfway mark that a working rounded corner must EXCLUDE).
+        //
+        // With `bulgeDepth` giving the corner-cut its own shifted-down span, that same halfway
+        // point -- shifted down by `bulgeDepth` -- must now be EXCLUDED (outside the fill),
+        // proving the topCornerRadius rounding survives the bulge.
+        let bulgeDepth: CGFloat = 15 // must match NotchShape.swift's private constant
+        let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsRect).cgPath
+        let cornerNotchMidpoint = CGPoint(x: wingsRect.maxX - wingsTopCornerRadius / 2,
+                                          y: wingsRect.minY + bulgeDepth + wingsTopCornerRadius / 2)
+        XCTAssertFalse(flaredPath.contains(cornerNotchMidpoint, using: .winding),
+                       "The corner-cut's own notch (shifted down by bulgeDepth) must stay excluded from the fill -- proving the rounding was not erased by the bulge (the exact round-6 regression).")
+        // And just inside the wall, at the same height, must still be filled -- confirms this
+        // is a real diagonal fillet, not an accidentally-empty shape.
+        let justInsideTheWall = CGPoint(x: wingsRect.maxX - wingsTopCornerRadius - 5,
+                                        y: wingsRect.minY + bulgeDepth + wingsTopCornerRadius / 2)
+        XCTAssertTrue(flaredPath.contains(justInsideTheWall, using: .winding),
+                      "Just inside the wall at the same height, the fill must still be present.")
+    }
+
+    func testFlaredPathHasNoSelfOverlap() {
+        // ROUND 7 diagnosis tool, kept as a permanent regression guard: a self-intersecting or
+        // self-overlapping path produces DIFFERENT results under the winding vs even-odd fill
+        // rules at some points (nonzero winding can double-count an overlapped region while
+        // even-odd cancels it back out). Scanning a grid across the whole flared bounding box
+        // and requiring the two rules to always agree is a cheap, general proxy for "this is a
+        // simple, non-self-crossing polygon" -- exactly what round 6's cramped cubic curve was
+        // not.
+        let path = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsRect).cgPath
+        let bounds = path.boundingBox
+        var x = bounds.minX - 1
+        while x <= bounds.maxX + 1 {
+            var y = bounds.minY - 1
+            while y <= bounds.maxY + 1 {
+                let pt = CGPoint(x: x, y: y)
+                XCTAssertEqual(path.contains(pt, using: .winding), path.contains(pt, using: .evenOdd),
+                               "winding/evenOdd disagree at \(pt) -- the path self-overlaps somewhere.")
+                y += 2
+            }
+            x += 2
+        }
     }
 }
