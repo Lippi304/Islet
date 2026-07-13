@@ -1771,7 +1771,12 @@ private struct QuickAddPopover: View {
             TextField("What's this for?", text: $title)
                 .font(.system(size: 12, weight: .regular, design: .rounded))
             Button(action: {
-                onSubmit(kind, title)
+                // WR-03 fix (28-REVIEW.md) — a trimmed-empty title silently created a
+                // blank-titled EKEvent/EKReminder; guard here too (belt-and-suspenders with
+                // .disabled below, which covers the visible affordance).
+                let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmedTitle.isEmpty else { return }
+                onSubmit(kind, trimmedTitle)
                 title = ""
                 isShowing = false
             }) {
@@ -1788,6 +1793,7 @@ private struct QuickAddPopover: View {
                     )
             }
             .buttonStyle(.plain)
+            .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(12)
         .frame(width: 220)
