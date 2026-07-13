@@ -459,7 +459,7 @@ Plans:
 **Requirements**: HOME-01, HOME-02, HOME-03
 **Success Criteria** (what must be TRUE):
   1. While something is playing, the Home view shows live Now-Playing transport controls (play/pause/next/prev), unchanged from today.
-  2. When paused/stopped, the Home view shows the last-played track's cover art and title, with no live transport controls.
+  2. When paused/stopped, the Home view shows the last-played track's cover art and title, with the same transport controls as the live state (REVISED 2026-07-14: controls stay visible, not hidden — see 30-CONTEXT.md).
   3. When nothing has been played this session, the Home view shows an explicit empty state instead of any glance content.
   4. The time/weather/calendar idle glance no longer appears anywhere on Home, in any of the three sub-states.
 **Plans**: TBD

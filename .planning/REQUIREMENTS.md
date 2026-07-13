@@ -10,7 +10,7 @@ Home is decluttered to music-only (dropping the idle weather/calendar/date fallb
 ### Home
 
 - [ ] **HOME-01**: Home shows live Now-Playing transport controls whenever something is playing (unchanged from today)
-- [ ] **HOME-02**: When paused/stopped, Home shows the last-played track's cover+title, without live transport controls
+- [ ] **HOME-02** (REVISED 2026-07-14, Phase 30 discussion): When paused/stopped, Home shows the last-played track's cover+title WITH the same transport controls as the live state (play/pause/next/prev) — buttons get a new rounded-rectangle hover background in both live and last-played states. Superseded the original "without live transport controls" wording.
 - [ ] **HOME-03**: When nothing has been played this session, Home shows an explicit empty state — the time/weather/calendar fallback glance is removed entirely (Weather/Calendar keep their own switcher tabs)
 
 ### Tray
