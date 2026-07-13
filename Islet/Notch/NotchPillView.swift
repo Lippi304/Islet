@@ -227,6 +227,16 @@ struct NotchPillView: View {
     // safety check.
     static let topFlareWidth: CGFloat = 20
 
+    // DIAGNOSTIC — REVERT AFTER THIS TEST (round 9, 2026-07-13): geometry math checks out on
+    // paper for the real mediaExpanded call site (bulgeDepth == 45, the full adaptive ceiling),
+    // but the user reports zero visible bulge on real hardware even after a verified clean
+    // rebuild. This flag draws a bright, unmissable stroke ON the exact same `NotchShape`
+    // instance used for the fill, in both `blobShape()`/`wingsShape()`, so the user can trace
+    // the real on-screen silhouette against the black fill — distinguishing "the flare isn't
+    // being painted at all" (wiring bug) from "it IS painted, just too subtle to see in solid
+    // black" (visibility-only, needs a wider topFlareWidth). Not a final visual element.
+    private static let diagnosticStrokeOutline = true
+
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
     // wingsShape, mediaWingsOrToast) so the collapsed pill, expanded island, and all activity
@@ -1108,10 +1118,18 @@ struct NotchPillView: View {
         let totalHeight = baseHeight
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
-        return NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius, topFlareWidth: Self.topFlareWidth)
+        let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius, topFlareWidth: Self.topFlareWidth)
+        return shape
             .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: baseWidth, height: totalHeight)
+            // DIAGNOSTIC — REVERT AFTER THIS TEST: bright stroke tracing the EXACT same shape
+            // instance used for the fill above, so the real silhouette is visible against black.
+            .overlay {
+                if Self.diagnosticStrokeOutline {
+                    shape.stroke(Color.green, lineWidth: 2)
+                }
+            }
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     content()
@@ -1193,10 +1211,18 @@ struct NotchPillView: View {
     // corner radius and height must vary with the toast, so it builds its own NotchShape
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
     private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        NotchShape(topCornerRadius: 6, bottomCornerRadius: 6, topFlareWidth: Self.topFlareWidth)   // flatter than the downward blob
+        let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 6, topFlareWidth: Self.topFlareWidth)   // flatter than the downward blob
+        return shape
             .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            // DIAGNOSTIC — REVERT AFTER THIS TEST: bright stroke tracing the EXACT same shape
+            // instance used for the fill above, so the real silhouette is visible against black.
+            .overlay {
+                if Self.diagnosticStrokeOutline {
+                    shape.stroke(Color.green, lineWidth: 2)
+                }
+            }
             .overlay(
                 content()
                     .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
