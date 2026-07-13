@@ -205,24 +205,6 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
-    // SHAPE-01 (v1.5, Phase 29) — FINAL corrected design (see NotchShape.swift's doc comment and
-    // 29-CONTEXT.md's "Post-D-01/D-05 implementation detour and final confirmation"): `topFlareWidth`
-    // is the width of the narrow, centered camera-notch DIP — the wide sides stay flush with the
-    // true screen edge exactly like before Phase 29, and only this centered band dips down. The
-    // SAME absolute value every covered presentation uses (D-05), regardless of its own full width
-    // (360pt Home/Tray/Calendar/Weather blob vs. 290pt Charging/Device wings).
-    // ROOT-CAUSE CORRECTION (round 4): rounds 2-3 pushed this UP (179 -> 220 -> 240) chasing
-    // "make the dip more visible," but that was backwards — re-examining the Droppy reference
-    // proportions shows the narrow camera band is a MINORITY of the shelf's width (~20%), with
-    // the wide flush sides the large majority. At 240 on a 360pt blob the "notch" consumed 67%
-    // of the width, leaving almost no flush margin to actually flush — the opposite of the
-    // reference and the real reason "nothing changes outward from center" kept being reported.
-    // Brought back down to 179 — the physical-camera-accurate value (this machine's measured
-    // notch is 179x32pt) and the correct starting point rounds 2-3 should never have moved away
-    // from. Depth (24) and the transition-radius formula are unaffected by this correction — they
-    // were never the problem.
-    static let topFlareWidth: CGFloat = 179
-
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
     // wingsShape, mediaWingsOrToast) so the collapsed pill, expanded island, and all activity
@@ -458,7 +440,7 @@ struct NotchPillView: View {
         // `blobShape` grows Home's content box to the shared `switcherContentHeight` (see that
         // constant's doc comment) — centering here would just leave a bigger, uneven gap above
         // the glance instead of a consistent gap below it, above the switcher row.
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             HStack(spacing: 0) {
                 if let weather = outfit.weather {
@@ -492,7 +474,7 @@ struct NotchPillView: View {
         // `blobShape` now applies the shared `switcherContentHeight` box UNCONDITIONALLY
         // whenever `showSwitcher` is true (see that constant's doc comment), so this call site
         // no longer needs its own per-case height.
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top,
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                   shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             HStack(spacing: 0) {
@@ -676,7 +658,7 @@ struct NotchPillView: View {
     // comment), so this shorter content simply top-aligns with empty transparent space below
     // it, above the switcher row; no per-case override was ever needed here.
     private var weatherFullView: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             Group {
                 if let weather = outfit.weather {
@@ -742,7 +724,7 @@ struct NotchPillView: View {
     // auto-reveal files under Home/Calendar/Weather/NowPlaying per Phase 24) must NOT also
     // append itself a second time below this content.
     private var trayFullView: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: [],
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: [],
                   shelfVisible: false, showSwitcher: true) {
             Group {
                 if shelfViewState.items.isEmpty {
@@ -790,7 +772,7 @@ struct NotchPillView: View {
     // down than the other 3 steps (the reported cross-step inconsistency, a real bug: nav Y
     // must not depend on sibling content height).
     private func onboardingCarousel(_ step: OnboardingStep) -> some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32,
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32,
                   width: Self.onboardingSize.width, height: Self.onboardingSize.height, shelfItems: [],
                   shelfVisible: false) {
             ZStack(alignment: .bottom) {
@@ -1107,7 +1089,7 @@ struct NotchPillView: View {
         let totalHeight = baseHeight
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
-        let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius, topFlareWidth: Self.topFlareWidth)
+        let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
         return shape
             .fill(islandFill)
             .frame(width: baseWidth, height: totalHeight)
@@ -1193,7 +1175,7 @@ struct NotchPillView: View {
     // corner radius and height must vary with the toast, so it builds its own NotchShape
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
     private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 6, topFlareWidth: Self.topFlareWidth)   // flatter than the downward blob
+        let shape = NotchShape(topCornerRadius: 12, bottomCornerRadius: 6)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside a 6pt bottom radius without squeezing the wall to almost nothing
         return shape
             .fill(islandFill)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
@@ -1512,7 +1494,7 @@ struct NotchPillView: View {
         // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
         // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
         // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
-        return blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+        return blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
                           shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
@@ -1581,7 +1563,7 @@ struct NotchPillView: View {
         // 28-04 round 5 — alignment: .top + .padding(.top, 32), same reasoning as
         // expandedIsland's own round-5 change (both are shorter than the shared
         // switcherContentHeight box now that blobShape applies it uniformly).
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             Text("Now Playing nicht verfügbar")
                 .font(.system(size: 14, weight: .medium, design: .rounded))

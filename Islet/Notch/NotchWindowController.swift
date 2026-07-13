@@ -787,10 +787,10 @@ final class NotchWindowController {
         // covers Home/Tray/Calendar/Weather/NowPlaying uniformly. The separate `calendarFrame`
         // union member from rounds 1-4 is gone: a calendar-only reservation is no longer taller
         // than every other switcher-row presentation's own (now-shared) reservation.
-        // SHAPE-01 (v1.5, Phase 29) — the final centered camera-notch dip stays entirely within
-        // each presentation's own rect (an inward recess, no overflow past expandedSize.width/
-        // wingsSize.width), so this panel-frame reservation needs no extra margin, unlike the
-        // earlier shoulder-bulge detour.
+        // SHAPE-01 (v1.5, Phase 29) — the flare is just a larger `topCornerRadius` at the outer
+        // top corners (NotchPillView.swift's blobShape()/wingsShape() call sites), which stays
+        // entirely within each presentation's own rect (no overflow past expandedSize.width/
+        // wingsSize.width), so this panel-frame reservation needs no extra margin.
         let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                expandedSize: CGSize(width: expandedSize.width,
                                                                      height: NotchPillView.switcherContentHeight + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
