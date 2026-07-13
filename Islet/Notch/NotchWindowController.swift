@@ -652,9 +652,11 @@ final class NotchWindowController {
     // Phase 28 / CALVIEW-01 — mirrors NotchPillView's own `isOnboardingPresentation`/
     // `showsSwitcherRow` pattern (see that file's header comment) so the panel-geometry and
     // click-through math here stay in lockstep with what the view actually renders.
+    // 28-04 on-device UAT round 3: `.nowPlayingExpanded` added — see NotchPillView.swift's
+    // mirrored property for the reasoning.
     private func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
         switch presentation {
-        case .expandedIdle, .calendarExpanded: return true
+        case .expandedIdle, .calendarExpanded, .nowPlayingExpanded: return true
         default: return false
         }
     }

@@ -58,11 +58,13 @@ struct NotchPillView: View {
     }
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Visibility") — the switcher pill shows only when
     // the island is expanded AND no time-sensitive activity (Charging/Device splash, Now-
-    // Playing wings) is being shown, mirroring SHELF-09's suppression precedent: `.expandedIdle`
-    // and `.calendarExpanded` only.
+    // Playing wings glance) is being shown, mirroring SHELF-09's suppression precedent.
+    // 28-04 on-device UAT round 3: `.nowPlayingExpanded` (both healthy/unavailable) is a
+    // long-lived, user-entered full-expanded state — not a brief transient like the wings
+    // glance — so it keeps the switcher too, per the corrected 28-UI-SPEC.md row.
     private var showsSwitcherRow: Bool {
         switch presentation {
-        case .expandedIdle, .calendarExpanded: return true
+        case .expandedIdle, .calendarExpanded, .nowPlayingExpanded: return true
         default: return false
         }
     }
@@ -1278,7 +1280,7 @@ struct NotchPillView: View {
         // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
         // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
         return blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
-                          shelfVisible: shelfViewState.isVisible) {
+                          shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
                     HStack(alignment: .top, spacing: 10) {
@@ -1344,7 +1346,7 @@ struct NotchPillView: View {
     // from D-11 (.none + healthy → date/time): isHealthy is the orthogonal axis.
     private var mediaUnavailable: some View {
         blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfViewState.isVisible) {
+                  shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             Text("Now Playing nicht verfügbar")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(.white)
