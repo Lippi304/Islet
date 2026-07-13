@@ -48,14 +48,6 @@ struct NotchPillView: View {
         if case .onboarding = presentation { return true }
         return false
     }
-    // 28-04 on-device UAT bugfix — mirrors `isOnboardingPresentation`'s pattern exactly (a
-    // dedicated content-height override needs a predicate the outer body `.frame` can branch
-    // on). Reuses the `presentation` enum switch directly rather than adding a redundant
-    // controller-level bool — `showsSwitcherRow` above already establishes this idiom.
-    private var isCalendarPresentation: Bool {
-        if case .calendarExpanded = presentation { return true }
-        return false
-    }
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Visibility") — the switcher pill shows only when
     // the island is expanded AND no time-sensitive activity (Charging/Device splash, Now-
     // Playing wings glance) is being shown, mirroring SHELF-09's suppression precedent.
@@ -63,9 +55,13 @@ struct NotchPillView: View {
     // long-lived, user-entered full-expanded state — not a brief transient like the wings
     // glance — so it keeps the switcher too, per the corrected 28-UI-SPEC.md row.
     // 28-04 round 4 — `.weatherExpanded` added, same reasoning as `.calendarExpanded`.
+    // 28-04 round 5 — `.trayExpanded` added (Tray's own dedicated view, replacing the old
+    // additive-strip force-reveal); this same boolean now also selects the shared
+    // `switcherContentHeight` box in `blobShape` (see that constant's doc comment), so a
+    // per-case `isCalendarPresentation`-style predicate is no longer needed here.
     private var showsSwitcherRow: Bool {
         switch presentation {
-        case .expandedIdle, .calendarExpanded, .weatherExpanded, .nowPlayingExpanded: return true
+        case .expandedIdle, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded: return true
         default: return false
         }
     }
@@ -258,28 +254,47 @@ struct NotchPillView: View {
     // see `blobShape`'s `showSwitcher` parameter below). A starting point for on-device tuning.
     static let switcherRowHeight: CGFloat = 44
 
-    // Phase 28-04 on-device UAT bugfix — calendarFullView's real content (month-nav header +
-    // a worst-case 6-row day grid) does NOT fit inside `expandedSize.height` (144pt), unlike
-    // every other non-onboarding presentation. Without this override, `blobShape`'s content
-    // frame silently centered the oversized content, spilling it equally above AND below the
-    // 144pt box — the overflow ABOVE rendered directly under the physical camera notch
-    // (mirrors the exact regression class documented at `onboardingSize` below, and at
-    // `expandedSize`'s own math comment). Mirrors `onboardingSize`'s pattern: a dedicated
-    // content-height override, calendar's own box grows DOWNWARD only (alignment: .top in
-    // `calendarFullView` below), never re-centers into the camera band. Box math:
+    // 28-04 round 5 (on-device UAT, real Droppy reference screenshots) — the month-grid cell
+    // size/gap, shrunk from round 4's 28×28pt/4pt (which round 4's own comment admitted were
+    // NOT Droppy-accurate — no real notch-overlay screenshot existed at the time). Two genuine
+    // Droppy screenshots now confirm small, tight, numeral-only cells, with the grid column
+    // taking a SMALLER fraction of the pill's width than the day-list column gets. Shrinking
+    // these two constants both matches the reference visually AND automatically frees width
+    // for `dayListColumn` (an HStack sibling with no fixed width of its own — the grid's own
+    // intrinsic width is exactly what LazyVGrid claims, so a smaller grid leaves more remainder
+    // for the list).
+    static let calendarCellSize: CGFloat = 18
+    static let calendarCellGap: CGFloat = 2
+
+    // 28-04 round 5 (on-device UAT, misclick/notch-close bug fix) — RENAMED from
+    // `calendarContentHeight` (28-04 rounds 1-4) and now the ONE shared content-box height for
+    // EVERY switcher-row-showing presentation (Home/Tray/Calendar/Weather/NowPlaying), not just
+    // Calendar. Root cause this fixes: `blobShape`'s `content()` slot used to size to a
+    // PER-CASE height (144pt for Home/Weather/NowPlaying, 266pt for Calendar), and the switcher
+    // row is stacked immediately AFTER `content()` in the same VStack — so its ON-SCREEN Y
+    // POSITION shifted by ~122pt depending on which tab was active, and a click landing where
+    // the switcher USED to be (before the layout reflow settled) could miss it entirely, reading
+    // as empty space and collapsing the island instead of switching tabs. Giving every
+    // switcher-row presentation this ONE fixed content height makes the switcher pill's screen
+    // position PERFECTLY CONSTANT across every tab switch — `blobShape` (below) applies this
+    // UNCONDITIONALLY whenever `showSwitcher` is true, so no call site needs its own per-case
+    // height override anymore (Home/Tray/Weather/NowPlaying's shorter content simply top-aligns
+    // with empty transparent space below it, the SAME `alignment: .top` convention already used
+    // everywhere in this file).
+    // Box math (round 5, recomputed for the shrunk calendar grid above — the tallest content
+    // this constant must fit):
     //   32  (top notch clearance, matches mediaExpanded's .padding(.top, 32) convention)
     // + 20  (month/year header row: chevrons + 13pt semibold label)
     // +  8  (monthGridColumn's own VStack spacing between header and grid)
-    // + 188 (WORST CASE 6-row day grid: `daysInMonth(for:)` can pad up to 6 leading empty
-    //        cells + 31 real days = 37 cells / 7 columns = 6 rows; 6*28 + 5*4 gap = 188.
-    //        28pt cells / 4pt gaps are D-locked minimums, not tunable down to fit a smaller box)
-    // + 18  (bottom inset — room for the bottomCornerRadius:32 curve, same reasoning as
-    //        expandedSize's own +12 but slightly more generous since calendar content is denser)
-    // = 266.
+    // + 118 (WORST CASE 6-row day grid at the round-5 cell size: `daysInMonth(for:)` can pad up
+    //        to 6 leading empty cells + 31 real days = 37 cells / 7 columns = 6 rows;
+    //        6*calendarCellSize + 5*calendarCellGap = 6*18 + 5*2 = 118)
+    // + 18  (bottom inset — room for the bottomCornerRadius:32 curve)
+    // = 196.
     // Unlike `expandedSize`, this is a CONTENT height only (excludes switcher/shelf rows,
     // which `blobShape`/`body`'s outer `.frame` still add on top of this — same convention as
     // `expandedSize.height` itself never including those rows).
-    static let calendarContentHeight: CGFloat = 266
+    static let switcherContentHeight: CGFloat = 196
 
     // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
     // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
@@ -331,6 +346,8 @@ struct NotchPillView: View {
                 calendarFullView                                                 // Phase 28 / CALVIEW-01: month grid + day list
             case .weatherExpanded:
                 weatherFullView                                                  // 28-04 round 4: current-conditions full view
+            case .trayExpanded:
+                trayFullView                                                     // 28-04 round 5: dedicated files-only Tray view
             case .idle:
                 collapsedIsland                                                  // idle pill
             }
@@ -348,15 +365,17 @@ struct NotchPillView: View {
         // unreachable) alike. Mirrors the shelf fix exactly — grow this frame for the
         // `.onboarding` case too. Round 2: also branches WIDTH now that onboardingSize is
         // wider than expandedSize (400 vs 360).
-        // 28-04 on-device UAT bugfix — added an `isCalendarPresentation` branch mirroring
-        // `isOnboardingPresentation`'s: calendarFullView's content box uses
-        // `calendarContentHeight` (266) instead of `expandedSize.height` (144), but — unlike
-        // onboarding — still stacks the shelf/switcher row additions on top, since (unlike
-        // onboarding) calendar's blobShape call still passes real `shelfItems`/`showSwitcher`.
+        // 28-04 round 5 — replaced the old `isCalendarPresentation`-only branch with
+        // `showsSwitcherRow` directly: EVERY switcher-row presentation (not just Calendar) now
+        // reserves the shared `switcherContentHeight` box, matching `blobShape`'s own internal
+        // height logic below so this outer frame never clips a shape that grew to match. Still
+        // unlike onboarding — non-onboarding cases stack the shelf/switcher row additions on
+        // top, since (unlike onboarding) their blobShape calls pass real `shelfItems`/
+        // `showSwitcher`.
         .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
-                   : (isCalendarPresentation ? Self.calendarContentHeight : Self.expandedSize.height)
+                   : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
                        + (shelfViewState.isVisible ? Self.shelfRowHeight : 0)
                        + (showsSwitcherRow ? Self.switcherRowHeight : 0),
                alignment: .top)
@@ -402,7 +421,13 @@ struct NotchPillView: View {
     // here — this ~40pt-tall content needs no camera-clearance pin, unlike mediaExpanded's
     // 84-100pt content (UI-SPEC.md explicitly corrects RESEARCH.md's `.padding(.top, 32)`).
     private var expandedIsland: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items,
+        // 28-04 round 5 — alignment: .top + .padding(.top, 32) added so Home's content sits at
+        // the SAME camera-clearance-pinned position as every other switcher-row presentation
+        // (mediaExpanded/calendarFullView/weatherFullView's existing convention), now that
+        // `blobShape` grows Home's content box to the shared `switcherContentHeight` (see that
+        // constant's doc comment) — centering here would just leave a bigger, uneven gap above
+        // the glance instead of a consistent gap below it, above the switcher row.
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             HStack(spacing: 0) {
                 if let weather = outfit.weather {
@@ -416,6 +441,7 @@ struct NotchPillView: View {
                 }
             }
             .padding(.horizontal, 16)
+            .padding(.top, 32)   // camera/notch clearance — matches mediaExpanded's convention
         }
     }
 
@@ -426,15 +452,17 @@ struct NotchPillView: View {
     // both read through Plan 01's pure `daysInMonth(for:)`/`events(on:events:)` functions, never
     // a re-implementation (RESEARCH.md Anti-Pattern: no Date()/Date.now threaded into month math).
     private var calendarFullView: some View {
-        // 28-04 on-device UAT bugfix — `alignment: .top` + `height: calendarContentHeight`
-        // (was: default `.center` + default `expandedSize.height`). The month grid's real
-        // content is taller than 144pt; centering it in that box spilled the overflow equally
-        // above AND below, and the ABOVE half rendered under the camera notch. Top-pinning +
-        // a real, big-enough reserved box (mirrors mediaExpanded's `alignment: .top` +
+        // 28-04 on-device UAT bugfix — `alignment: .top` (was default `.center`). The month
+        // grid's real content is taller than expandedSize.height; centering it in that box
+        // spilled the overflow equally above AND below, and the ABOVE half rendered under the
+        // camera notch. Top-pinning (mirrors mediaExpanded's `alignment: .top` +
         // `.padding(.top, 32)` convention) makes the island grow DOWNWARD only, same as every
-        // other expanded presentation.
+        // other expanded presentation. 28-04 round 5 — the explicit `height:` override is gone:
+        // `blobShape` now applies the shared `switcherContentHeight` box UNCONDITIONALLY
+        // whenever `showSwitcher` is true (see that constant's doc comment), so this call site
+        // no longer needs its own per-case height.
         blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top,
-                  height: Self.calendarContentHeight, shelfItems: shelfViewState.items,
+                  shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             HStack(spacing: 0) {
                 monthGridColumn
@@ -451,22 +479,24 @@ struct NotchPillView: View {
     }
 
     // LEFT column — month/year header (13px semibold) flanked by prev/next chevrons, over a
-    // 7-column day grid (28×28pt cells, 4px gap). Selected day gets a weight bump (11px
-    // semibold vs. regular), matched via `Calendar.current.isDate(_:inSameDayAs:)` — same
-    // idiom `nextRelevantEvent`/`calendarColumn` already use elsewhere in this file. Taps only
-    // REPORT intent via `onCalendarMonthChange`/`onCalendarDaySelect` (Pattern 3: no navigation
-    // math lives in the view).
-    // 28-04 round 4 visual pass — Droppy reference caveat: the specific calendar-grid
-    // screenshot cited by `notes.md` (images 6-7) does not actually exist among the 31
-    // inspiration PNGs (all 31 are Droppy Settings screenshots on inspection, not notch-overlay
-    // captures — the orchestrator's numbering mismatch confirmed here). Applied the closest
-    // faithful substitute: Droppy's own dominant, product-wide visual language — circular/
-    // capsule badges (License's "Trial Active" chip, the Lock Screen "Rounded — Compact
-    // circular layout" battery/weather rings, every switcher/nav icon already being a filled
-    // or ringed circle) — rather than inventing an unrelated style. Selected day now gets a
-    // filled circle behind the number (was: font-weight only), today gets a thin ring when not
-    // selected, and a day with events gets a small dot — all inside the SAME 28×28pt D-locked
-    // cell footprint (no calendarContentHeight change needed).
+    // 7-column day grid (round 5: `calendarCellSize`×`calendarCellSize`pt cells,
+    // `calendarCellGap`pt gap). Selected day gets a weight bump (semibold vs. regular), matched
+    // via `Calendar.current.isDate(_:inSameDayAs:)` — same idiom `nextRelevantEvent`/
+    // `calendarColumn` already use elsewhere in this file. Taps only REPORT intent via
+    // `onCalendarMonthChange`/`onCalendarDaySelect` (Pattern 3: no navigation math lives in the
+    // view).
+    // 28-04 round 4 visual pass introduced circular/capsule badges (filled circle = selected,
+    // thin ring = today, small dot = has events) as the closest faithful substitute available
+    // at the time — no real Droppy calendar/switcher screenshot existed in this project's
+    // assets then (all 31 files on disk were Settings screenshots).
+    // 28-04 round 5 — two REAL Droppy notch-overlay screenshots (the switcher pill + month
+    // grid, this time genuinely showing the feature this file renders) confirmed the round-4
+    // circular badges were the right visual language, but the CELL SIZE was wrong: Droppy's
+    // grid is small/tight/numeral-only, and gives noticeably MORE width to the day-list column
+    // than the grid column — round 4's 28×28pt/4pt was never actually validated against a real
+    // reference. Shrunk to `calendarCellSize`/`calendarCellGap` (18pt/2pt) below, which both
+    // matches the reference density AND frees width for `dayListColumn` for free (see those
+    // constants' own doc comment).
     private var monthGridColumn: some View {
         VStack(spacing: 8) {
             HStack {
@@ -488,7 +518,8 @@ struct NotchPillView: View {
                 }
                 .buttonStyle(.plain)
             }
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(28), spacing: 4), count: 7), spacing: 4) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(Self.calendarCellSize), spacing: Self.calendarCellGap), count: 7),
+                      spacing: Self.calendarCellGap) {
                 ForEach(Array(daysInMonth(for: calendarViewState.visibleMonth).enumerated()), id: \.offset) { _, day in
                     if let day {
                         let isSelected = Calendar.current.isDate(day, inSameDayAs: calendarViewState.selectedDay)
@@ -496,22 +527,22 @@ struct NotchPillView: View {
                         let hasEvents = calendarViewState.monthEvents.map { !events(on: day, events: $0).isEmpty } ?? false
                         ZStack(alignment: .bottom) {
                             Text(day, format: .dateTime.day())
-                                .font(.system(size: 11, weight: isSelected ? .semibold : .regular, design: .rounded))
+                                .font(.system(size: 9, weight: isSelected ? .semibold : .regular, design: .rounded))
                                 .foregroundStyle(.white)
-                                .frame(width: 28, height: 28)
+                                .frame(width: Self.calendarCellSize, height: Self.calendarCellSize)
                                 .background(Circle().fill(Color.white.opacity(isSelected ? 0.18 : 0)))
                                 .overlay(Circle().strokeBorder(Color.white.opacity(isToday && !isSelected ? 0.6 : 0), lineWidth: 1))
                             if hasEvents {
                                 Circle()
                                     .fill(Color.white.opacity(0.6))
-                                    .frame(width: 3, height: 3)
-                                    .offset(y: -3)
+                                    .frame(width: 2, height: 2)
+                                    .offset(y: -1)
                             }
                         }
-                        .frame(width: 28, height: 28)
+                        .frame(width: Self.calendarCellSize, height: Self.calendarCellSize)
                         .onTapGesture { onCalendarDaySelect(day) }
                     } else {
-                        Color.clear.frame(width: 28, height: 28)   // leading pad cell — no view
+                        Color.clear.frame(width: Self.calendarCellSize, height: Self.calendarCellSize)   // leading pad cell — no view
                     }
                 }
             }
@@ -608,12 +639,11 @@ struct NotchPillView: View {
     // reusing its icon-mapping (`weatherIcon(for:)`) and temperature-formatting exactly rather
     // than reinventing them. A real forecast would need a new WeatherKit call + a new data
     // model — out of scope for this round, flagged back to the user rather than silently built.
-    // Content (icon 44 + temp 32 + label ~14, plus the 32pt camera-clearance pin) fits inside
-    // the existing `expandedSize.height` (144pt) base — unlike calendarFullView, no dedicated
-    // `weatherContentHeight` override was needed; all three geometry call sites
-    // (this file's outer `.frame`, positionAndShow, visibleContentZone) therefore need no
-    // changes beyond `showsSwitcherRow`, which already governs the switcher-row addition
-    // uniformly for every case in that set.
+    // Content (icon 44 + temp 32 + label ~14, plus the 32pt camera-clearance pin) is much
+    // shorter than the shared `switcherContentHeight` box — 28-04 round 5 made THAT box the
+    // uniform content height for every switcher-row presentation (see that constant's doc
+    // comment), so this shorter content simply top-aligns with empty transparent space below
+    // it, above the switcher row; no per-case override was ever needed here.
     private var weatherFullView: some View {
         blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
@@ -668,6 +698,52 @@ struct NotchPillView: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity)
+    }
+
+    // 28-04 round 5 (user-reported UX gap) — Tray becomes its own dedicated, files-only
+    // presentation instead of the previous "select Tray -> force-reveal the small additive
+    // shelf strip under whatever Home showed" behavior. Reuses `shelfRow(_:)`/`ShelfItemView`
+    // verbatim (Pattern 3: shelf-item rendering is never reinvented) inside a dedicated,
+    // camera-clearance-pinned `blobShape` box — the SAME `showSwitcher: true` convention as
+    // Calendar/Weather, so it automatically participates in the shared `switcherContentHeight`
+    // fix. `shelfVisible: false` is deliberate: this view IS the full files presentation, so
+    // the additive shelf strip mechanism (`ShelfViewState.isVisible`, still used to
+    // auto-reveal files under Home/Calendar/Weather/NowPlaying per Phase 24) must NOT also
+    // append itself a second time below this content.
+    private var trayFullView: some View {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: [],
+                  shelfVisible: false, showSwitcher: true) {
+            Group {
+                if shelfViewState.items.isEmpty {
+                    trayEmptyState
+                } else {
+                    shelfRow(shelfViewState.items)
+                }
+            }
+            .padding(.top, 32)   // camera/notch clearance — matches mediaExpanded's convention
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+    }
+
+    // The empty state — mirrors `calendarEmptyState`'s tone/structure (heading + secondary
+    // body line) rather than `mediaUnavailable`/`weatherFullUnavailable`'s single-line "nicht
+    // verfügbar" style, since an empty shelf is a normal empty collection (like an empty
+    // inbox), not a degraded/blocked feature.
+    private var trayEmptyState: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "tray")
+                .font(.system(size: 28))
+                .foregroundStyle(.white.opacity(0.4))
+            Text("No files yet")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            Text("Drag files onto the notch to add them here.")
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     // Phase 26 / ONBOARD-01 — the notch-hosted onboarding carousel. Same call shape as
@@ -974,6 +1050,16 @@ struct NotchPillView: View {
     // independent reserved row (not squeezed into the content box), appended between `content()`
     // and the shelf row so both rows coexist without one clobbering the other's space (content ->
     // switcher -> shelf, top to bottom).
+    // 28-04 round 5 (misclick/notch-close bug fix) — `showSwitcher: true` now ALSO forces
+    // `baseHeight` to the shared `switcherContentHeight` constant, ignoring any `height:`
+    // override a caller passes. Root cause this fixes: the switcher row is stacked immediately
+    // AFTER `content()` in the VStack below, so `content()`'s box height directly determines the
+    // switcher row's on-screen Y position — when different presentations passed different
+    // `height:` values (144pt for Home/Weather/NowPlaying, 266pt for Calendar), the switcher
+    // pill visually jumped up/down on every tab switch, and a click landing where it USED to be
+    // (before the reflow settled) could miss it and collapse the island instead. Centralizing
+    // the height decision HERE (rather than requiring every call site to agree on a value)
+    // makes it structurally impossible for a future switcher-row caller to reintroduce the bug.
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
@@ -985,7 +1071,7 @@ struct NotchPillView: View {
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = shelfVisible
         let baseWidth = width ?? Self.expandedSize.width
-        let baseHeight = height ?? Self.expandedSize.height
+        let baseHeight = showSwitcher ? Self.switcherContentHeight : (height ?? Self.expandedSize.height)
         let totalHeight = baseHeight
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
@@ -1458,13 +1544,17 @@ struct NotchPillView: View {
     // expanded blob shape so the island still morphs; a single centered message. Distinct
     // from D-11 (.none + healthy → date/time): isHealthy is the orthogonal axis.
     private var mediaUnavailable: some View {
-        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: shelfViewState.items,
+        // 28-04 round 5 — alignment: .top + .padding(.top, 32), same reasoning as
+        // expandedIsland's own round-5 change (both are shorter than the shared
+        // switcherContentHeight box now that blobShape applies it uniformly).
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
                   shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
             Text("Now Playing nicht verfügbar")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 16)
+                .padding(.top, 32)
         }
     }
 

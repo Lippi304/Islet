@@ -655,9 +655,10 @@ final class NotchWindowController {
     // 28-04 on-device UAT round 3: `.nowPlayingExpanded` added — see NotchPillView.swift's
     // mirrored property for the reasoning.
     // 28-04 round 4 — `.weatherExpanded` added, mirroring NotchPillView.swift's own update.
+    // 28-04 round 5 — `.trayExpanded` added, mirroring NotchPillView.swift's own update.
     private func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
         switch presentation {
-        case .expandedIdle, .calendarExpanded, .weatherExpanded, .nowPlayingExpanded: return true
+        case .expandedIdle, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded: return true
         default: return false
         }
     }
@@ -794,9 +795,15 @@ final class NotchWindowController {
         // shelfRowHeight was added in Phase 20: unconditionally, so the panel never needs a
         // live resize when the switcher row first appears (the visible black shape still only
         // grows into it conditionally, per NotchPillView.body's own frame math).
+        // 28-04 round 5 — reserves `NotchPillView.switcherContentHeight` (the ONE shared
+        // content-box height every switcher-row presentation now uses — see that constant's
+        // doc comment) instead of the old `expandedSize.height`, so this single union member
+        // covers Home/Tray/Calendar/Weather/NowPlaying uniformly. The separate `calendarFrame`
+        // union member from rounds 1-4 is gone: a calendar-only reservation is no longer taller
+        // than every other switcher-row presentation's own (now-shared) reservation.
         let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                expandedSize: CGSize(width: expandedSize.width,
-                                                                     height: expandedSize.height + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
+                                                                     height: NotchPillView.switcherContentHeight + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
 
         // CHG-01 / Pattern 4: the wings extend SIDEWAYS, so the panel must also cover the
         // flat wings strip. Size the panel ONCE to the UNION of the downward-expanded and the
@@ -807,17 +814,7 @@ final class NotchWindowController {
         // possible content size (mirrors how `wings` was added as a second union member in
         // Phase 3) so the onboarding card's real 240pt height is never resized mid-activity.
         let onboardingFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: NotchPillView.onboardingSize)
-        // 28-04 on-device UAT bugfix — calendarFullView's content box (calendarContentHeight,
-        // 266pt) is taller than expandedSize.height (144pt) alone, so `expandedFrame` above
-        // (which only reserves expandedSize + shelf + switcher) was too short — the panel
-        // window itself clipped the bottom of the calendar content, and syncClickThrough's
-        // hot-zone/expandedZone math (both derived from this same panelFrame union) was wrong
-        // too. Reserved unconditionally in the union exactly like `onboardingFrame`/`wings` —
-        // worst-case reservation, transparent when unused, no live resize needed.
-        let calendarFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                               expandedSize: CGSize(width: expandedSize.width,
-                                                                     height: NotchPillView.calendarContentHeight + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
-        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(calendarFrame)
+        let panelFrame = expandedFrame.union(wings).union(onboardingFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
@@ -973,28 +970,25 @@ final class NotchWindowController {
         guard let hotZone else { return nil }
         let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
         // Phase 28 / CALVIEW-04, Pitfall 3 — the 3rd and final call site reading through
-        // ShelfViewState.isVisible (items non-empty OR Tray force-reveal) instead of the raw
-        // `.items.isEmpty` check; see project memory cr01-clickthrough-or-defeat-gotcha.
+        // ShelfViewState.isVisible (real items only, post-28-04-round-5 forcedByTray removal)
+        // instead of the raw `.items.isEmpty` check; see project memory
+        // cr01-clickthrough-or-defeat-gotcha.
         let shelfHeight = shelfViewState.isVisible ? NotchPillView.shelfRowHeight : 0
-        let switcherHeight = showsSwitcherRow(for: presentationState.presentation) ? NotchPillView.switcherRowHeight : 0
+        let switcherRowShowing = showsSwitcherRow(for: presentationState.presentation)
+        let switcherHeight = switcherRowShowing ? NotchPillView.switcherRowHeight : 0
         // Phase 26 / ONBOARD-01/02 — the onboarding card renders at its own taller fixed size
-        // (240pt vs. the 144pt expandedSize), independent of shelf state (onboarding's shelf is
-        // always empty, D-06). Scoping this branch to ONLY the geometry visibleContentZone()
-        // measures keeps syncClickThrough()'s own interactive-value logic untouched (CR-01
-        // discipline — see 26-PATTERNS.md).
-        // 28-04 on-device UAT bugfix — calendarExpanded's content box is taller than
-        // expandedSize.height (see NotchPillView.calendarContentHeight's math comment); without
-        // this branch the click-through zone stayed clamped to the old 144pt-based height even
-        // after positionAndShow's panel reservation grew, defeating hover/click over the lower
-        // portion of the real (now taller) calendar content. Reuses the `presentation` enum
-        // switch directly, mirroring `showsSwitcherRow(for:)`'s existing idiom, rather than
-        // adding a redundant controller-level bool alongside `isOnboardingActive`.
-        let isCalendarActive: Bool
-        if case .calendarExpanded = presentationState.presentation { isCalendarActive = true } else { isCalendarActive = false }
+        // (onboardingSize vs. the 144pt expandedSize), independent of shelf state (onboarding's
+        // shelf is always empty, D-06). Scoping this branch to ONLY the geometry
+        // visibleContentZone() measures keeps syncClickThrough()'s own interactive-value logic
+        // untouched (CR-01 discipline — see 26-PATTERNS.md).
+        // 28-04 round 5 — every switcher-row-showing presentation (Home/Tray/Calendar/Weather/
+        // NowPlaying) now shares ONE content height (`NotchPillView.switcherContentHeight`),
+        // reusing the SAME `switcherRowShowing` boolean already computed above — the old
+        // `isCalendarActive`-only branch from rounds 1-4 is gone.
         let contentSize: CGSize = isOnboardingActive
             ? NotchPillView.onboardingSize
             : CGSize(width: expandedSize.width,
-                     height: (isCalendarActive ? NotchPillView.calendarContentHeight : expandedSize.height) + shelfHeight + switcherHeight)
+                     height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + shelfHeight + switcherHeight)
         let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: contentSize)
         return visibleFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
     }
@@ -1165,15 +1159,19 @@ final class NotchWindowController {
         }
     }
 
-    // Phase 28 / CALVIEW-01 — wired from NotchPillView's switcher pill taps. D-02's Tray
-    // reconciliation force-reveals an otherwise-empty shelf strip without a dedicated resolver
-    // case (see ShelfViewState.forcedByTray's header comment); Pitfall 4 resets the calendar to
+    // Phase 28 / CALVIEW-01 — wired from NotchPillView's switcher pill taps. 28-04 round 5:
+    // Tray became its OWN resolver case (`.trayExpanded`, IslandResolver.swift), replacing the
+    // earlier "force-reveal the additive shelf strip under Home" reconciliation — the
+    // `ShelfViewState.forcedByTray` flag this used to set is gone (dead once Tray got a real
+    // resolver case: selecting Tray now always resolves to `.trayExpanded`, so no OTHER
+    // presentation's additive shelf strip could ever observe a `forcedByTray` flag anyway).
+    // Phase 24's auto-reveal-on-drop is untouched — it still reads purely off
+    // `ShelfViewState.isVisible`'s `!items.isEmpty` half. Pitfall 4 resets the calendar to
     // today/this-month on every Calendar selection so a stale prior month never flashes (D-07:
     // today selected by default on open).
     private func handleSwitcherSelect(_ view: SelectedView) {
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             viewSwitcherState.selectedView = view
-            shelfViewState.forcedByTray = (view == .tray)
             if view == .calendar {
                 calendarViewState.selectedDay = Date()
                 calendarViewState.visibleMonth = Date()
