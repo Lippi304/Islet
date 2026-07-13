@@ -62,9 +62,10 @@ struct NotchPillView: View {
     // 28-04 on-device UAT round 3: `.nowPlayingExpanded` (both healthy/unavailable) is a
     // long-lived, user-entered full-expanded state — not a brief transient like the wings
     // glance — so it keeps the switcher too, per the corrected 28-UI-SPEC.md row.
+    // 28-04 round 4 — `.weatherExpanded` added, same reasoning as `.calendarExpanded`.
     private var showsSwitcherRow: Bool {
         switch presentation {
-        case .expandedIdle, .calendarExpanded, .nowPlayingExpanded: return true
+        case .expandedIdle, .calendarExpanded, .weatherExpanded, .nowPlayingExpanded: return true
         default: return false
         }
     }
@@ -328,6 +329,8 @@ struct NotchPillView: View {
                 expandedIsland                                                   // D-11 date/time (healthy, no media)
             case .calendarExpanded:
                 calendarFullView                                                 // Phase 28 / CALVIEW-01: month grid + day list
+            case .weatherExpanded:
+                weatherFullView                                                  // 28-04 round 4: current-conditions full view
             case .idle:
                 collapsedIsland                                                  // idle pill
             }
@@ -453,6 +456,17 @@ struct NotchPillView: View {
     // idiom `nextRelevantEvent`/`calendarColumn` already use elsewhere in this file. Taps only
     // REPORT intent via `onCalendarMonthChange`/`onCalendarDaySelect` (Pattern 3: no navigation
     // math lives in the view).
+    // 28-04 round 4 visual pass — Droppy reference caveat: the specific calendar-grid
+    // screenshot cited by `notes.md` (images 6-7) does not actually exist among the 31
+    // inspiration PNGs (all 31 are Droppy Settings screenshots on inspection, not notch-overlay
+    // captures — the orchestrator's numbering mismatch confirmed here). Applied the closest
+    // faithful substitute: Droppy's own dominant, product-wide visual language — circular/
+    // capsule badges (License's "Trial Active" chip, the Lock Screen "Rounded — Compact
+    // circular layout" battery/weather rings, every switcher/nav icon already being a filled
+    // or ringed circle) — rather than inventing an unrelated style. Selected day now gets a
+    // filled circle behind the number (was: font-weight only), today gets a thin ring when not
+    // selected, and a day with events gets a small dot — all inside the SAME 28×28pt D-locked
+    // cell footprint (no calendarContentHeight change needed).
     private var monthGridColumn: some View {
         VStack(spacing: 8) {
             HStack {
@@ -478,11 +492,24 @@ struct NotchPillView: View {
                 ForEach(Array(daysInMonth(for: calendarViewState.visibleMonth).enumerated()), id: \.offset) { _, day in
                     if let day {
                         let isSelected = Calendar.current.isDate(day, inSameDayAs: calendarViewState.selectedDay)
-                        Text(day, format: .dateTime.day())
-                            .font(.system(size: 11, weight: isSelected ? .semibold : .regular, design: .rounded))
-                            .foregroundStyle(.white)
-                            .frame(width: 28, height: 28)
-                            .onTapGesture { onCalendarDaySelect(day) }
+                        let isToday = Calendar.current.isDateInToday(day)
+                        let hasEvents = calendarViewState.monthEvents.map { !events(on: day, events: $0).isEmpty } ?? false
+                        ZStack(alignment: .bottom) {
+                            Text(day, format: .dateTime.day())
+                                .font(.system(size: 11, weight: isSelected ? .semibold : .regular, design: .rounded))
+                                .foregroundStyle(.white)
+                                .frame(width: 28, height: 28)
+                                .background(Circle().fill(Color.white.opacity(isSelected ? 0.18 : 0)))
+                                .overlay(Circle().strokeBorder(Color.white.opacity(isToday && !isSelected ? 0.6 : 0), lineWidth: 1))
+                            if hasEvents {
+                                Circle()
+                                    .fill(Color.white.opacity(0.6))
+                                    .frame(width: 3, height: 3)
+                                    .offset(y: -3)
+                            }
+                        }
+                        .frame(width: 28, height: 28)
+                        .onTapGesture { onCalendarDaySelect(day) }
                     } else {
                         Color.clear.frame(width: 28, height: 28)   // leading pad cell — no view
                     }
@@ -537,9 +564,14 @@ struct NotchPillView: View {
     // convention (T-14-06 MANDATORY: `.lineLimit(1)`/`.truncationMode(.tail)` on untrusted
     // EventKit titles). `ScrollView(.vertical)` so >3-4 rows scroll instead of overflowing the
     // 144pt content box (28-UI-SPEC.md Layout Contract "Day-list scroll").
+    // 28-04 round 4 visual pass — each row now sits in a subtle rounded card
+    // (Color.white.opacity(0.06) + 8pt corner radius), matching Droppy's own ubiquitous
+    // rounded-card container language (every Droplet/setting row in the reference screenshots
+    // is a rounded translucent card) — purely additive per-row styling, no height/scroll math
+    // changed.
     private func dayEventsList(_ dayEvents: [EventInput]) -> some View {
         ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 ForEach(Array(dayEvents.enumerated()), id: \.offset) { _, event in
                     HStack(spacing: 6) {
                         Circle()
@@ -556,10 +588,86 @@ struct NotchPillView: View {
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.white.opacity(0.06))
+                    )
                 }
             }
         }
         .scrollIndicators(.never)
+    }
+
+    // 28-04 round 4 (user-confirmed scope expansion) — the Weather full view. IMPORTANT
+    // CAVEAT: `WeatherGlance` (Islet/Weather/WeatherService.swift) only carries CURRENT
+    // conditions (category + temperature) — there is no forecast/hourly/multi-day fetch
+    // anywhere in this codebase. This view deliberately renders ONLY that existing
+    // current-conditions data, styled larger/richer than `weatherColumn`'s small glance —
+    // reusing its icon-mapping (`weatherIcon(for:)`) and temperature-formatting exactly rather
+    // than reinventing them. A real forecast would need a new WeatherKit call + a new data
+    // model — out of scope for this round, flagged back to the user rather than silently built.
+    // Content (icon 44 + temp 32 + label ~14, plus the 32pt camera-clearance pin) fits inside
+    // the existing `expandedSize.height` (144pt) base — unlike calendarFullView, no dedicated
+    // `weatherContentHeight` override was needed; all three geometry call sites
+    // (this file's outer `.frame`, positionAndShow, visibleContentZone) therefore need no
+    // changes beyond `showsSwitcherRow`, which already governs the switcher-row addition
+    // uniformly for every case in that set.
+    private var weatherFullView: some View {
+        blobShape(topCornerRadius: 6, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+                  shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
+            Group {
+                if let weather = outfit.weather {
+                    weatherFullContent(weather)
+                } else {
+                    weatherFullUnavailable
+                }
+            }
+            .padding(.top, 32)   // camera/notch clearance — matches mediaExpanded's convention
+        }
+    }
+
+    // The populated state: icon + temperature + a plain category label, centered, reusing
+    // `weatherIcon(for:)`'s exact SF Symbol mapping and the same locale-aware
+    // `.formatted(.measurement(...))` temperature string `weatherColumn` already uses (no
+    // manual Celsius/Fahrenheit conversion here either).
+    private func weatherFullContent(_ weather: WeatherGlance) -> some View {
+        VStack(spacing: 8) {
+            weatherIcon(for: weather.category)
+                .font(.system(size: 44))
+            Text(weather.temperature.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
+                .font(.system(size: 32, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+            Text(weatherCategoryLabel(weather.category))
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // Plain English label per category — mirrors `calendarEmptyState`'s plain-string
+    // convention; no new asset/localization system introduced for 4 fixed strings.
+    private func weatherCategoryLabel(_ category: WeatherCategory) -> String {
+        switch category {
+        case .sunny: return "Sunny"
+        case .cloudy: return "Cloudy"
+        case .rain: return "Rain"
+        case .snow: return "Snow"
+        }
+    }
+
+    // The unavailable/empty state (no location permission, or the fetch failed/hasn't
+    // settled yet) — mirrors `mediaUnavailable`'s "nicht verfügbar" tone/style exactly rather
+    // than a blank box.
+    private var weatherFullUnavailable: some View {
+        Text("Wetter nicht verfügbar")
+            .font(.system(size: 14, weight: .medium, design: .rounded))
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
     }
 
     // Phase 26 / ONBOARD-01 — the notch-hosted onboarding carousel. Same call shape as
@@ -905,11 +1013,13 @@ struct NotchPillView: View {
             .onTapGesture { onClick() }
     }
 
-    // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Switcher pill") — the 3-icon Home/Tray/Calendar
+    // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Switcher pill") — the Home/Tray/Calendar/Weather
     // switcher, reusing `navCircleButton` verbatim (same circular nav-button visual language as
     // onboarding's Back/Next/Finish). `filled:` marks whichever icon matches
     // `viewSwitcherState.selectedView`; each tap only REPORTS intent via `onSwitcherSelect` — no
     // precedence re-deciding here (Pattern 3: the resolver stays the single arbiter).
+    // 28-04 round 4 (user-confirmed scope expansion) — Weather appended as the 4th icon, after
+    // Calendar (Home/Tray/Calendar/Weather order, existing three left untouched).
     private var switcherRow: some View {
         HStack(spacing: 8) {
             navCircleButton(systemName: "house.fill",
@@ -921,6 +1031,9 @@ struct NotchPillView: View {
             navCircleButton(systemName: "calendar",
                              filled: viewSwitcherState.selectedView == .calendar,
                              action: { onSwitcherSelect(.calendar) })
+            navCircleButton(systemName: "cloud.sun.fill",
+                             filled: viewSwitcherState.selectedView == .weather,
+                             action: { onSwitcherSelect(.weather) })
         }
         .frame(height: Self.switcherRowHeight)
     }

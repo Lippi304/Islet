@@ -654,9 +654,10 @@ final class NotchWindowController {
     // click-through math here stay in lockstep with what the view actually renders.
     // 28-04 on-device UAT round 3: `.nowPlayingExpanded` added — see NotchPillView.swift's
     // mirrored property for the reasoning.
+    // 28-04 round 4 — `.weatherExpanded` added, mirroring NotchPillView.swift's own update.
     private func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
         switch presentation {
-        case .expandedIdle, .calendarExpanded, .nowPlayingExpanded: return true
+        case .expandedIdle, .calendarExpanded, .weatherExpanded, .nowPlayingExpanded: return true
         default: return false
         }
     }
