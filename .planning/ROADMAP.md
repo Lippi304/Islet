@@ -462,8 +462,21 @@ Plans:
   2. When paused/stopped, the Home view shows the last-played track's cover art and title, with the same transport controls as the live state (REVISED 2026-07-14: controls stay visible, not hidden — see 30-CONTEXT.md).
   3. When nothing has been played this session, the Home view shows an explicit empty state instead of any glance content.
   4. The time/weather/calendar idle glance no longer appears anywhere on Home, in any of the three sub-states.
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 30-01-PLAN.md — NowPlayingState.lastKnownTrack contract + IslandResolver .homeLastPlayed/.homeEmpty cases + NotchPillView routing/homeEmptyState + test rewrite
+
+**Wave 2** *(blocked on 30-01)*
+
+- [ ] 30-02-PLAN.md — NotchWindowController lastKnownTrack capture (D-07/D-08) + transport-button hover background (D-05)
+
+**Wave 3** *(blocked on 30-02)*
+
+- [ ] 30-03-PLAN.md — On-device UAT: all 3 Home sub-states, hover background, Weather/Calendar regression check
 
 ### Phase 31: Shelf Consolidation to Tray-Only
 
