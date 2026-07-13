@@ -472,7 +472,7 @@ Plans:
 
 **Wave 2** *(blocked on 30-01)*
 
-- [ ] 30-02-PLAN.md — NotchWindowController lastKnownTrack capture (D-07/D-08) + transport-button hover background (D-05)
+- [x] 30-02-PLAN.md — NotchWindowController lastKnownTrack capture (D-07/D-08) + transport-button hover background (D-05)
 
 **Wave 3** *(blocked on 30-02)*
 
