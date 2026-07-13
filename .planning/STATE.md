@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
-status: planning
-stopped_at: Phase 29 context gathered
-last_updated: "2026-07-13T15:36:08.232Z"
-last_activity: 2026-07-13 — v1.5 ROADMAP.md created (Phases 29-34, 100% requirement coverage)
+status: executing
+stopped_at: Phase 29 UI-SPEC approved
+last_updated: "2026-07-13T16:09:46.924Z"
+last_activity: 2026-07-13 -- Phase 29 planning complete
 progress:
   total_phases: 19
   completed_phases: 9
-  total_plans: 28
+  total_plans: 29
   completed_plans: 27
   percent: 47
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 Phase: 29 of 34 (NotchShape Flare) — first phase of v1.5
 Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-07-13 — v1.5 ROADMAP.md created (Phases 29-34, 100% requirement coverage)
+Status: Ready to execute
+Last activity: 2026-07-13 -- Phase 29 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -185,9 +185,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-13T15:36:08.227Z
-Stopped at: Phase 29 context gathered
-Resume file: .planning/phases/29-notchshape-flare/29-CONTEXT.md
+Last session: 2026-07-13T15:44:48.806Z
+Stopped at: Phase 29 UI-SPEC approved
+Resume file: .planning/phases/29-notchshape-flare/29-UI-SPEC.md
 
 ## Operator Next Steps
 

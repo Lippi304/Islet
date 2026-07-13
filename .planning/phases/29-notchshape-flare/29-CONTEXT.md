@@ -15,7 +15,7 @@ Every expanded presentation (Home, Tray, Calendar, Weather, Charging/Device wing
 
 ### Flare look
 - **D-01 (LOCKED):** The flare is a **subtle widen** — the top edge widens only a little before curving into the bezel, closer to today's existing 6pt quad-curve top corner, just a touch more pronounced. Not a dramatic trumpet/bell-shaped flourish. User explicitly rejected the "pronounced flare" option.
-- **D-02:** Exact pt values for the widen amount are Claude's/planner's discretion, tuned on-device — matches this project's established convention (wings sizing in Phase 3/4, bottom-corner radius in Phase 25, spring curves in Phase 2/25 were all tuned this way after an initial implementation pass).
+- **D-02 [informational]:** Exact pt values for the widen amount are Claude's/planner's discretion, tuned on-device — matches this project's established convention (wings sizing in Phase 3/4, bottom-corner radius in Phase 25, spring curves in Phase 2/25 were all tuned this way after an initial implementation pass).
 
 ### Coverage — media wings/toast excluded
 - **D-03 (LOCKED):** The Now-Playing media wings / song-change-toast glance (`mediaWingsOrToast`, `NotchPillView.swift` ~line 1234) does **NOT** get the flare — it stays flush like the collapsed pill. Flare applies only to the ROADMAP-named set: Home, Tray, Calendar, Weather (all via `blobShape()`) and Charging/Device wings (via `wingsShape()`).
