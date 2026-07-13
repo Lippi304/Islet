@@ -68,11 +68,17 @@ struct NotchShape: Shape {
         // the corner-cut notch surviving intact at its new (shifted) location, and the bulge's
         // own boundary tracing one smooth outward hump reaching the full `bulge` extent.
         let bulge = topFlareWidth
-        // Fits every real flared call site without inverting the wall: the tightest is
-        // wingsShape (topCornerRadius: 6, bottomCornerRadius: 6, height 32) — 15 + 6 + 6 = 27,
-        // leaving a real (if narrow) 5pt straight wall; every blobShape call site (height
-        // 144+) has ample room to spare.
-        let bulgeDepth: CGFloat = 15
+        // DIAGNOSTIC — REVERT AFTER THIS TEST: temporarily bumped to isolate whether the flare
+        // mechanism renders AT ALL on real hardware, independent of whether 15pt is a tasteful
+        // final value (7 rounds of "verified correct on paper" have all read as invisible
+        // on-device). The plan's suggested example (40) was checked against the tightest real
+        // call site — wingsShape (topCornerRadius: 6, bottomCornerRadius: 6, height 32) — and
+        // found UNSAFE: 40 + 6 + 6 = 52 > 32 inverts the wall exactly like the round-4/round-7
+        // self-overlap regressions this file's history already hit. Capped to 18, the largest
+        // value that keeps wingsShape's wall positive: (32 - 6) - (18 + 6) = 2pt wall (vs. the
+        // original 15's 5pt wall) — still a real, non-inverted corner-cut. Revert to 15 once
+        // this diagnostic round answers the working-vs-not question.
+        let bulgeDepth: CGFloat = 18
 
         p.move(to: CGPoint(x: rect.minX, y: rect.minY))
         p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY)) // FULL-WIDTH flush top run — never recessed

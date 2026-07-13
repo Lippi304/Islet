@@ -218,7 +218,14 @@ struct NotchPillView: View {
     // trumpet. NotchWindowController.swift reads this SAME constant to widen its panel-frame
     // reservation by `2 * topFlareWidth` (the bulge extends past the presentation's own rect
     // again, unlike round 5's converge-back-to-rect design) — do not let the two drift.
-    static let topFlareWidth: CGFloat = 14
+    // DIAGNOSTIC — REVERT AFTER THIS TEST: temporarily bumped from 14 to an impossible-to-miss
+    // value, purely to isolate whether the flare mechanism renders at all on real hardware
+    // (7 rounds of geometry that sampled as "correct" via CGPath.contains have all read as
+    // "no rounding at all" on-device). This value is a purely horizontal outward margin — unlike
+    // bulgeDepth in NotchShape.swift, it never consumes vertical wall budget, so it needs no
+    // per-call-site safety check. Revert to 14 once this diagnostic round answers the
+    // working-vs-not question.
+    static let topFlareWidth: CGFloat = 50
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
@@ -241,7 +248,14 @@ struct NotchPillView: View {
     // Phase 27 / VISUAL-03 (D-06) — the single source of truth all 4 fill sites below read:
     // branches Gradient vs Solid Black per `materialStyle`, type-erased via AnyShapeStyle since
     // the two branches (LinearGradient vs Color) are not the same concrete ShapeStyle type.
+    // DIAGNOSTIC — REVERT AFTER THIS TEST: forces a bright, obviously-wrong solid red fill
+    // regardless of `materialStyle`, as a SECOND, INDEPENDENT diagnostic signal from the
+    // exaggerated bulge above — distinguishes "wrong shape, right color" (mechanism works,
+    // subtlety was the issue) from "right shape, but somehow not rendering" from "an unrelated
+    // view is rendering instead." Flip to `false` (or delete this flag + its branch) to revert.
+    private static let diagnosticForceRedFill = true
     private var islandFill: AnyShapeStyle {
+        if Self.diagnosticForceRedFill { return AnyShapeStyle(Color.red) }
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
