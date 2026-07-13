@@ -28,7 +28,7 @@ Home is decluttered to music-only (dropping the idle weather/calendar/date fallb
 
 ### Shape
 
-- [ ] **SHAPE-01**: The expanded-state notch silhouette gains an outward-flaring top-edge transition into the screen bezel; the idle/collapsed pill shape stays exactly as it is today
+- [x] **SHAPE-01**: The expanded-state notch silhouette gains an outward-flaring top-edge transition into the screen bezel; the idle/collapsed pill shape stays exactly as it is today
 
 ## v2 Requirements
 
@@ -66,7 +66,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SHAPE-01 | Phase 29 | Pending |
+| SHAPE-01 | Phase 29 | Complete |
 | HOME-01 | Phase 30 | Pending |
 | HOME-02 | Phase 30 | Pending |
 | HOME-03 | Phase 30 | Pending |

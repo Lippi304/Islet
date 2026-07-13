@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
 status: executing
-stopped_at: Phase 29 UI-SPEC approved
-last_updated: "2026-07-13T16:09:46.924Z"
-last_activity: 2026-07-13 -- Phase 29 planning complete
+stopped_at: Phase 29 complete (SHAPE-01 on-device UAT approved)
+last_updated: "2026-07-14T00:19:00.000Z"
+last_activity: 2026-07-14 -- Phase 29 (NotchShape Flare) complete, on-device UAT approved
 progress:
   total_phases: 19
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 29
-  completed_plans: 27
-  percent: 47
+  completed_plans: 28
+  percent: 53
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 29 (NotchShape Flare) — ready to plan
+**Current focus:** Phase 29 complete — Phase 30 (Home Music-Only) next
 
 ## Current Position
 
-Phase: 29 of 34 (NotchShape Flare) — first phase of v1.5
-Plan: — (not yet planned)
-Status: Ready to execute
-Last activity: 2026-07-13 -- Phase 29 planning complete
+Phase: 29 (notchshape-flare) — COMPLETE
+Plan: 1 of 1 (complete)
+Status: Phase 29 complete, on-device UAT approved. Next: /gsd-discuss-phase 30
+Last activity: 2026-07-14 -- Phase 29 complete, on-device UAT approved
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -45,7 +45,7 @@ Progress (v1.3): [██████████] 100% (Phases 19-21 shipped; Ph
 
 Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23-28 complete; pending final on-device UAT re-confirmation of 2 code-review fixes before formal close)
 
-Progress (v1.5): [░░░░░░░░░░] 0% (0/6 phases — Phase 29 next)
+Progress (v1.5): [██░░░░░░░░] 17% (1/6 phases — Phase 29 complete, Phase 30 next)
 
 ## Performance Metrics
 
@@ -106,6 +106,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 26]: Onboarding carousel visuals iterated across 5 on-device UAT rounds vs. a Droppy reference (centered text, 400->420 wide/300->320 tall panel, pill permission rows, circular nav, static glow); 26-UI-SPEC.md updated each round to stay truthful
 - [Phase 26]: macOS deployment target bumped 14.0 -> 15.0 (user-approved) to fix a Settings-window auto-restore-at-launch bug via .defaultLaunchBehavior(.suppressed), which has no availability-guard path in SwiftUI's SceneBuilder
 - [v1.5 roadmap] Phase order 29→30→31→32→33→34 (Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker) follows research's dependency-grounded recommendation: independence first (Flare), then lowest-new-architecture-risk (Home), then a hard-dependency pair (Shelf Consolidation must land before Tray Widening to avoid touching `visibleContentZone()` twice), then fully-independent Weather, then the one feature requiring genuinely new AppKit territory (Quick Action picker) isolated last — mirrors the project's own Phase 22→24 drag-in risk-isolation precedent
+- [Phase 29]: SHAPE-01 shipped as a plain topCornerRadius increase (24pt blob / 12pt wings) at 2 call sites, not the topFlareWidth geometry the plan specified — 3 alternate geometry designs (concave sweep, shoulder bulge, centered notch dip) were built and abandoned across ~17 on-device UAT rounds before the simple radius bump matched the user's reference
 
 ### Roadmap Evolution
 
@@ -185,11 +186,11 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-13T15:44:48.806Z
-Stopped at: Phase 29 UI-SPEC approved
-Resume file: .planning/phases/29-notchshape-flare/29-UI-SPEC.md
+Last session: 2026-07-14T00:19:00.000Z
+Stopped at: Phase 29 complete (SHAPE-01 on-device UAT approved)
+Resume file: None
 
 ## Operator Next Steps
 
-- Review `.planning/ROADMAP.md`'s new v1.5 section (Phases 29-34) for order/completeness, then start with `/gsd-discuss-phase 29`.
+- Phase 29 (NotchShape Flare) is complete — its own on-device UAT checkpoint (Task 3) already covered all 3 ROADMAP success criteria, so a separate `/gsd:verify-work 29` pass is not needed. Start `/gsd-discuss-phase 30` next.
 - v1.4 is code-complete but not formally closed: 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation — run `/gsd:verify-work` for v1.4 then `/gsd:complete-milestone` whenever convenient (does not block v1.5).

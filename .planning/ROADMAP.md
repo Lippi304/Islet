@@ -88,7 +88,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 **Milestone Goal:** Declutter Home to music-only, consolidate all file-drop behavior into Tray (with a Droppy-style Drop/AirDrop/Mail destination picker), redesign Weather as an iOS-widget-style card, widen/enlarge the Tray file layout, and give the expanded-state notch silhouette an outward-flaring top edge.
 
-- [ ] **Phase 29: NotchShape Flare** - Outward-flaring top edge for every expanded presentation; collapsed pill silhouette unchanged
+- [x] **Phase 29: NotchShape Flare** - Outward-flaring top edge for every expanded presentation; collapsed pill silhouette unchanged (completed 2026-07-14)
 - [ ] **Phase 30: Home Music-Only** - Home shows only live/last-played music or an explicit empty state; idle time/weather/calendar glance removed
 - [ ] **Phase 31: Shelf Consolidation to Tray-Only** - Shelf-strip reveal removed from Home/Calendar/Weather, lives only on Tray
 - [ ] **Phase 32: Tray Widening** - Wider Tray layout with larger file tiles, more files visible side-by-side
@@ -142,7 +142,7 @@ Plans:
 
 **v1.4:** 6/6 phases complete (100%) — Phases 23-28 all done. Pending final on-device UAT re-confirmation of 2 code-review fixes before formal `/gsd:complete-milestone`.
 
-**v1.5:** 0/6 phases complete (0%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped.
+**v1.5:** 1/6 phases complete (17%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -449,7 +449,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 29-01-PLAN.md — NotchShape topFlareWidth property + blobShape()/wingsShape() wiring + on-device UAT (panel-frame clipping check, contingency fix)
+- [x] 29-01-PLAN.md — NotchShape topFlareWidth property + blobShape()/wingsShape() wiring + on-device UAT (panel-frame clipping check, contingency fix)
 **UI hint**: yes
 
 ### Phase 30: Home Music-Only

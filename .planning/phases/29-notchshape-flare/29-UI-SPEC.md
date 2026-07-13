@@ -40,13 +40,15 @@ Add one new plain `CGFloat` stored property to `NotchShape` (`Islet/Notch/NotchS
 
 **Precedent, not replacement (Phase 25 D-09):** the existing `topCornerRadius` quad-curve already reads as a "flowing merge into the screen edge" and stays completely unchanged (still `6` everywhere it is today). `topFlareWidth` is an *additional*, independent parameter layered alongside it — do not fold the flare into `topCornerRadius` itself or repurpose that value.
 
-### Widen amount (D-01 LOCKED — subtle, D-02 discretion on exact pt)
+### Widen amount (D-01/D-05 REVISED 2026-07-13 during Task 3 on-device UAT — see 29-CONTEXT.md)
+
+The subtle-widen version below was superseded on-device: it read as imperceptible. The user provided a concrete reference (Droppy's shelf widget) confirming the flare should be a pronounced CONCAVE sweep — narrow flat top (fixed width, matching the physical notch), then curving outward/down to the presentation's full width. This is a distinct geometry shape, not a bigger version of the old straight widen.
 
 | Property | Value | Rationale |
 |----------|-------|-----------|
-| Look | Subtle widen | User explicitly rejected a dramatic trumpet/bell-shaped flourish (D-01, locked) — must read as "a touch more pronounced" than today's 6pt top-corner curve, not a distinct new flourish |
-| Starting value | **`topFlareWidth: 10`** | Claude's discretion (D-02) — tune on-device in the 8–12pt band; do not exceed ~12pt without a fresh on-device check, since D-01 explicitly rejects anything reading as "pronounced" |
-| Scaling behavior | **Fixed absolute value, identical across every covered presentation** (D-05, locked) — the wide Home/Tray/Calendar/Weather blob (360pt) and the narrower Charging/Device wings (290pt) both get the exact same `topFlareWidth`, not a proportionally-scaled one |
+| Look | Pronounced concave flare, matching Droppy reference | D-01 revised — the original "subtle" rejection of a trumpet/bell flourish is overridden; that flourish is now the explicit target |
+| Mechanism | Fixed narrow top-band width (matches the physical notch cutout), then a concave curve down to each presentation's own existing full width | D-05 revised — the fixed constant is now the narrow top-band width, not an added margin; the flare-out distance naturally differs per presentation because it converges into each presentation's own width |
+| Exact pt values / curve shape | Claude's/executor's discretion (D-02), tuned on-device against the Droppy screenshot | Try a single quad curve first (project's quad-curve-only convention, 29-PATTERNS.md); fall back to a cubic `addCurve` only if a quad curve can't produce a convincing sweep |
 
 ### Coverage — which call sites get the flare (D-03/D-04 LOCKED)
 
