@@ -151,8 +151,72 @@ Each task was committed atomically:
   `.planning/phases/28-calendar-full-view/28-UI-SPEC.md`
 - **Commit:** `3326f1f`
 
+**3. [Genuine scope expansion, user-confirmed] Round 4 — resolver precedence bug + "smart Home"
+reversal + new Weather tab + calendar visual pass**
+- **Found during:** Task 3 (on-device UAT, round 4) — user reported "clicking Calendar shows
+  nothing" and "navigation disappears during music" as real bugs, and additionally requested a
+  genuine scope expansion beyond this phase's original locked design. The orchestrator asked
+  two explicit clarifying questions before any code was written; the user's answers are the
+  authorization for this round (not a guess) — see `28-CONTEXT.md`'s round-4 addendum for the
+  full traceable record.
+- **Root cause (the bug half):** `IslandResolver.resolve(...)`'s `isExpanded` branch checked
+  Now-Playing BEFORE `selectedView` — once `nowPlaying != .none` (true even while merely
+  PAUSED, not just actively playing) Calendar became permanently unreachable via the switcher,
+  because the resolver never reached the `selectedView == .calendar` check at all.
+- **Fix:**
+  - `resolve(...)` now checks `selectedView == .calendar`/`.weather` BEFORE Now-Playing; only
+    `selectedView == .home` still falls through to the Now-Playing-wins-over-idle branch (the
+    "smart Home" behavior below). Tray is untouched (still no resolver case — its force-reveal
+    is the existing additive `ShelfViewState.forcedByTray`/`isVisible` strip, layered under any
+    presentation regardless of playback state).
+  - **"Smart Home" (deliberate, user-confirmed reversal):** `.planning/research/inspiration/
+    notes.md` originally locked "Islet should keep its current default... not copy Droppy's
+    music-default." The user re-decided this on-device during round 4: Home now shows
+    Now-Playing controls when something is playing, and the idle date/time glance otherwise —
+    confirmed explicitly via the orchestrator's clarifying question, documented as a dated
+    addendum in `28-CONTEXT.md` rather than silently overwriting the old note.
+  - **New 4th switcher tab: Weather**, order Home/Tray/Calendar/Weather (existing three
+    untouched). `SelectedView.weather` + `IslandPresentation.weatherExpanded` added.
+    `weatherFullView` renders ONLY the existing current-conditions data
+    (`WeatherGlance`/`WeatherKitService` — category + temperature, no forecast anywhere in the
+    codebase), reusing `weatherIcon(for:)` and the existing `.formatted(.measurement(...))`
+    temperature string verbatim rather than reinventing them. Fits inside the existing
+    `expandedSize.height` (144pt) base, so — unlike `calendarExpanded` — no new geometry
+    constant/union member was needed at any of the three geometry call sites beyond
+    `showsSwitcherRow`, which already governs the switcher-row reservation uniformly for every
+    case in that set. An explicit "Wetter nicht verfügbar" empty state mirrors
+    `mediaUnavailable`'s existing tone/style. **Whether a real forecast is wanted is an open
+    follow-up question for the user — not decided or silently built in this round.**
+  - **Calendar visual pass, with a real caveat:** before restyling, all 31 PNGs in
+    `.planning/research/inspiration/` were inspected directly (not trusted from `notes.md`'s
+    numbering, which the orchestrator had already found mismatched). Every one of the 31 files
+    is a Droppy **Settings** screenshot (General/Droplets/Shelf/Basket/Clipboard/Lock
+    Screen/Droppy Cloud/HUDs/Theming/Accessibility/License/About) — none show the live
+    notch-overlay switcher pill or the calendar month-grid view `notes.md` cites (images 5-7,
+    10, 12). No genuine calendar/switcher reference photo exists in this project's assets.
+    Applied the closest faithful substitute instead of inventing an unrelated style: Droppy's
+    own dominant, product-wide visual language actually visible in the real screenshots —
+    circular/capsule badges (License's "Trial Active" chip, the Lock Screen "Rounded" battery/
+    weather rings) and rounded-card row containers (every Settings row on file). Selected day
+    now gets a filled circle behind the number, today gets a thin ring, days with events get a
+    small dot — all inside the existing 28×28pt D-locked cell (no `calendarContentHeight`
+    change); day-list event rows now sit in a subtle rounded card.
+- **Files modified:** `Islet/Notch/ViewSwitcherState.swift`, `Islet/Notch/IslandResolver.swift`,
+  `IsletTests/IslandResolverTests.swift`, `Islet/Notch/NotchPillView.swift`,
+  `Islet/Notch/NotchWindowController.swift`,
+  `.planning/phases/28-calendar-full-view/28-UI-SPEC.md`,
+  `.planning/phases/28-calendar-full-view/28-CONTEXT.md`
+- **Commits:** `b46c4eb` (resolver + weather case + tests), `c301a03` (weather tab UI + calendar
+  visual pass), `fecebff` (docs)
+- **Verification:** `xcodebuild build` (Debug) — BUILD SUCCEEDED. `xcodebuild build-for-testing`
+  — TEST BUILD SUCCEEDED (full `Cmd-U` run, including the new `IslandResolverTests` methods,
+  is left for the on-device UAT round per this project's established `xcodebuild test`
+  headless-hang precedent — the test bundle hosts inside the full `Islet.app`, which boots
+  `NSPanel`/MediaRemote/IOBluetooth and hangs non-interactively).
+
 All other Task 1/2 acceptance-criteria greps passed on the first attempt; the Debug build gate
-passed after each task with zero compile errors (and again after both bugfixes).
+passed after each task with zero compile errors (and again after every subsequent round's
+bugfixes/scope-expansion changes).
 
 ## Issues Encountered
 
@@ -165,16 +229,32 @@ None - no external service configuration required.
 ## Checkpoint Status
 
 **Task 3 (on-device UAT) round 1 found a real bug (camera-notch overlap on the calendar view);
-round 2 found a second real bug (switcher pill missing during Now Playing expanded) — both now
-fixed, round 3 is pending.** This plan is `autonomous: false` and Task 3 is a
-`checkpoint:human-verify` gate covering all 4 of this phase's ROADMAP Success Criteria and
-CALVIEW-01/02/03/04. Per the executor's protocol, execution stopped here again after the fix —
-see the CHECKPOINT REACHED block in the final response for the full walkthrough the user needs
-to re-run (Cmd-R build + manual verification + Cmd-U regression pass), with special attention to
-confirming: (1) the month grid's top row still clears the camera notch with a visible gap, and
-(2) the switcher pill (Home/Tray/Calendar) now stays visible while music is playing (Now Playing
-expanded view), while still correctly disappearing during the brief Charging/Device-connect
-splash and the small collapsed Now-Playing glance (before clicking to expand it).
+round 2 found a second real bug (switcher pill missing during Now Playing expanded); round 3
+found a third real bug (resolver precedence — Calendar unreachable during media) plus a
+user-confirmed scope expansion (smart Home, new Weather tab, calendar visual pass). All are now
+fixed/built; round 4 (re-verification) is pending.** This plan is `autonomous: false` and Task 3
+is a `checkpoint:human-verify` gate covering all 4 of this phase's ROADMAP Success Criteria and
+CALVIEW-01/02/03/04. Per the executor's protocol, execution stopped here again after the change
+— see the CHECKPOINT REACHED block in the final response for the full walkthrough the user needs
+to re-run (Cmd-R build + manual verification + Cmd-U regression pass), with special attention to:
+1. The month grid's top row still clears the camera notch with a visible gap (round 1 fix
+   still holds).
+2. The switcher pill now shows **4 icons** (Home/Tray/Calendar/Weather) and stays visible while
+   music is playing (round 2 fix still holds), while still correctly disappearing during the
+   brief Charging/Device-connect splash and the small collapsed Now-Playing glance.
+3. **Calendar and Weather are reachable via the switcher even while music is actively
+   playing** (round 4 precedence fix) — click Calendar or Weather while a track plays and
+   confirm the island morphs to that view, not to the Now-Playing controls.
+4. **Home is "smart"**: with music playing, clicking Home shows the Now-Playing controls;
+   with nothing playing, clicking Home shows the idle date/time glance.
+5. The new Weather tab renders the current temperature/icon/category, or the "Wetter nicht
+   verfügbar" empty state if no weather data is available — confirm this is understood as
+   **current-conditions-only** (no forecast), and decide whether a real forecast (a new
+   WeatherKit call + new data model) is wanted as a separate follow-up.
+6. The calendar month grid's visual pass — a filled circle on the selected day, a thin ring on
+   today, a small dot under days with events, and rounded-card day-list rows — reads as
+   intentional polish, not a regression, given no genuine Droppy calendar screenshot exists in
+   this project's assets (see the round-4 deviation entry above for the full caveat).
 
 **Until Task 3 is approved:**
 - `requirements-completed` in this SUMMARY's frontmatter is intentionally left empty — CALVIEW-01/02/03/04 should NOT be marked complete in REQUIREMENTS.md/ROADMAP.md until the user types "approved".
@@ -182,10 +262,14 @@ splash and the small collapsed Now-Playing glance (before clicking to expand it)
 
 ## Next Phase Readiness
 
-- Tasks 1-2 are code-complete and committed; the Debug build is green.
+- Tasks 1-2 are code-complete and committed; the Debug build is green (verified again after
+  round 4's resolver/UI/docs changes).
 - Task 3 (on-device UAT) is the sole remaining item for Phase 28 and the entire v1.4 milestone.
-- A follow-up agent (or the user directly) should run Cmd-R in Xcode and walk through the 9 `how-to-verify` steps in `28-04-PLAN.md`'s Task 3, then report "approved" or the specific issue found.
+- A follow-up agent (or the user directly) should run Cmd-R in Xcode and walk through the 9
+  `how-to-verify` steps in `28-04-PLAN.md`'s Task 3 PLUS the 6 round-4 focus points above, then
+  report "approved" or the specific issue found. Also decide: is a real weather forecast wanted
+  as a follow-up, or is current-conditions-only sufficient?
 
 ---
 *Phase: 28-calendar-full-view*
-*Completed: 2026-07-13 (Tasks 1-2 only; Task 3 pending)*
+*Completed: 2026-07-13 (Tasks 1-2 code-complete; Task 3 checkpoint round 4 pending re-verification)*
