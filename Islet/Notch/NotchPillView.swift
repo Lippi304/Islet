@@ -235,6 +235,23 @@ struct NotchPillView: View {
     // the real on-screen silhouette against the black fill — distinguishing "the flare isn't
     // being painted at all" (wiring bug) from "it IS painted, just too subtle to see in solid
     // black" (visibility-only, needs a wider topFlareWidth). Not a final visual element.
+    //
+    // ROUND 10 (2026-07-13) — round 9's `renderWidth` fix (widening blobShape/wingsShape's OWN
+    // frame by `2 * topFlareWidth`) still produced ZERO visible change on a genuinely clean
+    // rebuild — the stroke gap persisted identically. Root cause verified via a headless
+    // ImageRenderer repro of this exact modifier structure (see 29-01 execution notes): the bug
+    // was NEVER `matchedGeometryEffect` (an isolated test with/without it attached produced
+    // byte-identical output both times) — it was `body`'s OWN outer `.frame(width:
+    // expandedSize.width...)` below, which sets the SwiftUI content ROOT's reported size and
+    // therefore the rasterization canvas NSHostingView allocates for it. blobShape/wingsShape's
+    // renderWidth trick correctly painted the bulge past their own local box, but those pixels
+    // still fell outside the ROOT's unwidened canvas and were never rasterized at all — same
+    // class of fix NotchWindowController.swift's panel-width contingency already applied one
+    // layer further out (the AppKit panel), just missing at this one remaining boundary. That
+    // outer frame is now widened by the same `2 * topFlareWidth` margin (see `body` below) — the
+    // stroke traces the SAME shape/geometry as before this round, unchanged; only its ENCLOSING
+    // canvas grew, so the full outline should now render with no gap. Still active for one more
+    // on-device confirmation round.
     private static let diagnosticStrokeOutline = true
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
@@ -414,7 +431,23 @@ struct NotchPillView: View {
         // unlike onboarding — non-onboarding cases stack the shelf/switcher row additions on
         // top, since (unlike onboarding) their blobShape calls pass real `shelfItems`/
         // `showSwitcher`.
-        .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
+        // SHAPE-01 round 10 bugfix (on-device UAT: flare confirmed zero-visible-effect even
+        // after the round-9 renderWidth fix) — ROOT CAUSE, verified via a headless ImageRenderer
+        // repro (not just re-reading the code): the isolated test proved matchedGeometryEffect
+        // makes NO difference to the overflow (identical result with/without it attached) — the
+        // real cause is that THIS outer frame is the SwiftUI content ROOT's own reported size,
+        // and NSHostingView/ImageRenderer rasterizes into a backing store sized to exactly that
+        // reported size. blobShape/wingsShape's own renderWidth-then-baseWidth double-frame
+        // trick correctly paints the bulge past their OWN local baseWidth box (a plain `.frame()`
+        // never clips at the View-layout level) — but those overflow pixels still fall outside
+        // THIS outer frame's reported width, and content painted beyond the root's own reported
+        // size is never rasterized at all (not "clipped" in the masksToBounds sense — there's
+        // simply no backing-store pixel there). NotchWindowController.swift already widens the
+        // AppKit PANEL by `2 * topFlareWidth` (round 6) for exactly this reason; this outer
+        // SwiftUI-level frame was the one remaining unwidened boundary. Onboarding never flares
+        // (topFlareWidth defaults to 0 there via onboardingCarousel's own blobShape call, which
+        // omits it), so only the non-onboarding branch needs the extra margin.
+        .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width + 2 * Self.topFlareWidth,
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
                    : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
