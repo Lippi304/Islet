@@ -788,14 +788,14 @@ final class NotchWindowController {
         // union member from rounds 1-4 is gone: a calendar-only reservation is no longer taller
         // than every other switcher-row presentation's own (now-shared) reservation.
         let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                               expandedSize: CGSize(width: expandedSize.width,
+                                               expandedSize: CGSize(width: expandedSize.width + 2 * NotchPillView.topFlareWidth,
                                                                      height: NotchPillView.switcherContentHeight + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
 
         // CHG-01 / Pattern 4: the wings extend SIDEWAYS, so the panel must also cover the
         // flat wings strip. Size the panel ONCE to the UNION of the downward-expanded and the
         // sideways-wings frames so BOTH the Phase-2 expand AND the Phase-3 wings fit without
         // any runtime panel resize (resizing mid-activity would race the morph + hot-zone math).
-        let wings = wingsFrame(collapsed: collapsedFrame, wingsSize: wingsSize)
+        let wings = wingsFrame(collapsed: collapsedFrame, wingsSize: CGSize(width: wingsSize.width + 2 * NotchPillView.topFlareWidth, height: wingsSize.height))
         // Phase 26 / ONBOARD-01/02 — the panel is sized once, up front, to the union of every
         // possible content size (mirrors how `wings` was added as a second union member in
         // Phase 3) so the onboarding card's real 240pt height is never resized mid-activity.
