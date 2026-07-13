@@ -257,6 +257,13 @@ struct NotchPillView: View {
     // see `blobShape`'s `showSwitcher` parameter below). A starting point for on-device tuning.
     static let switcherRowHeight: CGFloat = 44
 
+    // WR-02 fix (28-REVIEW.md) — every switcher-row-showing presentation pins its content below
+    // this same measured camera/notch clearance value via `.padding(.top, ...)`; was a bare `32`
+    // literal repeated at 7 call sites, unlike shelfRowHeight/switcherRowHeight/
+    // switcherContentHeight above, which are already named constants for exactly this reason —
+    // a single tuning pass updates every consumer.
+    static let cameraClearance: CGFloat = 32
+
     // 28-04 round 5 (on-device UAT, real Droppy reference screenshots) — the month-grid cell
     // size/gap, shrunk from round 4's 28×28pt/4pt (which round 4's own comment admitted were
     // NOT Droppy-accurate — no real notch-overlay screenshot existed at the time). Two genuine
@@ -444,7 +451,7 @@ struct NotchPillView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 32)   // camera/notch clearance — matches mediaExpanded's convention
+            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
         }
     }
 
@@ -477,7 +484,7 @@ struct NotchPillView: View {
                     .frame(maxWidth: .infinity, alignment: .top)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 32)   // camera/notch clearance — matches mediaExpanded's convention
+            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
         }
     }
 
@@ -657,7 +664,7 @@ struct NotchPillView: View {
                     weatherFullUnavailable
                 }
             }
-            .padding(.top, 32)   // camera/notch clearance — matches mediaExpanded's convention
+            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
         }
     }
 
@@ -723,7 +730,7 @@ struct NotchPillView: View {
                     shelfRow(shelfViewState.items)
                 }
             }
-            .padding(.top, 32)   // camera/notch clearance — matches mediaExpanded's convention
+            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
@@ -771,7 +778,7 @@ struct NotchPillView: View {
                     onboardingStepContent(step)
                     Spacer(minLength: 0)
                 }
-                .padding(.top, 32)         // camera-clearance floor, matches mediaExpanded's convention
+                .padding(.top, Self.cameraClearance)         // camera-clearance floor, matches mediaExpanded's convention
                 .padding(.horizontal, 28)  // screen content padding (round 2, Droppy comparison)
                 // Round 3 — reserves room below the centered content so it never visually
                 // overlaps the nav row overlay pinned below it.
@@ -1526,7 +1533,7 @@ struct NotchPillView: View {
                         Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
                     }
                 }
-                .padding(.top, 32)        // notch/camera clearance — content starts below the band
+                .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
                 .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve
                 .padding(.horizontal, 19) // +5pt inset (user request): art/bars off the outer edge
             }
@@ -1558,7 +1565,7 @@ struct NotchPillView: View {
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 16)
-                .padding(.top, 32)
+                .padding(.top, Self.cameraClearance)
         }
     }
 
