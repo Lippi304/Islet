@@ -224,15 +224,62 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .calendarExpanded)
     }
 
-    func testMediaOutranksCalendarSelection() {
-        // D-02: media still outranks the calendar selection even when expanded.
+    func testCalendarSelectionOutranksMedia() {
+        // 28-04 round 4 (precedence fix): an explicit Calendar selection now wins over
+        // Now-Playing even while expanded -- the switcher must never be hijacked by media.
         let r = resolve(activeTransient: nil,
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
                         hasPlayedSinceLaunch: true,
                         isExpanded: true,
                         selectedView: .calendar)
+        XCTAssertEqual(r, .calendarExpanded)
+    }
+
+    func testWeatherSelectionOutranksMedia() {
+        // 28-04 round 4: same precedence fix, Weather side.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .weather)
+        XCTAssertEqual(r, .weatherExpanded)
+    }
+
+    func testWeatherSelectedExpandedReturnsWeatherExpanded() {
+        // No active transient, no now-playing, expanded + Weather selected -> .weatherExpanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .weather)
+        XCTAssertEqual(r, .weatherExpanded)
+    }
+
+    func testHomeSelectedWithMediaPlayingShowsNowPlayingExpanded() {
+        // 28-04 round 4 "smart Home": explicit Home selection + media playing -> Now-Playing
+        // still wins (unchanged behavior for Home specifically).
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .home)
         XCTAssertEqual(r, .nowPlayingExpanded(.playing(title: "Song", artist: "Artist"), healthy: true))
+    }
+
+    func testHomeSelectedNoMediaReturnsExpandedIdle() {
+        // 28-04 round 4 "smart Home": explicit Home selection + nothing playing -> the idle
+        // date/time glance, unchanged.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .expandedIdle)
     }
 
     func testTransientOutranksCalendarSelection() {

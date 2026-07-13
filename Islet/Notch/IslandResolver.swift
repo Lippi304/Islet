@@ -10,6 +10,20 @@ import Foundation
 // D-02: rank Charging > Device > Now Playing. D-04: a transient briefly wins even over a
 // user-expanded island, then yields to the highest-priority ambient state. D-12: the
 // expanded view branches on the orthogonal now-playing health axis (healthy vs blocked).
+//
+// 28-04 round 4 (on-device UAT, user-confirmed scope expansion) — PRECEDENCE FIX: the
+// original 28-03/28-04 `isExpanded` branch checked Now-Playing BEFORE `selectedView`, so once
+// `nowPlaying != .none` (true even while merely PAUSED, not just actively playing) Calendar/
+// Weather became permanently unreachable via the switcher -- "clicking Calendar shows
+// nothing" / "navigation disappears during music". Explicit switcher selection (Calendar,
+// Weather) is now checked BEFORE Now-Playing; Now-Playing only wins when `selectedView ==
+// .home` -- the user-confirmed "smart Home" reversal of the earlier locked idle-default
+// decision (28-CONTEXT.md D-01/D-02 addendum): Home shows Now-Playing when something is
+// playing, and falls back to the idle glance otherwise. Tray is UNCHANGED by this fix -- it
+// still has no resolver case (see the comment inside resolve(...) below) because its
+// force-reveal is a purely additive view/controller strip (ShelfViewState.forcedByTray/
+// isVisible) appended below whichever presentation renders, so it already coexists correctly
+// with Now-Playing without any resolver branch.
 
 // What the island renders. The expanded media health (D-12) rides on the
 // nowPlayingExpanded case's `healthy:` flag, kept orthogonal to the .none vs playing
@@ -23,6 +37,7 @@ enum IslandPresentation: Equatable {
     case nowPlayingExpanded(NowPlayingPresentation, healthy: Bool) // D-12 expanded media / "nicht verfügbar"
     case expandedIdle                                      // expanded, healthy, nothing playing (date/time)
     case calendarExpanded                                  // Phase 28 / CALVIEW-01: month grid + day list
+    case weatherExpanded                                   // 28-04 round 4: current-conditions full view
 }
 
 // The transient currently owning the island (the queue's head). Charging and device are
@@ -50,12 +65,19 @@ func resolve(activeTransient: ActiveTransient?,
     case nil: break
     }
     if isExpanded {
+        // Phase 28 / CALVIEW-01, 28-04 round 4 — Tray is deliberately NOT its own case here
+        // (D-02): its force-reveal is a view/controller concern (ShelfViewState.forcedByTray),
+        // so only Calendar/Weather get their own resolver branches, checked BEFORE Now-Playing
+        // (round 4 precedence fix, see this file's header comment) so an explicit switcher
+        // selection is never hijacked by media playback.
+        if selectedView == .calendar { return .calendarExpanded }
+        if selectedView == .weather { return .weatherExpanded }
+        // Home (default) — the "smart Home" behavior (round 4, user-confirmed): Now-Playing
+        // wins over the idle glance when present, exactly like before this fix; the only
+        // change is that this branch is no longer reached for an explicit Calendar/Weather
+        // selection.
         if !nowPlayingHealthy { return .nowPlayingExpanded(nowPlaying, healthy: false) } // D-12
         if nowPlaying != .none { return .nowPlayingExpanded(nowPlaying, healthy: true) }
-        // Phase 28 / CALVIEW-01 — Tray is deliberately NOT its own case here (D-02): its
-        // force-reveal is a view/controller concern (ShelfViewState.forcedByTray, Task 1),
-        // so only Calendar gets a new resolver branch.
-        if selectedView == .calendar { return .calendarExpanded }
         return .expandedIdle
     }
     // Phase 17 / NOW-04 — D-01/D-03: the launch gate applies ONLY to this ambient branch; the
