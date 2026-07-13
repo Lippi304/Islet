@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
 status: planning
-last_updated: "2026-07-13T14:29:58.795Z"
+last_updated: "2026-07-13T15:20:00.000Z"
 last_activity: 2026-07-13
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-09)
+See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Milestone complete
+**Current focus:** Phase 29 (NotchShape Flare) — ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-13 — Milestone v1.5 started
+Phase: 29 of 34 (NotchShape Flare) — first phase of v1.5
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-07-13 — v1.5 ROADMAP.md created (Phases 29-34, 100% requirement coverage)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -42,7 +42,9 @@ memory `a1-bluetooth-usage-key-required`), so no further action is needed there 
 
 Progress (v1.3): [██████████] 100% (Phases 19-21 shipped; Phase 22 blocked, superseded by v1.4 Phases 23-24)
 
-Progress (v1.4): [██████░░░░] 67% (4/6 phases — Phases 23-26 complete; Phase 27 next)
+Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23-28 complete; pending final on-device UAT re-confirmation of 2 code-review fixes before formal close)
+
+Progress (v1.5): [░░░░░░░░░░] 0% (0/6 phases — Phase 29 next)
 
 ## Performance Metrics
 
@@ -102,6 +104,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 25]: [Phase 25] Gradient stops (0/0.65/1.0) and 32pt corner radius, plus spring constants (response 0.6, damping 0.62), confirmed correct on first on-device UAT pass — no iteration or NotchShape.swift animatableData contingency needed
 - [Phase 26]: Onboarding carousel visuals iterated across 5 on-device UAT rounds vs. a Droppy reference (centered text, 400->420 wide/300->320 tall panel, pill permission rows, circular nav, static glow); 26-UI-SPEC.md updated each round to stay truthful
 - [Phase 26]: macOS deployment target bumped 14.0 -> 15.0 (user-approved) to fix a Settings-window auto-restore-at-launch bug via .defaultLaunchBehavior(.suppressed), which has no availability-guard path in SwiftUI's SceneBuilder
+- [v1.5 roadmap] Phase order 29→30→31→32→33→34 (Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker) follows research's dependency-grounded recommendation: independence first (Flare), then lowest-new-architecture-risk (Home), then a hard-dependency pair (Shelf Consolidation must land before Tray Widening to avoid touching `visibleContentZone()` twice), then fully-independent Weather, then the one feature requiring genuinely new AppKit territory (Quick Action picker) isolated last — mirrors the project's own Phase 22→24 drag-in risk-isolation precedent
 
 ### Roadmap Evolution
 
@@ -113,6 +116,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - v1.3 (Notch Shelf) roadmap created 2026-07-09: Phase 19 (Shelf Data Model, SHELF-08), Phase 20 (Shelf View, SHELF-03/04/05/07/09), Phase 21 (Drag-Out, SHELF-06), Phase 22 (Drag-In, SHELF-01/02) — 100% coverage (9/9). Phase numbering continues from Phase 18. Sequenced per research's build-order recommendation with the click-through drag-in risk isolated in the final phase.
 - v1.4 (Architecture Redesign) roadmap created 2026-07-11: Phase 23 (Shell Parity Rewrite, ARCH-01), Phase 24 (Drag-In, SHELF-01/02), Phase 25 (Visual/Material Theming Redesign, VISUAL-01/02), Phase 26 (Onboarding Flow, ONBOARD-01/02/03), Phase 27 (Settings Sidebar Redesign, SETTINGS-01), Phase 28 (Calendar Full View, CALVIEW-01/02/03/04) — 100% coverage (13/13). Phase numbering continues from Phase 22 (which is superseded, not resumed). Sequenced per research's recommendation: shell rewrite first (hard prerequisite for drag-in only), remaining four phases independent and free to reorder.
 - Phase 25 edited: rescoped from generic frosted/glossy+slower-spring to a specific black-to-transparent vertical gradient material, fluid/bouncy Dynamic-Island-style animation, and a new Theming settings section (VISUAL-03 added); explicitly scoped to shared shell chrome only, not individual activity content views
+- v1.5 (Home Focus & Widget Redesign) roadmap created 2026-07-13: Phase 29 (NotchShape Flare, SHAPE-01), Phase 30 (Home Music-Only, HOME-01/02/03), Phase 31 (Shelf Consolidation to Tray-Only, TRAY-01), Phase 32 (Tray Widening, TRAY-05), Phase 33 (Weather Widget Redesign, WEATHER-01/02), Phase 34 (Quick Action Destination Picker, TRAY-02/03/04) — 100% coverage (11/11). Phase numbering continues from Phase 28. REQUIREMENTS.md's initial "10 total" count corrected to 11 (the actual v1.5 requirement ID list has 11 entries).
 
 ### Pending Todos
 
@@ -124,11 +128,12 @@ None yet.
 
 [Issues that affect future work]
 
-- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3/v1.4 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
-- [v1.3→v1.4, Phase 22, ABORTED 2026-07-10, superseded] `NotchPanel.draggingEntered` never fired on-device twice despite a confirmed-working spike using the same technique; root cause never identified. Resolution is architectural, not incremental: Phase 23 rebuilds the shell (dropping `NSDraggingDestination` entirely), Phase 24 retries drag-in via a global-monitor `DragApproachDetector` pattern instead. Research flags this pattern as itself unproven in this codebase and recommends its own isolated on-device validation rounds during Phase 24 planning/execution, not an assumption it "just works." Work preserved, not merged: worktree `/Users/lippi304/conductor/repos/notch/.claude/worktrees/agent-a9e6341bfc04601a5` (branch `worktree-agent-a9e6341bfc04601a5`) still holds the 22-03 debugging commits, kept as reference per explicit user request. 22-02's pure seams (`DragDropSupport.swift`, `.dragEntered` state) ARE merged and reusable by Phase 24.
-- [v1.4, from research] Open product decisions flagged for discuss-phase, not yet locked: (1) Phase 26 onboarding — permissions pre-explanation screen must stay educational-only with real permission requests kept lazy-at-first-use, to avoid racing/duplicating the existing `AppDelegate.isFirstLaunch` hook; (2) Phase 28 calendar — whether the existing Calendar authorization is already full (not read-only) access, and whether quick-add targets Calendar events vs. Reminders (determines if a new `NSRemindersFullAccessUsageDescription` Info.plist key is needed), must be verified against actual Phase 14 code before implementation.
-- [v1.3, from research] Open product decision, flagged for `/gsd:discuss-phase 20`: should the shelf render/suppress during collapsed "wings" transients (Charging/Device/Now-Playing-wings) mid-display, beyond the already-locked SHELF-09 (suppressed only during Charging/Device splashes)?
-- [Phase 24, RESOLVED 2026-07-11] Plan 24-02's Task 3 on-device UAT found that because the panel is deliberately click-through/non-`NSDraggingDestination` (D-05's pivot away from Phase 22's twice-unexplained `draggingEntered` failure), a real drop's OS-level drag session was never intercepted — it fell through to the Finder Desktop underneath, which on a same-volume drag performed its own default MOVE, relocating the original file even though the shelf also correctly received its own session copy. `/gsd:discuss-phase 24` scoped a `CGEventTap`-based fix (D-10 through D-15), and Plan 24-03 implemented and on-device-validated it: swallowing/redirecting the terminating `.leftMouseUp` via a new `DropInterceptTap` (`Islet/Notch/DropInterceptTap.swift`) prevents the relocation. One round-1 finding during Task 4 UAT — fully swallowing the event stranded the drag ghost image on the cursor (the WindowServer's own drag-session bookkeeping never saw a release signal) — was fixed by redirecting the event to an off-screen coordinate (`CGEventSetLocation`) instead of discarding it outright, letting the WindowServer end the drag cleanly while still denying Finder a valid drop target. Plan 24-03's Task 4 checkpoint (including a Release-configuration pass) is approved; this resolves/supersedes Plan 24-02's Task 3. SHELF-01/SHELF-02 are both complete.
+- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3/v1.4/v1.5 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
+- [v1.4, pending] 2 items in `28-HUMAN-UAT.md` remain pending final on-device re-confirmation of the two code-review fixes; run `/gsd:verify-work` for v1.4 once confirmed, then `/gsd:complete-milestone` for v1.4 whenever convenient — does not block starting v1.5 phase work.
+- [v1.5, from research] Quick Action picker precedence tier (Phase 34) — whether a Charging/Device transient interrupts an open picker or queues behind it is an explicit open product decision, not yet resolved; flag for `/gsd-discuss-phase 34` before that phase's planning.
+- [v1.5, from research] `NSSharingService`/`NSSharingServicePicker` behavior from Islet's permanently non-key `NotchPanel` is unverified in this codebase (WebSearch-corroborated only) — Phase 34 must spike this in isolation before committing to the full picker plan.
+- [v1.5, from research] NotchShape flare (Phase 29) has an open geometry question — whether the flare stays inside the existing panel-frame reservation or needs the panel to grow upward past `screenFrame.maxY` — resolve via a quick on-device check during Phase 29 planning/execution.
+- [v1.5, from research] Weather (Phase 33) has two open questions to resolve during its own planning: whether the compact card's H/L needs `fetchCurrent` itself to change, and whether the extended forecast card fits inside the existing 196pt `switcherContentHeight` shared constant (also used by Home/Calendar/Tray) or requires it to grow.
 
 ### Quick Tasks Completed
 
@@ -175,13 +180,15 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, Phase 22) remained unshipped** — Phase 22 was blocked twice on-device (AppKit drag delivery never reached `NotchPanel`, root cause unidentified) and the user chose to abandon the incremental fix in favor of a broader NotchPanel/NotchWindowController architecture redesign. SHELF-01/02 now formally re-scoped into v1.4 Phase 24, gated behind Phase 23's shell rewrite.
 
+**v1.4 close (pending):** All 6 phases (23-28) code-complete; 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation before `/gsd:complete-milestone` formally closes v1.4. Not blocking v1.5 phase work.
+
 ## Session Continuity
 
-Last session: 2026-07-12T22:51:19.126Z
-Stopped at: Phase 28 UI-SPEC approved
-Resume file: .planning/phases/28-calendar-full-view/28-UI-SPEC.md
+Last session: 2026-07-13T15:20:00.000Z
+Stopped at: v1.5 ROADMAP.md created (Phases 29-34), REQUIREMENTS.md traceability updated to 100% coverage
+Resume file: None
 
 ## Operator Next Steps
 
-- Run `/gsd-verify-work 25` to confirm Phase 25's goals (VISUAL-01/02) were really achieved, not just tasks checked off.
-- Phase 24 is complete (SHELF-01/SHELF-02 done, drop-interception gap resolved via `DropInterceptTap`). Next up: `/gsd:discuss-phase 26` (Onboarding Flow).
+- Review `.planning/ROADMAP.md`'s new v1.5 section (Phases 29-34) for order/completeness, then start with `/gsd-discuss-phase 29`.
+- v1.4 is code-complete but not formally closed: 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation — run `/gsd:verify-work` for v1.4 then `/gsd:complete-milestone` whenever convenient (does not block v1.5).

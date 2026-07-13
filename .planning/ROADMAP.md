@@ -8,6 +8,7 @@
 - ✅ **v1.2 Now Playing Polish** — Phases 17-18 (shipped 2026-07-09)
 - ✅ **v1.3 Notch Shelf** — Phases 19-21 (shipped 2026-07-11, known gap: SHELF-01/02 drag-in deferred to v1.4)
 - 🚧 **v1.4 Architecture Redesign** — Phases 23-28 (in progress)
+- 📋 **v1.5 Home Focus & Widget Redesign** — Phases 29-34 (planned)
 
 ## Phases
 
@@ -83,6 +84,17 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 27: Settings Sidebar Redesign** - NavigationSplitView with General/Workspace/System/About sections, incl. new Theming section (VISUAL-03) (completed 2026-07-12)
 - [x] **Phase 28: Calendar Full View** - Month grid + day list + quick-add, sharing one EventKit service layer (completed 2026-07-13)
 
+### 📋 v1.5 Home Focus & Widget Redesign (Planned)
+
+**Milestone Goal:** Declutter Home to music-only, consolidate all file-drop behavior into Tray (with a Droppy-style Drop/AirDrop/Mail destination picker), redesign Weather as an iOS-widget-style card, widen/enlarge the Tray file layout, and give the expanded-state notch silhouette an outward-flaring top edge.
+
+- [ ] **Phase 29: NotchShape Flare** - Outward-flaring top edge for every expanded presentation; collapsed pill silhouette unchanged
+- [ ] **Phase 30: Home Music-Only** - Home shows only live/last-played music or an explicit empty state; idle time/weather/calendar glance removed
+- [ ] **Phase 31: Shelf Consolidation to Tray-Only** - Shelf-strip reveal removed from Home/Calendar/Weather, lives only on Tray
+- [ ] **Phase 32: Tray Widening** - Wider Tray layout with larger file tiles, more files visible side-by-side
+- [ ] **Phase 33: Weather Widget Redesign** - Compact iOS-widget-style card by default, optional extended multi-day forecast
+- [ ] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop
+
 ## Phase Details
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
@@ -128,7 +140,9 @@ Plans:
 
 **v1.3:** 3/3 shipped phases complete (100%) — see `.planning/milestones/v1.3-ROADMAP.md`. Phase 22 (drag-in, SHELF-01/02) blocked and not shipped; carried forward into v1.4.
 
-**v1.4:** 5/6 phases complete (83%) — Phases 23 (Shell Parity Rewrite), 24 (Drag-In), 25 (Visual/Material Theming Redesign), 26 (Onboarding Flow), and 27 (Settings Sidebar Redesign) are done; only Phase 28 (Calendar Full View) remains.
+**v1.4:** 6/6 phases complete (100%) — Phases 23-28 all done. Pending final on-device UAT re-confirmation of 2 code-review fixes before formal `/gsd:complete-milestone`.
+
+**v1.5:** 0/6 phases complete (0%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -420,3 +434,80 @@ Plans:
 **Wave 3** *(blocked on 28-02, 28-03)*
 
 - [x] 28-04-PLAN.md — NotchWindowController wiring (resolver/click-through/panel-geometry + switcher/month-nav/day-select/quick-add handlers) + on-device UAT checkpoint
+
+### Phase 29: NotchShape Flare
+
+**Goal**: The expanded island's top edge gains an outward-flaring transition into the screen bezel, threaded through the one shared `blobShape()` helper so every expanded presentation picks it up automatically; the collapsed/idle pill stays pixel-identical to today.
+**Depends on**: Nothing — fully independent of the other v1.5 phases (touches only `NotchShape`/`blobShape()` rendering, same "pure rendering-value change" shape as Phase 25).
+**Requirements**: SHAPE-01
+**Success Criteria** (what must be TRUE):
+  1. Every expanded presentation (Home, Tray, Calendar, Weather, Charging/Device wings) shows the new outward-flaring top edge instead of today's flush vertical edge.
+  2. The collapsed/idle pill renders pixel-identical to today — no shape, size, or position regression.
+  3. The flare animates smoothly as part of the existing collapse↔expand spring morph, with no visual glitches, artifacts, or dropped frames.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 30: Home Music-Only
+
+**Goal**: The Home view shows only music-related content — live playback, the last-played track, or an explicit empty state — with the idle time/weather/calendar glance removed entirely (Weather and Calendar keep their own switcher tabs).
+**Depends on**: Nothing — independent of the other v1.5 phases (touches `IslandResolver`'s Home fallback, a new `NowPlayingState.lastKnownTrack` sticky field, and `NotchPillView`'s Home branch only).
+**Requirements**: HOME-01, HOME-02, HOME-03
+**Success Criteria** (what must be TRUE):
+  1. While something is playing, the Home view shows live Now-Playing transport controls (play/pause/next/prev), unchanged from today.
+  2. When paused/stopped, the Home view shows the last-played track's cover art and title, with no live transport controls.
+  3. When nothing has been played this session, the Home view shows an explicit empty state instead of any glance content.
+  4. The time/weather/calendar idle glance no longer appears anywhere on Home, in any of the three sub-states.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 31: Shelf Consolidation to Tray-Only
+
+**Goal**: File-shelf content and the drop-triggered strip reveal exist only on the Tray tab; the additive shelf-strip-under-other-tabs behavior is removed via one shared gating function, clearing the path for Phase 32's width work to touch `visibleContentZone()` only once.
+**Depends on**: Nothing directly, but must land before Phase 32 (Tray Widening) — widening against the still-additive shelf logic would mean touching `visibleContentZone()` twice.
+**Requirements**: TRAY-01
+**Success Criteria** (what must be TRUE):
+  1. Adding a file to the shelf no longer reveals any shelf-strip UI while viewing Home, Calendar, or Weather.
+  2. Switching to the Tray tab still shows the full shelf content exactly as before (icons, per-item/delete-all trash, click-to-open).
+  3. Click-through hit-testing correctly excludes any residual shelf-strip band on non-Tray views — no CR-01-style phantom click-swallowing regression, verified via the on-device hover→expand→move-down trace.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 32: Tray Widening
+
+**Goal**: The Tray view renders wider with larger file tiles, reusing `blobShape()`'s existing `width:` override, so more files are visible side-by-side without scrolling.
+**Depends on**: Phase 31 — widening must land after shelf-strip visibility is consolidated to Tray-only, so `visibleContentZone()` is touched once, not twice.
+**Requirements**: TRAY-05
+**Success Criteria** (what must be TRUE):
+  1. The Tray view renders visibly wider with larger per-file icons/tiles than today's layout.
+  2. More files are visible side-by-side without scrolling compared to the previous layout.
+  3. Existing Tray interactions (trash, delete-all, click-to-open, drag-out) continue to work unchanged in the new layout.
+  4. Click-through hit-testing matches the new wider geometry exactly — re-verified via the on-device hover→expand→move-down trace, closing off the CR-01/CR-02 failure class.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 33: Weather Widget Redesign
+
+**Goal**: The Weather view shows an iOS-widget-style card — compact by default, with a Settings-gated extended variant adding a multi-day forecast row, sourced from one combined `weather(for:including: .current, .daily)` call.
+**Depends on**: Nothing — fully independent of the other v1.5 phases (Weather has its own resolver case and switcher tab).
+**Requirements**: WEATHER-01, WEATHER-02
+**Success Criteria** (what must be TRUE):
+  1. The Weather view shows a compact widget card by default: location, condition icon, current temperature, and high/low.
+  2. A Settings toggle switches Weather to an extended widget that adds a multi-day forecast row (day, icon, temp).
+  3. Toggling the setting live-updates the Weather view without requiring a relaunch.
+  4. Weather still degrades silently (no crash, sensible fallback) on permission denial, matching the existing pattern.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 34: Quick Action Destination Picker
+
+**Goal**: Dropping a file from any view presents a Droppy-style destination picker (Drop/AirDrop/Mail) instead of immediately staging into the shelf — the milestone's highest integration-risk item, isolated last and preceded by its own spike, mirroring this project's own Phase 22→24 drag-in risk-isolation precedent.
+**Depends on**: Phase 31 — the picker's "Drop" destination routes into the now Tray-only shelf and switches the active view to Tray.
+**Requirements**: TRAY-02, TRAY-03, TRAY-04
+**Success Criteria** (what must be TRUE):
+  1. Dropping a file on the island from any view shows a 3-option Quick Action picker: Drop, AirDrop, Mail.
+  2. Choosing "Drop" stages the file into Tray exactly as before and switches the active view to Tray.
+  3. Choosing "AirDrop" opens the system AirDrop share sheet for the dropped file.
+  4. Choosing "Mail" composes a new email in Mail.app with the file attached (documented limitation: non-Mail.app default clients don't receive the attachment).
+  5. Invoking AirDrop/Mail does not break the panel's non-activating/click-through guarantees — re-verified via the on-device hover→expand→move-down trace.
+**Plans**: TBD
+**UI hint**: yes

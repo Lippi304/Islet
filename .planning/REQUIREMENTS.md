@@ -66,13 +66,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| _pending roadmap creation_ | | |
+| SHAPE-01 | Phase 29 | Pending |
+| HOME-01 | Phase 30 | Pending |
+| HOME-02 | Phase 30 | Pending |
+| HOME-03 | Phase 30 | Pending |
+| TRAY-01 | Phase 31 | Pending |
+| TRAY-05 | Phase 32 | Pending |
+| WEATHER-01 | Phase 33 | Pending |
+| WEATHER-02 | Phase 33 | Pending |
+| TRAY-02 | Phase 34 | Pending |
+| TRAY-03 | Phase 34 | Pending |
+| TRAY-04 | Phase 34 | Pending |
 
 **Coverage:**
-- v1.5 requirements: 10 total
-- Mapped to phases: 0 (0%)
-- Unmapped: 10
+- v1.5 requirements: 11 total
+- Mapped to phases: 11 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-13 — v1.5 (Home Focus & Widget Redesign) requirements defined after 4-agent research (Stack/Features/Architecture/Pitfalls, see `.planning/research/SUMMARY.md`). Research recommends 6 phases with the Quick Action picker (TRAY-02/04) isolated last as the highest-risk item, mirroring v1.3/v1.4's Phase 22-24 drag-in risk-isolation precedent.*
+*Last updated: 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
