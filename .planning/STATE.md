@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
-status: completed
+status: executing
 stopped_at: Phase 30 UI-SPEC approved
-last_updated: "2026-07-13T23:09:54.503Z"
-last_activity: 2026-07-14 -- Phase 29 complete, on-device UAT approved
+last_updated: "2026-07-13T23:38:21.710Z"
+last_activity: 2026-07-13 -- Phase 30 planning complete
 progress:
   total_phases: 19
   completed_phases: 10
-  total_plans: 29
+  total_plans: 32
   completed_plans: 28
   percent: 53
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 Phase: 29 (notchshape-flare) — COMPLETE
 Plan: 1 of 1 (complete)
-Status: Phase 29 complete, on-device UAT approved. Next: /gsd-discuss-phase 30
-Last activity: 2026-07-14 -- Phase 29 complete, on-device UAT approved
+Status: Ready to execute
+Last activity: 2026-07-13 -- Phase 30 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -107,6 +107,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 26]: macOS deployment target bumped 14.0 -> 15.0 (user-approved) to fix a Settings-window auto-restore-at-launch bug via .defaultLaunchBehavior(.suppressed), which has no availability-guard path in SwiftUI's SceneBuilder
 - [v1.5 roadmap] Phase order 29→30→31→32→33→34 (Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker) follows research's dependency-grounded recommendation: independence first (Flare), then lowest-new-architecture-risk (Home), then a hard-dependency pair (Shelf Consolidation must land before Tray Widening to avoid touching `visibleContentZone()` twice), then fully-independent Weather, then the one feature requiring genuinely new AppKit territory (Quick Action picker) isolated last — mirrors the project's own Phase 22→24 drag-in risk-isolation precedent
 - [Phase 29]: SHAPE-01 shipped as a plain topCornerRadius increase (24pt blob / 12pt wings) at 2 call sites, not the topFlareWidth geometry the plan specified — 3 alternate geometry designs (concave sweep, shoulder bulge, centered notch dip) were built and abandoned across ~17 on-device UAT rounds before the simple radius bump matched the user's reference
+- [Phase 30]: Decision coverage gate override: D-01/D-02/D-03/D-06/D-07 not explicitly cited in plan must_haves/truths, but plan-checker semantic review confirmed all 5 are implemented (D-02/D-03 are Plan 01's core resolver branch logic; D-01/D-06 verified as pre-existing behavior; D-06/D-07 referenced in plan body text). User chose Proceed anyway.
 
 ### Roadmap Evolution
 
