@@ -70,7 +70,8 @@ Each task was committed atomically:
 2. **Task 2: Switcher/month-nav/day-select/quick-add handlers + makeRootView wiring** - `26f32f8` (feat)
 3. **Task 3: On-device UAT** - IN PROGRESS (checkpoint:human-verify; round 1 found the camera-notch
    overlap bug documented above, fixed at `cff1a12`; round 2 found the switcher-pill suppression
-   bug documented below, fixed at `3326f1f` — awaiting round 3 approval)
+   bug documented below, fixed at `3326f1f`; round 6 found the switcher icon hit-test bug, fixed
+   at `1edf772` — awaiting round 6 approval)
 
 ## Files Created/Modified
 - `Islet/Notch/NotchWindowController.swift` - resolver/geometry wiring (Task 1) + handlers/makeRootView wiring (Task 2)
@@ -271,6 +272,25 @@ misclick/notch-close root-cause fix, dedicated Tray view**
   `Cmd-U` run and on-device UAT left for the round-5 re-verification, per this project's
   established `xcodebuild test` headless-hang precedent.
 
+**5. [Rule 1 - Bug] Round 6 — switcher icon ring/padding area not tappable, only the glyph itself**
+- **Found during:** Task 3 (on-device UAT, round 6) — user reported clicking directly on a
+  switcher icon's glyph switches tabs, but clicking elsewhere within the same visible circle
+  (the ring/padding around the glyph) closes the notch instead.
+- **Root cause:** `navCircleButton`'s `Button` used `.buttonStyle(.plain)` with a
+  `Color.clear` background for every non-selected/non-filled icon (3 of the 4 circles at any
+  given time). SwiftUI's hit-testing under `.plain` only counts opaque pixels as part of a
+  Button's tappable region when the background is transparent — the clear circle fill/ring
+  area is not hit-tested as part of the Button at all. A click landing there fell through to
+  `blobShape`'s ancestor `.onTapGesture { onClick() }` (which intentionally covers the
+  switcher/shelf rows' empty space), collapsing the island instead of switching tabs.
+- **Fix:** Added `.contentShape(Circle())` to the Button's label in `navCircleButton`, after
+  the existing `.background`/`.overlay` modifiers — the standard, minimal SwiftUI fix that
+  explicitly declares the full `navCircleDiameter`-sized circle as the hit-test region
+  regardless of fill transparency.
+- **Files modified:** `Islet/Notch/NotchPillView.swift`
+- **Commit:** `1edf772`
+- **Verification:** `xcodebuild build` (Debug) — BUILD SUCCEEDED.
+
 All other Task 1/2 acceptance-criteria greps passed on the first attempt; the Debug build gate
 passed after each task with zero compile errors (and again after every subsequent round's
 bugfixes/scope-expansion changes).
@@ -290,7 +310,9 @@ round 2 found a second real bug (switcher pill missing during Now Playing expand
 found a third real bug (resolver precedence — Calendar unreachable during media) plus a
 user-confirmed scope expansion (smart Home, new Weather tab, calendar visual pass); round 4
 found calendar density too spacious, a real misclick/notch-close bug, and requested a dedicated
-Tray view. All are now fixed/built; round 5 (re-verification) is pending.** This plan is
+Tray view; round 5 held on re-verification but round 6 found a new real bug (switcher icon
+ring/padding area not tappable, only the glyph). All are now fixed/built; round 6
+(re-verification) is pending.** This plan is
 `autonomous: false` and Task 3 is a `checkpoint:human-verify` gate covering all 4 of this
 phase's ROADMAP Success Criteria and CALVIEW-01/02/03/04. Per the executor's protocol,
 execution stopped here again after the change — see the CHECKPOINT REACHED block in the final
