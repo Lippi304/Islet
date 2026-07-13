@@ -68,6 +68,24 @@ struct NotchShape: Shape {
         // the corner-cut notch surviving intact at its new (shifted) location, and the bulge's
         // own boundary tracing one smooth outward hump reaching the full `bulge` extent.
         let bulge = topFlareWidth
+        // ROUND 9 (stroke-diagnostic on-device UAT 2026-07-13) — the ACTUAL defect the bright
+        // green stroke outline exposed: a CGPath element-by-element inspection (moveTo/lineTo/
+        // quadCurve, checked for NaN/infinite coordinates and degenerate zero-length segments)
+        // proves this path was ALWAYS a valid, continuous, closed 13-element contour — the
+        // stroke gap was never a path-construction bug. The real defect lived one layer up, in
+        // NotchPillView's `blobShape`/`wingsShape`: they gave this Shape a `.frame()` no wider
+        // than the LOGICAL pill width, but the shoulder bulge below deliberately paints
+        // `bulge` points PAST that width on each side (`rect.maxX + bulge`, `rect.minX - bulge`)
+        // — those pixels have no backing store in a frame that size, so the fill AND the
+        // diagnostic stroke silently never drew there, while the corner-cut curve just inside
+        // the wall (well within frame bounds) rendered fine — exactly "sides fine, gap at top."
+        // `blobShape`/`wingsShape` now give this shape a render canvas widened by `2 * bulge`
+        // (see that file's own doc comment), so `rect` here is that WIDER canvas, not the
+        // logical pill rect. `r` below recovers the logical pill rect by insetting the wide
+        // canvas by `bulge` on each side — every wall/corner-radius computation stays the exact
+        // pre-existing math (same shape, same width), while the bulge/apex points reach back out
+        // to the canvas's own true edges (`rect.minX`/`rect.maxX`) — now WITHIN the render target.
+        let r = rect.insetBy(dx: bulge, dy: 0)
         // ROUND 8 (post-diagnostic pacing fix, on-device UAT 2026-07-13): the diagnostic round
         // confirmed the mechanism itself (bulge + red fill both rendered exactly as expected on
         // real hardware). The remaining complaint was PACING, not visibility: a single small
@@ -92,41 +110,42 @@ struct NotchShape: Shape {
         // than splitting the depth evenly between both legs.
         let apexFraction: CGFloat = 0.3
 
-        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY)) // FULL-WIDTH flush top run — never recessed
+        p.move(to: CGPoint(x: r.minX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY)) // FULL-WIDTH flush top run — never recessed
 
         // RIGHT shoulder: two chained quad curves sharing an on-curve apex at the outward peak
-        // (rect.maxX + bulge, rect.minY + bulgeDepth * apexFraction) swing the edge out and back
-        // to touch x == rect.maxX again at y == rect.minY + bulgeDepth — then the topCornerRadius
+        // (r.maxX + bulge, r.minY + bulgeDepth * apexFraction) swing the edge out and back
+        // to touch x == r.maxX again at y == r.minY + bulgeDepth — then the topCornerRadius
         // corner-cut curve continues from there, an EXACT copy of the unflared branch's own
         // corner math above, just shifted down by bulgeDepth (its shape, and therefore the
-        // rounding it cuts, is untouched).
-        let rightApex = CGPoint(x: rect.maxX + bulge, y: rect.minY + bulgeDepth * apexFraction)
-        p.addQuadCurve(to: rightApex, control: CGPoint(x: rect.maxX + bulge, y: rect.minY))
-        p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + bulgeDepth),
-                       control: CGPoint(x: rect.maxX + bulge, y: rect.minY + bulgeDepth))
-        p.addQuadCurve(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + bulgeDepth + topCornerRadius),
-                       control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + bulgeDepth))
+        // rounding it cuts, is untouched). Note r.maxX + bulge == rect.maxX exactly (the
+        // canvas's own true edge) — the peak reaches the widened render canvas, never past it.
+        let rightApex = CGPoint(x: r.maxX + bulge, y: r.minY + bulgeDepth * apexFraction)
+        p.addQuadCurve(to: rightApex, control: CGPoint(x: r.maxX + bulge, y: r.minY))
+        p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY + bulgeDepth),
+                       control: CGPoint(x: r.maxX + bulge, y: r.minY + bulgeDepth))
+        p.addQuadCurve(to: CGPoint(x: r.maxX - topCornerRadius, y: r.minY + bulgeDepth + topCornerRadius),
+                       control: CGPoint(x: r.maxX - topCornerRadius, y: r.minY + bulgeDepth))
 
         // Downstream math from here is 100% the existing, unmodified topCornerRadius/
         // bottomCornerRadius corner + wall geometry (identical to the topFlareWidth == 0 branch
         // above, just re-entered after the bulge+corner-cut instead of after a plain quad curve
         // — only the wall's start point moved down by bulgeDepth, its end/shape is untouched).
-        p.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius))
-        p.addQuadCurve(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY),
-                       control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY))
-        p.addQuadCurve(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius),
-                       control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + bulgeDepth + topCornerRadius))
+        p.addLine(to: CGPoint(x: r.maxX - topCornerRadius, y: r.maxY - bottomCornerRadius))
+        p.addQuadCurve(to: CGPoint(x: r.maxX - topCornerRadius - bottomCornerRadius, y: r.maxY),
+                       control: CGPoint(x: r.maxX - topCornerRadius, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX + topCornerRadius + bottomCornerRadius, y: r.maxY))
+        p.addQuadCurve(to: CGPoint(x: r.minX + topCornerRadius, y: r.maxY - bottomCornerRadius),
+                       control: CGPoint(x: r.minX + topCornerRadius, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX + topCornerRadius, y: r.minY + bulgeDepth + topCornerRadius))
 
         // LEFT shoulder — exact mirror of the right, traversed in reverse (wall -> corner-cut
         // -> bulge -> close at the flush top's start).
-        p.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.minY + bulgeDepth),
-                       control: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + bulgeDepth))
-        let leftApex = CGPoint(x: rect.minX - bulge, y: rect.minY + bulgeDepth * apexFraction)
-        p.addQuadCurve(to: leftApex, control: CGPoint(x: rect.minX - bulge, y: rect.minY + bulgeDepth))
-        p.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.minY), control: CGPoint(x: rect.minX - bulge, y: rect.minY))
+        p.addQuadCurve(to: CGPoint(x: r.minX, y: r.minY + bulgeDepth),
+                       control: CGPoint(x: r.minX + topCornerRadius, y: r.minY + bulgeDepth))
+        let leftApex = CGPoint(x: r.minX - bulge, y: r.minY + bulgeDepth * apexFraction)
+        p.addQuadCurve(to: leftApex, control: CGPoint(x: r.minX - bulge, y: r.minY + bulgeDepth))
+        p.addQuadCurve(to: CGPoint(x: r.minX, y: r.minY), control: CGPoint(x: r.minX - bulge, y: r.minY))
         return p
     }
 }

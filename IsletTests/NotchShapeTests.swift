@@ -86,13 +86,30 @@ final class NotchShapeTests: XCTestCase {
     private let wingsBottomCornerRadius: CGFloat = 6
     private let wingsFlareWidth: CGFloat = 14
 
+    // ROUND 9 (stroke-diagnostic on-device UAT 2026-07-13) — the ACTUAL bug this round fixed:
+    // NotchPillView's blobShape/wingsShape now give NotchShape a render CANVAS widened by
+    // `2 * topFlareWidth` (not the logical pill width), because the shoulder bulge deliberately
+    // paints `topFlareWidth` points past the logical pill edges (NotchShape.swift's own round-9
+    // comment) — a `.frame()` no wider than the logical width has no backing pixels there, which
+    // is why the bulge/flush-top region silently never rendered (every earlier "flat, no bulge"
+    // report) despite the path itself always being a valid, continuous, closed contour (proved
+    // via CGPath element-by-element inspection, see the two new tests below). `path(in:)` now
+    // insets the given rect by `topFlareWidth` internally to recover the logical pill rect, so
+    // every flared-branch test below must call `.path(in:)` with the WIDENED canvas rect,
+    // matching production — `wingsCanvasRect` expands `wingsRect` by exactly that margin, so
+    // `path(in:)`'s internal inset lands back on `wingsRect` unchanged and every existing
+    // point/bounds expectation below (still expressed in terms of `wingsRect`) stays correct.
+    private var wingsCanvasRect: CGRect {
+        wingsRect.insetBy(dx: -wingsFlareWidth, dy: 0)
+    }
+
     func testNonZeroTopFlareWidthKeepsTheTopEdgeFlushAcrossFullWidth() {
         // The hard regression a prior round fixed: the flat top run must span the shape's FULL
         // width, flush at rect.minY -- never recessed downward the way the round-5 concave sweep
         // was outside its narrow band. Points near both top corners, just below the very top
         // edge, must already be filled at full width.
         let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
-            .path(in: wingsRect).cgPath
+            .path(in: wingsCanvasRect).cgPath
         let nearLeftEdge = CGPoint(x: wingsRect.minX + 1, y: wingsRect.minY + 0.5)
         let nearRightEdge = CGPoint(x: wingsRect.maxX - 1, y: wingsRect.minY + 0.5)
         XCTAssertTrue(flaredPath.contains(nearLeftEdge, using: .winding),
@@ -106,7 +123,7 @@ final class NotchShapeTests: XCTestCase {
         // edge is pulled down/away from the true screen edge, the exact user-reported bug a
         // prior round fixed ("Gar nicht mehr am Rand dran").
         let bounds = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
-            .path(in: wingsRect).cgPath.boundingBox
+            .path(in: wingsCanvasRect).cgPath.boundingBox
         XCTAssertEqual(bounds.minY, wingsRect.minY, accuracy: 0.01,
                        "The flared path's topmost point must stay at rect.minY -- flush with the true screen edge.")
     }
@@ -117,7 +134,7 @@ final class NotchShapeTests: XCTestCase {
         // is the visible "flare" itself, and the exact regression round 6's cramped 6pt-tall
         // cubic curve failed (it only reached ~half the requested extent).
         let bounds = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
-            .path(in: wingsRect).cgPath.boundingBox
+            .path(in: wingsCanvasRect).cgPath.boundingBox
         XCTAssertLessThan(bounds.minX, wingsRect.minX,
                           "The shoulder bulge must extend past the rect's left edge.")
         XCTAssertGreaterThan(bounds.maxX, wingsRect.maxX,
@@ -130,11 +147,77 @@ final class NotchShapeTests: XCTestCase {
 
     func testFlaredPathStaysClosedAndNonEmpty() {
         // Mirrors testCustomRadiiProduceAClosedNonEmptyPath, with a non-zero topFlareWidth.
-        let path = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth).path(in: wingsRect)
+        let path = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth).path(in: wingsCanvasRect)
         let cgBounds = path.cgPath.boundingBox
         XCTAssertFalse(path.cgPath.isEmpty, "Flared closed pill path must be non-empty.")
         XCTAssertGreaterThan(cgBounds.width, 0, "The flared closed path needs a positive-width bounding box.")
         XCTAssertGreaterThan(cgBounds.height, 0, "The flared closed path needs a positive-height bounding box.")
+    }
+
+    func testFlaredPathStaysWithinTheCanvasItIsGiven() {
+        // ROUND 9 REGRESSION TEST — the actual bug this round fixed. Before this fix,
+        // NotchPillView gave the shape a `.frame()` sized to only the LOGICAL pill width
+        // (wingsRect), while the shoulder bulge painted `topFlareWidth` points past it on each
+        // side -- those pixels have no backing store in a frame that size, so the bulge/
+        // flush-top region silently never rendered (the fill) and showed a stroke gap (the
+        // diagnostic overlay), even though the path itself was always a valid, continuous,
+        // closed contour (see the CGPath inspection test below). This is the direct contract
+        // check: given the WIDENED canvas NotchPillView now actually supplies, the path's own
+        // bounding box must fit entirely within it -- no coordinate may fall outside the render
+        // target, on either edge.
+        let bounds = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsCanvasRect).cgPath.boundingBox
+        XCTAssertGreaterThanOrEqual(bounds.minX, wingsCanvasRect.minX - 0.01,
+                                    "The flared path must not extend left of the canvas it was actually given -- those pixels would silently never draw (the round-9 bug).")
+        XCTAssertLessThanOrEqual(bounds.maxX, wingsCanvasRect.maxX + 0.01,
+                                 "The flared path must not extend right of the canvas it was actually given -- those pixels would silently never draw (the round-9 bug).")
+    }
+
+    func testFlaredPathHasNoNaNOrDegenerateSegments() {
+        // Permanent regression guard for genuine path-construction defects (NaN/infinite
+        // coordinates from an unexpected division or min/max combination, or a degenerate
+        // zero-length line segment) -- the class of bug the round-9 stroke diagnostic was
+        // originally suspected of exposing. Enumerates every CGPath element directly (the same
+        // check that was run by hand during round-9 triage) rather than trusting a manual code
+        // trace, so a future geometry change that silently introduces a NaN or a zero-length
+        // segment fails a test instead of only showing up as an on-device visual gap.
+        let path = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
+            .path(in: wingsCanvasRect).cgPath
+        var lastPoint: CGPoint?
+        var elementCount = 0
+        path.applyWithBlock { elementPtr in
+            let element = elementPtr.pointee
+            elementCount += 1
+            func assertFinite(_ points: [CGPoint]) {
+                for point in points {
+                    XCTAssertTrue(point.x.isFinite && point.y.isFinite,
+                                   "Path element \(elementCount) has a non-finite coordinate: \(point).")
+                }
+            }
+            switch element.type {
+            case .moveToPoint:
+                assertFinite([element.points[0]])
+                lastPoint = element.points[0]
+            case .addLineToPoint:
+                let end = element.points[0]
+                assertFinite([end])
+                if let last = lastPoint {
+                    XCTAssertNotEqual(last, end, "Path element \(elementCount) is a degenerate zero-length line at \(end).")
+                }
+                lastPoint = end
+            case .addQuadCurveToPoint:
+                assertFinite([element.points[0], element.points[1]])
+                lastPoint = element.points[1]
+            case .addCurveToPoint:
+                assertFinite([element.points[0], element.points[1], element.points[2]])
+                lastPoint = element.points[2]
+            case .closeSubpath:
+                break
+            @unknown default:
+                break
+            }
+        }
+        XCTAssertGreaterThan(elementCount, 0, "The flared path must contain at least one drawing element.")
     }
 
     // ROUND 8 (post-diagnostic pacing fix) -- `bulgeDepth` is no longer a flat hardcoded
@@ -160,7 +243,7 @@ final class NotchShapeTests: XCTestCase {
         // proving the topCornerRadius rounding survives the bulge.
         let bulgeDepth = expectedBulgeDepth(rectHeight: wingsRect.height, topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius)
         let flaredPath = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
-            .path(in: wingsRect).cgPath
+            .path(in: wingsCanvasRect).cgPath
         let cornerNotchMidpoint = CGPoint(x: wingsRect.maxX - wingsTopCornerRadius / 2,
                                           y: wingsRect.minY + bulgeDepth + wingsTopCornerRadius / 2)
         XCTAssertFalse(flaredPath.contains(cornerNotchMidpoint, using: .winding),
@@ -182,7 +265,7 @@ final class NotchShapeTests: XCTestCase {
         // simple, non-self-crossing polygon" -- exactly what round 6's cramped cubic curve was
         // not.
         let path = NotchShape(topCornerRadius: wingsTopCornerRadius, bottomCornerRadius: wingsBottomCornerRadius, topFlareWidth: wingsFlareWidth)
-            .path(in: wingsRect).cgPath
+            .path(in: wingsCanvasRect).cgPath
         let bounds = path.boundingBox
         var x = bounds.minX - 1
         while x <= bounds.maxX + 1 {

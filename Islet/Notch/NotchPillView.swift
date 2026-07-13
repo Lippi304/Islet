@@ -1119,15 +1119,34 @@ struct NotchPillView: View {
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
         let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius, topFlareWidth: Self.topFlareWidth)
+        // SHAPE-01 bugfix (round 9, stroke-diagnostic on-device UAT) — the shoulder bulge
+        // deliberately paints `topFlareWidth` points PAST rect.minX/rect.maxX on each side
+        // (NotchShape.swift). A `.frame()` no wider than `baseWidth` gives the shape NO backing
+        // pixels there at all — that's why the bulge/flush-top region silently never rendered in
+        // the fill (every earlier round's "flat, no bulge" report) and showed a stroke gap in
+        // the diagnostic overlay, even though the path itself is a valid, continuous, closed
+        // contour (verified via CGPath element-by-element inspection — zero NaN/degenerate
+        // segments, before and after this fix). `renderWidth` gives the fill + stroke a real
+        // canvas that wide; the SECOND, narrower `.frame(width: baseWidth...)` right after it
+        // restores the original LOGICAL layout footprint for every downstream consumer
+        // (matchedGeometryEffect's morph target, the content overlay below, the outer body
+        // frame, panel-sizing math) — a plain `.frame()` never clips, so the wider render is
+        // free to overflow past that narrower reported footprint, centered, exactly like the
+        // bulge needs.
+        let renderWidth = baseWidth + 2 * Self.topFlareWidth
         return shape
             .fill(islandFill)
-            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: renderWidth, height: totalHeight)
             .frame(width: baseWidth, height: totalHeight)
+            .matchedGeometryEffect(id: "island", in: ns)
             // DIAGNOSTIC — REVERT AFTER THIS TEST: bright stroke tracing the EXACT same shape
             // instance used for the fill above, so the real silhouette is visible against black.
+            // Framed to the SAME widened renderWidth as the fill above — otherwise the stroke
+            // alone would still suffer the exact clipping bug this fix corrects.
             .overlay {
                 if Self.diagnosticStrokeOutline {
                     shape.stroke(Color.green, lineWidth: 2)
+                        .frame(width: renderWidth, height: totalHeight)
                 }
             }
             .overlay(alignment: .top) {
@@ -1212,15 +1231,22 @@ struct NotchPillView: View {
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
     private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 6, topFlareWidth: Self.topFlareWidth)   // flatter than the downward blob
+        // SHAPE-01 bugfix (round 9) — same renderWidth widening as blobShape above; see that
+        // function's doc comment for the full root-cause explanation (the bulge paints past
+        // rect bounds, which a frame no wider than wingsSize.width has no pixels for).
+        let renderWidth = Self.wingsSize.width + 2 * Self.topFlareWidth
         return shape
             .fill(islandFill)
-            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: renderWidth, height: Self.wingsSize.height)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            .matchedGeometryEffect(id: "island", in: ns)
             // DIAGNOSTIC — REVERT AFTER THIS TEST: bright stroke tracing the EXACT same shape
             // instance used for the fill above, so the real silhouette is visible against black.
+            // Framed to the SAME widened renderWidth as the fill above (see blobShape's comment).
             .overlay {
                 if Self.diagnosticStrokeOutline {
                     shape.stroke(Color.green, lineWidth: 2)
+                        .frame(width: renderWidth, height: Self.wingsSize.height)
                 }
             }
             .overlay(
