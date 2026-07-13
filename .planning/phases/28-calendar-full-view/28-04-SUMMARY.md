@@ -69,7 +69,8 @@ Each task was committed atomically:
 1. **Task 1: State ownership + resolver/click-through/panel-geometry wiring** - `152aba4` (feat)
 2. **Task 2: Switcher/month-nav/day-select/quick-add handlers + makeRootView wiring** - `26f32f8` (feat)
 3. **Task 3: On-device UAT** - IN PROGRESS (checkpoint:human-verify; round 1 found the camera-notch
-   overlap bug documented above, fixed at `cff1a12` — awaiting round 2 approval)
+   overlap bug documented above, fixed at `cff1a12`; round 2 found the switcher-pill suppression
+   bug documented below, fixed at `3326f1f` — awaiting round 3 approval)
 
 ## Files Created/Modified
 - `Islet/Notch/NotchWindowController.swift` - resolver/geometry wiring (Task 1) + handlers/makeRootView wiring (Task 2)
@@ -123,8 +124,35 @@ Each task was committed atomically:
   No further visual restructuring was needed; the on-device UAT round 2 should confirm the
   restored clearance reads as polished as the other views.
 
+**2. [Rule 1 - Bug] Switcher pill disappeared while Now Playing was expanded, on second on-device UAT pass**
+- **Found during:** Task 3 (on-device UAT, round 2) — user reported "Jetzt keine Navigation mehr
+  vorhanden" ("now there's no navigation anymore") while music was playing, with a screenshot
+  showing the Now Playing expanded view (album art + transport controls) but no Home/Tray/Calendar
+  switcher pill below it.
+- **Root cause:** Not a regression from the round-2 geometry fix (`cff1a12` never touched
+  `showsSwitcherRow`). It was existing, deliberately-implemented behavior from 28-03/28-04's
+  original design: `28-UI-SPEC.md`'s switcher-pill Visibility row scoped the pill to
+  `.expandedIdle`/`.calendarExpanded` only, treating `.nowPlayingExpanded` (the full media view)
+  the same as the brief Charging/Device splash and the small collapsed Now-Playing wings glance.
+  On real on-device use, media playback is a long-lived, user-entered state — not a transient —
+  so suppressing navigation while music plays is a genuine UX bug, not a display artifact.
+- **Fix:** Extended both mirrored `showsSwitcherRow` implementations (the `NotchPillView.swift`
+  computed property and its lockstep-mirrored `NotchWindowController.swift` free function) to also
+  return `true` for `.nowPlayingExpanded` (covers both the healthy/playing case and the "nicht
+  verfügbar" case — both are full-expanded, user-entered, non-transient states). Updated
+  `mediaExpanded`'s and `mediaUnavailable`'s own `blobShape(...)` call sites to pass
+  `showSwitcher: true` so the row actually renders inside their content, not just the geometry
+  predicates. No new geometry constants were needed: the outer SwiftUI `.frame` already grows
+  generically off `showsSwitcherRow`, and the AppKit panel's static reservation (`positionAndShow`)
+  already unconditionally reserves `switcherRowHeight` as a worst-case union regardless of
+  presentation — both picked up the fix automatically. `28-UI-SPEC.md`'s Visibility row amended to
+  match the corrected, final behavior.
+- **Files modified:** `Islet/Notch/NotchPillView.swift`, `Islet/Notch/NotchWindowController.swift`,
+  `.planning/phases/28-calendar-full-view/28-UI-SPEC.md`
+- **Commit:** `3326f1f`
+
 All other Task 1/2 acceptance-criteria greps passed on the first attempt; the Debug build gate
-passed after each task with zero compile errors (and again after this bugfix).
+passed after each task with zero compile errors (and again after both bugfixes).
 
 ## Issues Encountered
 
@@ -136,14 +164,17 @@ None - no external service configuration required.
 
 ## Checkpoint Status
 
-**Task 3 (on-device UAT) round 1 found a real bug (camera-notch overlap on the calendar view),
-now fixed — round 2 is pending.** This plan is `autonomous: false` and Task 3 is a
+**Task 3 (on-device UAT) round 1 found a real bug (camera-notch overlap on the calendar view);
+round 2 found a second real bug (switcher pill missing during Now Playing expanded) — both now
+fixed, round 3 is pending.** This plan is `autonomous: false` and Task 3 is a
 `checkpoint:human-verify` gate covering all 4 of this phase's ROADMAP Success Criteria and
 CALVIEW-01/02/03/04. Per the executor's protocol, execution stopped here again after the fix —
 see the CHECKPOINT REACHED block in the final response for the full walkthrough the user needs
-to re-run (Cmd-R build + 9-step manual verification + Cmd-U regression pass), with special
-attention to confirming the month grid's top row now clears the camera notch with a visible
-gap, same as the media/shelf views.
+to re-run (Cmd-R build + manual verification + Cmd-U regression pass), with special attention to
+confirming: (1) the month grid's top row still clears the camera notch with a visible gap, and
+(2) the switcher pill (Home/Tray/Calendar) now stays visible while music is playing (Now Playing
+expanded view), while still correctly disappearing during the brief Charging/Device-connect
+splash and the small collapsed Now-Playing glance (before clicking to expand it).
 
 **Until Task 3 is approved:**
 - `requirements-completed` in this SUMMARY's frontmatter is intentionally left empty — CALVIEW-01/02/03/04 should NOT be marked complete in REQUIREMENTS.md/ROADMAP.md until the user types "approved".
