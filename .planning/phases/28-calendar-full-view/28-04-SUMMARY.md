@@ -214,6 +214,63 @@ reversal + new Weather tab + calendar visual pass**
   headless-hang precedent — the test bundle hosts inside the full `Islet.app`, which boots
   `NSPanel`/MediaRemote/IOBluetooth and hangs non-interactively).
 
+**4. [Rule 1 - Bug, plus user-directed density/UX fixes] Round 5 — calendar grid density,
+misclick/notch-close root-cause fix, dedicated Tray view**
+- **Found during:** Task 3 (on-device UAT, round 5) — user attached two GENUINE Droppy
+  notch-overlay reference screenshots (unlike round 4's 31 Settings-only images) and reported
+  three issues: the calendar grid was too spacious vs. the event list, a real intermittent
+  misclick/notch-close bug when switching tabs, and Tray should be a dedicated files-only view
+  instead of the additive shelf-strip-under-Home behavior.
+- **1. Calendar density:** `NotchPillView.calendarCellSize`/`calendarCellGap` shrunk from
+  28×28pt/4px (round 4, never actually validated against a real reference) to 18×18pt/2px,
+  matching the real Droppy reference's tight, small, numeral-only cells and automatically
+  freeing width for `dayListColumn` (an HStack sibling with no fixed width of its own — a
+  smaller grid column leaves more of the 360pt content box for the list). Day-number font
+  9px (was 11px), has-events dot 2px (was 3px).
+- **2. Root cause of the misclick/notch-close bug:** `blobShape`'s `content()` box used a
+  PER-CASE height (144pt for Home/Weather/NowPlaying, 266pt for Calendar), and the switcher row
+  is stacked immediately after `content()` in the same VStack — so the switcher pill's
+  on-screen Y position shifted by ~122pt depending on which tab was active. A click landing
+  where the switcher USED to be (before the layout reflow settled, e.g. clicking twice quickly)
+  could miss it entirely and collapse the island instead of switching tabs.
+- **Fix:** `NotchPillView.calendarContentHeight` renamed to `switcherContentHeight` (196pt,
+  recomputed for the new grid density) and made the ONE shared content-box height for EVERY
+  switcher-row presentation. `blobShape` itself now forces `baseHeight` to this constant
+  whenever `showSwitcher` is true, regardless of any `height:` a caller passes — centralizing
+  the decision in one place makes it structurally impossible for a future switcher-row caller
+  to reintroduce per-case drift. Home (`expandedIsland`) and `mediaUnavailable` gained
+  `alignment: .top` + `.padding(.top, 32)` for consistency with the convention
+  `mediaExpanded`/`calendarFullView`/`weatherFullView` already used (shorter content now
+  top-aligns with empty transparent space below it, above the switcher row, instead of
+  centering). `NotchWindowController.positionAndShow`'s separate `calendarFrame` panel-geometry
+  union collapsed into the single `expandedFrame` reservation (now sized off
+  `switcherContentHeight`); `visibleContentZone()`'s `isCalendarActive`-only branch collapsed
+  into the already-computed `switcherRowShowing` boolean. This is the 4th time this session a
+  "mismatched reserved height across presentations" bug class was hit (shelf, onboarding,
+  calendar-round-2, now the switcher row itself) — fixed this time at the true root (one
+  shared constant enforced inside `blobShape`) rather than another per-case patch.
+- **3. Tray dedicated view:** `IslandResolver.swift` gained a new `.trayExpanded` case, checked
+  at the same priority tier as Calendar/Weather (before Now-Playing) — supersedes the
+  28-03/28-04 D-02 reconciliation where Tray had no resolver case and instead
+  force-revealed the additive shelf strip under whichever OTHER presentation was active.
+  `NotchPillView.trayFullView` renders the shelf items full-size via the EXISTING
+  `shelfRow(_:)`/`ShelfItemView` building blocks (not reinvented) with a dedicated empty state
+  ("No files yet" / "Drag files onto the notch to add them here."), mirroring
+  `calendarEmptyState`'s heading+body tone. `ShelfViewState.forcedByTray` — dead now that Tray
+  always resolves to `.trayExpanded` — was removed; `isVisible` simplified to `!items.isEmpty`.
+  Phase 24's auto-reveal-on-drop under OTHER tabs is unaffected (it never depended on
+  `forcedByTray`).
+- **Files modified:** `Islet/Notch/NotchPillView.swift`, `Islet/Notch/NotchWindowController.swift`,
+  `Islet/Notch/IslandResolver.swift`, `Islet/Shelf/ShelfViewState.swift`,
+  `IsletTests/IslandResolverTests.swift`, `.planning/phases/28-calendar-full-view/28-UI-SPEC.md`,
+  `.planning/phases/28-calendar-full-view/28-CONTEXT.md`
+- **Commits:** `53be4d6` (resolver + shelf state + tests), `73f170f` (density + shared height +
+  Tray view)
+- **Verification:** `xcodebuild build` (Debug) — BUILD SUCCEEDED. `xcodebuild build-for-testing`
+  — TEST BUILD SUCCEEDED (includes the new `IslandResolverTests` Tray-precedence methods). Full
+  `Cmd-U` run and on-device UAT left for the round-5 re-verification, per this project's
+  established `xcodebuild test` headless-hang precedent.
+
 All other Task 1/2 acceptance-criteria greps passed on the first attempt; the Debug build gate
 passed after each task with zero compile errors (and again after every subsequent round's
 bugfixes/scope-expansion changes).
@@ -231,12 +288,14 @@ None - no external service configuration required.
 **Task 3 (on-device UAT) round 1 found a real bug (camera-notch overlap on the calendar view);
 round 2 found a second real bug (switcher pill missing during Now Playing expanded); round 3
 found a third real bug (resolver precedence — Calendar unreachable during media) plus a
-user-confirmed scope expansion (smart Home, new Weather tab, calendar visual pass). All are now
-fixed/built; round 4 (re-verification) is pending.** This plan is `autonomous: false` and Task 3
-is a `checkpoint:human-verify` gate covering all 4 of this phase's ROADMAP Success Criteria and
-CALVIEW-01/02/03/04. Per the executor's protocol, execution stopped here again after the change
-— see the CHECKPOINT REACHED block in the final response for the full walkthrough the user needs
-to re-run (Cmd-R build + manual verification + Cmd-U regression pass), with special attention to:
+user-confirmed scope expansion (smart Home, new Weather tab, calendar visual pass); round 4
+found calendar density too spacious, a real misclick/notch-close bug, and requested a dedicated
+Tray view. All are now fixed/built; round 5 (re-verification) is pending.** This plan is
+`autonomous: false` and Task 3 is a `checkpoint:human-verify` gate covering all 4 of this
+phase's ROADMAP Success Criteria and CALVIEW-01/02/03/04. Per the executor's protocol,
+execution stopped here again after the change — see the CHECKPOINT REACHED block in the final
+response for the full walkthrough the user needs to re-run (Cmd-R build + manual verification +
+Cmd-U regression pass), with special attention to:
 1. The month grid's top row still clears the camera notch with a visible gap (round 1 fix
    still holds).
 2. The switcher pill now shows **4 icons** (Home/Tray/Calendar/Weather) and stays visible while
@@ -251,10 +310,24 @@ to re-run (Cmd-R build + manual verification + Cmd-U regression pass), with spec
    verfügbar" empty state if no weather data is available — confirm this is understood as
    **current-conditions-only** (no forecast), and decide whether a real forecast (a new
    WeatherKit call + new data model) is wanted as a separate follow-up.
-6. The calendar month grid's visual pass — a filled circle on the selected day, a thin ring on
+6. **(round 5) Calendar grid density** — the month grid now uses small, tight 18×18pt cells
+   with a 2px gap (was 28×28pt/4px), matching the two real Droppy reference screenshots this
+   round, and the day-list column visibly has more room now that the grid column is narrower.
+7. **(round 5) Rapid tab-switching stress test** — click rapidly back and forth between all 4
+   switcher icons (Home → Tray → Calendar → Weather → Home, several times in a row, including
+   double-clicking a tab right after switching to it) and confirm every click is recognized as
+   landing ON the notch — the island should never silently collapse instead of switching. This
+   directly re-exercises the misclick/notch-close bug's root cause (the switcher pill's
+   on-screen position now stays perfectly constant across every tab).
+8. **(round 5) Tray is now a dedicated files-only view** — click Tray and confirm it shows
+   ONLY the shelf files (or the "No files yet" empty state if the shelf is empty), not the Home
+   glance with a shelf strip appended below it. Then, WHILE on a DIFFERENT tab (Home, Calendar,
+   or Weather), drag a file onto the notch and confirm Phase 24's auto-reveal-on-drop still
+   works — the shelf strip should appear appended below that tab's content, unrelated to
+   explicit Tray navigation.
+9. The calendar month grid's visual pass — a filled circle on the selected day, a thin ring on
    today, a small dot under days with events, and rounded-card day-list rows — reads as
-   intentional polish, not a regression, given no genuine Droppy calendar screenshot exists in
-   this project's assets (see the round-4 deviation entry above for the full caveat).
+   intentional polish (now validated against real Droppy reference screenshots as of round 5).
 
 **Until Task 3 is approved:**
 - `requirements-completed` in this SUMMARY's frontmatter is intentionally left empty — CALVIEW-01/02/03/04 should NOT be marked complete in REQUIREMENTS.md/ROADMAP.md until the user types "approved".
@@ -263,13 +336,13 @@ to re-run (Cmd-R build + manual verification + Cmd-U regression pass), with spec
 ## Next Phase Readiness
 
 - Tasks 1-2 are code-complete and committed; the Debug build is green (verified again after
-  round 4's resolver/UI/docs changes).
+  round 5's density/geometry/Tray changes).
 - Task 3 (on-device UAT) is the sole remaining item for Phase 28 and the entire v1.4 milestone.
 - A follow-up agent (or the user directly) should run Cmd-R in Xcode and walk through the 9
-  `how-to-verify` steps in `28-04-PLAN.md`'s Task 3 PLUS the 6 round-4 focus points above, then
+  `how-to-verify` steps in `28-04-PLAN.md`'s Task 3 PLUS the 9 round-5 focus points above, then
   report "approved" or the specific issue found. Also decide: is a real weather forecast wanted
   as a follow-up, or is current-conditions-only sufficient?
 
 ---
 *Phase: 28-calendar-full-view*
-*Completed: 2026-07-13 (Tasks 1-2 code-complete; Task 3 checkpoint round 4 pending re-verification)*
+*Completed: 2026-07-13 (Tasks 1-2 code-complete; Task 3 checkpoint round 5 pending re-verification)*

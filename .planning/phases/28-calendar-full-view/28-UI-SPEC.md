@@ -59,7 +59,8 @@ A new fixed-height row, always below whatever the current `blobShape` content is
 | Inactive icon | Outlined stroke circle, white glyph at `.white.opacity(0.6)` (matches this file's existing "unselected/idle" opacity convention seen on device glyphs, e.g. line 734/846) | New combination of existing tokens |
 | Icons (SF Symbols) | Home: `house.fill` / Tray: `tray.fill` / Calendar: `calendar` / Weather: `cloud.sun.fill` | New — Home/Tray reuse the exact concept names ROADMAP already uses; `calendar` is the direct SF Symbol match for CALVIEW; `cloud.sun.fill` added 28-04 round 4 for the new Weather tab |
 | Order | Home, Tray, Calendar, Weather (left to right) — Weather appended as the 4th icon, the existing three left untouched | 28-04 round 4, user-specified |
-| Visibility | Shown whenever the island is expanded into a long-lived, user-entered state, AND hidden during brief time-sensitive transients (Charging/Device splash, the small collapsed Now-Playing wings glance) — same suppression precedent as the shelf row (SHELF-09) | Resolves Claude's-Discretion item in `28-CONTEXT.md` — visible during `.expandedIdle`, `.calendarExpanded`, `.weatherExpanded`, `.nowPlayingExpanded` (both healthy and "nicht verfügbar"), and the Tray/shelf-forced state; still hidden during `.charging`/`.device`/`.nowPlayingWings`/`.onboarding`. Amended 28-04 on-device UAT round 3: user reported "no navigation while music is playing" — `.nowPlayingExpanded` was originally excluded but on real use is a long-lived state that should keep the switcher, unlike the transient wings glance. Amended again 28-04 round 4 (precedence fix + "smart Home"): Calendar/Weather selections are now checked BEFORE Now-Playing in the resolver, so they stay reachable via the switcher regardless of playback state; only Home falls back to showing Now-Playing when something is playing (and the idle glance otherwise) — see `28-CONTEXT.md`'s D-01/D-02 addendum for the full rationale. |
+| Visibility | Shown whenever the island is expanded into a long-lived, user-entered state, AND hidden during brief time-sensitive transients (Charging/Device splash, the small collapsed Now-Playing wings glance) — same suppression precedent as the shelf row (SHELF-09) | Resolves Claude's-Discretion item in `28-CONTEXT.md` — visible during `.expandedIdle`, `.calendarExpanded`, `.weatherExpanded`, `.trayExpanded`, `.nowPlayingExpanded` (both healthy and "nicht verfügbar"); still hidden during `.charging`/`.device`/`.nowPlayingWings`/`.onboarding`. Amended 28-04 on-device UAT round 3: user reported "no navigation while music is playing" — `.nowPlayingExpanded` was originally excluded but on real use is a long-lived state that should keep the switcher, unlike the transient wings glance. Amended again 28-04 round 4 (precedence fix + "smart Home"): Calendar/Weather selections are now checked BEFORE Now-Playing in the resolver, so they stay reachable via the switcher regardless of playback state; only Home falls back to showing Now-Playing when something is playing (and the idle glance otherwise) — see `28-CONTEXT.md`'s D-01/D-02 addendum for the full rationale. Amended again 28-04 round 5: Tray joined this same "own resolver case, checked before Now-Playing" tier (see `28-CONTEXT.md`'s round-5 addendum and the new "Tray full view" section below) — it is no longer the shelf-force-reveal state the earlier rows described. |
+| Content height | ALL 5 switcher-row presentations (Home, Tray, Calendar, Weather, NowPlaying) share ONE fixed content-box height (`NotchPillView.switcherContentHeight`, 196pt as of round 5) — no per-case override. Shorter content (Home/Tray-empty/Weather/NowPlaying) top-aligns with camera-clearance padding, leaving empty transparent space above the switcher row, instead of a per-case height. | 28-04 round 5 bugfix — the switcher pill's screen position was shifting up to ~122pt across tab switches (different presentations used different content heights), causing intermittent misclicks that closed the island instead of switching tabs. See `28-04-SUMMARY.md`'s round-5 entry for the full root-cause writeup. |
 
 ### Calendar full view (`.calendarExpanded`, D-07/D-08)
 
@@ -68,8 +69,8 @@ Reuses `blobShape(topCornerRadius: 6, bottomCornerRadius: 32, shelfItems: ...)` 
 | Region | Value | Source |
 |--------|-------|--------|
 | Content padding | `.padding(.horizontal, 16)` (matches `expandedIsland`'s existing padding exactly) | Reused |
-| Layout | `HStack` — month grid LEFT (fixed width ~190pt), day event-list RIGHT (fills remainder, ~ 130pt) inside the 360pt content box, `Divider()` or 1px `Color.white.opacity(0.1)` rule between them | New, informed by Droppy reference (grid left / list right) |
-| Month grid | 7-column `LazyVGrid`, cell size 28×28pt, `4px` internal gap between cells | New |
+| Layout | `HStack` — month grid LEFT (fixed width, now ~138pt as of round 5's density pass), day event-list RIGHT (fills remainder, now ~165pt) inside the 360pt content box, `Divider()` or 1px `Color.white.opacity(0.1)` rule between them | New, informed by Droppy reference (grid left / list right) |
+| Month grid | 7-column `LazyVGrid`, cell size 18×18pt, `2px` internal gap between cells (round 5, shrunk from round 4's 28×28pt/4px — see round-5 note below) | New |
 | Month grid header | Month name + prev/next chevron buttons (`chevron.left`/`chevron.right`, 12pt, `.white.opacity(0.7)`) flanking the centered month label | New — reuses this file's existing small-chevron icon weight/opacity convention (e.g. weather-column glyphs) |
 | Day-list row | `HStack(spacing: 8)` — small color dot (from `EventInput.colorRed/Green/Blue`, existing Phase 14 convention) + event title (`.lineLimit(1)`, T-14-06 truncation precedent) + time | New, reuses Phase 14's event-color-dot data already flowing through `EventInput`/`CalendarGlance` |
 | Day-list scroll | `ScrollView(.vertical)` when day has >3-4 events (144pt content box is short — do not attempt to fit unlimited events unscrolled) | New |
@@ -91,6 +92,38 @@ days that have events — all within the same 28×28pt D-locked cell (no height-
 Applied to the day list: each event row now sits in a subtle rounded card
 (`Color.white.opacity(0.06)`, 8pt corner radius) instead of a bare row, matching the
 rounded-card language used throughout every real Droppy screenshot on file.
+
+**28-04 round 5 (real Droppy reference screenshots, density correction):** two GENUINE Droppy
+notch-overlay screenshots (the switcher pill + month grid, unlike round 4's 31 Settings-only
+images) confirmed the round-4 circular-badge visual language was correct, but the CELL SIZE
+was not Droppy-accurate — the reference shows small, tight, numeral-only cells, with the grid
+column claiming a noticeably SMALLER width fraction than the day-list column. Cell
+size/gap shrunk from 28×28pt/4px to 18×18pt/2px (`NotchPillView.calendarCellSize`/
+`calendarCellGap`), which both matches the reference density and automatically frees width
+for `dayListColumn` — an HStack sibling with no fixed width of its own, so a smaller grid
+leaves more of the 360pt content box for the list. Day-number font shrunk 11px → 9px and the
+has-events dot 3px → 2px to stay legible at the smaller cell size.
+
+---
+
+## Tray full view (`.trayExpanded`, 28-04 round 5 — D-02 amendment)
+
+Supersedes the earlier "select Tray -> force-reveal the additive shelf strip under whichever
+OTHER presentation is active" behavior (28-03/28-04 rounds 1-4). User feedback: Tray should
+show ONLY the files, like Droppy's own File-Tray page, not idle-glance-plus-shelf-strip. Tray
+now has its own dedicated `IslandPresentation` case, mirroring Calendar/Weather exactly.
+
+| Region | Value | Source |
+|--------|-------|--------|
+| Content padding | `.padding(.top, 32)` camera-clearance pin, same convention as `mediaExpanded`/`calendarFullView`/`weatherFullView` | Reused |
+| Layout | Reuses the EXISTING `shelfRow(_:)`/`ShelfItemView` horizontal-scroll rendering verbatim — no shelf-item rendering was reinvented, only given a dedicated (not additive) presentation context | Reused |
+| Empty state | Tray icon (SF Symbol `tray`, 28pt, dimmed) + "No files yet" heading + "Drag files onto the notch to add them here." body — mirrors `calendarEmptyState`'s heading+body structure (a normal empty collection, not a degraded/blocked feature like `mediaUnavailable`'s tone) | New |
+| Content height | Participates in the shared `switcherContentHeight` box like every other switcher-row presentation (see "Switcher pill" row above) — no dedicated override | Reused |
+
+Phase 24's auto-reveal-on-drop (a file dropped while viewing Home/Calendar/Weather/NowPlaying
+still shows the small additive shelf strip appended below THAT tab's content) is unchanged —
+it depends only on `ShelfViewState.isVisible`'s `!items.isEmpty` check, never on the removed
+`forcedByTray` flag.
 
 ---
 
@@ -163,6 +196,8 @@ Accent reserved for: the per-event color dot and month-grid selected-day indicat
 | Empty state body | "Tap **+ Add** to create one." (bold "+ Add" matches the literal button label above, per this project's "point at the real control" copy convention already used in onboarding's permission rows) |
 | Reminders permission (lazy first-use, D-04) | One-line reason, mirroring Phase 26's exact pattern: "Islet needs Reminders access to save this." shown inline above the system prompt trigger, not a separate screen |
 | Destructive confirmation | Not applicable — this phase has no delete/edit surface (Out of Scope: full CRUD) |
+| Tray empty state heading (28-04 round 5) | "No files yet" |
+| Tray empty state body (28-04 round 5) | "Drag files onto the notch to add them here." |
 
 ---
 

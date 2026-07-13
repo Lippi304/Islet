@@ -51,6 +51,46 @@ guess):
    `notes.md` cites for the calendar grid/switcher do not actually exist in
    `.planning/research/inspiration/` — all 31 files on disk are Settings screenshots).
 
+#### Addendum — 28-04 round 5 (on-device UAT, real Droppy reference screenshots + further UX fixes)
+
+The user attached two GENUINE Droppy notch-overlay screenshots this round (the switcher pill
++ month grid — unlike round 4, which only had 31 Settings screenshots to work from), plus
+reported one real functional regression and one further scope refinement:
+
+1. **Calendar grid too spacious, event list too cramped (visual density fix, using the new
+   real references).** The round-4 circular-badge visual language was confirmed correct by the
+   real screenshots, but the cell SIZE was not — Droppy's grid is small/tight/numeral-only and
+   claims a smaller width fraction than the day-list column. `NotchPillView.calendarCellSize`/
+   `calendarCellGap` shrunk from 28×28pt/4px to 18×18pt/2px, which both matches the reference
+   density and automatically frees width for the day-list column (see `28-UI-SPEC.md`'s
+   round-5 density note).
+2. **Misclick / notch-close bug switching between tabs (D-02 root-cause fix, not cosmetic).**
+   Diagnosed root cause: `blobShape`'s content box used a PER-CASE height (144pt for
+   Home/Weather/NowPlaying, 266pt for Calendar), and the switcher row is stacked immediately
+   after that content in the same VStack — so the switcher pill's on-screen Y position shifted
+   by ~122pt depending on which tab was active, and a click landing where it USED to be (before
+   the reflow settled) could miss it and collapse the island instead of switching tabs. Fixed
+   by making `blobShape` itself force every switcher-row presentation to ONE shared content
+   height (`NotchPillView.switcherContentHeight`, renamed from `calendarContentHeight` and
+   recomputed for the new grid density: 196pt), so the switcher pill's screen position is now
+   PERFECTLY CONSTANT across every tab switch. `positionAndShow`'s separate `calendarFrame`
+   panel-geometry reservation and `visibleContentZone`'s `isCalendarActive`-only branch both
+   collapsed into their respective shared-height equivalents (simplification, not just an
+   addition — matches this project's own repeated lesson from 3 prior "mismatched reserved
+   height" bug classes this session: shelf, onboarding, calendar-round-2).
+3. **Tray should show ONLY the files, like Droppy's own File-Tray page (D-02 amendment #2).**
+   User: the current "select Tray -> force-reveal the small additive shelf strip under
+   whatever Home showed" behavior (28-03/28-04's original D-02 reconciliation) does not match
+   what they wanted — explicit Tray selection should show a DEDICATED, focused files-only view,
+   mirroring Calendar/Weather's own dedicated resolver cases. `IslandResolver.swift` gained a
+   new `.trayExpanded` case, checked at the SAME priority tier as Calendar/Weather (before
+   Now-Playing). `ShelfViewState.forcedByTray` — the flag the old reconciliation depended on —
+   is now dead code and was removed: since Tray always resolves to `.trayExpanded`, no OTHER
+   presentation's additive shelf strip can ever observe a `forcedByTray` flag anymore. Phase
+   24's auto-reveal-on-drop (a dropped file appearing under Home/Calendar/Weather/NowPlaying
+   when NOT on Tray) is UNCHANGED — it only ever depended on `ShelfViewState.isVisible`'s
+   `!items.isEmpty` half, never on `forcedByTray`.
+
 ### Quick-add: Event vs. Reminder + permission timing
 - **D-03 (LOCKED):** Quick-add lets the user choose per-entry: Calendar Event or Reminder (CALVIEW-03, both literally required).
 - **D-04 (LOCKED):** The Reminders (`EKReminder`/`EKReminderStore`) permission prompt fires lazily, the first time the user picks "Reminder" in quick-add — not during onboarding (Phase 26 is already shipped and scoped to only Bluetooth/Calendar/Location) and not eagerly at app launch. Mirrors `LocationProvider`'s existing lazy-request-on-first-use pattern.
