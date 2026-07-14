@@ -17,21 +17,23 @@ Two fixes closing findings from Plan 30-03's on-device checkpoint:
    constant used by every switcher-row presentation that pins content under the camera band
    (`mediaExpanded`, `mediaUnavailable`, etc.), so all of them gain the same extra headroom.
 
-3. **Hover too dark.** After confirming hover now fires, user found the 0.12 white opacity too
-   subtle. Bumped `TransportButton`'s hover fill to `Color.white.opacity(0.20)`.
+3. **Hover brightness tuning.** After confirming hover now fires, user iterated on brightness:
+   0.12 → 0.20 → 0.40 (test) → a temporary 3-way on-device A/B test (0.30/0.40/0.50 across the
+   3 real transport buttons, via a `hoverOpacity` param added to `TransportButton`) → user picked
+   0.40 for all three. The temporary per-button parameter was removed again; `TransportButton`
+   is back to a single hardcoded `Color.white.opacity(0.40)`.
 
 ## Commits
 - `bf9109e`: fix(30-04): enable acceptsMouseMovedEvents so SwiftUI .onHover fires
 - `b1a24f7`: fix(30-04): add 5pt camera clearance to mediaExpanded content
 - `f5c6289`: fix(30-04): brighten D-05 hover, add 5 more pt of camera clearance
+- `731b73e`: fix(30-04): settle D-05 hover opacity at 0.40 (user A/B comparison)
 
 ## Key files modified
 - `Islet/Notch/NotchPanel.swift` — `acceptsMouseMovedEvents = true` added to init
-- `Islet/Notch/NotchPillView.swift` — `cameraClearance` 32 → 42 (two rounds), hover opacity 0.12 → 0.20
+- `Islet/Notch/NotchPillView.swift` — `cameraClearance` 32 → 42 (two rounds), hover opacity settled at 0.40
 
 ## Verification
-`xcodebuild build -scheme Islet -destination 'platform=macOS'` succeeded after each change.
-No deviations from the gap-closure plan beyond the two follow-up tuning rounds requested by the
-user after seeing the first round on-device. Re-running the relevant items of Plan 30-03's
-on-device checklist (D-05 hover, HOME-02 camera clearance) is the remaining step before the phase
-closes.
+`xcodebuild build -scheme Islet -destination 'platform=macOS'` succeeded after every change. User
+approved all 3 Home sub-states, the D-05 hover background (0.40 opacity), and the camera clearance
+on-device — Plan 30-03's checkpoint is satisfied.
