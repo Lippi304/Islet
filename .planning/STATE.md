@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
-status: executing
-stopped_at: Phase 30 UI-SPEC approved
-last_updated: "2026-07-13T23:43:52.693Z"
-last_activity: 2026-07-13 -- Phase 30 execution started
+status: verifying
+stopped_at: Phase 30 complete, on-device UAT approved (incl. 30-04 gap closure)
+last_updated: "2026-07-14T02:30:00.000Z"
+last_activity: 2026-07-14 -- Phase 30 (Home Music-Only) completed, on-device checkpoint approved
 progress:
   total_phases: 19
-  completed_phases: 10
-  total_plans: 32
-  completed_plans: 28
-  percent: 53
+  completed_phases: 11
+  total_plans: 33
+  completed_plans: 32
+  percent: 58
 ---
 
 # Project State
@@ -21,14 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 30 — home-music-only
+**Current focus:** Phase 31 — Shelf Consolidation to Tray-Only (next up)
 
 ## Current Position
 
-Phase: 30 (home-music-only) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 30
-Last activity: 2026-07-13 -- Phase 30 execution started
+Phase: 30 (home-music-only) — COMPLETE
+Plan: 4 of 4 (incl. 30-04 gap closure)
+Status: Phase 30 complete — on-device UAT approved, HOME-01/02/03 delivered
+Last activity: 2026-07-14 -- Phase 30 completed, on-device checkpoint approved (incl. 30-04 gap closure: acceptsMouseMovedEvents fix, camera clearance 32→42pt, hover opacity settled at 0.40)
+Next: Phase 31 — Shelf Consolidation to Tray-Only
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
