@@ -191,7 +191,11 @@ struct NotchPillView: View {
     // THIS one value, so the island actually GROWS taller (expands further), not just shifts
     // content in a fixed box. mediaExpanded pins its content to the top with .padding(.top,32)
     // so the clearance lands exactly at the camera band.
-    static let expandedSize = CGSize(width: 360, height: 144)
+    // Quick task 260714-3k6 — width bumped 360 -> 420 (+60pt / ~17%) per user feedback that the
+    // panel read too narrow for its content. 420 reuses the width already established for
+    // onboardingSize below (no new magic number). Height unchanged — the "too tall" complaint
+    // is the shelf-strip gating fixed separately (see shelfStripVisible), not a geometry issue.
+    static let expandedSize = CGSize(width: 420, height: 144)
 
     // CHG-01 / Pattern 4 — the flat wings (Alcove sideways) seed. Single source of truth:
     // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
