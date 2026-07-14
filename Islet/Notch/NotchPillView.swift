@@ -1187,7 +1187,7 @@ struct NotchPillView: View {
     // ancestor gesture (see above).
     private func shelfRow(_ items: [ShelfItem]) -> some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 10) {   // item-gap, UI-SPEC
+            HStack(spacing: 14) {   // Phase 32 / TRAY-05: bumped from 10 to match larger tiles, UI-SPEC
                 ForEach(items, id: \.id) { item in
                     ShelfItemView(item: item,
                                   onTap: { onShelfItemTap(item) },
@@ -1196,7 +1196,7 @@ struct NotchPillView: View {
                 }
                 Button(action: onShelfClearAll) {
                     Image(systemName: "trash")
-                        .font(.system(size: 14))
+                        .font(.system(size: 16))   // Phase 32 / TRAY-05: bumped from 14
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 .buttonStyle(.plain)
