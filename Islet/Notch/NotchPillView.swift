@@ -342,10 +342,11 @@ struct NotchPillView: View {
     // both per user request, narrowed each round). `trayContentHeight` is D-06/D-08's ONE
     // shared content-box height for both the empty and non-empty Tray states (unlike
     // switcherContentHeight, this is deliberately SHORTER — content-hugging, not the shared
-    // 196pt box): cameraClearance (42) + trayShelfRowTopInset (6) + trayShelfRowHeight (70) +
-    // ~22pt bottom margin.
+    // 196pt box): cameraClearance (42) + trayShelfRowTopInset (20) + trayShelfRowHeight (85) +
+    // ~3pt bottom margin. Round 5 grew this budget (was 128) to fit the deliberately large
+    // round-5 top inset below.
     static let traySize = CGSize(width: 650, height: 144)
-    static let trayContentHeight: CGFloat = 128
+    static let trayContentHeight: CGFloat = 150
     // Gap-closure (on-device UAT round 3) — the shared `shelfRowHeight` (56, sized for the
     // OTHER shelfRow callers' 28x28pt icons) is too short for Tray's 40x40pt icons (Task 3):
     // 40 (icon) + 2 (VStack spacing) + ~13 (9pt filename line, incl. SF Pro Text leading) = ~55pt
@@ -354,9 +355,10 @@ struct NotchPillView: View {
     // A dedicated Tray-only override, following the same `height:`-override-wins pattern this
     // plan already uses for trayContentHeight vs switcherContentHeight — `shelfRowHeight` itself
     // stays untouched so Home/Calendar/Weather's dormant (TRAY-01-gated) shelf strip, still
-    // built around the original 28x28pt icon size, is unaffected. Round 4 bumped 64 -> 70 to
-    // make room for `trayShelfRowTopInset` below without reintroducing the round-3 overflow.
-    static let trayShelfRowHeight: CGFloat = 70
+    // built around the original 28x28pt icon size, is unaffected. Round 4 bumped 64 -> 70; round
+    // 5 bumped 70 -> 85 so ~55pt of content + the round-5 20pt top inset (75pt) still fits with
+    // margin, without reintroducing the round-3 overflow.
+    static let trayShelfRowHeight: CGFloat = 85
     // Gap-closure (on-device UAT round 4) — "die files gucken immernoch aus der Island raus".
     // cameraClearance (42) alone clears NotchShape's topCornerRadius (24) with margin, so the
     // curve itself wasn't the culprit; a horizontal ScrollView's un-positioned content is
@@ -367,7 +369,12 @@ struct NotchPillView: View {
     // the `topInset:` parameter below, defaulting to 0 so the shared shelfRowHeight/28x28pt
     // callers are untouched), makes the clearance deterministic instead of depending on
     // ScrollView's own centering behavior.
-    static let trayShelfRowTopInset: CGFloat = 6
+    // Round 5 — the round-4 6pt inset produced ZERO visible change across two screenshots, which
+    // is far more consistent with Xcode leaving a STALE Islet process running (LSUIElement, no
+    // Dock icon, no window to visually confirm a relaunch) than with a correctly-applied 6pt
+    // shift being literally imperceptible. Bumped to a deliberately unmissable 20pt so the next
+    // screenshot gives an unambiguous signal either way, rather than nudging blindly again.
+    static let trayShelfRowTopInset: CGFloat = 20
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -1241,11 +1248,12 @@ struct NotchPillView: View {
     // Phase 32 / TRAY-05 gap-closure (on-device UAT round 3) — `rowHeight` defaults to the
     // shared `shelfRowHeight` (56, sized for this row's OTHER callers' 28x28pt icons, still
     // untouched) so nothing changes for them; `trayFullView` overrides it with the taller
-    // `trayShelfRowHeight` (70) sized for Tray's 40x40pt icons, so the filename caption no
+    // `trayShelfRowHeight` (85) sized for Tray's 40x40pt icons, so the filename caption no
     // longer renders past the black shape's own bottom edge.
-    // Round 4 — `topInset` defaults to 0 (no change for the other callers); `trayFullView`
-    // passes `trayShelfRowTopInset` (6) so the icon/badge get deterministic clearance from the
-    // shape's top edge instead of depending on ScrollView's own (thin) content-centering.
+    // Round 4/5 — `topInset` defaults to 0 (no change for the other callers); `trayFullView`
+    // passes `trayShelfRowTopInset` (20, deliberately large per round 5) so the icon/badge get
+    // deterministic clearance from the shape's top edge instead of depending on ScrollView's
+    // own (thin) content-centering.
     private func shelfRow(_ items: [ShelfItem], rowHeight: CGFloat = Self.shelfRowHeight, topInset: CGFloat = 0) -> some View {
         ScrollView(.horizontal) {
             HStack(spacing: 14) {   // Phase 32 / TRAY-05: bumped from 10 to match larger tiles, UI-SPEC
