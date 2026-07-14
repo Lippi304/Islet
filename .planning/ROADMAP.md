@@ -527,8 +527,17 @@ Plans:
   2. A Settings toggle switches Weather to an extended widget that adds a multi-day forecast row (day, icon, temp).
   3. Toggling the setting live-updates the Weather view without requiring a relaunch.
   4. Weather still degrades silently (no crash, sensible fallback) on permission denial, matching the existing pattern.
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 33-01-PLAN.md — Combined WeatherKit fetch (DailyForecast, extended WeatherGlance, fetchCurrentAndForecast + resolvePlaceName) + BasicOutfitState/ActivitySettings wiring, TDD
+
+**Wave 2** *(blocked on 33-01)*
+
+- [ ] 33-02-PLAN.md — Weather card view (location/H-L + forecast row) + controller fetch/geometry three-site rule + Settings toggle + on-device UAT
 
 ### Phase 34: Quick Action Destination Picker
 
