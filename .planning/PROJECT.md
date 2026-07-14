@@ -30,7 +30,7 @@ Other standing candidates for a future milestone: system HUD replacement, a coun
 
 **Goal:** Declutter Home to music-only, consolidate all file-drop behavior into Tray (with a Droppy-style Drop/AirDrop/Mail destination choice), redesign Weather as an iOS-widget-style card, widen/enlarge the Tray file layout, and give the expanded-state notch silhouette an outward-flaring top edge.
 
-**Status: Requirements being defined.**
+**Status:** 3/6 phases complete (50%) — Phase 29 (SHAPE-01, NotchShape flare), Phase 30 (HOME-01/02/03, Home music-only), Phase 31 (TRAY-01, shelf consolidation to Tray-only) shipped 2026-07-14. Phase 32 (Tray Widening) next.
 
 **Target features:**
 - Home shows ONLY Now Playing — live controls while something plays, cover+title (no live controls) for the last-played track while paused/stopped; the time/weather/calendar glance is fully removed from Home (Weather and Calendar already have their own switcher tabs).
@@ -170,11 +170,18 @@ _v1.2 (Now Playing Polish) is code-complete and on-device verified — both phas
 
 _v1.4 (Architecture Redesign) is code-complete — all 6 phases shipped 2026-07-11 through 2026-07-13. 2 items remain in `28-HUMAN-UAT.md` (status: partial) pending final on-device re-confirmation of the two code-review fixes; run `/gsd:verify-work` once confirmed._
 
+**Shelf Consolidation to Tray-Only (Phase 31 — TRAY-01):**
+
+- [x] The additive shelf-strip-reveal on Home/Calendar/Weather is removed; file-shelf content is visible only on the Tray tab — `shelfStripVisible` is a shared hardcoded-`false` gate wired into all 5 non-Tray `blobShape` call sites, `visibleContentZone()`'s click-through geometry simplified to match, and `trayFullView`'s own `shelfRow(_:)` path is unaffected. (Phase 31)
+- Implementation shipped ahead of formal planning via quick task 260714-3k6; this phase added a regression test (initially insufficient — code review caught it testing an empty shelf, unable to distinguish a hard-coded `false` from empty-shelf `false`; fixed to seed a non-empty shelf) and ran the on-device CR-01-class hover→expand→move-down click-through trace, user-approved with zero regressions. Clears `visibleContentZone()` to be touched only once by Phase 32 (Tray Widening). (Phase 31)
+
+_Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-only) shipped 2026-07-14 but are not yet individually itemized here — see `.planning/ROADMAP.md` Phase 29/30 detail sections and their SUMMARY.md files for what shipped._
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_v1.5 (Home Focus & Widget Redesign) requirements being defined — see Current Milestone above. REQUIREMENTS.md not yet written._
+_v1.5 (Home Focus & Widget Redesign) — see `.planning/REQUIREMENTS.md` for the full 11-requirement traceability table. Remaining: HOME's Weather redesign (WEATHER-01/02), Tray widening (TRAY-05), Quick Action picker (TRAY-02/03/04)._
 
 ### Out of Scope
 
@@ -273,4 +280,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-13 — Milestone v1.5 (Home Focus & Widget Redesign) started. Goal: Home becomes music-only, file drops consolidate into Tray with a Droppy-style Drop/AirDrop/Mail destination picker, Tray widens with larger icons, Weather becomes an iOS-widget-style card (compact default, extended-with-forecast optional), and the expanded-state notch silhouette gains an outward top-edge flare. v1.4 (Architecture Redesign) remains code-complete with 2 items in `28-HUMAN-UAT.md` still pending final on-device re-confirmation — `/gsd:complete-milestone` for v1.4 can be run whenever convenient.*
+*Last updated: 2026-07-14 — Validated in Phase 31: TRAY-01 (shelf consolidation to Tray-only), regression-locked and on-device verified with no CR-01-class click-through regression. v1.5 now 3/6 phases complete (Phases 29-31); Phase 32 (Tray Widening) next. v1.4 (Architecture Redesign) remains code-complete with 2 items in `28-HUMAN-UAT.md` still pending final on-device re-confirmation — `/gsd:complete-milestone` for v1.4 can be run whenever convenient.*
