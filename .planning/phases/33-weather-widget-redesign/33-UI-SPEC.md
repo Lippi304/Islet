@@ -50,13 +50,13 @@ All sizes in pt, `design: .rounded` (project-wide convention — do not switch t
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Display | 32pt | semibold (600) | default (SwiftUI system) | Current temperature — reuse `weatherFullContent`'s existing style verbatim, `.monospacedDigit()`, `.foregroundStyle(.white)` |
-| Body | 14pt | regular (400) | default | Reserved — unchanged `weatherFullUnavailable` text (pre-existing, out of scope this phase; currently rendered `.medium` weight — see note below) |
 | Label | 13pt | regular (400) | default | Condition category label under the temperature (existing `weatherCategoryLabel`, `.foregroundStyle(.secondary)`) — also the location-name label (new, D-01/D-02), same style |
+| H/L | 12pt | semibold (600) | default | New: forecast-chip high/low text, `.monospacedDigit()`, `.foregroundStyle(.white)` — reuses the Display role's weight token at a smaller size rather than introducing a third weight |
 | Caption | 11pt | regular (400) | default | New: forecast-day chip weekday label (e.g. "Mon"), `.foregroundStyle(.secondary)` |
 
-Forecast-chip H/L text: 12pt, semibold (600), `.monospacedDigit()`, `.foregroundStyle(.white)` — reuses the Display role's weight token at a smaller size rather than introducing a third weight.
+**4-size scale for this phase:** 32 / 13 / 12 / 11pt — these are the only sizes any WEATHER-01/02 element uses. The pre-existing `weatherFullUnavailable` string (14pt) is unchanged, out of scope this phase (touches only the populated-data path, not the unavailable-state view), and therefore not part of this phase's declared scale — listed here for awareness only, not as a fifth contract size.
 
-**2-weight budget:** regular (400) + semibold (600) for all new copy this phase. Note: the pre-existing `weatherFullUnavailable` string already renders at `.medium` (500) — that view is unchanged by this phase's scope (WEATHER-01/02 touch the populated-data path only), so it is a pre-existing exception, not a new one.
+**2-weight budget:** regular (400) + semibold (600) for all new copy this phase. Note: the pre-existing `weatherFullUnavailable` string already renders at `.medium` (500) — that view is unchanged by this phase's scope, so it is a pre-existing exception, not a new one.
 
 **Forecast icon size:** 20pt SF Symbol (`weatherIcon(for:).font(.system(size: 20))`) — smaller than the compact card's 44pt icon, sized to fit inside a ~70-90pt-wide chip alongside the weekday label and H/L text.
 
