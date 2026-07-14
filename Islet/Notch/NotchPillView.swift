@@ -1279,18 +1279,17 @@ struct NotchPillView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear shelf")
             }
-            // Gap-closure (on-device UAT round 10) — "die Datei am rand fast genau anliegt und
-            // der Name aus der Island rausguckt" (the filename pokes past the shape's edge).
+            // Gap-closure (on-device UAT round 10-11) — "die Datei am rand fast genau anliegt
+            // und der Name aus der Island rausguckt" (the filename pokes past the shape's edge).
             // ShelfItemView's filename caption is `.frame(maxWidth: 56)`, wider than the 40pt
             // icon above it, so it overhangs 8pt beyond the icon's own bounds on EACH side
             // (was true for the original 28pt icon / 44pt caption too — same 8pt overhang by
             // design, just never visibly clipped before this phase's wider/narrower geometry
-            // made it noticeable). The bare 16pt row padding below only left 16-8=8pt of real
-            // clearance from the ScrollView content's edge to the caption's actual edge — not
-            // enough headroom next to the shape's topCornerRadius:24 rounded corner. Bumped to
-            // 24pt (16 + the 8pt overhang) so the caption gets the SAME real ~16pt clearance the
-            // icon itself already had.
-            .padding(.horizontal, 24)   // row-padding, UI-SPEC (round 10: 16 -> 24)
+            // made it noticeable). Round 10 bumped 16 -> 24 (16 + the 8pt overhang) to give the
+            // caption the same real ~16pt clearance the icon itself already had; round 11
+            // ("bisschen weiter nach Abstand") bumped again to 32 for more comfortable margin,
+            // confirmed still fits comfortably at traySize.width (650) before scrolling kicks in.
+            .padding(.horizontal, 32)   // row-padding, UI-SPEC (round 10: 16 -> 24; round 11: 24 -> 32)
             .padding(.top, topInset)   // Phase 32 / TRAY-05 gap-closure round 4 — 0 for shared callers
             .frame(maxHeight: .infinity, alignment: .top)   // round 8 — top-align, see comment above
         }
