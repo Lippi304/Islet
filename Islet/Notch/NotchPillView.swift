@@ -455,7 +455,13 @@ struct NotchPillView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            .padding(.top, 24)
+            // Quick task 260714-3k6 gap-closure — was a bare `24`, unlike every other
+            // switcher-row presentation (mediaExpanded/calendarFullView/weatherFullView/
+            // trayFullView), which all clear the camera/notch band via the shared
+            // `Self.cameraClearance` (42) constant. The mismatch sat this empty state's icon
+            // noticeably higher/closer to the camera than the playing-state view. Matching the
+            // same constant here aligns the vertical position with every sibling presentation.
+            .padding(.top, Self.cameraClearance)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
@@ -1485,7 +1491,14 @@ struct NotchPillView: View {
                 }
                 .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
                 .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve
-                .padding(.horizontal, 19) // +5pt inset (user request): art/bars off the outer edge
+                // Quick task 260714-3k6 gap-closure — bumped 19 -> 26. NotchShape's side walls
+                // sit at a CONSTANT `topCornerRadius` (24) inset from each edge for the whole
+                // content height range (see NotchShape.swift's addLine calls), independent of
+                // the panel's total width. 19pt padding was inside that 24pt wall inset, so the
+                // equalizer bars (pinned to the trailing edge of this row via Spacer) rendered
+                // ~5pt past the visible rounded shape on both sides. 26 (topCornerRadius + 2pt
+                // margin) keeps content clear of the wall with a hair of breathing room.
+                .padding(.horizontal, 26)
             }
     }
 
