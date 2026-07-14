@@ -335,14 +335,15 @@ struct NotchPillView: View {
     // fixed size for all 4 steps, and still a "for now" number, not a final one.
     static let onboardingSize = CGSize(width: 420, height: 320)
 
-    // Phase 32 / TRAY-05 (D-03/D-04) — the widened Tray presentation. `traySize.width` (840,
-    // ~double expandedSize.width) is the value actually consumed by every call site below;
-    // `traySize.height` is kept only for CGSize-shape symmetry with expandedSize/onboardingSize
-    // and is never read. `trayContentHeight` is D-06/D-08's ONE shared content-box height for
-    // both the empty and non-empty Tray states (unlike switcherContentHeight, this is
-    // deliberately SHORTER — content-hugging, not the shared 196pt box): cameraClearance (42)
-    // + shelfRowHeight (56) + ~22pt bottom margin.
-    static let traySize = CGSize(width: 840, height: 144)
+    // Phase 32 / TRAY-05 (D-03/D-04) — the widened Tray presentation. `traySize.width` is the
+    // value actually consumed by every call site below; `traySize.height` is kept only for
+    // CGSize-shape symmetry with expandedSize/onboardingSize and is never read. Gap-closure
+    // (on-device UAT round 2): 840 read too wide on-device — narrowed to 750 per user request
+    // ("die muss viel enger, mach die mal auf 750pt"). `trayContentHeight` is D-06/D-08's ONE
+    // shared content-box height for both the empty and non-empty Tray states (unlike
+    // switcherContentHeight, this is deliberately SHORTER — content-hugging, not the shared
+    // 196pt box): cameraClearance (42) + shelfRowHeight (56) + ~22pt bottom margin.
+    static let traySize = CGSize(width: 750, height: 144)
     static let trayContentHeight: CGFloat = 120
 
     var body: some View {
@@ -432,16 +433,16 @@ struct NotchPillView: View {
                alignment: .top)
         // Phase 32 / TRAY-05 gap-closure (on-device UAT round 1) — root cause of "notch renders
         // far left, hit-zone doesn't match": the AppKit panel/hosting view is now sized to the
-        // UNION of every presentation's frame (up to traySize.width=840, positionAndShow()'s
+        // UNION of every presentation's frame (up to traySize.width=750, positionAndShow()'s
         // panelFrame), but every OTHER presentation still asks for its own narrower fixed width
-        // above (420 or less). NSHostingView proposes its own (now up to 840pt) bounds to this
+        // above (420 or less). NSHostingView proposes its own (now up to 750pt) bounds to this
         // root view; a `.frame(width:...)` box smaller than that proposal renders pinned to the
         // view's origin (AppKit top-left) instead of centered, while hotZone/expandedZone/
         // visibleContentZone() are computed from the CORRECT centered geometry (NotchGeometry
         // centers every frame on collapsed.midX) — so clicks land where the invisible, correctly-
         // centered zone is, not where the visually left-shifted content actually renders. Before
         // this phase every union member shared the same 420pt width, so this mismatch never
-        // existed. Centering this fixed-size box within the full (up to 840pt) canvas here makes
+        // existed. Centering this fixed-size box within the full (up to 750pt) canvas here makes
         // the RENDERED position match the geometry the panel/click-through math already assumes,
         // for every presentation (D-07's top-pinning is preserved via `alignment: .top`).
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -777,6 +778,16 @@ struct NotchPillView: View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                   width: Self.traySize.width, height: Self.trayContentHeight, shelfItems: [],
                   shelfVisible: false, showSwitcher: true) {
+            // Gap-closure (on-device UAT round 2) — dropped the extra ancestor-level
+            // `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)` wrapper that
+            // used to sit here: it was the ONE structural difference from calendarFullView/
+            // weatherFullView's proven pattern (Group{if/else}.padding(.top, cameraClearance),
+            // nothing else) and let shelfRow render at its natural/intrinsic (un-stretched)
+            // width instead of the full card width, which is what made the file tiles hug the
+            // top-left corner instead of sitting inset. shelfRow now self-declares its own
+            // `maxWidth: .infinity` (mirrors dayListColumn's precedent), so it fills the
+            // available width without needing an ancestor to force it — matching every other
+            // switcher-row presentation's structure exactly.
             Group {
                 if shelfViewState.items.isEmpty {
                     trayEmptyState
@@ -785,7 +796,6 @@ struct NotchPillView: View {
                 }
             }
             .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -1220,6 +1230,13 @@ struct NotchPillView: View {
             .padding(.horizontal, 16)   // row-padding, UI-SPEC
         }
         .scrollIndicators(.never)
+        // Gap-closure (Phase 32 on-device UAT round 2) — self-declares maxWidth: .infinity
+        // (mirrors dayListColumn's precedent in calendarFullView) instead of relying on an
+        // ancestor to force full width: a ScrollView proposed no width fills its own intrinsic
+        // content size, not the available card width, which left this strip pinned to its
+        // natural (small) size and left-hugging the corner instead of spanning/insetting
+        // properly inside the wider Tray card.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: Self.shelfRowHeight)
     }
 
