@@ -831,10 +831,19 @@ struct NotchPillView: View {
                 }
             }
             .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
-            // DEBUG round 6 (temporary, on-device diagnostic) — BLUE shows this Group's own
-            // natural rendered bounds (cameraClearance padding + shelfRow's natural size),
-            // nested inside the RED box above. Remove once the real box is found.
-            .background(Color.blue.opacity(0.3))
+            // DEBUG round 7 (temporary, on-device diagnostic) — switched from filled backgrounds
+            // to crisp STROKE borders (unambiguous edges) to pinpoint this Group's own natural
+            // rendered bounds (cameraClearance padding + shelfRow's natural size), nested inside
+            // the RED box above. A live text readout (does NOT affect layout, pure overlay) of
+            // the exact values this call site passes, so we can confirm the correct numbers
+            // actually reach shelfRow at runtime rather than inferring it from geometry alone.
+            .border(Color.blue, width: 2)
+            .overlay(alignment: .topLeading) {
+                Text("DBG topInset=\(Int(Self.trayShelfRowTopInset)) rowHeight=\(Int(Self.trayShelfRowHeight)) traySize.w=\(Int(Self.traySize.width))")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.white)
+                    .padding(2)
+            }
         }
     }
 
@@ -1204,10 +1213,11 @@ struct NotchPillView: View {
                 VStack(spacing: 0) {
                     content()
                         .frame(width: baseWidth, height: baseHeight, alignment: alignment)
-                        // DEBUG round 6 (temporary, on-device diagnostic) — RED shows this fixed
-                        // (baseWidth x baseHeight) box's full bounds, distinct from wherever the
-                        // actual content renders inside it. Remove once the real box is found.
-                        .background(Color.red.opacity(0.3))
+                        // DEBUG round 7 (temporary, on-device diagnostic) — switched from filled
+                        // backgrounds to crisp STROKE borders (unambiguous edges, no opacity
+                        // blending to misread) to pinpoint this fixed (baseWidth x baseHeight)
+                        // box's exact bounds. Remove once the real box is found.
+                        .border(Color.red, width: 2)
                     if showSwitcher {
                         switcherRow
                     }
@@ -1281,12 +1291,13 @@ struct NotchPillView: View {
             }
             .padding(.horizontal, 16)   // row-padding, UI-SPEC
             .padding(.top, topInset)   // Phase 32 / TRAY-05 gap-closure round 4 — 0 for shared callers
-            // DEBUG round 6 (temporary, on-device diagnostic) — YELLOW shows the HStack's own
-            // natural bounds AFTER the padding above (topInset baked in). If yellow's top edge
-            // sits flush with green's top edge below, the ScrollView is top-anchoring content
-            // and topInset should be landing; if yellow floats with green visible above it, the
-            // ScrollView is centering/bottom-anchoring and absorbing the inset. Remove once found.
-            .background(Color.yellow.opacity(0.3))
+            // DEBUG round 7 (temporary, on-device diagnostic) — switched from filled backgrounds
+            // to crisp STROKE borders: YELLOW traces the HStack's own natural bounds AFTER the
+            // padding above (topInset baked in). If yellow's top edge sits flush with green's
+            // top edge below, the ScrollView is top-anchoring content and topInset is landing;
+            // if yellow floats with a green gap visible above it, the ScrollView is centering/
+            // bottom-anchoring and absorbing the inset. Remove once found.
+            .border(Color.yellow, width: 2)
         }
         .scrollIndicators(.never)
         // Gap-closure (Phase 32 on-device UAT round 2) — self-declares maxWidth: .infinity
@@ -1297,11 +1308,21 @@ struct NotchPillView: View {
         // properly inside the wider Tray card.
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: rowHeight)
-        // DEBUG round 6 (temporary, on-device diagnostic) — GREEN shows the fixed (rowHeight)
-        // box the ScrollView is forced into. Compare against YELLOW above: any green fringe
-        // visible above/below yellow is exactly where the "extra" rowHeight is being absorbed
-        // instead of pushing the icon down. Remove once the real box is found.
-        .background(Color.green.opacity(0.3))
+        // DEBUG round 7 (temporary, on-device diagnostic) — GREEN traces the fixed (rowHeight)
+        // box the ScrollView is forced into. Compare against YELLOW above: any green gap visible
+        // above/below yellow is exactly where the "extra" rowHeight is being absorbed instead of
+        // pushing the icon down. Plus a live text readout of the ACTUAL parameter values this
+        // function received (not just what the call site sent) — distinguishes a wiring bug
+        // (wrong number arrives) from a layout bug (right number arrives, wrong place it lands).
+        // Remove all of this once the real cause is found.
+        .border(Color.green, width: 2)
+        .overlay(alignment: .bottomLeading) {
+            Text("DBG received topInset=\(Int(topInset)) rowHeight=\(Int(rowHeight))")
+                .font(.system(size: 8))
+                .foregroundStyle(.black)
+                .padding(2)
+                .background(Color.white.opacity(0.8))
+        }
     }
 
     // Finding 12 — the shared flat-strip skeleton `wings(for:)` and `deviceWings(for:)` each
