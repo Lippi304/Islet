@@ -533,7 +533,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 33-01-PLAN.md — Combined WeatherKit fetch (DailyForecast, extended WeatherGlance, fetchCurrentAndForecast + resolvePlaceName) + BasicOutfitState/ActivitySettings wiring, TDD
+- [x] 33-01-PLAN.md — Combined WeatherKit fetch (DailyForecast, extended WeatherGlance, fetchCurrentAndForecast + resolvePlaceName) + BasicOutfitState/ActivitySettings wiring, TDD
 
 **Wave 2** *(blocked on 33-01)*
 
