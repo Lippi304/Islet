@@ -28,6 +28,10 @@ enum ActivitySettings {
     // plain UserDefaults, NOT Keychain: this is an app-owned UX flag, not a security/anti-tampering
     // boundary (unlike TRIAL-*/LIC-* state, which lives in a completely separate, unmodified store).
     static let onboardingCompletedKey = "onboarding.completed"
+    // Phase 33 / WEATHER-02 — plain Bool key, default false. No UserDefaults.register default
+    // is needed: both UserDefaults.bool(forKey:) and @AppStorage(...) = false already default
+    // an absent key to false, matching this project's other plain-Bool-toggle keys.
+    static let weatherExtendedKey = "weather.extended"
 
     // Phase 27 / VISUAL-03: the island's material look — a flat black fill
     // ("solidBlack") or the Phase 25 vertical gradient ("gradient", the
