@@ -48,6 +48,12 @@ struct NotchPillView: View {
         if case .onboarding = presentation { return true }
         return false
     }
+    // Phase 32 / TRAY-05 — mirrors isOnboardingPresentation's exact shape so the outer body
+    // frame below can branch to the wider/shorter traySize/trayContentHeight box.
+    private var isTrayPresentation: Bool {
+        if case .trayExpanded = presentation { return true }
+        return false
+    }
     // Quick task 260714-3k6 (anticipates ROADMAP Phase 31 / TRAY-01) — the additive shelf-strip
     // reveal under Home/Calendar/Weather/Now-Playing is gone: the shelf only ever renders inside
     // the dedicated Tray view (trayFullView draws it directly via shelfRow(_:) with its own
@@ -329,6 +335,43 @@ struct NotchPillView: View {
     // fixed size for all 4 steps, and still a "for now" number, not a final one.
     static let onboardingSize = CGSize(width: 420, height: 320)
 
+    // Phase 32 / TRAY-05 (D-03/D-04) — the widened Tray presentation. `traySize.width` is the
+    // value actually consumed by every call site below; `traySize.height` is kept only for
+    // CGSize-shape symmetry with expandedSize/onboardingSize and is never read. Gap-closure
+    // (on-device UAT round 2: 840 -> 750; round 3: 750 -> 650, "mach breite auf 650pt mal" —
+    // both per user request, narrowed each round). `trayContentHeight` is D-06/D-08's ONE
+    // shared content-box height for both the empty and non-empty Tray states (unlike
+    // switcherContentHeight, this is deliberately SHORTER — content-hugging, not the shared
+    // 196pt box): cameraClearance (42) + trayShelfRowTopInset (10) + trayShelfRowHeight (70) +
+    // ~16pt bottom margin.
+    static let traySize = CGSize(width: 650, height: 144)
+    static let trayContentHeight: CGFloat = 128
+    // Gap-closure (on-device UAT round 3) — the shared `shelfRowHeight` (56, sized for the
+    // OTHER shelfRow callers' 28x28pt icons) is too short for Tray's 40x40pt icons (Task 3):
+    // 40 (icon) + 2 (VStack spacing) + ~13 (9pt filename line, incl. SF Pro Text leading) = ~55pt
+    // with ZERO top/bottom breathing room, so the filename clipped past the black shape's own
+    // bottom edge (no `.clipped()` on shelfRow, so SwiftUI just let it render past its frame).
+    // A dedicated Tray-only override, following the same `height:`-override-wins pattern this
+    // plan already uses for trayContentHeight vs switcherContentHeight — `shelfRowHeight` itself
+    // stays untouched so Home/Calendar/Weather's dormant (TRAY-01-gated) shelf strip, still
+    // built around the original 28x28pt icon size, is unaffected. Sized to fit ~55pt of content
+    // + trayShelfRowTopInset (10) = 65pt, with margin (round 8: reverted from rounds 4-5's
+    // ever-growing 70/85 — those were compensating for a centering bug in shelfRow's ScrollView,
+    // not a real space shortage; now that round 8 fixed the actual centering bug, 70 is enough).
+    static let trayShelfRowHeight: CGFloat = 70
+    // Gap-closure (on-device UAT round 4-8) — "die files gucken immernoch aus der Island raus".
+    // cameraClearance (42) alone clears NotchShape's topCornerRadius (24) with margin, so the
+    // curve itself wasn't the culprit. Root cause (found via round 6-7's on-device debug-border
+    // diagnostic): `shelfRow`'s `ScrollView(.horizontal)` vertically CENTERS its content by
+    // default once an ancestor forces its cross-axis frame taller than the content itself — so
+    // rounds 4-5's growing `topInset` just grew the content that then got re-centered, netting
+    // out to nearly the same visible gap every time (confirmed: the shape/switcher row visibly
+    // grew, but the icon's own position relative to the row's top never moved). Round 8 fixed
+    // the actual centering bug (see shelfRow's own comment, `.frame(maxHeight: .infinity,
+    // alignment: .top)`), so `topInset` is now a real, linear, un-fought gap — walked back down
+    // to a modest, sane value once the underlying mechanism was actually fixed.
+    static let trayShelfRowTopInset: CGFloat = 10
+
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
         // expanded content grows DOWNWARD from the notch (RESEARCH Pattern 4: panel is
@@ -401,12 +444,34 @@ struct NotchPillView: View {
         // SHAPE-01 (Phase 29) — the flare sweep stays entirely within each presentation's own
         // rect (no outward overflow past rect.minX/rect.maxX), so this outer frame needs no
         // extra margin for it, unlike the earlier shoulder-bulge detour.
-        .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
-               height: isOnboardingPresentation
-                   ? Self.onboardingSize.height
-                   : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
-                       + (showsSwitcherRow ? Self.switcherRowHeight : 0),
+        // Phase 32 / TRAY-05 — a third isTrayPresentation branch ahead of the isOnboarding
+        // fallback, mirroring Pattern 2 exactly (Phase 21 shelf / Phase 26 onboarding round 1):
+        // this outer frame must grow/shrink in lockstep with blobShape's own height ternary
+        // below, or the wider/shorter Tray content clips or leaves a stale gap. Tray still
+        // shows the switcher row (showsSwitcherRow), so + switcherRowHeight is unchanged.
+        .frame(width: isTrayPresentation ? Self.traySize.width : (isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width),
+               height: isTrayPresentation
+                   ? Self.trayContentHeight + Self.switcherRowHeight
+                   : (isOnboardingPresentation
+                       ? Self.onboardingSize.height
+                       : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
+                           + (showsSwitcherRow ? Self.switcherRowHeight : 0)),
                alignment: .top)
+        // Phase 32 / TRAY-05 gap-closure (on-device UAT round 1) — root cause of "notch renders
+        // far left, hit-zone doesn't match": the AppKit panel/hosting view is now sized to the
+        // UNION of every presentation's frame (up to traySize.width=650, positionAndShow()'s
+        // panelFrame), but every OTHER presentation still asks for its own narrower fixed width
+        // above (420 or less). NSHostingView proposes its own (now up to 650pt) bounds to this
+        // root view; a `.frame(width:...)` box smaller than that proposal renders pinned to the
+        // view's origin (AppKit top-left) instead of centered, while hotZone/expandedZone/
+        // visibleContentZone() are computed from the CORRECT centered geometry (NotchGeometry
+        // centers every frame on collapsed.midX) — so clicks land where the invisible, correctly-
+        // centered zone is, not where the visually left-shifted content actually renders. Before
+        // this phase every union member shared the same 420pt width, so this mismatch never
+        // existed. Centering this fixed-size box within the full (up to 650pt) canvas here makes
+        // the RENDERED position match the geometry the panel/click-through math already assumes,
+        // for every presentation (D-07's top-pinning is preserved via `alignment: .top`).
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
         // container level. A single ancestor .onTapGesture here would sit ABOVE the
         // transport Buttons nested inside mediaExpanded, and SwiftUI's gesture
@@ -736,17 +801,34 @@ struct NotchPillView: View {
     // auto-reveal files under Home/Calendar/Weather/NowPlaying per Phase 24) must NOT also
     // append itself a second time below this content.
     private var trayFullView: some View {
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: [],
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
+                  width: Self.traySize.width, height: Self.trayContentHeight, shelfItems: [],
                   shelfVisible: false, showSwitcher: true) {
+            // Gap-closure (on-device UAT round 2) — dropped the extra ancestor-level
+            // `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)` wrapper that
+            // used to sit here: it was the ONE structural difference from calendarFullView/
+            // weatherFullView's proven pattern (Group{if/else}.padding(.top, cameraClearance),
+            // nothing else) and let shelfRow render at its natural/intrinsic (un-stretched)
+            // width instead of the full card width, which is what made the file tiles hug the
+            // top-left corner instead of sitting inset. shelfRow now self-declares its own
+            // `maxWidth: .infinity` (mirrors dayListColumn's precedent), so it fills the
+            // available width without needing an ancestor to force it — matching every other
+            // switcher-row presentation's structure exactly.
             Group {
                 if shelfViewState.items.isEmpty {
                     trayEmptyState
                 } else {
-                    shelfRow(shelfViewState.items)
+                    // Gap-closure (round 3) — trayShelfRowHeight override, sized for the 40x40pt
+                    // icons Task 3 grew this row to; the shared shelfRowHeight default (56) was
+                    // too short and let the filename caption spill past the shape's bottom edge.
+                    // Gap-closure (round 4/8) — trayShelfRowTopInset gives the icon/delete-badge
+                    // deterministic clearance from the shape's top edge; round 8 fixed shelfRow's
+                    // internal centering so this inset actually reaches the icon (see shelfRow's
+                    // own comment) instead of just growing empty space elsewhere.
+                    shelfRow(shelfViewState.items, rowHeight: Self.trayShelfRowHeight, topInset: Self.trayShelfRowTopInset)
                 }
             }
             .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -1097,7 +1179,13 @@ struct NotchPillView: View {
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = shelfVisible
         let baseWidth = width ?? Self.expandedSize.width
-        let baseHeight = showSwitcher ? Self.switcherContentHeight : (height ?? Self.expandedSize.height)
+        // Phase 32 / TRAY-05 (RESEARCH.md Pitfall 1) — an explicit `height:` override now wins
+        // over the showSwitcher default. Before this reordering, `showSwitcher: true` hard-
+        // overrode any `height:` argument, so trayFullView's new trayContentHeight override had
+        // zero visual effect. No other showSwitcher: true caller (Home/Calendar/Weather/
+        // NowPlaying) passes a `height:` argument, so they all continue falling through the `??`
+        // to switcherContentHeight exactly as before.
+        let baseHeight = height ?? (showSwitcher ? Self.switcherContentHeight : Self.expandedSize.height)
         let totalHeight = baseHeight
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
@@ -1155,9 +1243,28 @@ struct NotchPillView: View {
     // trash (ShelfItemView), then a far-right delete-all trash icon. No `.onTapGesture` is
     // attached to this container itself — D-05 falls out for free via blobShape's own trailing
     // ancestor gesture (see above).
-    private func shelfRow(_ items: [ShelfItem]) -> some View {
+    // Phase 32 / TRAY-05 gap-closure (on-device UAT round 3) — `rowHeight` defaults to the
+    // shared `shelfRowHeight` (56, sized for this row's OTHER callers' 28x28pt icons, still
+    // untouched) so nothing changes for them; `trayFullView` overrides it with the taller
+    // `trayShelfRowHeight` sized for Tray's 40x40pt icons, so the filename caption no longer
+    // renders past the black shape's own bottom edge.
+    // Round 4-8 — `topInset` defaults to 0 (no change for the other callers); `trayFullView`
+    // passes `trayShelfRowTopInset` so the icon/badge get deterministic clearance from the
+    // shape's top edge. Root cause found via round 6-7's on-device debug-border/live-value
+    // diagnostic (values arrived correctly every round — this was always a pure layout-
+    // placement bug, not a wiring bug): a plain `ScrollView(.horizontal)`, once an ancestor
+    // forces its cross-axis (vertical) frame taller than its own content, vertically CENTERS
+    // that content by default — so every previous round's `topInset` bump just grew the
+    // HStack's own natural height, which then got re-centered within the also-grown
+    // `rowHeight` box, netting out to roughly the same small centering gap every time (matches
+    // exactly what was observed: the shape/switcher row grew, but the icon's position relative
+    // to the row's own top never moved). `.frame(maxHeight: .infinity, alignment: .top)` makes
+    // the (padded) HStack report that it wants to fill all available height and top-align
+    // within it, which removes the "smaller content in a taller box" condition that triggers
+    // centering in the first place — `topInset`'s padding is then a real, un-fought linear gap.
+    private func shelfRow(_ items: [ShelfItem], rowHeight: CGFloat = Self.shelfRowHeight, topInset: CGFloat = 0) -> some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 10) {   // item-gap, UI-SPEC
+            HStack(spacing: 14) {   // Phase 32 / TRAY-05: bumped from 10 to match larger tiles, UI-SPEC
                 ForEach(items, id: \.id) { item in
                     ShelfItemView(item: item,
                                   onTap: { onShelfItemTap(item) },
@@ -1166,16 +1273,35 @@ struct NotchPillView: View {
                 }
                 Button(action: onShelfClearAll) {
                     Image(systemName: "trash")
-                        .font(.system(size: 14))
+                        .font(.system(size: 16))   // Phase 32 / TRAY-05: bumped from 14
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear shelf")
             }
-            .padding(.horizontal, 16)   // row-padding, UI-SPEC
+            // Gap-closure (on-device UAT round 10-11) — "die Datei am rand fast genau anliegt
+            // und der Name aus der Island rausguckt" (the filename pokes past the shape's edge).
+            // ShelfItemView's filename caption is `.frame(maxWidth: 56)`, wider than the 40pt
+            // icon above it, so it overhangs 8pt beyond the icon's own bounds on EACH side
+            // (was true for the original 28pt icon / 44pt caption too — same 8pt overhang by
+            // design, just never visibly clipped before this phase's wider/narrower geometry
+            // made it noticeable). Round 10 bumped 16 -> 24 (16 + the 8pt overhang) to give the
+            // caption the same real ~16pt clearance the icon itself already had; round 11
+            // ("bisschen weiter nach Abstand") bumped again to 32 for more comfortable margin,
+            // confirmed still fits comfortably at traySize.width (650) before scrolling kicks in.
+            .padding(.horizontal, 32)   // row-padding, UI-SPEC (round 10: 16 -> 24; round 11: 24 -> 32)
+            .padding(.top, topInset)   // Phase 32 / TRAY-05 gap-closure round 4 — 0 for shared callers
+            .frame(maxHeight: .infinity, alignment: .top)   // round 8 — top-align, see comment above
         }
         .scrollIndicators(.never)
-        .frame(height: Self.shelfRowHeight)
+        // Gap-closure (Phase 32 on-device UAT round 2) — self-declares maxWidth: .infinity
+        // (mirrors dayListColumn's precedent in calendarFullView) instead of relying on an
+        // ancestor to force full width: a ScrollView proposed no width fills its own intrinsic
+        // content size, not the available card width, which left this strip pinned to its
+        // natural (small) size and left-hugging the corner instead of spanning/insetting
+        // properly inside the wider Tray card.
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: rowHeight)
     }
 
     // Finding 12 — the shared flat-strip skeleton `wings(for:)` and `deviceWings(for:)` each

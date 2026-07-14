@@ -804,7 +804,15 @@ final class NotchWindowController {
         // possible content size (mirrors how `wings` was added as a second union member in
         // Phase 3) so the onboarding card's real 240pt height is never resized mid-activity.
         let onboardingFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: NotchPillView.onboardingSize)
-        let panelFrame = expandedFrame.union(wings).union(onboardingFrame)
+        // Phase 32 / TRAY-05 (RESEARCH.md Pitfall 2) — the panel must reserve space for the
+        // widened Tray content up front too, mirroring onboardingFrame's precedent exactly.
+        // Without this, the 650pt SwiftUI content clips to the old ~420pt panel edge on the
+        // real screen (invisible in Xcode Previews, which render NotchPillView standalone with
+        // no panel constraint).
+        let trayFrame = expandedNotchFrame(collapsed: collapsedFrame,
+                                           expandedSize: CGSize(width: NotchPillView.traySize.width,
+                                                                 height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight))
+        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
@@ -973,10 +981,22 @@ final class NotchWindowController {
         // NowPlaying) now shares ONE content height (`NotchPillView.switcherContentHeight`),
         // reusing the SAME `switcherRowShowing` boolean already computed above — the old
         // `isCalendarActive`-only branch from rounds 1-4 is gone.
-        let contentSize: CGSize = isOnboardingActive
-            ? NotchPillView.onboardingSize
-            : CGSize(width: expandedSize.width,
-                     height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)
+        // Phase 32 / TRAY-05 (RESEARCH.md Pitfall 3, CR-01 discipline) — a third branch for
+        // .trayExpanded, checked ahead of the default case (same ordering as isOnboardingActive
+        // above). No new stored `isTrayActive` bool: unlike onboarding (a forced multi-step flow
+        // tracked outside the resolver), presentationState.presentation already carries this
+        // directly. Must land in the same commit as Task 1's blobShape/positionAndShow changes —
+        // a size change here that isn't mirrored breaks click-through.
+        let contentSize: CGSize
+        if isOnboardingActive {
+            contentSize = NotchPillView.onboardingSize
+        } else if case .trayExpanded = presentationState.presentation {
+            contentSize = CGSize(width: NotchPillView.traySize.width,
+                                 height: NotchPillView.trayContentHeight + switcherHeight)
+        } else {
+            contentSize = CGSize(width: expandedSize.width,
+                                 height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)
+        }
         let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: contentSize)
         return visibleFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
     }
