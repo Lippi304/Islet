@@ -603,7 +603,11 @@ final class NotchWindowController {
     // startOutfitRefresh's one-shot job alone).
     private func refreshWeather() {
         guard let loc = lastLocation else { return }
-        weatherService.fetchCurrent(latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude) { [weak self] glance in
+        // Phase 33 / WEATHER-01/02: fetchCurrent was removed from WeatherService in favor of
+        // the combined fetchCurrentAndForecast (Pitfall 1 — one call, not two). Only the
+        // current-conditions glance is consumed here; forecast/locationName view-layer wiring
+        // is Plan 33-02's job.
+        weatherService.fetchCurrentAndForecast(latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude) { [weak self] glance, _ in
             self?.outfitState.weather = glance
         }
     }

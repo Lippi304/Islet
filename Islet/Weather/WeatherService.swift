@@ -1,46 +1,92 @@
 import WeatherKit
 import CoreLocation
 
-// Phase 14 / WEATHER-01 — the WeatherKit fetch SEAM (D-01/D-06), mirroring
-// LicenseService.swift's protocol-isolation convention: a fragile/replaceable external
-// is quarantined behind ONE `AnyObject` protocol with a single `final class` conformer.
-// A future WeatherKit API change becomes a one-file swap, never a call-site rewrite.
+// Phase 14 / WEATHER-01, extended Phase 33 / WEATHER-01/02 — the WeatherKit fetch SEAM
+// (D-01/D-06), mirroring LicenseService.swift's protocol-isolation convention: a
+// fragile/replaceable external is quarantined behind ONE `AnyObject` protocol with a
+// single `final class` conformer. A future WeatherKit API change becomes a one-file swap,
+// never a call-site rewrite.
 //
 // CONTRACT — `completion` is ALWAYS delivered on the MAIN thread (mirrors
 // LicenseService.swift's file-header contract).
+//
+// Phase 33: `fetchCurrentAndForecast` replaces the old single-dataset `fetchCurrent` with
+// ONE combined `weather(for:including: .current, .daily)` call — current conditions and the
+// multi-day forecast never cost two separate WeatherKit requests. `resolvePlaceName` reverse-
+// geocodes the same `CLLocation` already used for the weather fetch (no new permission ask).
+
+/// One day's forecast entry from the `.daily` WeatherKit dataset.
+struct DailyForecast: Equatable, Identifiable {
+    var id: Date { date }
+    let date: Date
+    let category: WeatherCategory
+    let high: Measurement<UnitTemperature>
+    let low: Measurement<UnitTemperature>
+}
 
 /// The classified weather glance the render layer consumes. `temperature` is WeatherKit's own
 /// `Measurement<UnitTemperature>` — no manual Celsius/Fahrenheit conversion here; the render
 /// layer formats it locale-aware via `.formatted()`, mirroring the existing time/date
-/// formatters' locale-aware convention in `Islet/Notch/NotchPillView.swift`.
+/// formatters' locale-aware convention in `Islet/Notch/NotchPillView.swift`. `high`/`low` come
+/// from today's `.daily` entry alongside the `.current` dataset in the same combined fetch.
 struct WeatherGlance: Equatable {
     let category: WeatherCategory
     let temperature: Measurement<UnitTemperature>
+    let high: Measurement<UnitTemperature>?
+    let low: Measurement<UnitTemperature>?
 }
 
 protocol WeatherService: AnyObject {
-    /// Fetch the current weather glance for a coordinate.
+    /// Fetch current conditions (with today's high/low) and the multi-day forecast in a
+    /// single combined WeatherKit request.
     /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
-    ///   Settles `nil` on any permission denial or fetch failure (D-01) — never retries; the
-    ///   coarse refresh timer built in 14-04 is the only re-attempt mechanism.
-    func fetchCurrent(latitude: Double, longitude: Double, completion: @escaping (WeatherGlance?) -> Void)
+    ///   Settles `(nil, nil)` on any permission denial or fetch failure (D-01) — never retries;
+    ///   the coarse refresh timer built in 14-04 is the only re-attempt mechanism.
+    func fetchCurrentAndForecast(latitude: Double, longitude: Double, completion: @escaping (WeatherGlance?, [DailyForecast]?) -> Void)
+
+    /// Reverse-geocode a location into a place name.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   Settles `nil` on any error, nil placemarks, or empty locality (D-02) — the "Local"
+    ///   fallback substitution itself is a view-layer concern.
+    func resolvePlaceName(for location: CLLocation, completion: @escaping (String?) -> Void)
 }
 
 final class WeatherKitService: WeatherService {
     private let service = WeatherKit.WeatherService.shared
+    private let geocoder = CLGeocoder()
 
-    func fetchCurrent(latitude: Double, longitude: Double, completion: @escaping (WeatherGlance?) -> Void) {
+    func fetchCurrentAndForecast(latitude: Double, longitude: Double, completion: @escaping (WeatherGlance?, [DailyForecast]?) -> Void) {
         Task {
             do {
                 let location = CLLocation(latitude: latitude, longitude: longitude)
-                let weather = try await service.weather(for: location)
-                let glance = WeatherGlance(category: WeatherCategory.from(weather.currentWeather.condition),
-                                           temperature: weather.currentWeather.temperature)
-                await MainActor.run { completion(glance) }
+                let (current, daily) = try await service.weather(for: location, including: .current, .daily)
+                let today = daily.first   // Forecast<DayWeather> is a RandomAccessCollection; .first is "today"
+                let glance = WeatherGlance(category: WeatherCategory.from(current.condition),
+                                           temperature: current.temperature,
+                                           high: today?.highTemperature,
+                                           low: today?.lowTemperature)
+                let forecast = daily.map { day in
+                    DailyForecast(date: day.date,
+                                  category: WeatherCategory.from(day.condition),
+                                  high: day.highTemperature,
+                                  low: day.lowTemperature)
+                }
+                await MainActor.run { completion(glance, forecast) }
             } catch {
                 // D-01: no retry inside this call — silent omission on any thrown error.
-                await MainActor.run { completion(nil) }
+                await MainActor.run { completion(nil, nil) }
             }
+        }
+    }
+
+    func resolvePlaceName(for location: CLLocation, completion: @escaping (String?) -> Void) {
+        geocoder.reverseGeocodeLocation(location) { placemarks, _ in
+            // D-02 convention: any error, nil placemarks, or an empty locality settles nil —
+            // never a blank field, never an error string, never a retry. The "Local"
+            // placeholder substitution itself is a view-layer concern (Plan 33-02).
+            let locality = placemarks?.first?.locality
+            let name = (locality?.isEmpty ?? true) ? nil : locality
+            DispatchQueue.main.async { completion(name) }   // completion contract: always main thread
         }
     }
 }

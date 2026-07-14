@@ -8,4 +8,9 @@ import Foundation
 final class BasicOutfitState: ObservableObject {
     @Published var weather: WeatherGlance?
     @Published var calendar: CalendarGlance?
+    // Phase 33 / WEATHER-01/02 — same controller-only-writer/view-only-reader contract as
+    // weather/calendar above. forecast is only meaningfully read when the extended-forecast
+    // toggle is on; locationName resolves via reverse-geocode, nil while pending/on failure.
+    @Published var forecast: [DailyForecast]?
+    @Published var locationName: String?
 }
