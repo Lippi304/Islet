@@ -491,8 +491,13 @@ Plans:
   1. Adding a file to the shelf no longer reveals any shelf-strip UI while viewing Home, Calendar, or Weather.
   2. Switching to the Tray tab still shows the full shelf content exactly as before (icons, per-item/delete-all trash, click-to-open).
   3. Click-through hit-testing correctly excludes any residual shelf-strip band on non-Tray views — no CR-01-style phantom click-swallowing regression, verified via the on-device hover→expand→move-down trace.
-**Plans**: TBD
+**Plans**: 1 plan
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 31-01-PLAN.md — Verify-and-close: shelfStripVisible regression test (access-level bump), on-device CR-01 click-through trace, formal TRAY-01 closeout (implementation shipped by quick task 260714-3k6)
 
 ### Phase 32: Tray Widening
 
