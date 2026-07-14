@@ -4,8 +4,8 @@ milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
 status: executing
 stopped_at: Phase 31 context gathered
-last_updated: "2026-07-14T02:14:48.578Z"
-last_activity: 2026-07-14 -- Phase 31 planning complete
+last_updated: "2026-07-14T02:17:35.115Z"
+last_activity: 2026-07-14 -- Phase 31 execution started
 progress:
   total_phases: 19
   completed_phases: 11
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 31 — Shelf Consolidation to Tray-Only (next up)
+**Current focus:** Phase 31 — shelf-consolidation-to-tray-only
 
 ## Current Position
 
-Phase: 30 (home-music-only) — COMPLETE
-Plan: 4 of 4 (incl. 30-04 gap closure)
-Status: Ready to execute
-Last activity: 2026-07-14 -- Phase 31 planning complete
+Phase: 31 (shelf-consolidation-to-tray-only) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 31
+Last activity: 2026-07-14 -- Phase 31 execution started
 Next: Phase 31 — Shelf Consolidation to Tray-Only
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -126,7 +126,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 
 [From .planning/todos/pending/ — ideas captured during sessions]
 
-None yet.
+- [ui] Tray panel oversized vertically, shrink to fit content — `.planning/todos/pending/2026-07-14-tray-panel-oversized-vertically-shrink-to-fit-content.md`
 
 ### Blockers/Concerns
 
