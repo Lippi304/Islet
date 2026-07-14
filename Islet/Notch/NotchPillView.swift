@@ -338,13 +338,23 @@ struct NotchPillView: View {
     // Phase 32 / TRAY-05 (D-03/D-04) — the widened Tray presentation. `traySize.width` is the
     // value actually consumed by every call site below; `traySize.height` is kept only for
     // CGSize-shape symmetry with expandedSize/onboardingSize and is never read. Gap-closure
-    // (on-device UAT round 2): 840 read too wide on-device — narrowed to 750 per user request
-    // ("die muss viel enger, mach die mal auf 750pt"). `trayContentHeight` is D-06/D-08's ONE
+    // (on-device UAT round 2: 840 -> 750; round 3: 750 -> 650, "mach breite auf 650pt mal" —
+    // both per user request, narrowed each round). `trayContentHeight` is D-06/D-08's ONE
     // shared content-box height for both the empty and non-empty Tray states (unlike
     // switcherContentHeight, this is deliberately SHORTER — content-hugging, not the shared
-    // 196pt box): cameraClearance (42) + shelfRowHeight (56) + ~22pt bottom margin.
-    static let traySize = CGSize(width: 750, height: 144)
-    static let trayContentHeight: CGFloat = 120
+    // 196pt box): cameraClearance (42) + trayShelfRowHeight (64) + ~22pt bottom margin.
+    static let traySize = CGSize(width: 650, height: 144)
+    static let trayContentHeight: CGFloat = 128
+    // Gap-closure (on-device UAT round 3) — the shared `shelfRowHeight` (56, sized for the
+    // OTHER shelfRow callers' 28x28pt icons) is too short for Tray's 40x40pt icons (Task 3):
+    // 40 (icon) + 2 (VStack spacing) + ~13 (9pt filename line, incl. SF Pro Text leading) = ~55pt
+    // with ZERO top/bottom breathing room, so the filename clipped past the black shape's own
+    // bottom edge (no `.clipped()` on shelfRow, so SwiftUI just let it render past its frame).
+    // A dedicated Tray-only override, following the same `height:`-override-wins pattern this
+    // plan already uses for trayContentHeight vs switcherContentHeight — `shelfRowHeight` itself
+    // stays untouched so Home/Calendar/Weather's dormant (TRAY-01-gated) shelf strip, still
+    // built around the original 28x28pt icon size, is unaffected.
+    static let trayShelfRowHeight: CGFloat = 64
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -433,16 +443,16 @@ struct NotchPillView: View {
                alignment: .top)
         // Phase 32 / TRAY-05 gap-closure (on-device UAT round 1) — root cause of "notch renders
         // far left, hit-zone doesn't match": the AppKit panel/hosting view is now sized to the
-        // UNION of every presentation's frame (up to traySize.width=750, positionAndShow()'s
+        // UNION of every presentation's frame (up to traySize.width=650, positionAndShow()'s
         // panelFrame), but every OTHER presentation still asks for its own narrower fixed width
-        // above (420 or less). NSHostingView proposes its own (now up to 750pt) bounds to this
+        // above (420 or less). NSHostingView proposes its own (now up to 650pt) bounds to this
         // root view; a `.frame(width:...)` box smaller than that proposal renders pinned to the
         // view's origin (AppKit top-left) instead of centered, while hotZone/expandedZone/
         // visibleContentZone() are computed from the CORRECT centered geometry (NotchGeometry
         // centers every frame on collapsed.midX) — so clicks land where the invisible, correctly-
         // centered zone is, not where the visually left-shifted content actually renders. Before
         // this phase every union member shared the same 420pt width, so this mismatch never
-        // existed. Centering this fixed-size box within the full (up to 750pt) canvas here makes
+        // existed. Centering this fixed-size box within the full (up to 650pt) canvas here makes
         // the RENDERED position match the geometry the panel/click-through math already assumes,
         // for every presentation (D-07's top-pinning is preserved via `alignment: .top`).
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -792,7 +802,10 @@ struct NotchPillView: View {
                 if shelfViewState.items.isEmpty {
                     trayEmptyState
                 } else {
-                    shelfRow(shelfViewState.items)
+                    // Gap-closure (round 3) — trayShelfRowHeight override, sized for the 40x40pt
+                    // icons Task 3 grew this row to; the shared shelfRowHeight default (56) was
+                    // too short and let the filename caption spill past the shape's bottom edge.
+                    shelfRow(shelfViewState.items, rowHeight: Self.trayShelfRowHeight)
                 }
             }
             .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
@@ -1210,7 +1223,12 @@ struct NotchPillView: View {
     // trash (ShelfItemView), then a far-right delete-all trash icon. No `.onTapGesture` is
     // attached to this container itself — D-05 falls out for free via blobShape's own trailing
     // ancestor gesture (see above).
-    private func shelfRow(_ items: [ShelfItem]) -> some View {
+    // Phase 32 / TRAY-05 gap-closure (on-device UAT round 3) — `rowHeight` defaults to the
+    // shared `shelfRowHeight` (56, sized for this row's OTHER callers' 28x28pt icons, still
+    // untouched) so nothing changes for them; `trayFullView` overrides it with the taller
+    // `trayShelfRowHeight` (64) sized for Tray's 40x40pt icons, so the filename caption no
+    // longer renders past the black shape's own bottom edge.
+    private func shelfRow(_ items: [ShelfItem], rowHeight: CGFloat = Self.shelfRowHeight) -> some View {
         ScrollView(.horizontal) {
             HStack(spacing: 14) {   // Phase 32 / TRAY-05: bumped from 10 to match larger tiles, UI-SPEC
                 ForEach(items, id: \.id) { item in
@@ -1237,7 +1255,7 @@ struct NotchPillView: View {
         // natural (small) size and left-hugging the corner instead of spanning/insetting
         // properly inside the wider Tray card.
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: Self.shelfRowHeight)
+        .frame(height: rowHeight)
     }
 
     // Finding 12 — the shared flat-strip skeleton `wings(for:)` and `deviceWings(for:)` each

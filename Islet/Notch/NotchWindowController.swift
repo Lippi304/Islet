@@ -806,7 +806,7 @@ final class NotchWindowController {
         let onboardingFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: NotchPillView.onboardingSize)
         // Phase 32 / TRAY-05 (RESEARCH.md Pitfall 2) — the panel must reserve space for the
         // widened Tray content up front too, mirroring onboardingFrame's precedent exactly.
-        // Without this, the 750pt SwiftUI content clips to the old ~420pt panel edge on the
+        // Without this, the 650pt SwiftUI content clips to the old ~420pt panel edge on the
         // real screen (invisible in Xcode Previews, which render NotchPillView standalone with
         // no panel constraint).
         let trayFrame = expandedNotchFrame(collapsed: collapsedFrame,
