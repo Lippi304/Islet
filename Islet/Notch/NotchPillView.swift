@@ -262,9 +262,10 @@ struct NotchPillView: View {
     // literal repeated at 7 call sites, unlike shelfRowHeight/switcherRowHeight/
     // switcherContentHeight above, which are already named constants for exactly this reason —
     // a single tuning pass updates every consumer.
-    // Gap-closure (30-04): +5pt over the original 32, per on-device confirmation of a minor
-    // overlap with the physical camera in mediaExpanded's art/title/transport content.
-    static let cameraClearance: CGFloat = 37
+    // Gap-closure (30-04): +10pt over the original 32 (two on-device tuning rounds, +5pt each),
+    // per user confirmation of a minor overlap with the physical camera in mediaExpanded's
+    // art/title/transport content.
+    static let cameraClearance: CGFloat = 42
 
     // 28-04 round 5 (on-device UAT, real Droppy reference screenshots) — the month-grid cell
     // size/gap, shrunk from round 4's 28×28pt/4pt (which round 4's own comment admitted were
@@ -1506,7 +1507,7 @@ struct NotchPillView: View {
                     .frame(width: 28, height: 28)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(isHovering ? Color.white.opacity(0.12) : Color.clear)
+                            .fill(isHovering ? Color.white.opacity(0.20) : Color.clear)
                     )
             }
             .frame(width: 32, height: 32)
