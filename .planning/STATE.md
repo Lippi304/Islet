@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
-status: verifying
-stopped_at: Phase 30 complete, on-device UAT approved (incl. 30-04 gap closure)
-last_updated: "2026-07-14T02:30:00.000Z"
-last_activity: 2026-07-14 -- Phase 30 (Home Music-Only) completed, on-device checkpoint approved
+status: completed
+stopped_at: Phase 31 context gathered
+last_updated: "2026-07-14T01:49:55.127Z"
+last_activity: "2026-07-14 - Completed quick task 260714-3k6: Notch/Island verbreitern und File-Shelf nur noch im Tray-Tab anzeigen"
 progress:
   total_phases: 19
   completed_phases: 11
@@ -189,9 +189,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-13T23:09:54.496Z
-Stopped at: Phase 30 UI-SPEC approved
-Resume file: .planning/phases/30-home-music-only/30-UI-SPEC.md
+Last session: 2026-07-14T01:49:55.123Z
+Stopped at: Phase 31 context gathered
+Resume file: .planning/phases/31-shelf-consolidation-to-tray-only/31-CONTEXT.md
 
 ## Operator Next Steps
 
