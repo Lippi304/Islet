@@ -1507,7 +1507,7 @@ struct NotchPillView: View {
                     .frame(width: 28, height: 28)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(isHovering ? Color.white.opacity(0.20) : Color.clear)
+                            .fill(isHovering ? Color.white.opacity(0.40) : Color.clear)
                     )
             }
             .frame(width: 32, height: 32)
