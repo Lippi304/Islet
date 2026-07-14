@@ -40,6 +40,12 @@ struct ShelfItemView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Remove \(item.filename)")
+            // Gap-closure (Phase 32 on-device UAT round 4) — nudge the badge inward so its
+            // circular glyph never overshoots the icon's own top/trailing corner (SF Symbol
+            // rendering can extend a point or two past its reported frame), which was reading
+            // as "peeking outside the island" for the first tile near the shape's rounded
+            // top-left corner.
+            .offset(x: -2, y: 2)
         }
         .accessibilityLabel("Open \(item.filename)")
     }
