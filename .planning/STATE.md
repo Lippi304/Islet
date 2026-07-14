@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 Phase: 30 (home-music-only) — COMPLETE
 Plan: 4 of 4 (incl. 30-04 gap closure)
 Status: Phase 30 complete — on-device UAT approved, HOME-01/02/03 delivered
-Last activity: 2026-07-14 -- Phase 30 completed, on-device checkpoint approved (incl. 30-04 gap closure: acceptsMouseMovedEvents fix, camera clearance 32→42pt, hover opacity settled at 0.40)
+Last activity: 2026-07-14 - Completed quick task 260714-3k6: Notch/Island verbreitern und File-Shelf nur noch im Tray-Tab anzeigen
 Next: Phase 31 — Shelf Consolidation to Tray-Only
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -152,6 +152,7 @@ None yet.
 | 260708-u47 | Settings: "Save Diagnostic Report…" button — snapshots version/OS/hardware/license summary/toggles/Now-Playing health to a user-saved .txt (no raw license key) | 2026-07-08 | a7a4243 | Complete ✓ (on-device save + Cmd-U `DiagnosticReportTests` both verified by user) | [260708-u47-settings-button-hinzuf-gen-um-einen-fehl](./quick/260708-u47-settings-button-hinzuf-gen-um-einen-fehl/) |
 | 260709-glz | Fullscreen-hide gating (`hideInFullscreen`) turned from a hardcoded constant into a persisted, live-editable Settings toggle ("Hide notch in fullscreen"); default true preserves existing behavior | 2026-07-09 | d1f6b5e | Complete ✓ (Debug build verified — manual on-device toggle check recommended) | [260709-glz-fullscreen-sichtbarkeit-der-notch-als-ei](./quick/260709-glz-fullscreen-sichtbarkeit-der-notch-als-ei/) |
 | 260709-gvy | SettingsView restructured from a single Form into a 3-tab TabView (General/Appearance/Activities) — pure view-hierarchy reorg, no `@AppStorage` keys or behavior changed; Accent picker moved from Activities into Appearance | 2026-07-09 | 9972811 | Complete ✓ (Debug build verified — manual on-device tab check recommended) | [260709-gvy-settingsview-tabview-umbau-general-appea](./quick/260709-gvy-settingsview-tabview-umbau-general-appea/) |
+| 260714-3k6 | Widen expanded island to 420pt (anticipates ROADMAP Phase 32/TRAY-05 width portion) + gate file-shelf strip to Tray-only (anticipates Phase 31/TRAY-01); 2 on-device gap-closure rounds fixed media-player edge overflow, empty-state camera clearance, and internal player compactness | 2026-07-14 | db11d72 | Complete ✓ (on-device approved after 3 UAT rounds — "Passt") | [260714-3k6-notch-island-verbreitern-und-file-shelf-](./quick/260714-3k6-notch-island-verbreitern-und-file-shelf-/) |
 
 ## Deferred Items
 
