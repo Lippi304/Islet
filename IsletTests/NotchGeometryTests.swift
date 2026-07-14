@@ -132,6 +132,26 @@ final class NotchGeometryTests: XCTestCase {
         XCTAssertEqual(frame.height, 72, accuracy: 0.0001)
     }
 
+    // Phase 32 / TRAY-05 — proves expandedNotchFrame still centers correctly at Tray's new,
+    // wider/shorter content size (840x120), mirroring the test above exactly.
+    func testExpandedNotchFrameCentersTraySizedContent() {
+        // collapsed pill at origin-screen: x 610, y 944, 292x38 (== notchFrame output).
+        // traySize/trayContentHeight 840x120. The expanded frame stays centered on the
+        // collapsed midX (756) and pinned to the same top edge (maxY 982, bottom-left origin):
+        //   x = 756 - 420 = 336, y = 982 - 120 = 862.
+        let collapsed = CGRect(x: 610, y: 944, width: 292, height: 38)
+        let expandedSize = CGSize(width: 840, height: 120)
+        let frame = expandedNotchFrame(collapsed: collapsed, expandedSize: expandedSize)
+        XCTAssertEqual(frame.midX, collapsed.midX, accuracy: 0.0001)
+        XCTAssertEqual(frame.midX, 756, accuracy: 0.0001)
+        XCTAssertEqual(frame.maxY, collapsed.maxY, accuracy: 0.0001)
+        XCTAssertEqual(frame.maxY, 982, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.x, 336, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.y, 862, accuracy: 0.0001)
+        XCTAssertEqual(frame.width, 840, accuracy: 0.0001)
+        XCTAssertEqual(frame.height, 120, accuracy: 0.0001)
+    }
+
     func testExpandedNotchFrameOnNonZeroOriginScreen() {
         // Built-in screen placed to the right in the arrangement: collapsed pill at
         // x 2530 (midX 2676). Expanding keeps that midX and the same top edge.

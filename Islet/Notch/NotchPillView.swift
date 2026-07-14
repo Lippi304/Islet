@@ -48,6 +48,12 @@ struct NotchPillView: View {
         if case .onboarding = presentation { return true }
         return false
     }
+    // Phase 32 / TRAY-05 — mirrors isOnboardingPresentation's exact shape so the outer body
+    // frame below can branch to the wider/shorter traySize/trayContentHeight box.
+    private var isTrayPresentation: Bool {
+        if case .trayExpanded = presentation { return true }
+        return false
+    }
     // Quick task 260714-3k6 (anticipates ROADMAP Phase 31 / TRAY-01) — the additive shelf-strip
     // reveal under Home/Calendar/Weather/Now-Playing is gone: the shelf only ever renders inside
     // the dedicated Tray view (trayFullView draws it directly via shelfRow(_:) with its own
@@ -329,6 +335,16 @@ struct NotchPillView: View {
     // fixed size for all 4 steps, and still a "for now" number, not a final one.
     static let onboardingSize = CGSize(width: 420, height: 320)
 
+    // Phase 32 / TRAY-05 (D-03/D-04) — the widened Tray presentation. `traySize.width` (840,
+    // ~double expandedSize.width) is the value actually consumed by every call site below;
+    // `traySize.height` is kept only for CGSize-shape symmetry with expandedSize/onboardingSize
+    // and is never read. `trayContentHeight` is D-06/D-08's ONE shared content-box height for
+    // both the empty and non-empty Tray states (unlike switcherContentHeight, this is
+    // deliberately SHORTER — content-hugging, not the shared 196pt box): cameraClearance (42)
+    // + shelfRowHeight (56) + ~22pt bottom margin.
+    static let traySize = CGSize(width: 840, height: 144)
+    static let trayContentHeight: CGFloat = 120
+
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
         // expanded content grows DOWNWARD from the notch (RESEARCH Pattern 4: panel is
@@ -401,11 +417,18 @@ struct NotchPillView: View {
         // SHAPE-01 (Phase 29) — the flare sweep stays entirely within each presentation's own
         // rect (no outward overflow past rect.minX/rect.maxX), so this outer frame needs no
         // extra margin for it, unlike the earlier shoulder-bulge detour.
-        .frame(width: isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width,
-               height: isOnboardingPresentation
-                   ? Self.onboardingSize.height
-                   : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
-                       + (showsSwitcherRow ? Self.switcherRowHeight : 0),
+        // Phase 32 / TRAY-05 — a third isTrayPresentation branch ahead of the isOnboarding
+        // fallback, mirroring Pattern 2 exactly (Phase 21 shelf / Phase 26 onboarding round 1):
+        // this outer frame must grow/shrink in lockstep with blobShape's own height ternary
+        // below, or the wider/shorter Tray content clips or leaves a stale gap. Tray still
+        // shows the switcher row (showsSwitcherRow), so + switcherRowHeight is unchanged.
+        .frame(width: isTrayPresentation ? Self.traySize.width : (isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width),
+               height: isTrayPresentation
+                   ? Self.trayContentHeight + Self.switcherRowHeight
+                   : (isOnboardingPresentation
+                       ? Self.onboardingSize.height
+                       : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
+                           + (showsSwitcherRow ? Self.switcherRowHeight : 0)),
                alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
         // container level. A single ancestor .onTapGesture here would sit ABOVE the
@@ -736,7 +759,8 @@ struct NotchPillView: View {
     // auto-reveal files under Home/Calendar/Weather/NowPlaying per Phase 24) must NOT also
     // append itself a second time below this content.
     private var trayFullView: some View {
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: [],
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
+                  width: Self.traySize.width, height: Self.trayContentHeight, shelfItems: [],
                   shelfVisible: false, showSwitcher: true) {
             Group {
                 if shelfViewState.items.isEmpty {
@@ -1097,7 +1121,13 @@ struct NotchPillView: View {
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = shelfVisible
         let baseWidth = width ?? Self.expandedSize.width
-        let baseHeight = showSwitcher ? Self.switcherContentHeight : (height ?? Self.expandedSize.height)
+        // Phase 32 / TRAY-05 (RESEARCH.md Pitfall 1) — an explicit `height:` override now wins
+        // over the showSwitcher default. Before this reordering, `showSwitcher: true` hard-
+        // overrode any `height:` argument, so trayFullView's new trayContentHeight override had
+        // zero visual effect. No other showSwitcher: true caller (Home/Calendar/Weather/
+        // NowPlaying) passes a `height:` argument, so they all continue falling through the `??`
+        // to switcherContentHeight exactly as before.
+        let baseHeight = height ?? (showSwitcher ? Self.switcherContentHeight : Self.expandedSize.height)
         let totalHeight = baseHeight
             + (showSwitcher ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
