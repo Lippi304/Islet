@@ -803,11 +803,7 @@ struct NotchPillView: View {
     private var trayFullView: some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                   width: Self.traySize.width, height: Self.trayContentHeight, shelfItems: [],
-                  shelfVisible: false, showSwitcher: true,
-                  // DEBUG round 9 (temporary) — jarring, unmissable fill so a screenshot can
-                  // conclusively prove whether THIS code is actually what's rendering on-screen,
-                  // per the "is a stale binary running" investigation. Remove once settled.
-                  fillOverride: .init(red: 1, green: 0, blue: 1)) {
+                  shelfVisible: false, showSwitcher: true) {
             // Gap-closure (on-device UAT round 2) — dropped the extra ancestor-level
             // `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)` wrapper that
             // used to sit here: it was the ONE structural difference from calendarFullView/
@@ -833,17 +829,6 @@ struct NotchPillView: View {
                 }
             }
             .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
-            // DEBUG round 9 (temporary) — a literal build-marker string (not the real git SHA,
-            // which can't be known before this exact commit is made) so a screenshot can prove
-            // whether this specific patch is what's actually running, ruling stale-binary in or
-            // out conclusively. Remove once settled.
-            .overlay(alignment: .topLeading) {
-                Text("BUILD-MARKER: round9-magenta-fix (parent 68d10d3)")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.black)
-                    .padding(2)
-                    .background(Color.white)
-            }
         }
     }
 
@@ -1183,10 +1168,6 @@ struct NotchPillView: View {
     // (before the reflow settled) could miss it and collapse the island instead. Centralizing
     // the height decision HERE (rather than requiring every call site to agree on a value)
     // makes it structurally impossible for a future switcher-row caller to reintroduce the bug.
-    // DEBUG round 9 (temporary, on-device diagnostic — #2 in the "is a stale binary running"
-    // investigation) — `fillOverride` lets a caller swap the shared black `islandFill` for a
-    // jarring, unmissable color, defaulting nil (zero effect on every existing caller). Remove
-    // once settled.
     private func blobShape<Content: View>(topCornerRadius: CGFloat,
                                            bottomCornerRadius: CGFloat,
                                            alignment: Alignment = .center,
@@ -1195,7 +1176,6 @@ struct NotchPillView: View {
                                            shelfItems: [ShelfItem],
                                            shelfVisible: Bool,
                                            showSwitcher: Bool = false,
-                                           fillOverride: Color? = nil,
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = shelfVisible
         let baseWidth = width ?? Self.expandedSize.width
@@ -1211,7 +1191,7 @@ struct NotchPillView: View {
             + (hasShelf ? Self.shelfRowHeight : 0)
         let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
         return shape
-            .fill(fillOverride.map(AnyShapeStyle.init) ?? islandFill)
+            .fill(islandFill)
             .frame(width: baseWidth, height: totalHeight)
             .matchedGeometryEffect(id: "island", in: ns)
             .overlay(alignment: .top) {
@@ -1299,7 +1279,18 @@ struct NotchPillView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear shelf")
             }
-            .padding(.horizontal, 16)   // row-padding, UI-SPEC
+            // Gap-closure (on-device UAT round 10) — "die Datei am rand fast genau anliegt und
+            // der Name aus der Island rausguckt" (the filename pokes past the shape's edge).
+            // ShelfItemView's filename caption is `.frame(maxWidth: 56)`, wider than the 40pt
+            // icon above it, so it overhangs 8pt beyond the icon's own bounds on EACH side
+            // (was true for the original 28pt icon / 44pt caption too — same 8pt overhang by
+            // design, just never visibly clipped before this phase's wider/narrower geometry
+            // made it noticeable). The bare 16pt row padding below only left 16-8=8pt of real
+            // clearance from the ScrollView content's edge to the caption's actual edge — not
+            // enough headroom next to the shape's topCornerRadius:24 rounded corner. Bumped to
+            // 24pt (16 + the 8pt overhang) so the caption gets the SAME real ~16pt clearance the
+            // icon itself already had.
+            .padding(.horizontal, 24)   // row-padding, UI-SPEC (round 10: 16 -> 24)
             .padding(.top, topInset)   // Phase 32 / TRAY-05 gap-closure round 4 — 0 for shared callers
             .frame(maxHeight: .infinity, alignment: .top)   // round 8 — top-align, see comment above
         }
