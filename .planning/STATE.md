@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Home Focus & Widget Redesign
-status: ready_to_plan
-stopped_at: Phase 31 complete (1/1) — ready to discuss Phase 32
-last_updated: 2026-07-14T02:57:08.791Z
+status: planning
+stopped_at: Phase 32 context gathered
+last_updated: "2026-07-14T03:14:22.023Z"
 last_activity: 2026-07-14
 progress:
   total_phases: 19
@@ -192,9 +192,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-14T02:42:59.035Z
-Stopped at: Phase 31 context gathered
-Resume file: None
+Last session: 2026-07-14T03:14:22.018Z
+Stopped at: Phase 32 context gathered
+Resume file: .planning/phases/32-tray-widening/32-CONTEXT.md
 
 ## Operator Next Steps
 
