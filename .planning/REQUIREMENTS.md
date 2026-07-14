@@ -15,7 +15,7 @@ Home is decluttered to music-only (dropping the idle weather/calendar/date fallb
 
 ### Tray
 
-- [ ] **TRAY-01**: File-shelf content is visible only on the Tray tab — the additive shelf-strip-reveal on Home/Calendar/Weather is removed
+- [x] **TRAY-01**: File-shelf content is visible only on the Tray tab — the additive shelf-strip-reveal on Home/Calendar/Weather is removed
 - [ ] **TRAY-02**: Dropping a file (from any tab) shows a Droppy-style Quick Action destination picker: Drop / AirDrop / Mail
 - [ ] **TRAY-03**: Choosing "Drop" stages the file into the Tray as today and switches the view to Tray so the result is visible
 - [ ] **TRAY-04**: Choosing "AirDrop" invokes the system AirDrop share sheet for the file; choosing "Mail" composes a new email with the file attached (Mail.app-only attachment support — documented, not silently discovered)
@@ -70,7 +70,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HOME-01 | Phase 30 | Pending |
 | HOME-02 | Phase 30 | Pending |
 | HOME-03 | Phase 30 | Pending |
-| TRAY-01 | Phase 31 | Pending |
+| TRAY-01 | Phase 31 | Complete |
 | TRAY-05 | Phase 32 | Pending |
 | WEATHER-01 | Phase 33 | Pending |
 | WEATHER-02 | Phase 33 | Pending |

@@ -90,7 +90,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 - [x] **Phase 29: NotchShape Flare** - Outward-flaring top edge for every expanded presentation; collapsed pill silhouette unchanged (completed 2026-07-14)
 - [x] **Phase 30: Home Music-Only** - Home shows only live/last-played music or an explicit empty state; idle time/weather/calendar glance removed (completed 2026-07-14)
-- [ ] **Phase 31: Shelf Consolidation to Tray-Only** - Shelf-strip reveal removed from Home/Calendar/Weather, lives only on Tray
+- [x] **Phase 31: Shelf Consolidation to Tray-Only** - Shelf-strip reveal removed from Home/Calendar/Weather, lives only on Tray (completed 2026-07-14)
 - [ ] **Phase 32: Tray Widening** - Wider Tray layout with larger file tiles, more files visible side-by-side
 - [ ] **Phase 33: Weather Widget Redesign** - Compact iOS-widget-style card by default, optional extended multi-day forecast
 - [ ] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop
@@ -142,7 +142,7 @@ Plans:
 
 **v1.4:** 6/6 phases complete (100%) — Phases 23-28 all done. Pending final on-device UAT re-confirmation of 2 code-review fixes before formal `/gsd:complete-milestone`.
 
-**v1.5:** 2/6 phases complete (33%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14.
+**v1.5:** 3/6 phases complete (50%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -491,13 +491,13 @@ Plans:
   1. Adding a file to the shelf no longer reveals any shelf-strip UI while viewing Home, Calendar, or Weather.
   2. Switching to the Tray tab still shows the full shelf content exactly as before (icons, per-item/delete-all trash, click-to-open).
   3. Click-through hit-testing correctly excludes any residual shelf-strip band on non-Tray views — no CR-01-style phantom click-swallowing regression, verified via the on-device hover→expand→move-down trace.
-**Plans**: 1 plan
+**Plans**: 1/1 plans complete
 **UI hint**: yes
 
 Plans:
 **Wave 1**
 
-- [ ] 31-01-PLAN.md — Verify-and-close: shelfStripVisible regression test (access-level bump), on-device CR-01 click-through trace, formal TRAY-01 closeout (implementation shipped by quick task 260714-3k6)
+- [x] 31-01-PLAN.md — Verify-and-close: shelfStripVisible regression test (access-level bump), on-device CR-01 click-through trace, formal TRAY-01 closeout (implementation shipped by quick task 260714-3k6)
 
 ### Phase 32: Tray Widening
 
