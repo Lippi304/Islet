@@ -1491,14 +1491,19 @@ struct NotchPillView: View {
                 }
                 .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
                 .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve
-                // Quick task 260714-3k6 gap-closure — bumped 19 -> 26. NotchShape's side walls
-                // sit at a CONSTANT `topCornerRadius` (24) inset from each edge for the whole
-                // content height range (see NotchShape.swift's addLine calls), independent of
-                // the panel's total width. 19pt padding was inside that 24pt wall inset, so the
-                // equalizer bars (pinned to the trailing edge of this row via Spacer) rendered
-                // ~5pt past the visible rounded shape on both sides. 26 (topCornerRadius + 2pt
-                // margin) keeps content clear of the wall with a hair of breathing room.
-                .padding(.horizontal, 26)
+                // Quick task 260714-3k6 gap-closure round 2 — was `.padding(.horizontal, 26)`
+                // (a fix for the round-1 wall-overlap bug: NotchShape's side walls sit at a
+                // CONSTANT `topCornerRadius`/24pt inset from each edge, independent of panel
+                // width — see NotchShape.swift's addLine calls). At 420pt wide, that padding
+                // still let the HStacks' Spacers (the art/title <-> equalizer-bars gap, the
+                // transport-button gaps) stretch to fill the full ~368pt remaining width, so
+                // the player read as "spread out" rather than the tighter 360pt-era feel.
+                // Capping the whole card's width here (322 ~= the OLD 360pt panel's own
+                // content width) makes every Spacer-driven gap inside collapse back to that
+                // same density, and — being centered by blobShape's own `alignment: .top`
+                // outer frame with ~49pt margin each side — automatically clears the 24pt
+                // wall inset too, so the separate horizontal padding is no longer needed.
+                .frame(maxWidth: 322)
             }
     }
 
