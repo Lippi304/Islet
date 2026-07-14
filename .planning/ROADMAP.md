@@ -142,7 +142,7 @@ Plans:
 
 **v1.4:** 6/6 phases complete (100%) — Phases 23-28 all done. Pending final on-device UAT re-confirmation of 2 code-review fixes before formal `/gsd:complete-milestone`.
 
-**v1.5:** 3/6 phases complete (50%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan.
+**v1.5:** 4/6 phases complete (67%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
