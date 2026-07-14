@@ -55,7 +55,11 @@ struct NotchPillView: View {
     // `shelfVisible: shelfViewState.isVisible` call sites, so a future change only touches one
     // line — matches the file's existing single-source-of-truth convention (e.g. cameraClearance,
     // switcherContentHeight).
-    private var shelfStripVisible: Bool { false }
+    //
+    // internal (not private): NotchPillViewTests.swift asserts this directly (Phase 31/TRAY-01
+    // regression lock) — `private` is file-scoped and would not compile from another file even
+    // under @testable import (see EqualizerBars.makeProfiles() for the same precedent).
+    var shelfStripVisible: Bool { false }
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Visibility") — the switcher pill shows only when
     // the island is expanded AND no time-sensitive activity (Charging/Device splash, Now-
     // Playing wings glance) is being shown, mirroring SHELF-09's suppression precedent.
