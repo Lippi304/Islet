@@ -430,6 +430,21 @@ struct NotchPillView: View {
                        : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
                            + (showsSwitcherRow ? Self.switcherRowHeight : 0)),
                alignment: .top)
+        // Phase 32 / TRAY-05 gap-closure (on-device UAT round 1) — root cause of "notch renders
+        // far left, hit-zone doesn't match": the AppKit panel/hosting view is now sized to the
+        // UNION of every presentation's frame (up to traySize.width=840, positionAndShow()'s
+        // panelFrame), but every OTHER presentation still asks for its own narrower fixed width
+        // above (420 or less). NSHostingView proposes its own (now up to 840pt) bounds to this
+        // root view; a `.frame(width:...)` box smaller than that proposal renders pinned to the
+        // view's origin (AppKit top-left) instead of centered, while hotZone/expandedZone/
+        // visibleContentZone() are computed from the CORRECT centered geometry (NotchGeometry
+        // centers every frame on collapsed.midX) — so clicks land where the invisible, correctly-
+        // centered zone is, not where the visually left-shifted content actually renders. Before
+        // this phase every union member shared the same 420pt width, so this mismatch never
+        // existed. Centering this fixed-size box within the full (up to 840pt) canvas here makes
+        // the RENDERED position match the geometry the panel/click-through math already assumes,
+        // for every presentation (D-07's top-pinning is preserved via `alignment: .top`).
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
         // container level. A single ancestor .onTapGesture here would sit ABOVE the
         // transport Buttons nested inside mediaExpanded, and SwiftUI's gesture
