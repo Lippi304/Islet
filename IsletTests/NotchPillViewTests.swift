@@ -14,17 +14,28 @@ final class NotchPillViewTests: XCTestCase {
     func testShelfStripVisibleIsAlwaysFalse() {
         let state = NotchInteractionState()
         state.phase = .collapsed
+        let shelf = ShelfViewState()
+        // Non-empty shelf: ShelfViewState.isVisible (!items.isEmpty) would be true here, so
+        // this is the one case that can actually distinguish "shelfStripVisible is a hard-coded
+        // false" from "false only because the shelf happens to be empty" — an empty shelf can't
+        // catch a regression back to `shelfViewState.isVisible`.
+        shelf.items = [ShelfItem(id: UUID(),
+                                  originalURL: URL(fileURLWithPath: "/tmp/a.txt"),
+                                  localURL: URL(fileURLWithPath: "/tmp/a.txt"),
+                                  filename: "a.txt",
+                                  addedAt: Date())]
         let view = NotchPillView(interaction: state,
                                   nowPlaying: NowPlayingState(),
                                   presentationState: IslandPresentationState(.idle),
                                   outfit: BasicOutfitState(),
-                                  shelfViewState: ShelfViewState(),
+                                  shelfViewState: shelf,
                                   onboardingState: OnboardingViewState(),
                                   viewSwitcherState: ViewSwitcherState(),
                                   calendarViewState: CalendarViewState())
+        XCTAssertTrue(shelf.isVisible, "test setup sanity check — shelf must be non-empty")
         // TRAY-01: the shelf strip never reveals under Home/Calendar/Weather/Now-Playing —
         // only trayFullView renders shelf content, via its own separate shelfVisible: false path.
         XCTAssertFalse(view.shelfStripVisible,
-                        "shelfStripVisible must stay false — the additive shelf-strip reveal is Tray-only (TRAY-01).")
+                        "shelfStripVisible must stay false even with a non-empty shelf — the additive shelf-strip reveal is Tray-only (TRAY-01).")
     }
 }
