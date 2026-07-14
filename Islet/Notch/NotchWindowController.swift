@@ -952,25 +952,16 @@ final class NotchWindowController {
     }
 
     // CR-01 — the actual VISIBLE-content rect, narrower than expandedZone (which is the
-    // padded static panel union, used only for the keep-open grace decision). Mirrors
-    // NotchPillView.blobShape's own `hasShelf ? shelfRowHeight : 0` conditional exactly, so
-    // the click-through hit-test never grants interactivity over the reserved-but-invisible
-    // shelf band when the shelf is empty. nil if the panel hasn't been shown yet.
+    // padded static panel union, used only for the keep-open grace decision).
+    // Quick task 260714-3k6 (anticipates ROADMAP Phase 31 / TRAY-01) — the shelf-band
+    // reservation this used to mirror (NotchPillView.blobShape's `hasShelf ? shelfRowHeight :
+    // 0` conditional) is gone: the shelf strip no longer renders under any non-Tray
+    // presentation (NotchPillView.shelfStripVisible is always false there), so there is no
+    // shelf-height term left to mirror for the click-through math. nil if the panel hasn't
+    // been shown yet.
     private func visibleContentZone() -> CGRect? {
         guard let hotZone else { return nil }
         let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
-        // Phase 28 / CALVIEW-04, Pitfall 3 — the 3rd and final call site reading through
-        // ShelfViewState.isVisible (real items only, post-28-04-round-5 forcedByTray removal)
-        // instead of the raw `.items.isEmpty` check; see project memory
-        // cr01-clickthrough-or-defeat-gotcha.
-        // CR-01 fix (28-REVIEW.md) — trayFullView deliberately renders with `shelfVisible:
-        // false` (its own content IS the files view, so the additive shelf strip must never
-        // append a second time below it), so blobShape never adds shelfRowHeight while Tray is
-        // showing. Without this presentation-aware exclusion, a non-empty shelf made this
-        // hit-test zone 56pt taller than what Tray actually draws — the extra band is blank/
-        // transparent, but clicks landing in it were swallowed instead of passing through.
-        let isTrayPresentation: Bool = { if case .trayExpanded = presentationState.presentation { return true }; return false }()
-        let shelfHeight = (shelfViewState.isVisible && !isTrayPresentation) ? NotchPillView.shelfRowHeight : 0
         let switcherRowShowing = showsSwitcherRow(for: presentationState.presentation)
         let switcherHeight = switcherRowShowing ? NotchPillView.switcherRowHeight : 0
         // Phase 26 / ONBOARD-01/02 — the onboarding card renders at its own taller fixed size
@@ -985,7 +976,7 @@ final class NotchWindowController {
         let contentSize: CGSize = isOnboardingActive
             ? NotchPillView.onboardingSize
             : CGSize(width: expandedSize.width,
-                     height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + shelfHeight + switcherHeight)
+                     height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)
         let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: contentSize)
         return visibleFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
     }

@@ -48,16 +48,14 @@ struct NotchPillView: View {
         if case .onboarding = presentation { return true }
         return false
     }
-    // CR-01 fix (28-REVIEW.md) — mirrors NotchWindowController.visibleContentZone()'s own
-    // isTrayPresentation exclusion: trayFullView renders with shelfVisible: false (its content
-    // IS the files view), so it never actually grows by shelfRowHeight. This outer frame is
-    // currently harmless to leave un-excluded (the panel is already reserved to the max union
-    // height), but drifting from the click-through math here is exactly the failure class CR-01
-    // closes — keep both frames in lockstep.
-    private var isTrayPresentation: Bool {
-        if case .trayExpanded = presentation { return true }
-        return false
-    }
+    // Quick task 260714-3k6 (anticipates ROADMAP Phase 31 / TRAY-01) — the additive shelf-strip
+    // reveal under Home/Calendar/Weather/Now-Playing is gone: the shelf only ever renders inside
+    // the dedicated Tray view (trayFullView draws it directly via shelfRow(_:) with its own
+    // shelfVisible: false, unaffected by this gate). One named boolean instead of 5 separate
+    // `shelfVisible: shelfViewState.isVisible` call sites, so a future change only touches one
+    // line — matches the file's existing single-source-of-truth convention (e.g. cameraClearance,
+    // switcherContentHeight).
+    private var shelfStripVisible: Bool { false }
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Visibility") — the switcher pill shows only when
     // the island is expanded AND no time-sensitive activity (Charging/Device splash, Now-
     // Playing wings glance) is being shown, mirroring SHELF-09's suppression precedent.
@@ -191,7 +189,11 @@ struct NotchPillView: View {
     // THIS one value, so the island actually GROWS taller (expands further), not just shifts
     // content in a fixed box. mediaExpanded pins its content to the top with .padding(.top,32)
     // so the clearance lands exactly at the camera band.
-    static let expandedSize = CGSize(width: 360, height: 144)
+    // Quick task 260714-3k6 — width bumped 360 -> 420 (+60pt / ~17%) per user feedback that the
+    // panel read too narrow for its content. 420 reuses the width already established for
+    // onboardingSize below (no new magic number). Height unchanged — the "too tall" complaint
+    // is the shelf-strip gating fixed separately (see shelfStripVisible), not a geometry issue.
+    static let expandedSize = CGSize(width: 420, height: 144)
 
     // CHG-01 / Pattern 4 — the flat wings (Alcove sideways) seed. Single source of truth:
     // Plan 03 feeds this SAME size into NotchGeometry.wingsFrame so the panel frame matches
@@ -399,7 +401,6 @@ struct NotchPillView: View {
                height: isOnboardingPresentation
                    ? Self.onboardingSize.height
                    : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
-                       + ((shelfViewState.isVisible && !isTrayPresentation) ? Self.shelfRowHeight : 0)
                        + (showsSwitcherRow ? Self.switcherRowHeight : 0),
                alignment: .top)
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
@@ -441,7 +442,7 @@ struct NotchPillView: View {
     // presentation uses.
     private var homeEmptyState: some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
+                  shelfVisible: shelfStripVisible, showSwitcher: true) {
             VStack(spacing: 4) {
                 Image(systemName: "music.note")
                     .font(.system(size: 28))
@@ -454,7 +455,13 @@ struct NotchPillView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            .padding(.top, 24)
+            // Quick task 260714-3k6 gap-closure — was a bare `24`, unlike every other
+            // switcher-row presentation (mediaExpanded/calendarFullView/weatherFullView/
+            // trayFullView), which all clear the camera/notch band via the shared
+            // `Self.cameraClearance` (42) constant. The mismatch sat this empty state's icon
+            // noticeably higher/closer to the camera than the playing-state view. Matching the
+            // same constant here aligns the vertical position with every sibling presentation.
+            .padding(.top, Self.cameraClearance)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
@@ -477,7 +484,7 @@ struct NotchPillView: View {
         // no longer needs its own per-case height.
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                   shelfItems: shelfViewState.items,
-                  shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
+                  shelfVisible: shelfStripVisible, showSwitcher: true) {
             HStack(spacing: 0) {
                 monthGridColumn
                 Rectangle()
@@ -660,7 +667,7 @@ struct NotchPillView: View {
     // it, above the switcher row; no per-case override was ever needed here.
     private var weatherFullView: some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
+                  shelfVisible: shelfStripVisible, showSwitcher: true) {
             Group {
                 if let weather = outfit.weather {
                     weatherFullContent(weather)
@@ -1439,7 +1446,7 @@ struct NotchPillView: View {
         // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
         // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
         return blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
-                          shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
+                          shelfVisible: shelfStripVisible, showSwitcher: true) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
                     HStack(alignment: .top, spacing: 10) {
@@ -1484,7 +1491,19 @@ struct NotchPillView: View {
                 }
                 .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
                 .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve
-                .padding(.horizontal, 19) // +5pt inset (user request): art/bars off the outer edge
+                // Quick task 260714-3k6 gap-closure round 2 — was `.padding(.horizontal, 26)`
+                // (a fix for the round-1 wall-overlap bug: NotchShape's side walls sit at a
+                // CONSTANT `topCornerRadius`/24pt inset from each edge, independent of panel
+                // width — see NotchShape.swift's addLine calls). At 420pt wide, that padding
+                // still let the HStacks' Spacers (the art/title <-> equalizer-bars gap, the
+                // transport-button gaps) stretch to fill the full ~368pt remaining width, so
+                // the player read as "spread out" rather than the tighter 360pt-era feel.
+                // Capping the whole card's width here (322 ~= the OLD 360pt panel's own
+                // content width) makes every Spacer-driven gap inside collapse back to that
+                // same density, and — being centered by blobShape's own `alignment: .top`
+                // outer frame with ~49pt margin each side — automatically clears the 24pt
+                // wall inset too, so the separate horizontal padding is no longer needed.
+                .frame(maxWidth: 322)
             }
     }
 
@@ -1524,7 +1543,7 @@ struct NotchPillView: View {
         // expandedIsland's own round-5 change (both are shorter than the shared
         // switcherContentHeight box now that blobShape applies it uniformly).
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfViewState.isVisible, showSwitcher: true) {
+                  shelfVisible: shelfStripVisible, showSwitcher: true) {
             Text("Now Playing nicht verfügbar")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(.white)
