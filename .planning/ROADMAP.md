@@ -91,7 +91,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 29: NotchShape Flare** - Outward-flaring top edge for every expanded presentation; collapsed pill silhouette unchanged (completed 2026-07-14)
 - [x] **Phase 30: Home Music-Only** - Home shows only live/last-played music or an explicit empty state; idle time/weather/calendar glance removed (completed 2026-07-14)
 - [x] **Phase 31: Shelf Consolidation to Tray-Only** - Shelf-strip reveal removed from Home/Calendar/Weather, lives only on Tray (completed 2026-07-14)
-- [ ] **Phase 32: Tray Widening** - Wider Tray layout with larger file tiles, more files visible side-by-side
+- [x] **Phase 32: Tray Widening** - Wider Tray layout with larger file tiles, more files visible side-by-side (completed 2026-07-14)
 - [ ] **Phase 33: Weather Widget Redesign** - Compact iOS-widget-style card by default, optional extended multi-day forecast
 - [ ] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop
 
@@ -515,7 +515,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 32-01-PLAN.md — traySize/trayContentHeight constants + blobShape height-ternary fix + panel-frame union + visibleContentZone Tray branch + ShelfItemView/shelfRow tile sizing + on-device CR-01 checkpoint
+- [x] 32-01-PLAN.md — traySize/trayContentHeight constants + blobShape height-ternary fix + panel-frame union + visibleContentZone Tray branch + ShelfItemView/shelfRow tile sizing + on-device CR-01 checkpoint
 
 ### Phase 33: Weather Widget Redesign
 
