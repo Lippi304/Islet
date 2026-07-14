@@ -342,11 +342,10 @@ struct NotchPillView: View {
     // both per user request, narrowed each round). `trayContentHeight` is D-06/D-08's ONE
     // shared content-box height for both the empty and non-empty Tray states (unlike
     // switcherContentHeight, this is deliberately SHORTER — content-hugging, not the shared
-    // 196pt box): cameraClearance (42) + trayShelfRowTopInset (20) + trayShelfRowHeight (85) +
-    // ~3pt bottom margin. Round 5 grew this budget (was 128) to fit the deliberately large
-    // round-5 top inset below.
+    // 196pt box): cameraClearance (42) + trayShelfRowTopInset (10) + trayShelfRowHeight (70) +
+    // ~16pt bottom margin.
     static let traySize = CGSize(width: 650, height: 144)
-    static let trayContentHeight: CGFloat = 150
+    static let trayContentHeight: CGFloat = 128
     // Gap-closure (on-device UAT round 3) — the shared `shelfRowHeight` (56, sized for the
     // OTHER shelfRow callers' 28x28pt icons) is too short for Tray's 40x40pt icons (Task 3):
     // 40 (icon) + 2 (VStack spacing) + ~13 (9pt filename line, incl. SF Pro Text leading) = ~55pt
@@ -355,26 +354,23 @@ struct NotchPillView: View {
     // A dedicated Tray-only override, following the same `height:`-override-wins pattern this
     // plan already uses for trayContentHeight vs switcherContentHeight — `shelfRowHeight` itself
     // stays untouched so Home/Calendar/Weather's dormant (TRAY-01-gated) shelf strip, still
-    // built around the original 28x28pt icon size, is unaffected. Round 4 bumped 64 -> 70; round
-    // 5 bumped 70 -> 85 so ~55pt of content + the round-5 20pt top inset (75pt) still fits with
-    // margin, without reintroducing the round-3 overflow.
-    static let trayShelfRowHeight: CGFloat = 85
-    // Gap-closure (on-device UAT round 4) — "die files gucken immernoch aus der Island raus".
+    // built around the original 28x28pt icon size, is unaffected. Sized to fit ~55pt of content
+    // + trayShelfRowTopInset (10) = 65pt, with margin (round 8: reverted from rounds 4-5's
+    // ever-growing 70/85 — those were compensating for a centering bug in shelfRow's ScrollView,
+    // not a real space shortage; now that round 8 fixed the actual centering bug, 70 is enough).
+    static let trayShelfRowHeight: CGFloat = 70
+    // Gap-closure (on-device UAT round 4-8) — "die files gucken immernoch aus der Island raus".
     // cameraClearance (42) alone clears NotchShape's topCornerRadius (24) with margin, so the
-    // curve itself wasn't the culprit; a horizontal ScrollView's un-positioned content is
-    // VERTICALLY CENTERED within its own fixed-height frame by default, which (at
-    // trayShelfRowHeight's old 64pt vs. ~55pt of actual content) only gave ~4-5pt of top
-    // breathing room ABOVE the icon+delete-badge — visually reading as "touching the edge".
-    // A small explicit top inset, applied ONLY to shelfRow's content when called from Tray (via
-    // the `topInset:` parameter below, defaulting to 0 so the shared shelfRowHeight/28x28pt
-    // callers are untouched), makes the clearance deterministic instead of depending on
-    // ScrollView's own centering behavior.
-    // Round 5 — the round-4 6pt inset produced ZERO visible change across two screenshots, which
-    // is far more consistent with Xcode leaving a STALE Islet process running (LSUIElement, no
-    // Dock icon, no window to visually confirm a relaunch) than with a correctly-applied 6pt
-    // shift being literally imperceptible. Bumped to a deliberately unmissable 20pt so the next
-    // screenshot gives an unambiguous signal either way, rather than nudging blindly again.
-    static let trayShelfRowTopInset: CGFloat = 20
+    // curve itself wasn't the culprit. Root cause (found via round 6-7's on-device debug-border
+    // diagnostic): `shelfRow`'s `ScrollView(.horizontal)` vertically CENTERS its content by
+    // default once an ancestor forces its cross-axis frame taller than the content itself — so
+    // rounds 4-5's growing `topInset` just grew the content that then got re-centered, netting
+    // out to nearly the same visible gap every time (confirmed: the shape/switcher row visibly
+    // grew, but the icon's own position relative to the row's top never moved). Round 8 fixed
+    // the actual centering bug (see shelfRow's own comment, `.frame(maxHeight: .infinity,
+    // alignment: .top)`), so `topInset` is now a real, linear, un-fought gap — walked back down
+    // to a modest, sane value once the underlying mechanism was actually fixed.
+    static let trayShelfRowTopInset: CGFloat = 10
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -825,25 +821,14 @@ struct NotchPillView: View {
                     // Gap-closure (round 3) — trayShelfRowHeight override, sized for the 40x40pt
                     // icons Task 3 grew this row to; the shared shelfRowHeight default (56) was
                     // too short and let the filename caption spill past the shape's bottom edge.
-                    // Gap-closure (round 4) — trayShelfRowTopInset gives the icon/delete-badge
-                    // deterministic clearance from the shape's top edge (see constant's comment).
+                    // Gap-closure (round 4/8) — trayShelfRowTopInset gives the icon/delete-badge
+                    // deterministic clearance from the shape's top edge; round 8 fixed shelfRow's
+                    // internal centering so this inset actually reaches the icon (see shelfRow's
+                    // own comment) instead of just growing empty space elsewhere.
                     shelfRow(shelfViewState.items, rowHeight: Self.trayShelfRowHeight, topInset: Self.trayShelfRowTopInset)
                 }
             }
             .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
-            // DEBUG round 7 (temporary, on-device diagnostic) — switched from filled backgrounds
-            // to crisp STROKE borders (unambiguous edges) to pinpoint this Group's own natural
-            // rendered bounds (cameraClearance padding + shelfRow's natural size), nested inside
-            // the RED box above. A live text readout (does NOT affect layout, pure overlay) of
-            // the exact values this call site passes, so we can confirm the correct numbers
-            // actually reach shelfRow at runtime rather than inferring it from geometry alone.
-            .border(Color.blue, width: 2)
-            .overlay(alignment: .topLeading) {
-                Text("DBG topInset=\(Int(Self.trayShelfRowTopInset)) rowHeight=\(Int(Self.trayShelfRowHeight)) traySize.w=\(Int(Self.traySize.width))")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.white)
-                    .padding(2)
-            }
         }
     }
 
@@ -1213,11 +1198,6 @@ struct NotchPillView: View {
                 VStack(spacing: 0) {
                     content()
                         .frame(width: baseWidth, height: baseHeight, alignment: alignment)
-                        // DEBUG round 7 (temporary, on-device diagnostic) — switched from filled
-                        // backgrounds to crisp STROKE borders (unambiguous edges, no opacity
-                        // blending to misread) to pinpoint this fixed (baseWidth x baseHeight)
-                        // box's exact bounds. Remove once the real box is found.
-                        .border(Color.red, width: 2)
                     if showSwitcher {
                         switcherRow
                     }
@@ -1266,12 +1246,22 @@ struct NotchPillView: View {
     // Phase 32 / TRAY-05 gap-closure (on-device UAT round 3) — `rowHeight` defaults to the
     // shared `shelfRowHeight` (56, sized for this row's OTHER callers' 28x28pt icons, still
     // untouched) so nothing changes for them; `trayFullView` overrides it with the taller
-    // `trayShelfRowHeight` (85) sized for Tray's 40x40pt icons, so the filename caption no
-    // longer renders past the black shape's own bottom edge.
-    // Round 4/5 — `topInset` defaults to 0 (no change for the other callers); `trayFullView`
-    // passes `trayShelfRowTopInset` (20, deliberately large per round 5) so the icon/badge get
-    // deterministic clearance from the shape's top edge instead of depending on ScrollView's
-    // own (thin) content-centering.
+    // `trayShelfRowHeight` sized for Tray's 40x40pt icons, so the filename caption no longer
+    // renders past the black shape's own bottom edge.
+    // Round 4-8 — `topInset` defaults to 0 (no change for the other callers); `trayFullView`
+    // passes `trayShelfRowTopInset` so the icon/badge get deterministic clearance from the
+    // shape's top edge. Root cause found via round 6-7's on-device debug-border/live-value
+    // diagnostic (values arrived correctly every round — this was always a pure layout-
+    // placement bug, not a wiring bug): a plain `ScrollView(.horizontal)`, once an ancestor
+    // forces its cross-axis (vertical) frame taller than its own content, vertically CENTERS
+    // that content by default — so every previous round's `topInset` bump just grew the
+    // HStack's own natural height, which then got re-centered within the also-grown
+    // `rowHeight` box, netting out to roughly the same small centering gap every time (matches
+    // exactly what was observed: the shape/switcher row grew, but the icon's position relative
+    // to the row's own top never moved). `.frame(maxHeight: .infinity, alignment: .top)` makes
+    // the (padded) HStack report that it wants to fill all available height and top-align
+    // within it, which removes the "smaller content in a taller box" condition that triggers
+    // centering in the first place — `topInset`'s padding is then a real, un-fought linear gap.
     private func shelfRow(_ items: [ShelfItem], rowHeight: CGFloat = Self.shelfRowHeight, topInset: CGFloat = 0) -> some View {
         ScrollView(.horizontal) {
             HStack(spacing: 14) {   // Phase 32 / TRAY-05: bumped from 10 to match larger tiles, UI-SPEC
@@ -1291,13 +1281,7 @@ struct NotchPillView: View {
             }
             .padding(.horizontal, 16)   // row-padding, UI-SPEC
             .padding(.top, topInset)   // Phase 32 / TRAY-05 gap-closure round 4 — 0 for shared callers
-            // DEBUG round 7 (temporary, on-device diagnostic) — switched from filled backgrounds
-            // to crisp STROKE borders: YELLOW traces the HStack's own natural bounds AFTER the
-            // padding above (topInset baked in). If yellow's top edge sits flush with green's
-            // top edge below, the ScrollView is top-anchoring content and topInset is landing;
-            // if yellow floats with a green gap visible above it, the ScrollView is centering/
-            // bottom-anchoring and absorbing the inset. Remove once found.
-            .border(Color.yellow, width: 2)
+            .frame(maxHeight: .infinity, alignment: .top)   // round 8 — top-align, see comment above
         }
         .scrollIndicators(.never)
         // Gap-closure (Phase 32 on-device UAT round 2) — self-declares maxWidth: .infinity
@@ -1308,21 +1292,6 @@ struct NotchPillView: View {
         // properly inside the wider Tray card.
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: rowHeight)
-        // DEBUG round 7 (temporary, on-device diagnostic) — GREEN traces the fixed (rowHeight)
-        // box the ScrollView is forced into. Compare against YELLOW above: any green gap visible
-        // above/below yellow is exactly where the "extra" rowHeight is being absorbed instead of
-        // pushing the icon down. Plus a live text readout of the ACTUAL parameter values this
-        // function received (not just what the call site sent) — distinguishes a wiring bug
-        // (wrong number arrives) from a layout bug (right number arrives, wrong place it lands).
-        // Remove all of this once the real cause is found.
-        .border(Color.green, width: 2)
-        .overlay(alignment: .bottomLeading) {
-            Text("DBG received topInset=\(Int(topInset)) rowHeight=\(Int(rowHeight))")
-                .font(.system(size: 8))
-                .foregroundStyle(.black)
-                .padding(2)
-                .background(Color.white.opacity(0.8))
-        }
     }
 
     // Finding 12 — the shared flat-strip skeleton `wings(for:)` and `deviceWings(for:)` each

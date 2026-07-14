@@ -133,25 +133,26 @@ final class NotchGeometryTests: XCTestCase {
     }
 
     // Phase 32 / TRAY-05 — proves expandedNotchFrame still centers correctly at Tray's new,
-    // wider/shorter content size (650x150), mirroring the test above exactly. Gap-closure
-    // (round 2: width 840 -> 750; round 3: width 750 -> 650; round 5: trayContentHeight 128 ->
-    // 150 to fit the deliberately large round-5 top inset) per user request/on-device UAT.
+    // wider/shorter content size (650x128), mirroring the test above exactly. Gap-closure
+    // (round 2: width 840 -> 750; round 3: width 750 -> 650; round 8: trayContentHeight
+    // reverted 150 -> 128 after fixing shelfRow's ScrollView centering bug — rounds 4-5's
+    // growth was compensating for that bug, not a real space shortage) per on-device UAT.
     func testExpandedNotchFrameCentersTraySizedContent() {
         // collapsed pill at origin-screen: x 610, y 944, 292x38 (== notchFrame output).
-        // traySize/trayContentHeight 650x150. The expanded frame stays centered on the
+        // traySize/trayContentHeight 650x128. The expanded frame stays centered on the
         // collapsed midX (756) and pinned to the same top edge (maxY 982, bottom-left origin):
-        //   x = 756 - 325 = 431, y = 982 - 150 = 832.
+        //   x = 756 - 325 = 431, y = 982 - 128 = 854.
         let collapsed = CGRect(x: 610, y: 944, width: 292, height: 38)
-        let expandedSize = CGSize(width: 650, height: 150)
+        let expandedSize = CGSize(width: 650, height: 128)
         let frame = expandedNotchFrame(collapsed: collapsed, expandedSize: expandedSize)
         XCTAssertEqual(frame.midX, collapsed.midX, accuracy: 0.0001)
         XCTAssertEqual(frame.midX, 756, accuracy: 0.0001)
         XCTAssertEqual(frame.maxY, collapsed.maxY, accuracy: 0.0001)
         XCTAssertEqual(frame.maxY, 982, accuracy: 0.0001)
         XCTAssertEqual(frame.origin.x, 431, accuracy: 0.0001)
-        XCTAssertEqual(frame.origin.y, 832, accuracy: 0.0001)
+        XCTAssertEqual(frame.origin.y, 854, accuracy: 0.0001)
         XCTAssertEqual(frame.width, 650, accuracy: 0.0001)
-        XCTAssertEqual(frame.height, 150, accuracy: 0.0001)
+        XCTAssertEqual(frame.height, 128, accuracy: 0.0001)
     }
 
     func testExpandedNotchFrameOnNonZeroOriginScreen() {
