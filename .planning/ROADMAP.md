@@ -509,8 +509,13 @@ Plans:
   2. More files are visible side-by-side without scrolling compared to the previous layout.
   3. Existing Tray interactions (trash, delete-all, click-to-open, drag-out) continue to work unchanged in the new layout.
   4. Click-through hit-testing matches the new wider geometry exactly — re-verified via the on-device hover→expand→move-down trace, closing off the CR-01/CR-02 failure class.
-**Plans**: TBD
+**Plans**: 1 plan
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 32-01-PLAN.md — traySize/trayContentHeight constants + blobShape height-ternary fix + panel-frame union + visibleContentZone Tray branch + ShelfItemView/shelfRow tile sizing + on-device CR-01 checkpoint
 
 ### Phase 33: Weather Widget Redesign
 
