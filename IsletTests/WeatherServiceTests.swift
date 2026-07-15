@@ -11,12 +11,12 @@ final class WeatherServiceTests: XCTestCase {
     // In-memory fake conforming to WeatherService — no real WeatherKit/CLGeocoder I/O.
     private final class FakeWeatherService: WeatherService {
         private(set) var fetchCurrentAndForecastCallCount = 0
-        private(set) var lastFetchCompletion: ((WeatherGlance?, [DailyForecast]?) -> Void)?
+        private(set) var lastFetchCompletion: ((WeatherGlance?, [DailyForecast]?, [HourlyForecast]?) -> Void)?
 
         private(set) var resolvePlaceNameCallCount = 0
         private(set) var lastGeocodeCompletion: ((String?) -> Void)?
 
-        func fetchCurrentAndForecast(latitude: Double, longitude: Double, completion: @escaping (WeatherGlance?, [DailyForecast]?) -> Void) {
+        func fetchCurrentAndForecast(latitude: Double, longitude: Double, completion: @escaping (WeatherGlance?, [DailyForecast]?, [HourlyForecast]?) -> Void) {
             fetchCurrentAndForecastCallCount += 1
             lastFetchCompletion = completion
         }
@@ -33,10 +33,12 @@ final class WeatherServiceTests: XCTestCase {
         let fake = FakeWeatherService()
         var receivedGlance: WeatherGlance?
         var receivedForecast: [DailyForecast]?
+        var receivedHourly: [HourlyForecast]?
 
-        fake.fetchCurrentAndForecast(latitude: 52.5, longitude: 13.4) { glance, forecast in
+        fake.fetchCurrentAndForecast(latitude: 52.5, longitude: 13.4) { glance, forecast, hourly in
             receivedGlance = glance
             receivedForecast = forecast
+            receivedHourly = hourly
         }
 
         let syntheticGlance = WeatherGlance(category: .sunny,
@@ -47,10 +49,14 @@ final class WeatherServiceTests: XCTestCase {
                                                category: .cloudy,
                                                high: Measurement(value: 22, unit: .celsius),
                                                low: Measurement(value: 14, unit: .celsius))]
-        fake.lastFetchCompletion?(syntheticGlance, syntheticForecast)
+        let syntheticHourly = [HourlyForecast(date: Date(),
+                                              category: .sunny,
+                                              temperature: Measurement(value: 18, unit: .celsius))]
+        fake.lastFetchCompletion?(syntheticGlance, syntheticForecast, syntheticHourly)
 
         XCTAssertEqual(receivedGlance, syntheticGlance)
         XCTAssertEqual(receivedForecast, syntheticForecast)
+        XCTAssertEqual(receivedHourly, syntheticHourly)
         XCTAssertEqual(fake.fetchCurrentAndForecastCallCount, 1)
     }
 

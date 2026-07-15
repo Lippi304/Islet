@@ -28,10 +28,13 @@ enum ActivitySettings {
     // plain UserDefaults, NOT Keychain: this is an app-owned UX flag, not a security/anti-tampering
     // boundary (unlike TRIAL-*/LIC-* state, which lives in a completely separate, unmodified store).
     static let onboardingCompletedKey = "onboarding.completed"
-    // Phase 33 / WEATHER-02 — plain Bool key, default false. No UserDefaults.register default
-    // is needed: both UserDefaults.bool(forKey:) and @AppStorage(...) = false already default
-    // an absent key to false, matching this project's other plain-Bool-toggle keys.
-    static let weatherExtendedKey = "weather.extended"
+    // Phase 33 / WEATHER-01/02 — String-backed enum key (replaces the removed
+    // weatherExtendedKey Bool). Corrupted/unknown UserDefaults values parse to nil; every
+    // read site applies `?? .medium` (D-04) so Medium is always the safe floor.
+    enum WeatherStyle: String, CaseIterable {
+        case medium, large
+    }
+    static let weatherStyleKey = "weather.style"
 
     // Phase 27 / VISUAL-03: the island's material look — a flat black fill
     // ("solidBlack") or the Phase 25 vertical gradient ("gradient", the
@@ -98,6 +101,9 @@ private struct DeviceAccentKey: EnvironmentKey { static let defaultValue: Color 
 // Bare alias so read sites (and this file's own EnvironmentKey plumbing) can
 // say `MaterialStyle` instead of the fully-qualified `ActivitySettings.MaterialStyle`.
 typealias MaterialStyle = ActivitySettings.MaterialStyle
+// Bare alias so read sites can say `WeatherStyle.medium`/`.large` instead of the
+// fully-qualified `ActivitySettings.WeatherStyle` (mirrors MaterialStyle above verbatim).
+typealias WeatherStyle = ActivitySettings.WeatherStyle
 
 private struct IslandMaterialStyleKey: EnvironmentKey {
     static let defaultValue: MaterialStyle = .gradient

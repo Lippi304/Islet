@@ -13,4 +13,8 @@ final class BasicOutfitState: ObservableObject {
     // toggle is on; locationName resolves via reverse-geocode, nil while pending/on failure.
     @Published var forecast: [DailyForecast]?
     @Published var locationName: String?
+    // Phase 33 / WEATHER-01/02 — same controller-only-writer/view-only-reader contract as
+    // forecast above. Populated unconditionally regardless of the Medium/Large Settings
+    // choice; the view layer decides what to render.
+    @Published var hourlyForecast: [HourlyForecast]?
 }
