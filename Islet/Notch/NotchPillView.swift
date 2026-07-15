@@ -1052,17 +1052,21 @@ struct NotchPillView: View {
     // verfügbar" style, since an empty shelf is a normal empty collection (like an empty
     // inbox), not a degraded/blocked feature.
     private var trayEmptyState: some View {
-        VStack(spacing: 4) {
+        // Quick task 260715-vsd — outer VStack(spacing: 9) grows only the icon->text gap
+        // (4pt -> 9pt); the inner VStack keeps title->subtitle at the original 4pt.
+        VStack(spacing: 9) {
             Image(systemName: "tray")
                 .font(.system(size: 28))
                 .foregroundStyle(.white.opacity(0.4))
-            Text("No files yet")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
-            Text("Drag files onto the notch to add them here.")
-                .font(.system(size: 11, weight: .regular, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 4) {
+                Text("No files yet")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("Drag files onto the notch to add them here.")
+                    .font(.system(size: 11, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
         .padding(.top, 24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
