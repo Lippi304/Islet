@@ -911,6 +911,18 @@ final class NotchWindowController {
             dragPasteboardChangeCount = count
         }
         recheckDragAcceptRegion()
+        // Phase 34 UAT revision (D-11/Pitfall 8) — live per-button hover hit-test while a picker
+        // is showing, published ONLY on change (never unconditionally every tick — dozens of
+        // ticks/second during a real drag would otherwise re-render the picker for no visual
+        // change).
+        if pendingDrop != nil {
+            let hit = quickActionButtonFrames.firstIndex { $0.contains(NSEvent.mouseLocation) }
+            if hit != presentationState.hoveredQuickActionButtonIndex {
+                presentationState.hoveredQuickActionButtonIndex = hit
+            }
+        } else if presentationState.hoveredQuickActionButtonIndex != nil {
+            presentationState.hoveredQuickActionButtonIndex = nil
+        }
     }
 
     // Edge-tracks isDragApproaching exactly like pointerInZone's shape in handlePointer(at:).
@@ -982,6 +994,32 @@ final class NotchWindowController {
     private func handleDragApproachEnd() {
         guard isDragApproaching else { return }
         isDragApproaching = false
+
+        // Phase 34 UAT revision (D-12/D-13) — a picker is already showing (pendingDrop was set
+        // at dragEntered, Task 1). Route by WHICH button the release point falls in; the
+        // handlers themselves are the SAME unchanged handleQuickActionDrop/AirDrop/Mail. Once
+        // D-10 always populates pendingDrop at dragEntered for any real file drag, a release with
+        // pendingDrop == nil is correctly a no-op by construction (a non-file drag, or an
+        // already-discarded pending drop) — no release-time item-building fallback is reintroduced
+        // here (34-RESEARCH.md Open Question 2).
+        let point = NSEvent.mouseLocation
+        if pendingDrop != nil {
+            if let hit = quickActionButtonFrames.firstIndex(where: { $0.contains(point) }) {
+                switch hit {
+                case 0: handleQuickActionDrop()
+                case 1: handleQuickActionAirDrop()
+                case 2: handleQuickActionMail()
+                default: break
+                }
+            } else {
+                // D-13: released inside the picker card but not on a button — discard.
+                withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                    discardPendingDrop()
+                    renderPresentation()
+                }
+            }
+            presentationState.hoveredQuickActionButtonIndex = nil
+        }
         // Pitfall 3 — pointerInZone/lastPointerLocation/syncClickThrough() go stale during ANY
         // OS drag session; re-sync unconditionally, mirroring endShelfItemDrag()'s own final line.
         handlePointer(at: NSEvent.mouseLocation)
@@ -1567,10 +1605,7 @@ final class NotchWindowController {
                       onSwitcherSelect: { [weak self] view in self?.handleSwitcherSelect(view) },
                       onCalendarMonthChange: { [weak self] delta in self?.handleCalendarMonthChange(delta) },
                       onCalendarDaySelect: { [weak self] day in self?.handleCalendarDaySelect(day) },
-                      onQuickAdd: { [weak self] kind, title in self?.handleQuickAdd(kind, title: title) },
-                      onQuickActionDrop: { [weak self] in self?.handleQuickActionDrop() },
-                      onQuickActionAirDrop: { [weak self] in self?.handleQuickActionAirDrop() },
-                      onQuickActionMail: { [weak self] in self?.handleQuickActionMail() })
+                      onQuickAdd: { [weak self] kind, title in self?.handleQuickAdd(kind, title: title) })
             .environment(\.nowPlayingAccent, ActivitySettings.accent(for: theme.nowPlaying))
             .environment(\.chargingAccent, ActivitySettings.accent(for: theme.charging))
             .environment(\.deviceAccent, ActivitySettings.accent(for: theme.device))
