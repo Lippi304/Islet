@@ -1,93 +1,151 @@
-# Stack Research
+# Stack Research — v1.6 (Liquid Glass & System HUD Suite)
 
-**Domain:** Native macOS notch-overlay app — v1.5 feature additions (Home declutter, Tray-only file-drop consolidation w/ Quick Action picker, widget-style Weather + forecast, NotchShape top-edge flare)
-**Researched:** 2026-07-13
-**Confidence:** MEDIUM-HIGH (Apple frameworks already linked in this project; the one genuinely new integration risk — presenting share UI from a permanently-`canBecomeKey == false` panel — has no single authoritative Apple doc confirming behavior, flagged accordingly)
+**Domain:** Native macOS notch-overlay utility (Islet) — stack additions for 5 new v1.6 capabilities
+**Researched:** 2026-07-15
+**Confidence:** MEDIUM overall (HIGH for Sparkle/SwiftUI composition, MEDIUM for Liquid Glass, LOW-MEDIUM for HUD suppression and Focus detection — both private/undocumented-API territory, consistent with the MediaRemote precedent already accepted in this project)
 
-> Superseded scope note: this file previously held v1.4's window-shell/onboarding/settings/theming/calendar research. That stack is now shipped and documented in `PROJECT.md`/`CLAUDE.md`. This file is rescoped to v1.5's five target features only (Home declutter, Tray-only Quick Action drop picker, wider Tray grid, widget-style Weather + forecast, NotchShape top-edge flare).
+This is **not** a greenfield stack doc — it covers only what's new for v1.6. Nothing here replaces or touches the existing validated stack (SwiftUI/AppKit shell, mediaremote-adapter, IOKit power, IOBluetooth, WeatherKit/EventKit). See `CLAUDE.md` for that baseline.
 
 ## Recommended Stack
 
-### Core Technologies
+### 1. Liquid Glass material
 
 | Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **`NSSharingService`** (direct calls, NOT `NSSharingServicePicker`) | AppKit, ships with macOS SDK (stable since 10.8) | Perform AirDrop / Mail-compose from the Quick Action picker | `.perform(withItems:)` opens AirDrop's or Mail.app's own system window — a separate process/window that becomes key on its own terms. This avoids ever needing Islet's own panel to become key or host a system popover. See "What NOT to Use" for why the picker CLASS is explicitly avoided. |
-| **`WeatherKit.WeatherService.weather(for:including:)`** | WeatherKit, ships with macOS 13+ SDK (already linked, Phase 14) | Adds `.daily` forecast data to the existing current-conditions fetch | The codebase already calls `service.weather(for: location)` (no `including:`), which — per Apple's WeatherKit API — returns the FULL `Weather` bundle (current + minute + hourly + **daily** + alerts) in a single network call. `dailyForecast` is technically already being fetched and silently discarded today. Switching to `weather(for: location, including: .current, .daily)` is the leaner, explicit form — still exactly ONE network call against the WeatherKit quota, but skips parsing/transporting hourly/minute data Islet doesn't use. |
-| **SwiftUI `Shape` + explicit `animatableData`** | Ships with SwiftUI (macOS 15 SDK, project's deployment target) | The flare-only-on-expanded silhouette transition | `NotchShape`'s existing 2-parameter (`topCornerRadius`/`bottomCornerRadius`) design does NOT actually get free interpolation from "plain stored CGFloat properties" — confirmed against current SwiftUI docs/community sources: a custom `Shape` without an explicit `animatableData` override defaults to `EmptyAnimatableData`, and its parameters **snap**, not interpolate. The existing code's morph looks smooth on-device because the corner-radius jump is masked by the simultaneous, much larger frame-size animation driven by `matchedGeometryEffect`/spring. A new flare parameter that must visibly grow only in the expanded state is a much more prominent geometry change — do NOT repeat the "plain property" pattern for it; add a real `animatableData` (e.g. `AnimatablePair<CGFloat, AnimatablePair<CGFloat, CGFloat>>` combining all three radii/flare values) so the flare genuinely interpolates during the spring instead of popping in/out. |
-| **SwiftUI `LazyVGrid`/`GridItem(.adaptive(minimum:))`** | Ships with SwiftUI | Widened Tray with larger file icons | Pure native layout — no new API needed. `GridItem(.adaptive(minimum:))` auto-flows icon columns as the (already per-view-variable, per Phase 28's `.trayExpanded`) expanded width grows, without hardcoding a column count. This is the idiomatic SwiftUI primitive for icon grids; nothing else in AppKit/SwiftUI does this job better for a beginner. |
+|------------|---------|---------|------------------|
+| **`NSGlassEffectView` (AppKit) / `.glassEffect()` (SwiftUI)** | macOS **26.0+ only** (`API_AVAILABLE(macos(26.0))`) | Apple's real "Liquid Glass" material — lensing/refraction, not blur | This is the actual system material Apple ships in Tahoe. `.glassEffect(_:in:)` takes a `Glass` value (`.regular`, `.clear`, `.identity`), a shape (defaults `.capsule`), `tint()`/`interactive()` chaining. Glass views can't sample other glass — group multiple glass elements in a `GlassEffectContainer`. **Requires raising the deployment target from 15.0 to 26.0.** |
+| **Custom materials composition (fallback)** | macOS 15.0+ (current target) | Glass *look* without the real API | If the user's supplied reference code is NOT built on `.glassEffect()`, the established community technique (verified via the Klarity writeup) is layered `.ultraThinMaterial`/`.regularMaterial` + `RoundedRectangle`/`Capsule` gradient **stroke borders** (bright→subtle edge gradient, not surface blur) + tuned shadow layering. Border treatment matters more than surface blur for a convincing "glass" read — human perception reads material at edges. |
 
-### Supporting Libraries
+**Decision this phase needs (flag for `/gsd:discuss-phase`):** does the user's reference code use `.glassEffect()`/`NSGlassEffectView`? If yes → raise deployment target 15.0→26.0 (this project already has precedent for exactly this move in Phase 26, and the dev machine is already Tahoe; this is a single-user hobby app with no App Store/back-compat constraint). If no (a materials/gradient composition) → no target change needed, ship on the current 15.0 floor.
 
-_None._ Every capability needed for v1.5 (AirDrop, Mail, forecast, flare, wider grid, Home decluttering) is covered by Apple frameworks already linked in the project (AppKit, WeatherKit, SwiftUI). No new SPM package is justified — adding one here would fight this project's own "keep AppKit/3rd-party surface area small" convention for no benefit.
+**Integration point:** replaces the existing `islandMaterial` (black-to-transparent gradient, `NotchPillView.swift`/`NotchWindowController.swift`) — same seam, swap the fill/material value, not a structural rewrite. Keep it a single shared material definition as today so pill/expanded/wings stay visually consistent (matches the VISUAL-01 precedent from Phase 25).
 
-### Development Tools
+### 2. Volume & Brightness HUD replacement (suppress native OSD)
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| **Xcode 16+ (already in use)** | Build/run/debug the above | No new target, capability checkbox, or entitlement beyond what Phase 14 (WeatherKit) and the existing un-sandboxed signing already provide. `NSSharingService` needs no entitlement when un-sandboxed (Islet already ships un-sandboxed — MediaRemote rules sandboxing out anyway). |
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|------------------|
+| **`CGEventTap` on `NX_SYSDEFINED` events** | Core Graphics, all current macOS | Intercept volume/brightness hardware keys *before* the system's `OSDUIHelper` shows its HUD | Media/aux keys (volume up/down/mute, brightness up/down) arrive as `NX_SYSDEFINED` events (subtype 8) at the HID event tap, packed as `(nxKeyCode << 16) \| (keyState << 8)` in `data1`. Installing a **`.cghidEventTap`** at **`.headInsertEventTap`** lets the app see and **consume** the event (return `nil`/swallow) before WindowServer routes it onward — this is the actual mechanism, not a documented API, but it's the standard technique used by SlimHUD/VolumeGlass-class tools. |
+| **Input Monitoring permission (`kTCCServiceListenEvent`)** | TCC, macOS 10.15+ | Required entitlement/permission for the event tap to see key events | Lighter-weight than full Accessibility — user grants once via System Settings → Privacy & Security → Input Monitoring. Add the request/prompt flow the same way Bluetooth/Calendar/Weather permissions are already handled in this app. |
+| **`AudioObjectSetPropertyData` + `kAudioHardwareServiceDeviceProperty_VirtualMainVolume`** (AudioToolbox/CoreAudio) | Public, documented | Actually change system volume once the native OSD is suppressed | Public, documented CoreAudio property — no private API needed for volume itself, only for suppressing the OSD. Apply to the default output device (`kAudioHardwarePropertyDefaultOutputDevice`). |
+| **`DisplayServices.framework` (private) — `DisplayServicesSetBrightness`/`DisplayServicesCanChangeBrightness`** | Private, Apple Silicon | Actually change built-in display brightness | The public/older `CoreDisplay_Display_SetUserBrightness` path does **not** work reliably on Apple Silicon. `DisplayServices` (private, undocumented, `dlopen`'d — same isolation pattern as the MediaRemote bridge) is the confirmed working path on M-series Macs. |
+
+**Critical caveats (flag for phase research, not just planning):**
+- **No documented way to suppress `OSDUIHelper` directly.** The only launchctl/SIP-disable approach is destructive and doesn't survive SIP re-enable — do not pursue it. The viable path is **prevention** (consume the key event before it reaches the system), not suppression-after-the-fact.
+- Event taps are **silently disabled by macOS** on `tapDisabledByTimeout`, `tapDisabledByUserInput`, and around sleep/wake — the tap callback must detect these and immediately re-enable (`CGEvent.tapEnable`), and this should be wired to `NSWorkspace.didWakeNotification` too.
+- Both `DisplayServices` calls and the raw `NX_SYSDEFINED` decode are **undocumented/private, same risk class as MediaRemote** — isolate behind a single `SystemHUDController`/`VolumeBrightnessMonitor` protocol seam (mirrors the existing `NowPlayingMonitor` pattern) so a future macOS break is a one-file swap, not a scattered fix.
+- **Recommend a research/spike phase before committing to full replacement** — this is explicitly one of the two items the milestone context already flagged as MediaRemote-precedent-level risk. A same-shape fallback (show the Islet HUD *alongside* rather than *replacing* the system OSD) should be the documented Plan B if the event-consumption approach proves unreliable on-device.
+
+### 3. Focus Mode / Do Not Disturb detection
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|------------------|
+| **`INFocusStatusCenter` (Intents framework) + Communication Notifications capability** | Public, documented, macOS 12+ | The only public, forward-compatible way to observe Focus state | Requires adding the **Communication Notifications** capability in Xcode Signing & Capabilities (adds an entitlement), then the **user must separately grant** the app "Focus Status" sharing in System Settings → Focus → Focus Status → Allowed Apps. Gives a **boolean `isFocused`** only — not which Focus mode is active, not richer detail. |
+| ~~Reading `~/Library/DoNotDisturb/DB/Assertions.json`~~ | — | ~~Private JSON file, historically used by community tools~~ | **Do not use.** Confirmed via multiple independent reports that this file/format is **broken on macOS 26 (Tahoe)** — the exact OS this project's dev machine already runs. It worked through Sequoia (15.x) by polling the JSON on an interval, but the data is no longer populated there on Tahoe. This is a dead end for this project's actual target OS, not a hypothetical future risk. |
+
+**Recommendation:** ship Focus detection as **boolean-only** via `INFocusStatusCenter`, gated behind an explicit, documented setup step (same UX pattern as Bluetooth/Calendar/Weather: a permission the user grants once, silently degrading to "no Focus HUD" if not granted — consistent with this project's existing "degrade silently on permission denial" convention from WeatherKit/EventKit). Do **not** attempt to show *which* Focus mode is active (Personal/Work/Gaming/etc.) — no reliable, non-broken source exists for that on the current target OS. This narrows Focus-mode HUD scope going into planning — flag as a scope constraint, not just a technical unknown.
+
+### 4. Sparkle auto-update
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|------------------|
+| **Sparkle** | **2.9.4** (latest tagged release, published 2026-07-03 — actively maintained) | Auto-update framework for direct-distributed, notarized, non-App-Store macOS apps | The de-facto standard for exactly this app shape; confirms fit with `CLAUDE.md`'s existing recommendation. |
+| Install via **Swift Package Manager** | `https://github.com/sparkle-project/Sparkle` | Dependency management | SPM avoids adding CocoaPods/Carthage tooling the project doesn't otherwise use — consistent with how `mediaremote-adapter` was already added. |
+| `SPUStandardUpdaterController` | Sparkle 2.x public API | Convenience controller wrapping `SPUUpdater` + `SPUUserDriver` | Simplest integration surface — no need to hand-roll the updater UI or update-check scheduling. |
+
+**Integration specifics for this app shape:**
+- **LSUIElement compatibility confirmed**: Sparkle 2.x explicitly handles agent apps — it focuses the (Dock-icon-less) app before showing the update alert, so no extra work needed for the "no Dock icon" constraint.
+- **Hardened Runtime / notarization**: this project already carries a `disable-library-validation` entitlement in `project.yml` (added for the embedded `MediaRemoteAdapter.framework` under Hardened Runtime — see memory `release-library-validation-crash`). Sparkle's embedded `.framework` needs the **same** re-signing treatment (`codesign` doesn't recurse into embedded frameworks) — reuse the existing release-script pattern in `scripts/release.sh`, don't invent a new one.
+- **EdDSA (ed25519) signing** is mandatory: generate a keypair with Sparkle's bundled `generate_keys` tool, put the public key in `Info.plist` (`SUPublicEDKey`), sign every published update artifact (dmg/zip) with the private key before publishing. Store the private key outside the repo (Keychain or local file, never committed).
+- **Appcast hosting**: needs a static XML feed (`SUFeedURL` in `Info.plist`) — GitHub Releases + a generated `appcast.xml` (Sparkle ships a `generate_appcast` tool) is the standard zero-cost hosting choice for a hobby-budget project, fits the existing "no paid services" constraint.
+- The **Update-available HUD** (v1.6 scope) is just a thin UI wired to `SPUUpdaterDelegate` callbacks (e.g. `updater(_:didFindValidUpdate:)`) driving a new `IslandActivity` case through the existing `IslandResolver`/`TransientQueue` — no new architecture needed there, this is a new activity source feeding the existing arbiter.
+
+### 5. Dual-activity display (main pill + secondary bubble)
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|------------------|
+| **SwiftUI `ZStack` + `.overlay(alignment:)`** | Ships with SwiftUI (already in use) | Anchor a small secondary "bubble" to the main pill's corner/edge | No new library — this is pure composition of primitives already used elsewhere in the app (`NotchPillView`). |
+| **Shared `@Namespace` + `matchedGeometryEffect`** | Ships with SwiftUI (already in use, per the existing pill↔expanded morph) | Give the secondary bubble its own morph identity independent of the main pill's | Reuse the exact technique already validated in Phase 2/25 rather than inventing a second animation system — apply a *second* `matchedGeometryEffect` id namespaced per-activity-type so the bubble can independently appear/disappear/morph without perturbing the main pill's existing geometry effect. |
+| **`Text(timerInterval:)` / `Text(_:style: .timer)`** | Ships with SwiftUI | Live-updating countdown text (Calendar countdown HUD: "starting in 42m") | Native SwiftUI auto-updates this text on its own timer internally — no manual `Timer`/`TimelineView` polling loop needed for a minutes-precision countdown display. Only reach for `TimelineView` if a custom (non-text) animating countdown visual is needed later. |
+
+**Nothing new to add here** — this is squarely covered by SwiftUI composition already proven in this codebase. The only real design question (main pill vs. bubble sizing/placement, which two activities can co-occur) is an architecture/UX decision, not a stack decision — covered in this milestone's architecture research, not here.
 
 ## Installation
 
 ```bash
-# No new packages. Everything above is an already-linked Apple framework
-# (AppKit, WeatherKit, SwiftUI) — nothing to add via SPM/CocoaPods/Homebrew.
+# Sparkle (SPM — add via Xcode: File > Add Package Dependencies)
+# URL: https://github.com/sparkle-project/Sparkle
+# Version: 2.9.4 or later 2.x
+# Target > General > Frameworks: set Sparkle.framework to "Embed & Sign"
+
+# Generate Sparkle EdDSA keypair (one-time, run from the downloaded Sparkle release's bin/ or SPM build artifacts)
+./generate_keys
+
+# No new packages needed for: Liquid Glass (system framework, gated by deployment target),
+# Volume/Brightness HUD (CoreGraphics/AudioToolbox/private DisplayServices — all system-linked),
+# Focus detection (Intents framework, system-linked), Dual-activity display (SwiftUI only).
 ```
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| `NSSharingService(named:).perform(withItems:)` called directly per destination | `NSSharingServicePicker.show(relativeTo:of:preferredEdge:)` (the system share-sheet popover) | Only if Islet's panel design changes to allow `canBecomeKey == true` in some future rework. Today `NotchPanel.canBecomeKey`/`canBecomeMain` are hard-coded `false` (D-07, "never take focus") — see Integration Risk below. The Droppy reference UI is also a *custom* destination picker (Drop/AirDrop/Mail icons), not the generic macOS share sheet, so building a SwiftUI picker + calling `NSSharingService` directly matches the target design better, not just the safer one. |
-| `weather(for: location, including: .current, .daily)` | Leave the existing unscoped `weather(for: location)` call as-is and just start reading `weather.dailyForecast` off it | Fully valid, zero-risk option if minimizing the diff matters more than trimming payload size — the data is already there today. Switch to `including:` only if the extra hourly/minute payload is ever shown to matter (it currently doesn't visibly affect anything measurable). |
-| Explicit `animatableData` on `NotchShape` for the new flare parameter | Two separate `NotchShape` instances (flared vs. flat) cross-matched via `matchedGeometryEffect`, mirroring how collapsed↔expanded already morphs at the *frame* level | Valid if the flare should feel like a distinct "growing wing" rather than a continuously-interpolating edge — closer to how the existing charging/device wings splash animates in. Costs an extra view identity to manage; the `animatableData` route keeps `NotchShape` a single reusable shape, consistent with the file's existing single-shape design. |
-| `LazyVGrid` with `GridItem(.adaptive(minimum:))` | `HStack` in a `ScrollView` (today's shelf-strip pattern, single row) | Keep `HStack`/`ScrollView` if "wider Tray" ends up meaning only a longer single row, not a true multi-row grid. Re-check the Droppy Tray reference screenshot before committing — if it shows one wide row of bigger icons, `ShelfCoordinator`/the existing Tray view need no structural grid change at all, just larger icon/frame constants. |
+|-------------|-------------|--------------------------|
+| `.glassEffect()`/`NSGlassEffectView` (if reference code uses it) | Custom materials/gradient-border composition | Use the custom composition if the user's supplied reference code doesn't target macOS 26, or if avoiding the deployment-target bump is preferred for now |
+| `CGEventTap` event-consumption for HUD replacement | Alongside-display (show Islet's HUD without suppressing the system one) | Fall back to alongside-display if the event-tap approach proves unreliable/flaky on-device during the research spike — matches this project's established pattern of a documented Plan B (see FS-01's 5-wave conditional chain) |
+| `INFocusStatusCenter` (boolean only) | Reading `~/Library/DoNotDisturb/DB/Assertions.json` | Never — confirmed broken on the project's actual target OS (Tahoe/26). Do not implement this path even as a fallback. |
+| Sparkle 2.9.4 via SPM | Manual "check GitHub releases" flow | Only if the user explicitly wants to defer real auto-updates further — Sparkle is otherwise a clean, low-risk addition with no architectural conflict |
+| SwiftUI `ZStack`/`overlay`/second `matchedGeometryEffect` for dual-activity | A new bespoke "docking/badge" layout library | Never — would be a new dependency for something SwiftUI's own primitives already cover, contradicts this project's minimal-dependency history (DynamicNotchKit was even passed over in v1.0 in favor of a hand-rolled `NSPanel`) |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| **`NSSharingServicePicker`** (the popover class) | Islet's `NotchPanel` permanently overrides `canBecomeKey`/`canBecomeMain` to `false` (D-07) — a deliberate, load-bearing decision so hover/click never activates the app. Community sources (a documented AppKit bug where `nonactivatingPanel`'s WindowServer-level "prevents activation" tag can desync from AppKit's own state, plus a known LSUIElement pattern: "popovers send an activation event the agent app must explicitly swallow") both point at real risk that the system picker either fails to appear, dismisses immediately, or forces an unwanted activation — directly contradicting Islet's "never steals focus" pillar and its documented history (Phase 22/23/24) of exactly this class of click-through/focus bug being invisible on paper and only surfacing on-device. | A custom SwiftUI Quick Action row hosted inside the existing panel content (same interaction model as today's Tray/Calendar buttons, which already work fine despite `canBecomeKey == false` via the existing local `ignoresMouseEvents` toggle), calling `NSSharingService(named:).perform(withItems:)` directly per destination. |
-| **WidgetKit** | "iOS-widget-style" in the v1.5 goal describes a VISUAL style (compact card, H/L, forecast strip) to replicate inside the existing SwiftUI view — not an actual WidgetKit extension. Adding a real WidgetKit target would mean a new extension target, an App Group for data sharing, and a Timeline provider — a large, unrequested architecture change for a purely cosmetic ask. | Plain SwiftUI views inside the existing Weather tab, styled to resemble an iOS widget card. |
-| **A second/separate WeatherKit call for forecast** (e.g., an extra `weather(for:)` fetch just for daily data) | Doubles quota usage and network round-trips for data the single existing call can already carry. PROJECT.md's phrasing ("requires a new WeatherKit forecast API call") is directionally right (new *code path*/data type) but should not be read as "a second network request" — it's one call with a wider `including:` set. | `weather(for: location, including: .current, .daily)` (or simply read `.dailyForecast` off the existing full-bundle response). |
-| **Core Bluetooth, third-party grid/layout libraries, DynamicNotchKit** | Not implicated by any v1.5 target feature — no new device-connection, transient-notification, or non-notch-window need was introduced this milestone. | N/A — nothing to add. |
+|-------|-----|--------------|
+| `launchctl unload com.apple.OSDUIHelper.plist` / disabling SIP | Destructive, doesn't survive SIP re-enable, not viable for a distributed app users would run | `CGEventTap` consumption of `NX_SYSDEFINED` before the native HUD fires |
+| `CoreDisplay_Display_SetUserBrightness` alone | Doesn't reliably work / doesn't report success on Apple Silicon | `DisplayServices.framework` private calls (`DisplayServicesSetBrightness`) |
+| `~/Library/DoNotDisturb/DB/Assertions.json` polling | Confirmed broken on macOS 26 (Tahoe) — this project's actual target OS | `INFocusStatusCenter` (boolean-only, accept the scope reduction) |
+| A third-party glass/blur SwiftUI package | SwiftUI + AppKit materials already cover this; no gap a library fills | `.glassEffect()` (26+) or materials/gradient composition (15+) |
+| Rolling a custom notification/observer abstraction for Sparkle | `SPUUpdaterDelegate` already gives exactly the callbacks needed | Wire `SPUStandardUpdaterController`/`SPUUpdaterDelegate` directly into a new `IslandActivity` case |
+| A new layout/badge library for the dual-activity bubble | Pure SwiftUI composition (already the project's whole UI approach) fully covers this | `ZStack` + `.overlay(alignment:)` + a second `matchedGeometryEffect` namespace |
 
 ## Stack Patterns by Variant
 
-**If the Droppy Tray reference turns out to be a true multi-row grid (not just a wider single row):**
-- Use `LazyVGrid(columns: [GridItem(.adaptive(minimum: <largerIconSize>))])`
-- Because it auto-wraps to however many columns fit the (per-tab-variable) expanded width without a hardcoded column count.
+**If the user's Liquid Glass reference code targets `.glassEffect()`/`NSGlassEffectView`:**
+- Raise `MACOSX_DEPLOYMENT_TARGET` 15.0 → 26.0 in `project.yml` (all 5 entries, mirroring the Phase 26 precedent).
+- Because there is no back-compat requirement (hobby project, direct distribution, dev hardware already Tahoe) and the project already crossed this exact bridge once for `.defaultLaunchBehavior(.suppressed)`.
 
-**If on-device testing shows `NSSharingService.perform(withItems:)` still causes any Islet activation/focus flicker despite bypassing the picker:**
-- Accept a brief, intentional activation ONLY for this explicit user-initiated action, rather than pre-emptively engineering around it
-- Because the "never steals focus" pillar was written for *passive* interactions (hover, glance) — an explicit share action legitimately handing off to Mail.app/AirDrop is a different category from an ambient hover-triggered activation, and should be validated on-device (matching this project's established pattern of resolving focus/click-through questions empirically, not just by static reasoning) rather than blocked in planning.
+**If it targets a materials/gradient composition instead:**
+- No deployment target change; ship on the current 15.0 floor.
+- Because the visual result is achievable without the real system API, and holding the lower floor costs nothing here.
+
+**For Volume/Brightness HUD:**
+- Spike first (single throwaway prototype: can the event tap reliably suppress the native OSD on the dev Mac, does Input Monitoring permission behave as expected, does the tap survive sleep/wake) before committing to full replacement in the roadmap.
+- Because this is explicitly flagged (by the milestone context itself) as MediaRemote-precedent-level risk — the project's own established pattern (Phase 8/9's FS-01 conditional-escalation chain) is exactly the right shape to reuse here.
 
 ## Version Compatibility
 
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| `WeatherKit.WeatherQuery.daily` / `.daily(startDate:endDate:)` | macOS 13+ (project targets 15.0) | No version gap — already well within the project's raised macOS 15.0 floor (Phase 26). |
-| `NSSharingService.Name.sendViaAirDrop` / `.composeEmail` | AppKit, stable since 10.8/10.10 | No version risk; long-stable, fully public/documented API — unlike the private-MediaRemote class of breakage this project has hit before (the macOS 15.4 `nowplaying-cli`/direct-MediaRemote lockdown), `NSSharingService` is not at risk of an Apple-side access restriction. |
-| `Shape.animatableData` / `AnimatablePair` | SwiftUI, all supported versions | No version risk; the gap here is a design-pattern gap in the existing code, not an OS-version gap. |
-
-## Integration Notes (existing code this milestone touches)
-
-- **`Islet/Notch/NotchPanel.swift`** — `canBecomeKey`/`canBecomeMain` are hard-coded `false` (D-07). This is the file that makes `NSSharingServicePicker` risky and motivates the direct-`NSSharingService` recommendation above. Do not touch this file's activation overrides to accommodate sharing — build around them, per this project's established convention of keeping the non-activating contract absolute.
-- **`Islet/Notch/DropInterceptTap.swift`** — `onIntercept` currently invokes shelf-landing directly (`handleDragApproachEnd()` → `ShelfCoordinator.append`). For the Quick Action picker, this closure's target becomes "show the Quick Action picker," with `ShelfCoordinator.append(...)` (unchanged) invoked only if the user picks "Drop." AirDrop/Mail route to the new `NSSharingService` calls instead. No change needed inside `DropInterceptTap` itself — the swallow/relocate-and-release CGEventTap mechanics are unaffected regardless of which destination the user ultimately picks.
-- **`Islet/Shelf/ShelfCoordinator.swift`** — `append(_:)` is the existing, already-hardened landing seam (duplicate-rejection cleanup, session-copy lifecycle). Reuse verbatim for the "Drop" destination; do not fork or duplicate this logic for the picker.
-- **`Islet/Weather/WeatherService.swift`** — `WeatherKitService.fetchCurrent` currently discards everything but `currentWeather`. Extend the protocol/struct (e.g. a new `dailyForecast: [DayWeather]`-bearing field or a second method sharing the same `weather(for:including:)` call) rather than adding a parallel fetch path — keeps the "one seam, one file swap if WeatherKit changes" convention (D-01/D-06) intact.
-- **`Islet/Notch/NotchShape.swift`** — currently 2 plain stored `CGFloat` properties, no `animatableData` override (confirmed by direct read). The flare parameter should be added as a 3rd value threaded through the same `animatableData` mechanism recommended above, defaulting to 0 for every existing call site (`NotchPillView.swift` lines ~413, ~1174, ~1237, the collapsed/idle/toast shapes) so the collapsed/idle silhouette is provably unchanged by construction, with only the expanded-blob call site (line ~1089) passing a non-zero flare value.
+| Component | Compatible With | Notes |
+|-----------|------------------|-------|
+| `.glassEffect()` / `NSGlassEffectView` | macOS 26.0+ only | `API_AVAILABLE(macos(26.0))` — hard floor, no back-compat shim exists from Apple |
+| `DisplayServices.framework` private calls | Apple Silicon, current macOS | Confirmed working path on M-series; the older `CoreDisplay` path is Intel-era and unreliable on Apple Silicon |
+| `INFocusStatusCenter` | macOS 12+ | Stable, public, unaffected by the Tahoe Assertions.json breakage |
+| Sparkle 2.9.4 | Xcode 16+, SPM | No known conflicts with this project's existing SPM dependency (`mediaremote-adapter`) |
+| `CGEventTap` `NX_SYSDEFINED` interception | All current macOS versions | Mechanism itself is stable across versions; **taps get silently disabled by the OS** on timeout/user-input/sleep-wake regardless of macOS version — always was and remains a runtime-lifecycle risk, not a version risk |
 
 ## Sources
 
-- Apple Developer Documentation — `NSSharingService`, `NSSharingServicePicker`, `nonactivatingPanel` style mask, `WeatherQuery`/`dailyForecast` pages (HIGH — official, though some pages returned title-only via automated fetch; corroborated by WebSearch snippets and training knowledge)
-- `philz.blog/nspanel-nonactivating-style-mask-flag` — documents a real AppKit bug where `nonactivatingPanel`'s WindowServer "prevents activation" tag desyncs from AppKit's style-mask state when changed post-init (MEDIUM-HIGH, single detailed technical source, directly relevant even though Islet never toggles this flag post-init)
-- `gist.github.com/Wevah/2588578` ("Prevent clicks in a popover from activating an LSUIElement app") — confirms popovers in LSUIElement/agent apps are a known activation-event source requiring explicit suppression (MEDIUM, single community source, but consistent with this project's own documented Phase 22-24 focus/click-through history)
-- WebSearch aggregate on WeatherKit quota/rate limits ("500,000 calls/month per membership, no fixed rate limit besides anti-abuse") and `weather(for:including:)` semantics (MEDIUM-HIGH, multiple independent sources agree, consistent with Apple's WeatherKit product page)
-- WebSearch aggregate on `DayWeather.highTemperature`/`.lowTemperature` (`Measurement<UnitTemperature>`) (MEDIUM-HIGH, multiple sources agree)
-- WebSearch aggregate confirming custom SwiftUI `Shape` without explicit `animatableData` defaults to `EmptyAnimatableData` (no free interpolation of custom stored properties) (HIGH — multiple independent tutorial/reference sources, including Hacking with Swift and Swift with Majid, agree unanimously)
-- Direct codebase reads: `Islet/Notch/NotchPanel.swift` (canBecomeKey/canBecomeMain hard-false, D-07), `Islet/Weather/WeatherService.swift` (current unscoped `weather(for:)` call), `Islet/Notch/NotchShape.swift` (no existing `animatableData`), `Islet/Notch/DropInterceptTap.swift` and `Islet/Shelf/ShelfCoordinator.swift` (existing drag-in/shelf-append integration points) (HIGH — ground truth)
+- Apple Developer Documentation — `developer.apple.com/documentation/appkit/nsglasseffectview` — `NSGlassEffectView` availability confirmed macOS 26.0+ (HIGH)
+- Microsoft Learn .NET/macOS API mirror — `learn.microsoft.com/en-us/dotnet/api/appkit.nsglasseffectview` — corroborates the `API_AVAILABLE(macos(26.0))` annotation (MEDIUM-HIGH, independent corroboration)
+- DEV Community — "Liquid Glass in Swift: Official Best Practices for iOS 26 & macOS Tahoe" — `.glassEffect()` API shape (`Glass`, `GlassEffectContainer`, `tint()`/`interactive()`) (MEDIUM)
+- Klarity Blog — "How I Built Glassmorphism on macOS 14 While Apple Requires macOS 26" — materials/gradient-border fallback technique for pre-26 targets (MEDIUM, single source, but internally consistent with known SwiftUI primitives)
+- SlimHUD GitHub discussion #23 (`AlexPerathoner/SlimHUD`) — confirms no documented OSD-suppression API exists; launchctl/SIP approach and key-interception approach both documented by maintainers (MEDIUM-HIGH, direct from an open-source HUD-replacement tool's own maintainers)
+- `danielraffel.me` — "CGEvent Taps and Code Signing: The Silent Disable Race" — event tap lifecycle risk (timeout/user-input/sleep-wake disable) (MEDIUM)
+- WebSearch synthesis on `NX_SYSDEFINED`/media-key event tap technique (`.cghidEventTap`, `.headInsertEventTap`, `data1` bitfield decode) — MEDIUM, multiple independent open-source implementations agree on the mechanism, no single canonical doc (this is inherently undocumented territory)
+- `alexdelorenzo.dev` — "Reverse Engineering CoreDisplay API" + `github.com/alexdelorenzo/brightness` — CoreDisplay vs. DisplayServices, Apple Silicon caveat (MEDIUM)
+- Apple Developer Documentation — `kAudioHardwareServiceDeviceProperty_VirtualMainVolume` — public, documented CoreAudio volume control (HIGH)
+- `github.com/felixrieseberg/macos-notification-state`, `github.com/Macjutsu/super` discussion #237/issue #155 — confirms `~/Library/DoNotDisturb/DB/Assertions.json` approach is broken specifically on macOS 26 Tahoe, recommends `SetFocusFilterIntent`/AppIntents as the replacement (MEDIUM-HIGH, multiple independent community reports converging on the same conclusion)
+- Apple Developer Documentation — "Handling Communication Notifications and Focus Status Updates" (`developer.apple.com/documentation/usernotifications/...`) — `INFocusStatusCenter` existence and Communication Notifications entitlement requirement (HIGH on existence, MEDIUM on exact runtime behavior since full API docs weren't directly fetchable)
+- GitHub API (`api.github.com/repos/sparkle-project/Sparkle/releases/latest`) — confirmed current release **2.9.4**, published 2026-07-03 (HIGH, direct from source)
+- `sparkle-project.org/documentation/` and `github.com/sparkle-project/Sparkle` — SPM support, `SPUUpdater`/`SPUUserDriver`/`SPUStandardUpdaterController`, LSUIElement handling, Hardened-Runtime/library-validation notes, EdDSA signing requirement (HIGH, official docs)
+- Droppy (`getdroppy.app`, `github.com/1of1Adam/Droppy`) — confirms the reference competitor app does ship exactly this class of HUD replacement (volume/brightness/AirPods), validating feasibility in principle without exposing Droppy's own private-API internals (MEDIUM, product-level confirmation not implementation detail)
 
 ---
-*Stack research for: Islet v1.5 (Home Focus & Widget Redesign)*
-*Researched: 2026-07-13*
+*Stack research for: Islet v1.6 (Liquid Glass & System HUD Suite) — new capabilities only*
+*Researched: 2026-07-15*
