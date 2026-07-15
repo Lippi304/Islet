@@ -566,7 +566,16 @@ Plans:
   3. Choosing "AirDrop" opens the system AirDrop share sheet for the dropped file.
   4. Choosing "Mail" composes a new email in Mail.app with the file attached (documented limitation: non-Mail.app default clients don't receive the attachment).
   5. Invoking AirDrop/Mail does not break the panel's non-activating/click-through guarantees — re-verified via the on-device hover→expand→move-down trace.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 34-01-PLAN.md — Pure seams: PendingDrop + IslandPresentation.quickActionPicker case + resolve() branch (TDD), QuickActionSharingService NSSharingService seam (TDD), NotchPillView quickActionPickerView
+
+**Wave 2** *(blocked on 34-01)*
+
+- [ ] 34-02-PLAN.md — NotchWindowController wiring (pendingDrop state, drop-site branch, geometry three-site rule, button handlers, dismiss/discard lifecycle) + consolidated on-device UAT checkpoint (D-08 spike, CR-01 trace, D-04/D-05 transient-interrupt-resume, Drop/AirDrop/Mail real hand-off)
 **UI hint**: yes
 
 ### Phase 35: Liquid Glass Material
