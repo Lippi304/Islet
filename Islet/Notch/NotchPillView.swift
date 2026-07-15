@@ -343,6 +343,20 @@ struct NotchPillView: View {
     // `expandedSize.height` itself never including those rows).
     static let switcherContentHeight: CGFloat = 196
 
+    // Quick task 260715-vsd gap-closure round 5 — Tray (trayContentHeight, 145) and Weather
+    // (weatherMediumContentHeight/weatherLargeContentHeight) already prove that a
+    // switcher-row presentation does NOT need to share switcherContentHeight's 196pt: each
+    // has its own shorter, content-hugging height override with no reported misclick
+    // regression across Phase 32/33's extensive on-device UAT. Home's three sub-states
+    // (homeEmptyState/mediaExpanded/mediaUnavailable) get the same treatment here — ONE
+    // shared height so the switcher row's Y position stays constant across THOSE three
+    // specifically (starting/pausing music must not visibly jump the switcher while sitting
+    // on the Home tab), sized to mediaExpanded's real content (the tallest of the three:
+    // cameraClearance 42 + art/title/bars row ~40 + spacing 6 + progress bar ~14 + spacing 6
+    // + transport row ~32 + bottom padding 12 ≈ 152), with a safety margin since exact SwiftUI
+    // row heights aren't measurable from source alone.
+    static let homeContentHeight: CGFloat = 170
+
     // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
     // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
     // mid-animation" convention that added wingsSize/toastExtraHeight as sibling constants
@@ -590,7 +604,8 @@ struct NotchPillView: View {
     // LOCKED). Same blobShape/showSwitcher convention every other Home/switcher-row
     // presentation uses.
     private var homeEmptyState: some View {
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
+                  height: Self.homeContentHeight, shelfItems: shelfViewState.items,
                   shelfVisible: shelfStripVisible, showSwitcher: true) {
             VStack(spacing: 4) {
                 Image(systemName: "music.note")
@@ -1917,7 +1932,8 @@ struct NotchPillView: View {
         // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
         // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
         // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
-        return blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+        return blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
+                          height: Self.homeContentHeight, shelfItems: shelfViewState.items,
                           shelfVisible: shelfStripVisible, showSwitcher: true) {
                 VStack(spacing: 6) {
                     // Top: art LEFT · title/artist · bars TOP-RIGHT
@@ -2020,7 +2036,11 @@ struct NotchPillView: View {
         // 28-04 round 5 — alignment: .top + .padding(.top, 32), same reasoning as
         // expandedIsland's own round-5 change (both are shorter than the shared
         // switcherContentHeight box now that blobShape applies it uniformly).
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+        // Quick task 260715-vsd gap-closure round 5 — height: Self.homeContentHeight, same as
+        // homeEmptyState/mediaExpanded (see that constant's comment) so the switcher row stays
+        // at a constant Y across all three Home sub-states.
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
+                  height: Self.homeContentHeight, shelfItems: shelfViewState.items,
                   shelfVisible: shelfStripVisible, showSwitcher: true) {
             Text("Now Playing nicht verfügbar")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
