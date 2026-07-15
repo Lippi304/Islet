@@ -141,13 +141,54 @@ Build and run Islet (Debug), then in order, per 34-02-PLAN.md Task 3:
 5. **Transient interrupt + resume (D-04/D-05):** Drag a file so the picker opens, then plug in the charger (or connect/disconnect Bluetooth) while it's open — confirm the Charging/Device splash briefly takes over, then the SAME picker reappears with the SAME pending file once the splash clears.
 6. **Ordinary hover/click regression check:** With no drop pending, confirm normal hover-to-expand, click-to-expand-collapse, and the existing switcher tabs still work exactly as before.
 
-### Awaiting
+### Outcome: CHANGES REQUESTED (2026-07-15, on real notch hardware)
 
-User to build+run Islet on real notch hardware and walk through all 6 steps above, then respond "approved" (all 6 pass) or describe which step failed and what was observed — especially step 1's AirDrop/Mail outcome, since that determines whether D-09's `airDropAvailable`/`mailAvailable` fallback is needed before this plan can be marked complete.
+User ran the build and reported concrete issues from step 1 of the checkpoint (screenshots provided):
+
+1. **Bug — drag-hover shows the wrong presentation.** While the file is still being dragged
+   (before release), the island auto-expands via `recheckDragAcceptRegion()`'s `.dragEntered`
+   transition, but `pendingDrop` is only set in `handleDragApproachEnd()` (on `.leftMouseUp`,
+   i.e. after release). So during the hover, `IslandResolver.resolve()` has no pending-drop
+   signal to act on and falls through to whatever else is active (observed: the Now Playing
+   card for the currently-playing track) instead of any drop-affordance. The picker only
+   appears AFTER the mouse is released.
+2. **Product change — real drag targets, not a post-drop click picker.** On seeing the actual
+   behavior, the user confirmed (after clarifying the alternative) that they want the 3
+   destination buttons to already be showing DURING the drag-hover, and to be able to release
+   the file directly on top of "Drop"/"AirDrop"/"Mail" as 3 independent drop targets — i.e.
+   drop-target selection, not hover-then-release-then-click. This is a materially different
+   interaction model than 34-CONTEXT.md's locked D-01 framing ("a full-takeover presentation...
+   interactive instead of auto-dismissing" was interpreted as click-after-drop) and than this
+   plan's `handleDragApproachEnd()` implementation, which only supports a single global accept
+   region (`expandedZone`), not per-button hit-testing during a raw `NSEvent`-monitor-based drag
+   (there is no `draggingUpdated`-equivalent — see `handleDragApproachTick()`'s own comment).
+   Needs real per-button frame tracking during the drag, which nothing in RESEARCH.md/UI-SPEC.md
+   covers today.
+3. **Visual polish requested on the released build (Image 2):**
+   - Remove the top file-preview (icon + filename) entirely — show only the 3 buttons.
+   - AirDrop's icon may need a better match (current: SF Symbol `personalhotspot`).
+   - The "Drop" button renders at a slightly different height than "AirDrop"/"Mail" — a
+     layout inconsistency across the 3 `quickActionButton` calls.
+
+**Decision (user, 2026-07-15):** route through a clean replan rather than patch in place —
+`/gsd-discuss-phase 34` next, to properly scope the drag-target redesign (issue 2) before a
+gap-closure plan is written, rather than improvising the new hit-testing mechanism live inside
+this checkpoint.
+
+**requirements-completed stays empty** — TRAY-02/03/04 are NOT complete; the click-based picker
+this plan built is being superseded by the drag-target model above, pending replanning.
 
 ## Next Phase Readiness
-- Code-complete for TRAY-02/03/04, build-green on both `xcodebuild build` and `xcodebuild build-for-testing`. Not yet human-verified — do NOT mark TRAY-02/03/04 complete in REQUIREMENTS.md, and do NOT advance STATE.md's plan counter, until Task 3's on-device checkpoint is approved by the user (a continuation agent will need to run Task 3 and, if approved, finish the plan's standard completion steps: mark requirements complete, advance STATE.md/ROADMAP.md).
-- No further code changes are anticipated unless step 1's spike fails on real hardware, in which case the checkpoint's own instructions govern the narrowly-scoped D-09 fallback (`airDropAvailable`/`mailAvailable = false`), not a live key-window workaround.
+- Code-complete for the click-based picker (build-green on both `xcodebuild build` and
+  `xcodebuild build-for-testing`), but on-device UAT rejected the interaction model — see
+  "Outcome: CHANGES REQUESTED" above. Do NOT mark TRAY-02/03/04 complete in REQUIREMENTS.md, and
+  do NOT advance STATE.md's plan counter to phase-complete, until a follow-up gap-closure plan
+  (post `/gsd-discuss-phase 34`) implements the drag-target model and a fresh on-device round
+  passes.
+- The 2 auto-fixed Plan-01 bugs (pbxproj registration, `SharingServicePerforming` signature) and
+  the CR-01 geometry three-site wiring remain valid and should NOT be redone by the follow-up
+  plan — only the interaction model (drag-hover trigger + per-button drop targets) and the 3
+  visual-polish items need new work.
 
 ---
 *Phase: 34-quick-action-destination-picker*
