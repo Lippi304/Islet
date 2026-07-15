@@ -13,7 +13,7 @@ final class QuickActionSharingServiceTests: XCTestCase {
         private(set) var lastPerformedItems: [Any]?
         var delegate: NSSharingServiceDelegate?
 
-        func canPerform(withItems items: [Any]) -> Bool { canPerformResult }
+        func canPerform(withItems items: [Any]?) -> Bool { canPerformResult }
         func perform(withItems items: [Any]) {
             performCallCount += 1
             lastPerformedItems = items
