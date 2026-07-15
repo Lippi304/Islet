@@ -983,6 +983,66 @@ final class NotchWindowController {
         handlePointer(at: NSEvent.mouseLocation)
     }
 
+    // MARK: - Phase 34 / TRAY-02/03/04 — Quick Action Destination Picker handlers
+
+    // TRAY-03 — "Drop": stage the pending item(s) into the shelf exactly as the old
+    // unconditional-stage path did, switch the active view to Tray, and close the picker.
+    // Mirrors handleSwitcherSelect's own closing withAnimation/syncClickThrough sequence.
+    private func handleQuickActionDrop() {
+        for item in pendingDrop?.items ?? [] {
+            shelfCoordinator.append(item)
+        }
+        resyncShelfViewState()
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            viewSwitcherState.selectedView = .tray
+            pendingDrop = nil
+            renderPresentation()
+        }
+        syncClickThrough()
+    }
+
+    // Shared close-out for the AirDrop/Mail paths (T-34-08): these items were NEVER handed to
+    // shelfCoordinator, so nothing else will ever clean up their session-temp copies — this is
+    // the ONE place that does, whether the share succeeded or failed (QuickActionSharingService
+    // calls onFinish either way).
+    private func finishQuickActionSharing() {
+        for item in pendingDrop?.items ?? [] {
+            ShelfFileStore.deleteSessionCopy(at: item.localURL)
+        }
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            pendingDrop = nil
+            renderPresentation()
+        }
+    }
+
+    // TRAY-04 — "AirDrop": hand the pending item(s) to the isolated NSSharingService seam.
+    // No window-activation code anywhere in this call chain (D-08).
+    private func handleQuickActionAirDrop() {
+        guard let pendingDrop else { return }
+        quickActionSharingService.share(pendingDrop.items.map { $0.localURL }, via: .sendViaAirDrop) { [weak self] in
+            self?.finishQuickActionSharing()
+        }
+    }
+
+    // TRAY-04 — "Mail": identical shape to AirDrop, composeEmail destination.
+    private func handleQuickActionMail() {
+        guard let pendingDrop else { return }
+        quickActionSharingService.share(pendingDrop.items.map { $0.localURL }, via: .composeEmail) { [weak self] in
+            self?.finishQuickActionSharing()
+        }
+    }
+
+    // D-06/D-07 — dismissing the picker WITHOUT choosing a destination discards the pending
+    // file(s): no silent auto-default to Drop, no orphaned session-temp file. Wired into BOTH
+    // dismiss paths (handleHoverExit's grace-elapsed collapse, handleClick's toggle-shut) below.
+    private func discardPendingDrop() {
+        guard pendingDrop != nil else { return }
+        for item in pendingDrop?.items ?? [] {
+            ShelfFileStore.deleteSessionCopy(at: item.localURL)
+        }
+        pendingDrop = nil
+    }
+
     // Pattern 1: every .mouseMoved tick hit-tests the GLOBAL pointer against the hot-zone.
     // No coordinate conversion — both `point` and `hotZone` are global bottom-left (Pitfall 6).
     private func handlePointer(at point: CGPoint) {
@@ -1166,6 +1226,9 @@ final class NotchWindowController {
                 // Phase 6: a grace-collapse from .expanded flips `isExpanded` false — re-resolve
                 // inside the spring so an expanded-media island morphs back to the ambient glance.
                 self.renderPresentation()
+                // Phase 34 / TRAY-02 (D-06/D-07) — a grace-collapse while a picker is showing is
+                // a dismiss-without-choosing: discard the pending file(s), no silent auto-stage.
+                if !self.interaction.isExpanded { self.discardPendingDrop() }
             }
             // Phase 10 / D-13: this is the natural-transition recheck the idle-state guard
             // depends on — the pointer has just left AND the grace-elapsed collapse has just
@@ -1221,6 +1284,9 @@ final class NotchWindowController {
             // Phase 6: expand/collapse flips `isExpanded`, a resolver input — re-resolve inside
             // the SAME spring so the island morphs between the wings/expanded presentation cases.
             renderPresentation()
+            // Phase 34 / TRAY-02 (D-06/D-07) — a toggle-shut click while a picker is showing is
+            // a dismiss-without-choosing: discard the pending file(s), no silent auto-stage.
+            if !interaction.isExpanded { discardPendingDrop() }
         }
         // Phase 10 / D-13: this is the OTHER natural-transition recheck the idle-state guard
         // depends on — a toggle-shut click (.expanded → .collapsed) applies any previously
@@ -1497,7 +1563,10 @@ final class NotchWindowController {
                       onSwitcherSelect: { [weak self] view in self?.handleSwitcherSelect(view) },
                       onCalendarMonthChange: { [weak self] delta in self?.handleCalendarMonthChange(delta) },
                       onCalendarDaySelect: { [weak self] day in self?.handleCalendarDaySelect(day) },
-                      onQuickAdd: { [weak self] kind, title in self?.handleQuickAdd(kind, title: title) })
+                      onQuickAdd: { [weak self] kind, title in self?.handleQuickAdd(kind, title: title) },
+                      onQuickActionDrop: { [weak self] in self?.handleQuickActionDrop() },
+                      onQuickActionAirDrop: { [weak self] in self?.handleQuickActionAirDrop() },
+                      onQuickActionMail: { [weak self] in self?.handleQuickActionMail() })
             .environment(\.nowPlayingAccent, ActivitySettings.accent(for: theme.nowPlaying))
             .environment(\.chargingAccent, ActivitySettings.accent(for: theme.charging))
             .environment(\.deviceAccent, ActivitySettings.accent(for: theme.device))
