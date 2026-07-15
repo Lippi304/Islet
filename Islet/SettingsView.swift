@@ -34,6 +34,10 @@ struct SettingsView: View {
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
+    // Phase 33 / WEATHER-02 (D-03) — a plain app-owned toggle, same @AppStorage-is-the-
+    // source-of-truth convention as the Activities toggles above; no .onChange handler
+    // needed (NotchPillView/NotchWindowController each read the same key independently).
+    @AppStorage(ActivitySettings.weatherExtendedKey) private var weatherExtended = false
 
     // Phase 27 / VISUAL-03 (D-05/D-07) — the material-style preset and the 3
     // independent per-element accent indices, replacing the single global
@@ -170,6 +174,13 @@ struct SettingsView: View {
             // the activity on/off toggles above (not a live-activity source).
             Section("Fullscreen") {
                 Toggle("Hide notch in fullscreen", isOn: $hideInFullscreen)
+            }
+
+            // Phase 33 / WEATHER-02 (D-03/D-05/D-06) — live-switches the Weather card between
+            // its compact and extended-forecast layouts, no relaunch (NotchPillView's
+            // @AppStorage on the same key re-renders immediately).
+            Section("Weather") {
+                Toggle("Extended forecast", isOn: $weatherExtended)
             }
 
             // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug

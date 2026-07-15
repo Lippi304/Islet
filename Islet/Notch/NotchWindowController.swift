@@ -580,6 +580,14 @@ final class NotchWindowController {
         locationProvider.requestOnce { [weak self] location in
             self?.lastLocation = location
             self?.refreshWeather()
+            // Phase 33 / WEATHER-01 (D-01/D-02) — resolve the place name ONCE per location
+            // fetch (mirrors this same one-shot discipline), not re-resolved on every 15-minute
+            // refreshWeather() tick.
+            if let location {
+                self?.weatherService.resolvePlaceName(for: location) { [weak self] name in
+                    self?.outfitState.locationName = name
+                }
+            }
             // Phase 26 / ONBOARD-02 (D-03) — reflect the real outcome for the Permissions row.
             // Harmless to set on every call, not just from onboarding — unread once inactive.
             self?.onboardingState.locationGranted = (location != nil)
@@ -604,11 +612,13 @@ final class NotchWindowController {
     private func refreshWeather() {
         guard let loc = lastLocation else { return }
         // Phase 33 / WEATHER-01/02: fetchCurrent was removed from WeatherService in favor of
-        // the combined fetchCurrentAndForecast (Pitfall 1 — one call, not two). Only the
-        // current-conditions glance is consumed here; forecast/locationName view-layer wiring
-        // is Plan 33-02's job.
-        weatherService.fetchCurrentAndForecast(latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude) { [weak self] glance, _ in
+        // the combined fetchCurrentAndForecast (Pitfall 1 — one call, not two). Both `weather`
+        // and `forecast` are written atomically from this SAME completion callback — forecast
+        // is populated unconditionally regardless of the Settings toggle; NotchPillView alone
+        // decides whether to RENDER it (weatherExtended gates rendering, not fetching).
+        weatherService.fetchCurrentAndForecast(latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude) { [weak self] glance, forecast in
             self?.outfitState.weather = glance
+            self?.outfitState.forecast = forecast
         }
     }
 
@@ -816,7 +826,15 @@ final class NotchWindowController {
         let trayFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                            expandedSize: CGSize(width: NotchPillView.traySize.width,
                                                                  height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight))
-        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame)
+        // Phase 33 / WEATHER-02 (D-03/D-04, geometry three-site rule) — the panel must reserve
+        // space for the extended Weather card up front too, mirroring trayFrame/onboardingFrame's
+        // precedent exactly. Included UNCONDITIONALLY (same static-upper-bound approach trayFrame
+        // already uses) — this is a reservation-only union member; NotchPillView's blobShape
+        // `height:` override alone decides whether the VISIBLE shape actually grows into it.
+        let weatherExtendedFrame = expandedNotchFrame(collapsed: collapsedFrame,
+                                                       expandedSize: CGSize(width: expandedSize.width,
+                                                                             height: NotchPillView.weatherExtendedContentHeight + NotchPillView.switcherRowHeight))
+        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExtendedFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
@@ -997,6 +1015,17 @@ final class NotchWindowController {
         } else if case .trayExpanded = presentationState.presentation {
             contentSize = CGSize(width: NotchPillView.traySize.width,
                                  height: NotchPillView.trayContentHeight + switcherHeight)
+        } else if case .weatherExpanded = presentationState.presentation,
+                  UserDefaults.standard.bool(forKey: ActivitySettings.weatherExtendedKey) {
+            // Phase 33 / WEATHER-02 (geometry three-site rule) — must mirror NotchPillView's
+            // blobShape `height:` override and positionAndShow's weatherExtendedFrame exactly,
+            // or the CR-01/WR-02 click-swallowing/dead-zone regression class comes back (see
+            // this function's own doc comment on Pitfall 3). `UserDefaults.standard.bool(forKey:)`
+            // is read directly here (NOT `activityEnabled(_:)`, which defaults an absent key to
+            // true) — an absent weatherExtendedKey must default to false, matching the compact
+            // card, exactly like NotchPillView's own @AppStorage default.
+            contentSize = CGSize(width: expandedSize.width,
+                                 height: NotchPillView.weatherExtendedContentHeight + switcherHeight)
         } else {
             contentSize = CGSize(width: expandedSize.width,
                                  height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)
