@@ -84,6 +84,14 @@ struct NotchPillView: View {
     // convention as `nowPlaying`/`presentationState`).
     @ObservedObject var outfit: BasicOutfitState
 
+    // Phase 33 / WEATHER-02 (D-03/D-05) — the Settings "Extended forecast" toggle, read
+    // directly via @AppStorage (same shared UserDefaults key SettingsView writes) so this
+    // view re-renders live the moment the user flips it — no relaunch, no controller
+    // round-trip needed for the render decision itself (the controller still owns the
+    // panel-geometry side of this same key, see NotchWindowController's positionAndShow/
+    // visibleContentZone).
+    @AppStorage(ActivitySettings.weatherExtendedKey) private var weatherExtended = false
+
     // Phase 20 / SHELF-03 — the SEPARATE @Published shelf model, mirroring nowPlaying/
     // presentationState/outfit's existing ownership contract: the controller (Plan 20-02) always
     // owns and injects a real instance, never defaulted. This view only RENDERS whatever is
@@ -371,6 +379,17 @@ struct NotchPillView: View {
     // alignment: .top)`), so `topInset` is now a real, linear, un-fought gap — walked back down
     // to a modest, sane value once the underlying mechanism was actually fixed.
     static let trayShelfRowTopInset: CGFloat = 10
+
+    // Phase 33 / WEATHER-02 (D-03) — Weather's own dedicated content height, mirroring
+    // `trayContentHeight`'s "shorter, content-hugging override wins over switcherContentHeight"
+    // precedent exactly. Only used when the Settings "Extended forecast" toggle is on (see
+    // `weatherExtended` below); the compact card keeps falling through to switcherContentHeight
+    // as before. Box math (starting point — flagged for on-device tuning, same as every other
+    // constant in this file's history):
+    //   42 (cameraClearance) + 44 (icon) + 8 (spacing) + 32 (temp) + 8 (spacing)
+    // + 16 (location/H-L label lines) + 16 (section gap) + 56 (forecast chip stack)
+    // + 16 (bottom inset) = 238, rounded to 240.
+    static let weatherExtendedContentHeight: CGFloat = 240
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -734,12 +753,24 @@ struct NotchPillView: View {
     // uniform content height for every switcher-row presentation (see that constant's doc
     // comment), so this shorter content simply top-aligns with empty transparent space below
     // it, above the switcher row; no per-case override was ever needed here.
+    // Phase 33 / WEATHER-02 (D-03/D-04) — `height:` now rides the SAME `blobShape` override
+    // mechanism `trayFullView` already uses (Phase 32/TRAY-05's explicit-height-wins fix):
+    // when the toggle is on, the shape animates to `weatherExtendedContentHeight` inside the
+    // controller's existing spring — no new animation wrapper, no relaunch. When off, `nil`
+    // falls through to `switcherContentHeight` exactly as before this phase.
     private var weatherFullView: some View {
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, shelfItems: shelfViewState.items,
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
+                  height: weatherExtended ? Self.weatherExtendedContentHeight : nil,
+                  shelfItems: shelfViewState.items,
                   shelfVisible: shelfStripVisible, showSwitcher: true) {
             Group {
                 if let weather = outfit.weather {
-                    weatherFullContent(weather)
+                    VStack(spacing: 0) {
+                        weatherFullContent(weather)
+                        if weatherExtended, let forecast = outfit.forecast {
+                            forecastRow(forecast)
+                        }
+                    }
                 } else {
                     weatherFullUnavailable
                 }
@@ -748,12 +779,19 @@ struct NotchPillView: View {
         }
     }
 
-    // The populated state: icon + temperature + a plain category label, centered, reusing
-    // `weatherIcon(for:)`'s exact SF Symbol mapping and the same locale-aware
-    // `.formatted(.measurement(...))` temperature string `weatherColumn` already uses (no
-    // manual Celsius/Fahrenheit conversion here either).
+    // The populated state: location name (or "Local" fallback) above the icon, then icon +
+    // temperature + category label, then an H/L readout — reusing `weatherIcon(for:)`'s exact
+    // SF Symbol mapping and the same locale-aware `.formatted(.measurement(...))` temperature
+    // string `weatherColumn` already uses (no manual Celsius/Fahrenheit conversion here
+    // either). Phase 33 / WEATHER-01 (D-01/D-02): the location label occupies the SAME slot
+    // whether or not `outfit.locationName` has resolved yet (falls back to "Local"), so there
+    // is no layout shift once the real name arrives. H/L is appended directly under the
+    // category label and omitted entirely (no empty line reserved) when either bound is nil.
     private func weatherFullContent(_ weather: WeatherGlance) -> some View {
         VStack(spacing: 8) {
+            Text(outfit.locationName ?? "Local")
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
             weatherIcon(for: weather.category)
                 .font(.system(size: 44))
             Text(weather.temperature.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
@@ -763,8 +801,40 @@ struct NotchPillView: View {
             Text(weatherCategoryLabel(weather.category))
                 .font(.system(size: 13, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
+            if let high = weather.high, let low = weather.low {
+                Text("H:\(high.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0))))) L:\(low.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))")
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // Phase 33 / WEATHER-02 (D-05/D-06) — the extended-forecast row: a fixed-count HStack of
+    // up to 5 day-chips (no ScrollView — 5 fits cleanly at the existing 420pt panel width, per
+    // 33-UI-SPEC's Layout Contract), each weekday/icon/H-L, matching Apple's own Medium-widget
+    // forecast format. Only ever mounted when `weatherFullView` has already confirmed
+    // `weatherExtended && outfit.forecast != nil` — this function itself stays a pure render
+    // of whatever slice it's handed.
+    private func forecastRow(_ forecast: [DailyForecast]) -> some View {
+        HStack(spacing: 8) {
+            ForEach(Array(forecast.prefix(5))) { day in
+                VStack(spacing: 4) {
+                    Text(day.date, format: .dateTime.weekday(.abbreviated))
+                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    weatherIcon(for: day.category)
+                        .font(.system(size: 20))
+                    Text("\(day.high.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))/\(day.low.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
     }
 
     // Plain English label per category — mirrors `calendarEmptyState`'s plain-string
