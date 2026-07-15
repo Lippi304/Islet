@@ -125,3 +125,6 @@ None - no external service configuration required. This plan installs no new dep
 ---
 *Phase: 34-quick-action-destination-picker*
 *Completed: 2026-07-15*
+
+## Self-Check: PASSED
+All created/modified files and all 4 task/summary commit hashes (`3869b31`, `f8a419c`, `7d9cfe3`, `e410a1c`) verified present.
