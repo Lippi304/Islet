@@ -1,12 +1,14 @@
 # Phase 34: Quick Action Destination Picker - Context
 
 **Gathered:** 2026-07-15
-**Status:** Ready for planning
+**Status:** Ready for planning (REVISED after on-device UAT — see "UAT Revision" below)
 
 <domain>
 ## Phase Boundary
 
 Dropping a file onto the island (from any tab) no longer silently stages it into the shelf. Instead it shows a Droppy-style Quick Action destination picker — Drop / AirDrop / Mail — and the file only goes somewhere once the user picks one (TRAY-02, TRAY-03, TRAY-04). This is Phase 34 of the v1.5 milestone, the last phase in that still-open-in-parallel milestone. Today's silent "drop → stage into shelf" behavior at `NotchWindowController.handleDragApproachEnd()` is exactly the site this phase changes.
+
+**UAT Revision (2026-07-15):** Plan 34-01/34-02 built and shipped a click-based version of this picker (D-01/D-02 below, as originally decided) — build-green, but on-device UAT rejected the interaction model. Real per-button drag targets are needed instead (D-10–D-15 below supersede/extend the original decisions). The existing infrastructure — `PendingDrop`, `QuickActionSharingService`, `handleQuickActionDrop/AirDrop/Mail`, the CR-01 three-site geometry pattern, the two Plan-01 build-fix bugs — all stays; only the trigger point, hit-testing mechanism, and picker layout change. See `34-02-SUMMARY.md` "Outcome: CHANGES REQUESTED" for the full on-device findings.
 
 </domain>
 
@@ -14,9 +16,22 @@ Dropping a file onto the island (from any tab) no longer silently stages it into
 ## Implementation Decisions
 
 ### Picker takeover & trigger
-- **D-01:** The picker is a full-takeover presentation — its own `IslandResolver`/`IslandPresentation` case, replacing whatever tab was showing (Home/Weather/Calendar/Tray), the same shape as the existing Charging/Device wings splash but interactive instead of auto-dismissing. Not an overlay/sheet layered on top of the current tab.
-- **D-02:** The picker shows a small preview of what's being dropped (file icon + filename, or a file count + generic icon for multiple files) alongside the 3 destination buttons — reuses the existing `ShelfItemView` icon+filename convention.
+- **D-01:** The picker is a full-takeover presentation — its own `IslandResolver`/`IslandPresentation` case, replacing whatever tab was showing (Home/Weather/Calendar/Tray), the same shape as the existing Charging/Device wings splash but interactive instead of auto-dismissing. Not an overlay/sheet layered on top of the current tab. *(Still true — unchanged by the UAT revision.)*
+- **D-02 (SUPERSEDED by D-14):** ~~The picker shows a small preview of what's being dropped~~ — removed per on-device UAT feedback. See D-14.
 - **D-03:** A multi-file drop (several files dragged in at once) gets ONE picker and ONE destination decision for the whole batch — not one picker per file. Matches how AirDrop/Mail already handle multiple attachments in a single share/compose action, and how today's silent multi-file drop-to-shelf behaves.
+
+### UAT Revision — real drag targets (2026-07-15)
+- **D-10 (supersedes D-01's trigger timing):** The picker must appear at the exact same edge that already auto-expands the island today — `recheckDragAcceptRegion()`'s `.dragEntered` transition (geometry-inside, collapsed-origin) — not only after `.leftMouseUp`/release as Plan 34-02 built it. `pendingDrop` must be populated (from the already-available `NSPasteboard(name: .drag)` contents — file identity is known well before release, see `handleDragApproachTick()`) at the SAME moment the auto-expand fires, so `IslandResolver.resolve()` has something to show instead of falling through to Now Playing/whatever else is active. No added hover delay before showing it.
+- **D-11 (new):** The button currently under the pointer during the drag highlights (brighter fill and/or slight scale) before release — real drop-target visual feedback, not just a static 3-button row waiting for a click. Requires live per-button hit-testing during the raw `NSEvent`-monitor-based drag polling loop (there is no `draggingUpdated` equivalent today — `handleDragApproachTick()`'s own comment already flags this gap). Research must find how to get each button's live frame in global screen coordinates back to `NotchWindowController` (e.g. a `GeometryReader`/`PreferenceKey` pipeline, mirroring how `visibleContentZone()` already exposes computed geometry back to the controller for click-through, but for 3 live sub-rects instead of one static zone).
+- **D-12 (supersedes D-01's "interactive instead of auto-dismissing" as click-based):** Releasing the mouse while over a specific button (Drop/AirDrop/Mail) selects that destination — drag-and-release-on-target, not drag-then-click-after. The existing `handleQuickActionDrop/AirDrop/Mail` handlers (already built, unchanged) are just invoked from the new per-button release detection instead of from `Button(action:)` taps.
+- **D-13:** Releasing anywhere in the picker NOT over one of the 3 buttons discards the pending file(s) — same rule as the existing D-07 no-choice-dismissal (no safety net, no default destination).
+- **D-13b:** Dragging the pointer back out of the island's geometry entirely before releasing collapses the picker with no destination chosen — this is the existing `!geometryInside && isDragApproaching` exit condition in `recheckDragAcceptRegion()` and needs no change, just confirmation it still applies once D-10 moves `pendingDrop` earlier.
+- **D-14 (supersedes D-02):** The file preview (icon + filename, or file-count + generic icon) is removed entirely. The picker shows ONLY the 3 destination buttons — for both single-file and multi-file drops alike (no count badge, no exception for multi-file). Applies uniformly regardless of how many files are pending.
+- **D-15:** With the preview gone, the card shrinks vertically rather than keeping 188pt with the buttons centered in leftover space. `quickActionPickerContentHeight` gets a new, smaller value (camera clearance + button row only — recompute in planning/research, following the same worked-math-comment convention as the original 188pt constant). The CR-01 geometry three-site rule applies again in full: the new height must be wired into `blobShape()`'s override, `positionAndShow`'s panel union, and `visibleContentZone()`'s branch, all in the same commit.
+
+### Visual polish (flagged directly during UAT, not a discussion decision — implementation detail)
+- The "Drop" button currently renders at a slightly different height than "AirDrop"/"Mail" (SF Symbol intrinsic-size mismatch across `tray.and.arrow.down.fill` vs `personalhotspot`/`envelope.fill` at the same `.font(.system(size: 22))`) — needs a layout fix (e.g. a fixed icon frame) so all 3 buttons render at identical height.
+- The AirDrop button's icon (`personalhotspot`) may need a closer visual match to the system AirDrop glyph — Claude's discretion to find a better SF Symbol if one exists, same as the original discretion note below.
 
 ### Precedence & pending-drop lifecycle
 - **D-04:** If a Charging/Device transient fires while the picker is open, it interrupts the picker exactly like it already interrupts every other expanded presentation today — this reuses `IslandResolver.resolve()`'s existing D-04 rule ("a transient briefly wins even over a user-expanded island"; see `IslandResolver.swift` line ~52 comment) rather than inventing a new precedence tier. Resolves the open question flagged in STATE.md Blockers/Concerns.
@@ -56,6 +71,10 @@ Dropping a file onto the island (from any tab) no longer silently stages it into
 ### Prior phase (scope handoff)
 - `.planning/phases/31-shelf-consolidation-to-tray-only/31-CONTEXT.md` D-06 — "the interim UX gap where dropping a file on Home/Calendar/Weather gives zero visible feedback... is known and intentional — TRAY-02/03/04 (Phase 34) is what adds drop feedback." Confirms this phase's exact starting gap.
 
+### UAT revision inputs (2026-07-15)
+- `.planning/phases/34-quick-action-destination-picker/34-02-SUMMARY.md` §"Outcome: CHANGES REQUESTED" — the full on-device findings that triggered this revision: drag-hover showing Now Playing instead of a drop affordance, the drag-target interaction model request, and the 3 visual-polish items. Research/planning MUST read this before touching the drag-detection code again.
+- `.planning/phases/34-quick-action-destination-picker/34-01-PLAN.md` / `34-02-PLAN.md` + their SUMMARY.md files — the click-based implementation already built (PendingDrop, QuickActionSharingService, handleQuickActionDrop/AirDrop/Mail, CR-01 three-site wiring) that the gap-closure plan reuses rather than rebuilds.
+
 ### Inspiration reference (thin — no runtime-picker screenshot exists)
 - `.planning/research/inspiration/notes.md` §"Full Settings walkthrough" — the ONLY Droppy reference to a "Quick Action" concept is one line about a *Settings config screen* ("Quick Action layout picker with a live island preview", image `8.png`) — there is no captured screenshot of Droppy's actual runtime drop-triggered picker UI. The picker's visual shape in this phase is this discussion's own design (D-01/D-02), not a traced reference.
 
@@ -82,6 +101,15 @@ Dropping a file onto the island (from any tab) no longer silently stages it into
 - `Islet/Notch/IslandResolver.swift` — new `IslandPresentation` case + its `resolve()` branch + `showsSwitcherRow()` entry
 - `Islet/Shelf/ShelfCoordinator.swift` — "Drop" destination routes through here unchanged
 
+### UAT revision — already built, reuse verbatim
+- `Islet/Notch/IslandResolver.swift` — `PendingDrop` struct, `.quickActionPicker(PendingDrop)` case, `resolve()` branch — unchanged by the revision, still the correct data model.
+- `Islet/Notch/QuickActionSharingService.swift` — isolated `NSSharingService` seam (`canPerform`/`perform`) for AirDrop/Mail — unchanged, already build-green (2 signature bugs already fixed in Plan 34-02).
+- `Islet/Notch/NotchWindowController.swift` — `handleQuickActionDrop()`/`handleQuickActionAirDrop()`/`handleQuickActionMail()`/`finishQuickActionSharing()`/`discardPendingDrop()` — unchanged; only their CALL SITE moves from `Button(action:)` taps to per-button drag-release detection.
+- `positionAndShow`'s `quickActionPickerFrame` union member, `visibleContentZone()`'s `.quickActionPicker` branch, `NotchPillView.quickActionPickerContentHeight` — all need re-tuning to the new (smaller) height per D-15, but the three-site WIRING pattern itself is proven and stays.
+
+### New technical unknown (needs research)
+- Live per-button hit-testing during a raw `NSEvent`-monitor-based drag (D-11/D-12): there is no `draggingUpdated` equivalent in this project's `DragApproachDetector` architecture (global mouse-event monitors polling `NSEvent.mouseLocation`, not `NSDraggingDestination`). Getting each of the 3 buttons' live frame in global screen coordinates back to `NotchWindowController` during that polling loop is new surface — closest existing precedent is `visibleContentZone()`, which already computes ONE static-per-presentation zone the controller checks against; this needs 3 zones that update as the SwiftUI layout renders. Investigate a `GeometryReader`+`PreferenceKey` publishing pattern, or an alternative if research finds a cleaner fit.
+
 </code_context>
 
 <specifics>
@@ -89,6 +117,7 @@ Dropping a file onto the island (from any tab) no longer silently stages it into
 
 - No specific visual reference exists for the runtime picker itself (see canonical_refs — Droppy's only "Quick Action" mention is a Settings config screenshot, not the actual drop-triggered UI). The 3-button Drop/AirDrop/Mail shape comes from `.planning/PROJECT.md`'s v1.5 milestone goal text, not a traced image.
 - User confirmed (this discussion) that Islet's hard "never steal focus" rule (ISL-03) can flex narrowly and only for the exact instant AirDrop/Mail is invoked by explicit user click — not a general softening of that rule.
+- **User's own description of the wanted interaction (2026-07-15 UAT session):** "man zieht die Dateien in die Island und es kommt direkt die Anzeige mit nur den 3 Buttons Airdrop, Mail und Drop, und das was man machen will, da zieht man die Dateien halt hin" — drag the file into the island, the 3-button display appears immediately, and whatever destination you want, you drag the file there. This is the direct basis for D-10–D-13.
 
 </specifics>
 

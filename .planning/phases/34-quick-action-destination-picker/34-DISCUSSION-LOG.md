@@ -106,5 +106,65 @@ A stale pending todo ("Tray panel oversized vertically, shrink to fit content") 
 
 ---
 
+## UAT Revision Round (2026-07-15) — after on-device rejection of the click-based picker
+
+**Trigger:** Plan 34-01/34-02 built and shipped the click-based picker above (build-green), but on-device UAT found (1) a bug — drag-hover shows Now Playing instead of a drop affordance — and (2) the user wanted a different interaction model entirely. See `34-02-SUMMARY.md` §"Outcome: CHANGES REQUESTED" for full findings and screenshots.
+
+### Drag-Ziel Trigger & Feedback
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Sofort bei Grenzübertritt | Picker appears at the same `.dragEntered` edge that already auto-expands the island today | ✓ |
+| Erst nach kurzem Verweilen | Island expands immediately, picker appears after ~0.3s hover | |
+
+**User's choice:** Sofort bei Grenzübertritt (Recommended)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Ja, Hervorhebung | The button under the pointer highlights (brighter fill/scale) during the drag, before release | ✓ |
+| Nein, keine Hervorhebung | All 3 buttons always look the same; only release decides | |
+
+**User's choice:** Ja, Hervorhebung (Recommended)
+
+### Loslassen außerhalb der Buttons
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Verwerfen wie D-07 | Releasing outside any of the 3 buttons discards the pending file(s), same as the existing no-choice-dismissal rule | ✓ |
+| Picker bleibt offen | Nothing happens; the picker stays open and the pending drop persists until landed on a button | |
+
+**User's choice:** Verwerfen wie D-07 (Recommended)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Ja, Picker verschwindet dann | Dragging the pointer back out of the island's geometry during the drag collapses the picker (existing exit condition, unchanged) | ✓ |
+| Nein, Picker bleibt bis Loslassen sichtbar | Once opened, the picker stays open regardless of pointer position until release | |
+
+**User's choice:** Ja, Picker verschwindet dann (Recommended)
+
+### Layout ohne Vorschau
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Karte wird kürzer | The file preview is removed; the card's height shrinks to fit only the button row (new, smaller `quickActionPickerContentHeight`) | ✓ |
+| Gleiche Höhe, Buttons zentriert | Card keeps 188pt; buttons center in the leftover vertical space | |
+
+**User's choice:** Karte wird kürzer (Recommended)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Nur 3 Buttons, keine Zahl | No file-count indicator anywhere, even for multi-file drops — consistent across 1 vs. N files | ✓ |
+| Kleine Zahl irgendwo einblenden | A small badge/count shows the number of pending files without the full preview | |
+
+**User's choice:** Nur 3 Buttons, keine Zahl (Recommended)
+
+### Visual polish (flagged directly, not discussed as options)
+- "Drop" button height mismatch vs. "AirDrop"/"Mail" (SF Symbol intrinsic-size difference) — needs a layout fix.
+- AirDrop icon (`personalhotspot`) may need a closer visual match — Claude's discretion.
+
+**Next steps:** Route to `/gsd-plan-phase 34` for a gap-closure plan (34-03) covering D-10–D-15 + the two polish items, reusing the Plan 34-01/34-02 infrastructure verbatim.
+
+---
+
 *Phase: 34-quick-action-destination-picker*
-*Discussion logged: 2026-07-15*
+*Discussion logged: 2026-07-15 (original) + 2026-07-15 (UAT revision)*
