@@ -571,7 +571,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 34-01-PLAN.md — REVISED (UAT drag-target redesign, D-10..D-15): computeQuickActionButtonFrames(card:) pure geometry seam (TDD) + buttons-only, controller-hover-driven NotchPillView.quickActionPickerView at 117pt — supersedes the original click-based pure-seam scope, which shipped but was superseded (original PendingDrop/.quickActionPicker/QuickActionSharingService seams reused verbatim, not re-planned)
+- [x] 34-01-PLAN.md — REVISED (UAT drag-target redesign, D-10..D-15): computeQuickActionButtonFrames(card:) pure geometry seam (TDD) + buttons-only, controller-hover-driven NotchPillView.quickActionPickerView at 117pt — supersedes the original click-based pure-seam scope, which shipped but was superseded (original PendingDrop/.quickActionPicker/QuickActionSharingService seams reused verbatim, not re-planned)
 
 **Wave 2** *(blocked on 34-01)*
 
