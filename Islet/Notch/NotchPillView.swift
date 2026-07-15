@@ -392,12 +392,12 @@ struct NotchPillView: View {
     // + 16 (bottom inset) ~= 289, rounded to 290.
     //   Large: Medium's 290 + 12 (dailySectionGap) + 4 daily rows * ~20pt (single-line height at
     // the round-2 12pt font, now that dailyForecastRow's weekday/low/high Texts carry
-    // `.lineLimit(1)` — round 1's 470/500 overflow was actually a text-wrap bug (narrow
-    // fixed-width columns wrapping "14°" onto two lines and silently doubling row height, not
-    // genuine under-measurement) + 3 gaps * 6pt ~= 290 + 12 + 80 + 18 = 400, rounded to 420 for
-    // a modest margin.
+    // `.lineLimit(1)`) + 3 gaps * 6pt ~= 290 + 12 + 80 + 18 = 400. Round 2's 420 (modest margin)
+    // still ran short on real hardware — bumped to 480 round 3. `blobShape` now also clips its
+    // content to the island shape (see that function), so any future under-estimate here is a
+    // silent crop instead of content leaking onto whatever sits behind the panel.
     static let weatherMediumContentHeight: CGFloat = 290
-    static let weatherLargeContentHeight: CGFloat = 420
+    static let weatherLargeContentHeight: CGFloat = 480
     // D-07/D-09 — starting chip/row counts, tune only if they visibly crowd on-device.
     // largeDailyRowCount dropped 5 -> 4 in round 1 UAT gap-closure (more compact Large, see above).
     static let hourlyChipCount = 6
@@ -1389,6 +1389,14 @@ struct NotchPillView: View {
                             .transition(.opacity)
                     }
                 }
+                // Phase 33 gap-closure (on-device UAT round 3) — `.overlay` does not clip its
+                // content to the parent's bounds by default; any `content()` taller than its
+                // `baseHeight` frame previously painted straight through onto whatever sat behind
+                // the panel (the Weather Large daily list rendering over the desktop/other windows
+                // instead of on the black island). Every blobShape caller benefits from this same
+                // safety net, not just Weather — a well-fitted caller's content is unaffected.
+                .frame(width: baseWidth, height: totalHeight, alignment: .top)
+                .clipShape(shape)
             }
             // D-05: this single ancestor gesture already covered content's own empty space
             // before this phase; it now ALSO covers the switcher/shelf rows' empty space "for
