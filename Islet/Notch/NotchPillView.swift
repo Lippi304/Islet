@@ -449,6 +449,12 @@ struct NotchPillView: View {
                 weatherFullView                                                  // 28-04 round 4: current-conditions full view
             case .trayExpanded:
                 trayFullView                                                     // 28-04 round 5: dedicated files-only Tray view
+            case .quickActionPicker:
+                // Phase 34 / TRAY-02 Task 1 placeholder -- keeps this exhaustive switch
+                // buildable ahead of Task 3's real quickActionPickerView(_:) wiring in the
+                // same plan/wave (Rule 3: a new IslandPresentation case makes this switch
+                // non-exhaustive until the real view exists).
+                Color.clear
             case .idle:
                 collapsedIsland                                                  // idle pill
             }

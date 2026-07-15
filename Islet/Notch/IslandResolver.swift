@@ -32,6 +32,22 @@ import Foundation
 // dropped there) is UNCHANGED -- it never depended on `forcedByTray`, only on
 // `ShelfViewState.isVisible`'s `!items.isEmpty` half, so it coexists correctly with this fix.
 
+// Phase 34 / TRAY-02 — the pending drop payload the Quick Action Destination Picker
+// renders. Plain Foundation-only value type (mirrors DeviceActivity's "tests build it by
+// hand" convention). Two things worth knowing before touching this:
+// (1) D-03 — one batch, one decision: `items` holds EVERY file from a single multi-file
+//     drop, never split across multiple pickers.
+// (2) Pitfall 5 (34-RESEARCH.md) — this payload is fed IN by the controller on every
+//     resolve() call, never stored inside IslandPresentation's own case as persistent
+//     state — IslandPresentation is a fresh Equatable value with no memory across calls.
+//     The CONTROLLER (Plan 02, NotchWindowController) is the one that persists this
+//     across a Charging/Device transient interruption (D-05), mirroring TransientQueue's
+//     own head/pending split where the controller (not the pure resolver) owns state
+//     across time.
+struct PendingDrop: Equatable {
+    let items: [ShelfItem]
+}
+
 // What the island renders. The expanded media health (D-12) rides on the
 // nowPlayingExpanded case's `healthy:` flag, kept orthogonal to the .none vs playing
 // snapshot — see NowPlayingPresentation.swift's header for why D-11 ≠ D-12.
@@ -47,6 +63,7 @@ enum IslandPresentation: Equatable {
     case calendarExpanded                                  // Phase 28 / CALVIEW-01: month grid + day list
     case weatherExpanded                                   // 28-04 round 4: current-conditions full view
     case trayExpanded                                      // 28-04 round 5: dedicated files-only Tray view
+    case quickActionPicker(PendingDrop)                     // Phase 34 / TRAY-02: full-takeover destination picker
 }
 
 // The transient currently owning the island (the queue's head). Charging and device are
@@ -77,7 +94,8 @@ func resolve(activeTransient: ActiveTransient?,
              hasPlayedSinceLaunch: Bool,
              isExpanded: Bool,
              selectedView: SelectedView = .home,
-             onboardingStep: OnboardingStep? = nil) -> IslandPresentation {
+             onboardingStep: OnboardingStep? = nil,
+             pendingDrop: PendingDrop? = nil) -> IslandPresentation {
     // Phase 26 D-09: forced flow -- a forced onboarding session is never pre-empted by any
     // transient or expanded state. Checked at the single arbiter, as the literal first
     // statement, rather than as a scattered guard duplicated across call sites (T-26-02).
@@ -88,6 +106,13 @@ func resolve(activeTransient: ActiveTransient?,
     case nil: break
     }
     if isExpanded {
+        // Phase 34 / TRAY-02 (D-01, D-04) — a pending drop takes over the ENTIRE expanded
+        // branch, checked before selectedView, full-takeover semantics: "replacing whatever
+        // tab was showing... regardless of which tab was active" (34-UI-SPEC.md §1). A
+        // standing Charging/Device transient still wins (the switch above already returned),
+        // so this is inert while a transient owns the head -- D-05, the controller resumes
+        // feeding pendingDrop back in once the transient clears.
+        if let pendingDrop { return .quickActionPicker(pendingDrop) }
         // Phase 28 / CALVIEW-01, 28-04 round 4/5 — Calendar/Weather/Tray each get their own
         // resolver branch, checked BEFORE Now-Playing (round 4 precedence fix, see this file's
         // header comment) so an explicit switcher selection is never hijacked by media

@@ -387,6 +387,70 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .onboarding(.welcome))
     }
 
+    // MARK: resolve(...) — Phase 34 / TRAY-02 quickActionPicker precedence
+
+    private let oneItemDrop = PendingDrop(items: [ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/tmp/a.txt"),
+                                                             localURL: URL(fileURLWithPath: "/tmp/a.txt"),
+                                                             filename: "a.txt", addedAt: Date())])
+
+    func testPendingDropExpandedReturnsQuickActionPicker() {
+        // TRAY-02: a pending drop takes over the picker even with no explicit tab selected
+        // (selectedView left at default .home).
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        pendingDrop: oneItemDrop)
+        XCTAssertEqual(r, .quickActionPicker(oneItemDrop))
+    }
+
+    func testPendingDropOutranksSelectedViewFullTakeover() {
+        // D-01: full-takeover semantics -- an explicit Weather selection does NOT survive a
+        // pending drop; the picker replaces whatever tab was showing regardless of which was
+        // active.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .weather,
+                        pendingDrop: oneItemDrop)
+        XCTAssertEqual(r, .quickActionPicker(oneItemDrop))
+    }
+
+    func testChargingTransientOutranksPendingDrop() {
+        // D-04: a standing transient always wins, even with a pending drop -- the EXISTING
+        // transient-check-runs-first ordering, no new precedence code required (mirrors
+        // testChargingOutranksDeviceAndMedia).
+        let r = resolve(activeTransient: .charging(.charging(percent: 50)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        pendingDrop: oneItemDrop)
+        XCTAssertEqual(r, .charging(.charging(percent: 50)))
+    }
+
+    func testPendingDropInertWhileNotExpanded() {
+        // pendingDrop is inert while not expanded -- the controller only sets it once
+        // auto-expand has already fired.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        pendingDrop: oneItemDrop)
+        XCTAssertEqual(r, .idle)
+    }
+
+    func testShowsSwitcherRowFalseForQuickActionPicker() {
+        // UI-SPEC §1 (locked decision): the switcher never shows while the picker is
+        // presented. Falls into the existing `default: return false` branch -- asserted
+        // explicitly so a future refactor can't silently flip it.
+        XCTAssertFalse(showsSwitcherRow(for: .quickActionPicker(oneItemDrop)))
+    }
+
     // MARK: TransientQueue — D-03 bounded, de-duped, sequential coexistence
 
     private let charging = ActiveTransient.charging(.charging(percent: 50))
