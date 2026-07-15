@@ -539,6 +539,8 @@ Already implemented, build-green, unchanged by this revision.
 
 ## Open Questions
 
+> Traceability: Q1/Q3 → 34-02 Task 3's on-device checkpoint (AirDrop/Mail spike re-run, drag-in/out/re-entry trace); Q2 → 34-02 Task 2's action (fallback branch kept as defensive no-op, flagged for executor to confirm dead/alive); Q4 → non-blocking, left as tuning discretion. None require further research before planning — closed via plan tasks, not marked RESOLVED here since Q1's underlying on-device spike itself is still pending execution.
+
 1. **(Carried over, still open) Does Islet's exact `NotchPanel` actually invoke AirDrop/Mail successfully with zero key-window changes?**
    - What we know: A real shipping app with an architecturally identical non-key panel does this successfully with no workaround.
    - What's unclear: Whether Islet's own specific window level/Space configuration introduces any difference boring.notch's setup doesn't share.
