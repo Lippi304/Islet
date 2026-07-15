@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit   // Phase 33 / WEATHER-02 (D-08) — NSColor.blended(withFraction:of:) for temperatureColor
 
 // ISL-04 / D-07 — the Dynamic-Island MORPH.
 //
@@ -84,13 +85,13 @@ struct NotchPillView: View {
     // convention as `nowPlaying`/`presentationState`).
     @ObservedObject var outfit: BasicOutfitState
 
-    // Phase 33 / WEATHER-02 (D-03/D-05) — the Settings "Extended forecast" toggle, read
-    // directly via @AppStorage (same shared UserDefaults key SettingsView writes) so this
-    // view re-renders live the moment the user flips it — no relaunch, no controller
-    // round-trip needed for the render decision itself (the controller still owns the
-    // panel-geometry side of this same key, see NotchWindowController's positionAndShow/
-    // visibleContentZone).
-    @AppStorage(ActivitySettings.weatherExtendedKey) private var weatherExtended = false
+    // Phase 33 / WEATHER-01/02 (D-03/D-04/D-05) — the Settings "Weather Style" Medium/Large
+    // selector, read directly via @AppStorage (same shared UserDefaults key SettingsView
+    // writes) so this view re-renders live the moment the user flips it — no relaunch, no
+    // controller round-trip needed for the render decision itself (the controller still owns
+    // the panel-geometry side of this same key, see NotchWindowController's positionAndShow/
+    // visibleContentZone). Medium is always the safe floor default (D-04).
+    @AppStorage(ActivitySettings.weatherStyleKey) private var weatherStyle: WeatherStyle = .medium
 
     // Phase 20 / SHELF-03 — the SEPARATE @Published shelf model, mirroring nowPlaying/
     // presentationState/outfit's existing ownership contract: the controller (Plan 20-02) always
@@ -380,16 +381,23 @@ struct NotchPillView: View {
     // to a modest, sane value once the underlying mechanism was actually fixed.
     static let trayShelfRowTopInset: CGFloat = 10
 
-    // Phase 33 / WEATHER-02 (D-03) — Weather's own dedicated content height, mirroring
+    // Phase 33 / WEATHER-01/02 (D-03/D-08) — Weather's two dedicated content heights, mirroring
     // `trayContentHeight`'s "shorter, content-hugging override wins over switcherContentHeight"
-    // precedent exactly. Only used when the Settings "Extended forecast" toggle is on (see
-    // `weatherExtended` below); the compact card keeps falling through to switcherContentHeight
-    // as before. Box math (starting point — flagged for on-device tuning, same as every other
-    // constant in this file's history):
-    //   42 (cameraClearance) + 44 (icon) + 8 (spacing) + 32 (temp) + 8 (spacing)
-    // + 16 (location/H-L label lines) + 16 (section gap) + 56 (forecast chip stack)
-    // + 16 (bottom inset) = 238, rounded to 240.
-    static let weatherExtendedContentHeight: CGFloat = 240
+    // precedent exactly. Medium is now ALWAYS an explicit height (D-03 — no more nil-falls-
+    // through-to-switcherContentHeight case now that the hourly row is a permanent floor);
+    // Large adds the daily range-bar list below it. Box math (starting point — flagged for
+    // on-device tuning, same as every other constant in this file's history):
+    //   Medium: 42 (cameraClearance) + 44 (icon) + 8 (spacing) + 32 (temp) + 8 (spacing)
+    // + 16 (location/H-L label lines) + 16 (rowTopPadding) + 53 (hourly chip stack)
+    // + 16 (bottom inset) ~= 289, rounded to 290.
+    //   Large: Medium's 290 + 16 (dailySectionGap) + 5 daily rows * 26pt + 4 gaps * 8pt
+    // ~= 290 + 178 = 468, rounded to 470 — flagged as the least-certain number in this plan,
+    // needs on-device tuning at the Task 4 checkpoint.
+    static let weatherMediumContentHeight: CGFloat = 290
+    static let weatherLargeContentHeight: CGFloat = 470
+    // D-07/D-09 — starting chip/row counts, tune only if they visibly crowd on-device.
+    static let hourlyChipCount = 6
+    static let largeDailyRowCount = 5
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -753,22 +761,25 @@ struct NotchPillView: View {
     // uniform content height for every switcher-row presentation (see that constant's doc
     // comment), so this shorter content simply top-aligns with empty transparent space below
     // it, above the switcher row; no per-case override was ever needed here.
-    // Phase 33 / WEATHER-02 (D-03/D-04) — `height:` now rides the SAME `blobShape` override
+    // Phase 33 / WEATHER-01/02 (D-03/D-04) — `height:` rides the SAME `blobShape` override
     // mechanism `trayFullView` already uses (Phase 32/TRAY-05's explicit-height-wins fix):
-    // when the toggle is on, the shape animates to `weatherExtendedContentHeight` inside the
-    // controller's existing spring — no new animation wrapper, no relaunch. When off, `nil`
-    // falls through to `switcherContentHeight` exactly as before this phase.
+    // Medium is now ALWAYS an explicit height (no more nil-falls-through-to-switcherContentHeight
+    // case, D-03's "no Compact-only state" revision) and Large animates to the taller height
+    // inside the controller's existing spring — no new animation wrapper, no relaunch.
     private var weatherFullView: some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
-                  height: weatherExtended ? Self.weatherExtendedContentHeight : nil,
+                  height: weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight,
                   shelfItems: shelfViewState.items,
                   shelfVisible: shelfStripVisible, showSwitcher: true) {
             Group {
                 if let weather = outfit.weather {
                     VStack(spacing: 0) {
                         weatherFullContent(weather)
-                        if weatherExtended, let forecast = outfit.forecast {
-                            forecastRow(forecast)
+                        if let hourly = outfit.hourlyForecast {
+                            hourlyForecastRow(hourly)
+                        }
+                        if weatherStyle == .large, let daily = outfit.forecast {
+                            dailyForecastList(daily)
                         }
                     }
                 } else {
@@ -810,22 +821,20 @@ struct NotchPillView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // Phase 33 / WEATHER-02 (D-05/D-06) — the extended-forecast row: a fixed-count HStack of
-    // up to 5 day-chips (no ScrollView — 5 fits cleanly at the existing 420pt panel width, per
-    // 33-UI-SPEC's Layout Contract), each weekday/icon/H-L, matching Apple's own Medium-widget
-    // forecast format. Only ever mounted when `weatherFullView` has already confirmed
-    // `weatherExtended && outfit.forecast != nil` — this function itself stays a pure render
-    // of whatever slice it's handed.
-    private func forecastRow(_ forecast: [DailyForecast]) -> some View {
+    // Phase 33 / WEATHER-01 (D-07) — the permanent Medium hourly row: a fixed-count HStack of
+    // up to `hourlyChipCount` time/icon/temp chips (no ScrollView, locked). Only ever mounted
+    // when `weatherFullView` has already confirmed `outfit.hourlyForecast != nil` — this
+    // function itself stays a pure render of whatever slice it's handed.
+    private func hourlyForecastRow(_ hourly: [HourlyForecast]) -> some View {
         HStack(spacing: 8) {
-            ForEach(Array(forecast.prefix(5))) { day in
+            ForEach(Array(hourly.prefix(Self.hourlyChipCount))) { hour in
                 VStack(spacing: 4) {
-                    Text(day.date, format: .dateTime.weekday(.abbreviated))
+                    Text(hour.date.formatted(date: .omitted, time: .shortened))
                         .font(.system(size: 11, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
-                    weatherIcon(for: day.category)
-                        .font(.system(size: 20))
-                    Text("\(day.high.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))/\(day.low.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))")
+                    weatherIcon(for: hour.category)
+                        .font(.system(size: 16))
+                    Text(hour.temperature.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(.white)
@@ -835,6 +844,91 @@ struct NotchPillView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
+    }
+
+    // Phase 33 / WEATHER-02 (D-08) — the Large-only daily forecast list: up to
+    // `largeDailyRowCount` weekday/icon/low/range-bar/high rows, one per day. Only ever
+    // mounted when `weatherFullView` has already confirmed `weatherStyle == .large &&
+    // outfit.forecast != nil` — this function itself stays a pure render of whatever slice
+    // it's handed. `span` is floored to guard divide-by-zero on a degenerate flat forecast
+    // (T-33-08).
+    private func dailyForecastList(_ daily: [DailyForecast]) -> some View {
+        let days = Array(daily.prefix(Self.largeDailyRowCount))
+        let overallLow = days.map { $0.low.value }.min() ?? 0
+        let overallHigh = days.map { $0.high.value }.max() ?? overallLow + 1
+        let span = max(overallHigh - overallLow, 0.1)
+        return VStack(spacing: 8) {
+            ForEach(days) { day in
+                dailyForecastRow(day, overallLow: overallLow, span: span)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+    }
+
+    // One Large daily row: weekday label -> icon -> low temp -> a temperature-range gradient
+    // bar -> high temp. The bar's fractional position/width is derived from this day's
+    // low/high relative to the whole visible forecast's overall low/high (`overallLow`/`span`),
+    // so every row's bar is comparable at a glance — mirrors Apple's own Large Weather widget.
+    private func dailyForecastRow(_ day: DailyForecast, overallLow: Double, span: Double) -> some View {
+        let lowFraction = (day.low.value - overallLow) / span
+        let highFraction = (day.high.value - overallLow) / span
+        return HStack(spacing: 8) {
+            Text(day.date, format: .dateTime.weekday(.abbreviated))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(width: 28, alignment: .leading)
+            weatherIcon(for: day.category)
+                .font(.system(size: 18))
+                .frame(width: 24)
+            Text(day.low.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
+                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+                .frame(width: 30, alignment: .trailing)
+            GeometryReader { geo in
+                let barWidth = max((highFraction - lowFraction) * geo.size.width, 4)
+                let barOffset = lowFraction * geo.size.width
+                Capsule()
+                    .fill(LinearGradient(colors: [Self.temperatureColor(fraction: lowFraction),
+                                                   Self.temperatureColor(fraction: highFraction)],
+                                          startPoint: .leading, endPoint: .trailing))
+                    .frame(width: barWidth, height: 4)
+                    .offset(x: barOffset)
+            }
+            .frame(height: 4)
+            Text(day.high.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(width: 30, alignment: .trailing)
+        }
+    }
+
+    // Phase 33 / WEATHER-02 (D-08) — a fixed 5-stop temperature gradient (cold blue -> hot
+    // red), blended via native AppKit color interpolation (`NSColor.blended(withFraction:of:)`)
+    // rather than hand-rolled RGB-component math. Matches the spirit of Apple's Large Weather
+    // widget's range bar without needing pixel-exact color stops.
+    private static func temperatureColor(fraction: Double) -> Color {
+        let stops: [(Double, Color)] = [
+            (0.0, .blue),
+            (0.25, .mint),
+            (0.5, .yellow),
+            (0.75, .orange),
+            (1.0, .red)
+        ]
+        let clamped = min(max(fraction, 0.0), 1.0)
+        var lower = stops[0]
+        var upper = stops[stops.count - 1]
+        for i in 0..<(stops.count - 1) {
+            if clamped >= stops[i].0 && clamped <= stops[i + 1].0 {
+                lower = stops[i]
+                upper = stops[i + 1]
+                break
+            }
+        }
+        let range = upper.0 - lower.0
+        let localFraction = range > 0 ? (clamped - lower.0) / range : 0
+        let blended = NSColor(lower.1).blended(withFraction: localFraction, of: NSColor(upper.1)) ?? NSColor(upper.1)
+        return Color(nsColor: blended)
     }
 
     // Plain English label per category — mirrors `calendarEmptyState`'s plain-string
