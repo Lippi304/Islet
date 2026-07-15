@@ -1910,7 +1910,7 @@ struct NotchPillView: View {
                     }
                 }
                 .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
-                .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve
+                .padding(.bottom, 40)     // Quick task 260715-vsd — shrinks the empty gap above the switcher row (was 12, sized only for "room for the bottomCornerRadius:20 curve")
                 // Quick task 260714-3k6 gap-closure round 2 — was `.padding(.horizontal, 26)`
                 // (a fix for the round-1 wall-overlap bug: NotchShape's side walls sit at a
                 // CONSTANT `topCornerRadius`/24pt inset from each edge, independent of panel
