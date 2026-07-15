@@ -92,7 +92,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 30: Home Music-Only** - Home shows only live/last-played music or an explicit empty state; idle time/weather/calendar glance removed (completed 2026-07-14)
 - [x] **Phase 31: Shelf Consolidation to Tray-Only** - Shelf-strip reveal removed from Home/Calendar/Weather, lives only on Tray (completed 2026-07-14)
 - [x] **Phase 32: Tray Widening** - Wider Tray layout with larger file tiles, more files visible side-by-side (completed 2026-07-14)
-- [ ] **Phase 33: Weather Widget Redesign** - Compact iOS-widget-style card by default, optional extended multi-day forecast
+- [ ] **Phase 33: Weather Widget Redesign** - Medium (header + hourly row) always shown, Settings-gated Large adds a daily range-bar list — 1:1 iOS Weather widget clone
 - [ ] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop
 
 ## Phase Details
@@ -519,15 +519,15 @@ Plans:
 
 ### Phase 33: Weather Widget Redesign
 
-**Goal**: The Weather view shows an iOS-widget-style card — compact by default, with a Settings-gated extended variant adding a multi-day forecast row, sourced from one combined `weather(for:including: .current, .daily)` call.
+**Goal**: The Weather view is a 1:1 clone of Apple's iOS Weather widget: Medium (location/icon/current temp/H-L header + hourly forecast row) is the permanent baseline, with a Settings-gated Large style adding a daily forecast list with min/max range bars, sourced from one combined `weather(for:including: .current, .hourly, .daily)` call.
 **Depends on**: Nothing — fully independent of the other v1.5 phases (Weather has its own resolver case and switcher tab).
 **Requirements**: WEATHER-01, WEATHER-02
 **Success Criteria** (what must be TRUE):
-  1. The Weather view shows a compact widget card by default: location, condition icon, current temperature, and high/low.
-  2. A Settings toggle switches Weather to an extended widget that adds a multi-day forecast row (day, icon, temp).
-  3. Toggling the setting live-updates the Weather view without requiring a relaunch.
+  1. The Weather view always shows at least the Medium layout: location, condition icon, current temperature, high/low, and an hourly forecast row.
+  2. A Settings control (Medium/Large) switches Weather to the Large style, adding a daily forecast list with range bars, below the Medium content.
+  3. Switching styles live-updates the Weather view without requiring a relaunch.
   4. Weather still degrades silently (no crash, sensible fallback) on permission denial, matching the existing pattern.
-**Plans**: 2 plans
+**Plans**: 2 plans (33-02 revised — supersedes the original daily-chip-row scope after on-device checkpoint rejection)
 **UI hint**: yes
 
 Plans:
@@ -537,7 +537,7 @@ Plans:
 
 **Wave 2** *(blocked on 33-01)*
 
-- [ ] 33-02-PLAN.md — Weather card view (location/H-L + forecast row) + controller fetch/geometry three-site rule + Settings toggle + on-device UAT
+- [ ] 33-02-PLAN.md — Medium/Large iOS Weather widget clone: hourly forecast row, daily range-bar list, Medium/Large Settings control, controller fetch/geometry three-site rule (two size tiers) + on-device UAT
 
 ### Phase 34: Quick Action Destination Picker
 
