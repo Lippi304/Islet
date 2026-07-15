@@ -872,7 +872,7 @@ struct NotchPillView: View {
                 dailyForecastRow(day, overallLow: overallLow, span: span)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
         .padding(.top, 12)
     }
 
@@ -903,6 +903,13 @@ struct NotchPillView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .frame(width: 32, alignment: .trailing)
+            // Phase 33 gap-closure (on-device UAT round 4) — this bar previously had no width
+            // cap, so it (and therefore the whole row) stretched to fill every available pixel,
+            // pushing the weekday/high-temp columns right up against NotchShape's real silhouette
+            // (its side walls taper inward by `topCornerRadius` for nearly the whole content
+            // height — see NotchShape.swift — well past this row's 16pt padding), which is what
+            // round 3's new clip then cut off. Capping the bar's width shrinks the row below the
+            // available width, so the VStack's default centering leaves real margin on both sides.
             GeometryReader { geo in
                 let barWidth = max((highFraction - lowFraction) * geo.size.width, 4)
                 let barOffset = lowFraction * geo.size.width
@@ -913,7 +920,7 @@ struct NotchPillView: View {
                     .frame(width: barWidth, height: 4)
                     .offset(x: barOffset)
             }
-            .frame(height: 4)
+            .frame(width: 110, height: 4)
             Text(day.high.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
