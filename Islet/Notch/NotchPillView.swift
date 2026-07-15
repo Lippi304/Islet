@@ -543,6 +543,14 @@ struct NotchPillView: View {
         let size = interaction.collapsedNotchSize ?? Self.collapsedSize
         return NotchShape()
             .fill(collapsedFill)
+            // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED: SwiftUI's
+            // matchedGeometryEffect is itself implemented via an internal frame+offset, so it
+            // must be applied BEFORE any local `.frame(...)`, not after. Round 1 had this
+            // backwards (matched it to blobShape/wingsShape's "canonical" order, which was
+            // itself wrong — see round 3 fix on those too): an explicit `.frame` placed BEFORE
+            // `.matchedGeometryEffect` overrides the effect's own size interpolation, breaking
+            // the size-morph and producing a shape that slides from a stale anchor instead of
+            // growing symmetrically from the shared center — read as the diagonal jump/bounce.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: size.width, height: size.height)
             // D-01 (visual half): a subtle "you're in" bounce on hover only — never
@@ -1455,8 +1463,13 @@ struct NotchPillView: View {
         let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
         return shape
             .fill(islandFill)
-            .frame(width: baseWidth, height: totalHeight)
+            // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order:
+            // `.matchedGeometryEffect` must precede `.frame` (the effect is itself implemented
+            // via an internal frame+offset; a local `.frame` placed before it overrides the
+            // effect's own size interpolation). This reverses the file's previous "Phase 15
+            // architecture audit item 2" convention, which was backwards — see collapsedIsland.
             .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: baseWidth, height: totalHeight)
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     content()
@@ -1587,8 +1600,10 @@ struct NotchPillView: View {
         let shape = NotchShape(topCornerRadius: 12, bottomCornerRadius: 6)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside a 6pt bottom radius without squeezing the wall to almost nothing
         return shape
             .fill(islandFill)
-            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order,
+            // see collapsedIsland/blobShape: `.matchedGeometryEffect` must precede `.frame`.
             .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             .overlay(
                 content()
                     .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
@@ -1650,6 +1665,10 @@ struct NotchPillView: View {
         let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)
         NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
             .fill(islandFill)
+            // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order:
+            // `.matchedGeometryEffect` must precede `.frame` (round 2 had this backwards too,
+            // matching the file's previous — wrong — "canonical" convention; see collapsedIsland
+            // for the full explanation of why frame-before-effect breaks the size morph).
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: height)
             .overlay(alignment: .top) {
