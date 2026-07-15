@@ -46,6 +46,13 @@ Notable per-section patterns worth reusing (evaluate individually, not as a bulk
 - **License** (`30.png`) — same 3-state pattern Islet already has (Enter license / Trial Active countdown / Buy), just restyled — confirms Islet's existing LIC-01/02/03 model is already on the right track, this is a visual reference only.
 - **About** (`30.png`-`31.png`) — version + changelog link, developer credit, a **replay-the-onboarding-intro button**, **Settings Export/Import**, a privacy block (Tracking off, "data stays on your Mac / on-device", explicit online-features opt-in), and a Hard Reset. Several of these (replay intro, settings export/import, explicit privacy stance) are cheap, high-trust additions worth considering for v1.4's onboarding/settings work.
 
+## Weather widget reference (image 32, added 2026-07-15 during Phase 33 checkpoint correction)
+
+- `32.png` — Apple's own iOS Weather widgets (not Droppy), shown as a side-by-side Medium vs. Large comparison. This is the exact reference for Phase 33's "extended" Weather card, correcting the original 33-CONTEXT.md D-05/D-06 assumption (which described the extended row as a *daily* forecast row).
+  - **Medium widget (left):** location + arrow icon, large current temp, condition + H/L text (top-right) — this part already matches what Phase 33 Plan 33-02 built. Below it: an **hourly** forecast row — times (4:00, 04:56, 5:00, 6:00, 7:00, 8:00), each with icon + temp underneath. NOT a daily/weekday row.
+  - **Large widget (right):** same header, same hourly row, PLUS a daily forecast list below: day name (Do/Fr/Sa/So/Mo), icon, low temp (gray, left), a horizontal gradient bar showing the day's temperature range positioned within the week's overall min/max, high temp (white, right).
+  - Correction: Plan 33-02's originally-built forecast row (5 weekday chips: weekday/icon/H-L stacked vertically) does not match this reference — needs rework to an hourly row, and needs a decision on whether to also add the daily bar-list.
+
 ## Menu-bar dropdown (image 13, top)
 
 `13.png` (top) — the status-bar menu itself: Now Playing + Source submenu, Trial/License row, Hide Notch, Check for Updates, then feature submenus (Cloud, Upcoming, Element Capture, Window Snap), Settings, Quit. Islet's own menu-bar dropdown is much sparser today (Settings…, Quit) — worth a light pass once the Settings redesign lands.
