@@ -392,12 +392,13 @@ struct NotchPillView: View {
     // + 16 (bottom inset) ~= 289, rounded to 290.
     //   Large: Medium's 290 + 12 (dailySectionGap) + 4 daily rows * ~20pt (single-line height at
     // the round-2 12pt font, now that dailyForecastRow's weekday/low/high Texts carry
-    // `.lineLimit(1)`) + 3 gaps * 6pt ~= 290 + 12 + 80 + 18 = 400. Round 2's 420 (modest margin)
-    // still ran short on real hardware — bumped to 480 round 3. `blobShape` now also clips its
-    // content to the island shape (see that function), so any future under-estimate here is a
-    // silent crop instead of content leaking onto whatever sits behind the panel.
+    // `.lineLimit(1)`) + 3 gaps * 6pt ~= 290 + 12 + 80 + 18 = 400, + 10 margin = 410. Round 3's
+    // 480 was sized to hedge against the (since-fixed) overflow/clip bugs — round 5 UAT confirmed
+    // the daily list itself renders correctly and compactly now, just with a big empty gap above
+    // the switcher row from that leftover margin. `blobShape` clips its content to the island
+    // shape (see that function), so any future under-estimate here is a silent crop, not a leak.
     static let weatherMediumContentHeight: CGFloat = 290
-    static let weatherLargeContentHeight: CGFloat = 480
+    static let weatherLargeContentHeight: CGFloat = 410
     // D-07/D-09 — starting chip/row counts, tune only if they visibly crowd on-device.
     // largeDailyRowCount dropped 5 -> 4 in round 1 UAT gap-closure (more compact Large, see above).
     static let hourlyChipCount = 6
