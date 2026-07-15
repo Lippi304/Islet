@@ -80,7 +80,12 @@ final class WeatherKitService: WeatherService {
                                   high: day.highTemperature,
                                   low: day.lowTemperature)
                 }
-                let hourlyForecast = hourly.map { hour in
+                // Phase 33 gap-closure (on-device UAT round 1) — WeatherKit's `.hourly` array is
+                // not guaranteed to start at "now"; without this filter the row could show hours
+                // already in the past. Keep only current-or-future entries before handing off to
+                // the view layer's own prefix/count slicing (D-07).
+                let now = Date()
+                let hourlyForecast = hourly.filter { $0.date >= now }.map { hour in
                     HourlyForecast(date: hour.date,
                                    category: WeatherCategory.from(hour.condition),
                                    temperature: hour.temperature)

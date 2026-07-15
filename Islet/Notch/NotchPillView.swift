@@ -390,14 +390,17 @@ struct NotchPillView: View {
     //   Medium: 42 (cameraClearance) + 44 (icon) + 8 (spacing) + 32 (temp) + 8 (spacing)
     // + 16 (location/H-L label lines) + 16 (rowTopPadding) + 53 (hourly chip stack)
     // + 16 (bottom inset) ~= 289, rounded to 290.
-    //   Large: Medium's 290 + 16 (dailySectionGap) + 5 daily rows * 26pt + 4 gaps * 8pt
-    // ~= 290 + 178 = 468, rounded to 470 — flagged as the least-certain number in this plan,
-    // needs on-device tuning at the Task 4 checkpoint.
+    //   Large: Medium's 290 + 12 (dailySectionGap) + 4 daily rows * ~26pt real-measured row
+    // height (font leading/icon intrinsic size ran taller than the original 5-row/470pt paper
+    // estimate on real hardware — round 1 UAT found the daily list overflowing past the shape's
+    // bottom edge) + 3 gaps * 6pt ~= 290 + 12 + 104 + 18 = 424, rounded up to 500 for a real
+    // safety margin this time (still on-device-tuning-pending if it needs to shrink further).
     static let weatherMediumContentHeight: CGFloat = 290
-    static let weatherLargeContentHeight: CGFloat = 470
+    static let weatherLargeContentHeight: CGFloat = 500
     // D-07/D-09 — starting chip/row counts, tune only if they visibly crowd on-device.
+    // largeDailyRowCount dropped 5 -> 4 in round 1 UAT gap-closure (more compact Large, see above).
     static let hourlyChipCount = 6
-    static let largeDailyRowCount = 5
+    static let largeDailyRowCount = 4
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -826,7 +829,11 @@ struct NotchPillView: View {
     // when `weatherFullView` has already confirmed `outfit.hourlyForecast != nil` — this
     // function itself stays a pure render of whatever slice it's handed.
     private func hourlyForecastRow(_ hourly: [HourlyForecast]) -> some View {
-        HStack(spacing: 8) {
+        // Phase 33 gap-closure (on-device UAT round 1) — chips previously each claimed an equal
+        // `maxWidth: .infinity` slice of the full row width, spreading them edge-to-edge with a
+        // lot of dead space between narrow content; sizing each chip to its own content and only
+        // centering the resulting cluster reads as "grouped together" instead.
+        HStack(spacing: 18) {
             ForEach(Array(hourly.prefix(Self.hourlyChipCount))) { hour in
                 VStack(spacing: 4) {
                     Text(hour.date.formatted(date: .omitted, time: .shortened))
@@ -839,9 +846,9 @@ struct NotchPillView: View {
                         .monospacedDigit()
                         .foregroundStyle(.white)
                 }
-                .frame(maxWidth: .infinity)
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .padding(.top, 16)
     }
@@ -857,13 +864,15 @@ struct NotchPillView: View {
         let overallLow = days.map { $0.low.value }.min() ?? 0
         let overallHigh = days.map { $0.high.value }.max() ?? overallLow + 1
         let span = max(overallHigh - overallLow, 0.1)
-        return VStack(spacing: 8) {
+        // Phase 33 gap-closure (on-device UAT round 1) — tighter row spacing/top padding, on top
+        // of the reduced `largeDailyRowCount` (below), makes Large noticeably more compact.
+        return VStack(spacing: 6) {
             ForEach(days) { day in
                 dailyForecastRow(day, overallLow: overallLow, span: span)
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 16)
+        .padding(.top, 12)
     }
 
     // One Large daily row: weekday label -> icon -> low temp -> a temperature-range gradient
