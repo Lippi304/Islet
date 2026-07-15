@@ -16,9 +16,9 @@ Home is decluttered to music-only (dropping the idle weather/calendar/date fallb
 ### Tray
 
 - [x] **TRAY-01**: File-shelf content is visible only on the Tray tab — the additive shelf-strip-reveal on Home/Calendar/Weather is removed
-- [ ] **TRAY-02**: Dropping a file (from any tab) shows a Droppy-style Quick Action destination picker: Drop / AirDrop / Mail
-- [ ] **TRAY-03**: Choosing "Drop" stages the file into the Tray as today and switches the view to Tray so the result is visible
-- [ ] **TRAY-04**: Choosing "AirDrop" invokes the system AirDrop share sheet for the file; choosing "Mail" composes a new email with the file attached (Mail.app-only attachment support — documented, not silently discovered)
+- [x] **TRAY-02**: Dropping a file (from any tab) shows a Droppy-style Quick Action destination picker: Drop / AirDrop / Mail
+- [x] **TRAY-03**: Choosing "Drop" stages the file into the Tray as today and switches the view to Tray so the result is visible
+- [x] **TRAY-04**: Choosing "AirDrop" invokes the system AirDrop share sheet for the file; choosing "Mail" composes a new email with the file attached (Mail.app-only attachment support — documented, not silently discovered)
 - [x] **TRAY-05**: The Tray view is widened with larger file tiles so more files are visible side-by-side
 
 ### Weather
@@ -108,9 +108,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAY-05 | Phase 32 | Complete |
 | WEATHER-01 | Phase 33 | Pending |
 | WEATHER-02 | Phase 33 | Pending |
-| TRAY-02 | Phase 34 | Pending |
-| TRAY-03 | Phase 34 | Pending |
-| TRAY-04 | Phase 34 | Pending |
+| TRAY-02 | Phase 34 | Complete |
+| TRAY-03 | Phase 34 | Complete |
+| TRAY-04 | Phase 34 | Complete |
 | GLASS-01 | Phase 35 | Pending |
 | HUD-01 | Phase 36 | Pending |
 | HUD-02 | Phase 36 | Pending |

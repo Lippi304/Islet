@@ -180,15 +180,6 @@ struct NotchPillView: View {
     // unmodified, no EventKit/EKEventStore code in this view file.
     var onQuickAdd: (QuickAddKind, String) -> Void = { _, _ in }
 
-    // Phase 34 / TRAY-02 — the quick-action picker's 3 destination callbacks, plain closures
-    // mirroring every other onX property above: the view stays AppKit-free, only REPORTS
-    // intent. NotchWindowController (Plan 02) owns these and forwards Drop to
-    // ShelfCoordinator.append, AirDrop/Mail to QuickActionSharingService.share(...). Defaulted
-    // to no-ops so the DEBUG #Previews build without a controller.
-    var onQuickActionDrop: () -> Void = {}
-    var onQuickActionAirDrop: () -> Void = {}
-    var onQuickActionMail: () -> Void = {}
-
     // Phase 34 / TRAY-02 (D-09 fallback) — AirDrop/Mail dim + disable only if Plan 02 Task 3's
     // on-device spike finds no working invocation path; default `true` per 34-RESEARCH.md's
     // HIGH-confidence finding that no fallback is needed. Drop is never disabled (TRAY-03
