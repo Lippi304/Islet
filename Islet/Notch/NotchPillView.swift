@@ -390,13 +390,14 @@ struct NotchPillView: View {
     //   Medium: 42 (cameraClearance) + 44 (icon) + 8 (spacing) + 32 (temp) + 8 (spacing)
     // + 16 (location/H-L label lines) + 16 (rowTopPadding) + 53 (hourly chip stack)
     // + 16 (bottom inset) ~= 289, rounded to 290.
-    //   Large: Medium's 290 + 12 (dailySectionGap) + 4 daily rows * ~26pt real-measured row
-    // height (font leading/icon intrinsic size ran taller than the original 5-row/470pt paper
-    // estimate on real hardware — round 1 UAT found the daily list overflowing past the shape's
-    // bottom edge) + 3 gaps * 6pt ~= 290 + 12 + 104 + 18 = 424, rounded up to 500 for a real
-    // safety margin this time (still on-device-tuning-pending if it needs to shrink further).
+    //   Large: Medium's 290 + 12 (dailySectionGap) + 4 daily rows * ~20pt (single-line height at
+    // the round-2 12pt font, now that dailyForecastRow's weekday/low/high Texts carry
+    // `.lineLimit(1)` — round 1's 470/500 overflow was actually a text-wrap bug (narrow
+    // fixed-width columns wrapping "14°" onto two lines and silently doubling row height, not
+    // genuine under-measurement) + 3 gaps * 6pt ~= 290 + 12 + 80 + 18 = 400, rounded to 420 for
+    // a modest margin.
     static let weatherMediumContentHeight: CGFloat = 290
-    static let weatherLargeContentHeight: CGFloat = 500
+    static let weatherLargeContentHeight: CGFloat = 420
     // D-07/D-09 — starting chip/row counts, tune only if they visibly crowd on-device.
     // largeDailyRowCount dropped 5 -> 4 in round 1 UAT gap-closure (more compact Large, see above).
     static let hourlyChipCount = 6
@@ -882,18 +883,26 @@ struct NotchPillView: View {
     private func dailyForecastRow(_ day: DailyForecast, overallLow: Double, span: Double) -> some View {
         let lowFraction = (day.low.value - overallLow) / span
         let highFraction = (day.high.value - overallLow) / span
-        return HStack(spacing: 8) {
+        // Phase 33 gap-closure (on-device UAT round 2) — the weekday/low/high Texts sat in
+        // fixed-width frames with no line limit; "14°" etc. wrapped onto two lines inside the
+        // 30pt-wide low/high columns (numbers rendering above the ° symbol), which silently
+        // doubled those rows' real height and is what was still overflowing past the shape's
+        // bottom edge even after round 1's height/row-count reduction. `.lineLimit(1)` +
+        // slightly wider columns fixes the wrap at the source.
+        return HStack(spacing: 6) {
             Text(day.date, format: .dateTime.weekday(.abbreviated))
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
-                .frame(width: 28, alignment: .leading)
+                .lineLimit(1)
+                .frame(width: 30, alignment: .leading)
             weatherIcon(for: day.category)
-                .font(.system(size: 18))
-                .frame(width: 24)
+                .font(.system(size: 16))
+                .frame(width: 22)
             Text(day.low.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
-                .font(.system(size: 13, weight: .regular, design: .rounded))
+                .font(.system(size: 12, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
-                .frame(width: 30, alignment: .trailing)
+                .lineLimit(1)
+                .frame(width: 32, alignment: .trailing)
             GeometryReader { geo in
                 let barWidth = max((highFraction - lowFraction) * geo.size.width, 4)
                 let barOffset = lowFraction * geo.size.width
@@ -906,9 +915,10 @@ struct NotchPillView: View {
             }
             .frame(height: 4)
             Text(day.high.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0)))))
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
-                .frame(width: 30, alignment: .trailing)
+                .lineLimit(1)
+                .frame(width: 32, alignment: .trailing)
         }
     }
 
