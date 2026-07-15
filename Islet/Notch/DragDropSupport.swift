@@ -28,3 +28,28 @@ func isWithinDragAcceptRegion(_ point: CGPoint, zone: CGRect?, maxY: CGFloat?) -
     guard let zone, let maxY else { return false }
     return zone.contains(point) && point.y <= maxY
 }
+
+// Phase 34 (UAT revision, D-11/D-12) / 34-RESEARCH.md Pattern 3 — the Quick Action picker's
+// per-button live drop-target geometry. Pure arithmetic, mirroring `expandedNotchFrame`/
+// `topPinnedFrame`'s existing style (NotchGeometry.swift) rather than a GeometryReader/
+// PreferenceKey round-trip: this codebase has zero existing PreferenceKey usage, and a round-trip
+// would need to bridge SwiftUI's window-local `.global` space against AppKit's screen-space
+// bottom-left/y-up convention every other geometry helper in this file already uses (Pitfall 7).
+// `card` is the caller's already-computed `quickActionPickerFrame` (real screen-space when called
+// from the controller); returns the 3 destination buttons' frames in that SAME coordinate space,
+// left-to-right (index 0 = Drop, 1 = AirDrop, 2 = Mail), matching `quickActionButtonRow`'s
+// `HStack(spacing: 16)` of 3 equal-flex chips.
+func computeQuickActionButtonFrames(card: CGRect) -> [CGRect] {
+    let horizontalInset: CGFloat = 16
+    let buttonRowHeight: CGFloat = 59   // icon 22 + gap 8 + label ~13 + vPadding 2x8
+    let bottomInset: CGFloat = 16
+    let gap: CGFloat = 16
+    // AppKit bottom-left/y-up: the row sits `bottomInset` ABOVE the card's bottom edge (card.minY).
+    let rowRect = CGRect(x: card.minX + horizontalInset, y: card.minY + bottomInset,
+                          width: card.width - 2 * horizontalInset, height: buttonRowHeight)
+    let colWidth = (rowRect.width - 2 * gap) / 3
+    return (0..<3).map { i in
+        CGRect(x: rowRect.minX + CGFloat(i) * (colWidth + gap), y: rowRect.minY,
+               width: colWidth, height: rowRect.height)
+    }
+}
