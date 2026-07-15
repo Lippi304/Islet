@@ -109,6 +109,18 @@ final class NotchWindowController {
     // `[weak self]`-capturing closures to bind).
     private let shelfCoordinator = ShelfCoordinator()
 
+    // Phase 34 / TRAY-02 (Pitfall 5) — the CONTROLLER-owned pending-drop state. `resolve(...)`
+    // itself is pure and has no memory across calls, so the fact that a drop is awaiting a
+    // Drop/AirDrop/Mail choice must live HERE, read fresh on every currentPresentation() call —
+    // mirrors TransientQueue's own head/pending split, where the controller (not the resolver)
+    // persists state across time. Set on a real drop (handleDragApproachEnd), cleared by
+    // handleQuickActionDrop/finishQuickActionSharing/discardPendingDrop.
+    private var pendingDrop: PendingDrop?
+
+    // Phase 34 / TRAY-04 — the isolated NSSharingService seam (Plan 01). No window-activation
+    // code lives here or in the service itself (D-08).
+    private let quickActionSharingService = QuickActionSharingService()
+
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model the expandedIdle
     // 3-column glance observes (Plan 04). Held behind their PROTOCOL types (never the concrete
     // class), mirroring `nowPlayingMonitor: NowPlayingService?`'s existing convention — a future
@@ -662,7 +674,8 @@ final class NotchWindowController {
                        hasPlayedSinceLaunch: nowPlayingState.hasPlayedSinceLaunch,
                        isExpanded: interaction.isExpanded,
                        selectedView: viewSwitcherState.selectedView,
-                       onboardingStep: onboardingStep)
+                       onboardingStep: onboardingStep,
+                       pendingDrop: pendingDrop)
     }
 
     // Write the resolver's verdict to the @Published carrier the view observes. The CALLER owns
@@ -841,7 +854,14 @@ final class NotchWindowController {
         let weatherExpandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                        expandedSize: CGSize(width: expandedSize.width,
                                                                              height: NotchPillView.weatherLargeContentHeight + NotchPillView.switcherRowHeight))
-        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExpandedFrame)
+        // Phase 34 / TRAY-02 (geometry three-site rule) — reserve space for the Quick Action
+        // picker up front too, mirroring trayFrame/weatherExpandedFrame's precedent exactly. NO
+        // switcherRowHeight addend — the picker is a full-takeover blob that never shows the
+        // switcher row (D-01).
+        let quickActionPickerFrame = expandedNotchFrame(collapsed: collapsedFrame,
+                                                         expandedSize: CGSize(width: expandedSize.width,
+                                                                               height: NotchPillView.quickActionPickerContentHeight))
+        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExpandedFrame).union(quickActionPickerFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
@@ -940,13 +960,23 @@ final class NotchWindowController {
         // point because recheckDragAcceptRegion's auto-expand already fired.
         if shouldAcceptDrop(isExpanded: false, urls: urls),
            isWithinDragAcceptRegion(point, zone: expandedZone, maxY: dragLandingMaxY) {
+            // Phase 34 / TRAY-02 (Pitfall 5) — a real drop no longer auto-stages into the shelf;
+            // it stores the session-copied items as a PendingDrop and shows the Drop/AirDrop/Mail
+            // picker instead. shelfCoordinator.append(item) is deferred until "Drop" is chosen
+            // (handleQuickActionDrop) — these items are NOT yet in the shelf, so resyncShelfViewState()
+            // must NOT be called here.
+            var items: [ShelfItem] = []
             for url in urls {
                 let id = UUID()
                 guard let localURL = try? ShelfFileStore.makeSessionCopy(of: url, id: id) else { continue }
-                let item = ShelfItem(id: id, originalURL: url, localURL: localURL, filename: url.lastPathComponent, addedAt: Date())
-                shelfCoordinator.append(item)
+                items.append(ShelfItem(id: id, originalURL: url, localURL: localURL, filename: url.lastPathComponent, addedAt: Date()))
             }
-            resyncShelfViewState()
+            if !items.isEmpty {
+                pendingDrop = PendingDrop(items: items)
+                withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                    renderPresentation()
+                }
+            }
         }
         // Pitfall 3 — pointerInZone/lastPointerLocation/syncClickThrough() go stale during ANY
         // OS drag session; re-sync unconditionally, mirroring endShelfItemDrag()'s own final line.
@@ -1034,6 +1064,13 @@ final class NotchWindowController {
             let style = ActivitySettings.WeatherStyle(rawValue: UserDefaults.standard.string(forKey: ActivitySettings.weatherStyleKey) ?? "") ?? .medium
             contentSize = CGSize(width: expandedSize.width,
                                  height: (style == .large ? NotchPillView.weatherLargeContentHeight : NotchPillView.weatherMediumContentHeight) + switcherHeight)
+        } else if case .quickActionPicker = presentationState.presentation {
+            // Phase 34 / TRAY-02 (CR-01 geometry three-site rule) — must mirror
+            // positionAndShow's quickActionPickerFrame reservation and NotchPillView's
+            // quickActionPickerView height exactly, or the click-swallowing/dead-zone
+            // regression class comes back. No switcherHeight addend (D-01 full-takeover,
+            // no switcher row).
+            contentSize = CGSize(width: expandedSize.width, height: NotchPillView.quickActionPickerContentHeight)
         } else {
             contentSize = CGSize(width: expandedSize.width,
                                  height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)

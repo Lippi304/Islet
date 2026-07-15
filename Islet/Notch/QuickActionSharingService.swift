@@ -14,7 +14,7 @@ import AppKit
 // canPerform/perform call counts without triggering real OS UI — mirrors
 // LocationServiceTests.swift's FakeLocationService precedent for other OS-boundary seams.
 protocol SharingServicePerforming: AnyObject {
-    func canPerform(withItems items: [Any]) -> Bool
+    func canPerform(withItems items: [Any]?) -> Bool
     func perform(withItems items: [Any])
     var delegate: NSSharingServiceDelegate? { get set }
 }
