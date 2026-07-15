@@ -94,7 +94,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 31: Shelf Consolidation to Tray-Only** - Shelf-strip reveal removed from Home/Calendar/Weather, lives only on Tray (completed 2026-07-14)
 - [x] **Phase 32: Tray Widening** - Wider Tray layout with larger file tiles, more files visible side-by-side (completed 2026-07-14)
 - [x] **Phase 33: Weather Widget Redesign** - Medium (header + hourly row) always shown, Settings-gated Large adds a daily range-bar list — 1:1 iOS Weather widget clone (completed 2026-07-15)
-- [ ] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop
+- [x] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop (completed 2026-07-15)
 
 ### 📋 v1.6 Liquid Glass & System HUD Suite (Planned)
 
@@ -575,7 +575,7 @@ Plans:
 
 **Wave 2** *(blocked on 34-01)*
 
-- [ ] 34-02-PLAN.md — REVISED (UAT drag-target redesign): moves pendingDrop population to the dragEntered edge (D-10), fixes the drag-out-before-release session-copy leak (D-13b/Pitfall 6), live per-button drag-hover highlight (D-11) + release-on-target routing (D-12/D-13) replacing the click-based Button(action:) wiring, geometry three-site rule at the new 117pt height + consolidated on-device UAT checkpoint (D-08 spike re-run, CR-01 trace, drag-in/out/re-entry trace, D-04/D-05 transient-interrupt-resume, Drop/AirDrop/Mail real hand-off) — supersedes the original click-based controller wiring, which shipped but was rejected on-device
+- [x] 34-02-PLAN.md — REVISED (UAT drag-target redesign): moves pendingDrop population to the dragEntered edge (D-10), fixes the drag-out-before-release session-copy leak (D-13b/Pitfall 6), live per-button drag-hover highlight (D-11) + release-on-target routing (D-12/D-13) replacing the click-based Button(action:) wiring, geometry three-site rule at the new 117pt height + consolidated on-device UAT checkpoint (D-08 spike re-run, CR-01 trace, drag-in/out/re-entry trace, D-04/D-05 transient-interrupt-resume, Drop/AirDrop/Mail real hand-off) — supersedes the original click-based controller wiring, which shipped but was rejected on-device
 **UI hint**: yes
 
 ### Phase 35: Liquid Glass Material
