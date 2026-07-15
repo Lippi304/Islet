@@ -331,17 +331,19 @@ Section("Weather") {
 | A1 | Exact forecast day count (4 vs 5) that fits the 420pt panel width cleanly — left to Claude's discretion per CONTEXT.md, no chip-width measurement done in this research pass (would require on-device font-metric measurement, not something a documentation-lookup research pass can determine) | Common Pitfalls / D-05 (CONTEXT.md) | Low — CONTEXT.md already frames this as "pick whichever count fits cleanly," explicitly not a hard-locked number; the planner/executor resolves it with an on-device check, same as Tray's own width iterations (Phase 32, 3 on-device rounds) |
 | A2 | `CLPlacemark.locality` (city name) is the right granularity for D-01/reverse-geocode, vs. `.name` or `.subLocality` — CONTEXT.md leaves this to discretion; this research picked `.locality` because it reads most naturally in a narrow widget card ("Cupertino" not "Apple Inc." or a neighborhood name), but this is a judgment call, not a verified requirement | Code Examples | Low — cosmetic; easy to swap to a different `CLPlacemark` field post-hoc, no architectural dependency on the exact field chosen |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact `weatherExtendedContentHeight` value**
    - What we know: it must exceed `switcherContentHeight` (196pt) by however much the forecast row + its own top padding needs; `trayContentHeight`'s doc comment shows the box-math style to follow (sum of camera clearance + header + content + bottom inset).
    - What's unclear: the forecast row's actual height in points depends on the day-chip font sizes/padding chosen during implementation — not knowable without building the chip first.
    - Recommendation: follow `trayContentHeight`'s worked-math-in-a-comment convention once the chip design is drafted; treat the first value as a starting point for on-device tuning, exactly as `switcherRowHeight`'s own doc comment already states ("a starting point for on-device tuning").
+   - **Resolved:** `33-UI-SPEC.md`'s Layout Contract now specifies the worked-math values directly — `weatherMediumContentHeight = 290` and `weatherLargeContentHeight = 470` — carried into `33-02-PLAN.md` Task 2's `blobShape` height constants (flagged there as needing on-device tuning at the Task 4 checkpoint).
 
 2. **Does `handleSettingsChanged()` need a new branch for immediate live-refresh on flip-to-extended, or does the existing render pass suffice?**
    - What we know: `handleSettingsChanged()` already re-runs `renderPresentation()` under `withAnimation(...)` for every settings change (materialStyle, accents, activity toggles) — this alone should make the compact→extended layout swap animate live per D-04, since `outfitState.forecast` will already be populated from the last refresh cycle (data was fetched all along, just not rendered until the toggle flips — see Pitfall 2's "fetch always, render conditionally" resolution).
    - What's unclear: whether `outfitState.forecast` should be populated even while the toggle is OFF (making the flip-to-on transition always have data ready) or only fetched once the toggle is first turned on (saving one field of memory, at the cost of a possible empty-forecast flash on first enable).
    - Recommendation: always populate `outfitState.forecast` from the same combined call regardless of toggle state (simpler, avoids Pitfall 2's partial-render window entirely, and the "quota" argument in Pitfall 1 is about call *count* not response *size* — reading an unused field costs nothing extra since it's the same one call either way).
+   - **Resolved:** confirmed as-recommended — no new `handleSettingsChanged()` branch needed. `33-02-PLAN.md`'s `refreshWeather()` (Task 3) writes `outfitState.weather`/`.forecast`/`.hourlyForecast` unconditionally on every refresh regardless of `weatherStyle`, so the existing `renderPresentation()` re-run under `withAnimation(...)` is sufficient for live Medium/Large switching.
 
 ## Environment Availability
 

@@ -2,7 +2,7 @@
 
 **Mapped:** 2026-07-15
 **Files analyzed:** 7 (6 modified, 1 new test file)
-**Analogs found:** 7 / 7 — every file in this phase is a modification of an existing, already-shipped seam; there are no genuinely new files/directories.
+**Analogs found:** 6 / 7 — every file in this phase is a modification of an existing, already-shipped seam except one genuinely new component: the daily forecast range-bar list (`dailyForecastList`/`dailyForecastRow`/`temperatureColor`), per CONTEXT.md D-08 (see "No Analog Found" below).
 
 ## File Classification
 
@@ -270,7 +270,9 @@ final class LocationServiceTests: XCTestCase {
 
 ## No Analog Found
 
-None — every file in this phase's scope is an extension of an existing, already-shipped seam (`WeatherService`, `BasicOutfitState`, `NotchWindowController`, `NotchPillView`, `ActivitySettings`, `SettingsView`, and the `LocationServiceTests`-style fake-conformer test pattern). No new architectural pattern needs inventing (RESEARCH.md's own "Key insight").
+One item: the daily forecast range-bar list (`dailyForecastList`/`dailyForecastRow`/`temperatureColor` in `Islet/Notch/NotchPillView.swift`, added by `33-02-PLAN.md` Task 2) is a genuinely new SwiftUI component with no existing precedent anywhere in this codebase — per CONTEXT.md's D-08, this is explicitly called out as "the highest-risk/most-novel piece of this phase." Its per-row min/max range-bar geometry (`GeometryReader`-driven fractional width/offset math) and its 5-stop `NSColor.blended(withFraction:of:)` temperature-gradient helper are both invented for this phase, not extensions of a prior pattern; the Task 4 on-device checkpoint verifies its rendering and click-through behavior specifically because of this novelty.
+
+Every OTHER file in this phase's scope is an extension of an existing, already-shipped seam (`WeatherService`, `BasicOutfitState`, `NotchWindowController`, `ActivitySettings`, `SettingsView`, and the `LocationServiceTests`-style fake-conformer test pattern) — the hourly forecast row, the WeatherStyle settings enum, and the two-tier panel geometry all follow patterns cataloged above. No new architectural pattern needs inventing for those (RESEARCH.md's own "Key insight"), only for the daily range-bar list.
 
 ## Metadata
 
