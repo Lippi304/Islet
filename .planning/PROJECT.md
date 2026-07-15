@@ -30,7 +30,7 @@ Other standing candidates for a future milestone: a countdown timer (still Out o
 
 **Goal:** Declutter Home to music-only, consolidate all file-drop behavior into Tray (with a Droppy-style Drop/AirDrop/Mail destination choice), redesign Weather as an iOS-widget-style card, widen/enlarge the Tray file layout, and give the expanded-state notch silhouette an outward-flaring top edge.
 
-**Status:** Not formally closed — left open in parallel while v1.6 planning begins (explicit user decision, 2026-07-15). 4/6 phases complete: Phase 29 (SHAPE-01, NotchShape flare), Phase 30 (HOME-01/02/03, Home music-only), Phase 31 (TRAY-01, shelf consolidation to Tray-only), Phase 32 (TRAY-05, Tray Widening) shipped 2026-07-14. Phase 33 (WEATHER-01/02, Weather widget redesign) code-complete, on-device UAT (Task 4) pending. Phase 34 (TRAY-02/03/04, Quick Action Destination Picker) not started. Resume with `/gsd-verify-work 33` once UAT passes, then `/gsd-plan-phase 34`.
+**Status:** Not formally closed — left open in parallel while v1.6 planning begins (explicit user decision, 2026-07-15). 5/6 phases complete: Phase 29 (SHAPE-01, NotchShape flare), Phase 30 (HOME-01/02/03, Home music-only), Phase 31 (TRAY-01, shelf consolidation to Tray-only), Phase 32 (TRAY-05, Tray Widening) shipped 2026-07-14; Phase 34 (TRAY-02/03/04, Quick Action Destination Picker) shipped 2026-07-15 after a post-UAT drag-target redesign. Phase 33 (WEATHER-01/02, Weather widget redesign) code-complete, on-device UAT (Task 4) pending. Resume with `/gsd-verify-work 33` once UAT passes to formally close v1.5.
 
 **Target features:**
 - Home shows ONLY Now Playing — live controls while something plays, cover+title (no live controls) for the last-played track while paused/stopped; the time/weather/calendar glance is fully removed from Home (Weather and Calendar already have their own switcher tabs).
@@ -200,11 +200,17 @@ _v1.4 (Architecture Redesign) is code-complete — all 6 phases shipped 2026-07-
 
 _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-only) shipped 2026-07-14 but are not yet individually itemized here — see `.planning/ROADMAP.md` Phase 29/30 detail sections and their SUMMARY.md files for what shipped._
 
+**Quick Action Destination Picker (Phase 34 — TRAY-02, TRAY-03, TRAY-04):**
+
+- [x] Dragging a file into the island's accept region shows a Drop/AirDrop/Mail picker DURING the drag (dragEntered edge), with live per-button hover highlighting and release-on-target selection — replaces the click-based picker rejected during on-device UAT. `computeQuickActionButtonFrames(card:)` (pure geometry, unit-tested) plus controller-side hit-testing in `NotchWindowController` drive the whole interaction; no `Button(action:)` taps involved. (Phase 34)
+- [x] Choosing Drop stages the file(s) into Tray (TRAY-03); choosing AirDrop/Mail invokes `NSSharingService` directly with zero window-activation code, re-confirmed on real hardware (TRAY-04). Dragging back out before releasing discards the pending file(s) with no orphaned session copy (D-13b/Pitfall 6 fix). (Phase 34)
+- Shipped after a full replan: the original click-based implementation (Wave 1 of the original 34-01/34-02) passed code but was rejected in on-device UAT, then rebuilt as the drag-target model described above and re-verified on-device (7/7 checkpoint checks passed). Code review flagged one carried-forward critical issue (CR-01: synchronous main-thread file copy on drag-enter, no debounce) as a non-blocking fast-follow — see `34-REVIEW.md`. (Phase 34)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_v1.5 (Home Focus & Widget Redesign) — see `.planning/milestones/v1.5-ROADMAP.md`/`.planning/ROADMAP.md` for the full 11-requirement traceability table. Remaining, left open in parallel: Phase 33 on-device UAT (WEATHER-01/02), Phase 34 Quick Action picker (TRAY-02/03/04)._
+_v1.5 (Home Focus & Widget Redesign) — see `.planning/milestones/v1.5-ROADMAP.md`/`.planning/ROADMAP.md` for the full 11-requirement traceability table. Remaining, left open in parallel: Phase 33 on-device UAT (WEATHER-01/02)._
 _v1.6 (Liquid Glass & System HUD Suite) — requirements being defined, see `.planning/REQUIREMENTS.md` once written._
 
 ### Out of Scope
@@ -304,4 +310,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-15 — v1.6 (Liquid Glass & System HUD Suite) started. v1.5 (Home Focus & Widget Redesign) left open in parallel, not formally closed: 4/6 phases shipped, Phase 33 code-complete pending on-device UAT, Phase 34 not started — explicit user decision to begin v1.6 requirements/roadmap work without blocking on v1.5's remaining phases. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
+*Last updated: 2026-07-15 — Phase 34 (Quick Action Destination Picker, TRAY-02/03/04) shipped and verified on-device after a post-UAT drag-target redesign. v1.5 (Home Focus & Widget Redesign) left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT — explicit user decision to begin v1.6 requirements/roadmap work without blocking on v1.5's remaining phase. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
