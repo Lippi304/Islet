@@ -29,30 +29,28 @@ created: 2026-07-15
 
 ## Spacing Scale
 
-Reuses this project's existing point-value convention (named constants, not a strict 4pt grid). Values for this phase:
+Reuses this project's existing point-value convention (named constants, not a strict 4pt grid). Every value this phase *introduces* stays on the standard 4pt scale (4, 8, 16, 24, 32, 48, 64) — no new odd values, matching Phase 33's precedent of grandfathering only the one pre-existing non-4pt constant (`cameraClearance`).
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4pt | Preview block's icon→filename gap (mirrors `ShelfItemView`'s `VStack(spacing: 2)`... — see note below, this phase uses 4 not 2 since the preview sits alone, not in a dense scrolling row) |
-| — | 6pt | Button chip's internal icon→label gap |
-| sm | 8pt | Not used directly this phase (reserved, matches project's existing sm token) |
+| xs | 4pt | Preview block's icon→filename gap (mirrors `ShelfItemView`'s `VStack(spacing: 2)` — this phase uses 4 not 2 since the preview sits alone, not in a dense scrolling row) |
+| sm | 8pt | Button chip's internal icon→label gap (`VStack(spacing: 8)`); button chip's internal vertical padding (`.padding(.vertical, 8)`) — **reused verbatim from `chipButton`'s own existing `.padding(.vertical, 8)`** (`NotchPillView.swift:1310`), not a new value |
 | md | 16pt | Outer content horizontal inset (`.padding(.horizontal, 16)`, matches every existing full-view); section gap between the file preview and the 3-button row; gap between the 3 button chips (`HStack(spacing: 16)`) |
-| — | 10pt | Button chip's internal vertical padding (`.padding(.vertical, 10)`) |
-| — | 42pt | `Self.cameraClearance` — existing fixed constant, top-of-card clearance, unchanged |
+| — | 42pt | `Self.cameraClearance` — existing fixed constant, top-of-card clearance, unchanged (grandfathered, pre-existing, same precedent as Phase 33) |
 
-Exceptions: none of these are strict 4pt-multiple derivations where they diverge (6pt, 10pt) — they follow this project's own existing hand-tuned convention (see `ShelfItemView`'s 2pt icon-gap, `chipButton`'s 8pt vertical padding for precedent of small odd values). Treat 6pt/10pt/190pt (see Layout Contract) as starting values, on-device-tunable like every prior phase's own geometry (Tray took 3 rounds, Weather took 6).
+Exceptions: none. Every value newly introduced by this phase (4pt, 8pt, 16pt) is a standard 4pt-scale multiple; the only non-4pt number in this spec is the pre-existing `cameraClearance` (42pt), grandfathered exactly as Phase 33's approved UI-SPEC grandfathered it. Treat the 8pt gap/padding values and the 188pt content height (see Layout Contract) as starting values, on-device-tunable like every prior phase's own geometry (Tray took 3 rounds, Weather took 6) — tuning the *number* is expected; introducing a *non-4pt* number is not.
 
 ---
 
 ## Typography
 
-Reuses two of the project's already-established sizes (9pt, 11pt) — **no new size is introduced**, staying inside the project's existing type scale rather than adding a fifth value.
+Reuses two of the project's already-established sizes (9pt, 11pt) — **no new size is introduced**, staying inside the project's existing type scale rather than adding a fifth value. Both roles below are single-line and truncate rather than wrap — no custom line height is needed for either (default single-line metrics apply, same as `ShelfItemView`'s existing caption).
 
 | Role | Size | Weight | Usage |
 |------|------|--------|-------|
 | Filename caption | 9pt | regular (400) | Single-file preview filename — **reused verbatim from `ShelfItemView`** (D-02: "reuses the existing `ShelfItemView` icon+filename convention"), same `.foregroundStyle(.secondary)`, `.lineLimit(1)`, `.truncationMode(.middle)` |
-| Multi-file count | 11pt | regular (400) | Multi-file preview's "N files" label, `.foregroundStyle(.secondary)` |
-| Button label | 11pt | semibold (600) | "Drop" / "AirDrop" / "Mail" chip labels, `.foregroundStyle(.white)` — dims to `.white.opacity(0.3)` when disabled (D-09 fallback, see Layout Contract) |
+| Multi-file count | 11pt | regular (400) | Multi-file preview's "N files" label, `.foregroundStyle(.secondary)`, single line, no truncation needed (short fixed-format string) |
+| Button label | 11pt | semibold (600) | "Drop" / "AirDrop" / "Mail" chip labels, `.foregroundStyle(.white)` — dims to `.white.opacity(0.3)` when disabled (D-09 fallback, see Layout Contract); single line, fixed short strings, no truncation needed |
 
 **2-weight budget (unchanged):** regular (400) + semibold (600).
 
@@ -95,6 +93,8 @@ Reuses two of the project's already-established sizes (9pt, 11pt) — **no new s
 
 *(Supplementary section — this phase's real design surface is a new full-takeover presentation + its geometry wiring, not a token table alone. Executor: read this before touching code.)*
 
+**Focal point:** the single-file preview (icon + filename) is the visual anchor at the top — it answers "what am I about to send" before the user looks at the 3 buttons below. The button row is secondary/equal-weight (no button reads as "primary"), matching the "Accent reserved for" note above: nothing on this screen competes with the preview for attention.
+
 ### 1. Presentation shape and switcher-row visibility (open decision, resolved here)
 
 34-CONTEXT.md's `code_context` flagged this explicitly as unresolved: *"the picker case needs an explicit decision here too (does the switcher stay visible during the picker, or is it hidden like Charging/Device wings are?) — left to planning since it wasn't asked directly."*
@@ -108,11 +108,12 @@ Note: "same shape as... wings splash" is a **behavioral** description (full-take
 ```swift
 // New — no existing constant fits (expandedSize.height=144 is too short for preview+3 buttons;
 // switcherContentHeight=196 is for switcher-row presentations, which this is NOT — see decision above).
-// Worked math: cameraClearance(42) + preview(icon 40 + gap 4 + caption ~11 ≈ 55) + sectionGap(16)
-//   + buttonChip(icon 22 + gap 6 + label ~13 + vPadding 2×10 ≈ 61) + bottomInset(16) ≈ 190
-static let quickActionPickerContentHeight: CGFloat = 190
+// Worked math (all spacing values on the standard 4pt scale — see Spacing Scale above):
+//   cameraClearance(42) + preview(icon 40 + gap 4 + caption ~11 ≈ 55) + sectionGap(16)
+//   + buttonChip(icon 22 + gap 8 + label ~13 + vPadding 2×8 ≈ 59) + bottomInset(16) = 188
+static let quickActionPickerContentHeight: CGFloat = 188
 ```
-Reuses `Self.expandedSize.width` (420pt) unchanged — no new width constant needed. Content width available for the 3-button row: `420 − 2×16 = 388pt`; at `HStack(spacing: 16)` for 3 flexible-width chips, each gets `(388 − 2×16) / 3 ≈ 118.7pt` — ample room for a 22pt icon + 11pt label stacked vertically. Treat 190pt as a starting value, confirm/tune on first on-device build (same convention as every prior phase's own geometry number).
+Reuses `Self.expandedSize.width` (420pt) unchanged — no new width constant needed. Content width available for the 3-button row: `420 − 2×16 = 388pt`; at `HStack(spacing: 16)` for 3 flexible-width chips, each gets `(388 − 2×16) / 3 ≈ 118.7pt` — ample room for a 22pt icon + 11pt label stacked vertically. Treat 188pt as a starting value, confirm/tune on first on-device build (same convention as every prior phase's own geometry number).
 
 ### 3. New view structure (`quickActionPickerView`, mirrors `trayFullView`'s call shape)
 
@@ -147,7 +148,7 @@ private func quickActionButtonRow(_ pending: PendingDrop) -> some View {
 
 private func quickActionButton(icon: String, label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
     Button(action: action) {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 22))
             Text(label)
@@ -155,7 +156,7 @@ private func quickActionButton(icon: String, label: String, enabled: Bool, actio
         }
         .foregroundStyle(.white.opacity(enabled ? 1.0 : 0.3))   // D-09 disabled dim
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)   // reused verbatim from chipButton's own .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Color.white.opacity(enabled ? 0.12 : 0.06))   // mirrors chipButton's existing fill convention
