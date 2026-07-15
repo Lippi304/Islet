@@ -1,11 +1,12 @@
 ---
 phase: 33
 slug: weather-widget-redesign
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-15
 revised: 2026-07-15
+reviewed_at: 2026-07-15
 ---
 
 # Phase 33 — UI Design Contract
