@@ -1969,6 +1969,15 @@ final class NotchWindowController {
     // URLs) so icon lookup + click-to-open are realistic ahead of Phase 22's real drag-in.
     // DEBUG-only: compiled out of Release entirely.
     private func seedDebugShelfItems() {
+        // Debug-tray-not-updating fix (2026-07-16) — this used to reseed unconditionally on
+        // EVERY launch, so shelfViewState.items was never empty in a Debug build, which made
+        // trayFullView's `shelfViewState.items.isEmpty` branch (-> trayEmptyState) permanently
+        // unreachable and silently hid any change made to that view. One-time seed only, so the
+        // shelf's empty/non-empty state goes back to normal user control (drag-in / Clear All).
+        let seededKey = "IsletDebugShelfSeeded"
+        guard !UserDefaults.standard.bool(forKey: seededKey) else { return }
+        UserDefaults.standard.set(true, forKey: seededKey)
+
         let seedDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("IsletShelfSeed", isDirectory: true)
         try? FileManager.default.createDirectory(at: seedDir, withIntermediateDirectories: true)
 
