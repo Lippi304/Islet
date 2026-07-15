@@ -93,7 +93,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 30: Home Music-Only** - Home shows only live/last-played music or an explicit empty state; idle time/weather/calendar glance removed (completed 2026-07-14)
 - [x] **Phase 31: Shelf Consolidation to Tray-Only** - Shelf-strip reveal removed from Home/Calendar/Weather, lives only on Tray (completed 2026-07-14)
 - [x] **Phase 32: Tray Widening** - Wider Tray layout with larger file tiles, more files visible side-by-side (completed 2026-07-14)
-- [ ] **Phase 33: Weather Widget Redesign** - Medium (header + hourly row) always shown, Settings-gated Large adds a daily range-bar list — 1:1 iOS Weather widget clone
+- [x] **Phase 33: Weather Widget Redesign** - Medium (header + hourly row) always shown, Settings-gated Large adds a daily range-bar list — 1:1 iOS Weather widget clone (completed 2026-07-15)
 - [ ] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop
 
 ### 📋 v1.6 Liquid Glass & System HUD Suite (Planned)
@@ -156,7 +156,7 @@ Plans:
 
 **v1.4:** 6/6 phases complete (100%) — Phases 23-28 all done. Pending final on-device UAT re-confirmation of 2 code-review fixes before formal `/gsd:complete-milestone`.
 
-**v1.5:** 4/6 phases complete (67%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md.
+**v1.5:** 5/6 phases complete (83%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md. Phase 33 (WEATHER-01/02) completed 2026-07-15 — on-device UAT required 6 gap-closure rounds (stale hourly data, text-wrap doubling row height, blobShape missing content-clipping onto the panel background, NotchShape's real taper clipping the daily row, final height/gap tuning); see 33-02-SUMMARY.md. Only Phase 34 (Quick Action Destination Picker) remains.
 
 **v1.6:** 0/8 phases complete (0%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34.
 
@@ -553,7 +553,7 @@ Plans:
 
 **Wave 2** *(blocked on 33-01)*
 
-- [ ] 33-02-PLAN.md — Medium/Large iOS Weather widget clone: hourly forecast row, daily range-bar list, Medium/Large Settings control, controller fetch/geometry three-site rule (two size tiers) + on-device UAT
+- [x] 33-02-PLAN.md — Medium/Large iOS Weather widget clone: hourly forecast row, daily range-bar list, Medium/Large Settings control, controller fetch/geometry three-site rule (two size tiers) + on-device UAT
 
 ### Phase 34: Quick Action Destination Picker
 
