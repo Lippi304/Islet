@@ -420,16 +420,12 @@ struct NotchPillView: View {
     static let hourlyChipCount = 6
     static let largeDailyRowCount = 4
 
-    // Phase 34 / TRAY-02 (34-UI-SPEC.md "New geometry constant") — the picker's own content
-    // height; neither expandedSize.height (144, too short for preview+3 buttons) nor
-    // switcherContentHeight (196, reserved for switcher-row presentations, which this is NOT
-    // per the UI-SPEC's locked decision that the switcher stays hidden) fits. Reuses
-    // expandedSize.width unchanged -- no new width constant needed. Box math (4pt spacing
-    // scale, starting value, on-device-tunable like every other geometry constant in this
-    // file's history):
-    //   cameraClearance(42) + preview(icon 40 + gap 4 + caption ~11 ~= 55) + sectionGap(16)
-    //   + buttonChip(icon 22 + gap 8 + label ~13 + vPadding 2x8 ~= 59) + bottomInset(16) = 188.
-    static let quickActionPickerContentHeight: CGFloat = 188
+    // Phase 34 (UAT revision, D-15) / 34-UI-SPEC.md §2 — the picker's content height, shrunk
+    // from 188 to 117 now that the preview block (D-14) and its 16pt section gap are gone. Only
+    // camera-clearance + the button row + a bottom inset remain:
+    //   cameraClearance(42) + buttonChip(icon 22 + gap 8 + label ~13 + vPadding 2x8 ~= 59)
+    //   + bottomInset(16) = 117.
+    static let quickActionPickerContentHeight: CGFloat = 117
 
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
@@ -476,8 +472,8 @@ struct NotchPillView: View {
                 weatherFullView                                                  // 28-04 round 4: current-conditions full view
             case .trayExpanded:
                 trayFullView                                                     // 28-04 round 5: dedicated files-only Tray view
-            case .quickActionPicker(let pending):
-                quickActionPickerView(pending)                                   // Phase 34 / TRAY-02: destination picker
+            case .quickActionPicker:
+                quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
             case .idle:
                 collapsedIsland                                                  // idle pill
             }
@@ -1073,85 +1069,60 @@ struct NotchPillView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    // Phase 34 / TRAY-02 (34-UI-SPEC.md Layout & Interaction Contract §1/§3) — the Quick
-    // Action Destination Picker: a full-takeover presentation (switcher HIDDEN, showSwitcher:
-    // false -- the picker is behaviorally analogous to the Charging/Device wings splash, not
-    // a switcher-row tab) showing a file preview above 3 equal-weight Drop/AirDrop/Mail
-    // buttons. Mirrors trayFullView's exact blobShape call shape.
-    private func quickActionPickerView(_ pending: PendingDrop) -> some View {
+    // Phase 34 (UAT revision, D-14/D-15) / 34-UI-SPEC.md Layout & Interaction Contract §1/§3 —
+    // the Quick Action Destination Picker: a full-takeover presentation (switcher HIDDEN,
+    // showSwitcher: false -- the picker is behaviorally analogous to the Charging/Device wings
+    // splash, not a switcher-row tab) showing ONLY the 3 equal-weight Drop/AirDrop/Mail buttons
+    // -- no file preview, uniformly for single- and multi-file drops (D-14). Mirrors
+    // trayFullView's exact blobShape call shape. No parameter: the view has no remaining use
+    // for the PendingDrop payload (the CONTROLLER's PendingDrop.items remains fully used,
+    // unchanged, by Plan 02's button handlers).
+    private func quickActionPickerView() -> some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                   height: Self.quickActionPickerContentHeight, shelfItems: [],
                   shelfVisible: false, showSwitcher: false) {
-            VStack(spacing: 16) {
-                quickActionPreview(pending)
-                quickActionButtonRow(pending)
-            }
-            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches every other full-view
-        }
-    }
-
-    // UI-SPEC §4 (D-02, locked): single file -> ShelfItemView's exact icon+filename visual
-    // convention, as a lightweight NON-INTERACTIVE twin (no .onTap/.onDelete/.onDrag — the
-    // file isn't staged in the shelf yet, so ShelfItemView's own .onDrag would wrongly offer
-    // a drag source for it). Multi-file -> a generic icon + "{n} files" count, never
-    // ShelfItemView itself.
-    private func quickActionPreview(_ pending: PendingDrop) -> some View {
-        Group {
-            if pending.items.count == 1, let item = pending.items.first {
-                VStack(spacing: 4) {   // UI-SPEC "xs" token — preview sits alone, not a dense row
-                    Image(nsImage: NSWorkspace.shared.icon(forFile: item.localURL.path))
-                        .resizable()
-                        .frame(width: 40, height: 40)
-                    Text(item.filename)
-                        .font(.system(size: 9))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)   // V5 mitigation (T-34-01): item.filename is untrusted
-                        .frame(maxWidth: 56)
-                }
-            } else {
-                VStack(spacing: 4) {
-                    Image(systemName: "doc.on.doc.fill")
-                        .font(.system(size: 32))
-                        .frame(width: 40, height: 40)
-                        .foregroundStyle(.white.opacity(0.7))
-                    Text("\(pending.items.count) files")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
+            quickActionButtonRow()
+                .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches every other full-view
         }
     }
 
     // UI-SPEC §5 — 3 equal-weight destination chips, no button reads as primary. AirDrop/Mail
     // dim + disable per D-09's fallback flags; Drop is never disabled (TRAY-03 carries no
-    // such risk).
-    private func quickActionButtonRow(_ pending: PendingDrop) -> some View {
+    // such risk). isHovered reads presentationState.hoveredQuickActionButtonIndex (D-11) — the
+    // view never computes which button is hovered itself, the controller's release hit-test
+    // (Plan 02) does the actual selection.
+    private func quickActionButtonRow() -> some View {
         HStack(spacing: 16) {
-            quickActionButton(icon: "tray.and.arrow.down.fill", label: "Drop", enabled: true, action: onQuickActionDrop)
-            quickActionButton(icon: "personalhotspot", label: "AirDrop", enabled: airDropAvailable, action: onQuickActionAirDrop)
-            quickActionButton(icon: "envelope.fill", label: "Mail", enabled: mailAvailable, action: onQuickActionMail)
+            quickActionButton(icon: "tray.and.arrow.down.fill", label: "Drop", enabled: true,
+                               isHovered: presentationState.hoveredQuickActionButtonIndex == 0)
+            quickActionButton(icon: "personalhotspot", label: "AirDrop", enabled: airDropAvailable,
+                               isHovered: presentationState.hoveredQuickActionButtonIndex == 1)
+            quickActionButton(icon: "envelope.fill", label: "Mail", enabled: mailAvailable,
+                               isHovered: presentationState.hoveredQuickActionButtonIndex == 2)
         }
     }
 
-    private func quickActionButton(icon: String, label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 22))
-                Text(label)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-            }
-            .foregroundStyle(.white.opacity(enabled ? 1.0 : 0.3))   // D-09 disabled dim
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)   // reused verbatim from chipButton's own .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.white.opacity(enabled ? 0.12 : 0.06))   // mirrors chipButton's existing fill convention
-            )
+    // Phase 34 (UAT revision, D-12) — no Button(action:) wrapper anymore: the view no longer
+    // decides selection, the controller's release hit-test does (Plan 02). Render-only: fixed
+    // 22x22pt icon frame (Pitfall 9 — normalizes Drop/AirDrop/Mail to identical height
+    // regardless of each SF Symbol's own glyph bounds), D-11's two-brightness-step fill +
+    // slight scale under the live pointer.
+    private func quickActionButton(icon: String, label: String, enabled: Bool, isHovered: Bool) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 22))
+                .frame(width: 22, height: 22)   // Pitfall 9 fix — fixed icon box, identical height across buttons
+            Text(label)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
         }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
+        .foregroundStyle(.white.opacity(enabled ? 1.0 : 0.3))   // D-09 disabled dim
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)   // reused verbatim from chipButton's own .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.white.opacity(enabled ? (isHovered ? 0.22 : 0.12) : 0.06))   // D-11 hover step
+        )
+        .scaleEffect(isHovered ? 1.04 : 1.0)   // D-11 slight scale
     }
 
     // Phase 26 / ONBOARD-01 — the notch-hosted onboarding carousel. Same call shape as
@@ -2434,9 +2405,9 @@ private struct OnboardingDoneStep: View {
         .background(Color.gray.opacity(0.3))
 }
 
-// Quick Action Picker (single file) — proves the single-file preview branch (D-02) compiles
-// and renders: ShelfItemView-style icon+filename over the 3-button row.
-#Preview("Quick Action Picker (single file)") {
+// Quick Action Picker — Idle (Phase 34 UAT revision, D-14/D-15) — proves the buttons-only
+// 117pt picker compiles and renders with no button hovered.
+#Preview("Quick Action Picker — Idle") {
     let state = NotchInteractionState()
     state.phase = .expanded
     let item = ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/tmp/report.pdf"),
@@ -2455,19 +2426,19 @@ private struct OnboardingDoneStep: View {
         .background(Color.gray.opacity(0.3))
 }
 
-// Quick Action Picker (multiple files) — proves the multi-file preview branch (D-03: one
-// batch, one decision) compiles and renders: generic icon + "{n} files" count.
-#Preview("Quick Action Picker (multiple files)") {
+// Quick Action Picker — AirDrop Hovered (Phase 34 UAT revision, D-11) — proves the live
+// drag-hover highlight (0.22 fill + 1.04 scale) renders on the AirDrop button.
+#Preview("Quick Action Picker — AirDrop Hovered") {
     let state = NotchInteractionState()
     state.phase = .expanded
-    let items = (1...3).map { i in
-        ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/tmp/file\(i).txt"),
-                  localURL: URL(fileURLWithPath: "/tmp/file\(i).txt"),
-                  filename: "file\(i).txt", addedAt: Date())
-    }
+    let item = ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/tmp/report.pdf"),
+                          localURL: URL(fileURLWithPath: "/tmp/report.pdf"),
+                          filename: "report.pdf", addedAt: Date())
+    let presentationState = IslandPresentationState(.quickActionPicker(PendingDrop(items: [item])))
+    presentationState.hoveredQuickActionButtonIndex = 1
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
-                         presentationState: IslandPresentationState(.quickActionPicker(PendingDrop(items: items))),
+                         presentationState: presentationState,
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
                          onboardingState: OnboardingViewState(),

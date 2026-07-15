@@ -15,6 +15,14 @@ import Foundation
 final class IslandPresentationState: ObservableObject {
     @Published var presentation: IslandPresentation
 
+    // Phase 34 (UAT revision, D-11) — the live drag-hover carrier for the Quick Action picker's
+    // 3 destination buttons. Controller-owned: Plan 02's `handleDragApproachTick` computes which
+    // button (if any) `NSEvent.mouseLocation` currently hits via `computeQuickActionButtonFrames`
+    // and assigns it here, only on change (34-RESEARCH.md Pitfall 8 — avoids re-rendering the
+    // picker dozens of times/second for no visual change). The view is a pure consumer, never a
+    // computer, of this value — mirrors `presentation` itself in that respect.
+    @Published var hoveredQuickActionButtonIndex: Int? = nil
+
     init(_ presentation: IslandPresentation = .idle) {
         self.presentation = presentation
     }
