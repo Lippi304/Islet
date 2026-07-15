@@ -55,6 +55,12 @@ struct NotchPillView: View {
         if case .trayExpanded = presentation { return true }
         return false
     }
+    // Quick task 260715-vsd — mirrors isOnboardingPresentation/isTrayPresentation's exact
+    // shape so the outer body frame below can branch to the wider calendarWidth box.
+    private var isCalendarPresentation: Bool {
+        if case .calendarExpanded = presentation { return true }
+        return false
+    }
     // Quick task 260714-3k6 (anticipates ROADMAP Phase 31 / TRAY-01) — the additive shelf-strip
     // reveal under Home/Calendar/Weather/Now-Playing is gone: the shelf only ever renders inside
     // the dedicated Tray view (trayFullView draws it directly via shelfRow(_:) with its own
@@ -362,6 +368,14 @@ struct NotchPillView: View {
     // ~16pt bottom margin.
     static let traySize = CGSize(width: 650, height: 144)
     static let trayContentHeight: CGFloat = 128
+
+    // Quick task 260715-vsd — the Calendar-only width override. calendarFullView's own
+    // `.padding(.horizontal, 16)` is 8pt short of the 24pt wall-inset every NotchShape edge
+    // curves in at (this file's own documented convention — see mediaExpanded's
+    // `.frame(maxWidth: 322)` comment); combined with `calendarFullView`'s 4% content
+    // scale-down, the extra +40pt width gives the right-aligned "+ Add" trigger enough
+    // clearance from that curve to render fully inside the visible shape.
+    static let calendarWidth: CGFloat = 460
     // Gap-closure (on-device UAT round 3) — the shared `shelfRowHeight` (56, sized for the
     // OTHER shelfRow callers' 28x28pt icons) is too short for Tray's 40x40pt icons (Task 3):
     // 40 (icon) + 2 (VStack spacing) + ~13 (9pt filename line, incl. SF Pro Text leading) = ~55pt
@@ -497,7 +511,7 @@ struct NotchPillView: View {
         // this outer frame must grow/shrink in lockstep with blobShape's own height ternary
         // below, or the wider/shorter Tray content clips or leaves a stale gap. Tray still
         // shows the switcher row (showsSwitcherRow), so + switcherRowHeight is unchanged.
-        .frame(width: isTrayPresentation ? Self.traySize.width : (isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width),
+        .frame(width: isTrayPresentation ? Self.traySize.width : (isCalendarPresentation ? Self.calendarWidth : (isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width)),
                height: isTrayPresentation
                    ? Self.trayContentHeight + Self.switcherRowHeight
                    : (isOnboardingPresentation
@@ -607,7 +621,7 @@ struct NotchPillView: View {
         // `blobShape` now applies the shared `switcherContentHeight` box UNCONDITIONALLY
         // whenever `showSwitcher` is true (see that constant's doc comment), so this call site
         // no longer needs its own per-case height.
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, width: Self.calendarWidth,
                   shelfItems: shelfViewState.items,
                   shelfVisible: shelfStripVisible, showSwitcher: true) {
             HStack(spacing: 0) {
@@ -621,6 +635,10 @@ struct NotchPillView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
+            // Quick task 260715-vsd — scales the whole padded HStack (month grid, divider, day
+            // list + "+ Add" button) inward by 4% from its own center, pulling the Add button
+            // further from the curved wall on top of the extra calendarWidth from step 1.
+            .scaleEffect(0.96)
         }
     }
 
@@ -1052,17 +1070,21 @@ struct NotchPillView: View {
     // verfügbar" style, since an empty shelf is a normal empty collection (like an empty
     // inbox), not a degraded/blocked feature.
     private var trayEmptyState: some View {
-        VStack(spacing: 4) {
+        // Quick task 260715-vsd — outer VStack(spacing: 9) grows only the icon->text gap
+        // (4pt -> 9pt); the inner VStack keeps title->subtitle at the original 4pt.
+        VStack(spacing: 9) {
             Image(systemName: "tray")
                 .font(.system(size: 28))
                 .foregroundStyle(.white.opacity(0.4))
-            Text("No files yet")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
-            Text("Drag files onto the notch to add them here.")
-                .font(.system(size: 11, weight: .regular, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 4) {
+                Text("No files yet")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("Drag files onto the notch to add them here.")
+                    .font(.system(size: 11, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
         .padding(.top, 24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -1910,7 +1932,7 @@ struct NotchPillView: View {
                     }
                 }
                 .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
-                .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve
+                .padding(.bottom, 40)     // Quick task 260715-vsd — shrinks the empty gap above the switcher row (was 12, sized only for "room for the bottomCornerRadius:20 curve")
                 // Quick task 260714-3k6 gap-closure round 2 — was `.padding(.horizontal, 26)`
                 // (a fix for the round-1 wall-overlap bug: NotchShape's side walls sit at a
                 // CONSTANT `topCornerRadius`/24pt inset from each edge, independent of panel

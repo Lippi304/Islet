@@ -1173,6 +1173,12 @@ final class NotchWindowController {
             // regression class comes back. No switcherHeight addend (D-01 full-takeover,
             // no switcher row).
             contentSize = CGSize(width: expandedSize.width, height: NotchPillView.quickActionPickerContentHeight)
+        } else if case .calendarExpanded = presentationState.presentation {
+            // Quick task 260715-vsd (geometry three-site rule) — must mirror
+            // calendarFullView's new `blobShape(width: NotchPillView.calendarWidth)` override,
+            // or the CR-01 click-swallowing/dead-zone regression class comes back.
+            contentSize = CGSize(width: NotchPillView.calendarWidth,
+                                 height: NotchPillView.switcherContentHeight + switcherHeight)
         } else {
             contentSize = CGSize(width: expandedSize.width,
                                  height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)
