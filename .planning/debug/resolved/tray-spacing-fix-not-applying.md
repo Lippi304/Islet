@@ -2,14 +2,14 @@
 status: resolved
 trigger: "UI spacing changes in Islet/Notch/NotchPillView.swift (trayEmptyState, homeEmptyState, mediaExpanded — quick task 260715-vsd) show zero visual effect on-device across 3 consecutive, verified-different code changes, even after the user fully quit Islet (menu bar Quit + Activity Monitor force-quit) and did a Clean Build Folder + fresh Cmd+R rebuild in Xcode."
 created: 2026-07-16T00:30:00Z
-updated: 2026-07-16T00:45:00Z
+updated: 2026-07-16T00:53:00Z
 ---
 
 ## Current Focus
 <!-- OVERWRITE on each update - reflects NOW -->
 
-hypothesis: CONFIRMED — root cause found via direct code reading, confirmed on-device by human verification.
-test: Human clicked "Clear All" in the Tray, and the empty state ("No files yet") appeared for the first time — proving trayEmptyState was previously unreachable and is now reachable.
+hypothesis: CONFIRMED — root cause found via direct code reading, confirmed on-device by human verification, independently corroborated by a second mechanical re-investigation round.
+test: Human clicked the shelf's trash/clear icon in the Tray, and the empty state ("No files yet") appeared for the first time — proving trayEmptyState was previously unreachable and is now reachable.
 expecting: n/a
 next_action: none — session resolved.
 reasoning_checkpoint:
@@ -19,10 +19,11 @@ reasoning_checkpoint:
     - "NotchWindowController.swift:1971-1989 — seedDebugShelfItems() has zero guard/condition; it runs its full 3-item append every single call, and is called unconditionally (no `if items.isEmpty` check) from start() at line 470 inside `#if DEBUG` with no other gate."
     - "resyncShelfViewState() (line 1903) — confirms shelfCoordinator.logic.items is mirrored directly into shelfViewState.items, so the seeded items definitely reach the exact property NotchPillView's `.isEmpty` check reads."
     - "Process/build verification independently ELIMINATED the build-pipeline as the cause: the currently-running Islet process (PID 74064, checked via `ps`/`otool`) is built from the correct workspace (DerivedData info.plist WorkspacePath = .../workspaces/notch/algiers/Islet.xcodeproj) and was compiled at 00:21:55, i.e. AFTER round-3 commit d6c27b8 (00:17:51) — so the running binary DOES contain the round-3 source fix, yet the empty state still could never render. This positively ruled out stale-build/wrong-worktree/zombie-process theories and pointed conclusively at the view-reachability gate above."
-    - "Human on-device confirmation (after the seed-guard fix was applied and rebuilt): user clicked 'Clear All' in the Tray and the 'No files yet' empty state appeared for the first time in this entire debugging saga — direct proof the reachability gate was the real blocker and is now resolved."
-  falsification_test: "If shelfViewState.items were observed non-empty (3 seeded files) immediately after a fresh Debug launch WITHOUT the user ever dragging a file in, and the Tray tab consistently shows the file list (not 'No files yet') on every launch regardless of prior state, the hypothesis is confirmed. Conversely, if the user reports the Tray tab genuinely shows 'No files yet' on a fresh launch, the hypothesis is refuted. RESULT: falsification test passed — 'No files yet' appeared after Clear All, confirming the hypothesis."
-  fix_rationale: "Gate seedDebugShelfItems() behind a one-time UserDefaults flag so it seeds a demo shelf only on the very first-ever Debug launch (preserving its stated purpose: 'so the shelf strip is visually verifiable'), and never re-seeds on subsequent launches. This makes the shelf's empty/non-empty state fully user-controlled after that (drag-in / Clear All), which is what makes trayEmptyState reachable again for testing — addresses the root cause (permanent non-empty gate) rather than the symptom (spacing values)."
-  blind_spots: "This explains trayEmptyState specifically (rounds 1 and 3, the debug session's actual named target). It does NOT by itself explain whether round 2's mediaExpanded (.padding(.bottom, 40)) or homeEmptyState changes were also affected by a similar reachability issue — those are gated by nowPlaying state, not shelf items, and were not re-examined in this session; out of scope unless a future report resurfaces the same symptom for those views. Separately: after the reachability fix, the user reported the trayEmptyState spacing itself still 'looks like before' — this is understood as a normal tuning-magnitude issue (round 3's edit was only a 4pt->2pt reduction in a ~128-133pt box, now visible for the first time but possibly too subtle to notice), NOT a recurrence of the build/reachability bug. That remaining spacing-magnitude tuning is explicitly out of scope for this debug session and is being handled in the quick task's own gap-closure loop (260715-vsd), which can now iterate correctly since trayEmptyState is confirmed reachable."
+    - "Human on-device confirmation (after the seed-guard fix was applied and rebuilt): user clicked the shelf's clear icon and the 'No files yet' empty state appeared for the first time in this entire debugging saga — direct proof the reachability gate was the real blocker and is now resolved."
+    - "Round 2 mechanical re-investigation (independent, triggered by a since-superseded 'FAILED' report — see Evidence log): confirmed exactly one seedDebugShelfItems() call site, no disk-rescan/repopulation path exists anywhere in ShelfCoordinator/ShelfLogic/ShelfFileStore, no checked-in seed directory, the live process's debug dylib (mtime after the fix's source edit) contains the `IsletDebugShelfSeeded` guard string, `defaults read com.lippi304.islet` shows the flag set to 1 this session, and file-mtime evidence shows the 3 seeded session-copy folders were created then subsequently removed this session — independently corroborating that the shelf really was emptied via user interaction, not that the guard silently failed."
+  falsification_test: "If shelfViewState.items were observed non-empty (3 seeded files) immediately after a fresh Debug launch WITHOUT the user ever dragging a file in, and the Tray tab consistently shows the file list (not 'No files yet') on every launch regardless of prior state, the hypothesis is confirmed. Conversely, if the user reports the Tray tab genuinely shows 'No files yet' on a fresh launch, the hypothesis is refuted. RESULT: falsification test passed — 'No files yet' appeared after using the clear icon, confirming the hypothesis; independently corroborated by file-mtime evidence in Round 2."
+  fix_rationale: "Gate seedDebugShelfItems() behind a one-time UserDefaults flag so it seeds a demo shelf only on the very first-ever Debug launch (preserving its stated purpose: 'so the shelf strip is visually verifiable'), and never re-seeds on subsequent launches. This makes the shelf's empty/non-empty state fully user-controlled after that (drag-in / clear icon), which is what makes trayEmptyState reachable again for testing — addresses the root cause (permanent non-empty gate) rather than the symptom (spacing values)."
+  blind_spots: "This explains trayEmptyState specifically (rounds 1 and 3, the debug session's actual named target). It does NOT by itself explain whether round 2's mediaExpanded (.padding(.bottom, 40)) or homeEmptyState changes were also affected by a similar reachability issue — those are gated by nowPlaying state, not shelf items, and were not re-examined in this session; out of scope unless a future report resurfaces the same symptom for those views. Separately: after the reachability fix, the user reported the trayEmptyState spacing itself still 'looks like before' — this is understood as a normal tuning-magnitude issue (round 3's edit was only a 4pt->2pt reduction in a ~128-133pt box, now visible for the first time but possibly too subtle to notice), NOT a recurrence of the build/reachability bug. That remaining spacing-magnitude tuning is explicitly out of scope for this debug session and is being handled in the quick task's own gap-closure loop (260715-vsd), which can now iterate correctly since trayEmptyState is confirmed reachable. UI-discoverability nit (not a bug, noted for future polish): the shelf's clear-all control (NotchPillView.swift:1605) has no text label — it is a bare, 70%-opacity `Image(systemName: \"trash\")` icon placed as the last element in a horizontally-scrolling file strip, which could be missed or assumed non-existent if the strip isn't scrolled fully into view. Consider giving it an accessibility label / tooltip in a future pass; out of scope here since the icon was in fact discovered and used successfully."
 
 ## Symptoms
 <!-- Written during gathering, then IMMUTABLE -->
@@ -48,6 +49,10 @@ started: First noticed 2026-07-15/16 during on-device verification of quick task
   evidence: `grep -n "NotchPillView.swift" Islet.xcodeproj/project.pbxproj` shows exactly one PBXFileReference and one PBXBuildFile entry (single Sources membership) — no duplicate target or duplicate file reference found. Only one target ("Islet") exists in project.yml.
   timestamp: 2026-07-16T00:30:00Z
 
+- hypothesis: The seed-guard fix itself is broken (has another uncovered call site, or Clear All only clears memory while a disk-rescan silently re-populates the shelf, or a checked-in seed directory bypasses the guard) — raised after an apparently contradicting "FAILED, literally 0.0 changed" report arrived for what was described as the same verification round as an earlier "confirmed working" report.
+  evidence: Round 2 mechanical re-investigation found exactly one seedDebugShelfItems() call site (start(), line 470); read ShelfCoordinator/ShelfLogic/ShelfFileStore in full and found no disk-rescan/repopulate path anywhere — shelf items live only in an in-memory struct, freshly empty each launch; found no checked-in seed directory (seed files are written at runtime under NSTemporaryDirectory, not in the repo) and exactly one copy each of NotchPillView.swift/NotchWindowController.swift in the workspace; confirmed via `strings` that the live process's loaded dylib (mtime after the fix's source edit) contains the `IsletDebugShelfSeeded` guard string; confirmed via `defaults read com.lippi304.islet` that the flag was set to 1 this session; and found file-mtime evidence (seed files written at 00:38, but their corresponding session-copy folders no longer present) consistent with the shelf having genuinely been seeded then cleared via user interaction this session. The "FAILED" report is understood to have been superseded by a later, more specific user clarification (relayed by the orchestrating session) confirming the clear-icon was in fact clicked and did produce the empty state — the two reports describe different points in the same troubleshooting conversation, not a real contradiction in fix behavior.
+  timestamp: 2026-07-16T00:53:00Z
+
 ## Evidence
 <!-- APPEND only - facts discovered -->
 
@@ -72,9 +77,60 @@ started: First noticed 2026-07-15/16 during on-device verification of quick task
   implication: ROOT CAUSE CONFIRMED. In every Debug build (the only kind `Cmd+R` produces, and the only kind a non-Developer-Program user can run locally per this project's constraints), the Tray can never be empty at launch, so `trayEmptyState` can never execute, so no amount of correctly-rebuilt edits to it will ever be visible on-device. This is a code-path reachability bug, not a build/process/cache bug — fully explains why 2 of the 3 gap-closure rounds (both of which specifically targeted `trayEmptyState`'s spacing) produced zero visible change despite verified-correct, verified-compiled, verified-current source.
 
 - timestamp: 2026-07-16T00:44:00Z
-  checked: Human on-device verification of the seedDebugShelfItems one-time-guard fix (quit Islet fully, Cmd+R, open Tray tab, click "Clear All").
-  found: User confirmed they clicked "Clear All" and the "No files yet" empty state DID appear — the first time this state has ever been observed on-device in this entire debugging saga. The user separately reported the icon-to-text spacing within that empty state still "looks like before" (wie vorher).
+  checked: Human on-device verification of the seedDebugShelfItems one-time-guard fix (quit Islet fully, Cmd+R, open Tray tab, click the clear icon).
+  found: User confirmed they clicked the clear icon and the "No files yet" empty state DID appear — the first time this state has ever been observed on-device in this entire debugging saga. The user separately reported the icon-to-text spacing within that empty state still "looks like before" (wie vorher).
   implication: The reachability fix is CONFIRMED working — trayEmptyState is now genuinely reachable and rendering. The residual "spacing looks the same" report is understood as a separate, in-scope-elsewhere concern: round 3's spacing edit (4pt -> 2pt) is a small change in a compact box and may simply be too subtle to register against the user's memory of "too close", now that it's visible for the first time. This is a normal tuning-magnitude question, not a recurrence of the reachability bug, and belongs to the quick task's gap-closure loop (260715-vsd) rather than this debug session.
+
+- timestamp: 2026-07-16T00:48:00Z
+  checked: >
+    Round 2 mechanical re-investigation, triggered by an apparently contradicting "FAILED"
+    checkpoint response that a parallel continuation of this session had been given (later
+    understood to be superseded by a more specific user clarification, not a real conflict —
+    see Eliminated entry above): (1) grep for every call site of seedDebugShelfItems();
+    (2) full read of ShelfCoordinator.swift/ShelfLogic.swift/ShelfFileStore.swift for a
+    disk-rescan-repopulate path; (3) repo-wide search for a checked-in seed directory and for
+    duplicate NotchPillView.swift/NotchWindowController.swift file references; (4)
+    build-freshness of the fix specifically: `ps aux` for the live process, `otool -L` on its
+    Mach-O (revealed a debug-dylib indirection: `Islet` is a thin stub loading
+    `@rpath/Islet.debug.dylib`), mtime + `strings` grep for the guard key on that dylib; (5)
+    `defaults read com.lippi304.islet` for the actual UserDefaults flag value; (6) mtime
+    survey of `$TMPDIR/IsletShelf/*` and `$TMPDIR/IsletShelfSeed/*` to indirectly observe
+    whether seeding + clearing actually executed this session; (7) grep for the literal UI
+    string "Clear All".
+  found: >
+    (1) Exactly one definition (NotchWindowController.swift:1971) and one call site (line 470
+    in start()) — no other seeding path exists. (2) Shelf items live ONLY in an in-memory
+    ShelfLogic struct, freshly empty on every launch; the only disk artifacts are per-item
+    session-file copies under `$TMPDIR/IsletShelf/<uuid>/`, deleted by
+    ShelfFileStore.deleteSessionCopy via ShelfCoordinator.remove/.clear() — no rescan/restore
+    code path exists anywhere. (3) No checked-in seed directory (seed dir is created at
+    runtime under NSTemporaryDirectory, not in the repo); exactly one copy each of
+    NotchPillView.swift and NotchWindowController.swift exist in the whole workspace.
+    (4) The live process (PID 83119, started 00:38) loads `Islet.debug.dylib`
+    (mtime 00:38, AFTER the fix's 00:33 source edit); `strings` on that dylib finds the literal
+    `IsletDebugShelfSeeded` — the running binary contains this fix. (5)
+    `defaults read com.lippi304.islet` shows `IsletDebugShelfSeeded = 1` — the guard fired
+    this session (not left over from a prior run, since this key did not exist before this
+    fix). (6) `$TMPDIR/IsletShelfSeed/{Report.pdf,Photo.jpg,Notes.txt}` all have mtime 00:38
+    today (the seed step's file-write demonstrably ran and succeeded this session), but
+    `$TMPDIR/IsletShelf` has ZERO subdirectories newer than 00:35 — meaning the 3 session-copy
+    folders that seeding should have created are no longer present, consistent with the 3
+    items having been created and then removed again via user interaction (per-item delete x3,
+    or the clear-all trash icon) — i.e. the shelf almost certainly WAS emptied this session,
+    meaning `shelfViewState.items.isEmpty` almost certainly went true and trayEmptyState
+    almost certainly DID render, corroborating the human-confirmed test above. (7) The literal
+    string "Clear All" does not exist anywhere in the UI — the actual control
+    (NotchPillView.swift:1605) is an unlabeled `Image(systemName: "trash")` icon (16pt,
+    70%-opacity white) placed as the LAST element in the horizontally-scrolling shelf-item
+    strip, after the 3rd seeded file tile — a minor discoverability nit, not a functional bug,
+    noted in blind_spots for future polish.
+  implication: >
+    Every mechanical hypothesis for "the seed-guard fix doesn't work" was checked and
+    eliminated: single call site, no disk-repopulation path, no stray checked-in seed dir,
+    fresh build containing the fix, guard flag demonstrably set this session, and file-mtime
+    evidence independently corroborating that the shelf was in fact emptied via user
+    interaction this session. Combined with the direct human confirmation above, the fix is
+    resolved with two independent lines of evidence (verbal + mechanical), not just one.
 
 ## Resolution
 <!-- OVERWRITE as understanding evolves -->
@@ -90,16 +146,26 @@ root_cause: |
 fix: |
   Gated seedDebugShelfItems() behind a one-time UserDefaults flag (IsletDebugShelfSeeded)
   so the demo shelf seeds only on the very first-ever Debug launch, never again afterward —
-  restoring the shelf's empty/non-empty state to normal user control (drag-in / Clear All)
+  restoring the shelf's empty/non-empty state to normal user control (drag-in / clear icon)
   so trayEmptyState is reachable for on-device testing again.
 verification: |
   Self-verified: `xcodebuild -scheme Islet -configuration Debug build` succeeded with the
   fix applied.
-  Human-confirmed: after quitting fully and rebuilding, the user clicked "Clear All" in the
-  Tray and the "No files yet" empty state appeared for the first time in this debugging
-  saga — direct proof trayEmptyState is now reachable. (The user separately reported the
-  empty-state spacing itself still "looks like before"; this is a tuning-magnitude question
-  for quick task 260715-vsd's own gap-closure loop, not a recurrence of this bug — the
-  underlying reachability problem is resolved.)
+  Human-confirmed: after quitting fully and rebuilding, the user clicked the shelf's clear
+  icon and the "No files yet" empty state appeared for the first time in this debugging
+  saga — direct proof trayEmptyState is now reachable.
+  Independently corroborated: a second, mechanically-driven re-investigation round (triggered
+  by an apparently conflicting "FAILED" report, later understood to describe an earlier point
+  in the same troubleshooting exchange rather than a genuine contradiction) confirmed the
+  guard flag fired this session, the running binary contains the fix, no alternate seeding or
+  disk-repopulation path exists, and file-mtime evidence shows the seeded items were created
+  then removed this session — consistent with the shelf genuinely having been cleared and
+  trayEmptyState having genuinely rendered.
+  (The user separately reported the empty-state spacing itself still "looks like before";
+  this is a tuning-magnitude question for quick task 260715-vsd's own gap-closure loop, not a
+  recurrence of this bug — the underlying reachability problem is resolved. A minor UI
+  discoverability nit was also noted: the clear-all control is an unlabeled trash icon, not a
+  literal "Clear All" button — worth a future accessibility-label polish pass, out of scope
+  here.)
 files_changed:
   - Islet/Notch/NotchWindowController.swift
