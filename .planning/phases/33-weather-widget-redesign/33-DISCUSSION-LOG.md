@@ -100,3 +100,41 @@ Plan 33-01 executed and merged. Plan 33-02 executed Tasks 1-2 (commits `f0e6bf0`
 **Decisions captured:** D-03 through D-10 in the revised CONTEXT.md (widget-tier structure, hourly-row content, Large's new range-bar component, two-tier panel geometry). D-01/D-02 (location display) carried forward unchanged — already correctly built.
 
 **Not re-litigated:** Location display and the underlying `.daily`/reverse-geocode data-layer work from Plan 33-01 — both still correct as built.
+
+---
+
+## REVISION 2 — 2026-07-15, after Plan 33-02 Tasks 1-3 recovered from an interrupted session
+
+Session closed mid-execution after the first revision's Tasks 1-3 were built (hourly row + Large daily list); work was recovered from an orphaned git worktree and merged. On resuming, the user said: "Ja ne ich will 1:1 das widget von der Kalender app dort drin haben und es nicht selbst gebaut haben, das wurde bisher falsch verstanden" — raising doubt about whether the whole approach (a hand-built recreation vs. embedding a real system widget) and the reference app (Weather vs. Calendar) were correct.
+
+**Areas discussed:**
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Pixelgenaue Nachbildung | Recreate the widget's look in Islet's own SwiftUI code | ✓ |
+| Echtes System-Widget live einbetten | Host the real live WidgetKit widget inside Islet | |
+
+**User's choice:** Pixelgenaue Nachbildung (Empfehlung) — live-embedding a system widget isn't possible via public macOS API for a third-party host app.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Wetter-App Widget (Weather.app) | Apple's standalone macOS Weather app's own widget | ✓ |
+| Notification-Center-Panel bei Klick auf die Menüleisten-Uhr | The panel shown when clicking the menu-bar clock (Calendar events + Weather together) | |
+| Etwas anderes | User describes/provides a screenshot | |
+
+**User's choice:** Wetter-App Widget (Weather.app) — "Kalender App" in the original message was the user's informal name for something else; the actual target is the Weather.app widget.
+
+User then supplied two direct screenshots of the real macOS Weather.app widget (Standard/Medium and Extended/Large, Neubrandenburg), saved as `.planning/research/inspiration/33.png`/`34.png`. Comparison against the already-built Tasks 1-3 code found:
+- Hourly row and Large daily range-bar list: **already correct**, no rework.
+- Header (`weatherFullContent`): **wrong** — single centered column built, but the real widget uses a two-column split (location+arrow+temp left, condition+H/T right). New decision D-11.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Islets bestehendes Glass-Chrome behalten | Weather tab stays visually consistent with Home/Tray/Calendar's existing black/frosted glass | ✓ |
+| Apples Wetter-Verlaufshintergrund übernehmen | Adopt Apple's own navy/time-of-day gradient card background | |
+
+**User's choice:** Islets bestehendes Glass-Chrome behalten (Empfehlung) — new decision D-12.
+
+**Decisions captured:** D-11 (header two-column rework), D-12 (background stays Islet's existing chrome), both added to the revised CONTEXT.md. D-01 through D-10 carried forward unchanged — confirmed still correct against the new, higher-fidelity screenshots.
+
+**Not re-litigated:** Hourly row content/count (D-06/D-07), Large daily range-bar list (D-08/D-09), two-tier panel geometry (D-10), WeatherStyle Settings control (D-04/D-05) — all confirmed correct as already built in Tasks 1-3.

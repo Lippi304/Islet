@@ -1,14 +1,16 @@
 # Phase 33: Weather Widget Redesign - Context
 
 **Gathered:** 2026-07-15
-**Status:** Ready for planning (revised — supersedes the 2026-07-15 morning version after on-device checkpoint feedback)
+**Status:** Ready for planning (revised twice — this version supersedes the 2026-07-15 "iOS widget clone" revision after a second checkpoint correction)
 
 <domain>
 ## Phase Boundary
 
-The Weather tab is redesigned as a 1:1 clone of Apple's own iOS Weather widget, always showing at least the "Medium" layout (location/icon/current temp/H-L header + an hourly forecast row) with a Settings-gated "Large" style adding a daily forecast list with min/max range bars. This is Phase 33 of the v1.5 milestone (WEATHER-01, WEATHER-02) — fully independent of the other v1.5 phases (Weather has its own resolver case and switcher tab, untouched by Phases 29-32).
+The Weather tab is redesigned as a 1:1 clone of Apple's own Weather-app widget (confirmed identical between iOS and macOS), always showing at least the "Medium" layout (two-column header: location+arrow+temp left, condition icon+label+H/T right, plus an hourly forecast row) with a Settings-gated "Large" style adding a daily forecast list with min/max range bars. This is Phase 33 of the v1.5 milestone (WEATHER-01, WEATHER-02) — fully independent of the other v1.5 phases (Weather has its own resolver case and switcher tab, untouched by Phases 29-32).
 
-**REVISION NOTE:** This supersedes the phase's original scope. Plan 33-01 (data layer: combined current+daily fetch, reverse-geocode, `weatherExtendedKey`) executed and merged as-is — still structurally valid (see Decisions below for what changes). Plan 33-02 (view layer) executed Tasks 1-2 (commits `f0e6bf0`, `580485d`) building a **daily 5-chip forecast row gated by a single boolean toggle** — this was based on a misreading of the original "6-day forecast row" description in PROJECT.md and does NOT match the real reference (Apple's actual iOS widget, screenshotted by the user at the Task-3 on-device checkpoint). That forecast-row implementation must be reworked, not extended. See `.planning/research/inspiration/32.png` and `notes.md`'s "Weather widget reference" section for the real reference.
+**REVISION NOTE (second round):** Plan 33-02 Tasks 1-3 (commits `326b0ca`, `e8d36cf`, `63fbac4`) executed the FIRST correction (hourly row + Large daily range-bar list) and got the hourly row and daily list right — confirmed structurally correct against real macOS Weather.app screenshots (`33.png`, `34.png`). But the header (`weatherFullContent`, previously marked "already correct, keep verbatim") is WRONG: it's a single centered column, but the real widget uses a two-column split header. See D-11 below — this is the only remaining rework, everything else from Tasks 1-3 stays.
+
+**REVISION NOTE (first round, for history):** Plan 33-01 (data layer) executed and merged as-is — still structurally valid. Plan 33-02's original Tasks 1-2 built a daily 5-chip forecast row gated by a boolean toggle, based on a misreading of PROJECT.md's text description — corrected to the hourly-row + Large-daily-list structure now in `<decisions>` below.
 
 </domain>
 
@@ -34,12 +36,21 @@ The Weather tab is redesigned as a 1:1 clone of Apple's own iOS Weather widget, 
 - **D-09 (new):** Day count for the Large list follows the same "fit cleanly, no scroll" principle as D-07 — Apple's reference shows 5 (Do-Mo); exact count is Claude's discretion based on real row height once built.
 - **D-10 (new):** Large's reserved panel height is taller than Medium's (header + hourly row + full daily list) — this needs its own height constant (or a height function taking the day count), following the same `trayContentHeight`-precedent pattern as before, but now for TWO non-collapsed sizes (Medium, Large) instead of one (the old compact-vs-extended split). The three-site geometry rule (`blobShape` height override / `positionAndShow` union / `visibleContentZone()` branch) must account for both sizes, not just one — this is a materially bigger geometry surface than what Plan 33-02's Task 2 originally built, and needs its own explicit on-device checkpoint pass for both Medium→Large and Large→Medium transitions, plus the hover→expand→move-down click-through trace at the Large size specifically (CR-01/WR-02 regression class).
 
+### Header layout — two-column split (NEW, second-round correction — supersedes "keep verbatim" guidance)
+- **D-11 (new):** `weatherFullContent` must be reworked from a single centered VStack into a two-column header, matching the real widget (`33.png`/`34.png`): **left column** — location name + a small directional arrow icon (mirrors the real widget's compass-style location indicator) stacked above the large current-temperature text; **right column** (top-aligned, trailing-aligned) — the condition icon, the condition label, and the "H: T: " line, stacked. The existing content (location/fallback text, icon mapping, temperature formatting, H/L formatting) is reused as-is — only the layout container changes from one centered `VStack` to an `HStack` of two `VStack`s. The hourly row and (Large) daily list remain unchanged below this header, full-width as already built.
+- Exact SF Symbol for the location arrow icon is Claude's/planner's discretion (e.g. `location.fill` or a rotated arrow) — no exact system icon was identified from the reference, match the spirit (small, secondary-colored, directly after the location name).
+
+### Background — stays Islet's existing chrome (NEW, explicit decision)
+- **D-12 (new):** The Weather tab keeps Islet's existing black/frosted glass chrome (the same material every other tab — Home/Tray/Calendar — uses), NOT Apple's own per-widget navy/time-of-day gradient background seen in `33.png`/`34.png`. Explicit user decision: replicating Apple's dynamic gradient card would introduce a new per-tab visual special case; only the widget's *content layout* (header, hourly row, daily list) is being cloned, not its background treatment.
+
 ### Claude's Discretion
 - Exact hourly chip count (D-07) and exact daily row count for Large (D-09) — pick whichever counts fit cleanly given real dimensions once built.
 - Whether the hourly fetch is folded into the existing combined WeatherKit call or issued separately — follow the "one call" discipline already established in Plan 33-01 unless research finds a reason not to.
-- Whether `weatherExtendedKey`'s storage is migrated to a String/enum or a new key is introduced alongside it — whichever keeps the Bool→enum migration cleanest for existing users defaulting to Medium.
-- Exact gradient/color treatment of the range bar — match the spirit of Apple's bar (color scales with temperature, positioned within the list's min/max) without needing pixel-exact color stops.
+- Whether `weatherExtendedKey`'s storage is migrated to a String/enum or a new key is introduced alongside it — whichever keeps the Bool→enum migration cleanest for existing users defaulting to Medium. (Already resolved in Tasks 1-3: migrated to `ActivitySettings.WeatherStyle`/`weatherStyleKey`.)
+- Exact gradient/color treatment of the range bar — match the spirit of Apple's bar (color scales with temperature, positioned within the list's min/max) without needing pixel-exact color stops. (Already resolved in Task 2: 5-stop blue→mint→yellow→orange→red via `NSColor.blended`.)
 - Exact reverse-geocode granularity (city only vs. city+region) — no strong user preference expressed.
+- The real widget's hourly row includes a non-hour-aligned sunrise-timestamp entry (e.g. "04:56") inserted between hourly points — explicitly OUT of scope to replicate; use plain on-the-hour `.hourly` dataset entries only, no separate sunrise-event fetch/interleave.
+- The "Vorhersage" title+description text visible below the widget in `34.png` is macOS's widget-gallery caption chrome, not part of the widget itself — do not replicate.
 
 </decisions>
 
@@ -49,8 +60,10 @@ The Weather tab is redesigned as a 1:1 clone of Apple's own iOS Weather widget, 
 **Downstream agents MUST read these before planning or implementing.**
 
 ### Weather widget visual reference (THE authoritative reference — supersedes the PROJECT.md text description)
-- `.planning/research/inspiration/32.png` — Apple's own iOS Weather widgets, Medium vs. Large side by side. This is the ground truth for D-06 through D-10.
-- `.planning/research/inspiration/notes.md` §"Weather widget reference (image 32...)" — written description of what the screenshot shows and exactly how it corrects the original misread.
+- `.planning/research/inspiration/33.png` — macOS Weather.app "Standard" (Medium) widget, screenshotted directly by the user from their own Mac (Neubrandenburg). Ground truth for D-06, D-07, and D-11 (header two-column layout).
+- `.planning/research/inspiration/34.png` — macOS Weather.app "Extended" (Large) widget, same source. Ground truth for D-08 through D-11.
+- `.planning/research/inspiration/32.png` — earlier-captured reference (originally mislabeled "iOS-only"), confirmed structurally identical to `33.png`/`34.png` — still valid as a secondary reference, not superseded in content, only in labeling.
+- `.planning/research/inspiration/notes.md` §"Weather widget reference (images 32-34, revised...)" — written description of what each screenshot shows, including the second-round header-layout correction (D-11) and the background decision (D-12).
 
 ### v1.5 milestone / requirements
 - `.planning/PROJECT.md` §"Current Milestone: v1.5" — Weather redesign goal; note its "6-day forecast row" text description is now known to have been an inaccurate paraphrase of the real reference (image 32) — trust image 32, not this text, for row content/structure
@@ -65,10 +78,10 @@ The Weather tab is redesigned as a 1:1 clone of Apple's own iOS Weather widget, 
 - `Islet/Notch/BasicOutfitState.swift` — `forecast: [DailyForecast]?`, `locationName: String?` fields — will need an `hourlyForecast` (or similarly named) field added alongside
 - `Islet/ActivitySettings.swift` — `weatherExtendedKey` — needs migration per D-04 (Bool → Medium/Large selector)
 
-### Existing code — Plan 33-02 (view layer, Tasks 1-2 committed but built the wrong forecast content; header parts are correct)
-- `Islet/Notch/NotchPillView.swift` (commit `f0e6bf0`) — `weatherExtendedContentHeight` constant, `weatherFullContent` (location/H-L — CORRECT, keep), `forecastRow` (5-day weekday chips — WRONG, replace with hourly row per D-06, then add the Large daily-bar-list component per D-08)
-- `Islet/Notch/NotchWindowController.swift` (commit `580485d`) — `refreshWeather()` combined-fetch wiring (extend for hourly), `positionAndShow`'s `weatherExtendedFrame` union member and `visibleContentZone()`'s `.weatherExpanded` branch (both need a second size tier per D-10)
-- `Islet/SettingsView.swift` (commit `580485d`) — "Extended forecast" boolean Toggle — replace with the Medium/Large segmented control per D-04
+### Existing code — Plan 33-02 Tasks 1-3 (view+controller layer, committed `326b0ca`/`e8d36cf`/`63fbac4` — hourly row + Large daily list CORRECT, header WRONG)
+- `Islet/Notch/NotchPillView.swift` — `weatherMediumContentHeight`/`weatherLargeContentHeight` constants (correct, keep), `hourlyForecastRow(_:)` (correct, keep), `dailyForecastList(_:)`/`dailyForecastRow(_:overallLow:span:)`/`temperatureColor(fraction:)` (correct, keep) — `weatherFullContent(_:)` (WRONG per D-11, rework from centered VStack to two-column HStack; the field-level content — location/fallback text, icon, temp, condition label, H/L string — is reused as-is, only the container layout changes)
+- `Islet/Notch/NotchWindowController.swift` — `refreshWeather()`'s 3-value completion, `positionAndShow`'s `weatherExpandedFrame` reservation, `visibleContentZone()`'s unconditional `.weatherExpanded` branch — all correct, no rework needed (D-11's header change is view-only, doesn't affect panel geometry sizing)
+- `Islet/SettingsView.swift` — Medium/Large segmented Picker — correct, keep
 - `Islet/Weather/WeatherCategory.swift` — pure `WeatherCondition` → `WeatherCategory` classification, reused as-is for both hourly and daily entries
 
 </canonical_refs>
@@ -82,7 +95,7 @@ The Weather tab is redesigned as a 1:1 clone of Apple's own iOS Weather widget, 
 - `LocationProvider`/`CLLocation` (NotchWindowController.swift ~121, ~580) — the existing coarse-refresh-gated location fetch; reverse-geocoding hangs off this same `CLLocation`, no new permission or fetch trigger needed. Already wired.
 - Phase 32's `trayContentHeight` override pattern (NotchPillView.swift, `blobShape`'s `height:` param winning over the `showSwitcher` default) — the direct precedent for both Medium's and Large's height constants (D-10 now needs two, not one).
 - `ActivitySettings`/`@AppStorage` + `UserDefaults.didChangeNotification` observer already wired in `NotchWindowController.start()` — the Medium/Large selector plugs into this exact existing live-reload mechanism, no new observer needed.
-- Plan 33-02's already-correct header work (`weatherFullContent`'s location/H-L rendering, commit `f0e6bf0`) — keep as-is, do not rebuild.
+- Plan 33-02's already-correct hourly row and Large daily-list work (Tasks 2, commits `e8d36cf`) — keep as-is, do not rebuild. Only `weatherFullContent`'s layout container needs rework per D-11; its field-level rendering logic (location text, icon, temp string, condition label, H/L string) is reused as-is inside the new two-column layout.
 
 ### Established Patterns
 - "Isolate the fragile external behind one seam" (`WeatherService` protocol, `NowPlayingMonitor`, `LicenseService`) — the new hourly fetch must go through the `WeatherService` protocol, not a direct `WeatherKit` call from the view layer.
@@ -98,9 +111,11 @@ The Weather tab is redesigned as a 1:1 clone of Apple's own iOS Weather widget, 
 <specifics>
 ## Specific Ideas
 
-- **`.planning/research/inspiration/32.png`** — Apple's own iOS Weather widgets (Medium + Large side by side), the exact and only visual reference for D-06 through D-10. This is a genuine screenshot, not a text paraphrase — trust its exact structure (header → hourly row → [Large only] daily list with range bars) over any earlier text description in PROJECT.md.
-- User's framing at the checkpoint: "Droppy hat diese 1:1 Wetter app widget. Genau sowas wollte ich nachbauen" — the intent is a faithful 1:1 clone of Apple's own widget shapes (via a Droppy comparison, but the actual reference image supplied is Apple's widget, not a Droppy screenshot), not a loose reinterpretation.
-- Confirmed explicitly: no "Compact-only" state should remain selectable — "Ja ganz weg von Compact, einfach nur diese beiden Medium und Large Widgets... wovon Medium standard ist."
+- **`.planning/research/inspiration/33.png`/`34.png`** — real macOS Weather.app widget screenshots (Standard/Extended), the exact and authoritative visual reference for D-06 through D-11. Genuine screenshots, not text paraphrases — trust their exact structure over any earlier text description.
+- User's framing this round: "ich will 1:1 das widget von der Kalender app dort drin haben und es nicht selbst gebaut haben, das wurde bisher falsch verstanden" — clarified via follow-up questions to mean: (1) a pixel-faithful recreation is fine (literally embedding a live system widget isn't possible via public macOS API), and (2) the reference app is Weather.app specifically, not Calendar.app (the user's informal naming). Intent: match the real widget exactly, not a loose reinterpretation — same underlying goal as the first round's framing, this round caught a header-layout detail the first round's reference (`32.png`) also showed but wasn't fully translated into the built code.
+- User's framing at the first-round checkpoint: "Droppy hat diese 1:1 Wetter app widget. Genau sowas wollte ich nachbauen" — the intent is a faithful 1:1 clone of Apple's own widget shapes.
+- Confirmed explicitly (first round): no "Compact-only" state should remain selectable — "Ja ganz weg von Compact, einfach nur diese beiden Medium und Large Widgets... wovon Medium standard ist."
+- Confirmed explicitly (this round): keep Islet's own black/frosted glass chrome for the Weather tab rather than adopting Apple's per-widget gradient background (D-12).
 
 </specifics>
 
