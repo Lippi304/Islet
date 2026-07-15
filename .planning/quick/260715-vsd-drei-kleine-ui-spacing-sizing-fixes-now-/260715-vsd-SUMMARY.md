@@ -123,3 +123,17 @@ Per this run's explicit constraints, the final `checkpoint:human-verify` task wa
 - FOUND: 45cd22b (Task 3 commit)
 - Confirmed `calendarWidth` constant + `isCalendarPresentation` + body frame ternary branch + `blobShape(width:)` + `.calendarExpanded` branch in `visibleContentZone()` all present via grep
 - Confirmed `.padding(.bottom, 40)` (Task 1) and `VStack(spacing: 9)` (Task 2) present via grep
+
+## On-Device Verification: 5 Gap-Closure Rounds — CONFIRMED PASSED
+
+The Calendar fix (Task 3) passed on-device verification on the first try. The Now Playing gap (Task 1) and Tray spacing (Task 2) required 4 further rounds before the user confirmed "passt":
+
+- **Round 2** (`727ba72`): Replaced round-1's guessed `.padding(.bottom, 40)` on `mediaExpanded` with a `Spacer(minLength:)`, and grew `trayContentHeight` 128→133 to match round 1's trayEmptyState spacing growth. On-device result: no visible change on either.
+- **Round 3** (`d6c27b8`): Diagnosed that a `Spacer` inside `content()` cannot move the switcher row (its Y position is fixed entirely by the shared box-height constant, not by content's internal layout) — removed the ineffective Spacers. Also corrected a mistranslation: the original request "Text muss 5pt höher" meant "move text up" (more distance from the switcher row), not "add more space below the icon" — round 1 had pushed the text the wrong direction. Tightened `trayEmptyState`'s icon-to-text spacing 9pt→2pt.
+- **Debug session** (`.planning/debug/resolved/tray-spacing-fix-not-applying.md`, commits `32def20`/`6439e8f`): user reported literally zero visual change across all 3 rounds even after a full quit + Clean Build Folder + rebuild. Root cause: `NotchWindowController.seedDebugShelfItems()` re-seeded 3 hardcoded demo files into the shelf on every Debug launch with no guard, so `trayEmptyState` was never actually reachable — every round's spacing edits were invisible by construction, not a build/cache issue. Fixed with a one-time `UserDefaults` seed guard.
+- **Round 4** (`568079c`): Now that `trayEmptyState` was confirmed reachable, round 3's 2pt spacing delta was confirmed too subtle to notice. Went more assertive: spacing 2pt→0pt, `trayContentHeight` 133→145pt. User confirmed Tray fixed.
+- **Round 5** (`2c7904f`): User correction — the switcher row is NOT actually pinned to one shared height across all 4 tabs; Tray (`trayContentHeight`) and Weather (`weatherMediumContentHeight`/`weatherLargeContentHeight`) already have their own shorter, content-hugging overrides, shipped through Phase 32/33 with no misclick regression. Added `homeContentHeight` (170pt) and applied it to `homeEmptyState`, `mediaExpanded`, and `mediaUnavailable` (one shared value across all three so the switcher row doesn't jump when music starts/stops while on the Home tab), replacing the generic 196pt `switcherContentHeight` box for all of Home's sub-states.
+
+**User confirmation:** "passt" (2026-07-16).
+
+**Final state of the touched constants:** `trayContentHeight = 145` (was 128), `homeContentHeight = 170` (new), `trayEmptyState`'s icon-to-text `VStack(spacing: 0)` (was 4).
