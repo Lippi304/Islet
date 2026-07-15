@@ -111,13 +111,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAY-02 | Phase 34 | Pending |
 | TRAY-03 | Phase 34 | Pending |
 | TRAY-04 | Phase 34 | Pending |
+| GLASS-01 | Phase 35 | Pending |
+| HUD-01 | Phase 36 | Pending |
+| HUD-02 | Phase 36 | Pending |
+| EQ-01 | Phase 36 | Pending |
+| ONBOARD-04 | Phase 36 | Pending |
+| HUD-07 | Phase 37 | Pending |
+| HUD-05 | Phase 38 | Pending |
+| HUD-03 | Phase 39 | Pending |
+| HUD-04 | Phase 39 | Pending |
+| HUD-06 | Phase 40 | Pending |
+| HUD-08 | Phase 41 | Pending |
+| DUAL-01 | Phase 42 | Pending |
 
-**Coverage:**
+**Coverage (v1.5):**
 - v1.5 requirements: 11 total
 - Mapped to phases: 11 (100%)
+- Unmapped: 0
+
+**Coverage (v1.6):**
+- v1.6 requirements: 12 total
+- Mapped to phases: 12 (100%)
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-13*
 *Last updated: 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
-*v1.6 requirements defined: 2026-07-15 — 12 REQ-IDs (GLASS-01, EQ-01, ONBOARD-04, HUD-01..08, DUAL-01) backed by parallel Stack/Features/Architecture/Pitfalls research (`.planning/research/SUMMARY.md`). v1.5 left open in parallel, not archived; v1.6 phase numbering continues from the next free number. Traceability for v1.6 filled in by the roadmapper next.*
+*v1.6 requirements defined: 2026-07-15 — 12 REQ-IDs (GLASS-01, EQ-01, ONBOARD-04, HUD-01..08, DUAL-01) backed by parallel Stack/Features/Architecture/Pitfalls research (`.planning/research/SUMMARY.md`). v1.5 left open in parallel, not archived.*
+*v1.6 roadmap created 2026-07-15 — 8 phases (35-42), 100% coverage (12/12). Phase numbering starts at 35 (not 34) to avoid colliding with v1.5's still-open, unarchived Phase 34. Order: Liquid Glass Material (35) → Cosmetic Restyles & Signature Animation (36) → Drop-Session Summary Chip (37) → Focus Mode HUD spike (38) → Volume & Brightness HUD spike (39, kept as ONE phase since both share the OSD-replacement subsystem) → Update-Available HUD & Sparkle (40) → Calendar Countdown HUD (41) → Dual-Activity Display (42, sequenced last per its own dependency on Calendar Countdown as a proven single-winner input).*

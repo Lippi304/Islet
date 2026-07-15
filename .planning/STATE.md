@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: planning
-last_updated: "2026-07-15T02:24:49.047Z"
-last_activity: 2026-07-15
+status: executing
+stopped_at: Phase 33 UI-SPEC approved (revised scope)
+last_updated: "2026-07-15T12:38:55.977Z"
+last_activity: 2026-07-15 -- Phase 33 execution started
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 19
+  completed_phases: 13
+  total_plans: 37
+  completed_plans: 35
+  percent: 68
 ---
 
 # Project State
@@ -24,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-15 — Milestone v1.6 started
+Phase: 33 (weather-widget-redesign) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 33
+Last activity: 2026-07-15 -- Phase 33 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -44,7 +45,9 @@ Progress (v1.3): [██████████] 100% (Phases 19-21 shipped; Ph
 
 Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23-28 complete; pending final on-device UAT re-confirmation of 2 code-review fixes before formal close)
 
-Progress (v1.5): [██░░░░░░░░] 17% (1/6 phases — Phase 29 complete, Phase 30 next)
+Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-32 complete; Phase 33 executing (Plan 1 of 2), Phase 34 not started; left open in parallel with v1.6)
+
+Progress (v1.6): [░░░░░░░░░░] 0% (0/8 phases — ROADMAP.md just created (Phases 35-42, 12/12 requirements mapped), Phase 35 next)
 
 ## Performance Metrics
 
@@ -110,6 +113,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 29]: SHAPE-01 shipped as a plain topCornerRadius increase (24pt blob / 12pt wings) at 2 call sites, not the topFlareWidth geometry the plan specified — 3 alternate geometry designs (concave sweep, shoulder bulge, centered notch dip) were built and abandoned across ~17 on-device UAT rounds before the simple radius bump matched the user's reference
 - [Phase 30]: Decision coverage gate override: D-01/D-02/D-03/D-06/D-07 not explicitly cited in plan must_haves/truths, but plan-checker semantic review confirmed all 5 are implemented (D-02/D-03 are Plan 01's core resolver branch logic; D-01/D-06 verified as pre-existing behavior; D-06/D-07 referenced in plan body text). User chose Proceed anyway.
 - [Phase 31]: [Phase 31] shelfStripVisible access bumped private->internal (testability only) mirroring EqualizerBars.makeProfiles() precedent; regression-locked via NotchPillViewTests; on-device CR-01 click-through trace approved with zero regressions, no contingency fix needed
+- [v1.6 roadmap] Numbered from Phase 35 (not 34) — v1.5 is intentionally left open in parallel, not archived, and its own Phase 34 (Quick Action Destination Picker) is planned but not yet executed; starting v1.6 at 35 avoids any phase-number collision between the two open milestones.
+- [v1.6 roadmap] Phase order 35→36→37→38→39→40→41→42 follows research's explicit risk/dependency ordering: material first (every later HUD renders inside it), then zero-risk cosmetic restyles + fully-independent equalizer/onboarding polish, then the drop-session chip (its one real prerequisite — a shelf-session-boundary concept — surfaced inside its own phase), then the new-transient-case pattern proven cheaply on Focus Mode before attempting it under genuine private-API risk on Volume/Brightness (explicitly kept as ONE phase since both share the same OSD-replacement subsystem), then the fully-independent Sparkle integration floated after material, then Calendar Countdown as a proven single-winner ambient case, and finally Dual-Activity Display last since it needs Calendar Countdown as a real second input to combine with Now Playing.
 
 ### Roadmap Evolution
 
@@ -122,6 +127,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - v1.4 (Architecture Redesign) roadmap created 2026-07-11: Phase 23 (Shell Parity Rewrite, ARCH-01), Phase 24 (Drag-In, SHELF-01/02), Phase 25 (Visual/Material Theming Redesign, VISUAL-01/02), Phase 26 (Onboarding Flow, ONBOARD-01/02/03), Phase 27 (Settings Sidebar Redesign, SETTINGS-01), Phase 28 (Calendar Full View, CALVIEW-01/02/03/04) — 100% coverage (13/13). Phase numbering continues from Phase 22 (which is superseded, not resumed). Sequenced per research's recommendation: shell rewrite first (hard prerequisite for drag-in only), remaining four phases independent and free to reorder.
 - Phase 25 edited: rescoped from generic frosted/glossy+slower-spring to a specific black-to-transparent vertical gradient material, fluid/bouncy Dynamic-Island-style animation, and a new Theming settings section (VISUAL-03 added); explicitly scoped to shared shell chrome only, not individual activity content views
 - v1.5 (Home Focus & Widget Redesign) roadmap created 2026-07-13: Phase 29 (NotchShape Flare, SHAPE-01), Phase 30 (Home Music-Only, HOME-01/02/03), Phase 31 (Shelf Consolidation to Tray-Only, TRAY-01), Phase 32 (Tray Widening, TRAY-05), Phase 33 (Weather Widget Redesign, WEATHER-01/02), Phase 34 (Quick Action Destination Picker, TRAY-02/03/04) — 100% coverage (11/11). Phase numbering continues from Phase 28. REQUIREMENTS.md's initial "10 total" count corrected to 11 (the actual v1.5 requirement ID list has 11 entries).
+- v1.6 (Liquid Glass & System HUD Suite) roadmap created 2026-07-15: Phase 35 (Liquid Glass Material, GLASS-01), Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/02/EQ-01/ONBOARD-04), Phase 37 (Drop-Session Summary Chip, HUD-07), Phase 38 (Focus Mode HUD, HUD-05), Phase 39 (Volume & Brightness HUD, HUD-03/04), Phase 40 (Update-Available HUD & Sparkle Integration, HUD-06), Phase 41 (Calendar Countdown HUD, HUD-08), Phase 42 (Dual-Activity Display, DUAL-01) — 100% coverage (12/12). Phase numbering starts at 35 (not 34) to avoid colliding with v1.5's still-open, unarchived Phase 34. v1.5 remains open in parallel; both milestones' phases coexist on the live ROADMAP.md.
 
 ### Pending Todos
 
@@ -133,12 +139,17 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 
 [Issues that affect future work]
 
-- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3/v1.4/v1.5 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
-- [v1.4, pending] 2 items in `28-HUMAN-UAT.md` remain pending final on-device re-confirmation of the two code-review fixes; run `/gsd:verify-work` for v1.4 once confirmed, then `/gsd:complete-milestone` for v1.4 whenever convenient — does not block starting v1.5 phase work.
+- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3/v1.4/v1.5/v1.6 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
+- [v1.4, pending] 2 items in `28-HUMAN-UAT.md` remain pending final on-device re-confirmation of the two code-review fixes; run `/gsd:verify-work` for v1.4 once confirmed, then `/gsd:complete-milestone` for v1.4 whenever convenient — does not block starting v1.5/v1.6 phase work.
 - [v1.5, from research] Quick Action picker precedence tier (Phase 34) — whether a Charging/Device transient interrupts an open picker or queues behind it is an explicit open product decision, not yet resolved; flag for `/gsd-discuss-phase 34` before that phase's planning.
 - [v1.5, from research] `NSSharingService`/`NSSharingServicePicker` behavior from Islet's permanently non-key `NotchPanel` is unverified in this codebase (WebSearch-corroborated only) — Phase 34 must spike this in isolation before committing to the full picker plan.
 - [v1.5, from research] NotchShape flare (Phase 29) has an open geometry question — whether the flare stays inside the existing panel-frame reservation or needs the panel to grow upward past `screenFrame.maxY` — resolve via a quick on-device check during Phase 29 planning/execution.
 - [v1.5, from research] Weather (Phase 33) has two open questions to resolve during its own planning: whether the compact card's H/L needs `fetchCurrent` itself to change, and whether the extended forecast card fits inside the existing 196pt `switcherContentHeight` shared constant (also used by Home/Calendar/Tray) or requires it to grow.
+- [v1.6, from research] Liquid Glass reference code (Phase 35) not yet reviewed — whether it targets `.glassEffect()`/`NSGlassEffectView` (macOS 26+, requires a deployment-target bump from today's 15.0 floor) or a materials/gradient-composition fallback (15+, no bump) is unresolved; surface explicitly in `/gsd-discuss-phase 35`.
+- [v1.6, from research] Focus Mode detection (Phase 38) has no supported public API for generic on/off beyond `INFocusStatusCenter`; the richer Assertions.json path requires a manual, unprompted Full Disk Access grant with zero automatic TCC prompt — UX acceptability must be confirmed via the phase's own on-device spike before scope is locked.
+- [v1.6, from research] Volume/Brightness OSD suppression (Phase 39) is undocumented/private-API territory with a confirmed macOS-Tahoe-specific regression mode (wrong `CGEventTap` variant breaks transport keys system-wide) — must be independently re-confirmed on this project's own dev machine during the phase's own spike, not assumed transferable from the reference app (Droppy).
+- [v1.6, from research] Update-available HUD's UI shape (badge vs. custom in-notch driver) is an open design decision for Phase 40 — default to Sparkle's standard alert + a simple badge, revisit a custom `SPUUserDriver` only if that proves insufficient on-device.
+- [v1.6, from research] Dual-activity display's (Phase 42) exact promotion/demotion rules are not yet specified as data — phase planning must produce an explicit ordered rule table before implementation.
 
 ### Quick Tasks Completed
 
@@ -186,7 +197,7 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, Phase 22) remained unshipped** — Phase 22 was blocked twice on-device (AppKit drag delivery never reached `NotchPanel`, root cause unidentified) and the user chose to abandon the incremental fix in favor of a broader NotchPanel/NotchWindowController architecture redesign. SHELF-01/02 now formally re-scoped into v1.4 Phase 24, gated behind Phase 23's shell rewrite.
 
-**v1.4 close (pending):** All 6 phases (23-28) code-complete; 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation before `/gsd:complete-milestone` formally closes v1.4. Not blocking v1.5 phase work.
+**v1.4 close (pending):** All 6 phases (23-28) code-complete; 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation before `/gsd:complete-milestone` formally closes v1.4. Not blocking v1.5/v1.6 phase work.
 
 ## Session Continuity
 
@@ -198,3 +209,4 @@ Resume file: .planning/phases/33-weather-widget-redesign/33-UI-SPEC.md
 
 - Phase 29 (NotchShape Flare) is complete — its own on-device UAT checkpoint (Task 3) already covered all 3 ROADMAP success criteria, so a separate `/gsd:verify-work 29` pass is not needed. Start `/gsd-discuss-phase 30` next.
 - v1.4 is code-complete but not formally closed: 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation — run `/gsd:verify-work` for v1.4 then `/gsd:complete-milestone` whenever convenient (does not block v1.5).
+- v1.6 ROADMAP.md is now created (Phases 35-42, 12/12 requirements mapped) and ready for review — once v1.5 Phase 33/34 work reaches a convenient pause point, start `/gsd-discuss-phase 35` (Liquid Glass Material). First open item: review the user-supplied reference code to decide `.glassEffect()`/macOS 26 bump vs. a 15.0-compatible materials fallback.

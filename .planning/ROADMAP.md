@@ -9,6 +9,7 @@
 - ✅ **v1.3 Notch Shelf** — Phases 19-21 (shipped 2026-07-11, known gap: SHELF-01/02 drag-in deferred to v1.4)
 - 🚧 **v1.4 Architecture Redesign** — Phases 23-28 (in progress)
 - 📋 **v1.5 Home Focus & Widget Redesign** — Phases 29-34 (planned)
+- 📋 **v1.6 Liquid Glass & System HUD Suite** — Phases 35-42 (planned)
 
 ## Phases
 
@@ -95,6 +96,19 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 33: Weather Widget Redesign** - Medium (header + hourly row) always shown, Settings-gated Large adds a daily range-bar list — 1:1 iOS Weather widget clone
 - [ ] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop
 
+### 📋 v1.6 Liquid Glass & System HUD Suite (Planned)
+
+**Milestone Goal:** Give Islet an edgier "Liquid Glass" material look and a suite of new Droppy-style collapsed-state system HUDs, plus a new dual-activity display concept for when two top-priority activities are live at once. Sequenced material-first (every other visual feature renders inside it), then risk-ascending through the new-transient-case pattern (cosmetic restyles → drop-session chip → Focus Mode spike → Volume/Brightness spike), with the fully-independent Sparkle integration floating after Phase 35, and the architecturally novel dual-activity display sequenced last, after Calendar Countdown exists as a proven single-winner case to combine with Now Playing. Numbered from Phase 35 to avoid colliding with v1.5's still-open Phase 34 (v1.5 remains open in parallel, not archived).
+
+- [ ] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code
+- [ ] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes
+- [ ] **Phase 37: Drop-Session Summary Chip** - "N files saved" chip after closing Tray, adding the missing shelf-session-boundary concept first
+- [ ] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case
+- [ ] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses
+- [ ] **Phase 40: Update-Available HUD & Sparkle Integration** - Real Sparkle 2 auto-update + update-available HUD/badge
+- [ ] **Phase 41: Calendar Countdown HUD** - Live minute-countdown starting 1 hour before a calendar event, own persistent timer
+- [ ] **Phase 42: Dual-Activity Display** - Main pill + secondary bubble when two top-priority activities are live at once, additive resolver extension
+
 ## Phase Details
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
@@ -143,6 +157,8 @@ Plans:
 **v1.4:** 6/6 phases complete (100%) — Phases 23-28 all done. Pending final on-device UAT re-confirmation of 2 code-review fixes before formal `/gsd:complete-milestone`.
 
 **v1.5:** 4/6 phases complete (67%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md.
+
+**v1.6:** 0/8 phases complete (0%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -550,5 +566,109 @@ Plans:
   3. Choosing "AirDrop" opens the system AirDrop share sheet for the dropped file.
   4. Choosing "Mail" composes a new email in Mail.app with the file attached (documented limitation: non-Mail.app default clients don't receive the attachment).
   5. Invoking AirDrop/Mail does not break the panel's non-activating/click-through guarantees — re-verified via the on-device hover→expand→move-down trace.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 35: Liquid Glass Material
+
+**Goal**: The shared background material — pill, expanded island, and all activity wings — is replaced by a "Liquid Glass" look (glossier, blurred/frosted, not glass-clear), built from user-supplied reference code and plugging into the existing `MaterialStyle`/`islandMaterial` seam. Every later HUD phase in this milestone inherits the finished material for free instead of retrofitting each new view individually.
+**Depends on**: Nothing — first phase of the v1.6 milestone.
+**Requirements**: GLASS-01
+**Success Criteria** (what must be TRUE):
+  1. The collapsed pill, expanded island, and every activity wing (Charging, Device, Now Playing) render the new Liquid Glass material, replacing today's gradient material.
+  2. The new material is applied as a modifier on the existing shape node that already carries the `matchedGeometryEffect` id — not a new sibling/wrapper view — so morph continuity is preserved.
+  3. A Phase-25-style on-device UAT checklist (material renders correctly through collapse↔expand, no artifacts, no dropped frames) passes as a hard merge gate.
+  4. The visual result is user-approved on-device against the supplied reference code.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 36: Cosmetic Restyles & Signature Animation
+
+**Goal**: Bluetooth/AirPods and Charging activities are restyled to the Droppy-pill look, the Now Playing equalizer bars get a new visual design, and the onboarding flow's first page gains a handwritten-signature-style reveal animation — all pure view-layer changes with zero resolver, monitor, or data changes, proving the new visual language renders correctly inside Phase 35's material.
+**Depends on**: Phase 35 — these restyles render inside the new Liquid Glass material rather than the old one.
+**Requirements**: HUD-01, HUD-02, EQ-01, ONBOARD-04
+**Success Criteria** (what must be TRUE):
+  1. The Bluetooth/AirPods device-connected activity visually matches the Droppy-pill restyle; `DeviceCoordinator`/`BluetoothMonitor` are unchanged.
+  2. The Charging activity visually matches the Droppy-pill restyle; the existing IOKit power monitor is unchanged.
+  3. The Now Playing equalizer bars render the user-supplied reference visual design with no change to the underlying playback data or monitor.
+  4. The onboarding flow's first page shows a live handwritten-signature-style reveal animation (distinct color, script styling) replacing the "Welcome to Islet" text — scoped to that one page only, the rest of the app's typography is unaffected.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 37: Drop-Session Summary Chip
+
+**Goal**: After the Tray is closed following a drop session, a brief "N files saved" chip appears — first adding the missing "shelf session" boundary concept to `ShelfViewState`/`ShelfCoordinator`, then building the chip itself as a one-shot orthogonal toast reusing the already-shipped Phase-18 song-change-toast pattern.
+**Depends on**: Nothing hard — independent of Phases 35-36, though it renders inside whatever material is current.
+**Requirements**: HUD-07
+**Success Criteria** (what must be TRUE):
+  1. `ShelfViewState`/`ShelfCoordinator` track an explicit session boundary (files dropped since Tray was last closed), distinct from today's `isVisible = !items.isEmpty` check.
+  2. Closing the Tray after at least one file was dropped during that session briefly shows a chip reading "N files saved," then auto-dismisses.
+  3. Closing the Tray with zero files dropped during that session shows no chip.
+  4. The chip is implemented as a one-shot `@Published` orthogonal toast (mirroring Phase 18's song-change toast), not a new `IslandResolver`/`TransientQueue` case.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 38: Focus Mode HUD
+
+**Goal**: A generic on/off Focus Mode HUD appears when the user toggles Focus/Do Not Disturb — an on-device research spike confirms the detection mechanism first, then the feature is built as the first genuinely new `ActiveTransient` case in this milestone, proving the "new pure Activity type → Monitor → resolver case → wing view" pipeline once, cheaply, before Phase 39 attempts the same pipeline under real private-API risk.
+**Depends on**: Nothing hard — independent of Phases 35-37, sequenced here per research to prove the new-transient pipeline before the higher-risk Volume/Brightness phase.
+**Requirements**: HUD-05
+**Success Criteria** (what must be TRUE):
+  1. An on-device spike confirms and records which detection path is used (`INFocusStatusCenter`'s public boolean signal, preferred, vs. Assertions.json polling behind a manual Full Disk Access grant) before full implementation proceeds.
+  2. Toggling Focus/DND on shows the new HUD in a generic "Focus On" state; toggling off dismisses it or shows "Focus Off" — no named-mode text (e.g. "Work Focus") anywhere.
+  3. If the Full-Disk-Access-gated path is required, denying that permission degrades silently (no crash, no stuck state) rather than blocking the rest of the app.
+  4. The new `FocusActivity`/`FocusModeMonitor` pipeline routes through `IslandResolver`/`TransientQueue` like every other transient — no resolver bypass.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 39: Volume & Brightness HUD
+
+**Goal**: Volume and Brightness HUDs appear on key press in the Droppy-pill style and suppress the native macOS OSD when an on-device spike confirms it's safe — the milestone's single highest-risk item, isolated as its own spike-then-implement phase per this project's own Phase 22/Phase 8→9 precedent, sharing one OSD-replacement subsystem across both HUDs rather than duplicating the risky suppression work.
+**Depends on**: Nothing hard — independent of Phases 35-38, but reuses the `ActiveTransient` pipeline shape Phase 38 proves first.
+**Requirements**: HUD-03, HUD-04
+**Success Criteria** (what must be TRUE):
+  1. An on-device spike confirms `.cgSessionEventTap` (never the annotated variant) intercepts volume/brightness `NX_SYSDEFINED` events without breaking any of the 4 media transport keys, with the go/no-go decision and fallback behavior (show the HUD alongside the native OSD if suppression proves unreliable) explicitly recorded before full implementation.
+  2. Pressing a volume key shows the new Volume HUD reflecting the live system volume level; pressing a brightness key shows the new Brightness HUD reflecting the live brightness level.
+  3. Rapid repeated key presses (scrubbing) update the same HUD instance in place via `TransientQueue.updateHead()` rather than stacking multiple transients.
+  4. The undocumented `EnableSystemBanners` Control-Center-wide defaults toggle is not used anywhere in the implementation.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 40: Update-Available HUD & Sparkle Integration
+
+**Goal**: A real Sparkle 2 auto-update integration ships alongside an update-available HUD/badge — independent of every other phase in this milestone, floats anywhere after Phase 35.
+**Depends on**: Nothing hard — independent, can be sequenced anywhere after Phase 35.
+**Requirements**: HUD-06
+**Success Criteria** (what must be TRUE):
+  1. Islet checks for updates via a real `SPUStandardUpdaterController`/`SPUUpdater`, with a "Check for Updates…" menu item available from the status-item menu.
+  2. When a new version is published, the collapsed island shows an update-available HUD/badge, implemented as an orthogonal `@Published` flag (not a `TransientQueue` participant, since it has no expiry).
+  3. Tapping the HUD triggers Sparkle's own standard install/progress dialog — confirmed on-device not to steal focus or otherwise break the panel's non-activating/click-through guarantees in this LSUIElement app.
+  4. The embedded Sparkle framework is signed/entitled correctly (mirroring the existing `MediaRemoteAdapter` disable-library-validation treatment) so Release builds launch without a Gatekeeper/library-validation crash.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 41: Calendar Countdown HUD
+
+**Goal**: Starting 1 hour before a calendar event, the collapsed pill shows a live minute-countdown (calendar icon left, event time right), driven by its own persistent per-minute timer rather than the shared 3s `activityDuration` auto-dismiss pattern. Calendar data already exists via EventKit (Phase 28) — this phase de-risks the timer/data pipeline as a single-winner ambient feature before Phase 42 needs it as a proven input.
+**Depends on**: Nothing hard — EventKit data already shipped in Phase 28; sequenced before Phase 42 so dual-activity has a proven single-winner case to combine with Now Playing.
+**Requirements**: HUD-08
+**Success Criteria** (what must be TRUE):
+  1. Within 1 hour of a real calendar event's start time, the collapsed pill shows a calendar icon (left) and a live minutes-remaining countdown (right) that updates continuously without user interaction.
+  2. The countdown HUD dismisses at (or shortly after) the event's start time, using its own scheduling — never the shared 3s `activityDuration` auto-dismiss.
+  3. The countdown timer is scheduled to actual minute boundaries rather than a tight poll loop, verified via Activity Monitor's Idle Wake Ups column showing no regression.
+  4. The countdown participates in `IslandResolver` as an ambient single-winner activity, correctly yielding to any higher-priority Charging/Device transient.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 42: Dual-Activity Display
+
+**Goal**: When two top-priority activities are live simultaneously (e.g. the Calendar countdown and Now Playing), the collapsed state shows a main pill plus a small secondary bubble instead of one activity strictly winning — the milestone's single most architecturally novel change, extending the single-winner `IslandResolver` via an additive `secondary: SecondaryActivity?` field rather than reshaping `IslandPresentation`. Sequenced last, after Phase 41 gives it a real, independently-stable single-winner case to combine with Now Playing.
+**Depends on**: Phase 41 — needs Calendar Countdown proven and independently correct before this phase has to solve only "how do two correct signals combine," not "is this new signal even correct."
+**Requirements**: DUAL-01
+**Success Criteria** (what must be TRUE):
+  1. With Calendar Countdown and Now Playing both live at once, the collapsed island shows a main pill (one activity) plus a small secondary bubble (the other) rather than one activity hiding the other.
+  2. The primary/secondary promotion-demotion rule is implemented as an explicit ordered table (not scattered conditionals) and correctly generalizes to any two competing top-priority activities, not just Calendar+Music.
+  3. Primary and secondary slots use distinct `matchedGeometryEffect` namespaces — no visual glitches, geometry collisions, or dropped frames when either slot's content changes.
+  4. The extension is additive — the existing `IslandResolver.resolve()` single-winner pass and every existing `IslandPresentation` switch site are otherwise unchanged, confirmed via a diff review.
 **Plans**: TBD
 **UI hint**: yes
