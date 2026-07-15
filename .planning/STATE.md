@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: ready_to_plan
-stopped_at: Phase 34 complete (2/2) — ready to discuss Phase 35
-last_updated: 2026-07-15T19:46:35.557Z
-last_activity: 2026-07-15 -- Phase 34 execution started
+status: planning
+stopped_at: Phase 35 context gathered — animation-regression debug session required before planning
+last_updated: "2026-07-15T20:11:27.669Z"
+last_activity: 2026-07-15
 progress:
   total_phases: 27
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 39
   completed_plans: 38
-  percent: 52
+  percent: 56
 ---
 
 # Project State
@@ -204,9 +204,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-15T18:11:16.193Z
-Stopped at: Phase 34 UAT revision context gathered — drag-target redesign
-Resume file: .planning/phases/34-quick-action-destination-picker/34-CONTEXT.md
+Last session: 2026-07-15T20:11:27.661Z
+Stopped at: Phase 35 context gathered — animation-regression debug session required before planning
+Resume file: .planning/phases/35-liquid-glass-material/35-CONTEXT.md
 
 ## Operator Next Steps
 
