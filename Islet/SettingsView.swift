@@ -34,10 +34,11 @@ struct SettingsView: View {
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
-    // Phase 33 / WEATHER-02 (D-03) — a plain app-owned toggle, same @AppStorage-is-the-
-    // source-of-truth convention as the Activities toggles above; no .onChange handler
-    // needed (NotchPillView/NotchWindowController each read the same key independently).
-    @AppStorage(ActivitySettings.weatherExtendedKey) private var weatherExtended = false
+    // Phase 33 / WEATHER-01/02 (D-03/D-04) — a String-backed enum selector, same
+    // @AppStorage-is-the-source-of-truth convention as the Activities toggles above; no
+    // .onChange handler needed (NotchPillView/NotchWindowController each read the same key
+    // independently). Mirrors materialStyle's fully-qualified-type-annotation convention below.
+    @AppStorage(ActivitySettings.weatherStyleKey) private var weatherStyle: ActivitySettings.WeatherStyle = .medium
 
     // Phase 27 / VISUAL-03 (D-05/D-07) — the material-style preset and the 3
     // independent per-element accent indices, replacing the single global
@@ -176,11 +177,16 @@ struct SettingsView: View {
                 Toggle("Hide notch in fullscreen", isOn: $hideInFullscreen)
             }
 
-            // Phase 33 / WEATHER-02 (D-03/D-05/D-06) — live-switches the Weather card between
-            // its compact and extended-forecast layouts, no relaunch (NotchPillView's
-            // @AppStorage on the same key re-renders immediately).
+            // Phase 33 / WEATHER-01/02 (D-03/D-04/D-05) — live-switches the Weather card between
+            // its Medium and Large layouts, no relaunch (NotchPillView's @AppStorage on the
+            // same key re-renders immediately). Mirrors systemSection's materialStyle segmented
+            // Picker exactly, using the bare WeatherStyle module-level alias for the tags.
             Section("Weather") {
-                Toggle("Extended forecast", isOn: $weatherExtended)
+                Picker("Weather Style", selection: $weatherStyle) {
+                    Text("Medium").tag(WeatherStyle.medium)
+                    Text("Large").tag(WeatherStyle.large)
+                }
+                .pickerStyle(.segmented)
             }
 
             // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
