@@ -598,14 +598,20 @@ struct NotchPillView: View {
                     .font(.system(size: 11, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                // Quick task 260715-vsd gap-closure round 2 — this view was never touched by
-                // round 1 (mediaExpanded is a separate view, only shown once a track exists);
-                // its small icon+text content left a large dead gap before the switcher row in
-                // the shared switcherContentHeight box. Same Spacer(minLength:) fix as
-                // mediaExpanded — see that view's comment for why a Spacer beats a guessed
-                // padding constant here.
-                Spacer(minLength: 8)
             }
+            // Quick task 260715-vsd gap-closure round 3 — the dead gap before the switcher row
+            // here is `Self.switcherContentHeight` (196) minus this content's own natural
+            // height; it is NOT reducible from inside this view (a round-2 Spacer attempt here
+            // had zero visual effect, since the switcher row's Y position is fixed by the shared
+            // box height alone, not by how content fills it). switcherContentHeight itself is a
+            // hard floor: its 196pt is exactly what calendarFullView's worst-case 6-row month
+            // grid needs (see that constant's own box-math comment), shared uniformly across
+            // every switcher-row tab specifically to keep the switcher pill's on-screen
+            // position constant across tab switches (28-04 round 5 misclick-bug fix — a
+            // per-tab box height literally used to make people misclick and collapse the
+            // island). Shrinking it here would either reintroduce that regression (if done
+            // per-case) or risk clipping Calendar (if done globally). Left as a known, deliberate
+            // trade-off pending a product decision — flagged to the user rather than guessed at.
             // Quick task 260714-3k6 gap-closure — was a bare `24`, unlike every other
             // switcher-row presentation (mediaExpanded/calendarFullView/weatherFullView/
             // trayFullView), which all clear the camera/notch band via the shared
@@ -1082,9 +1088,16 @@ struct NotchPillView: View {
     // verfügbar" style, since an empty shelf is a normal empty collection (like an empty
     // inbox), not a degraded/blocked feature.
     private var trayEmptyState: some View {
-        // Quick task 260715-vsd — outer VStack(spacing: 9) grows only the icon->text gap
-        // (4pt -> 9pt); the inner VStack keeps title->subtitle at the original 4pt.
-        VStack(spacing: 9) {
+        // Quick task 260715-vsd gap-closure round 3 — corrected reading of the original
+        // request ("Text muss 5pt höher"): the switcher row's Y position is fixed by
+        // `trayContentHeight` alone (it always starts at exactly that offset, regardless of
+        // this VStack's own internal spacing — round 1/2 wrongly assumed growing THIS
+        // spacing pushed the switcher row away). The only way to grow the gap between the
+        // text and the switcher row while leaving the switcher's position untouched is to
+        // make this content shorter, i.e. TIGHTEN the icon->text spacing (was 4pt originally,
+        // round 1 wrongly grew it to 9pt which made the text sit closer to the switcher row,
+        // not further) — spacing: 2 now sits the text visibly higher than the original 4pt.
+        VStack(spacing: 2) {
             Image(systemName: "tray")
                 .font(.system(size: 28))
                 .foregroundStyle(.white.opacity(0.4))
@@ -1942,17 +1955,15 @@ struct NotchPillView: View {
                         Spacer()
                         Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
                     }
-                    // Quick task 260715-vsd gap-closure round 2 — replaces the round-1 guessed
-                    // `.padding(.bottom, 40)` (still left too much dead space per on-device
-                    // feedback: a flat padding constant can't know the transport/art/progress
-                    // rows' actual rendered heights). A Spacer inside the height-constrained
-                    // VStack instead lets SwiftUI itself consume exactly whatever room remains
-                    // in the shared switcherContentHeight box, deterministically regardless of
-                    // row-height estimation error. minLength keeps a small fixed floor so
-                    // content never touches the switcher row.
-                    Spacer(minLength: 8)
                 }
                 .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
+                .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve (restored to its pre-260715-vsd value —
+                // gap-closure round 3 finding: the switcher row's Y position is fixed by the shared
+                // `switcherContentHeight` box height alone, NOT by this content's own internal
+                // padding — a bottom padding change here cannot move the switcher row closer/
+                // further, so rounds 1-2's attempts to "shrink the gap" via this padding had no
+                // real effect either way. See homeEmptyState's comment for the actual constraint
+                // that governs this box height.)
                 // Quick task 260714-3k6 gap-closure round 2 — was `.padding(.horizontal, 26)`
                 // (a fix for the round-1 wall-overlap bug: NotchShape's side walls sit at a
                 // CONSTANT `topCornerRadius`/24pt inset from each edge, independent of panel
