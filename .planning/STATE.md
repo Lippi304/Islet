@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: planning
-stopped_at: Phase 35 context gathered — animation-regression debug session required before planning
-last_updated: "2026-07-15T20:11:27.669Z"
-last_activity: 2026-07-15
+stopped_at: Phase 35 UI-SPEC approved
+last_updated: "2026-07-15T23:43:46.641Z"
+last_activity: 2026-07-16 - Quick task 260715-vsd fully confirmed on-device after 5 gap-closure rounds and a nested debug session (tray-spacing-fix-not-applying, resolved)
 progress:
   total_phases: 27
   completed_phases: 15
@@ -205,9 +205,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-15T20:11:27.661Z
-Stopped at: Phase 35 context gathered — animation-regression debug session required before planning
-Resume file: .planning/phases/35-liquid-glass-material/35-CONTEXT.md
+Last session: 2026-07-15T23:43:46.636Z
+Stopped at: Phase 35 UI-SPEC approved
+Resume file: .planning/phases/35-liquid-glass-material/35-UI-SPEC.md
 
 ## Operator Next Steps
 
