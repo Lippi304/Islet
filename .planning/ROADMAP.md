@@ -571,7 +571,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 34-01-PLAN.md — Pure seams: PendingDrop + IslandPresentation.quickActionPicker case + resolve() branch (TDD), QuickActionSharingService NSSharingService seam (TDD), NotchPillView quickActionPickerView
+- [x] 34-01-PLAN.md — Pure seams: PendingDrop + IslandPresentation.quickActionPicker case + resolve() branch (TDD), QuickActionSharingService NSSharingService seam (TDD), NotchPillView quickActionPickerView
 
 **Wave 2** *(blocked on 34-01)*
 

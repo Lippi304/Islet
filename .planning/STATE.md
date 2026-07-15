@@ -4,8 +4,8 @@ milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
 stopped_at: Phase 34 UI-SPEC approved
-last_updated: "2026-07-15T15:33:03.557Z"
-last_activity: 2026-07-15 -- Phase 34 planning complete
+last_updated: "2026-07-15T17:23:27.330Z"
+last_activity: 2026-07-15 -- Phase 34 execution started
 progress:
   total_phases: 27
   completed_phases: 14
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 33 — weather-widget-redesign
+**Current focus:** Phase 34 — quick-action-destination-picker
 
 ## Current Position
 
-Phase: 33 — COMPLETE
+Phase: 34 (quick-action-destination-picker) — EXECUTING
 Plan: 1 of 2
-Status: Ready to execute
-Last activity: 2026-07-15 -- Phase 34 planning complete
+Status: Executing Phase 34
+Last activity: 2026-07-15 -- Phase 34 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
