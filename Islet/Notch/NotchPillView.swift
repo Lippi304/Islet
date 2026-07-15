@@ -371,8 +371,13 @@ struct NotchPillView: View {
     // switcherContentHeight box) wasn't grown to match, so the taller content pushed its
     // subtitle text down into the switcher row's own space. +5pt here restores the same
     // buffer that existed before round 1's spacing change.
+    // Quick task 260715-vsd gap-closure round 4 — 133 -> 145. Combined with trayEmptyState's
+    // spacing: 0 (was 2), gives a much larger, unambiguous gap before the switcher row —
+    // round 3's more conservative +5pt/spacing:2 pairing was confirmed too subtle to read as
+    // different once the real blocker (unreachable trayEmptyState, see debug session
+    // tray-spacing-fix-not-applying) was fixed and the view became visible for the first time.
     static let traySize = CGSize(width: 650, height: 144)
-    static let trayContentHeight: CGFloat = 133
+    static let trayContentHeight: CGFloat = 145
 
     // Quick task 260715-vsd — the Calendar-only width override. calendarFullView's own
     // `.padding(.horizontal, 16)` is 8pt short of the 24pt wall-inset every NotchShape edge
@@ -1088,16 +1093,16 @@ struct NotchPillView: View {
     // verfügbar" style, since an empty shelf is a normal empty collection (like an empty
     // inbox), not a degraded/blocked feature.
     private var trayEmptyState: some View {
-        // Quick task 260715-vsd gap-closure round 3 — corrected reading of the original
-        // request ("Text muss 5pt höher"): the switcher row's Y position is fixed by
-        // `trayContentHeight` alone (it always starts at exactly that offset, regardless of
-        // this VStack's own internal spacing — round 1/2 wrongly assumed growing THIS
-        // spacing pushed the switcher row away). The only way to grow the gap between the
-        // text and the switcher row while leaving the switcher's position untouched is to
-        // make this content shorter, i.e. TIGHTEN the icon->text spacing (was 4pt originally,
-        // round 1 wrongly grew it to 9pt which made the text sit closer to the switcher row,
-        // not further) — spacing: 2 now sits the text visibly higher than the original 4pt.
-        VStack(spacing: 2) {
+        // Quick task 260715-vsd gap-closure round 4 — trayEmptyState was confirmed
+        // UNREACHABLE in every prior round (debug session tray-spacing-fix-not-applying:
+        // NotchWindowController.seedDebugShelfItems() re-seeded demo files on every Debug
+        // launch, so the shelf was never actually empty). Now that the fix there
+        // (one-time UserDefaults seed guard) makes this view reachable, round 3's spacing: 2
+        // (only 2pt tighter than the original 4pt) was too subtle a change to read as
+        // different. Going further this round: spacing: 0 (icon and title/subtitle block
+        // touch directly) PLUS trayContentHeight grown 133 -> 145 (see that constant) for a
+        // combined, unmistakably larger gap before the switcher row than any prior round.
+        VStack(spacing: 0) {
             Image(systemName: "tray")
                 .font(.system(size: 28))
                 .foregroundStyle(.white.opacity(0.4))
