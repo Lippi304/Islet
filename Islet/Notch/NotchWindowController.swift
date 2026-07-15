@@ -121,6 +121,12 @@ final class NotchWindowController {
     // code lives here or in the service itself (D-08).
     private let quickActionSharingService = QuickActionSharingService()
 
+    // Phase 34 (UAT revision, Pattern 3) — the Quick Action picker's 3 destination buttons' live
+    // global frames, pure arithmetic (computeQuickActionButtonFrames). Recomputed once per
+    // positionAndShow() call, exactly like expandedZone/dragLandingMaxY's own "recomputed every
+    // show, read every tick" lifecycle — never recomputed per-tick itself, only hit-tested.
+    private var quickActionButtonFrames: [CGRect] = []
+
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model the expandedIdle
     // 3-column glance observes (Plan 04). Held behind their PROTOCOL types (never the concrete
     // class), mirroring `nowPlayingMonitor: NowPlayingService?`'s existing convention — a future
@@ -861,6 +867,9 @@ final class NotchWindowController {
         let quickActionPickerFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                          expandedSize: CGSize(width: expandedSize.width,
                                                                                height: NotchPillView.quickActionPickerContentHeight))
+        // Phase 34 (UAT revision, Pattern 3) — the 3 destination buttons' live global frames,
+        // computed once per positionAndShow() alongside quickActionPickerFrame itself.
+        quickActionButtonFrames = computeQuickActionButtonFrames(card: quickActionPickerFrame)
         let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExpandedFrame).union(quickActionPickerFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
@@ -927,6 +936,20 @@ final class NotchWindowController {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
             withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
                 interaction.phase = nextState(interaction.phase, .dragEntered)
+                // Phase 34 UAT revision (D-10) — populate pendingDrop HERE, same edge as the
+                // auto-expand, not at release (handleDragApproachEnd). The session-copy MECHANISM
+                // itself is UNCHANGED (ShelfFileStore.makeSessionCopy) — only the call-site moved,
+                // so the picker's first-ever render already reflects the populated pendingDrop.
+                let urls = fileURLs(from: NSPasteboard(name: .drag))
+                if !urls.isEmpty {
+                    var items: [ShelfItem] = []
+                    for url in urls {
+                        let id = UUID()
+                        guard let localURL = try? ShelfFileStore.makeSessionCopy(of: url, id: id) else { continue }
+                        items.append(ShelfItem(id: id, originalURL: url, localURL: localURL, filename: url.lastPathComponent, addedAt: Date()))
+                    }
+                    if !items.isEmpty { pendingDrop = PendingDrop(items: items) }
+                }
                 renderPresentation()
             }
             // Phase 24 / SHELF-01 / SHELF-02 (D-10/D-11) — lazily construct the drop-interception
@@ -941,6 +964,14 @@ final class NotchWindowController {
             dropInterceptTap?.start()
         } else if !geometryInside && isDragApproaching {
             isDragApproaching = false
+            // Phase 34 UAT revision (D-13b, Pitfall 6) — MUST discard pendingDrop here too now
+            // that its lifetime starts at dragEntered instead of release: without this, dragging
+            // back out before releasing leaves pendingDrop set (the picker never disappears) and
+            // re-entering overwrites it, leaking the first session-copied temp file on disk.
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                discardPendingDrop()
+                renderPresentation()
+            }
         }
     }
 
@@ -951,33 +982,6 @@ final class NotchWindowController {
     private func handleDragApproachEnd() {
         guard isDragApproaching else { return }
         isDragApproaching = false
-
-        let point = NSEvent.mouseLocation
-        let pasteboard = NSPasteboard(name: .drag)
-        let urls = fileURLs(from: pasteboard)
-        // isExpanded: false is deliberate here — the collapsed-ORIGIN gate already happened via
-        // isDragApproaching's arm condition; interaction.isExpanded is already true by this
-        // point because recheckDragAcceptRegion's auto-expand already fired.
-        if shouldAcceptDrop(isExpanded: false, urls: urls),
-           isWithinDragAcceptRegion(point, zone: expandedZone, maxY: dragLandingMaxY) {
-            // Phase 34 / TRAY-02 (Pitfall 5) — a real drop no longer auto-stages into the shelf;
-            // it stores the session-copied items as a PendingDrop and shows the Drop/AirDrop/Mail
-            // picker instead. shelfCoordinator.append(item) is deferred until "Drop" is chosen
-            // (handleQuickActionDrop) — these items are NOT yet in the shelf, so resyncShelfViewState()
-            // must NOT be called here.
-            var items: [ShelfItem] = []
-            for url in urls {
-                let id = UUID()
-                guard let localURL = try? ShelfFileStore.makeSessionCopy(of: url, id: id) else { continue }
-                items.append(ShelfItem(id: id, originalURL: url, localURL: localURL, filename: url.lastPathComponent, addedAt: Date()))
-            }
-            if !items.isEmpty {
-                pendingDrop = PendingDrop(items: items)
-                withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-                    renderPresentation()
-                }
-            }
-        }
         // Pitfall 3 — pointerInZone/lastPointerLocation/syncClickThrough() go stale during ANY
         // OS drag session; re-sync unconditionally, mirroring endShelfItemDrag()'s own final line.
         handlePointer(at: NSEvent.mouseLocation)
