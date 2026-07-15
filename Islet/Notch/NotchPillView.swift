@@ -366,8 +366,13 @@ struct NotchPillView: View {
     // switcherContentHeight, this is deliberately SHORTER — content-hugging, not the shared
     // 196pt box): cameraClearance (42) + trayShelfRowTopInset (10) + trayShelfRowHeight (70) +
     // ~16pt bottom margin.
+    // Quick task 260715-vsd gap-closure round 2 — 128 -> 133. trayEmptyState's icon->text gap
+    // grew +5pt (4pt -> 9pt) in round 1; this tightly content-hugging box (unlike the generous
+    // switcherContentHeight box) wasn't grown to match, so the taller content pushed its
+    // subtitle text down into the switcher row's own space. +5pt here restores the same
+    // buffer that existed before round 1's spacing change.
     static let traySize = CGSize(width: 650, height: 144)
-    static let trayContentHeight: CGFloat = 128
+    static let trayContentHeight: CGFloat = 133
 
     // Quick task 260715-vsd — the Calendar-only width override. calendarFullView's own
     // `.padding(.horizontal, 16)` is 8pt short of the 24pt wall-inset every NotchShape edge
@@ -593,6 +598,13 @@ struct NotchPillView: View {
                     .font(.system(size: 11, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                // Quick task 260715-vsd gap-closure round 2 — this view was never touched by
+                // round 1 (mediaExpanded is a separate view, only shown once a track exists);
+                // its small icon+text content left a large dead gap before the switcher row in
+                // the shared switcherContentHeight box. Same Spacer(minLength:) fix as
+                // mediaExpanded — see that view's comment for why a Spacer beats a guessed
+                // padding constant here.
+                Spacer(minLength: 8)
             }
             // Quick task 260714-3k6 gap-closure — was a bare `24`, unlike every other
             // switcher-row presentation (mediaExpanded/calendarFullView/weatherFullView/
@@ -1930,9 +1942,17 @@ struct NotchPillView: View {
                         Spacer()
                         Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
                     }
+                    // Quick task 260715-vsd gap-closure round 2 — replaces the round-1 guessed
+                    // `.padding(.bottom, 40)` (still left too much dead space per on-device
+                    // feedback: a flat padding constant can't know the transport/art/progress
+                    // rows' actual rendered heights). A Spacer inside the height-constrained
+                    // VStack instead lets SwiftUI itself consume exactly whatever room remains
+                    // in the shared switcherContentHeight box, deterministically regardless of
+                    // row-height estimation error. minLength keeps a small fixed floor so
+                    // content never touches the switcher row.
+                    Spacer(minLength: 8)
                 }
                 .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
-                .padding(.bottom, 40)     // Quick task 260715-vsd — shrinks the empty gap above the switcher row (was 12, sized only for "room for the bottomCornerRadius:20 curve")
                 // Quick task 260714-3k6 gap-closure round 2 — was `.padding(.horizontal, 26)`
                 // (a fix for the round-1 wall-overlap bug: NotchShape's side walls sit at a
                 // CONSTANT `topCornerRadius`/24pt inset from each edge, independent of panel
