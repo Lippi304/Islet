@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Home Focus & Widget Redesign
-status: executing
-stopped_at: Phase 33-02 Tasks 1-3 complete (recovered from stale worktree after session interruption), Task 4 on-device UAT checkpoint pending
-last_updated: "2026-07-15T04:10:00.000Z"
-last_activity: 2026-07-15 -- Phase 33-02 code complete, awaiting on-device UAT
+milestone: v1.6
+milestone_name: Liquid Glass & System HUD Suite
+status: planning
+last_updated: "2026-07-15T02:24:49.047Z"
+last_activity: 2026-07-15
 progress:
-  total_phases: 19
-  completed_phases: 13
-  total_plans: 37
-  completed_plans: 35
-  percent: 68
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,11 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 ## Current Position
 
-Phase: 33 (weather-widget-redesign) — EXECUTING
-Plan: 2 of 2 (33-02)
-Status: Tasks 1-3 code-complete (build succeeds), Task 4 on-device UAT checkpoint pending
-Last activity: 2026-07-15 -- Phase 33-02 code complete, awaiting on-device UAT
-Next: Phase 31 — Shelf Consolidation to Tray-Only
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-15 — Milestone v1.6 started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 

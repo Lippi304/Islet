@@ -24,13 +24,13 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-Other standing candidates for a future milestone: system HUD replacement, a countdown timer (still Out of Scope below until picked up).
+Other standing candidates for a future milestone: a countdown timer (still Out of Scope below until picked up).
 
-## Current Milestone: v1.5 (Home Focus & Widget Redesign, name TBD)
+## Milestone In Progress (Parallel): v1.5 (Home Focus & Widget Redesign)
 
 **Goal:** Declutter Home to music-only, consolidate all file-drop behavior into Tray (with a Droppy-style Drop/AirDrop/Mail destination choice), redesign Weather as an iOS-widget-style card, widen/enlarge the Tray file layout, and give the expanded-state notch silhouette an outward-flaring top edge.
 
-**Status:** 3/6 phases complete (50%) — Phase 29 (SHAPE-01, NotchShape flare), Phase 30 (HOME-01/02/03, Home music-only), Phase 31 (TRAY-01, shelf consolidation to Tray-only) shipped 2026-07-14. Phase 32 (Tray Widening) next.
+**Status:** Not formally closed — left open in parallel while v1.6 planning begins (explicit user decision, 2026-07-15). 4/6 phases complete: Phase 29 (SHAPE-01, NotchShape flare), Phase 30 (HOME-01/02/03, Home music-only), Phase 31 (TRAY-01, shelf consolidation to Tray-only), Phase 32 (TRAY-05, Tray Widening) shipped 2026-07-14. Phase 33 (WEATHER-01/02, Weather widget redesign) code-complete, on-device UAT (Task 4) pending. Phase 34 (TRAY-02/03/04, Quick Action Destination Picker) not started. Resume with `/gsd-verify-work 33` once UAT passes, then `/gsd-plan-phase 34`.
 
 **Target features:**
 - Home shows ONLY Now Playing — live controls while something plays, cover+title (no live controls) for the last-played track while paused/stopped; the time/weather/calendar glance is fully removed from Home (Weather and Calendar already have their own switcher tabs).
@@ -40,6 +40,29 @@ Other standing candidates for a future milestone: system HUD replacement, a coun
 - NotchShape gains an outward flare transition into the top screen edge, applied ONLY to the expanded state — the idle/collapsed pill silhouette is explicitly unchanged (stays flush/straight into the edge as today).
 
 See `.planning/research/inspiration/notes.md` for the Droppy reference material (additional Quick-Action and widget reference screenshots captured during v1.5 discussion — see discussion log once written).
+
+## Current Milestone: v1.6 (Liquid Glass & System HUD Suite)
+
+**Goal:** Give Islet an edgier "Liquid Glass" material look and a suite of new Droppy-style collapsed-state system HUDs, plus a new dual-activity display concept for when two top-priority activities are live at once.
+
+**Target features:**
+- **Liquid Glass material** — glossier, blurred/frosted (not glass-clear) background material replacing the current gradient material, across expanded + collapsed island. User supplies reference implementation code during the relevant phase.
+- **Music equalizer bars redesign** — new visual design for the Now Playing bars. User supplies reference implementation code during the relevant phase.
+- **Onboarding signature animation** — the first onboarding page's "Welcome to Islet" text is replaced by a live handwritten-signature-style reveal animation (different color, script styling); scoped to that one page only, the app's regular font is untouched.
+- **New collapsed-state system HUDs (Droppy-style):**
+  - Volume HUD — replaces (suppresses) the native macOS volume OSD
+  - Brightness HUD — replaces (suppresses) the native macOS brightness OSD
+  - Focus Mode HUD — shows when the user toggles Focus/Do Not Disturb
+  - Update-available HUD — paired with a real Sparkle auto-update integration (net-new to the project)
+  - Bluetooth/AirPods HUD — restyle of the existing Device-Connected activity in the Droppy look
+  - Charging HUD — restyle of the existing Charging activity in the Droppy look
+  - Drop-session summary chip — after closing the Shelf/Tray following a drop session, briefly shows "N files saved"
+  - Calendar countdown HUD — starting 1 hour before a calendar event, the collapsed pill shows a live minutes-countdown (calendar icon left, event time right)
+- **Dual-activity display (new resolver concept)** — when two top-priority activities are live simultaneously (e.g. calendar countdown + now playing), the collapsed state shows a main pill plus a small secondary bubble instead of one activity strictly winning; generalizes beyond just Calendar+Music to any two competing top-priority activities. Extends today's single-winner `IslandResolver`.
+
+**Key context:**
+- Volume/Brightness OSD suppression and Focus Mode detection are technical unknowns similar in kind to the MediaRemote precedent (undocumented/private-API territory) — good candidates for a research phase before planning.
+- User will supply custom reference code for the Liquid Glass material and the equalizer bars redesign during their respective phases.
 
 ## Requirements
 
@@ -181,7 +204,8 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_v1.5 (Home Focus & Widget Redesign) — see `.planning/REQUIREMENTS.md` for the full 11-requirement traceability table. Remaining: HOME's Weather redesign (WEATHER-01/02), Tray widening (TRAY-05), Quick Action picker (TRAY-02/03/04)._
+_v1.5 (Home Focus & Widget Redesign) — see `.planning/milestones/v1.5-ROADMAP.md`/`.planning/ROADMAP.md` for the full 11-requirement traceability table. Remaining, left open in parallel: Phase 33 on-device UAT (WEATHER-01/02), Phase 34 Quick Action picker (TRAY-02/03/04)._
+_v1.6 (Liquid Glass & System HUD Suite) — requirements being defined, see `.planning/REQUIREMENTS.md` once written._
 
 ### Out of Scope
 
@@ -280,4 +304,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-14 — Validated in Phase 31: TRAY-01 (shelf consolidation to Tray-only), regression-locked and on-device verified with no CR-01-class click-through regression. v1.5 now 3/6 phases complete (Phases 29-31); Phase 32 (Tray Widening) next. v1.4 (Architecture Redesign) remains code-complete with 2 items in `28-HUMAN-UAT.md` still pending final on-device re-confirmation — `/gsd:complete-milestone` for v1.4 can be run whenever convenient.*
+*Last updated: 2026-07-15 — v1.6 (Liquid Glass & System HUD Suite) started. v1.5 (Home Focus & Widget Redesign) left open in parallel, not formally closed: 4/6 phases shipped, Phase 33 code-complete pending on-device UAT, Phase 34 not started — explicit user decision to begin v1.6 requirements/roadmap work without blocking on v1.5's remaining phases. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
