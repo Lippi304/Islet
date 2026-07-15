@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: completed
-stopped_at: Phase 34 context gathered
-last_updated: "2026-07-15T14:47:22.220Z"
-last_activity: 2026-07-15 -- Phase 33 marked complete
+status: executing
+stopped_at: Phase 34 UI-SPEC approved
+last_updated: "2026-07-15T15:33:03.557Z"
+last_activity: 2026-07-15 -- Phase 34 planning complete
 progress:
   total_phases: 27
   completed_phases: 14
-  total_plans: 37
+  total_plans: 39
   completed_plans: 36
   percent: 52
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 Phase: 33 — COMPLETE
 Plan: 1 of 2
-Status: Phase 33 complete
-Last activity: 2026-07-15 -- Phase 33 marked complete
+Status: Ready to execute
+Last activity: 2026-07-15 -- Phase 34 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -115,6 +115,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 31]: [Phase 31] shelfStripVisible access bumped private->internal (testability only) mirroring EqualizerBars.makeProfiles() precedent; regression-locked via NotchPillViewTests; on-device CR-01 click-through trace approved with zero regressions, no contingency fix needed
 - [v1.6 roadmap] Numbered from Phase 35 (not 34) — v1.5 is intentionally left open in parallel, not archived, and its own Phase 34 (Quick Action Destination Picker) is planned but not yet executed; starting v1.6 at 35 avoids any phase-number collision between the two open milestones.
 - [v1.6 roadmap] Phase order 35→36→37→38→39→40→41→42 follows research's explicit risk/dependency ordering: material first (every later HUD renders inside it), then zero-risk cosmetic restyles + fully-independent equalizer/onboarding polish, then the drop-session chip (its one real prerequisite — a shelf-session-boundary concept — surfaced inside its own phase), then the new-transient-case pattern proven cheaply on Focus Mode before attempting it under genuine private-API risk on Volume/Brightness (explicitly kept as ONE phase since both share the same OSD-replacement subsystem), then the fully-independent Sparkle integration floated after material, then Calendar Countdown as a proven single-winner ambient case, and finally Dual-Activity Display last since it needs Calendar Countdown as a real second input to combine with Now Playing.
+- [Phase 34]: Decision coverage gate override: D-01/D-02/D-03/D-06/D-07/D-08 not explicitly cited (literal `D-NN:`) in 34-01/34-02-PLAN.md must_haves/truths, but plan-checker semantic review confirmed all 6 are implemented (D-01 in 34-01's takeover truth, D-02 in the preview-render truth, D-03 in Task 1's batch-decision test comment, D-06/D-07 in 34-02's `discardPendingDrop()` task + threat model, D-08 as the subject of threat-model row T-34-04/T-34-07). Same pattern as Phase 30; user chose Proceed anyway.
 
 ### Roadmap Evolution
 
@@ -202,9 +203,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-15T14:47:22.215Z
-Stopped at: Phase 34 context gathered
-Resume file: .planning/phases/34-quick-action-destination-picker/34-CONTEXT.md
+Last session: 2026-07-15T15:10:06.773Z
+Stopped at: Phase 34 UI-SPEC approved
+Resume file: .planning/phases/34-quick-action-destination-picker/34-UI-SPEC.md
 
 ## Operator Next Steps
 
