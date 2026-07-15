@@ -30,6 +30,37 @@ Home is decluttered to music-only (dropping the idle weather/calendar/date fallb
 
 - [x] **SHAPE-01**: The expanded-state notch silhouette gains an outward-flaring top-edge transition into the screen bezel; the idle/collapsed pill shape stays exactly as it is today
 
+## v1.6 Requirements — Liquid Glass & System HUD Suite
+
+Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Droppy-style collapsed-state system HUDs, and a new dual-activity display concept for when two top-priority activities are live at once. See `.planning/research/SUMMARY.md` for the full research backing these (Stack/Features/Architecture/Pitfalls).
+
+### Material
+
+- [ ] **GLASS-01**: The shared background material (pill, expanded island, all activity wings) is replaced by a "Liquid Glass" look — glossier and blurred/frosted rather than glass-clear — implemented from the user-supplied reference code, plugging into the existing `MaterialStyle`/`islandMaterial` seam
+
+### Now Playing Polish
+
+- [ ] **EQ-01**: The Now Playing equalizer bars are redesigned to the user-supplied reference visual style (view-layer only, no data/monitor changes)
+
+### Onboarding
+
+- [ ] **ONBOARD-04**: The first onboarding page's "Welcome to Islet" text is replaced by a live handwritten-signature-style reveal animation (distinct color, script styling) — scoped to that one page only, the rest of the app's font is unaffected
+
+### System HUDs
+
+- [ ] **HUD-01**: The Bluetooth/AirPods device-connected activity is restyled to the Droppy-pill look (visual only — `DeviceCoordinator`/`BluetoothMonitor` unchanged)
+- [ ] **HUD-02**: The Charging activity is restyled to the Droppy-pill look (visual only — the existing IOKit power monitor unchanged)
+- [ ] **HUD-03**: A Volume HUD appears on volume key press showing the live level in the Droppy-pill style, and suppresses the native system OSD when the spike confirms it's safe to do so on the dev machine (falls back to showing alongside the native OSD if suppression proves unreliable — do not ship the undocumented `EnableSystemBanners` toggle without confirming it doesn't regress on the project's own macOS Tahoe hardware)
+- [ ] **HUD-04**: A Brightness HUD mirrors HUD-03's behavior for brightness key presses, sharing its OSD-replacement subsystem
+- [ ] **HUD-05**: A Focus Mode HUD appears when the user toggles Focus/Do Not Disturb, showing generic on/off state only (named-mode detection, e.g. "Work Focus" vs "Sleep", is not guaranteed available on current macOS — see Out of Scope)
+- [ ] **HUD-06**: An Update-available HUD appears when a new Islet version is published, backed by a real Sparkle 2 auto-update integration; tapping it triggers Sparkle's own standard install/progress dialog rather than a fully custom in-notch install flow (see Out of Scope)
+- [ ] **HUD-07**: A Drop-session summary chip briefly appears after the Tray is closed following a drop session, showing how many files were saved — requires adding a session-boundary concept to `ShelfViewState`/`ShelfCoordinator` that does not exist today (`isVisible` is currently just `!items.isEmpty`)
+- [ ] **HUD-08**: Starting 1 hour before a calendar event, the collapsed pill shows a live minute-countdown (calendar icon left, event time right) that updates continuously until the event starts — uses its own persistent timer, not the shared 3s `activityDuration` auto-dismiss
+
+### Dual-Activity Display
+
+- [ ] **DUAL-01**: When two top-priority activities are live simultaneously (e.g. the Calendar countdown and Now Playing), the collapsed state shows a main pill plus a small secondary bubble instead of one activity strictly winning via the current single-winner `IslandResolver` — generalizes to any two competing top-priority activities, not just Calendar+Music
+
 ## v2 Requirements
 
 Deferred to a future milestone, not in this roadmap.
@@ -38,17 +69,18 @@ Deferred to a future milestone, not in this roadmap.
 
 - **ARCH-P1**: Animation Speed presets (Turtle/Human/Cheetah/Falcon-style) exposed as a Settings control, beyond v1.4's single fluid default curve (VISUAL-02)
 - **ARCH-P2**: "Permissions Overview — X of Y granted" rollup row in Settings + a "Replay onboarding" button in About
-- **ARCH-P4**: `.glassEffect()`/Liquid Glass progressive enhancement, gated behind macOS 26.0+ (defer until the pre-26 install base is small enough, or the deployment floor is reconsidered)
 
 ### Other candidates (not yet scoped)
 
 - Alternate app icon variants — descoped from Phase 27/VISUAL-03 (D-09/D-10): no icon assets exist yet; needs user-supplied icon files or a proper icon-design pass, not a Claude-generated placeholder
-- System HUD replacement (volume/brightness/etc.) — Settings' "System" sidebar section is the natural future home
 - Countdown timer
 - Gesture-based swipe navigation (skip-track/tuck-away/return) — touches the same event-delivery layer as drag-in, revisit only after the architecture redesign is proven stable over time
 - "Open Tray After Drop" convenience setting for the Quick Action picker's "Drop" outcome — Droppy-precedented, not in this milestone's explicit ask (research: FEATURES.md)
 - Hourly forecast, weather alerts, radar — the milestone's own reference only asks for a daily forecast row (research: FEATURES.md)
 - User-configurable flare depth/amount for SHAPE-01 — fixed design language for now
+- Named/labeled Focus Mode detection ("Work Focus", "Sleep", etc.) — only if a future spike finds a reliable read path beyond the legacy binary DND flag (v1.6 research: PITFALLS.md)
+- Dual-activity display generalized to 3+ concurrent activities — DUAL-01 explicitly scopes to exactly two; a third-slot model is out of scope until two-slot ships and is validated on real usage
+- Full custom Sparkle install/progress flow rendered entirely as notch HUD — HUD-06 only needs the "available" notification, not the whole install UX
 
 ## Out of Scope
 
@@ -59,6 +91,8 @@ Deferred to a future milestone, not in this roadmap.
 | Full multi-day/hourly weather data beyond the daily forecast row | Anti-feature per research — the milestone's reference only shows a daily strip, not hourly/alerts/radar |
 | Mail attachment support on non-Mail.app default clients | `NSSharingService(.composeEmail)` is confirmed Mail.app-specific for attachments; other clients degrade to an unattached `mailto:` — accepted limitation, not solved this milestone |
 | OUTFIT-01 (the original combined weather+calendar+date Home glance) | Being actively removed from Home per HOME-03, not formalized — its calendar half already shipped independently as CALVIEW-01..04 |
+| Named Focus Mode labels (HUD-05) | No confirmed public-or-quasi-public read path to the specific active Focus mode exists on current macOS — only the legacy binary DND flag is reliably readable; building UI around a mode name would stall on an unverified unknown (v1.6 research: PITFALLS.md) |
+| True system-wide OSD suppression as an unconditional default (HUD-03/04) | The undocumented `defaults write com.apple.controlcenter EnableSystemBanners -bool false` toggle changes system behavior outside Islet's own window and is unverified beyond community forum reports; shipping it unconditionally without an on-device spike risks the confirmed Tahoe regression where a related technique breaks system-wide media-key passthrough |
 
 ## Traceability
 
@@ -86,3 +120,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 ---
 *Requirements defined: 2026-07-13*
 *Last updated: 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
+*v1.6 requirements defined: 2026-07-15 — 12 REQ-IDs (GLASS-01, EQ-01, ONBOARD-04, HUD-01..08, DUAL-01) backed by parallel Stack/Features/Architecture/Pitfalls research (`.planning/research/SUMMARY.md`). v1.5 left open in parallel, not archived; v1.6 phase numbering continues from the next free number. Traceability for v1.6 filled in by the roadmapper next.*
