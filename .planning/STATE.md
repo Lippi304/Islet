@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 Phase: 35
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-07-15
+Last activity: 2026-07-15 - Completed quick task 260715-vsd: three UI spacing/sizing fixes (Now Playing gap, Tray empty-state spacing, Calendar Add-button overflow)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -168,6 +168,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 | 260709-glz | Fullscreen-hide gating (`hideInFullscreen`) turned from a hardcoded constant into a persisted, live-editable Settings toggle ("Hide notch in fullscreen"); default true preserves existing behavior | 2026-07-09 | d1f6b5e | Complete ✓ (Debug build verified — manual on-device toggle check recommended) | [260709-glz-fullscreen-sichtbarkeit-der-notch-als-ei](./quick/260709-glz-fullscreen-sichtbarkeit-der-notch-als-ei/) |
 | 260709-gvy | SettingsView restructured from a single Form into a 3-tab TabView (General/Appearance/Activities) — pure view-hierarchy reorg, no `@AppStorage` keys or behavior changed; Accent picker moved from Activities into Appearance | 2026-07-09 | 9972811 | Complete ✓ (Debug build verified — manual on-device tab check recommended) | [260709-gvy-settingsview-tabview-umbau-general-appea](./quick/260709-gvy-settingsview-tabview-umbau-general-appea/) |
 | 260714-3k6 | Widen expanded island to 420pt (anticipates ROADMAP Phase 32/TRAY-05 width portion) + gate file-shelf strip to Tray-only (anticipates Phase 31/TRAY-01); 2 on-device gap-closure rounds fixed media-player edge overflow, empty-state camera clearance, and internal player compactness | 2026-07-14 | db11d72 | Complete ✓ (on-device approved after 3 UAT rounds — "Passt") | [260714-3k6-notch-island-verbreitern-und-file-shelf-](./quick/260714-3k6-notch-island-verbreitern-und-file-shelf-/) |
+| 260715-vsd | Drei UI-Spacing/Sizing-Fixes: Now Playing expanded gap above switcher row shrunk; Tray empty-state text gets +5pt breathing room from the icon above; Calendar box widened + content scaled so the Add button fits fully inside the island | 2026-07-15 | 259346e | Code complete ✓ (Debug build verified — on-device verification pending) | [260715-vsd-drei-kleine-ui-spacing-sizing-fixes-now-](./quick/260715-vsd-drei-kleine-ui-spacing-sizing-fixes-now-/) |
 
 ## Deferred Items
 
