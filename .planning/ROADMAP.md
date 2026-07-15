@@ -571,11 +571,11 @@ Plans:
 Plans:
 **Wave 1**
 
-- [x] 34-01-PLAN.md — Pure seams: PendingDrop + IslandPresentation.quickActionPicker case + resolve() branch (TDD), QuickActionSharingService NSSharingService seam (TDD), NotchPillView quickActionPickerView
+- [ ] 34-01-PLAN.md — REVISED (UAT drag-target redesign, D-10..D-15): computeQuickActionButtonFrames(card:) pure geometry seam (TDD) + buttons-only, controller-hover-driven NotchPillView.quickActionPickerView at 117pt — supersedes the original click-based pure-seam scope, which shipped but was superseded (original PendingDrop/.quickActionPicker/QuickActionSharingService seams reused verbatim, not re-planned)
 
 **Wave 2** *(blocked on 34-01)*
 
-- [ ] 34-02-PLAN.md — NotchWindowController wiring (pendingDrop state, drop-site branch, geometry three-site rule, button handlers, dismiss/discard lifecycle) + consolidated on-device UAT checkpoint (D-08 spike, CR-01 trace, D-04/D-05 transient-interrupt-resume, Drop/AirDrop/Mail real hand-off)
+- [ ] 34-02-PLAN.md — REVISED (UAT drag-target redesign): moves pendingDrop population to the dragEntered edge (D-10), fixes the drag-out-before-release session-copy leak (D-13b/Pitfall 6), live per-button drag-hover highlight (D-11) + release-on-target routing (D-12/D-13) replacing the click-based Button(action:) wiring, geometry three-site rule at the new 117pt height + consolidated on-device UAT checkpoint (D-08 spike re-run, CR-01 trace, drag-in/out/re-entry trace, D-04/D-05 transient-interrupt-resume, Drop/AirDrop/Mail real hand-off) — supersedes the original click-based controller wiring, which shipped but was rejected on-device
 **UI hint**: yes
 
 ### Phase 35: Liquid Glass Material
