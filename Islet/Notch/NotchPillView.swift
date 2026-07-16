@@ -704,6 +704,8 @@ struct NotchPillView: View {
             // Phase 26 / ONBOARD-01 / D-09 — the forced-flow onboarding carousel
             // (highest priority, resolve(...) puts it first). Plan 26-04 wires the
             // closures below to real controller behavior.
+            // [36-04-DEBUG] temporary diagnostic — remove after onboarding-not-appearing bug is found
+            let _ = print("[36-04-DEBUG] presentationSwitch: rendering .onboarding(\(step))")
             onboardingCarousel(step)
         case .charging(let a):
             wings(for: a)                                                    // D-02 rank 1 transient
@@ -733,6 +735,8 @@ struct NotchPillView: View {
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
         case .idle:
+            // [36-04-DEBUG] temporary diagnostic — remove after onboarding-not-appearing bug is found
+            let _ = print("[36-04-DEBUG] presentationSwitch: rendering .idle")
             collapsedIsland                                                  // idle pill
         }
     }

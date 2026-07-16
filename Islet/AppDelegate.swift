@@ -27,6 +27,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // already has a valid trial start date the first time updateVisibility()
         // runs inside start().
         let isFirstLaunch = TrialManager.shared.recordFirstLaunchIfNeeded()
+        // [36-04-DEBUG] temporary diagnostic — remove after onboarding-not-appearing bug is found
+        print("[36-04-DEBUG] AppDelegate.applicationDidFinishLaunching: isFirstLaunch=\(isFirstLaunch), pid=\(ProcessInfo.processInfo.processIdentifier)")
+        let otherInstances = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+        print("[36-04-DEBUG] AppDelegate.applicationDidFinishLaunching: running instances with this bundleID = \(otherInstances.count), pids=\(otherInstances.map { $0.processIdentifier })")
 
         // Phase 27 / VISUAL-03 / D-08: must run before controller.start() so the
         // panel's first show already reads the migrated (not default) accent —

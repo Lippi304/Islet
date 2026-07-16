@@ -369,13 +369,19 @@ final class NotchWindowController {
         // existing pre-Phase-26 user (no stored flag, NOT first launch) is grandfathered —
         // seeded completed so they are never gated.
         let storedCompleted = UserDefaults.standard.object(forKey: ActivitySettings.onboardingCompletedKey) as? Bool
+        // [36-04-DEBUG] temporary diagnostic — remove after onboarding-not-appearing bug is found
+        print("[36-04-DEBUG] start(isFirstLaunch:): isFirstLaunch=\(isFirstLaunch), storedCompleted=\(String(describing: storedCompleted)), pid=\(ProcessInfo.processInfo.processIdentifier)")
         if shouldSeedOnboardingCompletedForExistingUser(isFirstLaunch: isFirstLaunch, onboardingCompletedStored: storedCompleted) {
+            print("[36-04-DEBUG] start(isFirstLaunch:): grandfather-seeding onboardingCompleted=true for existing user")
             UserDefaults.standard.set(true, forKey: ActivitySettings.onboardingCompletedKey)
         }
-        if shouldShowOnboarding(isFirstLaunch: isFirstLaunch, onboardingCompletedStored: storedCompleted) {
+        let shouldShow = shouldShowOnboarding(isFirstLaunch: isFirstLaunch, onboardingCompletedStored: storedCompleted)
+        print("[36-04-DEBUG] start(isFirstLaunch:): shouldShowOnboarding=\(shouldShow)")
+        if shouldShow {
             onboardingStep = .welcome
             isOnboardingActive = true
         }
+        print("[36-04-DEBUG] start(isFirstLaunch:): after gate, onboardingStep=\(String(describing: onboardingStep)), isOnboardingActive=\(isOnboardingActive)")
 
         // Phase 16 / D-02 — constructed here (not at declaration) so the [weak self]-capturing
         // closures bind a fully-initialised self, mirroring powerMonitor/nowPlayingMonitor's
@@ -689,6 +695,8 @@ final class NotchWindowController {
     // assigns. Every head/expanded/now-playing mutation ends by calling this + updateVisibility().
     private func renderPresentation() {
         presentationState.presentation = currentPresentation()
+        // [36-04-DEBUG] temporary diagnostic — remove after onboarding-not-appearing bug is found
+        print("[36-04-DEBUG] renderPresentation(): onboardingStep=\(String(describing: onboardingStep)) -> presentation=\(presentationState.presentation)")
     }
 
     // Finding 11 — consolidates the identical enqueue-render-dismiss triplet that handlePower
@@ -750,6 +758,9 @@ final class NotchWindowController {
         // The old safe-area predicate isTrueFullscreen(builtin:) is superseded as the live
         // signal (kept only as a pure heuristic / its tests); see FullscreenSpaceProbe.swift.
         let fullscreen = isBuiltinDisplayInFullscreenSpace(builtinUUID: currentBuiltin()?.uuid)
+
+        // [36-04-DEBUG] temporary diagnostic — remove after onboarding-not-appearing bug is found
+        print("[36-04-DEBUG] updateVisibility(): hasTarget=\(target != nil), hideInFullscreen=\(hideInFullscreen), fullscreen=\(fullscreen), isLicensed=\(licenseState.isEntitled), isOnboardingActive=\(isOnboardingActive)")
 
         if shouldShow(hasTarget: target != nil,
                       hideInFullscreen: hideInFullscreen,
