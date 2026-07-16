@@ -56,6 +56,7 @@ enum IslandPresentation: Equatable {
     case idle                                              // collapsed, nothing to show
     case charging(ChargingActivity)                        // D-02 rank 1 transient
     case device(DeviceActivity)                            // D-02 rank 2 transient
+    case focus(FocusActivity)                              // Phase 38 / HUD-05: rank 3 transient, collapsed-only (D-07)
     case nowPlayingWings(NowPlayingPresentation)           // D-02 rank 3 ambient (collapsed glance)
     case nowPlayingExpanded(NowPlayingPresentation, healthy: Bool) // D-12 expanded media / "nicht verfügbar"
     case homeLastPlayed                                    // Phase 30 / HOME-02: Home, nothing playing now, but something played this session
@@ -71,6 +72,19 @@ enum IslandPresentation: Equatable {
 enum ActiveTransient: Equatable {
     case charging(ChargingActivity)
     case device(DeviceActivity)
+    case focus(FocusActivity)
+}
+
+// Phase 38 / HUD-05 (D-06) — the seam Plan 38-05's controller wiring reads to decide
+// whether to arm the uniform 3s auto-dismiss timer. Focus never self-elapses (there is
+// no natural "done" moment the way a charging/device splash settles after ~3s), so it
+// stays standing until the underlying Focus state itself turns off; every other
+// transient dismisses on the shared timer as before.
+extension ActiveTransient {
+    var isPersistent: Bool {
+        if case .focus = self { return true }
+        return false
+    }
 }
 
 // WR-01 fix (28-REVIEW.md) — the SINGLE shared definition of which IslandPresentation cases
@@ -103,6 +117,8 @@ func resolve(activeTransient: ActiveTransient?,
     switch activeTransient {                              // D-04: transient wins even over expanded
     case .charging(let a): return .charging(a)           // D-02 rank 1
     case .device(let d):   return .device(d)             // D-02 rank 2
+    case .focus(let f) where !isExpanded: return .focus(f) // Phase 38 / HUD-05 rank 3, collapsed-only (D-07)
+    case .focus: break                                    // expanded -- falls through to the isExpanded branch below, unmodified
     case nil: break
     }
     if isExpanded {
@@ -228,6 +244,22 @@ struct TransientQueue {
         pending.append(t)
         if pending.count > maxDepth { pending.removeFirst() }   // D-03 bound (drop oldest pending)
         return false
+    }
+
+    // Phase 38 / HUD-05 (D-08) — a Charging or Device transient must immediately preempt
+    // an already-standing Focus head rather than queue behind it: since Focus never
+    // self-elapses (isPersistent, D-06), queuing via plain enqueue(_:) would leave
+    // Charging/Device waiting indefinitely behind a splash that never yields on its own.
+    // Additive: does not modify enqueue(_:) itself. When the head is NOT Focus, behaves
+    // exactly like enqueue(_:) (no special-casing needed). When it IS Focus, `t` takes
+    // over the head immediately and the displaced Focus is reinserted at the FRONT of
+    // `pending` (not appended to the back) so the very next advance() resumes it.
+    mutating func preempt(_ t: ActiveTransient) -> Bool {
+        guard case .focus = head else { return enqueue(t) }
+        let displaced = head!
+        head = t
+        pending.insert(displaced, at: 0)
+        return true
     }
 
     // Promote the next pending transient to head; if none, clear head (back to ambient).

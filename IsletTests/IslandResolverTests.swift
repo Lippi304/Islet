@@ -615,4 +615,52 @@ final class IslandResolverTests: XCTestCase {
         _ = q.advance(); XCTAssertEqual(q.head, d)
         _ = q.advance(); XCTAssertEqual(q.head, e)
     }
+
+    // MARK: Phase 38 / HUD-05 — Focus transient (collapsed-only, persistent, preemptible)
+
+    func testFocusWinsWhenCollapsed() {
+        // D-07: a Focus transient wins when the island is NOT expanded.
+        let r = resolve(activeTransient: .focus(.on),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .focus(.on))
+    }
+
+    func testFocusFallsThroughWhenExpanded() {
+        // D-07: a Focus transient does NOT win when the island IS expanded — it falls
+        // through to whatever Home/Tray/Calendar/Weather would resolve to as if no
+        // transient were active. Proven identical to what resolve(activeTransient: nil, ...)
+        // would return with the same other arguments (homeEmpty here: nothing playing,
+        // nothing played this session, Home selected).
+        let r = resolve(activeTransient: .focus(.on),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testActiveTransientIsPersistentFlags() {
+        // D-06: ActiveTransient.focus is marked persistent while every other case is not —
+        // the seam the controller uses to skip the uniform 3s auto-dismiss.
+        XCTAssertFalse(ActiveTransient.charging(.charging(percent: 50)).isPersistent)
+        XCTAssertFalse(ActiveTransient.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)).isPersistent)
+        XCTAssertTrue(ActiveTransient.focus(.on).isPersistent)
+    }
+
+    func testPreemptPushesFocusToFrontOfPending() {
+        // D-08: a Charging or Device transient immediately preempts an already-standing
+        // Focus head instead of queuing behind it — the displaced Focus is pushed to the
+        // FRONT of pending (not the back), so advance() promotes it right back once the
+        // preempting transient elapses.
+        var q = TransientQueue()
+        _ = q.enqueue(.focus(.on))
+        XCTAssertTrue(q.preempt(.charging(.charging(percent: 50))))
+        XCTAssertEqual(q.head, .charging(.charging(percent: 50)))
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, .focus(.on))
+    }
 }
