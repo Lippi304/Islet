@@ -264,6 +264,11 @@ struct NotchPillView: View {
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
+        // Phase 35 / GLASS-01 (D-02) — same gradient base as .gradient; the
+        // distortion/chromatic-fringe shader that visually distinguishes Liquid
+        // Glass is layered on top as a separate overlay in Plan 35-03, not
+        // returned from this switch.
+        case .liquidGlass: return AnyShapeStyle(Self.gradientMaterial)
         }
     }
 
