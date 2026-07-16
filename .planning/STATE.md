@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
-stopped_at: Phase 37 abandoned and reverted after failed on-device UAT
-last_updated: "2026-07-17T00:50:00.000Z"
-last_activity: 2026-07-17 -- Phase 37 executed, failed UAT, fully reverted per user decision
+status: completed
+stopped_at: Phase 38 context gathered
+last_updated: "2026-07-16T23:01:38.985Z"
+last_activity: 2026-07-17 -- Phase 37 executed (37-01/02/03/04), 37-04 UAT failed, all code reverted per user decision
 progress:
   total_phases: 27
-  completed_phases: 17
+  completed_phases: 16
   total_plans: 59
   completed_plans: 53
-  percent: 63
+  percent: 59
 ---
 
 # Project State
@@ -212,9 +212,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-17T00:50:00.000Z
-Stopped at: Phase 37 abandoned and reverted after failed on-device UAT
-Resume file: none — Phase 37 closed out, next up is `/gsd-discuss-phase 38`
+Last session: 2026-07-16T23:01:38.980Z
+Stopped at: Phase 38 context gathered
+Resume file: .planning/phases/38-focus-mode-hud/38-CONTEXT.md
 
 ## Operator Next Steps
 
