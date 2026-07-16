@@ -387,6 +387,17 @@ struct NotchPillView: View {
         if materialStyle == .liquidGlass {
             if #available(macOS 26.0, *) {
                 let rimWidth = liquidGlassRimBandWidth(shape: shape, size: size, parameters: parameters)
+                // Debug session `liquid-glass-black-during-transition`, round 2 — reverted the
+                // GlassEffectContainer + .glassEffectID("islandRim", in: ns) cross-case morph
+                // attempt (bc04457/f107faa follow-up). On-device it made the ENTIRE island read
+                // as uniform frosted glass (not just the rim) at all times, a worse regression
+                // than the original momentary flat-black-during-transition bug it targeted.
+                // Apple's docs say GlassEffectContainer should only style views tagged
+                // `.glassEffect(...)`, but wrapping the whole `presentationSwitch` in one
+                // empirically broke the rim-only clipping to `LiquidGlassRimRingShape`. Back to
+                // the bare, per-call-site `.glassEffect(_:in:)` that was already confirmed
+                // correct at idle/settled state; the brief flicker during transitions remains a
+                // known, lower-priority issue (see Resolution note in the debug file).
                 Color.clear
                     .frame(width: size.width, height: size.height)
                     .glassEffect(.regular.tint(Color.black.opacity(0.35)), in: LiquidGlassRimRingShape(base: shape, bandWidth: rimWidth))
@@ -651,56 +662,69 @@ struct NotchPillView: View {
     //   + bottomInset(16) = 117.
     static let quickActionPickerContentHeight: CGFloat = 117
 
+    // Debug session `liquid-glass-black-during-transition` — extracted verbatim out of
+    // `body` so it can be wrapped in a GlassEffectContainer (macOS 26+) without
+    // duplicating the switch for the pre-26 fallback branch.
+    // Phase 6 / COORD-01 / D-05 — the SINGLE arbiter. The view no longer DECIDES
+    // precedence (the old `charging > expanded > media-wings > collapsed` if-chain is
+    // gone); the controller's pure `resolve(...)` reducer picks ONE `IslandPresentation`
+    // and the body just renders it with this switch, mapping each case to the existing
+    // private helper. Charging/Device are the rank-1/2 transient splashes (D-02); the
+    // controller's queue advances off the single ~3s one-shot dismiss and the resolver
+    // falls through to `.nowPlayingWings`/`.idle` so a transient "returns to the wings,
+    // not to empty" (D-02 yield-to-ambient). The expanded media-health axis (D-12) rides
+    // on the `.nowPlayingExpanded(_, healthy:)` flag.
+    @ViewBuilder
+    private var presentationSwitch: some View {
+        switch presentation {
+        case .onboarding(let step):
+            // Phase 26 / ONBOARD-01 / D-09 — the forced-flow onboarding carousel
+            // (highest priority, resolve(...) puts it first). Plan 26-04 wires the
+            // closures below to real controller behavior.
+            onboardingCarousel(step)
+        case .charging(let a):
+            wings(for: a)                                                    // D-02 rank 1 transient
+        case .device(let d):
+            deviceWings(for: d)                                              // D-02 rank 2 transient
+        case .nowPlayingWings(let p):
+            mediaWingsOrToast(p)                                             // D-02 collapsed media glance / Phase 18 toast
+        case .nowPlayingExpanded(let p, true):
+            mediaExpanded(p, art: nowPlaying.artwork)                        // NOW-01/02 controls (healthy)
+        case .nowPlayingExpanded(_, false):
+            mediaUnavailable                                                 // D-12 "nicht verfügbar"
+        case .homeLastPlayed:
+            // Phase 30 / HOME-02 (D-04): synthesize a .paused presentation from the sticky
+            // last-played snapshot and feed the SAME mediaExpanded(_:art:) the live state
+            // uses -- no second parallel view.
+            mediaExpanded(.paused(title: nowPlaying.lastKnownTrack?.title ?? "",
+                                   artist: nowPlaying.lastKnownTrack?.artist ?? ""),
+                          art: nowPlaying.lastKnownTrack?.artwork)
+        case .homeEmpty:
+            homeEmptyState                                                   // Phase 30 / HOME-03
+        case .calendarExpanded:
+            calendarFullView                                                 // Phase 28 / CALVIEW-01: month grid + day list
+        case .weatherExpanded:
+            weatherFullView                                                  // 28-04 round 4: current-conditions full view
+        case .trayExpanded:
+            trayFullView                                                     // 28-04 round 5: dedicated files-only Tray view
+        case .quickActionPicker:
+            quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
+        case .idle:
+            collapsedIsland                                                  // idle pill
+        }
+    }
+
     var body: some View {
         // Fixed expanded-sized container; the pill sits flush at the TOP edge and the
         // expanded content grows DOWNWARD from the notch (RESEARCH Pattern 4: panel is
         // sized to the expanded frame so the morph never clips).
         ZStack(alignment: .top) {
-            // Phase 6 / COORD-01 / D-05 — the SINGLE arbiter. The view no longer DECIDES
-            // precedence (the old `charging > expanded > media-wings > collapsed` if-chain is
-            // gone); the controller's pure `resolve(...)` reducer picks ONE `IslandPresentation`
-            // and the body just renders it with this switch, mapping each case to the existing
-            // private helper. Charging/Device are the rank-1/2 transient splashes (D-02); the
-            // controller's queue advances off the single ~3s one-shot dismiss and the resolver
-            // falls through to `.nowPlayingWings`/`.idle` so a transient "returns to the wings,
-            // not to empty" (D-02 yield-to-ambient). The expanded media-health axis (D-12) rides
-            // on the `.nowPlayingExpanded(_, healthy:)` flag.
-            switch presentation {
-            case .onboarding(let step):
-                // Phase 26 / ONBOARD-01 / D-09 — the forced-flow onboarding carousel
-                // (highest priority, resolve(...) puts it first). Plan 26-04 wires the
-                // closures below to real controller behavior.
-                onboardingCarousel(step)
-            case .charging(let a):
-                wings(for: a)                                                    // D-02 rank 1 transient
-            case .device(let d):
-                deviceWings(for: d)                                              // D-02 rank 2 transient
-            case .nowPlayingWings(let p):
-                mediaWingsOrToast(p)                                             // D-02 collapsed media glance / Phase 18 toast
-            case .nowPlayingExpanded(let p, true):
-                mediaExpanded(p, art: nowPlaying.artwork)                        // NOW-01/02 controls (healthy)
-            case .nowPlayingExpanded(_, false):
-                mediaUnavailable                                                 // D-12 "nicht verfügbar"
-            case .homeLastPlayed:
-                // Phase 30 / HOME-02 (D-04): synthesize a .paused presentation from the sticky
-                // last-played snapshot and feed the SAME mediaExpanded(_:art:) the live state
-                // uses -- no second parallel view.
-                mediaExpanded(.paused(title: nowPlaying.lastKnownTrack?.title ?? "",
-                                       artist: nowPlaying.lastKnownTrack?.artist ?? ""),
-                              art: nowPlaying.lastKnownTrack?.artwork)
-            case .homeEmpty:
-                homeEmptyState                                                   // Phase 30 / HOME-03
-            case .calendarExpanded:
-                calendarFullView                                                 // Phase 28 / CALVIEW-01: month grid + day list
-            case .weatherExpanded:
-                weatherFullView                                                  // 28-04 round 4: current-conditions full view
-            case .trayExpanded:
-                trayFullView                                                     // 28-04 round 5: dedicated files-only Tray view
-            case .quickActionPicker:
-                quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
-            case .idle:
-                collapsedIsland                                                  // idle pill
-            }
+            // Debug session `liquid-glass-black-during-transition`, round 2 — reverted the
+            // GlassEffectContainer wrapping tried here (see liquidGlassEffectLayer for why):
+            // on-device it made the whole island read as uniform frosted glass instead of just
+            // the rim, a worse regression than the momentary flat-black-during-transition bug
+            // it was meant to fix. Back to rendering presentationSwitch directly.
+            presentationSwitch
         }
         // Phase 21 bugfix (SHELF-06 UAT) — this outer container's height was still the
         // pre-Phase-20 constant, so blobShape's own +shelfRowHeight growth (for
