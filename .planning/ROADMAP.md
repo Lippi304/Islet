@@ -608,7 +608,7 @@ Plans:
 
 **Wave 4 (remediation)** *(blocked on 35-02)*
 
-- [ ] 35-06-PLAN.md — liquidGlassEdgeFalloff shared helper + liquidGlassEdgeOpacity colorEffect shader (D-11) + retuned LiquidGlassParameters (D-10/D-11)
+- [x] 35-06-PLAN.md — liquidGlassEdgeFalloff shared helper + liquidGlassEdgeOpacity colorEffect shader (D-11) + retuned LiquidGlassParameters (D-10/D-11)
 
 **Wave 5 (remediation)** *(blocked on 35-06, 35-03)*
 

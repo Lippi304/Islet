@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: planning
+status: executing
 stopped_at: Phase 35 context revised — D-02 pivoted to real translucent material (D-10/D-11), ready for replanning
-last_updated: "2026-07-16T00:47:17.156Z"
-last_activity: "2026-07-16 -- Plans 35-01 through 35-04 executed and merged (waves 1-2). Wave 3 checkpoint (35-05, on-device UAT) reported: Liquid Glass renders as flat opaque grey with zero visible warp/fringe/transparency — see `.planning/phases/35-liquid-glass-material/35-UAT.md`. User compared against a reference (real translucent "glass" look, color bleeding through from behind, refracted at edges) and decided D-02 ("opaque gradient base, distortion-only, no real translucency") should be revisited. Next step: `/gsd-discuss-phase 35` to redesign the material approach (real translucent/blurred base instead of opaque gradient) before replanning execution. Two independent issues to address: (1) design pivot to real translucency, (2) current implementation shows zero visible effect at all — worth confirming during redesign whether that's also a rendering bug independent of the design gap."
+last_updated: "2026-07-16T01:08:28.134Z"
+last_activity: 2026-07-16 -- Phase 35 execution started
 progress:
   total_phases: 27
   completed_phases: 15
-  total_plans: 44
+  total_plans: 47
   completed_plans: 42
   percent: 56
 ---
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 35 — liquid glass material (blocked — design pivot needed)
+**Current focus:** Phase 35 — liquid-glass-material
 
 ## Current Position
 
-Phase: 35
-Plan: 35-05 (checkpoint) — blocked
-Status: Blocked — on-device UAT failed, design pivot required before replanning
-Last activity: 2026-07-16 -- Plans 35-01 through 35-04 executed and merged (waves 1-2). Wave 3 checkpoint (35-05, on-device UAT) reported: Liquid Glass renders as flat opaque grey with zero visible warp/fringe/transparency — see `.planning/phases/35-liquid-glass-material/35-UAT.md`. User compared against a reference (real translucent "glass" look, color bleeding through from behind, refracted at edges) and decided D-02 ("opaque gradient base, distortion-only, no real translucency") should be revisited. Next step: `/gsd-discuss-phase 35` to redesign the material approach (real translucent/blurred base instead of opaque gradient) before replanning execution. Two independent issues to address: (1) design pivot to real translucency, (2) current implementation shows zero visible effect at all — worth confirming during redesign whether that's also a rendering bug independent of the design gap.
+Phase: 35 (liquid-glass-material) — EXECUTING
+Plan: 1 of 8
+Status: Executing Phase 35
+Last activity: 2026-07-16 -- Phase 35 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
