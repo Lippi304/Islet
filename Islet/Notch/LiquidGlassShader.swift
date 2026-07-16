@@ -13,6 +13,20 @@ import SwiftUI
 // field here — it's folded into the shader's edge-falloff curve instead (see
 // LiquidGlassShader.metal Step 5's `smoothstep` transition, which already
 // asymptotes toward near-zero displacement at the interior).
+//
+// D-10/D-11 (Plan 35-06, post-UAT material pivot): this file also now backs
+// a SECOND colorEffect shader, `liquidGlassEdgeOpacity` (LiquidGlassShader.metal),
+// which replaces the opaque `gradientMaterial` base with a real translucent
+// Material and ramps its per-pixel alpha from `edgeOpacity` at the rounded
+// edge to `centerOpacity` toward the interior. `fringeOpacity` centralizes the
+// chromatic-fringe passes' own opacity (previously hardcoded inline as
+// `Color.red/green/blue.opacity(0.10)` in NotchPillView.swift — Plan 35-07
+// updates that call site to read this field instead). `backgroundOpacity`/
+// `fringeOpacity`'s pre-revision values (0.04/0.07/0.10) were calibrated
+// against a fully opaque base and read as barely-visible now that the base
+// itself is translucent — the values below are bumped up per the CONTEXT.md
+// retuning note, on-device-tunable starting points to be verified during
+// Plan 35-08's UAT.
 struct LiquidGlassParameters {
     var borderWidth: CGFloat
     var blurWidth: CGFloat
@@ -22,6 +36,13 @@ struct LiquidGlassParameters {
     var blueOffset: CGFloat
     var saturation: CGFloat
     var backgroundOpacity: CGFloat
+    /// D-11 — alpha `liquidGlassEdgeOpacity` mixes toward right at the rounded edge.
+    var edgeOpacity: CGFloat
+    /// D-11 — alpha `liquidGlassEdgeOpacity` mixes toward at the interior.
+    var centerOpacity: CGFloat
+    /// D-11 — chromatic-fringe (R/G/B) passes' own opacity, centralized here
+    /// (replaces NotchPillView.swift's hardcoded `Color.red/green/blue.opacity(0.10)`).
+    var fringeOpacity: CGFloat
 
     static let collapsed = LiquidGlassParameters(
         borderWidth: 0.15,
@@ -31,7 +52,8 @@ struct LiquidGlassParameters {
         greenOffset: 0.5,
         blueOffset: 1,
         saturation: 1.0,
-        backgroundOpacity: 0.04
+        backgroundOpacity: 0.05,
+        edgeOpacity: 0.15, centerOpacity: 0.55, fringeOpacity: 0.15
     )
 
     static let expanded = LiquidGlassParameters(
@@ -42,7 +64,8 @@ struct LiquidGlassParameters {
         greenOffset: 1.25,
         blueOffset: 2.5,
         saturation: 1.08,
-        backgroundOpacity: 0.07
+        backgroundOpacity: 0.08,
+        edgeOpacity: 0.20, centerOpacity: 0.70, fringeOpacity: 0.20
     )
 }
 
