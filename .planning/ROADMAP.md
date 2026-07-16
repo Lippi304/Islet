@@ -594,8 +594,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 35-01-PLAN.md — MaterialStyle.liquidGlass case (D-05) + EnvironmentKey default flip (D-06) + islandFill exhaustive-switch branch
-- [ ] 35-02-PLAN.md — LiquidGlassShader.metal distortion function (D-01) + LiquidGlassParameters/channelShaders contract (D-04)
+- [x] 35-01-PLAN.md — MaterialStyle.liquidGlass case (D-05) + EnvironmentKey default flip (D-06) + islandFill exhaustive-switch branch
+- [x] 35-02-PLAN.md — LiquidGlassShader.metal distortion function (D-01) + LiquidGlassParameters/channelShaders contract (D-04)
 
 **Wave 2** *(blocked on 35-01, 35-02)*
 
