@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
-stopped_at: Phase 35 round 4 context gathered
-last_updated: "2026-07-16T12:29:22.303Z"
+status: ready_to_plan
+stopped_at: Phase 35 complete (10/12) — ready to discuss Phase 36
+last_updated: 2026-07-16T12:51:55.675Z
 last_activity: 2026-07-16 -- Phase 35 execution started
 progress:
   total_phases: 27
   completed_phases: 15
   total_plans: 51
-  completed_plans: 46
+  completed_plans: 48
   percent: 56
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 35 — liquid-glass-material
+**Current focus:** Phase 36 — cosmetic restyles & signature animation
 
 ## Current Position
 
-Phase: 35 (liquid-glass-material) — EXECUTING
-Plan: 1 of 12
-Status: Executing Phase 35
-Last activity: 2026-07-16 -- Phase 35 execution started
+Phase: 36
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-16
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -53,7 +53,7 @@ Progress (v1.6): [░░░░░░░░░░] 0% (0/8 phases — ROADMAP.md 
 
 **Velocity:**
 
-- Total plans completed: 74
+- Total plans completed: 84
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -86,6 +86,7 @@ Progress (v1.6): [░░░░░░░░░░] 0% (0/8 phases — ROADMAP.md 
 | 28 | 4 | - | - |
 | 31 | 1 | - | - |
 | 34 | 2 | - | - |
+| 35 | 10 | - | - |
 
 **Recent Trend:**
 

@@ -36,7 +36,7 @@ Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Dropp
 
 ### Material
 
-- [ ] **GLASS-01**: The shared background material (pill, expanded island, all activity wings) is replaced by a "Liquid Glass" look — glossier and blurred/frosted rather than glass-clear — implemented from the user-supplied reference code, plugging into the existing `MaterialStyle`/`islandMaterial` seam
+- [x] **GLASS-01**: The shared background material (pill, expanded island, all activity wings) is replaced by a "Liquid Glass" look — glossier and blurred/frosted rather than glass-clear — implemented from the user-supplied reference code, plugging into the existing `MaterialStyle`/`islandMaterial` seam
 
 ### Now Playing Polish
 
@@ -111,7 +111,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAY-02 | Phase 34 | Complete |
 | TRAY-03 | Phase 34 | Complete |
 | TRAY-04 | Phase 34 | Complete |
-| GLASS-01 | Phase 35 | Pending |
+| GLASS-01 | Phase 35 | Complete |
 | HUD-01 | Phase 36 | Pending |
 | HUD-02 | Phase 36 | Pending |
 | EQ-01 | Phase 36 | Pending |
