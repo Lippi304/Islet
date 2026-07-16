@@ -656,6 +656,9 @@ struct NotchPillView: View {
             // growing symmetrically from the shared center — read as the diagonal jump/bounce.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: size.width, height: size.height)
+            // Phase 35 / GLASS-01 (D-04): collapsed pill uses the subtler .collapsed
+            // parameters.
+            .overlay(liquidGlassEffectLayer(shape: NotchShape(), size: size, parameters: .collapsed))
             // D-01 (visual half): a subtle "you're in" bounce on hover only — never
             // when expanded. The controller drives this via its spring wrapper at the
             // state mutation. The haptic + the real pointer monitor are Plan 03.
@@ -1602,6 +1605,8 @@ struct NotchPillView: View {
             // architecture audit item 2" convention, which was backwards — see collapsedIsland.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: baseWidth, height: totalHeight)
+            // Phase 35 / GLASS-01 (D-04): expanded island uses full-strength .expanded parameters.
+            .overlay(liquidGlassEffectLayer(shape: shape, size: CGSize(width: baseWidth, height: totalHeight), parameters: .expanded))
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     content()
@@ -1736,6 +1741,8 @@ struct NotchPillView: View {
             // see collapsedIsland/blobShape: `.matchedGeometryEffect` must precede `.frame`.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            // Phase 35 / GLASS-01 (D-04): wings use full-strength .expanded parameters.
+            .overlay(liquidGlassEffectLayer(shape: shape, size: Self.wingsSize, parameters: .expanded))
             .overlay(
                 content()
                     .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
@@ -1803,6 +1810,8 @@ struct NotchPillView: View {
             // for the full explanation of why frame-before-effect breaks the size morph).
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: height)
+            // Phase 35 / GLASS-01 (D-04): media wings use full-strength .expanded parameters.
+            .overlay(liquidGlassEffectLayer(shape: NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6), size: CGSize(width: Self.wingsSize.width, height: height), parameters: .expanded))
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     mediaWingsRow(p, art: nowPlaying.artwork)
