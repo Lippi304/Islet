@@ -37,11 +37,13 @@ enum ActivitySettings {
     static let weatherStyleKey = "weather.style"
 
     // Phase 27 / VISUAL-03: the island's material look — a flat black fill
-    // ("solidBlack") or the Phase 25 vertical gradient ("gradient", the
-    // existing shipped default). Corrupted/unknown UserDefaults values parse
-    // to nil; every read site applies `?? .gradient` (T-27-01).
+    // ("solidBlack") or the Phase 25 vertical gradient ("gradient"). Phase 35 /
+    // GLASS-01 (D-05) adds a third case, "liquidGlass" — the distorted-shader
+    // material that becomes the new default (D-06). Corrupted/unknown
+    // UserDefaults values parse to nil; every read site applies `?? .gradient`
+    // (T-27-01).
     enum MaterialStyle: String, CaseIterable {
-        case gradient, solidBlack
+        case gradient, solidBlack, liquidGlass
     }
     static let materialStyleKey = "theming.materialStyle"
 
@@ -105,8 +107,12 @@ typealias MaterialStyle = ActivitySettings.MaterialStyle
 // fully-qualified `ActivitySettings.WeatherStyle` (mirrors MaterialStyle above verbatim).
 typealias WeatherStyle = ActivitySettings.WeatherStyle
 
+// Phase 35 / GLASS-01 (D-06): defaultValue flipped .gradient -> .liquidGlass —
+// the EnvironmentKey fallback used before the controller wires the real
+// @AppStorage value. SettingsView.swift's own @AppStorage default is a
+// separate location, flipped independently (both must end up .liquidGlass).
 private struct IslandMaterialStyleKey: EnvironmentKey {
-    static let defaultValue: MaterialStyle = .gradient
+    static let defaultValue: MaterialStyle = .liquidGlass
 }
 
 extension EnvironmentValues {
