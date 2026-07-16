@@ -239,6 +239,21 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
+    // Round N (HUD-01/HUD-02 label-clip fix) — 290pt isn't wide enough once a "Charging"/
+    // "Connected" text label sits next to the left icon. The wings strip is centered over the
+    // PHYSICAL notch cutout (measured 179pt wide on this machine, see wingsSize comment above);
+    // only the ~55pt flanks on either side of that cutout are actually visible pixels — anything
+    // drawn further in renders UNDER the camera housing and is invisible (same root cause
+    // BatteryIndicator's doc comment already called out for the % number). Measured with the
+    // real system font/symbols this app uses (12pt semibold rounded "Connected" ≈ 63.5pt, widest
+    // device glyph "airpodspro" ≈ 20pt): the left content needs ≈100pt of flank, so the total
+    // strip must grow to ≈179 + 2×~110 ≈ 400pt to keep the full label clear of the cutout, with
+    // a small margin. Only used for the LABEL-bearing positive states (isCharging/isConnected);
+    // the negative/dimmed icon-only states keep the original 290 (unchanged, already correct).
+    // Stays comfortably under expandedSize.width (420), so the already-unioned panel frame needs
+    // no changes. Tune further on-device if the real notch width differs from the 179pt seed.
+    static let wingsLabelWidth: CGFloat = 400
+
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
     // wingsShape, mediaWingsOrToast) so the collapsed pill, expanded island, and all activity
@@ -1892,19 +1907,20 @@ struct NotchPillView: View {
     // Phase 18 round 3: `mediaWingsOrToast` no longer routes through this helper — its bottom
     // corner radius and height must vary with the toast, so it builds its own NotchShape
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
-    private func wingsShape<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func wingsShape<Content: View>(width: CGFloat = Self.wingsSize.width, @ViewBuilder content: () -> Content) -> some View {
         let shape = NotchShape(topCornerRadius: 12, bottomCornerRadius: 6)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside a 6pt bottom radius without squeezing the wall to almost nothing
+        let size = CGSize(width: width, height: Self.wingsSize.height)   // Round N (HUD-01/HUD-02 label-clip fix): width is now a param so charging/device wings can widen past 290 only while their label is shown, see wingsLabelWidth
         return shape
             .fill(islandFill)
             // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order,
             // see collapsedIsland/blobShape: `.matchedGeometryEffect` must precede `.frame`.
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            .frame(width: size.width, height: size.height)
             // Phase 35 / GLASS-01 (D-04): wings use full-strength .expanded parameters.
-            .overlay(liquidGlassEffectLayer(shape: shape, size: Self.wingsSize, parameters: .expanded))
+            .overlay(liquidGlassEffectLayer(shape: shape, size: size, parameters: .expanded))
             .overlay(
                 content()
-                    .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+                    .frame(width: size.width, height: size.height)
             )
             // Finding 15 (06-10): both remaining wing glances (wings(for:), deviceWings(for:))
             // share this one tap-to-toggle through the shared helper.
@@ -1924,7 +1940,10 @@ struct NotchPillView: View {
         case .full(let p):     isCharging = false; percent = p
         case .onBattery(let p):isCharging = false; percent = p
         }
-        return wingsShape {
+        // Round N (HUD-02 label-clip fix): widen the strip only while "Charging" is actually
+        // shown — the dimmed icon-only negative state keeps the original 290pt (wingsLabelWidth
+        // comment above explains why 290 clips the label against the physical notch cutout).
+        return wingsShape(width: isCharging ? Self.wingsLabelWidth : Self.wingsSize.width) {
             HStack(spacing: 0) {
                 // Round N (HUD-02 Droppy restyle, D-02/D-03/D-04) — left wing gains an
                 // icon+label pairing shown only in the positive (charging) state; the
@@ -2054,7 +2073,10 @@ struct NotchPillView: View {
         case .disconnected(_, let g):     glyph = g; isConnected = false; battery = nil
         }
         let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
-        return wingsShape {
+        // Round N (HUD-01 label-clip fix): widen the strip only while "Connected" is actually
+        // shown — the dimmed icon-only negative state keeps the original 290pt (wingsLabelWidth
+        // comment above explains why 290 clips the label against the physical notch cutout).
+        return wingsShape(width: isConnected ? Self.wingsLabelWidth : Self.wingsSize.width) {
             HStack(spacing: 0) {
                 // Round N (HUD-01 Droppy restyle, D-02/D-03/D-04) — left wing gains an
                 // icon+label pairing shown only in the positive (connected) state; the
