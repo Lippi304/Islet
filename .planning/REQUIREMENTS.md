@@ -48,8 +48,8 @@ Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Dropp
 
 ### System HUDs
 
-- [ ] **HUD-01**: The Bluetooth/AirPods device-connected activity is restyled to the Droppy-pill look (visual only — `DeviceCoordinator`/`BluetoothMonitor` unchanged)
-- [ ] **HUD-02**: The Charging activity is restyled to the Droppy-pill look (visual only — the existing IOKit power monitor unchanged)
+- [x] **HUD-01**: The Bluetooth/AirPods device-connected activity is restyled to the Droppy-pill look (visual only — `DeviceCoordinator`/`BluetoothMonitor` unchanged)
+- [x] **HUD-02**: The Charging activity is restyled to the Droppy-pill look (visual only — the existing IOKit power monitor unchanged)
 - [ ] **HUD-03**: A Volume HUD appears on volume key press showing the live level in the Droppy-pill style, and suppresses the native system OSD when the spike confirms it's safe to do so on the dev machine (falls back to showing alongside the native OSD if suppression proves unreliable — do not ship the undocumented `EnableSystemBanners` toggle without confirming it doesn't regress on the project's own macOS Tahoe hardware)
 - [ ] **HUD-04**: A Brightness HUD mirrors HUD-03's behavior for brightness key presses, sharing its OSD-replacement subsystem
 - [ ] **HUD-05**: A Focus Mode HUD appears when the user toggles Focus/Do Not Disturb, showing generic on/off state only (named-mode detection, e.g. "Work Focus" vs "Sleep", is not guaranteed available on current macOS — see Out of Scope)
@@ -112,8 +112,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAY-03 | Phase 34 | Complete |
 | TRAY-04 | Phase 34 | Complete |
 | GLASS-01 | Phase 35 | Complete |
-| HUD-01 | Phase 36 | Pending |
-| HUD-02 | Phase 36 | Pending |
+| HUD-01 | Phase 36 | Complete |
+| HUD-02 | Phase 36 | Complete |
 | EQ-01 | Phase 36 | Complete |
 | ONBOARD-04 | Phase 36 | Complete |
 | HUD-07 | Phase 37 | Pending |
