@@ -19,15 +19,6 @@ import Foundation
 final class ShelfCoordinator {
     private(set) var logic = ShelfLogic()
 
-    // Phase 37 / HUD-07 (D-02/D-03) — a GROSS per-session drop counter, deliberately
-    // distinct from `logic.items.count` (the current NET shelf size). Every successful
-    // append increments it; remove()/clear() never decrement it — a later delete during
-    // the same session must not make the drop-session summary chip under-report what the
-    // user actually dropped. `resetSession()` below is the sole entry point that may zero
-    // it, so the count only clears at the moment a caller (Plan 03's
-    // `NotchWindowController`, at Tray-selected collapse) actually claims it.
-    private(set) var sessionFilesSaved: Int = 0
-
     // The caller already produced item.localURL via ShelfFileStore.makeSessionCopy
     // per D-03's contract before calling this, so the copy-in already happened
     // before an item exists. WR-01: when logic.append rejects a duplicate
@@ -37,24 +28,10 @@ final class ShelfCoordinator {
     @discardableResult
     func append(_ item: ShelfItem) -> Bool {
         let added = logic.append(item)
-        if added {
-            sessionFilesSaved += 1
-        } else {
+        if !added {
             ShelfFileStore.deleteSessionCopy(at: item.localURL)
         }
         return added
-    }
-
-    // Phase 37 / HUD-07 (D-02/D-03) — the atomic read-and-zero contract: captures the
-    // current gross count, resets it to 0, and returns the captured value in one call so
-    // no caller can observe a torn state between "read" and "clear". This is the ONLY
-    // method that may reset `sessionFilesSaved` — Plan 03's `NotchWindowController` calls
-    // this exactly once, at Tray-selected collapse, to claim the count for the chip.
-    @discardableResult
-    func resetSession() -> Int {
-        let claimed = sessionFilesSaved
-        sessionFilesSaved = 0
-        return claimed
     }
 
     // D-05: the real deletion happens here, the instant an item actually leaves the

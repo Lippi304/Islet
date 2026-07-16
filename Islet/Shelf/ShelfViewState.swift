@@ -7,12 +7,6 @@ import Foundation
 final class ShelfViewState: ObservableObject {
     @Published var items: [ShelfItem] = []
 
-    // Phase 37 / HUD-07 (D-03/D-05) — the drop-session summary chip's rendering content,
-    // set by the controller (Plan 03) from ShelfCoordinator.resetSession()'s claimed count
-    // via dropSessionChipContent(count:) below. `count` stays a raw Int here — pluralization
-    // ("1 file saved" vs "N files saved") is a Plan 02 view-layer concern, not baked in here.
-    @Published var sessionSummaryChip: SessionSummaryChip? = nil
-
     // Phase 28 / CALVIEW-04, Pitfall 3 (CR-01 click-through regression class) — `isVisible` is
     // the ONE source of truth every shelf-visibility check must read (blobShape, the body's
     // outer .frame, and NotchWindowController's visibleContentZone()) — never patch one call
@@ -36,16 +30,3 @@ func shouldOpenShelfItem(fileExists: Bool) -> Bool { fileExists }
 // shouldOpenShelfItem. ShelfItemView's .onDrag closure calls this before constructing
 // NSItemProvider(contentsOf:); a vanished backing file is a silent no-op drag.
 func shouldBeginShelfItemDrag(fileExists: Bool) -> Bool { fileExists }
-
-// Phase 37 / HUD-07 (D-03/D-05) — the drop-session summary chip's rendering payload.
-// A raw count only; pluralization is a Plan 02 view-layer concern.
-struct SessionSummaryChip: Equatable {
-    let count: Int
-}
-
-// Phase 37 / HUD-07 (D-03/D-05) — TOTAL pure content-derivation seam, mirroring
-// shouldOpenShelfItem/shouldBeginShelfItemDrag's standalone-function convention. Zero
-// drops in a session (count == 0) must render no chip at all — Success Criterion #3.
-func dropSessionChipContent(count: Int) -> SessionSummaryChip? {
-    count > 0 ? SessionSummaryChip(count: count) : nil
-}
