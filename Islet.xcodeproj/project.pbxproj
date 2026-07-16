@@ -42,6 +42,7 @@
 		4D42E4610ECAF1591FEAD40D /* QuickActionSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8C607878B62D262514A41D /* QuickActionSharingService.swift */; };
 		4EBD25B8C54F6A68250153F4 /* NotchShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F635228C4261E9EECEC41F /* NotchShapeTests.swift */; };
 		56BC6DBE6E5F1E2B6F485BE0 /* CalendarGlance.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECDB797EE481836D5DD878FD /* CalendarGlance.swift */; };
+		57E10B87D7BD50703138D12D /* FocusActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B95E794C13DE3DAA7C2891B /* FocusActivityTests.swift */; };
 		59A9F1A6B642331EFB7EBE26 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E70A8667DE9528FD2F0CFB /* LocationProvider.swift */; };
 		5E2A0DEF48DA471FE9426F9A /* CalendarViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D373EEE76BE733AFEDD28FD /* CalendarViewState.swift */; };
 		62BB9F9BCB658F55890D95BD /* LicenseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471EC72A07A658DCBFCDDB38 /* LicenseServiceTests.swift */; };
@@ -144,6 +145,7 @@
 		1A7E1D30A74E9D358BA634B1 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupportTests.swift; sourceTree = "<group>"; };
 		1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
+		1B95E794C13DE3DAA7C2891B /* FocusActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusActivityTests.swift; sourceTree = "<group>"; };
 		1FC3046FCECB25B228688FF4 /* DancingScript-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "DancingScript-OFL.txt"; sourceTree = "<group>"; };
 		2151B8D097AF9D3098ED16D7 /* CGSSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGSSpace.swift; sourceTree = "<group>"; };
 		25742CBF490BEC1233F661FD /* BasicOutfitState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BasicOutfitState.swift; sourceTree = "<group>"; };
@@ -270,6 +272,7 @@
 				ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */,
 				1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */,
 				6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */,
+				1B95E794C13DE3DAA7C2891B /* FocusActivityTests.swift */,
 				E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */,
 				406030D1395E35FB24681FE8 /* InteractionStateTests.swift */,
 				4A3063E01FF76A78398606DF /* IslandResolverTests.swift */,
@@ -606,6 +609,7 @@
 				6B351B58889CA7C8B7C93511 /* DragApproachGeometryTests.swift in Sources */,
 				B8DE8D9FDE9ABC0AA193D43C /* DragDropSupportTests.swift in Sources */,
 				DB506F16085ECD1612616899 /* EqualizerBarsTests.swift in Sources */,
+				57E10B87D7BD50703138D12D /* FocusActivityTests.swift in Sources */,
 				21D3560AA4C7B91581AA5272 /* FullscreenDetectorTests.swift in Sources */,
 				0B5D7C9F97587BFE2049F7D7 /* InteractionStateTests.swift in Sources */,
 				F553863EC9FBAB880ED80376 /* IslandResolverTests.swift in Sources */,
