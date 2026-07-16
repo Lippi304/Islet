@@ -272,6 +272,66 @@ struct NotchPillView: View {
         }
     }
 
+    // Phase 35 / GLASS-01 (D-01/D-02/D-03/D-04) — the Liquid Glass warp + chromatic-fringe
+    // overlay, applied at all 4 island-shell fill sites immediately after their existing
+    // `.frame(...)` (35-UI-SPEC.md Material/Shader Contract render order: "gradientMaterial
+    // fill -> .distortionEffect() -> frost overlay -> foreground content"). Renders nothing
+    // unless `.liquidGlass` is selected (D-02), so `.gradient`/`.solidBlack` are pixel-identical
+    // to before this plan. `.allowsHitTesting(false)` (D-03) keeps this decorative-only, never
+    // intercepting the shape's own tap/drag gestures — mirrors this project's CR-01
+    // click-through precedent.
+    @ViewBuilder
+    private func liquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
+        if materialStyle == .liquidGlass {
+            let shaders = liquidGlassChannelShaders(
+                size: size,
+                topCornerRadius: shape.topCornerRadius,
+                bottomCornerRadius: shape.bottomCornerRadius,
+                parameters: parameters
+            )
+            ZStack {
+                shape.fill(Self.gradientMaterial)
+                    .distortionEffect(
+                        shaders.base,
+                        maxSampleOffset: CGSize(width: abs(parameters.distortionScale), height: abs(parameters.distortionScale))
+                    )
+                shape.fill(Color.red.opacity(0.10))
+                    .distortionEffect(
+                        shaders.red,
+                        maxSampleOffset: CGSize(
+                            width: abs(parameters.distortionScale) + parameters.redOffset,
+                            height: abs(parameters.distortionScale) + parameters.redOffset
+                        )
+                    )
+                    .blendMode(.screen)
+                shape.fill(Color.green.opacity(0.10))
+                    .distortionEffect(
+                        shaders.green,
+                        maxSampleOffset: CGSize(
+                            width: abs(parameters.distortionScale) + parameters.greenOffset,
+                            height: abs(parameters.distortionScale) + parameters.greenOffset
+                        )
+                    )
+                    .blendMode(.screen)
+                shape.fill(Color.blue.opacity(0.10))
+                    .distortionEffect(
+                        shaders.blue,
+                        maxSampleOffset: CGSize(
+                            width: abs(parameters.distortionScale) + parameters.blueOffset,
+                            height: abs(parameters.distortionScale) + parameters.blueOffset
+                        )
+                    )
+                    .blendMode(.screen)
+            }
+            .saturation(parameters.saturation)
+            .overlay(Color.white.opacity(parameters.backgroundOpacity))
+            .clipShape(shape)
+            .allowsHitTesting(false)
+        } else {
+            EmptyView()
+        }
+    }
+
     // Phase 18 / NOW-05 — post-checkpoint ROUND 3 (on-device feedback, supersedes round 2's
     // standalone `toastSize` blob below): the user rejected a separate replacement shape and
     // asked for the EXISTING wings glance to stay pixel-identical, with a small text row
@@ -596,6 +656,9 @@ struct NotchPillView: View {
             // growing symmetrically from the shared center — read as the diagonal jump/bounce.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: size.width, height: size.height)
+            // Phase 35 / GLASS-01 (D-04): collapsed pill uses the subtler .collapsed
+            // parameters.
+            .overlay(liquidGlassEffectLayer(shape: NotchShape(), size: size, parameters: .collapsed))
             // D-01 (visual half): a subtle "you're in" bounce on hover only — never
             // when expanded. The controller drives this via its spring wrapper at the
             // state mutation. The haptic + the real pointer monitor are Plan 03.
@@ -1542,6 +1605,8 @@ struct NotchPillView: View {
             // architecture audit item 2" convention, which was backwards — see collapsedIsland.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: baseWidth, height: totalHeight)
+            // Phase 35 / GLASS-01 (D-04): expanded island uses full-strength .expanded parameters.
+            .overlay(liquidGlassEffectLayer(shape: shape, size: CGSize(width: baseWidth, height: totalHeight), parameters: .expanded))
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     content()
@@ -1676,6 +1741,8 @@ struct NotchPillView: View {
             // see collapsedIsland/blobShape: `.matchedGeometryEffect` must precede `.frame`.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            // Phase 35 / GLASS-01 (D-04): wings use full-strength .expanded parameters.
+            .overlay(liquidGlassEffectLayer(shape: shape, size: Self.wingsSize, parameters: .expanded))
             .overlay(
                 content()
                     .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
@@ -1743,6 +1810,8 @@ struct NotchPillView: View {
             // for the full explanation of why frame-before-effect breaks the size morph).
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: height)
+            // Phase 35 / GLASS-01 (D-04): media wings use full-strength .expanded parameters.
+            .overlay(liquidGlassEffectLayer(shape: NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6), size: CGSize(width: Self.wingsSize.width, height: height), parameters: .expanded))
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     mediaWingsRow(p, art: nowPlaying.artwork)
