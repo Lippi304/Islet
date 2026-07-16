@@ -1505,6 +1505,33 @@ final class NotchWindowController {
         lastActivity = next
 
         if fire, let activity = next {
+            // Debug session `36-01-charging-text-missing` (on-device UAT round 1: "Es steht nix
+            // da mit Charging sondern wie vorher mit dem Blitz Symbol") — root cause: on real
+            // hardware, `kIOPSIsChargingKey` can still read false for the VERY FIRST power-source
+            // callback right at physical AC-connect (the SMC negotiates the actual charge current
+            // a beat after `kIOPSPowerSourceStateKey` already flips to "AC Power" — a documented
+            // IOKit quirk, not app-specific). `next` then classifies as `.full` (the "on AC, not
+            // (yet) charging" bucket) instead of `.charging`, so the ~3s connect-only splash
+            // renders the pre-36-01 icon-only look — 36-01 Task 1's new "Charging" text (gated on
+            // `.charging`) never gets a chance to show, even though the Mac IS about to start
+            // charging. A single short re-poll before committing the splash lets the flag settle;
+            // this does not change the splash's own duration/architecture (still one ~3s
+            // TransientQueue entry, still connect-only, CHG-02 descoped) — only which reading it
+            // is built from.
+            if case .full = activity {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                    guard let self else { return }
+                    let settled = powerActivity(from: readCurrentPower()) ?? activity
+                    self.lastActivity = settled
+                    if case .onBattery = settled { return }   // unplugged again before it ever settled — no splash
+                    self.chargingState.activity = settled
+                    let changed = self.transientQueue.enqueue(.charging(settled))
+                    if changed {
+                        self.presentTransientChange()
+                    }
+                }
+                return
+            }
             // Phase 6 / D-02 rank 1: ENQUEUE the charging transient instead of setting the model
             // directly as the render driver. If it becomes the head NOW, re-resolve (inside the
             // spring, D-08) → render + the SINGLE updateVisibility() (fullscreen gate) + arm the
