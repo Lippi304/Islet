@@ -588,7 +588,7 @@ Plans:
   2. The new material is applied as a modifier on the existing shape node that already carries the `matchedGeometryEffect` id — not a new sibling/wrapper view — so morph continuity is preserved.
   3. A Phase-25-style on-device UAT checklist (material renders correctly through collapse↔expand, no artifacts, no dropped frames) passes as a hard merge gate.
   4. The visual result is user-approved on-device against the supplied reference code.
-**Plans**: 10 plans (35-05 rejected on-device round 1 — flat opaque grey, no transparency; 35-08 rejected on-device round 2 — uniformly bright/light, no dark glass; superseded by round-3 remediation plans 35-09/35-10 per 35-CONTEXT.md D-12/D-13/D-14/D-15)
+**Plans**: 12 plans (35-05 rejected on-device round 1 — flat opaque grey, no transparency; 35-08 rejected on-device round 2 — uniformly bright/light, no dark glass; 35-10 rejected on-device round 3 — uniform silvery/washed-out, unmasked fringe+wash screen-blending over the frost's dark center; superseded by round-4 remediation plans 35-11/35-12 per 35-CONTEXT.md D-16/D-17/D-18/D-19)
 **UI hint**: yes
 
 Plans:
@@ -624,7 +624,15 @@ Plans:
 
 **Wave 8 (remediation round 3)** *(blocked on 35-09)*
 
-- [ ] 35-10-PLAN.md — On-device UAT hard merge gate, round 3 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08
+- [x] 35-10-PLAN.md — On-device UAT hard merge gate, round 3 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08 — **REJECTED (round 3)** (uniform, medium-grey/silvery panel across the whole surface, no dark near-opaque center, no clear rim contrast; see 35-UAT.md Test 1 Round 3) — root cause: unmasked chromatic-fringe passes (.blendMode(.screen)) + trailing white-wash overlay lighten the WHOLE surface including the frost's dark center, remediated by 35-11/35-12 below
+
+**Wave 9 (remediation round 4)** *(blocked on nothing new — restructures 35-09's already-merged code)*
+
+- [ ] 35-11-PLAN.md — Mask the 3 chromatic-fringe passes + white-wash overlay to the shared liquidGlassEdgeOpacity falloff via a new liquidGlassRimMask helper (D-16/D-17/D-18) — no `.metal`/parameter-file changes, reuses liquidGlassEdgeOpacity as-is with mask-only arguments
+
+**Wave 10 (remediation round 4)** *(blocked on 35-11)*
+
+- [ ] 35-12-PLAN.md — On-device UAT hard merge gate, round 4 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08/35-10 (D-19: single UAT round, no intermediate checkpoint)
 
 ### Phase 36: Cosmetic Restyles & Signature Animation
 
