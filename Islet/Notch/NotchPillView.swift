@@ -252,6 +252,14 @@ struct NotchPillView: View {
     // the negative/dimmed icon-only states keep the original 290 (unchanged, already correct).
     // Stays comfortably under expandedSize.width (420), so the already-unioned panel frame needs
     // no changes. Tune further on-device if the real notch width differs from the 179pt seed.
+    //
+    // Round N+1 (post-77ecd18 checkpoint, user request) — this value used to widen the WHOLE
+    // symmetric wingsShape frame (both flanks equally), which over-widened the right flank
+    // (BatteryIndicator/ring/xmark) even though only the left (icon+label) content needed the
+    // extra room. `wings(for:)`/`deviceWings(for:)` now pass `wingsLabelWidth / 2` as ONLY the
+    // `leftWidth` half; `rightWidth` always stays `wingsSize.width / 2` (its content never grows).
+    // See wingsShape's alignmentGuide for how the two halves size independently while staying
+    // centered on the physical notch.
     static let wingsLabelWidth: CGFloat = 400
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
@@ -1907,9 +1915,22 @@ struct NotchPillView: View {
     // Phase 18 round 3: `mediaWingsOrToast` no longer routes through this helper — its bottom
     // corner radius and height must vary with the toast, so it builds its own NotchShape
     // directly (see that function's comment) rather than the always-flat 6/6 this returns.
-    private func wingsShape<Content: View>(width: CGFloat = Self.wingsSize.width, @ViewBuilder content: () -> Content) -> some View {
+    // Round N+1 (post-77ecd18 checkpoint, user request) — the LEFT (icon+label) and RIGHT
+    // (battery/ring/xmark) flanks now size INDEPENDENTLY instead of sharing one symmetric
+    // `width`. A single width can't express "left grows for a wide label, right stays
+    // compact": increasing it grows both edges equally around this view's own geometric
+    // center. Instead the view's total width is still `leftWidth + rightWidth`, but the
+    // HorizontalAlignment.center guide is overridden to sit at `leftWidth` from the leading
+    // edge (not width/2) — the parent `ZStack(alignment: .top)` (body, ~L736) centers every
+    // child using THAT guide, so the notch stays pinned at x=leftWidth: leftWidth of pill
+    // extends left of the notch, rightWidth extends right, each shrinking/growing on its own.
+    private func wingsShape<Content: View>(
+        leftWidth: CGFloat = Self.wingsSize.width / 2,
+        rightWidth: CGFloat = Self.wingsSize.width / 2,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         let shape = NotchShape(topCornerRadius: 12, bottomCornerRadius: 6)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside a 6pt bottom radius without squeezing the wall to almost nothing
-        let size = CGSize(width: width, height: Self.wingsSize.height)   // Round N (HUD-01/HUD-02 label-clip fix): width is now a param so charging/device wings can widen past 290 only while their label is shown, see wingsLabelWidth
+        let size = CGSize(width: leftWidth + rightWidth, height: Self.wingsSize.height)
         return shape
             .fill(islandFill)
             // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order,
@@ -1922,6 +1943,7 @@ struct NotchPillView: View {
                 content()
                     .frame(width: size.width, height: size.height)
             )
+            .alignmentGuide(HorizontalAlignment.center) { _ in leftWidth }
             // Finding 15 (06-10): both remaining wing glances (wings(for:), deviceWings(for:))
             // share this one tap-to-toggle through the shared helper.
             .onTapGesture { onClick() }
@@ -1940,10 +1962,16 @@ struct NotchPillView: View {
         case .full(let p):     isCharging = false; percent = p
         case .onBattery(let p):isCharging = false; percent = p
         }
-        // Round N (HUD-02 label-clip fix): widen the strip only while "Charging" is actually
-        // shown — the dimmed icon-only negative state keeps the original 290pt (wingsLabelWidth
-        // comment above explains why 290 clips the label against the physical notch cutout).
-        return wingsShape(width: isCharging ? Self.wingsLabelWidth : Self.wingsSize.width) {
+        // Round N (HUD-02 label-clip fix): widen only the LEFT flank while "Charging" is
+        // actually shown — the dimmed icon-only negative state keeps the original 145pt half
+        // (wingsLabelWidth comment above explains why 290pt total clips the label against the
+        // physical notch cutout). Round N+1 (user request): the RIGHT flank (BatteryIndicator)
+        // never needed the extra room, so it stays fixed at the original half-width regardless
+        // of charging state — only the label-bearing left side grows/shrinks.
+        return wingsShape(
+            leftWidth: isCharging ? Self.wingsLabelWidth / 2 : Self.wingsSize.width / 2,
+            rightWidth: Self.wingsSize.width / 2
+        ) {
             HStack(spacing: 0) {
                 // Round N (HUD-02 Droppy restyle, D-02/D-03/D-04) — left wing gains an
                 // icon+label pairing shown only in the positive (charging) state; the
@@ -2073,10 +2101,16 @@ struct NotchPillView: View {
         case .disconnected(_, let g):     glyph = g; isConnected = false; battery = nil
         }
         let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
-        // Round N (HUD-01 label-clip fix): widen the strip only while "Connected" is actually
-        // shown — the dimmed icon-only negative state keeps the original 290pt (wingsLabelWidth
-        // comment above explains why 290 clips the label against the physical notch cutout).
-        return wingsShape(width: isConnected ? Self.wingsLabelWidth : Self.wingsSize.width) {
+        // Round N (HUD-01 label-clip fix): widen only the LEFT flank while "Connected" is
+        // actually shown — the dimmed icon-only negative state keeps the original 145pt half
+        // (wingsLabelWidth comment above explains why 290pt total clips the label against the
+        // physical notch cutout). Round N+1 (user request): the RIGHT flank (battery/ring/
+        // xmark) never needed the extra room, so it stays fixed at the original half-width
+        // regardless of connection state — only the label-bearing left side grows/shrinks.
+        return wingsShape(
+            leftWidth: isConnected ? Self.wingsLabelWidth / 2 : Self.wingsSize.width / 2,
+            rightWidth: Self.wingsSize.width / 2
+        ) {
             HStack(spacing: 0) {
                 // Round N (HUD-01 Droppy restyle, D-02/D-03/D-04) — left wing gains an
                 // icon+label pairing shown only in the positive (connected) state; the
