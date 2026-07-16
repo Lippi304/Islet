@@ -612,7 +612,7 @@ Plans:
 
 **Wave 5 (remediation)** *(blocked on 35-06, 35-03)*
 
-- [ ] 35-07-PLAN.md — islandFill + liquidGlassEffectLayer translucent-material wiring (D-10/D-11)
+- [x] 35-07-PLAN.md — islandFill + liquidGlassEffectLayer translucent-material wiring (D-10/D-11)
 
 **Wave 6 (remediation)** *(blocked on 35-06, 35-07)*
 
