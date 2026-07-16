@@ -220,12 +220,6 @@ final class NotchWindowController {
     private let activityDuration: TimeInterval = 3.0   // D-09 single tuning seed
     private let songToastDuration: TimeInterval = 2.0   // song-change toast auto-dismiss (round 5, on-device request: 1s shorter than the shared activityDuration, toast-only)
 
-    // Phase 37 / HUD-07 (D-04) — the drop-session summary chip's own one-shot ~2s auto-dismiss,
-    // fully independent of toastDismissWorkItem: a song-change toast and a drop chip can both be
-    // showing at once (Plan 02's stacked-rows design), so each gets its own timer.
-    private var chipDismissWorkItem: DispatchWorkItem?
-    private let chipDismissDuration: TimeInterval = 2.0
-
     // Phase 10 / D-12 — the best-effort ONE-SHOT proactive expiry re-check, mirroring the exact
     // property + cancel-then-reschedule + deinit-cancel idiom already used 4x in this file
     // (dismissWorkItem/graceWorkItem/mediaDismissWorkItem/DeviceCoordinator's own work item). NOT a polling loop
@@ -714,12 +708,6 @@ final class NotchWindowController {
             if nowPlayingState.songChangeToast != nil {
                 toastDismissWorkItem?.cancel()
                 nowPlayingState.songChangeToast = nil
-            }
-            // Phase 37 / HUD-07 (D-06/D-07) — same precedent, sibling field: an interrupting
-            // Charging/Device transient must clear a standing drop-session chip immediately.
-            if shelfViewState.sessionSummaryChip != nil {
-                chipDismissWorkItem?.cancel()
-                shelfViewState.sessionSummaryChip = nil
             }
             renderPresentation()
         }
@@ -1290,17 +1278,6 @@ final class NotchWindowController {
                 // Phase 34 / TRAY-02 (D-06/D-07) — a grace-collapse while a picker is showing is
                 // a dismiss-without-choosing: discard the pending file(s), no silent auto-stage.
                 if !self.interaction.isExpanded { self.discardPendingDrop() }
-                // Phase 37 / HUD-07 (D-01/D-02) — a grace-collapse while Tray was the selected
-                // tab always resets the session counter, chip-or-not; the chip itself only shows
-                // when the gate + content both agree there's something to summarize.
-                if self.viewSwitcherState.selectedView == .tray {
-                    let count = self.shelfCoordinator.resetSession()
-                    if dropSessionChipGate(activeTransient: self.transientQueue.head, isExpanded: self.interaction.isExpanded),
-                       let chip = dropSessionChipContent(count: count) {
-                        self.shelfViewState.sessionSummaryChip = chip
-                        self.scheduleChipDismiss()
-                    }
-                }
             }
             // Phase 10 / D-13: this is the natural-transition recheck the idle-state guard
             // depends on — the pointer has just left AND the grace-elapsed collapse has just
@@ -1346,12 +1323,6 @@ final class NotchWindowController {
                 toastDismissWorkItem?.cancel()
                 nowPlayingState.songChangeToast = nil
             }
-            // Phase 37 / HUD-07 (D-07) — same precedent, sibling field: re-expanding the island
-            // while the drop-session chip is showing cancels its dismiss timer and clears it.
-            if !wasExpanded && interaction.isExpanded && shelfViewState.sessionSummaryChip != nil {
-                chipDismissWorkItem?.cancel()
-                shelfViewState.sessionSummaryChip = nil
-            }
             // Phase 21 follow-up (UAT feedback) — an item whose backing file was deleted
             // externally is otherwise stuck inert until manually trashed. Pruned right as
             // the shelf becomes visible so the user never sees a dead item, not just after
@@ -1365,17 +1336,6 @@ final class NotchWindowController {
             // Phase 34 / TRAY-02 (D-06/D-07) — a toggle-shut click while a picker is showing is
             // a dismiss-without-choosing: discard the pending file(s), no silent auto-stage.
             if !interaction.isExpanded { discardPendingDrop() }
-            // Phase 37 / HUD-07 (D-01/D-02) — symmetric with handleHoverExit's grace-collapse:
-            // only the toggle-SHUT case (never toggle-open) resets the session when Tray was
-            // selected, gates + shows the chip on success.
-            if wasExpanded && !interaction.isExpanded && viewSwitcherState.selectedView == .tray {
-                let count = shelfCoordinator.resetSession()
-                if dropSessionChipGate(activeTransient: transientQueue.head, isExpanded: interaction.isExpanded),
-                   let chip = dropSessionChipContent(count: count) {
-                    shelfViewState.sessionSummaryChip = chip
-                    scheduleChipDismiss()
-                }
-            }
         }
         // Phase 10 / D-13: this is the OTHER natural-transition recheck the idle-state guard
         // depends on — a toggle-shut click (.expanded → .collapsed) applies any previously
@@ -1916,21 +1876,6 @@ final class NotchWindowController {
         }
         toastDismissWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + songToastDuration, execute: work)
-    }
-
-    // Phase 37 / HUD-07 (D-01/D-02/D-03/D-06) — the drop-session chip's own one-shot ~2s
-    // auto-dismiss. Mirrors scheduleToastDismiss exactly: cancel any pending item, create a
-    // SINGLE DispatchWorkItem that clears ONLY the chip field, and asyncAfter it.
-    private func scheduleChipDismiss() {
-        chipDismissWorkItem?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
-                self.shelfViewState.sessionSummaryChip = nil
-            }
-        }
-        chipDismissWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + chipDismissDuration, execute: work)
     }
 
     // D-13 mid-session child death (already on main). The adapter emitted at least once and
