@@ -343,8 +343,39 @@ struct NotchPillView: View {
         liquidGlassOpacityShader(shape: shape, size: size, parameters: parameters, edgeOpacity: 1.0, centerOpacity: 0.0)
     }
 
+    // Debug session `liquid-glass-grey-rim-regression` (round 3, 2026-07-16) — user
+    // reviewed callstack/liquid-glass (a wrapper around Apple's real Liquid Glass API)
+    // and explicitly pivoted away from continuing to hand-tune the custom Metal shader
+    // approximation below. On macOS 26.0+ this now renders the REAL system Liquid Glass
+    // material via SwiftUI's native `.glassEffect(_:in:)` (Apple docs confirm signature
+    // `glassEffect(_ glass: Glass = .regular, in shape: S, isEnabled: Bool = true)`,
+    // available macOS 26.0+/iOS 26.0+). `.regular.tint(...)` keeps it reading dark/
+    // near-black per D-15's "allowed as dark as .solidBlack" intent — exact tint alpha
+    // is a starting point, same on-device-tunable convention as every constant in
+    // LiquidGlassShader.swift. Below macOS 26.0, the existing hand-tuned shader stack
+    // (warp distortion + frost + 3 chromatic-fringe screen-blend passes + rim mask) is
+    // UNCHANGED as the fallback — both branches type-check regardless of the machine's
+    // actual OS version (Swift compiles all `#available` branches unconditionally), and
+    // this build machine runs macOS 26 (Tahoe) so the native branch is what actually
+    // executes here.
     @ViewBuilder
     private func liquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
+        if materialStyle == .liquidGlass {
+            if #available(macOS 26.0, *) {
+                Color.clear
+                    .frame(width: size.width, height: size.height)
+                    .glassEffect(.regular.tint(Color.black.opacity(0.7)), in: shape)
+                    .allowsHitTesting(false)
+            } else {
+                legacyLiquidGlassEffectLayer(shape: shape, size: size, parameters: parameters)
+            }
+        } else {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private func legacyLiquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
         if materialStyle == .liquidGlass {
             let shaders = liquidGlassChannelShaders(
                 size: size,
@@ -2210,8 +2241,18 @@ struct NotchPillView: View {
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
     // D-02 shows a visible tint during development so a first-time builder can
     // confirm width / radius / position over the real notch.
+    //
+    // Bugfix (liquid-glass-grey-rim-regression, 2026-07-16): the D-02 red tint predates
+    // Phase 35 and was never reconsidered for Liquid Glass. `liquidGlassEffectLayer`
+    // (below) composites its dark frost + rim-masked chromatic-fringe layers assuming a
+    // dark backdrop (the same `islandFill`/`gradientMaterial` every UAT round was tuned
+    // against) — over the red debug tint, the SAME screen-blend-washout mechanism the
+    // round-3 UAT rejection diagnosed reappears, reading as a flat grey rim instead of
+    // colored fringe. Liquid Glass must see its real fill even in DEBUG; the red tint
+    // stays for Gradient/Solid Black where a flat color swap is harmless.
     private var collapsedFill: AnyShapeStyle {
         #if DEBUG
+        if materialStyle == .liquidGlass { return islandFill }
         return AnyShapeStyle(Color.red.opacity(0.6))
         #else
         return islandFill

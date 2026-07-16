@@ -57,16 +57,27 @@ struct LiquidGlassParameters {
     // the frost read as transparent right at the edge and near-opaque toward the interior.
     // On-device-tunable starting points per CONTEXT.md's Claude's Discretion grant — final
     // values pending Plan 35-10's on-device UAT, same as every previous round.
+    // Round-5 retune (debug session liquid-glass-grey-rim-regression, 2026-07-16):
+    // redOffset/greenOffset/blueOffset had been frozen at their original Plan 35-02
+    // scaffolding values since before ANY on-device UAT ran, never revisited when
+    // round-3 shrank borderWidth/blurWidth (the rim band the offsets must separate
+    // WITHIN). Old blueOffset was only ~26% of the rim band width, so ~74% of the
+    // visible rim showed all 3 chromatic-fringe passes fully overlapping — which
+    // `.blendMode(.screen)` renders as white/grey, not color. Widened so channel
+    // separation covers most of the band (blueOffset ~= band width), leaving only
+    // the innermost sliver near the mask's falloff as a white highlight (matches
+    // D-17's "white wash reads as rim highlight" intent). fringeOpacity nudged up
+    // to keep the now-thinner per-channel color visible against the dark frost.
     static let collapsed = LiquidGlassParameters(
         borderWidth: 0.07,
         blurWidth: 1.2,
         distortionScale: -5,
         redOffset: 0,
-        greenOffset: 0.5,
-        blueOffset: 1,
+        greenOffset: 1.4,
+        blueOffset: 2.8,
         saturation: 1.0,
         backgroundOpacity: 0.05,
-        edgeOpacity: 0.08, centerOpacity: 0.90, fringeOpacity: 0.15
+        edgeOpacity: 0.08, centerOpacity: 0.90, fringeOpacity: 0.20
     )
 
     static let expanded = LiquidGlassParameters(
@@ -74,11 +85,11 @@ struct LiquidGlassParameters {
         blurWidth: 2.5,
         distortionScale: -13,
         redOffset: 0,
-        greenOffset: 1.25,
-        blueOffset: 2.5,
+        greenOffset: 3.5,
+        blueOffset: 7,
         saturation: 1.08,
         backgroundOpacity: 0.08,
-        edgeOpacity: 0.10, centerOpacity: 0.92, fringeOpacity: 0.20
+        edgeOpacity: 0.10, centerOpacity: 0.92, fringeOpacity: 0.25
     )
 }
 
