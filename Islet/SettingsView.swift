@@ -143,23 +143,27 @@ struct SettingsView: View {
         // Onboarding explicitly excluded); D-09 calls for the CALMER variant here —
         // half the island shell's gradient alpha at every stop, a frost material,
         // and a rim-light stroke, with NO distortion shader (readability risk on a
-        // text-heavy form).
-        .background(
-            ZStack {
-                LinearGradient(
-                    stops: [
-                        .init(color: .black.opacity(0.25), location: 0.0),
-                        .init(color: .black.opacity(0.15), location: 0.65),
-                        .init(color: .black.opacity(0.05), location: 1.0),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                Color.clear.background(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+        // text-heavy form). D-08's scope extension is specific to the Liquid Glass
+        // style, so this only applies when that style is selected (35-REVIEW.md
+        // CR-01) — Gradient/Solid Black keep the pre-Phase-35 default background.
+        .background {
+            if materialStyle == .liquidGlass {
+                ZStack {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(0.25), location: 0.0),
+                            .init(color: .black.opacity(0.15), location: 0.65),
+                            .init(color: .black.opacity(0.05), location: 1.0),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    Color.clear.background(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+                }
             }
-        )
+        }
         .frame(width: 520, height: 380)
     }
 
