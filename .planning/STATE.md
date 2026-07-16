@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
-stopped_at: Phase 35 round 3 context captured — dark frost base + rim reveal design pivot
-last_updated: "2026-07-16T02:16:05.809Z"
-last_activity: 2026-07-16 -- Phase 35 planning complete
+stopped_at: Phase 35 round 3 on-device UAT rejected — screen-blend fringe/wash washes out dark frost center
+last_updated: "2026-07-16T12:10:00.000Z"
+last_activity: 2026-07-16 -- Phase 35 35-09 executed and merged; 35-10 checkpoint rejected (round 3)
 progress:
   total_phases: 27
   completed_phases: 15
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 ## Current Position
 
-Phase: 35 (liquid-glass-material) — BLOCKED, round 3 planned
-Plan: 10 total (35-01 through 35-04, 35-06, 35-07 shipped; 35-05/35-08 superseded/rejected; 35-09/35-10 newly planned, not yet executed)
-Status: Ready to execute
-Last activity: 2026-07-16 -- Phase 35 planning complete
+Phase: 35 (liquid-glass-material) — BLOCKED, round 3 rejected (needs round 4 discuss-phase)
+Plan: 10 total (35-01 through 35-04, 35-06, 35-07, 35-09 shipped; 35-05/35-08 superseded/rejected; 35-10 checkpoint reached and rejected — no SUMMARY.md, plan remains incomplete)
+Status: Blocked on on-device UAT — see 35-UAT.md Test 1 Round 3 for hypothesis (chromatic-fringe .blendMode(.screen) + white overlay wash lighten the whole surface regardless of frost-layer centerOpacity)
+Last activity: 2026-07-16 -- Phase 35 35-09 executed/merged; 35-10 checkpoint rejected (round 3): "Es ist immer noch so komisch silbern und nichts in Richtung liquid glass."
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 

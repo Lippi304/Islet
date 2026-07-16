@@ -1,9 +1,9 @@
 ---
 status: partial
 phase: 35-liquid-glass-material
-source: [35-01-SUMMARY.md, 35-02-SUMMARY.md, 35-03-SUMMARY.md, 35-04-SUMMARY.md, 35-06-SUMMARY.md, 35-07-SUMMARY.md]
+source: [35-01-SUMMARY.md, 35-02-SUMMARY.md, 35-03-SUMMARY.md, 35-04-SUMMARY.md, 35-06-SUMMARY.md, 35-07-SUMMARY.md, 35-09-SUMMARY.md]
 started: 2026-07-16T00:37:15Z
-updated: 2026-07-16T03:28:00Z
+updated: 2026-07-16T12:08:00Z
 ---
 
 ## Current Test
@@ -15,7 +15,7 @@ expected: |
   with the desktop only bleeding through as a faint colored rim-light right at
   the rounded edge (per reference-transparency-target.png) — not uniformly
   bright/light across the whole surface.
-awaiting: user response (round 2 gap logged, remaining checks 2-7 still blocked pending fix)
+awaiting: user response (round 3 gap logged, remaining checks 2-7 still blocked pending fix)
 
 ## Tests
 
@@ -43,6 +43,30 @@ hypothesis: |
   dark tint UNDERNEATH or blended WITH the material (e.g. black fill + material only
   visible through the edge-opacity mask, rather than material as the base itself), or
   force a fixed dark appearance/tint on the Material regardless of backdrop.
+
+#### Round 3 (post 35-09 remediation)
+result: issue
+reported: "Es ist immer noch so komisch silbern und nichts in Richtung liquid glass." (screenshot attached: expanded island still renders as a uniform, medium-grey/silvery frosted panel across the WHOLE surface — no visible dark, near-opaque center contrasted against a thin transparent rim as in reference-transparency-target.png; overall look reads flat/silvery rather than glassy)
+severity: major
+hypothesis: |
+  35-09's frost-over-material fix (islandFill/liquidGlassEffectLayer, NotchPillView.swift
+  ~line 304-362) should produce a dark, near-opaque center (frost layer alpha ramped via
+  the liquidGlassEdgeOpacity shader, centerOpacity 0.90/0.92) with only a thin edge reveal
+  of the .ultraThinMaterial backdrop. But the ZStack still ends with 3 chromatic-fringe
+  passes composited via `.blendMode(.screen)` (lines ~349/358/366), followed by a
+  trailing `.overlay(Color.white.opacity(parameters.backgroundOpacity))` glossy wash
+  (line ~360, flagged in Plan 35-09's own code comment as an untouched candidate).
+  Screen blend mode can only LIGHTEN whatever is underneath it
+  (result = 1-(1-a)(1-b)), never darken — so regardless of how dark/opaque the frost
+  layer's centerOpacity is tuned, the fringe passes + white wash push the WHOLE surface
+  (center included) toward a lighter, washed-out/silvery result, flattening the intended
+  dark-center/narrow-rim contrast into a uniform grey. Needs a design pivot on the
+  fringe/wash compositing: either drop `.screen` for a blend mode that can darken (e.g.
+  normal blend at low opacity, or `.multiply` for the wash), reduce
+  fringeOpacity/backgroundOpacity further, or — most likely correct per D-13's "same
+  falloff drives everything" intent — apply the fringe/wash ONLY within the same
+  edge-opacity mask the frost layer uses, so it only tints the visible rim and never
+  touches the dark center.
 
 ### 2. Collapse/expand transition smoothness
 expected: No artifacts, no dropped frames, no diagonal-jump/bounce regression.
@@ -107,6 +131,16 @@ blocked: 6
   severity: major
   test: 1
   root_cause: "hypothesis (unconfirmed): raw .ultraThinMaterial as the base has no inherent dark tint — its brightness adapts to the backdrop, so the edgeOpacity alpha ramp modulates an already-bright surface instead of revealing backdrop through an otherwise-dark one. See 35-UAT.md Test 1 Round 2 hypothesis for detail."
+  artifacts: []
+  missing: []
+  debug_session: ""
+
+- truth: "The collapsed pill and expanded island render a dark, near-opaque glass center contrasted against a thin, colored transparent rim at the rounded edge (per reference-transparency-target.png), not a uniform grey/silvery panel"
+  status: failed
+  reason: "Round 3 (post 35-09 remediation): User reported 'Es ist immer noch so komisch silbern und nichts in Richtung liquid glass.' — screenshot shows a uniform, medium-grey/silvery frosted panel across the whole surface, no dark near-opaque center visible, no clear narrow-rim contrast"
+  severity: major
+  test: 1
+  root_cause: "hypothesis (unconfirmed): the 3 chromatic-fringe passes use .blendMode(.screen) and are followed by a trailing Color.white.opacity() overlay wash (NotchPillView.swift liquidGlassEffectLayer, ~lines 349-360) — screen blend mode can only lighten, never darken, so it washes out the frost layer's intended dark, near-opaque center regardless of how dark centerOpacity is tuned. See 35-UAT.md Test 1 Round 3 hypothesis for detail."
   artifacts: []
   missing: []
   debug_session: ""
