@@ -264,11 +264,16 @@ struct NotchPillView: View {
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
-        // Phase 35 / GLASS-01 (D-02) — same gradient base as .gradient; the
-        // distortion/chromatic-fringe shader that visually distinguishes Liquid
-        // Glass is layered on top as a separate overlay in Plan 35-03, not
-        // returned from this switch.
-        case .liquidGlass: return AnyShapeStyle(Self.gradientMaterial)
+        // Phase 35 / GLASS-01 (D-10, supersedes D-02): a real translucent,
+        // live-blurring SwiftUI Material (NSVisualEffectView-backed) instead of
+        // the opaque gradientMaterial this branch previously duplicated from
+        // .gradient — on-device UAT (35-UAT.md Test 1) showed the opaque base
+        // read as flat grey with no visible see-through. NotchPanel is already
+        // isOpaque = false / backgroundColor = .clear, so the desktop content
+        // behind the panel is available to blur through. The distortion/
+        // chromatic-fringe shader (Plan 35-03) still warps this layer as a
+        // separate overlay, now warping an actual translucent surface.
+        case .liquidGlass: return AnyShapeStyle(.ultraThinMaterial)
         }
     }
 
