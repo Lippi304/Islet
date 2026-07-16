@@ -2,23 +2,25 @@ import SwiftUI
 import CoreText
 
 // ONBOARD-04 — the hand-drawn signature stroke-reveal contract for the onboarding Welcome
-// step's "Meet Islet" heading. This file is the Plan 36-03 half of the feature: bundling a
-// commercially-safe (OFL) script font, registering it at runtime, and (Task 2) extracting a
-// real vector glyph outline (Path) per character via Core Text. Plan 36-04 layers the actual
-// .trim(from:to:) stroke-reveal animation on top — no animation exists yet at this stage.
+// step's "Meet Islet" heading. Plan 36-03 built the font bundling + Core Text glyph-outline
+// extraction contract; this plan (36-04) layers the staggered stroke-then-fill reveal
+// animation on top and (separately, in NotchPillView.swift) wires it into onboarding.
 //
 // D-12 (font license): the componentry.fun reference's `LastoriaBoldRegular.otf` is a
 // personal-use-only demo font — not safe to ship in a paid product. Dancing Script Bold
 // (SIL Open Font License 1.1, Google Fonts, Impallari Type) is the locked substitute —
 // confirmed OFL, explicitly permits commercial embedding.
-//
-// Standalone, non-animated view AT THIS STAGE: every glyph renders solid-filled orange
-// immediately — this is the contract Plan 36-04 animates via .trim(from:to:) on the same
-// Canvas closure, not the final on-screen behavior yet. Not yet wired into
-// onboardingWelcomeStep (Plan 36-04's job).
 struct SignatureHeading: View {
     private let text: String = "Meet Islet"   // D-09, locked
     private let fontSize: CGFloat = 28         // 36-UI-SPEC.md Signature Animation Contract
+
+    // D-10: per-view-instance reveal state. `appearedAt` gates the clock (nil == not yet
+    // appeared, so TimelineView stays paused); `isRevealComplete` is the real @State flip
+    // that stops the clock once the ~3.3s reveal finishes — a rare Back-then-forward
+    // re-visit creating a fresh `SignatureHeading` instance replaying the animation is
+    // harmless (D-10), so no additional "already played" persistence is needed.
+    @State private var appearedAt: Date?
+    @State private var isRevealComplete = false
 
     var body: some View {
         let font = Self.loadSignatureFont(size: fontSize)
@@ -26,14 +28,61 @@ struct SignatureHeading: View {
         let width = Self.totalWidth(for: glyphs)
         let height = fontSize * 3   // matches the reference's own `height = fontSize * 3` headroom
 
-        Canvas { context, _ in
-            // D-11, locked: fixed literal orange, never nowPlayingAccent/chargingAccent/deviceAccent —
-            // must read the same regardless of the user's chosen Settings accent color.
-            for (path, _) in glyphs {
-                context.fill(path, with: .color(Color.orange))
+        // Per-character stagger (D-10, 36-UI-SPEC.md): 0.2s delay per index, 1.5s reveal
+        // duration each — total clock length is the last character's delay + its own duration.
+        let totalDuration = 0.2 * Double(glyphs.count - 1) + 1.5
+
+        TimelineView(.animation(paused: appearedAt == nil || isRevealComplete)) { context in
+            Canvas { canvasContext, _ in
+                // Mirrors ProgressBar's Unix-epoch (timeIntervalSince1970) clock convention in
+                // this same codebase — NOT EqualizerBars' unrelated 2001-epoch
+                // timeIntervalSinceReferenceDate sine clock. Do not mix the two.
+                let elapsed = appearedAt.map { context.date.timeIntervalSince1970 - $0.timeIntervalSince1970 } ?? 0
+
+                if elapsed > totalDuration && !isRevealComplete {
+                    // Deferred to the next run-loop tick: mutating @State synchronously inside
+                    // a TimelineView content closure during its own view-update pass would be a
+                    // "modifying state during view update" violation. This is the real @State
+                    // flip that stops the clock going forward (T-36-07) — not a one-shot
+                    // wall-clock comparison, which would freeze `paused:` at whatever it was
+                    // when body was first constructed and never re-evaluate.
+                    DispatchQueue.main.async {
+                        isRevealComplete = true
+                    }
+                }
+
+                for (index, glyph) in glyphs.enumerated() {
+                    let delay = 0.2 * Double(index)
+                    let raw = min(max((elapsed - delay) / 1.5, 0), 1)
+
+                    if raw >= 1 {
+                        // D-11, locked: fixed literal orange, never nowPlayingAccent/
+                        // chargingAccent/deviceAccent — reads the same regardless of the
+                        // user's chosen Settings accent color.
+                        canvasContext.fill(glyph.path, with: .color(Color.orange))
+                    } else if raw > 0 {
+                        // Smoothstep — the concrete ease-in-out substitute for D-10's
+                        // `Animation.easeInOut` curve, evaluated against elapsed time rather
+                        // than driven by a SwiftUI `Animation` (TimelineView's own tick is the
+                        // clock here).
+                        let eased = raw * raw * (3 - 2 * raw)
+                        let trimmed = glyph.path.trim(from: 0, to: eased).path(in: .zero)
+                        canvasContext.stroke(
+                            trimmed,
+                            with: .color(Color.orange),
+                            style: StrokeStyle(lineWidth: 6.16, lineCap: .round, lineJoin: .round)
+                        )
+                    }
+                    // raw <= 0: nothing drawn yet for this glyph.
+                }
             }
         }
         .frame(width: width, height: height)
+        .onAppear {
+            if appearedAt == nil {
+                appearedAt = Date()
+            }
+        }
     }
 
     // MARK: - Glyph extraction
