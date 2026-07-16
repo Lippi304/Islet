@@ -273,6 +273,13 @@ struct SettingsView: View {
             LabeledContent("Version") {
                 Text(Self.versionString)   // D-09: version/build label
             }
+
+            // EQ-01 Registry Safety — Skiper UI's free-tier license requires visible
+            // attribution since Islet holds no Pro license. Locked exact credit string,
+            // 36-UI-SPEC.md.
+            Section("Credits") {
+                Text("Equalizer bar animation inspired by Skiper UI (skiper25.com)")
+            }
         }
         .padding(20)
     }
