@@ -588,8 +588,23 @@ Plans:
   2. The new material is applied as a modifier on the existing shape node that already carries the `matchedGeometryEffect` id — not a new sibling/wrapper view — so morph continuity is preserved.
   3. A Phase-25-style on-device UAT checklist (material renders correctly through collapse↔expand, no artifacts, no dropped frames) passes as a hard merge gate.
   4. The visual result is user-approved on-device against the supplied reference code.
-**Plans**: TBD
+**Plans**: 5 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 35-01-PLAN.md — MaterialStyle.liquidGlass case (D-05) + EnvironmentKey default flip (D-06) + islandFill exhaustive-switch branch
+- [ ] 35-02-PLAN.md — LiquidGlassShader.metal distortion function (D-01) + LiquidGlassParameters/channelShaders contract (D-04)
+
+**Wave 2** *(blocked on 35-01, 35-02)*
+
+- [ ] 35-03-PLAN.md — liquidGlassEffectLayer helper wired into all 4 island-shell fill sites (D-01/D-02/D-03/D-04)
+- [ ] 35-04-PLAN.md — Settings Theming picker 3rd segment + default flip (D-05/D-06) + calmer Settings-window background (D-08/D-09) *(blocked on 35-01 only, parallel to 35-03)*
+
+**Wave 3** *(blocked on 35-03, 35-04)*
+
+- [ ] 35-05-PLAN.md — On-device UAT hard merge gate (Success Criteria #3/#4)
 
 ### Phase 36: Cosmetic Restyles & Signature Animation
 
