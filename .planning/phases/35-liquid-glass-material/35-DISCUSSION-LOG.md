@@ -178,3 +178,54 @@ User supplied a reference screenshot (Droppy onboarding panel) showing dark/read
 ## Deferred Ideas (this revision)
 
 None.
+
+---
+---
+
+# Revision Session — 2026-07-16 (Round 3, Post Round-2-UAT Pivot)
+
+**Trigger:** On-device UAT of the 35-08 checkpoint rejected the round-2 implementation (`35-UAT.md` Test 1 Round 2 / `35-08-SUMMARY.md`) — user reported "Es ist immer noch so hell." (still too bright); screenshot showed a uniformly bright bluish-grey panel with the light Xcode toolbar bleeding through across the whole surface, not just the edge.
+
+**Areas discussed:** Compositing strategy, Rim width / bleed strength, Differentiation from Solid Black
+
+---
+
+## Compositing strategy
+
+Before asking, code was inspected (`NotchPillView.swift` `islandFill` line 276, `liquidGlassEffectLayer` line 315) to confirm the round-2 root cause: both fill sites are raw `.ultraThinMaterial` — a vibrancy material with no inherent dark tint, so there is no dark layer for the edge-opacity ramp to fall back to. It only modulates alpha between two identically-bright layers.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Feste dunkle Basis + Rand-Reveal (empfohlen) | Near-opaque black/dark layer is always the true base; material/backdrop only revealed through a masked edge band | ✓ |
+| Überall Material + Dunkel-Tint-Ramp | Material stays the base everywhere; a multiply-blended dark tint gets stronger toward the center | |
+
+**User's choice:** Feste dunkle Basis + Rand-Reveal.
+**Notes:** Captured as D-12 in CONTEXT.md (supersedes D-10). User then pointed to their own reference component's dark-mode CSS (`reference-GlassSurface.md`) — a solid black `--glass-frost` overlay composited on top of the blurred backdrop — as direct precedent that darkness should come from an added opaque layer, not from tinting the material itself. No npm/npx action taken (irrelevant to this Swift project; reference is porting-only, consistent with the original "don't run install commands" instruction from the round-1 session).
+
+## Rim width / bleed strength
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Schmaler Saum (empfohlen) | Thin sliver right at the rounded edge shows bleed-through — matches `reference-transparency-target.png` | ✓ |
+| Breiterer, weicherer Übergang | ~15-20% of the surface transitions softly — more "glassy" but less faithful to the reference | |
+
+**User's choice:** Schmaler Saum.
+**Notes:** Captured as D-14 in CONTEXT.md.
+
+## Differentiation from Solid Black
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Warp+Fringe reicht als Unterschied (empfohlen) | Center can be exactly as dark as Solid Black; distinction is the rim bleed + warp/chromatic-fringe effect | ✓ |
+| Mitte etwas heller/durchsichtiger als Solid Black | Center gets a deliberate 85-90% opacity floor to always feel "more glass" than Solid Black | |
+
+**User's choice:** Warp+Fringe reicht als Unterschied.
+**Notes:** Captured as D-15 in CONTEXT.md.
+
+## Claude's Discretion (round 3)
+
+- Exact mechanism for inverting D-13's frost-opacity ramp against the existing edge-falloff shader output, and retuned `LiquidGlassParameters` values against the new frost-base compositing — on-device tuning during execution, same grant as prior rounds.
+
+## Deferred Ideas (round 3)
+
+None.
