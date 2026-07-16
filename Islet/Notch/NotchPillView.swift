@@ -732,6 +732,11 @@ struct NotchPillView: View {
             trayFullView                                                     // 28-04 round 5: dedicated files-only Tray view
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
+        case .focus:
+            // Phase 38 / HUD-05: compiler-forced stub only (38-02 is pure-logic-only, no
+            // system glue or view code) -- the real Focus HUD wing view is built in a
+            // later plan (38-04/38-05). Renders nothing distinctive yet.
+            EmptyView()
         case .idle:
             collapsedIsland                                                  // idle pill
         }
