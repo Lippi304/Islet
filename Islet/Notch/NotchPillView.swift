@@ -2056,13 +2056,25 @@ struct NotchPillView: View {
         let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
         return wingsShape {
             HStack(spacing: 0) {
-                Image(systemName: deviceSymbol(for: glyph))   // LEFT wing — device glyph (D-02)
-                    .symbolRenderingMode(.hierarchical)
-                    // D-11 (Phase 6): the device glyph picks up the persisted accent. The
-                    // D-03 disconnected-dimming rides on top as opacity, so a disconnected
-                    // device still reads as dimmed regardless of the accent hue.
-                    .foregroundStyle(deviceAccent.opacity(iconOpacity))
-                    .padding(.leading, 12)
+                // Round N (HUD-01 Droppy restyle, D-02/D-03/D-04) — left wing gains an
+                // icon+label pairing shown only in the positive (connected) state; the
+                // 12pt leading padding moves from the icon onto this wrapping HStack so
+                // total left inset stays 12pt.
+                HStack(spacing: 4) {
+                    Image(systemName: deviceSymbol(for: glyph))   // LEFT wing — device glyph (D-02)
+                        .font(.system(size: 13, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        // D-11 (Phase 6): the device glyph picks up the persisted accent. The
+                        // D-03 disconnected-dimming rides on top as opacity, so a disconnected
+                        // device still reads as dimmed regardless of the accent hue.
+                        .foregroundStyle(deviceAccent.opacity(iconOpacity))
+                    if isConnected {
+                        Text("Connected")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding(.leading, 12)
                 Spacer()                                      // clears the physical camera bridge
                 deviceTrailing(isConnected: isConnected, battery: battery)   // RIGHT wing
                     .padding(.trailing, 14)
@@ -2071,17 +2083,25 @@ struct NotchPillView: View {
     }
 
     // RIGHT wing of the device glance: the battery indicator when the device reports a level
-    // (DEV-01), otherwise the connection sign. Battery is rendered GREEN (with the indicator's
-    // amber/red low-battery cue) regardless of the accent — a battery reads as a battery; the
-    // accent still tints the device GLYPH on the left.
+    // (DEV-01), a fixed-green status ring when connected with no reported battery, otherwise the
+    // disconnected connection sign. Battery is rendered GREEN (with the indicator's amber/red
+    // low-battery cue) regardless of the accent — a battery reads as a battery; the accent still
+    // tints the device GLYPH on the left.
+    // Round N (HUD-01 Droppy restyle, D-02/D-03/D-04) — 3-way branch replaces the old
+    // checkmark/xmark ternary: connected+battery-known keeps BatteryIndicator, connected+no-battery
+    // now shows a fixed Color.green ring (never deviceAccent, per D-03), disconnected stays the
+    // unchanged dimmed xmark.
     @ViewBuilder
     private func deviceTrailing(isConnected: Bool, battery: Int?) -> some View {
         if isConnected, let battery {
             BatteryIndicator(level: battery)
+        } else if isConnected {
+            Circle().strokeBorder(Color.green, lineWidth: 1.5)
+                .frame(width: 14, height: 14)
         } else {
-            Image(systemName: isConnected ? "checkmark" : "xmark")
+            Image(systemName: "xmark")
                 .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(isConnected ? deviceAccent : Color.white.opacity(0.5))
+                .foregroundStyle(Color.white.opacity(0.5))
         }
     }
 
