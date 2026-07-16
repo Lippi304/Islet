@@ -599,8 +599,8 @@ Plans:
 
 **Wave 2** *(blocked on 35-01, 35-02)*
 
-- [ ] 35-03-PLAN.md — liquidGlassEffectLayer helper wired into all 4 island-shell fill sites (D-01/D-02/D-03/D-04)
-- [ ] 35-04-PLAN.md — Settings Theming picker 3rd segment + default flip (D-05/D-06) + calmer Settings-window background (D-08/D-09) *(blocked on 35-01 only, parallel to 35-03)*
+- [x] 35-03-PLAN.md — liquidGlassEffectLayer helper wired into all 4 island-shell fill sites (D-01/D-02/D-03/D-04)
+- [x] 35-04-PLAN.md — Settings Theming picker 3rd segment + default flip (D-05/D-06) + calmer Settings-window background (D-08/D-09) *(blocked on 35-01 only, parallel to 35-03)*
 
 **Wave 3** *(blocked on 35-03, 35-04)*
 
