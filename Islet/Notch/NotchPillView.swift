@@ -272,6 +272,66 @@ struct NotchPillView: View {
         }
     }
 
+    // Phase 35 / GLASS-01 (D-01/D-02/D-03/D-04) — the Liquid Glass warp + chromatic-fringe
+    // overlay, applied at all 4 island-shell fill sites immediately after their existing
+    // `.frame(...)` (35-UI-SPEC.md Material/Shader Contract render order: "gradientMaterial
+    // fill -> .distortionEffect() -> frost overlay -> foreground content"). Renders nothing
+    // unless `.liquidGlass` is selected (D-02), so `.gradient`/`.solidBlack` are pixel-identical
+    // to before this plan. `.allowsHitTesting(false)` (D-03) keeps this decorative-only, never
+    // intercepting the shape's own tap/drag gestures — mirrors this project's CR-01
+    // click-through precedent.
+    @ViewBuilder
+    private func liquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
+        if materialStyle == .liquidGlass {
+            let shaders = liquidGlassChannelShaders(
+                size: size,
+                topCornerRadius: shape.topCornerRadius,
+                bottomCornerRadius: shape.bottomCornerRadius,
+                parameters: parameters
+            )
+            ZStack {
+                shape.fill(Self.gradientMaterial)
+                    .distortionEffect(
+                        shaders.base,
+                        maxSampleOffset: CGSize(width: abs(parameters.distortionScale), height: abs(parameters.distortionScale))
+                    )
+                shape.fill(Color.red.opacity(0.10))
+                    .distortionEffect(
+                        shaders.red,
+                        maxSampleOffset: CGSize(
+                            width: abs(parameters.distortionScale) + parameters.redOffset,
+                            height: abs(parameters.distortionScale) + parameters.redOffset
+                        )
+                    )
+                    .blendMode(.screen)
+                shape.fill(Color.green.opacity(0.10))
+                    .distortionEffect(
+                        shaders.green,
+                        maxSampleOffset: CGSize(
+                            width: abs(parameters.distortionScale) + parameters.greenOffset,
+                            height: abs(parameters.distortionScale) + parameters.greenOffset
+                        )
+                    )
+                    .blendMode(.screen)
+                shape.fill(Color.blue.opacity(0.10))
+                    .distortionEffect(
+                        shaders.blue,
+                        maxSampleOffset: CGSize(
+                            width: abs(parameters.distortionScale) + parameters.blueOffset,
+                            height: abs(parameters.distortionScale) + parameters.blueOffset
+                        )
+                    )
+                    .blendMode(.screen)
+            }
+            .saturation(parameters.saturation)
+            .overlay(Color.white.opacity(parameters.backgroundOpacity))
+            .clipShape(shape)
+            .allowsHitTesting(false)
+        } else {
+            EmptyView()
+        }
+    }
+
     // Phase 18 / NOW-05 — post-checkpoint ROUND 3 (on-device feedback, supersedes round 2's
     // standalone `toastSize` blob below): the user rejected a separate replacement shape and
     // asked for the EXISTING wings glance to stay pixel-identical, with a small text row
