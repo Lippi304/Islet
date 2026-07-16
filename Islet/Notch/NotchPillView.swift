@@ -297,9 +297,38 @@ struct NotchPillView: View {
     // rounded edge (D-12/D-13/D-14) — masking the material everywhere except a narrow rim.
     // The 3 chromatic-fringe passes, `.saturation`, `.overlay(Color.white.opacity(...))`,
     // `.clipShape`, and `.allowsHitTesting(false)` are all unchanged from before this plan.
-    // Note: the trailing `.overlay(Color.white.opacity(parameters.backgroundOpacity))` glossy
-    // wash is untouched by this plan and is a candidate to reduce further during Plan 35-10's
-    // on-device UAT if the center still reads lighter than desired against `.solidBlack`.
+    //
+    // Round-4 addendum (D-16/D-17/D-18, `35-CONTEXT.md`): round 3 was rejected on-device
+    // ("immer noch so komisch silbern") — root cause, the 3 `.blendMode(.screen)` fringe
+    // passes and the trailing white-wash overlay composited across the WHOLE shape with no
+    // masking of their own, so they washed the frost layer's dark center toward grey
+    // regardless of how dark that frost was tuned. D-16 masks all 4 of those layers to the
+    // SAME `liquidGlassEdgeOpacity` falloff the frost layer already uses, via the new
+    // `rimMask` Shader below (identical function, inverted mask-only arguments: full
+    // visibility at the rim, fully invisible at the interior) — they now fade to invisible
+    // by the frost's dark center instead of lightening it. D-17: the white-wash overlay is
+    // masked, not removed — it now reads as a rim highlight. D-18: the rim band itself is
+    // not widened — `rimMask` reuses `parameters.borderWidth`/`parameters.blurWidth` verbatim,
+    // identical to the frost layer's own band.
+    //
+    // Reuses the exact `liquidGlassEdgeOpacity` Metal function already shipped in Plan
+    // 35-06/35-09, called with mask-only literal arguments (`edgeOpacity: 1.0,
+    // centerOpacity: 0.0`) instead of the frost's own `parameters.edgeOpacity`/
+    // `parameters.centerOpacity` — same underlying `liquidGlassEdgeFalloff` curve (t=0 at
+    // the shape boundary, t=1 at the interior), opposite consumer-side intent: "fully
+    // visible at rim, invisible at center" rather than the frost's "invisible at rim,
+    // opaque at center". Zero `.metal`/`LiquidGlassParameters` changes.
+    private func liquidGlassRimMask(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> Shader {
+        Shader(
+            function: .init(library: .default, name: "liquidGlassEdgeOpacity"),
+            arguments: [
+                .float2(size), .float(shape.topCornerRadius), .float(shape.bottomCornerRadius),
+                .float(parameters.borderWidth), .float(parameters.blurWidth),
+                .float(1.0), .float(0.0)
+            ]
+        )
+    }
+
     @ViewBuilder
     private func liquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
         if materialStyle == .liquidGlass {
@@ -309,6 +338,7 @@ struct NotchPillView: View {
                 bottomCornerRadius: shape.bottomCornerRadius,
                 parameters: parameters
             )
+            let rimMask = liquidGlassRimMask(shape: shape, size: size, parameters: parameters)
             ZStack {
                 shape.fill(.ultraThinMaterial)
                     .distortionEffect(
@@ -338,6 +368,7 @@ struct NotchPillView: View {
                             height: abs(parameters.distortionScale) + parameters.redOffset
                         )
                     )
+                    .colorEffect(rimMask)
                     .blendMode(.screen)
                 shape.fill(Color.green.opacity(parameters.fringeOpacity))
                     .distortionEffect(
@@ -347,6 +378,7 @@ struct NotchPillView: View {
                             height: abs(parameters.distortionScale) + parameters.greenOffset
                         )
                     )
+                    .colorEffect(rimMask)
                     .blendMode(.screen)
                 shape.fill(Color.blue.opacity(parameters.fringeOpacity))
                     .distortionEffect(
@@ -356,10 +388,11 @@ struct NotchPillView: View {
                             height: abs(parameters.distortionScale) + parameters.blueOffset
                         )
                     )
+                    .colorEffect(rimMask)
                     .blendMode(.screen)
             }
             .saturation(parameters.saturation)
-            .overlay(Color.white.opacity(parameters.backgroundOpacity))
+            .overlay(Color.white.opacity(parameters.backgroundOpacity).colorEffect(rimMask))
             .clipShape(shape)
             .allowsHitTesting(false)
         } else {
