@@ -588,7 +588,7 @@ Plans:
   2. The new material is applied as a modifier on the existing shape node that already carries the `matchedGeometryEffect` id — not a new sibling/wrapper view — so morph continuity is preserved.
   3. A Phase-25-style on-device UAT checklist (material renders correctly through collapse↔expand, no artifacts, no dropped frames) passes as a hard merge gate.
   4. The visual result is user-approved on-device against the supplied reference code.
-**Plans**: 8 plans (35-05 rejected on-device — flat opaque grey, no transparency; superseded by remediation plans 35-06/35-07/35-08 per 35-CONTEXT.md D-10/D-11)
+**Plans**: 10 plans (35-05 rejected on-device round 1 — flat opaque grey, no transparency; 35-08 rejected on-device round 2 — uniformly bright/light, no dark glass; superseded by round-3 remediation plans 35-09/35-10 per 35-CONTEXT.md D-12/D-13/D-14/D-15)
 **UI hint**: yes
 
 Plans:
@@ -617,6 +617,14 @@ Plans:
 **Wave 6 (remediation)** *(blocked on 35-06, 35-07)*
 
 - [x] 35-08-PLAN.md — On-device UAT hard merge gate, round 2 (Success Criteria #3/#4) — supersedes rejected 35-05 — **REJECTED (round 2)** (island now translucent but reads as uniformly bright/light, not dark glass with edge-only bleed; see 35-UAT.md Test 1 Round 2) — root cause hypothesis: raw `.ultraThinMaterial` has no inherent dark tint, needs remediation round 3
+
+**Wave 7 (remediation round 3)** *(blocked on nothing new — restructures 35-06/35-07's already-merged code)*
+
+- [ ] 35-09-PLAN.md — islandFill D-12 frost base + liquidGlassEffectLayer frost-over-material compositing (D-12/D-13/D-14/D-15) + retuned LiquidGlassParameters — no `.metal` file changes, reuses liquidGlassEdgeOpacity as-is
+
+**Wave 8 (remediation round 3)** *(blocked on 35-09)*
+
+- [ ] 35-10-PLAN.md — On-device UAT hard merge gate, round 3 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08
 
 ### Phase 36: Cosmetic Restyles & Signature Animation
 
