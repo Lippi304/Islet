@@ -67,10 +67,24 @@ struct SignatureHeading: View {
                         // clock here).
                         let eased = raw * raw * (3 - 2 * raw)
                         let trimmed = glyph.path.trim(from: 0, to: eased).path(in: .zero)
+                        // 36-04 round-2 calibration: the reference draws TWO separate strokes —
+                        // a wide `fontSize * 0.22` MASK channel (never itself painted; it only
+                        // gates how much of the solid fill shows through) plus a thin, literal
+                        // `strokeWidth={2}` (fontSize 32 default → ratio 0.0625) accent line that
+                        // IS the actually-visible "drawing" stroke. Our single-stroke port only
+                        // has one visible pass here, so it must model the reference's thin
+                        // visible accent, not its wide invisible mask channel — using the mask's
+                        // 0.22 ratio (as the original 36-04 plan did) directly painted a
+                        // fontSize*0.22-wide stroke, which reference never actually renders.
+                        // That mismatch was masked by Lastoria's thinner native strokes but became
+                        // visibly "too thick" once D-12 swapped in Dancing Script Bold's already-
+                        // heavier letterforms. Scaling the reference's own 2pt/32 accent ratio to
+                        // our fontSize 28 gives 1.75pt — best-effort calibration, needs one more
+                        // on-device look to confirm the weight reads right.
                         canvasContext.stroke(
                             trimmed,
                             with: .color(Color.orange),
-                            style: StrokeStyle(lineWidth: 6.16, lineCap: .round, lineJoin: .round)
+                            style: StrokeStyle(lineWidth: 1.75, lineCap: .round, lineJoin: .round)
                         )
                     }
                     // raw <= 0: nothing drawn yet for this glyph.
