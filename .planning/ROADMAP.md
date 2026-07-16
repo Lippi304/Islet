@@ -158,7 +158,7 @@ Plans:
 
 **v1.5:** 5/6 phases complete (83%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md. Phase 33 (WEATHER-01/02) completed 2026-07-15 — on-device UAT required 6 gap-closure rounds (stale hourly data, text-wrap doubling row height, blobShape missing content-clipping onto the panel background, NotchShape's real taper clipping the daily row, final height/gap tuning); see 33-02-SUMMARY.md. Only Phase 34 (Quick Action Destination Picker) remains.
 
-**v1.6:** 1/8 phases complete (13%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34. Phase 35 (GLASS-01) completed 2026-07-16 — on-device UAT required 4 rounds (round 1 flat opaque grey, round 2 uniformly bright, round 3 screen-blend washout over the frost's dark center, round 4 rim-masked the fringe/wash layers to the same edge falloff and passed); see 35-12-SUMMARY.md.
+**v1.6:** 1/8 phases complete (13%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34. Phase 35 (GLASS-01) completed 2026-07-16 — on-device UAT required 4 rounds (round 1 flat opaque grey, round 2 uniformly bright, round 3 screen-blend washout over the frost's dark center, round 4 rim-masked the fringe/wash layers to the same edge falloff and passed); see 35-12-SUMMARY.md. A round-5 post-completion regression (flat grey rim, D-20) pivoted the island to SwiftUI's native `.glassEffect()` on macOS 26+, keeping the custom shader as the `<26` fallback; see 35-12-ADDENDUM-SUMMARY.md.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -633,6 +633,8 @@ Plans:
 **Wave 10 (remediation round 4)** *(blocked on 35-11)*
 
 - [x] 35-12-PLAN.md — On-device UAT hard merge gate, round 4 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08/35-10 (D-19: single UAT round, no intermediate checkpoint)
+
+**Post-completion regression (round 5, outside formal plan artifacts)** — 2026-07-16, resolved via `.planning/debug/resolved/liquid-glass-grey-rim-regression.md`: round 4 was approved but a fresh on-device look showed a flat grey rim, no color. Root cause: 2 latent bugs the UAT screenshots never exercised (collapsed-pill DEBUG red-tint override; under-separated RGB fringe offsets) plus D-20's architectural pivot — the custom Metal shader (D-01–D-19) is now the `<macOS 26` fallback; `macOS 26.0+` uses SwiftUI's native `.glassEffect(_:in:)` for real system-rendered glass. Re-verified on-device, user-approved.
 
 ### Phase 36: Cosmetic Restyles & Signature Animation
 
