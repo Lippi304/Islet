@@ -40,7 +40,7 @@ Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Dropp
 
 ### Now Playing Polish
 
-- [ ] **EQ-01**: The Now Playing equalizer bars are redesigned to the user-supplied reference visual style (view-layer only, no data/monitor changes)
+- [x] **EQ-01**: The Now Playing equalizer bars are redesigned to the user-supplied reference visual style (view-layer only, no data/monitor changes)
 
 ### Onboarding
 
@@ -114,7 +114,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GLASS-01 | Phase 35 | Complete |
 | HUD-01 | Phase 36 | Pending |
 | HUD-02 | Phase 36 | Pending |
-| EQ-01 | Phase 36 | Pending |
+| EQ-01 | Phase 36 | Complete |
 | ONBOARD-04 | Phase 36 | Pending |
 | HUD-07 | Phase 37 | Pending |
 | HUD-05 | Phase 38 | Pending |

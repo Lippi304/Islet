@@ -650,7 +650,7 @@ Plans:
 
 Plans:
 - [x] 36-01-PLAN.md — Charging + Bluetooth Droppy-pill wing restyle (HUD-01, HUD-02)
-- [ ] 36-02-PLAN.md — Equalizer bars motion/geometry redesign + Skiper UI attribution (EQ-01)
+- [x] 36-02-PLAN.md — Equalizer bars motion/geometry redesign + Skiper UI attribution (EQ-01)
 - [x] 36-03-PLAN.md — Signature font (OFL) + Core Text glyph-extraction contract (ONBOARD-04)
 - [ ] 36-04-PLAN.md — Signature stroke-reveal animation + onboarding wiring (ONBOARD-04)
 **UI hint**: yes

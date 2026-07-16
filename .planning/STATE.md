@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
-stopped_at: Phase 36 UI-SPEC approved
-last_updated: "2026-07-16T18:16:17.261Z"
-last_activity: 2026-07-16 -- Phase 36 execution started
+stopped_at: Completed 36-02-PLAN.md
+last_updated: "2026-07-16T19:34:11.629Z"
+last_activity: 2026-07-16
 progress:
   total_phases: 27
   completed_phases: 15
   total_plans: 55
-  completed_plans: 49
+  completed_plans: 52
   percent: 56
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 ## Current Position
 
 Phase: 36 (cosmetic-restyles-signature-animation) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 36
-Last activity: 2026-07-16 -- Phase 36 execution started
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-07-16
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -97,6 +97,7 @@ Progress (v1.6): [░░░░░░░░░░] 0% (0/8 phases — ROADMAP.md 
 | Phase 25 P01 | 9min | 3 tasks | 2 files |
 | Phase 26 P04 | 25h (7 UAT rounds) | 2 tasks | 8 files |
 | Phase 31 P01 | 25min | 3 tasks | 5 files |
+| Phase 36 P02 | multi-session | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.6 roadmap] Numbered from Phase 35 (not 34) — v1.5 is intentionally left open in parallel, not archived, and its own Phase 34 (Quick Action Destination Picker) is planned but not yet executed; starting v1.6 at 35 avoids any phase-number collision between the two open milestones.
 - [v1.6 roadmap] Phase order 35→36→37→38→39→40→41→42 follows research's explicit risk/dependency ordering: material first (every later HUD renders inside it), then zero-risk cosmetic restyles + fully-independent equalizer/onboarding polish, then the drop-session chip (its one real prerequisite — a shelf-session-boundary concept — surfaced inside its own phase), then the new-transient-case pattern proven cheaply on Focus Mode before attempting it under genuine private-API risk on Volume/Brightness (explicitly kept as ONE phase since both share the same OSD-replacement subsystem), then the fully-independent Sparkle integration floated after material, then Calendar Countdown as a proven single-winner ambient case, and finally Dual-Activity Display last since it needs Calendar Countdown as a real second input to combine with Now Playing.
 - [Phase 34]: Decision coverage gate override: D-01/D-02/D-03/D-06/D-07/D-08 not explicitly cited (literal `D-NN:`) in 34-01/34-02-PLAN.md must_haves/truths, but plan-checker semantic review confirmed all 6 are implemented (D-01 in 34-01's takeover truth, D-02 in the preview-render truth, D-03 in Task 1's batch-decision test comment, D-06/D-07 in 34-02's `discardPendingDrop()` task + threat model, D-08 as the subject of threat-model row T-34-04/T-34-07). Same pattern as Phase 30; user chose Proceed anyway.
+- [Phase 36]: abs(hasher.finalize()) required before % 1000 reduction in targetHeight(bar:bucket:) — Hasher.finalize() returns a signed Int and Swift's % preserves the dividend's sign, guarding against mapping below the 4...14 floor
 
 ### Roadmap Evolution
 
@@ -206,9 +208,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-16T17:06:38.725Z
-Stopped at: Phase 36 UI-SPEC approved
-Resume file: .planning/phases/36-cosmetic-restyles-signature-animation/36-UI-SPEC.md
+Last session: 2026-07-16T19:34:11.624Z
+Stopped at: Completed 36-02-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
