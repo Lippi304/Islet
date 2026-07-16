@@ -14,19 +14,23 @@ import SwiftUI
 // LiquidGlassShader.metal Step 5's `smoothstep` transition, which already
 // asymptotes toward near-zero displacement at the interior).
 //
-// D-10/D-11 (Plan 35-06, post-UAT material pivot): this file also now backs
-// a SECOND colorEffect shader, `liquidGlassEdgeOpacity` (LiquidGlassShader.metal),
-// which replaces the opaque `gradientMaterial` base with a real translucent
-// Material and ramps its per-pixel alpha from `edgeOpacity` at the rounded
-// edge to `centerOpacity` toward the interior. `fringeOpacity` centralizes the
-// chromatic-fringe passes' own opacity (previously hardcoded inline as
-// `Color.red/green/blue.opacity(0.10)` in NotchPillView.swift — Plan 35-07
-// updates that call site to read this field instead). `backgroundOpacity`/
-// `fringeOpacity`'s pre-revision values (0.04/0.07/0.10) were calibrated
-// against a fully opaque base and read as barely-visible now that the base
-// itself is translucent — the values below are bumped up per the CONTEXT.md
-// retuning note, on-device-tunable starting points to be verified during
-// Plan 35-08's UAT.
+// D-10/D-11 (Plan 35-06, post-UAT material pivot) [SUPERSEDED round 3 by
+// D-12/D-13/D-14/D-15, Plan 35-09]: this file also now backs a SECOND
+// colorEffect shader, `liquidGlassEdgeOpacity` (LiquidGlassShader.metal).
+// Round 2 (D-10/D-11) applied it to the translucent Material's OWN alpha,
+// which read as uniformly bright since `.ultraThinMaterial` has no inherent
+// dark tint (35-UAT.md Test 1 Round 2: "Es ist immer noch so hell."). Round 3
+// (D-12/D-13/D-14/D-15) keeps `liquidGlassEdgeOpacity`'s formula byte-for-byte
+// unchanged but repoints it at a solid dark FROST layer (`Self.gradientMaterial`
+// in `NotchPillView.swift`) instead: `edgeOpacity`/`centerOpacity` now describe
+// the frost's alpha — near-opaque toward the center (D-15: allowed as dark as
+// `.solidBlack`), thin/transparent right at the rounded edge (D-12/D-13) — so
+// the warped `.ultraThinMaterial` backdrop underneath is only ever revealed
+// through a narrow rim, never washed uniformly across the whole surface.
+// `fringeOpacity` centralizes the chromatic-fringe passes' own opacity
+// (previously hardcoded inline as `Color.red/green/blue.opacity(0.10)` in
+// NotchPillView.swift — Plan 35-07 updated that call site to read this field
+// instead), unaffected by the round-3 pivot.
 struct LiquidGlassParameters {
     var borderWidth: CGFloat
     var blurWidth: CGFloat
@@ -36,36 +40,45 @@ struct LiquidGlassParameters {
     var blueOffset: CGFloat
     var saturation: CGFloat
     var backgroundOpacity: CGFloat
-    /// D-11 — alpha `liquidGlassEdgeOpacity` mixes toward right at the rounded edge.
+    /// D-13 (supersedes D-11) — alpha the solid dark FROST layer (`Self.gradientMaterial`
+    /// in `NotchPillView.swift`) mixes toward right at the rounded edge — low, so the
+    /// warped `.ultraThinMaterial` backdrop bleeds through in a narrow rim (D-12/D-14).
     var edgeOpacity: CGFloat
-    /// D-11 — alpha `liquidGlassEdgeOpacity` mixes toward at the interior.
+    /// D-13 (supersedes D-11) — alpha the frost layer mixes toward at the interior — high,
+    /// near-opaque, allowed as dark as `.solidBlack` (D-15).
     var centerOpacity: CGFloat
     /// D-11 — chromatic-fringe (R/G/B) passes' own opacity, centralized here
     /// (replaces NotchPillView.swift's hardcoded `Color.red/green/blue.opacity(0.10)`).
     var fringeOpacity: CGFloat
 
+    // Round-3 retune (D-12/D-13/D-14/D-15, Plan 35-09): narrower borderWidth/blurWidth
+    // shrink the shared rim band (D-14: thin sliver, not a broad soft gradient) for both
+    // the distortion warp and the frost reveal; lower edgeOpacity/higher centerOpacity make
+    // the frost read as transparent right at the edge and near-opaque toward the interior.
+    // On-device-tunable starting points per CONTEXT.md's Claude's Discretion grant — final
+    // values pending Plan 35-10's on-device UAT, same as every previous round.
     static let collapsed = LiquidGlassParameters(
-        borderWidth: 0.15,
-        blurWidth: 2.5,
+        borderWidth: 0.07,
+        blurWidth: 1.2,
         distortionScale: -5,
         redOffset: 0,
         greenOffset: 0.5,
         blueOffset: 1,
         saturation: 1.0,
         backgroundOpacity: 0.05,
-        edgeOpacity: 0.15, centerOpacity: 0.55, fringeOpacity: 0.15
+        edgeOpacity: 0.08, centerOpacity: 0.90, fringeOpacity: 0.15
     )
 
     static let expanded = LiquidGlassParameters(
-        borderWidth: 0.11,
-        blurWidth: 7,
+        borderWidth: 0.05,
+        blurWidth: 2.5,
         distortionScale: -13,
         redOffset: 0,
         greenOffset: 1.25,
         blueOffset: 2.5,
         saturation: 1.08,
         backgroundOpacity: 0.08,
-        edgeOpacity: 0.20, centerOpacity: 0.70, fringeOpacity: 0.20
+        edgeOpacity: 0.10, centerOpacity: 0.92, fringeOpacity: 0.20
     )
 }
 
