@@ -698,6 +698,9 @@ final class NotchWindowController {
     // unconditionally scheduling, so it correctly stays distinct (calling this here would
     // double-arm the dismiss).
     private func presentTransientChange() {
+        // [36-01-DEBUG] TEMPORARY — this is the moment transientQueue.head becomes the ACTUAL
+        // rendered head (re-resolve + render happen inside this call).
+        print("[36-01-DEBUG] presentTransientChange @ \(Date()): head becoming visible = \(String(describing: transientQueue.head))")
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             // Phase 18 / NOW-05 (RESEARCH.md Pitfall 5, D-02) — a toast already showing must
             // clear the instant a NEW transient interrupts it, or it could reappear once the
@@ -1492,17 +1495,22 @@ final class NotchWindowController {
     // SINGLE updateVisibility() so it inherits the fullscreen / clamshell hide for free.
     private func handlePower(_ reading: PowerReading) {
         let next = powerActivity(from: reading)   // pure (Plan 01); nil on no-battery → no splash
+        // [36-01-DEBUG] TEMPORARY — ground-truth trace of the classification decision.
+        print("[36-01-DEBUG] handlePower @ \(Date()): reading=\(reading) next=\(String(describing: next)) didSeedInitialPower=\(didSeedInitialPower) lastActivity(before)=\(String(describing: lastActivity))")
 
         // The launch reading must NOT pop a splash (the user did not just plug in). Seed
         // lastActivity from the very first callback and return before the transition logic.
         guard didSeedInitialPower else {
             didSeedInitialPower = true
             lastActivity = next
+            print("[36-01-DEBUG] handlePower: seeding initial power reading, no splash — lastActivity=\(String(describing: next))")
             return
         }
 
+        let previous = lastActivity
         let fire = shouldTriggerSplash(previous: lastActivity, next: next)   // Pitfall 4 — category change only
         lastActivity = next
+        print("[36-01-DEBUG] handlePower: fire=\(fire) previous=\(String(describing: previous)) next=\(String(describing: next)) transientQueue.head(before)=\(String(describing: transientQueue.head))")
 
         if fire, let activity = next {
             // Debug session `36-01-charging-text-missing` (on-device UAT round 1: "Es steht nix
@@ -1519,13 +1527,19 @@ final class NotchWindowController {
             // TransientQueue entry, still connect-only, CHG-02 descoped) — only which reading it
             // is built from.
             if case .full = activity {
+                print("[36-01-DEBUG] handlePower: classified .full at connect → scheduling 0.6s settle re-poll (pre-settle activity=\(activity))")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                     guard let self else { return }
                     let settled = powerActivity(from: readCurrentPower()) ?? activity
+                    print("[36-01-DEBUG] handlePower: settle re-poll fired @ \(Date()) — settled=\(settled) (pre-settle was \(activity))")
                     self.lastActivity = settled
-                    if case .onBattery = settled { return }   // unplugged again before it ever settled — no splash
+                    if case .onBattery = settled {
+                        print("[36-01-DEBUG] handlePower: settle re-poll → unplugged again before settling, dropping splash")
+                        return   // unplugged again before it ever settled — no splash
+                    }
                     self.chargingState.activity = settled
                     let changed = self.transientQueue.enqueue(.charging(settled))
+                    print("[36-01-DEBUG] handlePower: settle re-poll enqueue(.charging(\(settled))) changed=\(changed) head(after)=\(String(describing: self.transientQueue.head)) pendingCount=\(self.transientQueue.pendingCount)")
                     if changed {
                         self.presentTransientChange()
                     }
@@ -1539,6 +1553,7 @@ final class NotchWindowController {
             // enqueued behind it (D-03 sequential) and plays when the head's ~3s elapses.
             chargingState.activity = activity   // keep the model in sync (the % tick mutates it)
             let changed = transientQueue.enqueue(.charging(activity))
+            print("[36-01-DEBUG] handlePower: immediate enqueue(.charging(\(activity))) changed=\(changed) head(after)=\(String(describing: transientQueue.head)) pendingCount=\(transientQueue.pendingCount)")
             if changed {
                 presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
             }
@@ -1546,9 +1561,12 @@ final class NotchWindowController {
             // A pure % tick while a CHARGING splash already stands: update the standing head's %
             // WITHOUT restarting the ~3s timer or re-enqueuing (Pitfall 4). Refresh both the
             // queue head and the model, then re-render so the number updates inside the splash.
+            print("[36-01-DEBUG] handlePower: in-place % tick while charging splash stands, next=\(String(describing: next))")
             chargingState.activity = next
             if let activity = next { transientQueue.updateHead(.charging(activity)) }
             renderPresentation()
+        } else {
+            print("[36-01-DEBUG] handlePower: no-op branch (fire=\(fire) next=\(String(describing: next)) head=\(String(describing: transientQueue.head)))")
         }
     }
 
@@ -1564,7 +1582,10 @@ final class NotchWindowController {
         dismissWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            let dismissedHead = self.transientQueue.head
             _ = self.transientQueue.advance()             // D-03 — promote next pending or clear
+            // [36-01-DEBUG] TEMPORARY — trace the dismiss/advance transition.
+            print("[36-01-DEBUG] scheduleActivityDismiss fired @ \(Date()): dismissed=\(String(describing: dismissedHead)) newHead=\(String(describing: self.transientQueue.head))")
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                 self.syncActivityModels()                 // drop the model for whatever left the head
                 self.renderPresentation()                 // next splash, or ambient (Pitfall 2)

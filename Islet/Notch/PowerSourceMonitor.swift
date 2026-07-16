@@ -30,6 +30,7 @@ func readCurrentPower() -> PowerReading {
     guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
           let sources = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef]
     else {
+        print("[36-01-DEBUG] readCurrentPower @ \(CFAbsoluteTimeGetCurrent()): IOPSCopyPowerSourcesInfo/List returned nil")
         return PowerReading(isPresent: false, isOnAC: false, isCharging: false, isCharged: false, percent: 0)
     }
     for ps in sources {
@@ -48,9 +49,14 @@ func readCurrentPower() -> PowerReading {
         let cur      = d[kIOPSCurrentCapacityKey] as? Int ?? 0
         let mx       = d[kIOPSMaxCapacityKey] as? Int ?? 100
         let pct      = mx > 0 ? Int((Double(cur) / Double(mx) * 100).rounded()) : cur
+        // [36-01-DEBUG] TEMPORARY — trace the raw IOKit dict every time it's read (initial
+        // seed, live callback, and the 0.6s settle re-poll all funnel through here). Remove
+        // once the charging-text root cause is confirmed.
+        print("[36-01-DEBUG] readCurrentPower @ \(CFAbsoluteTimeGetCurrent()): state=\(state ?? "nil") isOnAC=\(isOnAC) kIOPSIsChargingKey=\(charging) kIOPSIsChargedKey=\(charged) cur=\(cur) max=\(mx) pct=\(pct)")
         return PowerReading(isPresent: true, isOnAC: isOnAC, isCharging: charging, isCharged: charged, percent: pct)
     }
     // No internal battery found in the list → no-op reading (no splash, no crash).
+    print("[36-01-DEBUG] readCurrentPower @ \(CFAbsoluteTimeGetCurrent()): NO internal battery source found in list (count=\(sources.count))")
     return PowerReading(isPresent: false, isOnAC: false, isCharging: false, isCharged: false, percent: 0)
 }
 
