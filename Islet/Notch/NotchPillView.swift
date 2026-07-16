@@ -318,15 +318,29 @@ struct NotchPillView: View {
     // the shape boundary, t=1 at the interior), opposite consumer-side intent: "fully
     // visible at rim, invisible at center" rather than the frost's "invisible at rim,
     // opaque at center". Zero `.metal`/`LiquidGlassParameters` changes.
-    private func liquidGlassRimMask(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> Shader {
+    // WR-01 (35-REVIEW.md): shared by the frost layer's own edge-opacity ramp
+    // and liquidGlassRimMask below — both call the same Metal function with
+    // the same 5-argument prefix, differing only in the trailing edge/center
+    // opacity values. Centralizing the argument list here means a future
+    // shader-signature change only needs updating in one place; a Metal
+    // [[stitchable]] argument-order mismatch fails silently at runtime, not
+    // at compile time, so keeping the two call sites hand-synced was a risk.
+    private func liquidGlassOpacityShader(
+        shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters,
+        edgeOpacity: CGFloat, centerOpacity: CGFloat
+    ) -> Shader {
         Shader(
             function: .init(library: .default, name: "liquidGlassEdgeOpacity"),
             arguments: [
                 .float2(size), .float(shape.topCornerRadius), .float(shape.bottomCornerRadius),
                 .float(parameters.borderWidth), .float(parameters.blurWidth),
-                .float(1.0), .float(0.0)
+                .float(edgeOpacity), .float(centerOpacity)
             ]
         )
+    }
+
+    private func liquidGlassRimMask(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> Shader {
+        liquidGlassOpacityShader(shape: shape, size: size, parameters: parameters, edgeOpacity: 1.0, centerOpacity: 0.0)
     }
 
     @ViewBuilder
@@ -347,17 +361,9 @@ struct NotchPillView: View {
                     )
                 shape.fill(Self.gradientMaterial)
                     .colorEffect(
-                        Shader(
-                            function: .init(library: .default, name: "liquidGlassEdgeOpacity"),
-                            arguments: [
-                                .float2(size),
-                                .float(shape.topCornerRadius),
-                                .float(shape.bottomCornerRadius),
-                                .float(parameters.borderWidth),
-                                .float(parameters.blurWidth),
-                                .float(parameters.edgeOpacity),
-                                .float(parameters.centerOpacity)
-                            ]
+                        liquidGlassOpacityShader(
+                            shape: shape, size: size, parameters: parameters,
+                            edgeOpacity: parameters.edgeOpacity, centerOpacity: parameters.centerOpacity
                         )
                     )
                 shape.fill(Color.red.opacity(parameters.fringeOpacity))
@@ -712,7 +718,12 @@ struct NotchPillView: View {
         // D-01: size from the REAL measured notch the controller published; fall back to the
         // static 200x38 seed when no notch is measured (non-notch / external display / previews).
         let size = interaction.collapsedNotchSize ?? Self.collapsedSize
-        return NotchShape()
+        // WR-02 (35-REVIEW.md): hoisted so the visible fill and the rim-mask
+        // overlay below always share one shape instance, mirroring blobShape/
+        // wingsShape's convention — prevents the two from silently drifting
+        // apart on a future corner-radius tuning pass.
+        let shape = NotchShape()
+        return shape
             .fill(collapsedFill)
             // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED: SwiftUI's
             // matchedGeometryEffect is itself implemented via an internal frame+offset, so it
@@ -726,7 +737,7 @@ struct NotchPillView: View {
             .frame(width: size.width, height: size.height)
             // Phase 35 / GLASS-01 (D-04): collapsed pill uses the subtler .collapsed
             // parameters.
-            .overlay(liquidGlassEffectLayer(shape: NotchShape(), size: size, parameters: .collapsed))
+            .overlay(liquidGlassEffectLayer(shape: shape, size: size, parameters: .collapsed))
             // D-01 (visual half): a subtle "you're in" bounce on hover only — never
             // when expanded. The controller drives this via its spring wrapper at the
             // state mutation. The haptic + the real pointer monitor are Plan 03.
@@ -1870,7 +1881,10 @@ struct NotchPillView: View {
     private func mediaWingsOrToast(_ p: NowPlayingPresentation) -> some View {
         let toast = nowPlaying.songChangeToast
         let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)
-        NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
+        // WR-02 (35-REVIEW.md): hoisted so the visible fill and the rim-mask
+        // overlay below always share one shape instance — see collapsedIsland.
+        let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
+        shape
             .fill(islandFill)
             // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order:
             // `.matchedGeometryEffect` must precede `.frame` (round 2 had this backwards too,
@@ -1879,7 +1893,7 @@ struct NotchPillView: View {
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: Self.wingsSize.width, height: height)
             // Phase 35 / GLASS-01 (D-04): media wings use full-strength .expanded parameters.
-            .overlay(liquidGlassEffectLayer(shape: NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6), size: CGSize(width: Self.wingsSize.width, height: height), parameters: .expanded))
+            .overlay(liquidGlassEffectLayer(shape: shape, size: CGSize(width: Self.wingsSize.width, height: height), parameters: .expanded))
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     mediaWingsRow(p, art: nowPlaying.artwork)
