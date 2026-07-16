@@ -699,8 +699,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 38-01-PLAN.md — On-device detection-path spike (checkpoint): confirms INFocusStatusCenter vs. Assertions.json+FDA, or records a D-12 descope decision
-- [ ] 38-02-PLAN.md — Pure seams (TDD): FocusActivity.swift + IslandResolver.swift extension (ActiveTransient.focus, IslandPresentation.focus, D-07 where-guard, ActiveTransient.isPersistent for D-06, TransientQueue.preempt(_:) for D-08)
+- [x] 38-01-PLAN.md — On-device detection-path spike (checkpoint): confirms INFocusStatusCenter vs. Assertions.json+FDA, or records a D-12 descope decision
+- [x] 38-02-PLAN.md — Pure seams (TDD): FocusActivity.swift + IslandResolver.swift extension (ActiveTransient.focus, IslandPresentation.focus, D-07 where-guard, ActiveTransient.isPersistent for D-06, TransientQueue.preempt(_:) for D-08)
 
 **Wave 2** *(blocked on Wave 1)*
 
