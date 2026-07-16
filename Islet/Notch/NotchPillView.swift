@@ -277,14 +277,31 @@ struct NotchPillView: View {
         }
     }
 
-    // Phase 35 / GLASS-01 (D-01/D-02/D-03/D-04) — the Liquid Glass warp + chromatic-fringe
-    // overlay, applied at all 4 island-shell fill sites immediately after their existing
-    // `.frame(...)` (35-UI-SPEC.md Material/Shader Contract render order: "gradientMaterial
-    // fill -> .distortionEffect() -> frost overlay -> foreground content"). Renders nothing
-    // unless `.liquidGlass` is selected (D-02), so `.gradient`/`.solidBlack` are pixel-identical
-    // to before this plan. `.allowsHitTesting(false)` (D-03) keeps this decorative-only, never
-    // intercepting the shape's own tap/drag gestures — mirrors this project's CR-01
-    // click-through precedent.
+    // Phase 35 / GLASS-01 (D-01/D-03/D-04/D-10/D-11, supersedes D-02) — the Liquid Glass warp +
+    // chromatic-fringe overlay, applied at all 4 island-shell fill sites immediately after their
+    // existing `.frame(...)` (35-UI-SPEC.md Material/Shader Contract render order: translucent
+    // Material fill -> .distortionEffect() -> edge-weighted opacity ramp -> frost overlay ->
+    // foreground content"). Renders nothing unless `.liquidGlass` is selected, so
+    // `.gradient`/`.solidBlack` are pixel-identical to before this plan. `.allowsHitTesting(false)`
+    // (D-03) keeps this decorative-only, never intercepting the shape's own tap/drag gestures —
+    // mirrors this project's CR-01 click-through precedent.
+    //
+    // D-10: this layer's own base fill is now `.ultraThinMaterial` (was the opaque
+    // `gradientMaterial`, duplicated from `islandFill`'s `.liquidGlass` branch above this
+    // overlay is stacked on top of, which is ALSO now translucent per Task 1 of this plan —
+    // kept translucent there too for defensiveness/consistency per D-10, even though visually
+    // this overlay's own fill is the one that actually reads on-screen). This overlay's translucent
+    // base fill is the real visible surface of the effect now — the existing `.distortionEffect()` warps
+    // that translucent surface (a genuine refraction of what's behind), then D-11's
+    // `liquidGlassEdgeOpacity` colorEffect ramps the warped result's alpha from
+    // `parameters.edgeOpacity` at the rounded edge to `parameters.centerOpacity` toward the
+    // interior, matching `reference-transparency-target.png`'s dark-center/transparent-edge look.
+    //
+    // Note on D-11's "opacity/blur" phrasing: this implements the spatially-varying OPACITY ramp
+    // (verifiable, drives the observable "desktop bleeds through at the edge" result). SwiftUI has
+    // no primitive for a spatially-varying blur RADIUS within one Material fill, so blur intensity
+    // itself stays uniform — `.ultraThinMaterial` already supplies live blur throughout, unlike the
+    // fully opaque prior state. Flag any on-device gap here for Plan 35-08's UAT.
     @ViewBuilder
     private func liquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
         if materialStyle == .liquidGlass {
@@ -295,12 +312,26 @@ struct NotchPillView: View {
                 parameters: parameters
             )
             ZStack {
-                shape.fill(Self.gradientMaterial)
+                shape.fill(.ultraThinMaterial)
                     .distortionEffect(
                         shaders.base,
                         maxSampleOffset: CGSize(width: abs(parameters.distortionScale), height: abs(parameters.distortionScale))
                     )
-                shape.fill(Color.red.opacity(0.10))
+                    .colorEffect(
+                        Shader(
+                            function: .init(library: .default, name: "liquidGlassEdgeOpacity"),
+                            arguments: [
+                                .float2(size),
+                                .float(shape.topCornerRadius),
+                                .float(shape.bottomCornerRadius),
+                                .float(parameters.borderWidth),
+                                .float(parameters.blurWidth),
+                                .float(parameters.edgeOpacity),
+                                .float(parameters.centerOpacity)
+                            ]
+                        )
+                    )
+                shape.fill(Color.red.opacity(parameters.fringeOpacity))
                     .distortionEffect(
                         shaders.red,
                         maxSampleOffset: CGSize(
@@ -309,7 +340,7 @@ struct NotchPillView: View {
                         )
                     )
                     .blendMode(.screen)
-                shape.fill(Color.green.opacity(0.10))
+                shape.fill(Color.green.opacity(parameters.fringeOpacity))
                     .distortionEffect(
                         shaders.green,
                         maxSampleOffset: CGSize(
@@ -318,7 +349,7 @@ struct NotchPillView: View {
                         )
                     )
                     .blendMode(.screen)
-                shape.fill(Color.blue.opacity(0.10))
+                shape.fill(Color.blue.opacity(parameters.fringeOpacity))
                     .distortionEffect(
                         shaders.blue,
                         maxSampleOffset: CGSize(
