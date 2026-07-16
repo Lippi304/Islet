@@ -1502,9 +1502,10 @@ struct NotchPillView: View {
     // text block as a unit).
     private var onboardingWelcomeStep: some View {
         VStack(alignment: .center, spacing: 8) {
-            Text("Meet Islet")
-                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
+            // Round N (ONBOARD-04 signature reveal, D-09/D-10/D-13) — plain heading text
+            // replaced by the animated hand-drawn stroke-reveal; body subtext below is
+            // byte-identical, untouched.
+            SignatureHeading()
             Text("Your notch, upgraded. Now Playing, charging, and a drag-and-drop shelf — always one glance away.")
                 .font(.system(size: 12, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
