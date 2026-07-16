@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
-stopped_at: Phase 35 round 3 on-device UAT rejected — screen-blend fringe/wash washes out dark frost center
-last_updated: "2026-07-16T12:10:00.000Z"
-last_activity: 2026-07-16 -- Phase 35 35-09 executed and merged; 35-10 checkpoint rejected (round 3)
+status: Blocked on on-device UAT — see 35-UAT.md Test 1 Round 3 for hypothesis (chromatic-fringe .blendMode(.screen) + white overlay wash lighten the whole surface regardless of frost-layer centerOpacity)
+stopped_at: Phase 35 round 4 context gathered
+last_updated: "2026-07-16T12:15:58.471Z"
+last_activity: "2026-07-16 -- Phase 35 35-09 executed/merged; 35-10 checkpoint rejected (round 3): "Es ist immer noch so komisch silbern und nichts in Richtung liquid glass.""
 progress:
   total_phases: 27
   completed_phases: 15
   total_plans: 49
-  completed_plans: 45
+  completed_plans: 46
   percent: 56
 ---
 
@@ -205,8 +205,8 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-16T02:00:28.134Z
-Stopped at: Phase 35 round 3 context captured — dark frost base + rim reveal design pivot
+Last session: 2026-07-16T12:15:58.465Z
+Stopped at: Phase 35 round 4 context gathered
 Resume file: .planning/phases/35-liquid-glass-material/35-CONTEXT.md
 
 ## Operator Next Steps
