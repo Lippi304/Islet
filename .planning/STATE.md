@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
-stopped_at: Phase 35 context revised — D-02 pivoted to real translucent material (D-10/D-11), ready for replanning
-last_updated: "2026-07-16T01:08:28.134Z"
-last_activity: 2026-07-16 -- Phase 35 execution started
+status: blocked
+stopped_at: Phase 35 round 2 on-device UAT (35-08) REJECTED — translucent material reads as too bright/light, not dark glass; needs remediation round 3
+last_updated: "2026-07-16T03:29:00.000Z"
+last_activity: 2026-07-16 -- Phase 35 execution: 35-06/35-07 shipped and merged, 35-08 checkpoint rejected round 2
 progress:
   total_phases: 27
   completed_phases: 15
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 ## Current Position
 
-Phase: 35 (liquid-glass-material) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 35
-Last activity: 2026-07-16 -- Phase 35 execution started
+Phase: 35 (liquid-glass-material) — BLOCKED
+Plan: 8 of 8 (35-01 through 35-04, 35-06, 35-07 shipped; 35-05 superseded; 35-08 checkpoint rejected round 2)
+Status: Blocked — round 2 on-device UAT rejected, needs remediation round 3
+Last activity: 2026-07-16 -- Phase 35 execution: 35-06/35-07 shipped and merged, 35-08 checkpoint rejected round 2
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 

@@ -1,9 +1,9 @@
 ---
 status: partial
 phase: 35-liquid-glass-material
-source: [35-01-SUMMARY.md, 35-02-SUMMARY.md, 35-03-SUMMARY.md, 35-04-SUMMARY.md]
+source: [35-01-SUMMARY.md, 35-02-SUMMARY.md, 35-03-SUMMARY.md, 35-04-SUMMARY.md, 35-06-SUMMARY.md, 35-07-SUMMARY.md]
 started: 2026-07-16T00:37:15Z
-updated: 2026-07-16T00:37:15Z
+updated: 2026-07-16T03:28:00Z
 ---
 
 ## Current Test
@@ -11,10 +11,11 @@ updated: 2026-07-16T00:37:15Z
 number: 1
 name: Liquid Glass render on collapsed pill / expanded island
 expected: |
-  Collapsed pill and expanded island show a visible warped/rippled edge on the
-  black material with a subtle color-fringed edge — a translucent "glass" look,
-  not a flat opaque grey/black surface.
-awaiting: user response (gap logged, remaining checks 2-7 blocked pending fix)
+  Collapsed pill and expanded island show a dark, mostly-opaque glass surface
+  with the desktop only bleeding through as a faint colored rim-light right at
+  the rounded edge (per reference-transparency-target.png) — not uniformly
+  bright/light across the whole surface.
+awaiting: user response (round 2 gap logged, remaining checks 2-7 still blocked pending fix)
 
 ## Tests
 
@@ -23,6 +24,25 @@ expected: Visible warped/rippled edge + subtle chromatic fringe on the island ma
 result: issue
 reported: "Ne gefällt mir überhaupt nicht. Es sollte den glassigen look haben mit transparenz am rand und nicht jetzt einfach Grau sein ohne das man durchgucken kann" (screenshot attached: island shows as a flat opaque grey/dark panel with no visible edge warp, no chromatic fringe, and no transparency — cannot see the desktop/wallpaper through it at all)
 severity: major
+
+#### Round 2 (post 35-06/35-07 remediation)
+result: issue
+reported: "Es ist immer noch so hell." (screenshot attached: expanded island now renders as a fairly bright, uniformly light bluish-grey translucent panel — clearly showing the light-colored Xcode toolbar bleeding through across the WHOLE surface, not just at the rounded edge; center is not dark/opaque like reference-transparency-target.png, which stays solid black in the center with only a thin colored rim-light bleed at the very edge)
+severity: major
+hypothesis: |
+  D-10/D-11 swapped the opaque `gradientMaterial` base for raw `.ultraThinMaterial`
+  (NotchPillView.swift islandFill `.liquidGlass` branch, line ~276; liquidGlassEffectLayer
+  base fill, line ~315) and layered `liquidGlassEdgeOpacity` on top to ramp alpha from
+  edge to center. But `.ultraThinMaterial` is a system vibrancy material whose own
+  brightness/tint adapts to whatever is behind it (light Xcode chrome here) — it has no
+  inherent "dark glass" tint. The edgeOpacity shader is ramping the alpha of that
+  already-bright material, so even the "opaque center" reads as bright, not black.
+  The reference image achieves the look via a solid dark/black base with the backdrop
+  material only revealed (via a mask/blend) at the rim — not via a globally-applied
+  Material whose overall brightness is uncontrolled. Needs a design pivot: composite a
+  dark tint UNDERNEATH or blended WITH the material (e.g. black fill + material only
+  visible through the edge-opacity mask, rather than material as the base itself), or
+  force a fixed dark appearance/tint on the Material regardless of backdrop.
 
 ### 2. Collapse/expand transition smoothness
 expected: No artifacts, no dropped frames, no diagonal-jump/bounce regression.
@@ -76,7 +96,17 @@ blocked: 6
   reason: "User reported: 'Ne gefällt mir überhaupt nicht. Es sollte den glassigen look haben mit transparenz am rand und nicht jetzt einfach Grau sein ohne das man durchgucken kann' — screenshot shows a flat opaque grey panel, no visible warp/fringe, no transparency to see through"
   severity: major
   test: 1
-  root_cause: ""
+  root_cause: "D-02: opaque gradientMaterial base hides distortion entirely — superseded by D-10/D-11"
+  artifacts: []
+  missing: []
+  debug_session: ""
+
+- truth: "The collapsed pill and expanded island read as dark glass with the desktop only bleeding through faintly at the rounded edge, not uniformly bright across the whole surface"
+  status: failed
+  reason: "Round 2 (post 35-06/35-07): User reported 'Es ist immer noch so hell.' — screenshot shows a fairly bright, uniformly light bluish-grey panel with the light Xcode toolbar bleeding through across the entire surface, not just at the edge; no dark/opaque center like reference-transparency-target.png"
+  severity: major
+  test: 1
+  root_cause: "hypothesis (unconfirmed): raw .ultraThinMaterial as the base has no inherent dark tint — its brightness adapts to the backdrop, so the edgeOpacity alpha ramp modulates an already-bright surface instead of revealing backdrop through an otherwise-dark one. See 35-UAT.md Test 1 Round 2 hypothesis for detail."
   artifacts: []
   missing: []
   debug_session: ""

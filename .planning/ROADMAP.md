@@ -616,7 +616,7 @@ Plans:
 
 **Wave 6 (remediation)** *(blocked on 35-06, 35-07)*
 
-- [ ] 35-08-PLAN.md — On-device UAT hard merge gate, round 2 (Success Criteria #3/#4) — supersedes rejected 35-05
+- [x] 35-08-PLAN.md — On-device UAT hard merge gate, round 2 (Success Criteria #3/#4) — supersedes rejected 35-05 — **REJECTED (round 2)** (island now translucent but reads as uniformly bright/light, not dark glass with edge-only bleed; see 35-UAT.md Test 1 Round 2) — root cause hypothesis: raw `.ultraThinMaterial` has no inherent dark tint, needs remediation round 3
 
 ### Phase 36: Cosmetic Restyles & Signature Animation
 
