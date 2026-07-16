@@ -675,8 +675,8 @@ Plans:
 
 **Wave 2** *(blocked on 37-01)*
 
-- [x] 37-02-PLAN.md — NotchPillView chip rendering: chipTextRow(_:) wired into collapsedIsland and mediaWingsOrToast
-- [x] 37-03-PLAN.md — NotchWindowController wiring: collapse-trigger (D-01/D-02/D-03/D-06) + interrupt-clear (D-07)
+- [ ] 37-02-PLAN.md — NotchPillView chip rendering: chipTextRow(_:) wired into collapsedIsland and mediaWingsOrToast
+- [ ] 37-03-PLAN.md — NotchWindowController wiring: collapse-trigger (D-01/D-02/D-03/D-06) + interrupt-clear (D-07)
 
 **Wave 3** *(blocked on 37-02, 37-03)*
 
