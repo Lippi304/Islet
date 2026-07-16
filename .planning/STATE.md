@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: blocked
-stopped_at: Phase 35 round 2 on-device UAT (35-08) REJECTED — translucent material reads as too bright/light, not dark glass; needs remediation round 3
-last_updated: "2026-07-16T03:29:00.000Z"
-last_activity: 2026-07-16 -- Phase 35 execution: 35-06/35-07 shipped and merged, 35-08 checkpoint rejected round 2
+status: Blocked — round 2 on-device UAT rejected, needs remediation round 3
+stopped_at: Phase 35 round 3 context captured — dark frost base + rim reveal design pivot
+last_updated: "2026-07-16T02:00:28.142Z"
+last_activity: "2026-07-16 -- Phase 35 execution: 35-06/35-07 shipped and merged, 35-08 checkpoint rejected round 2"
 progress:
   total_phases: 27
   completed_phases: 15
   total_plans: 47
-  completed_plans: 42
+  completed_plans: 45
   percent: 56
 ---
 
@@ -205,8 +205,8 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-16T00:47:17.151Z
-Stopped at: Phase 35 context revised — D-02 pivoted to real translucent material (D-10/D-11), ready for replanning
+Last session: 2026-07-16T02:00:28.134Z
+Stopped at: Phase 35 round 3 context captured — dark frost base + rim reveal design pivot
 Resume file: .planning/phases/35-liquid-glass-material/35-CONTEXT.md
 
 ## Operator Next Steps
