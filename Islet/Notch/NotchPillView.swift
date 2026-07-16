@@ -1924,9 +1924,6 @@ struct NotchPillView: View {
         case .full(let p):     isCharging = false; percent = p
         case .onBattery(let p):isCharging = false; percent = p
         }
-        // [36-01-DEBUG] TEMPORARY — proves (or disproves) whether the view body ever actually
-        // receives isCharging == true; fires on every body re-evaluation for this wing.
-        print("[36-01-DEBUG] wings(for:) body eval @ \(Date()): activity=\(activity) isCharging=\(isCharging) percent=\(percent)")
         return wingsShape {
             HStack(spacing: 0) {
                 // Round N (HUD-02 Droppy restyle, D-02/D-03/D-04) — left wing gains an
