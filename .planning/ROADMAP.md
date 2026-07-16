@@ -620,7 +620,7 @@ Plans:
 
 **Wave 7 (remediation round 3)** *(blocked on nothing new — restructures 35-06/35-07's already-merged code)*
 
-- [ ] 35-09-PLAN.md — islandFill D-12 frost base + liquidGlassEffectLayer frost-over-material compositing (D-12/D-13/D-14/D-15) + retuned LiquidGlassParameters — no `.metal` file changes, reuses liquidGlassEdgeOpacity as-is
+- [x] 35-09-PLAN.md — islandFill D-12 frost base + liquidGlassEffectLayer frost-over-material compositing (D-12/D-13/D-14/D-15) + retuned LiquidGlassParameters — no `.metal` file changes, reuses liquidGlassEdgeOpacity as-is
 
 **Wave 8 (remediation round 3)** *(blocked on 35-09)*
 
