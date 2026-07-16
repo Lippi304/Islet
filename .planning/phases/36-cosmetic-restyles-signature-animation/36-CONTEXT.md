@@ -44,6 +44,31 @@ Three independent, pure view-layer restyles, all rendering inside Phase 35's Liq
 - **D-12 (FLAGGED RISK — must be resolved before shipping, not Claude's Discretion):** The reference technique depends on a script font, `LastoriaBoldRegular.otf`, hosted at `https://www.componentry.fun/LastoriaBoldRegular.otf` (confirmed live/valid during this discussion). The font's own embedded metadata reads `© Abo Daniel 2019. All Rights Reserved.` — componentry.fun requiring the download does not itself grant a commercial license, and the user's own response when asked directly was uncertain, not a confirmed license. Islet is a paid product (€7.99). **Researcher/planner must verify the font's actual commercial-use terms before it ships**, and have a libre (e.g. OFL-licensed) script/handwriting font ready as a substitute if commercial use can't be confirmed. See `reference-signature-component.md` for full detail.
 - **D-13:** The body subtext below the heading ("Your notch, upgraded. Now Playing, charging, and a drag-and-drop shelf — always one glance away.") is completely unchanged — same text, font, timing. Only the heading itself is replaced by the signature animation. This is a deliberate, narrow scope match to ONBOARD-04's own wording ("scoped to that one page only, the rest of the app's typography is unaffected").
 
+### Post-36-04 pivot: static rainbow-gradient heading replaces the reveal animation
+
+- **D-14 (supersedes D-09/D-10/D-11 execution, not the underlying text choice):** After several
+  in-session rounds of Plan 36-04 implementation friction — D-12's font-licensing swap
+  (Lastoria → Dancing Script Bold), then multiple stroke-weight recalibrations (0.22 mask ratio →
+  6.16pt → 1.75pt) still not reading right, plus general Canvas/TimelineView/`.trim()` complexity
+  for a single onboarding screen — the user made an explicit, direct scope-pivot decision: **drop
+  the stroke-reveal animation entirely.** Quote (German): "Lass uns keine Unterschrift Animation
+  machen sondern einfach wie bei Droppy eben so eine Unterschrift Textart einfach in Regenbogen
+  Farbverlauf" ("Let's not do a signature animation, just a signature-style font like Droppy's,
+  simply with a rainbow gradient").
+- New reference precedent: Droppy's own onboarding heading ("meet droppy") — a completely static,
+  non-animated two-word script-font heading, each word filled with its own distinct multi-color
+  gradient sweep ("meet" blue→purple→pink, "droppy" orange→yellow→green).
+- **What stays locked:** D-09's text ("Meet Islet"), D-12's font substitute (Dancing Script Bold,
+  OFL-licensed, still the only safe choice), D-13 (body subtext untouched).
+- **What's superseded:** D-10's stroke-reveal mechanism (Core Text glyph-path extraction +
+  `.trim(from:to:)` animation + `TimelineView` clock) and D-11's single fixed-orange color are
+  replaced by two `Text` views (one per word) with a `LinearGradient` `.foregroundStyle` each —
+  "Meet" as blue→purple→pink, "Islet" as orange→yellow→green. Fully static, no animation, no
+  per-frame clock, no idle-CPU concern (T-36-07 no longer applies — there is no clock to leak).
+  The glyph-path extraction infra from Plan 36-03 (`glyphPaths`/`totalWidth`) is no longer used
+  and was removed along with it in this pivot; `loadSignatureFont`/font registration is reused
+  as-is since the font itself is unchanged.
+
 ### Claude's Discretion
 - Exact SwiftUI mechanism for the equalizer bars' periodic-reroll-plus-spring animation (D-08) — any idiomatic approach that preserves the idle-CPU gate is acceptable.
 - Exact SwiftUI mechanism for extracting per-glyph vector paths for the signature animation (Core Text `CTFontCreatePathForGlyph` is the natural analog to `opentype.js`, but the planner should confirm this during research) and for animating `.trim(from:to:)` per glyph with the staggered-delay/ease-in-out contract from D-10.

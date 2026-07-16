@@ -14,7 +14,7 @@ created: 2026-07-16
 **Scope note:** Three independent, pure view-layer restyles, all rendering inside Phase 35's Liquid Glass material (`islandFill` / `liquidGlassEffectLayer`, unchanged) — zero resolver/monitor/data changes, per `36-CONTEXT.md`:
 1. **HUD-01/HUD-02** — Bluetooth/AirPods and Charging collapsed wings (`wings(for:)`, `deviceWings(for:)`, `deviceTrailing` in `NotchPillView.swift`) get the Droppy-pill visual language (icon+label left, status indicator right).
 2. **EQ-01** — `EqualizerBars` gets a new bar geometry + a snappier periodic-reroll-and-spring motion, replacing today's continuous per-bar sine wave.
-3. **ONBOARD-04** — The onboarding Welcome step's "Meet Islet" heading (`onboardingWelcomeStep`) is replaced by a handwritten-signature stroke-reveal animation; the body copy below it is untouched.
+3. **ONBOARD-04** — The onboarding Welcome step's "Meet Islet" heading (`onboardingWelcomeStep`) is replaced by a static, script-font, rainbow-gradient heading (post-36-04 pivot, D-14 — no animation); the body copy below it is untouched.
 
 All three reuse existing chrome/shape helpers verbatim (`wingsShape`, `blobShape`, `chipButton` conventions) — this spec defines only the NEW visual/motion values layered on top.
 
@@ -27,7 +27,7 @@ All three reuse existing chrome/shape helpers verbatim (`wingsShape`, `blobShape
 | Tool | none — native macOS Swift/SwiftUI app, no component-registry tooling (shadcn/etc. do not apply to this stack) |
 | Component library | none — hand-built `NotchShape`/`NotchPillView`/`wingsShape()`, no third-party UI kit |
 | Icon library | SF Symbols (`Image(systemName:)`) — established convention, unchanged |
-| Font | San Francisco system font, `.system(size:weight:design: .rounded)`, throughout — **EXCEPT** the ONBOARD-04 signature heading, which is a deliberate, scoped one-screen exception (see Signature Animation Contract below). This is the same "scoped exception, rest of app unaffected" boundary `26-UI-SPEC.md` already called out for this exact heading. |
+| Font | San Francisco system font, `.system(size:weight:design: .rounded)`, throughout — **EXCEPT** the ONBOARD-04 signature heading, which is a deliberate, scoped one-screen exception (see Signature Heading Contract below). This is the same "scoped exception, rest of app unaffected" boundary `26-UI-SPEC.md` already called out for this exact heading. |
 
 ---
 
@@ -89,27 +89,24 @@ Target values extracted directly from the Skiper25 source (`reference-skiper25-e
 
 ---
 
-## Signature Animation Contract (ONBOARD-04)
+## Signature Heading Contract (ONBOARD-04)
 
-**Text (D-09, locked):** `"Meet Islet"` — replaces today's plain `Text("Meet Islet")` at 20px semibold. The body copy directly below it (`"Your notch, upgraded. Now Playing, charging, and a drag-and-drop shelf — always one glance away."`) is **byte-identical, unchanged** (D-13) — same 12px regular secondary text, same position, same gap.
+**Post-36-04 pivot (D-14, supersedes the stroke-reveal mechanism described in earlier drafts of this section):** after repeated font-licensing and stroke-weight tuning friction, the user replaced the per-character stroke-reveal animation with a **fully static, non-animated** rainbow-gradient heading, mirroring Droppy's own "meet droppy" onboarding heading. No `TimelineView`, no clock, no `.trim()`, no per-glyph `Path` extraction. See `36-CONTEXT.md`'s post-36-04 pivot note for the full rationale.
 
-**Mechanism (D-10, locked contract; exact API is executor's technical call per `36-CONTEXT.md` Claude's Discretion):** a per-character stroke-reveal, mimicking hand-drawn signing:
-1. Extract each character's vector glyph outline from the signature font (Core Text's `CTFontCreatePathForGlyph` is the natural SwiftUI-native analog to the reference's `opentype.js` glyph extraction — confirm feasibility during technical research, not locked here).
-2. Render each glyph's outline as a SwiftUI `Path`, animate `.trim(from: 0, to: progress)` from 0→1 (SwiftUI's native analog to the reference's `pathLength` 0→1) — a thick, round-capped stroke that visually "draws" the letter.
-3. Once a glyph's stroke trim completes, reveal (or immediately show) that glyph filled solid — matching the reference's mask-then-fill technique.
+**Text (D-09, locked):** `"Meet Islet"`, rendered as two independent words — "Meet" and "Islet" — each with its own gradient sweep. Replaces today's plain `Text("Meet Islet")` at 20px semibold. The body copy directly below it (`"Your notch, upgraded. Now Playing, charging, and a drag-and-drop shelf — always one glance away."`) is **byte-identical, unchanged** (D-13) — same 12px regular secondary text, same position, same gap.
+
+**Mechanism (locked):** an `HStack` of two `Text` views, one per word, each with `.foregroundStyle(LinearGradient(colors:startPoint:.leading, endPoint:.trailing))` — no `Canvas`, no glyph-path extraction, no animation of any kind. Sizes itself naturally; no fixed-width workaround needed since there's no animation-driven frame sizing.
 
 | Property | Value |
 |----------|-------|
-| Per-character duration | 1.5s | 
-| Per-character stagger delay | 0.2s × character index (character 0 starts at 0s, character 1 at 0.2s, etc. — spaces count as a character/index slot even though they render no visible stroke) |
-| Easing | ease-in-out (`Animation.easeInOut(duration: 1.5)`) |
-| Total animation length | ~3.3s for "Meet Islet" (10 characters incl. space; last character starts at 1.8s + 1.5s duration) — this is the expected, locked-by-reference result, not a bug |
-| Stroke width (reveal mask) | 1.75pt (`fontSize × 0.0625`, at fontSize 28), round line caps/joins — **Plan 36-04 round-2 correction:** the original `fontSize × 0.22 ≈ 6.16pt` figure was the reference's wide MASK-channel ratio (never itself painted; it only gates fill reveal), not its actually-visible thin accent stroke (`strokeWidth={2}` at the reference's fontSize 32 default ⇒ ratio 0.0625). Our single-stroke SwiftUI port paints one visible pass, so it must use the reference's visible-accent ratio, not its invisible mask ratio — the 0.22 figure additionally read as too thick once combined with Dancing Script Bold's (D-12) heavier native letterforms. Best-effort calibration pending one more on-device visual confirmation. |
-| Final fill color | `Color.orange` — solid, once each glyph's stroke completes |
-| Trigger | Plays on the Welcome step's appearance (`.onAppear`); since onboarding shows once per install (persisted flag), no special "already played" guard is required — a rare Back-then-forward re-visit replaying the animation is harmless and not worth extra state |
-| Repeat | Play once, no loop (`once: true` in the reference) |
+| "Meet" gradient | `Color.blue` → `Color.purple` → `Color.pink`, left-to-right `LinearGradient` |
+| "Islet" gradient | `Color.orange` → `Color.yellow` → `Color.green`, left-to-right `LinearGradient` |
+| Word spacing | 8pt `HStack` spacing between "Meet" and "Islet" |
+| Animation | None — fully static render, no clock, no idle-CPU concern (T-36-07 no longer applies) |
+| Trigger | Renders immediately on the Welcome step's appearance, same as any other static text |
+| Repeat | N/A — static, nothing to replay |
 
-**Color (D-11, locked — read carefully):** `Color.orange`, the **fixed SwiftUI literal** — this is NOT the user's theme-selectable accent (`ActivitySettings.palette` = `[.white, .blue, .green, .orange, .pink, .purple]`, default index 0 = **white**). Do not wire this to `nowPlayingAccent`/`chargingAccent`/`deviceAccent` or any environment accent key — it must render orange regardless of what accent color the user has chosen in Settings. This is a scoped, literal exception, same category as the fixed-green HUD indicators above.
+**Color (supersedes D-11's single fixed-orange choice):** each word uses its own multi-stop `LinearGradient`, not a single theme-tinted or single-literal color — same "fixed, not accent-tinted" category as the fixed-green HUD indicators above, just with more stops per word.
 
 **Font (D-12 — FLAGGED, resolved by this research pass):**
 
@@ -125,7 +122,7 @@ The reference's `LastoriaBoldRegular.otf` ("La storia" by Abo Daniel, 2019) is c
 
 **New build touchpoint (flag for planner):** this is the first custom (non-system) font in this codebase — `project.yml` and the Xcode project currently register zero fonts. Bundling Dancing-Script-Bold.ttf requires adding the font resource + an `ATSApplicationFontsPath`/"Fonts provided by application" Info.plist entry (or runtime `CTFontManagerRegisterFontURLs`) — a new, small build-config change, not just a code change.
 
-**If the user later wants the exact Lastoria Bold look:** purchase the Creative Fabrica commercial license for "La storia" first, then swap the font file only — the stroke-reveal mechanism and all other values above are font-agnostic.
+**If the user later wants the exact Lastoria Bold look:** purchase the Creative Fabrica commercial license for "La storia" first, then swap the font file only — the static gradient-heading mechanism and all other values above are font-agnostic.
 
 ---
 
@@ -134,7 +131,7 @@ The reference's `LastoriaBoldRegular.otf` ("La storia" by Abo Daniel, 2019) is c
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Wing label (NEW) | 12px | semibold | 1.2 | "Connected" / "Charging" left-wing labels (HUD-01/02) |
-| Signature heading (NEW, scoped exception) | 28px | Bold (Dancing Script) | n/a — script font, single reveal animation | ONBOARD-04 "Meet Islet" only |
+| Signature heading (NEW, scoped exception) | 28px | Bold (Dancing Script) | n/a — script font, static rainbow-gradient render, no animation | ONBOARD-04 "Meet Islet" only |
 | Body (unchanged) | 12px | regular | 1.4 | Onboarding Welcome-step subtext, untouched (D-13) |
 
 Font family: San Francisco system font, `.system(size:weight:design: .rounded)`, everywhere in this phase **except** the one signature heading (Dancing Script Bold). No other new text roles are introduced by this phase.
@@ -151,12 +148,12 @@ Font family: San Francisco system font, `.system(size:weight:design: .rounded)`,
 | Secondary (30%) | `Color.white` (primary text) / `.secondary` / `.white.opacity(0.5–0.7)` (dimmed/negative states) | Wing labels, dimmed icons — matches existing convention |
 | Accent (10%) — theme-selectable | `deviceAccent` (unchanged) | **Reserved exclusively for:** the Bluetooth left-wing device glyph icon. No other element in this phase uses the theme-selectable accent. |
 | Accent (10%) — fixed green | `Color.green` (literal, never theme-tinted) | **Reserved exclusively for:** (1) charging bolt icon while actively charging (unchanged), (2) `BatteryIndicator` fill (unchanged), (3) NEW Bluetooth-connected status ring (right wing, no-battery-known case) |
-| Accent (10%) — fixed orange (NEW) | `Color.orange` (literal, never theme-tinted) | **Reserved exclusively for:** the ONBOARD-04 signature heading stroke/fill — nowhere else in the app |
+| Accent (10%) — rainbow gradients (NEW) | "Meet" = `.blue → .purple → .pink`; "Islet" = `.orange → .yellow → .green` (literal `LinearGradient` stops, never theme-tinted) | **Reserved exclusively for:** the ONBOARD-04 static signature heading — nowhere else in the app |
 | Destructive | n/a | No destructive actions in this phase's scope |
 
 **Note on EqualizerBars:** this phase explicitly REMOVES accent-tinting from the equalizer bars (today: `nowPlayingAccent`; new: fixed `Color.white`) — a deliberate de-accenting, not an oversight. Flag this during review since it's a visible behavior change from current shipped code.
 
-Accent reserved for: `deviceAccent` → Bluetooth glyph only. `Color.green` → charging bolt / battery fill / Bluetooth connected-ring only. `Color.orange` → onboarding signature heading only. No element in this phase uses any other accent slot.
+Accent reserved for: `deviceAccent` → Bluetooth glyph only. `Color.green` → charging bolt / battery fill / Bluetooth connected-ring only. The "Meet"/"Islet" rainbow gradients → onboarding signature heading only. No element in this phase uses any other accent slot.
 
 ---
 
@@ -180,7 +177,7 @@ Accent reserved for: `deviceAccent` → Bluetooth glyph only. `Color.green` → 
 | Registry | Blocks Used | Safety Gate |
 |----------|-------------|--------------|
 | shadcn official | none — native app, no registry tooling | not applicable |
-| componentry.fun (`@componentry/signature`, reference only) | Signature component (source ported to native SwiftUI, not installed as a package) | **Font asset BLOCKED**: `LastoriaBoldRegular.otf` is confirmed personal-use-only (demo font) — do not ship it. Locked substitute: Dancing Script Bold (OFL 1.1, Google Fonts) — see Signature Animation Contract. Component *code* itself (a plain `.tsx` file, no runtime dependency) carries no registry/license risk once ported natively. |
+| componentry.fun (`@componentry/signature`, reference only — superseded by the post-36-04 static-gradient pivot, D-14; the stroke-reveal mechanism itself is no longer used) | Font asset only (the stroke-reveal component code is no longer ported) | **Font asset BLOCKED**: `LastoriaBoldRegular.otf` is confirmed personal-use-only (demo font) — do not ship it. Locked substitute: Dancing Script Bold (OFL 1.1, Google Fonts) — see Signature Heading Contract. |
 | Skiper UI (`skiper25`, reference only) | Equalizer bar visual/motion values (source ported to native SwiftUI, not installed as a package) | **Resolved — attribution required before ship.** The free tier's license header requires visible attribution to Skiper UI unless a Pro license is held; Islet holds no Pro license, so attribution is mandatory, not optional. **Locked credit line:** add a single row to the existing Settings "About" section (same list style as any existing acknowledgment rows) reading exactly: `"Equalizer bar animation inspired by Skiper UI (skiper25.com)"`. Plain text, no logo/link asset required, no new UI section — reuses whatever About/Credits list already exists in Settings, or adds a one-row "Credits" list if none exists yet. This is a planner task item (`36-PLAN.md`), not an open question. |
 
 ---
@@ -189,7 +186,7 @@ Accent reserved for: `deviceAccent` → Bluetooth glyph only. `Color.green` → 
 
 - **HUD-01/02:** edit `wings(for:)` (~L1919-1938) and `deviceWings(for:)`/`deviceTrailing` (~L2036-2074) in `NotchPillView.swift`. Left-wing `HStack` gains a conditional `Text` label at spacing 4 next to the existing icon. `deviceTrailing`'s `isConnected && battery == nil` branch swaps its `checkmark` for the new fixed-green ring; `isConnected && battery != nil` and `!isConnected` branches are unchanged. `wings(for:)`'s charging branch gains a conditional "Charging" label; `BatteryIndicator` call is unchanged.
 - **EQ-01:** edit `EqualizerBars` (~L2330-2391). Replace `makeProfiles()`'s per-bar `(low, high, period, phase)` model with a periodic-reroll target-height model (exact timer/TimelineView mechanism is the executor's call, per `36-CONTEXT.md` Claude's Discretion) — but the `TimelineView(.animation(paused: !isPlaying))` outer gate (D-08) must survive unchanged in spirit: zero animation/timer running while `!isPlaying`. Update `Capsule().frame(width: 2.5, ...)` → `width: 1`, `HStack(spacing: 2)` → `spacing: 4`. Drop `tint: nowPlayingAccent` at both call sites (~L2001, ~L2191).
-- **ONBOARD-04:** edit `onboardingWelcomeStep` (~L1480-1491) in `NotchPillView.swift`. Replace the heading `Text("Meet Islet")` with a new signature-stroke view (new small view/helper, not specified as a single existing type — this is genuinely new code, unlike the other two restyles which edit existing structures). The body `Text` directly below is untouched, verbatim. Add Dancing-Script-Bold.ttf as a new font resource + Info.plist font-registration entry (new build-config surface, flag in the plan's task list).
+- **ONBOARD-04 (post-36-04 pivot, D-14):** `onboardingWelcomeStep` (~L1503-1515) in `NotchPillView.swift` calls `SignatureHeading()`, which now renders two static `Text` views ("Meet", "Islet") each with its own `LinearGradient` `.foregroundStyle` — no `Canvas`, no `TimelineView`, no glyph-path extraction. The body `Text` directly below is untouched, verbatim. Dancing-Script-Bold.ttf remains bundled as a font resource (unchanged from Plan 36-03).
 - **Skiper UI attribution (new task item):** add the locked one-row About/Credits string above to Settings — small, mechanical addition, include it explicitly in `36-PLAN.md`'s task list so it isn't dropped.
 - `EqualizerBars.makeProfiles()`'s existing internal (not private) access level exists precisely so `EqualizerBarsTests.swift` can exercise it under `@testable import` — the new reroll-generation function should follow the same testability precedent (internal, not private).
 - None of these three changes touch `DeviceCoordinator`, `BluetoothMonitor`, the IOKit power monitor, `NowPlayingState`, or `OnboardingFlow`'s step reducer — confirm this stays true during implementation (it's the phase's own explicit boundary, `36-CONTEXT.md` `<domain>`).

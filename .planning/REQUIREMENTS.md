@@ -44,7 +44,7 @@ Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Dropp
 
 ### Onboarding
 
-- [ ] **ONBOARD-04**: The first onboarding page's "Welcome to Islet" text is replaced by a live handwritten-signature-style reveal animation (distinct color, script styling) — scoped to that one page only, the rest of the app's font is unaffected
+- [ ] **ONBOARD-04**: The first onboarding page's "Welcome to Islet" text is replaced by a static rainbow-gradient signature-style script heading (distinct color, script styling) — scoped to that one page only, the rest of the app's font is unaffected
 
 ### System HUDs
 
