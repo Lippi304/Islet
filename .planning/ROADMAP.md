@@ -693,8 +693,28 @@ Plans:
   2. Toggling Focus/DND on shows the new HUD in a generic "Focus On" state; toggling off dismisses it or shows "Focus Off" — no named-mode text (e.g. "Work Focus") anywhere.
   3. If the Full-Disk-Access-gated path is required, denying that permission degrades silently (no crash, no stuck state) rather than blocking the rest of the app.
   4. The new `FocusActivity`/`FocusModeMonitor` pipeline routes through `IslandResolver`/`TransientQueue` like every other transient — no resolver bypass.
-**Plans**: TBD
+**Plans**: 7 plans (waves: 1={38-01,38-02}, 2={38-03,38-04}, 3={38-05,38-06}, 4={38-07}) — D-12 descope gate: if the Wave 1 spike (38-01) finds neither detection path viable, Plans 38-04 through 38-07 do not execute and the phase is closed out per Phase 37's abandonment precedent.
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 38-01-PLAN.md — On-device detection-path spike (checkpoint): confirms INFocusStatusCenter vs. Assertions.json+FDA, or records a D-12 descope decision
+- [ ] 38-02-PLAN.md — Pure seams (TDD): FocusActivity.swift + IslandResolver.swift extension (ActiveTransient.focus, IslandPresentation.focus, D-07 where-guard, ActiveTransient.isPersistent for D-06, TransientQueue.preempt(_:) for D-08)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 38-03-PLAN.md — FocusModeMonitor.swift (spike-confirmed detection path) + ActivitySettings.swift (focusKey, D-05 status-hint mapping) — halts here if 38-01 recorded a descope
+- [ ] 38-04-PLAN.md — NotchPillView.swift focusWings(for:) (D-10/D-11 Droppy-pill wing) + presentationSwitch dispatch + preview
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 38-05-PLAN.md — NotchWindowController.swift wiring: monitor lifecycle, D-06 non-self-dismiss guard, D-08 Charging/Device preemption at both enqueue sites, D-09 silent off-flush
+- [ ] 38-06-PLAN.md — SettingsView.swift: opt-in toggle (D-01), permission-status hint (D-05), explanation popover + deep-link/authorization trigger (D-02/D-03/D-04)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 38-07-PLAN.md — Remove the Wave 1 spike scaffolding + consolidated on-device UAT checkpoint (persistence, preemption, collapsed-only scope, silent off, fresh-install-no-permission)
 
 ### Phase 39: Volume & Brightness HUD
 
