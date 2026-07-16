@@ -665,8 +665,22 @@ Plans:
   2. Closing the Tray after at least one file was dropped during that session briefly shows a chip reading "N files saved," then auto-dismisses.
   3. Closing the Tray with zero files dropped during that session shows no chip.
   4. The chip is implemented as a one-shot `@Published` orthogonal toast (mirroring Phase 18's song-change toast), not a new `IslandResolver`/`TransientQueue` case.
-**Plans**: TBD
+**Plans**: 4 plans (waves: 1={37-01}, 2={37-02,37-03}, 3={37-04})
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 37-01-PLAN.md — Session-boundary pure seams: ShelfCoordinator gross counter/resetSession() + IslandResolver dropSessionChipGate + ShelfViewState SessionSummaryChip/dropSessionChipContent/sessionSummaryChip
+
+**Wave 2** *(blocked on 37-01)*
+
+- [ ] 37-02-PLAN.md — NotchPillView chip rendering: chipTextRow(_:) wired into collapsedIsland and mediaWingsOrToast
+- [ ] 37-03-PLAN.md — NotchWindowController wiring: collapse-trigger (D-01/D-02/D-03/D-06) + interrupt-clear (D-07)
+
+**Wave 3** *(blocked on 37-02, 37-03)*
+
+- [ ] 37-04-PLAN.md — On-device UAT checkpoint (all 4 ROADMAP Success Criteria)
 
 ### Phase 38: Focus Mode HUD
 
