@@ -135,3 +135,46 @@
 ## Deferred Ideas
 
 None — the one scope extension identified (Settings window) was explicitly approved, not deferred. Onboarding flow was explicitly excluded from the Settings-window extension (not requested).
+
+---
+---
+
+# Revision Session — 2026-07-16 (Post-UAT Pivot)
+
+**Trigger:** On-device UAT of the 35-05 checkpoint rejected the first implementation (`35-UAT.md` Test 1) — user reported it rendered as a flat opaque grey/black panel with no visible warp, chromatic fringe, or transparency, and attached a screenshot.
+
+**Areas discussed:** Translucency mechanism, Transparency distribution
+
+---
+
+## Translucency mechanism
+
+Before asking, code was inspected (`NotchPillView.swift`, `NotchPanel.swift`) to find the root cause: `islandFill` returns the same 100%-opaque `gradientMaterial` for `.liquidGlass` as for `.gradient`, and the overlay's own base warp pass fills with that same opaque black gradient again — distorting solid opaque black is visually indistinguishable from not distorting it. The window itself was already `isOpaque = false` / `.clear`, so the fix is purely a SwiftUI fill-layer change.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Echtes macOS-Material (empfohlen) | `.ultraThinMaterial`/`NSVisualEffectView`-backed live blur — real desktop bleeds through since the window is already transparent | ✓ |
+| Simulierte Transparenz | Alpha-blended gradient only, no real live desktop blur — cheaper/predictable but no actual see-through | |
+
+**User's choice:** Echtes macOS-Material.
+**Notes:** Captured as D-10 in CONTEXT.md.
+
+## Transparency distribution
+
+User supplied a reference screenshot (Droppy onboarding panel) showing dark/readable center with the desktop wallpaper visibly bleeding through at the rounded edges — saved to `reference-transparency-target.png`.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Rand transparenter, Mitte dunkler (empfohlen) | Opacity ramp reuses the shader's existing edge-distance falloff — matches the reference image | ✓ |
+| Gleichmäßige Transparenz | Same material opacity everywhere — simpler, but risks unreadable content depending on background | |
+
+**User's choice:** Rand transparenter, Mitte dunkler.
+**Notes:** Captured as D-11 in CONTEXT.md. Confirmed during this session: the "zero visible effect" symptom and the "not translucent enough" complaint share one root cause (opaque-on-opaque), not two separate bugs — no separate rendering-bug investigation needed.
+
+## Claude's Discretion (this revision)
+
+- Exact opacity/blur curve shape for D-11's edge-to-center ramp, and retuned values for `LiquidGlassParameters` (backgroundOpacity, R/G/B fringe opacity) against the new translucent base — on-device tuning during execution, same grant as the original D-01 discretion.
+
+## Deferred Ideas (this revision)
+
+None.

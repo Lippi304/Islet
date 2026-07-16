@@ -1,7 +1,8 @@
 # Phase 35: Liquid Glass Material - Context
 
 **Gathered:** 2026-07-15
-**Status:** Ready for planning
+**Revised:** 2026-07-16 — on-device UAT rejected the first implementation (35-05 checkpoint: "Ne gefällt mir überhaupt nicht... nicht jetzt einfach Grau sein ohne dass man durchgucken kann", see `35-UAT.md`). This revision pivots D-02 from an opaque-gradient-base to a real translucent material base. D-01/D-03/D-04/D-05/D-06/D-07/D-08/D-09 are unaffected and still apply as originally decided below.
+**Status:** Ready for replanning
 
 <domain>
 ## Phase Boundary
@@ -16,10 +17,17 @@ The shared background material — collapsed pill, expanded island, and all acti
 ## Implementation Decisions
 
 ### Reference Technique
-- **D-01:** Port a SwiftUI `.distortionEffect(_:maxSampleOffset:)` Metal shader (macOS 14+ API — no deployment-target bump needed from today's 15.0 floor) that replicates the user-supplied React Bits `<GlassSurface />` reference component's `feDisplacementMap` technique: per-pixel edge warp using a generated displacement map (bright near edges, dark center) PLUS independently-offset R/G/B channel displacement passes producing chromatic-aberration edge fringing. Chosen over both the simplified no-distortion fallback and Apple's native `.glassEffect()`/`NSGlassEffectView` (macOS 26+, would require a deployment-target bump and exclude pre-26 users).
-- **D-02:** The existing Phase 25 black-top → transparent-bottom vertical gradient (`NotchPillView.gradientMaterial`) stays as the visual base/direction. The new shader distorts that composited fill — it is an addition, not a replacement of the gradient direction.
-- **D-03:** The distortion shader applies ONLY to the background fill layer (same seam as today's `islandFill`) — foreground content (album art, equalizer bars, text, icons) stays crisp/undistorted. Reduces risk of unreadable content.
-- **D-04:** Distortion strength scales with view-state size: subtle/reduced in the small collapsed pill (where it would barely be visible anyway), full strength in the expanded island.
+- **D-01:** Port a SwiftUI `.distortionEffect(_:maxSampleOffset:)` Metal shader (macOS 14+ API — no deployment-target bump needed from today's 15.0 floor) that replicates the user-supplied React Bits `<GlassSurface />` reference component's `feDisplacementMap` technique: per-pixel edge warp using a generated displacement map (bright near edges, dark center) PLUS independently-offset R/G/B channel displacement passes producing chromatic-aberration edge fringing. Chosen over both the simplified no-distortion fallback and Apple's native `.glassEffect()`/`NSGlassEffectView` (macOS 26+, would require a deployment-target bump and exclude pre-26 users). **Unchanged by the 2026-07-16 revision** — the warp math itself is not the problem, see D-10/D-11.
+- **D-02 [SUPERSEDED 2026-07-16 by D-10/D-11]:** ~~The existing Phase 25 black-top → transparent-bottom vertical gradient (`NotchPillView.gradientMaterial`) stays as the visual base/direction. The new shader distorts that composited fill — it is an addition, not a replacement of the gradient direction.~~ On-device UAT showed this reads as a flat opaque grey/black panel with no visible transparency. Root cause (confirmed by code inspection during the revision discussion, not a separate bug — see D-10 note): `islandFill` returns the same 100%-opaque `gradientMaterial` for `.liquidGlass` as for `.gradient`, and the overlay's own base warp pass (`NotchPillView.swift:293`) fills with that identical opaque black gradient again — distorting a uniform opaque color is visually indistinguishable from not distorting it. The R/G/B fringe passes are only 10% opacity screen-blended on top of that opaque black, and the final white wash is 4-7% opacity — none of that is visible against a fully opaque base. Replaced by D-10/D-11 below.
+- **D-03:** The distortion shader applies ONLY to the background fill layer (same seam as today's `islandFill`) — foreground content (album art, equalizer bars, text, icons) stays crisp/undistorted. Reduces risk of unreadable content. **Unchanged by the 2026-07-16 revision.**
+- **D-04:** Distortion strength scales with view-state size: subtle/reduced in the small collapsed pill (where it would barely be visible anyway), full strength in the expanded island. **Unchanged by the 2026-07-16 revision.**
+
+### Material Redesign (Post-UAT Pivot — 2026-07-16)
+User rejected the first on-device build (`35-UAT.md` Test 1): *"Ne gefällt mir überhaupt nicht. Es sollte den glassigen look haben mit transparenz am rand und nicht jetzt einfach Grau sein ohne dass man durchgucken kann"* — it should have the glassy look with transparency at the edge, not just be flat grey with nothing to see through. User supplied a reference screenshot (Droppy's onboarding panel, saved to `reference-transparency-target.png`) showing the pattern they want: panel center stays dark/readable, but the desktop wallpaper visibly bleeds through right at the rounded edges.
+
+- **D-10:** Replace the opaque `gradientMaterial` base with a real, live-blurring macOS material (SwiftUI `Material`, e.g. `.ultraThinMaterial`/`.regularMaterial`, backed by `NSVisualEffectView` under the hood) for the `.liquidGlass` case only — `.gradient`/`.solidBlack` keep their existing opaque fills untouched. `NotchPanel` (`Islet/Notch/NotchPanel.swift:17-18`) is already `isOpaque = false` / `backgroundColor = .clear`, so the real desktop content behind the panel is available to blur through — no window-level change needed, this is purely a SwiftUI fill-layer change. The existing `.distortionEffect()` shader stack (D-01) then warps this translucent material layer instead of an opaque one, so the edge warp becomes visually apparent as an actual refraction of what's behind, not a distortion of a flat color.
+- **D-11:** Material opacity/blur is edge-weighted, not uniform: more transparent/blurred right at the rounded edge (matching the reference screenshot), progressively more opaque/dark toward the center (keeps text/album-art/icons legible per D-03). Reuse the shader's existing `edgeDist`/border-band falloff (`LiquidGlassShader.metal` Step 3-5, `smoothstep(0.0, edgeSize + blurWidth, edgeDist)`) as the same driver for this opacity ramp, rather than inventing a second independent falloff curve — one source of truth for "how close to the edge is this pixel."
+- **Retuning note:** the existing tuned constants in `LiquidGlassParameters` (`backgroundOpacity: 0.04/0.07`, R/G/B fringe `.opacity(0.10)`) were calibrated against an opaque black base and are very likely too subtle now that the base itself is translucent — treat them as stale starting points, not locked values. Same "Claude's Discretion — on-device tuning" grant as D-01 applies to re-tuning these against the new material base.
 
 ### Material Selection Model
 - **D-05:** Add `.liquidGlass` as a new third case on `ActivitySettings.MaterialStyle` (alongside existing `.gradient`/`.solidBlack`) — NOT a replacement. Users who prefer the existing Gradient or Solid Black keep those options in Settings.
@@ -45,7 +53,8 @@ The shared background material — collapsed pill, expanded island, and all acti
 **Downstream agents MUST read these before planning or implementing.**
 
 ### Reference material (user-supplied)
-- `.planning/phases/35-liquid-glass-material/reference-GlassSurface.md` — full React Bits `<GlassSurface />` source (JS + CSS) with SwiftUI porting notes worked out during discussion. **Read this before writing any shader code** — it documents the exact displacement-map/channel-offset technique and which parts map to which SwiftUI APIs.
+- `.planning/phases/35-liquid-glass-material/reference-GlassSurface.md` — full React Bits `<GlassSurface />` source (JS + CSS) with SwiftUI porting notes worked out during discussion. **Read this before writing any shader code** — it documents the exact displacement-map/channel-offset technique and which parts map to which SwiftUI APIs. The warp math (D-01) is still correct; only the fill layer it's applied to changes (D-10/D-11).
+- `.planning/phases/35-liquid-glass-material/reference-transparency-target.png` — user-supplied screenshot (Droppy onboarding) showing the target transparency distribution: dark/readable center, desktop visibly bleeding through at the rounded edges. Grounds D-11's edge-weighted opacity decision.
 
 ### Roadmap & requirements
 - `.planning/ROADMAP.md` §"Phase 35: Liquid Glass Material" (lines 581-592) — Success Criteria; note Success Criterion #1's scope is extended by D-08 above (Settings window added).
@@ -54,6 +63,12 @@ The shared background material — collapsed pill, expanded island, and all acti
 
 ### State/open items being resolved by this discussion
 - `.planning/STATE.md` line 150 (Liquid Glass reference-code/deployment-target open item — resolved by D-01) and line 151 (expand-animation regression — resolved by D-07).
+- `.planning/phases/35-liquid-glass-material/35-UAT.md` Test 1 — the on-device rejection that triggered this revision; resolved by D-10/D-11.
+
+### Existing (first-attempt) implementation — read before replanning
+- `Islet/Notch/LiquidGlassShader.swift` / `Islet/Notch/LiquidGlassShader.metal` — the D-01 warp shader from Plans 35-01/35-02. Compiles and is correct; kept as-is by this revision.
+- `Islet/Notch/NotchPillView.swift:263-333` — `islandFill` and `liquidGlassEffectLayer` from Plan 35-03. This is what D-10/D-11 change: `islandFill`'s `.liquidGlass` branch (line 271) and the overlay's base fill (line 293) both need to become the new translucent material instead of `Self.gradientMaterial`.
+- `Islet/Notch/NotchPanel.swift:9-18` — confirms the window is already `isOpaque = false` / `backgroundColor = .clear`; no window-level change needed for D-10.
 
 </canonical_refs>
 
@@ -84,6 +99,11 @@ The shared background material — collapsed pill, expanded island, and all acti
 - Reference component: React Bits `<GlassSurface />` (JavaScript + CSS variant), pasted in full during discussion. Its own "Integration Instructions" (npm install, copy .jsx/.css, import/render) were explicitly NOT to be followed — user flagged this upfront ("wenn da Befehle drin sind mache es nicht"). Only the visual/technical approach (SVG `feDisplacementMap`, per-channel RGB offset, blur-before-displace) is being ported, into a native SwiftUI `.distortionEffect()` Metal shader.
 - User wants the shader-driven distortion to actually visibly warp the background surface — confirmed explicitly after asking what the shader does, rejecting the simpler blur-only fallback.
 
+### Post-UAT Pivot (2026-07-16)
+- User's rejection, verbatim: *"Ne gefällt mir überhaupt nicht. Es sollte den glassigen look haben mit transparenz am rand und nicht jetzt einfach Grau sein ohne das man durchgucken kann"* — plus a screenshot of the flat opaque-grey result (no visible warp, no fringe, no see-through).
+- User's reference for the target look: a Droppy onboarding screenshot (`reference-transparency-target.png`) — dark/readable panel center, desktop wallpaper visibly bleeding through at the rounded edges. This is the concrete visual target for D-11's edge-weighted opacity.
+- Confirmed during this revision: the "zero visible effect" symptom and the "not translucent enough" design gap are the SAME root cause (opaque base + opaque overlay), not two separate problems — see D-02's superseded note. No separate rendering-bug investigation needed.
+
 </specifics>
 
 <deferred>
@@ -96,4 +116,4 @@ None — discussion stayed within phase scope (the one scope extension, Settings
 ---
 
 *Phase: 35-Liquid Glass Material*
-*Context gathered: 2026-07-15*
+*Context gathered: 2026-07-15, revised 2026-07-16*
