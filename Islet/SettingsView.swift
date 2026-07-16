@@ -45,7 +45,10 @@ struct SettingsView: View {
     // accentIndexKey. SwiftUI's native `@AppStorage` overload for any
     // `RawRepresentable where RawValue == String` reads/writes/falls back to
     // the declared default automatically (T-27-06) — no manual Binding needed.
-    @AppStorage(ActivitySettings.materialStyleKey) private var materialStyle: ActivitySettings.MaterialStyle = .gradient
+    // Phase 35 / GLASS-01 (D-06): default flipped .gradient -> .liquidGlass — the
+    // second of the two independently-hardcoded default locations (the other is
+    // ActivitySettings.swift's IslandMaterialStyleKey.defaultValue, Plan 35-01).
+    @AppStorage(ActivitySettings.materialStyleKey) private var materialStyle: ActivitySettings.MaterialStyle = .liquidGlass
     @AppStorage(ActivitySettings.nowPlayingAccentKey) private var nowPlayingAccentIndex = ActivitySettings.defaultAccentIndex
     @AppStorage(ActivitySettings.chargingAccentKey) private var chargingAccentIndex = ActivitySettings.defaultAccentIndex
     @AppStorage(ActivitySettings.deviceAccentKey) private var deviceAccentIndex = ActivitySettings.defaultAccentIndex
@@ -255,6 +258,7 @@ struct SettingsView: View {
                 Picker("Style", selection: $materialStyle) {
                     Text("Gradient").tag(MaterialStyle.gradient)
                     Text("Solid Black").tag(MaterialStyle.solidBlack)
+                    Text("Liquid Glass").tag(MaterialStyle.liquidGlass)
                 }
                 .pickerStyle(.segmented)
             }
