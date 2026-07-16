@@ -343,6 +343,30 @@ struct NotchPillView: View {
         liquidGlassOpacityShader(shape: shape, size: size, parameters: parameters, edgeOpacity: 1.0, centerOpacity: 0.0)
     }
 
+    // Round-5 follow-up (2026-07-16, user: "Ja es soll nur der rand so sein minimal
+    // aber nicht alles so.") — the first native-glassEffect pass applied `.glassEffect`
+    // to the WHOLE shape, so the entire island read as translucent glass rather than
+    // D-12/D-13/D-14/D-15's "solid dark center, glass only at a narrow rim" contract.
+    // This ring shape confines the native glass to the same narrow rim band the legacy
+    // shader's `liquidGlassEdgeFalloff` already computes (`edgeSize = min(w,h) *
+    // borderWidth`, softened by `blurWidth` — see LiquidGlassShader.metal) by taking
+    // the base shape's outline, stroking it at 2x that band width, and intersecting
+    // with the base shape so only the INWARD half of the stroke survives — a ring
+    // hugging the inside edge, same width convention as the legacy fallback.
+    private struct LiquidGlassRimRingShape: Shape {
+        var base: NotchShape
+        var bandWidth: CGFloat
+        func path(in rect: CGRect) -> Path {
+            let basePath = base.path(in: rect)
+            let ring = basePath.strokedPath(StrokeStyle(lineWidth: bandWidth * 2))
+            return ring.intersection(basePath)
+        }
+    }
+
+    private func liquidGlassRimBandWidth(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> CGFloat {
+        min(size.width, size.height) * parameters.borderWidth + parameters.blurWidth
+    }
+
     // Debug session `liquid-glass-grey-rim-regression` (round 3, 2026-07-16) — user
     // reviewed callstack/liquid-glass (a wrapper around Apple's real Liquid Glass API)
     // and explicitly pivoted away from continuing to hand-tune the custom Metal shader
@@ -362,9 +386,10 @@ struct NotchPillView: View {
     private func liquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
         if materialStyle == .liquidGlass {
             if #available(macOS 26.0, *) {
+                let rimWidth = liquidGlassRimBandWidth(shape: shape, size: size, parameters: parameters)
                 Color.clear
                     .frame(width: size.width, height: size.height)
-                    .glassEffect(.regular.tint(Color.black.opacity(0.7)), in: shape)
+                    .glassEffect(.regular.tint(Color.black.opacity(0.35)), in: LiquidGlassRimRingShape(base: shape, bandWidth: rimWidth))
                     .allowsHitTesting(false)
             } else {
                 legacyLiquidGlassEffectLayer(shape: shape, size: size, parameters: parameters)
