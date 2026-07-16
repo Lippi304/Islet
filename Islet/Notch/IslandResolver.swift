@@ -174,6 +174,15 @@ func songChangeToastGate(activeTransient: ActiveTransient?, isExpanded: Bool, to
     activeTransient == nil && !isExpanded && toastEnabled
 }
 
+// Phase 37 / HUD-07 (D-06) — the drop-session summary chip's suppression gate. Mirrors
+// songChangeToastGate's TOTAL pure standalone shape immediately above (same reasoning:
+// deliberately NOT threaded through resolve(...)/IslandPresentation), but deliberately
+// only 2 params, not 3 — there is no Settings toggle for this chip, so the "identical
+// shape" from D-06 covers only the activeTransient/isExpanded pair.
+func dropSessionChipGate(activeTransient: ActiveTransient?, isExpanded: Bool) -> Bool {
+    activeTransient == nil && !isExpanded
+}
+
 // Gap-closure fix (WR-1) — the address-keyed side data for a device's post-connect battery
 // poll. Controller-owned "address-keyed side table, pure enum stays address-free" discipline
 // (mirrors NotchWindowController's own `deviceLastShown: [String: TimeInterval]` convention):

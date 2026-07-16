@@ -80,4 +80,14 @@ final class ShelfViewStateTests: XCTestCase {
         XCTAssertTrue(shouldBeginShelfItemDrag(fileExists: true))
         XCTAssertFalse(shouldBeginShelfItemDrag(fileExists: false))
     }
+
+    // MARK: dropSessionChipContent(count:) — Phase 37 / HUD-07 (D-03/D-05) coverage
+
+    func testDropSessionChipContentZeroCountReturnsNil() {
+        XCTAssertNil(dropSessionChipContent(count: 0))
+    }
+
+    func testDropSessionChipContentPositiveCountReturnsChip() {
+        XCTAssertEqual(dropSessionChipContent(count: 3), SessionSummaryChip(count: 3))
+    }
 }

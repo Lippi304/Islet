@@ -191,6 +191,24 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertTrue(songChangeToastGate(activeTransient: nil, isExpanded: false, toastEnabled: true))
     }
 
+    // MARK: dropSessionChipGate(...) — Phase 37 / HUD-07 (D-06) coverage
+
+    func testDropSessionChipGateSuppressedByChargingTransient() {
+        XCTAssertFalse(dropSessionChipGate(activeTransient: charging, isExpanded: false))
+    }
+
+    func testDropSessionChipGateSuppressedByDeviceTransient() {
+        XCTAssertFalse(dropSessionChipGate(activeTransient: device, isExpanded: false))
+    }
+
+    func testDropSessionChipGateSuppressedWhenExpanded() {
+        XCTAssertFalse(dropSessionChipGate(activeTransient: nil, isExpanded: true))
+    }
+
+    func testDropSessionChipGateAllowsAmbient() {
+        XCTAssertTrue(dropSessionChipGate(activeTransient: nil, isExpanded: false))
+    }
+
     func testExpandedHealthyNoMediaHasPlayedShowsLastPlayed() {
         // Phase 30 / HOME-02: expanded, healthy API, nothing playing now but something played
         // this session → the last-played state.
