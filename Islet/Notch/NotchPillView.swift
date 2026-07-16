@@ -821,6 +821,10 @@ struct NotchPillView: View {
         // D-01: size from the REAL measured notch the controller published; fall back to the
         // static 200x38 seed when no notch is measured (non-notch / external display / previews).
         let size = interaction.collapsedNotchSize ?? Self.collapsedSize
+        // Phase 37 / HUD-07 (D-04) — the drop-session summary chip. Nothing else is playing in
+        // this `.idle` render path, so growth here is the ONLY source of extra height (unlike
+        // mediaWingsOrToast, which may also be growing for a concurrent song-change toast).
+        let chip = shelfViewState.sessionSummaryChip
         // WR-02 (35-REVIEW.md): hoisted so the visible fill and the rim-mask
         // overlay below always share one shape instance, mirroring blobShape/
         // wingsShape's convention — prevents the two from silently drifting
@@ -837,10 +841,20 @@ struct NotchPillView: View {
             // the size-morph and producing a shape that slides from a stale anchor instead of
             // growing symmetrically from the shared center — read as the diagonal jump/bounce.
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: size.width, height: size.height)
+            .frame(
+                width: chip != nil ? Self.wingsSize.width : size.width,
+                height: chip != nil ? Self.wingsSize.height + Self.toastExtraHeight : size.height
+            )
             // Phase 35 / GLASS-01 (D-04): collapsed pill uses the subtler .collapsed
             // parameters.
             .overlay(liquidGlassEffectLayer(shape: shape, size: size, parameters: .collapsed))
+            // Phase 37 / HUD-07 (D-04) — chip-only overlay; unlike mediaWingsOrToast's
+            // mediaWingsRow, collapsedIsland has no existing top-row content, so no VStack.
+            .overlay(alignment: .top) {
+                if let chip {
+                    chipTextRow(chip)
+                }
+            }
             // D-01 (visual half): a subtle "you're in" bounce on hover only — never
             // when expanded. The controller drives this via its spring wrapper at the
             // state mutation. The haptic + the real pointer monitor are Plan 03.
@@ -2020,7 +2034,12 @@ struct NotchPillView: View {
     @ViewBuilder
     private func mediaWingsOrToast(_ p: NowPlayingPresentation) -> some View {
         let toast = nowPlaying.songChangeToast
-        let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)
+        // Phase 37 / HUD-07 (D-04) — the drop-session summary chip. Independent one-shot field
+        // from the song-change toast; both can be visible simultaneously, stacked, not either/or.
+        let chip = shelfViewState.sessionSummaryChip
+        let height = Self.wingsSize.height
+            + (toast != nil ? Self.toastExtraHeight : 0)
+            + (chip != nil ? Self.toastExtraHeight : 0)
         // WR-02 (35-REVIEW.md): hoisted so the visible fill and the rim-mask
         // overlay below always share one shape instance — see collapsedIsland.
         let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
@@ -2039,6 +2058,10 @@ struct NotchPillView: View {
                     mediaWingsRow(p, art: nowPlaying.artwork)
                     if let toast {
                         toastTextRow(toast)
+                            .transition(.opacity)
+                    }
+                    if let chip {
+                        chipTextRow(chip)
                             .transition(.opacity)
                     }
                 }
@@ -2080,6 +2103,21 @@ struct NotchPillView: View {
             .padding(.horizontal, 16)
             // Round 4 (on-device feedback): centered, not tucked under the left-side art —
             // was `alignment: .leading` (D-01 left-align superseded, "mittig nicht linksbündig").
+            .frame(width: Self.wingsSize.width, height: Self.toastExtraHeight, alignment: .center)
+    }
+
+    // Phase 37 / HUD-07 (D-04/D-05) — the drop-session summary chip row, verbatim reuse of
+    // toastTextRow's structure/styling (same font, color, truncation, sizing) since this is
+    // the same "brief fading text row under the growth" mechanic, just a different trigger
+    // (closing the Shelf/Tray after a drop session instead of a song change). Pluralization
+    // per D-05: "1 file saved" singular, "N files saved" otherwise.
+    private func chipTextRow(_ chip: SessionSummaryChip) -> some View {
+        Text(chip.count == 1 ? "1 file saved" : "\(chip.count) files saved")
+            .font(.system(size: 12, weight: .medium, design: .rounded))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, 16)
             .frame(width: Self.wingsSize.width, height: Self.toastExtraHeight, alignment: .center)
     }
 
