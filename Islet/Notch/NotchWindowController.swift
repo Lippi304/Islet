@@ -715,6 +715,12 @@ final class NotchWindowController {
                 toastDismissWorkItem?.cancel()
                 nowPlayingState.songChangeToast = nil
             }
+            // Phase 37 / HUD-07 (D-06/D-07) — same precedent, sibling field: an interrupting
+            // Charging/Device transient must clear a standing drop-session chip immediately.
+            if shelfViewState.sessionSummaryChip != nil {
+                chipDismissWorkItem?.cancel()
+                shelfViewState.sessionSummaryChip = nil
+            }
             renderPresentation()
         }
         updateVisibility()
@@ -1339,6 +1345,12 @@ final class NotchWindowController {
             if !wasExpanded && interaction.isExpanded && nowPlayingState.songChangeToast != nil {
                 toastDismissWorkItem?.cancel()
                 nowPlayingState.songChangeToast = nil
+            }
+            // Phase 37 / HUD-07 (D-07) — same precedent, sibling field: re-expanding the island
+            // while the drop-session chip is showing cancels its dismiss timer and clears it.
+            if !wasExpanded && interaction.isExpanded && shelfViewState.sessionSummaryChip != nil {
+                chipDismissWorkItem?.cancel()
+                shelfViewState.sessionSummaryChip = nil
             }
             // Phase 21 follow-up (UAT feedback) — an item whose backing file was deleted
             // externally is otherwise stuck inert until manually trashed. Pruned right as
