@@ -100,7 +100,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 **Milestone Goal:** Give Islet an edgier "Liquid Glass" material look and a suite of new Droppy-style collapsed-state system HUDs, plus a new dual-activity display concept for when two top-priority activities are live at once. Sequenced material-first (every other visual feature renders inside it), then risk-ascending through the new-transient-case pattern (cosmetic restyles → drop-session chip → Focus Mode spike → Volume/Brightness spike), with the fully-independent Sparkle integration floating after Phase 35, and the architecturally novel dual-activity display sequenced last, after Calendar Countdown exists as a proven single-winner case to combine with Now Playing. Numbered from Phase 35 to avoid colliding with v1.5's still-open Phase 34 (v1.5 remains open in parallel, not archived).
 
-- [ ] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code
+- [x] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code (completed 2026-07-16)
 - [ ] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes
 - [ ] **Phase 37: Drop-Session Summary Chip** - "N files saved" chip after closing Tray, adding the missing shelf-session-boundary concept first
 - [ ] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case
@@ -158,7 +158,7 @@ Plans:
 
 **v1.5:** 5/6 phases complete (83%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md. Phase 33 (WEATHER-01/02) completed 2026-07-15 — on-device UAT required 6 gap-closure rounds (stale hourly data, text-wrap doubling row height, blobShape missing content-clipping onto the panel background, NotchShape's real taper clipping the daily row, final height/gap tuning); see 33-02-SUMMARY.md. Only Phase 34 (Quick Action Destination Picker) remains.
 
-**v1.6:** 0/8 phases complete (0%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34.
+**v1.6:** 1/8 phases complete (13%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34. Phase 35 (GLASS-01) completed 2026-07-16 — on-device UAT required 4 rounds (round 1 flat opaque grey, round 2 uniformly bright, round 3 screen-blend washout over the frost's dark center, round 4 rim-masked the fringe/wash layers to the same edge falloff and passed); see 35-12-SUMMARY.md.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -632,7 +632,7 @@ Plans:
 
 **Wave 10 (remediation round 4)** *(blocked on 35-11)*
 
-- [ ] 35-12-PLAN.md — On-device UAT hard merge gate, round 4 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08/35-10 (D-19: single UAT round, no intermediate checkpoint)
+- [x] 35-12-PLAN.md — On-device UAT hard merge gate, round 4 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08/35-10 (D-19: single UAT round, no intermediate checkpoint)
 
 ### Phase 36: Cosmetic Restyles & Signature Animation
 
