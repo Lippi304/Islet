@@ -638,14 +638,14 @@ Plans:
 
 ### Phase 36: Cosmetic Restyles & Signature Animation
 
-**Goal**: Bluetooth/AirPods and Charging activities are restyled to the Droppy-pill look, the Now Playing equalizer bars get a new visual design, and the onboarding flow's first page gains a handwritten-signature-style reveal animation — all pure view-layer changes with zero resolver, monitor, or data changes, proving the new visual language renders correctly inside Phase 35's material.
+**Goal**: Bluetooth/AirPods and Charging activities are restyled to the Droppy-pill look, the Now Playing equalizer bars get a new visual design, and the onboarding flow's first page gains a static rainbow-gradient signature-style heading — all pure view-layer changes with zero resolver, monitor, or data changes, proving the new visual language renders correctly inside Phase 35's material.
 **Depends on**: Phase 35 — these restyles render inside the new Liquid Glass material rather than the old one.
 **Requirements**: HUD-01, HUD-02, EQ-01, ONBOARD-04
 **Success Criteria** (what must be TRUE):
   1. The Bluetooth/AirPods device-connected activity visually matches the Droppy-pill restyle; `DeviceCoordinator`/`BluetoothMonitor` are unchanged.
   2. The Charging activity visually matches the Droppy-pill restyle; the existing IOKit power monitor is unchanged.
   3. The Now Playing equalizer bars render the user-supplied reference visual design with no change to the underlying playback data or monitor.
-  4. The onboarding flow's first page shows a live handwritten-signature-style reveal animation (distinct color, script styling) replacing the "Welcome to Islet" text — scoped to that one page only, the rest of the app's typography is unaffected.
+  4. (D-14 scope pivot) The onboarding flow's first page shows a static rainbow-gradient signature-style script heading ("Meet" in blue→purple→pink, "Islet" in orange→yellow→green, Dancing Script Bold) replacing the "Welcome to Islet" text — scoped to that one page only, the rest of the app's typography is unaffected. Originally specified as a live stroke-reveal animation; descoped to a static heading after repeated font-licensing/implementation friction, per direct user decision.
 **Plans**: 4 plans (waves: 1={36-01,36-03}, 2={36-02}, 3={36-04})
 
 Plans:
