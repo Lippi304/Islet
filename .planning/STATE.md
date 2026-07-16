@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: Blocked — round 2 on-device UAT rejected, round 3 remediation planned (35-09/35-10), awaiting execution
-stopped_at: Phase 35 round 3 plans created (35-09/35-10) — dark frost base + rim reveal design pivot
-last_updated: "2026-07-16T04:12:00.000Z"
-last_activity: "2026-07-16 -- Phase 35 round 3 planning complete: 35-09 (frost-over-material restructure) + 35-10 (on-device UAT gate) created"
+status: executing
+stopped_at: Phase 35 round 3 context captured — dark frost base + rim reveal design pivot
+last_updated: "2026-07-16T02:16:05.809Z"
+last_activity: 2026-07-16 -- Phase 35 planning complete
 progress:
   total_phases: 27
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 Phase: 35 (liquid-glass-material) — BLOCKED, round 3 planned
 Plan: 10 total (35-01 through 35-04, 35-06, 35-07 shipped; 35-05/35-08 superseded/rejected; 35-09/35-10 newly planned, not yet executed)
-Status: Round 3 remediation planned (35-09 code restructure + 35-10 on-device UAT gate) — run /gsd:execute-phase 35 next
-Last activity: 2026-07-16 -- Phase 35 round 3 planning complete: 35-09 (frost-over-material restructure) + 35-10 (on-device UAT gate) created
+Status: Ready to execute
+Last activity: 2026-07-16 -- Phase 35 planning complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
