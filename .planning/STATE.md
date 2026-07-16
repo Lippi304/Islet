@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
-stopped_at: Phase 35 blocked — on-device UAT gap requires D-02 design pivot
-last_updated: "2026-07-16T00:41:00.000Z"
-last_activity: 2026-07-16 -- Phase 35 waves 1-2 executed (35-01..35-04 complete); wave 3 checkpoint (35-05) failed UAT
+status: planning
+stopped_at: Phase 35 context revised — D-02 pivoted to real translucent material (D-10/D-11), ready for replanning
+last_updated: "2026-07-16T00:47:17.156Z"
+last_activity: "2026-07-16 -- Plans 35-01 through 35-04 executed and merged (waves 1-2). Wave 3 checkpoint (35-05, on-device UAT) reported: Liquid Glass renders as flat opaque grey with zero visible warp/fringe/transparency — see `.planning/phases/35-liquid-glass-material/35-UAT.md`. User compared against a reference (real translucent "glass" look, color bleeding through from behind, refracted at edges) and decided D-02 ("opaque gradient base, distortion-only, no real translucency") should be revisited. Next step: `/gsd-discuss-phase 35` to redesign the material approach (real translucent/blurred base instead of opaque gradient) before replanning execution. Two independent issues to address: (1) design pivot to real translucency, (2) current implementation shows zero visible effect at all — worth confirming during redesign whether that's also a rendering bug independent of the design gap."
 progress:
   total_phases: 27
   completed_phases: 15
@@ -205,9 +205,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-15T23:43:46.636Z
-Stopped at: Phase 35 UI-SPEC approved
-Resume file: .planning/phases/35-liquid-glass-material/35-UI-SPEC.md
+Last session: 2026-07-16T00:47:17.151Z
+Stopped at: Phase 35 context revised — D-02 pivoted to real translucent material (D-10/D-11), ready for replanning
+Resume file: .planning/phases/35-liquid-glass-material/35-CONTEXT.md
 
 ## Operator Next Steps
 
