@@ -101,7 +101,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 **Milestone Goal:** Give Islet an edgier "Liquid Glass" material look and a suite of new Droppy-style collapsed-state system HUDs, plus a new dual-activity display concept for when two top-priority activities are live at once. Sequenced material-first (every other visual feature renders inside it), then risk-ascending through the new-transient-case pattern (cosmetic restyles → drop-session chip → Focus Mode spike → Volume/Brightness spike), with the fully-independent Sparkle integration floating after Phase 35, and the architecturally novel dual-activity display sequenced last, after Calendar Countdown exists as a proven single-winner case to combine with Now Playing. Numbered from Phase 35 to avoid colliding with v1.5's still-open Phase 34 (v1.5 remains open in parallel, not archived).
 
 - [x] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code (completed 2026-07-16)
-- [ ] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes
+- [x] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes (completed 2026-07-16)
 - [ ] **Phase 37: Drop-Session Summary Chip** - "N files saved" chip after closing Tray, adding the missing shelf-session-boundary concept first
 - [ ] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case
 - [ ] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses
@@ -652,7 +652,7 @@ Plans:
 - [x] 36-01-PLAN.md — Charging + Bluetooth Droppy-pill wing restyle (HUD-01, HUD-02)
 - [x] 36-02-PLAN.md — Equalizer bars motion/geometry redesign + Skiper UI attribution (EQ-01)
 - [x] 36-03-PLAN.md — Signature font (OFL) + Core Text glyph-extraction contract (ONBOARD-04)
-- [ ] 36-04-PLAN.md — Signature stroke-reveal animation + onboarding wiring (ONBOARD-04)
+- [x] 36-04-PLAN.md — Signature heading: static rainbow-gradient design (scope-pivoted from stroke-reveal animation, ONBOARD-04)
 **UI hint**: yes
 
 ### Phase 37: Drop-Session Summary Chip

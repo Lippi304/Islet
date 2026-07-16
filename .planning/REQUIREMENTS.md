@@ -44,7 +44,7 @@ Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Dropp
 
 ### Onboarding
 
-- [ ] **ONBOARD-04**: The first onboarding page's "Welcome to Islet" text is replaced by a static rainbow-gradient signature-style script heading (distinct color, script styling) — scoped to that one page only, the rest of the app's font is unaffected
+- [x] **ONBOARD-04**: The first onboarding page's "Welcome to Islet" text is replaced by a static rainbow-gradient signature-style script heading (distinct color, script styling) — scoped to that one page only, the rest of the app's font is unaffected
 
 ### System HUDs
 
@@ -115,7 +115,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HUD-01 | Phase 36 | Pending |
 | HUD-02 | Phase 36 | Pending |
 | EQ-01 | Phase 36 | Complete |
-| ONBOARD-04 | Phase 36 | Pending |
+| ONBOARD-04 | Phase 36 | Complete |
 | HUD-07 | Phase 37 | Pending |
 | HUD-05 | Phase 38 | Pending |
 | HUD-03 | Phase 39 | Pending |

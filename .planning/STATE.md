@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
-stopped_at: Completed 36-02-PLAN.md
-last_updated: "2026-07-16T19:34:11.629Z"
+stopped_at: Completed 36-04-PLAN.md (final plan of Phase 36)
+last_updated: "2026-07-16T20:38:18.150Z"
 last_activity: 2026-07-16
 progress:
   total_phases: 27
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 55
-  completed_plans: 52
-  percent: 56
+  completed_plans: 53
+  percent: 59
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 ## Current Position
 
-Phase: 36 (cosmetic-restyles-signature-animation) — EXECUTING
-Plan: 2 of 4
-Status: Ready to execute
+Phase: 36 (cosmetic-restyles-signature-animation) — ALL PLANS COMPLETE (4/4), awaiting orchestrator phase-level verification
+Plan: 4 of 4
+Status: All plans executed — phase verification pending
 Last activity: 2026-07-16
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -98,6 +98,7 @@ Progress (v1.6): [░░░░░░░░░░] 0% (0/8 phases — ROADMAP.md 
 | Phase 26 P04 | 25h (7 UAT rounds) | 2 tasks | 8 files |
 | Phase 31 P01 | 25min | 3 tasks | 5 files |
 | Phase 36 P02 | multi-session | 3 tasks | 3 files |
+| Phase 36 P04 | multi-session | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.6 roadmap] Phase order 35→36→37→38→39→40→41→42 follows research's explicit risk/dependency ordering: material first (every later HUD renders inside it), then zero-risk cosmetic restyles + fully-independent equalizer/onboarding polish, then the drop-session chip (its one real prerequisite — a shelf-session-boundary concept — surfaced inside its own phase), then the new-transient-case pattern proven cheaply on Focus Mode before attempting it under genuine private-API risk on Volume/Brightness (explicitly kept as ONE phase since both share the same OSD-replacement subsystem), then the fully-independent Sparkle integration floated after material, then Calendar Countdown as a proven single-winner ambient case, and finally Dual-Activity Display last since it needs Calendar Countdown as a real second input to combine with Now Playing.
 - [Phase 34]: Decision coverage gate override: D-01/D-02/D-03/D-06/D-07/D-08 not explicitly cited (literal `D-NN:`) in 34-01/34-02-PLAN.md must_haves/truths, but plan-checker semantic review confirmed all 6 are implemented (D-01 in 34-01's takeover truth, D-02 in the preview-render truth, D-03 in Task 1's batch-decision test comment, D-06/D-07 in 34-02's `discardPendingDrop()` task + threat model, D-08 as the subject of threat-model row T-34-04/T-34-07). Same pattern as Phase 30; user chose Proceed anyway.
 - [Phase 36]: abs(hasher.finalize()) required before % 1000 reduction in targetHeight(bar:bucket:) — Hasher.finalize() returns a signed Int and Swift's % preserves the dividend's sign, guarding against mapping below the 4...14 floor
+- [Phase 36]: D-14: ONBOARD-04 scope pivot — abandoned per-glyph stroke-reveal animation for a static two-word rainbow-gradient 'Meet Islet' heading (Dancing Script Bold) after repeated stroke-weight tuning friction; user-directed, mirrors Droppy's static 'meet droppy' heading; on-device approved ("passt")
 
 ### Roadmap Evolution
 
@@ -208,12 +210,13 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-16T19:34:11.624Z
-Stopped at: Completed 36-02-PLAN.md
+Last session: 2026-07-16T20:38:18.145Z
+Stopped at: Completed 36-04-PLAN.md (final plan of Phase 36)
 Resume file: None
 
 ## Operator Next Steps
 
+- Phase 36 (Cosmetic Restyles & Signature Animation) is now fully executed — all 4 plans (36-01, 36-02, 36-03, 36-04) complete. ONBOARD-04's own on-device UAT checkpoint (36-04 Task 3) already covered its ROADMAP success criterion #4 directly ("passt"). Formal phase-level verification/completion is the orchestrator's responsibility, not done in this session.
 - Phase 29 (NotchShape Flare) is complete — its own on-device UAT checkpoint (Task 3) already covered all 3 ROADMAP success criteria, so a separate `/gsd:verify-work 29` pass is not needed. Start `/gsd-discuss-phase 30` next.
 - v1.4 is code-complete but not formally closed: 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation — run `/gsd:verify-work` for v1.4 then `/gsd:complete-milestone` whenever convenient (does not block v1.5).
 - v1.6 ROADMAP.md is now created (Phases 35-42, 12/12 requirements mapped) and ready for review — once v1.5 Phase 33/34 work reaches a convenient pause point, start `/gsd-discuss-phase 35` (Liquid Glass Material). First open item: review the user-supplied reference code to decide `.glassEffect()`/macOS 26 bump vs. a 15.0-compatible materials fallback.
