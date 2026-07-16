@@ -102,7 +102,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 - [x] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code (completed 2026-07-16)
 - [x] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes (completed 2026-07-16)
-- [ ] **Phase 37: Drop-Session Summary Chip** - "N files saved" chip after closing Tray, adding the missing shelf-session-boundary concept first
+- [x] **Phase 37: Drop-Session Summary Chip** - ABANDONED after on-device UAT (completed 2026-07-17, reverted 2026-07-17) — see phase detail below
 - [ ] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case
 - [ ] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses
 - [ ] **Phase 40: Update-Available HUD & Sparkle Integration** - Real Sparkle 2 auto-update + update-available HUD/badge
@@ -655,32 +655,33 @@ Plans:
 - [x] 36-04-PLAN.md — Signature heading: static rainbow-gradient design (scope-pivoted from stroke-reveal animation, ONBOARD-04)
 **UI hint**: yes
 
-### Phase 37: Drop-Session Summary Chip
+### Phase 37: Drop-Session Summary Chip — ABANDONED
 
-**Goal**: After the Tray is closed following a drop session, a brief "N files saved" chip appears — first adding the missing "shelf session" boundary concept to `ShelfViewState`/`ShelfCoordinator`, then building the chip itself as a one-shot orthogonal toast reusing the already-shipped Phase-18 song-change-toast pattern.
+**Status**: All 4 plans (37-01/02/03/04) were executed and merged 2026-07-17, then fully reverted the same day after failing on-device UAT (37-04). Reason: the chip's trigger requires the user to explicitly close the Tray after a drop, but in real usage the Island stays open showing the dropped files and isn't closed right away — the trigger condition essentially never fires under normal use. Per user decision, the feature isn't worth keeping; all code was reverted via `git revert` (5 commits, working tree confirmed clean of all `sessionFilesSaved`/`dropSessionChipGate`/`SessionSummaryChip`/`chipDismissWorkItem` traces, build re-verified green). HUD-07 is dropped from the milestone's requirement set.
+
+**Goal** *(as originally planned, not achieved)*: After the Tray is closed following a drop session, a brief "N files saved" chip appears — first adding the missing "shelf session" boundary concept to `ShelfViewState`/`ShelfCoordinator`, then building the chip itself as a one-shot orthogonal toast reusing the already-shipped Phase-18 song-change-toast pattern.
 **Depends on**: Nothing hard — independent of Phases 35-36, though it renders inside whatever material is current.
-**Requirements**: HUD-07
-**Success Criteria** (what must be TRUE):
+**Requirements**: ~~HUD-07~~ (dropped)
+**Success Criteria** (what must be TRUE) — never reached, superseded by abandonment:
   1. `ShelfViewState`/`ShelfCoordinator` track an explicit session boundary (files dropped since Tray was last closed), distinct from today's `isVisible = !items.isEmpty` check.
   2. Closing the Tray after at least one file was dropped during that session briefly shows a chip reading "N files saved," then auto-dismisses.
   3. Closing the Tray with zero files dropped during that session shows no chip.
   4. The chip is implemented as a one-shot `@Published` orthogonal toast (mirroring Phase 18's song-change toast), not a new `IslandResolver`/`TransientQueue` case.
-**Plans**: 4 plans (waves: 1={37-01}, 2={37-02,37-03}, 3={37-04})
-**UI hint**: yes
+**Plans**: 4 plans (waves: 1={37-01}, 2={37-02,37-03}, 3={37-04}) — all executed, then reverted
 
 Plans:
 **Wave 1**
 
-- [ ] 37-01-PLAN.md — Session-boundary pure seams: ShelfCoordinator gross counter/resetSession() + IslandResolver dropSessionChipGate + ShelfViewState SessionSummaryChip/dropSessionChipContent/sessionSummaryChip
+- [x] 37-01-PLAN.md — Session-boundary pure seams: ShelfCoordinator gross counter/resetSession() + IslandResolver dropSessionChipGate + ShelfViewState SessionSummaryChip/dropSessionChipContent/sessionSummaryChip *(reverted)*
 
 **Wave 2** *(blocked on 37-01)*
 
-- [ ] 37-02-PLAN.md — NotchPillView chip rendering: chipTextRow(_:) wired into collapsedIsland and mediaWingsOrToast
-- [ ] 37-03-PLAN.md — NotchWindowController wiring: collapse-trigger (D-01/D-02/D-03/D-06) + interrupt-clear (D-07)
+- [x] 37-02-PLAN.md — NotchPillView chip rendering: chipTextRow(_:) wired into collapsedIsland and mediaWingsOrToast *(reverted)*
+- [x] 37-03-PLAN.md — NotchWindowController wiring: collapse-trigger (D-01/D-02/D-03/D-06) + interrupt-clear (D-07) *(reverted)*
 
 **Wave 3** *(blocked on 37-02, 37-03)*
 
-- [ ] 37-04-PLAN.md — On-device UAT checkpoint (all 4 ROADMAP Success Criteria)
+- [x] 37-04-PLAN.md — On-device UAT checkpoint — FAILED (chip's Tray-close trigger doesn't fire in real usage), phase abandoned and reverted
 
 ### Phase 38: Focus Mode HUD
 

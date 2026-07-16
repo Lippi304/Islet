@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
-stopped_at: Phase 37 context gathered
-last_updated: "2026-07-16T22:17:44.575Z"
-last_activity: 2026-07-16 -- Phase 37 planning complete
+stopped_at: Phase 37 abandoned and reverted after failed on-device UAT
+last_updated: "2026-07-17T00:50:00.000Z"
+last_activity: 2026-07-17 -- Phase 37 executed, failed UAT, fully reverted per user decision
 progress:
   total_phases: 27
-  completed_phases: 16
+  completed_phases: 17
   total_plans: 59
   completed_plans: 53
-  percent: 59
+  percent: 63
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 37 — drop session summary chip
+**Current focus:** Phase 38 — Focus Mode HUD (next up; Phase 37 abandoned)
 
 ## Current Position
 
 Phase: 37
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-16 -- Phase 37 planning complete
+Plan: All 4 plans executed then reverted
+Status: Abandoned — failed on-device UAT, fully reverted, ready to move to Phase 38
+Last activity: 2026-07-17 -- Phase 37 executed (37-01/02/03/04), 37-04 UAT failed, all code reverted per user decision
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,7 +47,7 @@ Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23
 
 Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-32 complete; Phase 33 executing (Plan 1 of 2), Phase 34 not started; left open in parallel with v1.6)
 
-Progress (v1.6): [░░░░░░░░░░] 0% (0/8 phases — ROADMAP.md just created (Phases 35-42, 12/12 requirements mapped), Phase 35 next)
+Progress (v1.6): [███░░░░░░░] 25% (2/8 phases — Phases 35-36 complete, Phase 37 abandoned/reverted (counts as closed, not shipped), Phase 38 next)
 
 ## Performance Metrics
 
@@ -123,6 +123,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 34]: Decision coverage gate override: D-01/D-02/D-03/D-06/D-07/D-08 not explicitly cited (literal `D-NN:`) in 34-01/34-02-PLAN.md must_haves/truths, but plan-checker semantic review confirmed all 6 are implemented (D-01 in 34-01's takeover truth, D-02 in the preview-render truth, D-03 in Task 1's batch-decision test comment, D-06/D-07 in 34-02's `discardPendingDrop()` task + threat model, D-08 as the subject of threat-model row T-34-04/T-34-07). Same pattern as Phase 30; user chose Proceed anyway.
 - [Phase 36]: abs(hasher.finalize()) required before % 1000 reduction in targetHeight(bar:bucket:) — Hasher.finalize() returns a signed Int and Swift's % preserves the dividend's sign, guarding against mapping below the 4...14 floor
 - [Phase 36]: D-14: ONBOARD-04 scope pivot — abandoned per-glyph stroke-reveal animation for a static two-word rainbow-gradient 'Meet Islet' heading (Dancing Script Bold) after repeated stroke-weight tuning friction; user-directed, mirrors Droppy's static 'meet droppy' heading; on-device approved ("passt")
+- [Phase 37]: Phase abandoned in full after 37-04's on-device UAT — the chip's Tray-close trigger requires an explicit user action to close the Tray, but in real usage the Island stays open showing dropped files and isn't closed right away, so the trigger essentially never fires under normal use. User decided the feature isn't worth keeping rather than redesigning the trigger. All 3 implementation plans (37-01/02/03) were reverted via `git revert` (5 commits total including tracking updates), working tree confirmed clean of all chip-related code, build re-verified green. HUD-07 dropped from the v1.6 requirement set.
 
 ### Roadmap Evolution
 
@@ -211,13 +212,14 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-16T21:56:48.873Z
-Stopped at: Phase 37 context gathered
-Resume file: .planning/phases/37-drop-session-summary-chip/37-CONTEXT.md
+Last session: 2026-07-17T00:50:00.000Z
+Stopped at: Phase 37 abandoned and reverted after failed on-device UAT
+Resume file: none — Phase 37 closed out, next up is `/gsd-discuss-phase 38`
 
 ## Operator Next Steps
 
-- Phase 36 (Cosmetic Restyles & Signature Animation) is now fully executed — all 4 plans (36-01, 36-02, 36-03, 36-04) complete. ONBOARD-04's own on-device UAT checkpoint (36-04 Task 3) already covered its ROADMAP success criterion #4 directly ("passt"). Formal phase-level verification/completion is the orchestrator's responsibility, not done in this session.
+- Phase 37 (Drop-Session Summary Chip) is fully abandoned and reverted — all code removed, build re-verified green, ROADMAP.md and this file updated to reflect the closure. HUD-07 dropped from v1.6's requirement set. No further action needed on Phase 37.
+- Start `/gsd-discuss-phase 38` (Focus Mode HUD) next.
+- Phase 36 (Cosmetic Restyles & Signature Animation) is fully executed — all 4 plans (36-01, 36-02, 36-03, 36-04) complete. ONBOARD-04's own on-device UAT checkpoint (36-04 Task 3) already covered its ROADMAP success criterion #4 directly ("passt"). Formal phase-level verification/completion is the orchestrator's responsibility, not done in this session.
 - Phase 29 (NotchShape Flare) is complete — its own on-device UAT checkpoint (Task 3) already covered all 3 ROADMAP success criteria, so a separate `/gsd:verify-work 29` pass is not needed. Start `/gsd-discuss-phase 30` next.
 - v1.4 is code-complete but not formally closed: 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation — run `/gsd:verify-work` for v1.4 then `/gsd:complete-milestone` whenever convenient (does not block v1.5).
-- v1.6 ROADMAP.md is now created (Phases 35-42, 12/12 requirements mapped) and ready for review — once v1.5 Phase 33/34 work reaches a convenient pause point, start `/gsd-discuss-phase 35` (Liquid Glass Material). First open item: review the user-supplied reference code to decide `.glassEffect()`/macOS 26 bump vs. a 15.0-compatible materials fallback.
