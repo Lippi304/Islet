@@ -45,7 +45,10 @@ struct SettingsView: View {
     // accentIndexKey. SwiftUI's native `@AppStorage` overload for any
     // `RawRepresentable where RawValue == String` reads/writes/falls back to
     // the declared default automatically (T-27-06) — no manual Binding needed.
-    @AppStorage(ActivitySettings.materialStyleKey) private var materialStyle: ActivitySettings.MaterialStyle = .gradient
+    // Phase 35 / GLASS-01 (D-06): default flipped .gradient -> .liquidGlass — the
+    // second of the two independently-hardcoded default locations (the other is
+    // ActivitySettings.swift's IslandMaterialStyleKey.defaultValue, Plan 35-01).
+    @AppStorage(ActivitySettings.materialStyleKey) private var materialStyle: ActivitySettings.MaterialStyle = .liquidGlass
     @AppStorage(ActivitySettings.nowPlayingAccentKey) private var nowPlayingAccentIndex = ActivitySettings.defaultAccentIndex
     @AppStorage(ActivitySettings.chargingAccentKey) private var chargingAccentIndex = ActivitySettings.defaultAccentIndex
     @AppStorage(ActivitySettings.deviceAccentKey) private var deviceAccentIndex = ActivitySettings.defaultAccentIndex
@@ -134,6 +137,29 @@ struct SettingsView: View {
                 licenseStatus = LicenseState.shared.status
             }
         }
+        // Phase 35 / GLASS-01 (D-08/D-09) — a separate integration point from the
+        // island shell's `islandFill`: this file has no shader/distortion code at
+        // all. D-08 approved extending Liquid Glass to the Settings window (with
+        // Onboarding explicitly excluded); D-09 calls for the CALMER variant here —
+        // half the island shell's gradient alpha at every stop, a frost material,
+        // and a rim-light stroke, with NO distortion shader (readability risk on a
+        // text-heavy form).
+        .background(
+            ZStack {
+                LinearGradient(
+                    stops: [
+                        .init(color: .black.opacity(0.25), location: 0.0),
+                        .init(color: .black.opacity(0.15), location: 0.65),
+                        .init(color: .black.opacity(0.05), location: 1.0),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                Color.clear.background(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+            }
+        )
         .frame(width: 520, height: 380)
     }
 
@@ -255,6 +281,7 @@ struct SettingsView: View {
                 Picker("Style", selection: $materialStyle) {
                     Text("Gradient").tag(MaterialStyle.gradient)
                     Text("Solid Black").tag(MaterialStyle.solidBlack)
+                    Text("Liquid Glass").tag(MaterialStyle.liquidGlass)
                 }
                 .pickerStyle(.segmented)
             }
