@@ -628,7 +628,7 @@ Plans:
 
 **Wave 9 (remediation round 4)** *(blocked on nothing new — restructures 35-09's already-merged code)*
 
-- [ ] 35-11-PLAN.md — Mask the 3 chromatic-fringe passes + white-wash overlay to the shared liquidGlassEdgeOpacity falloff via a new liquidGlassRimMask helper (D-16/D-17/D-18) — no `.metal`/parameter-file changes, reuses liquidGlassEdgeOpacity as-is with mask-only arguments
+- [x] 35-11-PLAN.md — Mask the 3 chromatic-fringe passes + white-wash overlay to the shared liquidGlassEdgeOpacity falloff via a new liquidGlassRimMask helper (D-16/D-17/D-18) — no `.metal`/parameter-file changes, reuses liquidGlassEdgeOpacity as-is with mask-only arguments
 
 **Wave 10 (remediation round 4)** *(blocked on 35-11)*
 
