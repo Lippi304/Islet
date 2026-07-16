@@ -646,7 +646,13 @@ Plans:
   2. The Charging activity visually matches the Droppy-pill restyle; the existing IOKit power monitor is unchanged.
   3. The Now Playing equalizer bars render the user-supplied reference visual design with no change to the underlying playback data or monitor.
   4. The onboarding flow's first page shows a live handwritten-signature-style reveal animation (distinct color, script styling) replacing the "Welcome to Islet" text — scoped to that one page only, the rest of the app's typography is unaffected.
-**Plans**: TBD
+**Plans**: 4 plans (waves: 1={36-01,36-03}, 2={36-02}, 3={36-04})
+
+Plans:
+- [ ] 36-01-PLAN.md — Charging + Bluetooth Droppy-pill wing restyle (HUD-01, HUD-02)
+- [ ] 36-02-PLAN.md — Equalizer bars motion/geometry redesign + Skiper UI attribution (EQ-01)
+- [ ] 36-03-PLAN.md — Signature font (OFL) + Core Text glyph-extraction contract (ONBOARD-04)
+- [ ] 36-04-PLAN.md — Signature stroke-reveal animation + onboarding wiring (ONBOARD-04)
 **UI hint**: yes
 
 ### Phase 37: Drop-Session Summary Chip
