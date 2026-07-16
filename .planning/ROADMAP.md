@@ -588,7 +588,7 @@ Plans:
   2. The new material is applied as a modifier on the existing shape node that already carries the `matchedGeometryEffect` id — not a new sibling/wrapper view — so morph continuity is preserved.
   3. A Phase-25-style on-device UAT checklist (material renders correctly through collapse↔expand, no artifacts, no dropped frames) passes as a hard merge gate.
   4. The visual result is user-approved on-device against the supplied reference code.
-**Plans**: 5 plans
+**Plans**: 8 plans (35-05 rejected on-device — flat opaque grey, no transparency; superseded by remediation plans 35-06/35-07/35-08 per 35-CONTEXT.md D-10/D-11)
 **UI hint**: yes
 
 Plans:
@@ -604,7 +604,19 @@ Plans:
 
 **Wave 3** *(blocked on 35-03, 35-04)*
 
-- [ ] 35-05-PLAN.md — On-device UAT hard merge gate (Success Criteria #3/#4)
+- [x] 35-05-PLAN.md — On-device UAT hard merge gate, round 1 (Success Criteria #3/#4) — **REJECTED** (flat opaque grey, no visible warp/transparency; see 35-UAT.md Test 1) — root cause D-02 superseded by D-10/D-11, remediated by 35-06/35-07/35-08 below
+
+**Wave 4 (remediation)** *(blocked on 35-02)*
+
+- [ ] 35-06-PLAN.md — liquidGlassEdgeFalloff shared helper + liquidGlassEdgeOpacity colorEffect shader (D-11) + retuned LiquidGlassParameters (D-10/D-11)
+
+**Wave 5 (remediation)** *(blocked on 35-06, 35-03)*
+
+- [ ] 35-07-PLAN.md — islandFill + liquidGlassEffectLayer translucent-material wiring (D-10/D-11)
+
+**Wave 6 (remediation)** *(blocked on 35-06, 35-07)*
+
+- [ ] 35-08-PLAN.md — On-device UAT hard merge gate, round 2 (Success Criteria #3/#4) — supersedes rejected 35-05
 
 ### Phase 36: Cosmetic Restyles & Signature Animation
 
