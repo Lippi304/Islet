@@ -229,3 +229,65 @@ Before asking, code was inspected (`NotchPillView.swift` `islandFill` line 276, 
 ## Deferred Ideas (round 3)
 
 None.
+
+---
+---
+
+# Revision Session — 2026-07-16 (Round 4, Post Round-3-UAT Pivot)
+
+**Trigger:** On-device UAT of the 35-10 checkpoint rejected the round-3 implementation (`35-UAT.md` Test 1 Round 3) — user reported "Es ist immer noch so komisch silbern und nichts in Richtung liquid glass." (still oddly silvery, nothing like liquid glass); screenshot showed a uniform, medium-grey/silvery panel across the whole surface, no dark near-opaque center, no clear rim contrast.
+
+**Areas discussed:** Fringe/wash fix approach, White wash overlay fate, Fringe visibility after masking, Verification strategy
+
+---
+
+## Fringe/wash fix approach
+
+Before asking, code was inspected (`NotchPillView.swift:304-368`, `liquidGlassEffectLayer`) to confirm the round-3 root cause: the 3 RGB fringe passes (lines ~333-359) and the trailing white-wash overlay (line ~362) render across the whole shape unmasked, each using or layered atop `.blendMode(.screen)` — which can only lighten, so both wash the entire surface (including the frost layer's dark center) toward grey.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Mask fringe+wash to rim band (empfohlen) | Multiply fringe/wash alpha by the same `liquidGlassEdgeOpacity` falloff the frost layer already uses | ✓ |
+| Switch blend mode | Replace `.screen` with `.normal`/`.multiply` so darkening is possible | |
+| Just reduce opacity further | Keep `.screen` full-surface, tune `fringeOpacity`/`backgroundOpacity` down | |
+
+**User's choice:** Mask fringe+wash to rim band (empfohlen).
+**Notes:** Captured as D-16 in CONTEXT.md. Reuses the existing edge-falloff mechanism rather than introducing a new blend mode or leaving the structural flaw in place at lower opacity.
+
+## White wash overlay fate
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Keep it, masked to rim (empfohlen) | Once masked, reads as a subtle glossy rim highlight | ✓ |
+| Drop it entirely | Remove the wash; frost/rim + fringe carry the "glass" signal alone | |
+
+**User's choice:** Keep it, masked to rim (empfohlen).
+**Notes:** Captured as D-17 in CONTEXT.md.
+
+## Fringe visibility after masking
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Subtle is fine, keep narrow rim (empfohlen) | Don't revisit D-14; tune `fringeOpacity` up within the existing rim if too faint | ✓ |
+| Widen the rim now | Proactively widen the rim band to keep fringe visible, revisiting D-14 | |
+
+**User's choice:** Subtle is fine, keep narrow rim (empfohlen).
+**Notes:** Captured as D-18 in CONTEXT.md. Prioritizes D-14's dark-center/narrow-rim contrast over fringe prominence.
+
+## Verification strategy
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Ship the full fix, one UAT round (empfohlen) | Narrow, mechanical fix — lower regression risk than rounds 1-3's architecture changes | ✓ |
+| Add an intermediate frost-only checkpoint first | Temporarily disable fringe/wash, verify frost/rim alone on-device, then re-enable and verify again | |
+
+**User's choice:** Ship the full fix, one UAT round (empfohlen).
+**Notes:** Captured as D-19 in CONTEXT.md.
+
+## Claude's Discretion (round 4)
+
+- Exact mechanism for D-16's masking (reusing the `liquidGlassEdgeOpacity` colorEffect directly vs. a separate mask texture) — planner's call based on what fits the existing shader structure most cleanly.
+
+## Deferred Ideas (round 4)
+
+None.

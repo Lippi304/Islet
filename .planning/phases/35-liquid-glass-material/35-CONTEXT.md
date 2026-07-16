@@ -3,7 +3,8 @@
 **Gathered:** 2026-07-15
 **Revised (round 2):** 2026-07-16 — on-device UAT rejected the first implementation (35-05 checkpoint: "Ne gefällt mir überhaupt nicht... nicht jetzt einfach Grau sein ohne dass man durchgucken kann", see `35-UAT.md`). This revision pivoted D-02 from an opaque-gradient-base to a real translucent material base (D-10/D-11).
 **Revised (round 3):** 2026-07-16 — round 2's shipped fix (35-06/35-07: raw `.ultraThinMaterial` base) was ALSO rejected on-device (35-08 checkpoint: "Es ist immer noch so hell.", see `35-UAT.md` Test 1 Round 2). Root cause: `.ultraThinMaterial` is a vibrancy material with no inherent dark tint — both `islandFill`'s `.liquidGlass` branch AND the overlay's own base fill are the same bright, backdrop-adapting material, so the edge-opacity ramp only modulates alpha between two identically-bright layers. D-10/D-11 are superseded by D-12/D-13/D-14 below. D-01/D-03/D-04/D-05/D-06/D-07/D-08/D-09 remain unaffected and still apply as originally decided below.
-**Status:** Ready for replanning (round 3)
+**Revised (round 4):** 2026-07-16 — round 3's shipped fix (35-09: dark frost layer + edge-opacity ramp, D-12/D-13/D-14/D-15) was ALSO rejected on-device (35-10 checkpoint: "Es ist immer noch so komisch silbern und nichts in Richtung liquid glass.", see `35-UAT.md` Test 1 Round 3). Root cause: the 3 chromatic-fringe passes and the trailing white-wash overlay are composited across the WHOLE surface (not masked to any region) using `.blendMode(.screen)`, which can only lighten — so regardless of how dark the frost layer's center is tuned, the fringe+wash push the entire surface (center included) toward a lighter, washed-out grey, flattening the dark-center/narrow-rim contrast D-12/D-13/D-14/D-15 intended. D-01/D-03/D-04/D-05/D-06/D-07/D-08/D-09/D-12/D-13/D-14/D-15 remain unaffected and still apply as originally decided below — this round adds D-16 through D-19, it does not supersede the frost/rim architecture.
+**Status:** Ready for replanning (round 4)
 
 <domain>
 ## Phase Boundary
@@ -50,9 +51,18 @@ User rejected the round-2 build (`35-UAT.md` Test 1 Round 2): *"Es ist immer noc
 - **D-08 (scope extension beyond ROADMAP.md's literal Success Criterion #1 wording):** Liquid Glass material scope for this phase extends beyond "pill + expanded island + 3 activity wings" to also include the **Settings window background** — user explicitly requested this addition during discussion. Downstream planner should treat this as an approved, intentional extension, not an omission to flag back. Onboarding flow is explicitly NOT included (not requested).
 - **D-09:** The Settings window gets only the calmer half of the technique — `.ultraThinMaterial`-style blur/frost + the same gradient direction + a rim-light stroke highlight — WITHOUT the distortion shader. Rationale: Settings shows text/forms where per-pixel warping is a readability risk; the island shell is where the full effect belongs.
 
+### Fringe/Wash Masking — Round 4 (Post Round-3-UAT Pivot — 2026-07-16)
+User rejected the round-3 build (`35-UAT.md` Test 1 Round 3): *"Es ist immer noch so komisch silbern und nichts in Richtung liquid glass."* — screenshot showed a uniform, medium-grey/silvery panel across the whole surface, no dark near-opaque center, no clear rim contrast. Confirmed root cause via code inspection (`NotchPillView.swift:304-368`, `liquidGlassEffectLayer`): the 3 RGB fringe passes (lines ~333-359) and the trailing `.overlay(Color.white.opacity(parameters.backgroundOpacity))` wash (line ~362) apply across the ENTIRE shape with no masking of their own — `.blendMode(.screen)` on the fringe passes can only lighten (`result = 1-(1-a)(1-b)`), so both layers wash the whole surface (center included) toward grey regardless of how dark the frost layer underneath is tuned.
+
+- **D-16:** Mask the fringe passes AND the white wash to the SAME edge-opacity falloff the frost layer already uses (the `liquidGlassEdgeOpacity` colorEffect / `edgeDist` band-falloff from `LiquidGlassShader.metal`) — multiply each layer's own alpha by that falloff so both only render within the narrow rim band, never over the dark center. Chosen over switching blend mode away from `.screen` (would change the fringe's visual character and need fresh on-device opacity tuning) and over just reducing `fringeOpacity`/`backgroundOpacity` further (leaves the structural flaw in place — same washout risk at any nonzero opacity). Reuses the existing single source-of-truth falloff, no new shader technique.
+- **D-17:** Keep the white-wash overlay (masked per D-16, not removed) — once confined to the rim it reads as a subtle glossy highlight alongside the fringe rather than a whole-surface lightener, and keeping it is free once the masking mechanism is shared with the fringe passes.
+- **D-18:** Do not widen D-14's rim band to compensate for the fringe becoming subtler once masked. If the chromatic fringe reads as too faint after masking, tune `fringeOpacity` upward within the existing narrow rim during on-device tuning — the dark-center/narrow-rim contrast from `reference-transparency-target.png` (D-14's whole point) takes priority over fringe prominence.
+- **D-19 (verification strategy):** Ship the full D-16/D-17 fix and verify with one on-device UAT round (same 7-step checklist as 35-08/35-10), no intermediate frost-only checkpoint. Rationale: this round's fix is a narrow, mechanical change (mask 2 existing layers to an already-shipped falloff) rather than a new architecture like rounds 1-3 each were — lower regression risk than previous rounds.
+
 ### Claude's Discretion
 - Exact numeric tuning of shader parameters (displacement scale, per-channel offset delta, edge-band width, blur-before-displace) — the reference component's web-scale defaults (200-400pt) don't map directly to Islet's much smaller pill/wing dimensions; these need on-device tuning during execution, following the *relationships* documented in `reference-GlassSurface.md`, not literal pixel values.
 - Whether the collapsed-pill distortion scaling (D-04) is implemented as a continuous size-driven parameter or a simple binary on/off switch between states — planner's call based on what's cheapest to build correctly.
+- Exact mechanism for D-16's masking (e.g., reusing the `liquidGlassEdgeOpacity` colorEffect directly on the fringe/wash layers vs. precomputing a separate mask texture) — planner's call based on what fits the existing shader structure most cleanly.
 
 </decisions>
 
@@ -73,12 +83,14 @@ User rejected the round-2 build (`35-UAT.md` Test 1 Round 2): *"Es ist immer noc
 ### State/open items being resolved by this discussion
 - `.planning/STATE.md` line 150 (Liquid Glass reference-code/deployment-target open item — resolved by D-01) and line 151 (expand-animation regression — resolved by D-07).
 - `.planning/phases/35-liquid-glass-material/35-UAT.md` Test 1 — the round-1 on-device rejection; resolved (then superseded) by D-10/D-11.
-- `.planning/phases/35-liquid-glass-material/35-UAT.md` Test 1 Round 2 / `35-08-SUMMARY.md` — the round-2 on-device rejection ("Es ist immer noch so hell") that triggered THIS revision; resolved by D-12/D-13/D-14.
+- `.planning/phases/35-liquid-glass-material/35-UAT.md` Test 1 Round 2 / `35-08-SUMMARY.md` — the round-2 on-device rejection ("Es ist immer noch so hell") that triggered the round-3 revision; resolved by D-12/D-13/D-14.
+- `.planning/phases/35-liquid-glass-material/35-UAT.md` Test 1 Round 3 — the round-3 on-device rejection ("Es ist immer noch so komisch silbern...") that triggered THIS revision; resolved by D-16/D-17/D-18/D-19.
 
-### Existing (round-2 attempt) implementation — read before replanning
-- `Islet/Notch/LiquidGlassShader.swift` / `Islet/Notch/LiquidGlassShader.metal` — the D-01 warp shader from Plans 35-01/35-02, including the `liquidGlassEdgeOpacity` colorEffect from Plan 35-07. Warp math still correct; the edge-falloff logic is reusable for D-13, just needs to drive a different layer's alpha.
-- `Islet/Notch/NotchPillView.swift:263-278` — `islandFill`. The `.liquidGlass` branch (currently line 276: `AnyShapeStyle(.ultraThinMaterial)`) needs to become the D-12 solid dark frost base instead of raw material.
-- `Islet/Notch/NotchPillView.swift:306-360` — `liquidGlassEffectLayer`. Currently: base fill is `.ultraThinMaterial` (line 315) with `liquidGlassEdgeOpacity` ramping that same layer's alpha (lines 320-333). Per D-12/D-13, this needs restructuring so the translucent material/backdrop is the layer being REVEALED (at low frost-opacity, i.e. at the edge) rather than the layer whose own alpha is ramped directly — a solid dark frost fill needs to sit in the stack with its alpha driven (inverted) by the same edge falloff.
+### Existing (round-3 attempt) implementation — read before replanning
+- `Islet/Notch/LiquidGlassShader.swift` / `Islet/Notch/LiquidGlassShader.metal` — the D-01 warp shader, including the `liquidGlassEdgeOpacity` colorEffect that already implements the edge-band falloff. This is the SAME falloff D-16 needs applied to the fringe/wash layers — no new shader technique needed, just reuse.
+- `Islet/Notch/NotchPillView.swift:263-279` — `islandFill`. The `.liquidGlass` branch (line 277) already returns `Self.gradientMaterial` per D-12 — unchanged by round 4.
+- `Islet/Notch/NotchPillView.swift:304-368` — `liquidGlassEffectLayer`. Current round-3 layering (unaffected lines unchanged): base `.ultraThinMaterial` warp (313-317), frost layer with `liquidGlassEdgeOpacity` ramp (318-332, D-12/D-13 — stays as-is). **Round-4 target lines:** the 3 RGB fringe passes (333-359, each `.blendMode(.screen)`) and the trailing `.overlay(Color.white.opacity(parameters.backgroundOpacity))` wash (362) — per D-16, both need their own alpha multiplied by the same edge-opacity falloff the frost layer (318-332) already computes, so they only render within the rim band.
+- `Islet/Notch/NotchPillView.swift:300-302` comment (in-code note left by Plan 35-09) already flags the white wash as "untouched by this plan and is a candidate to reduce further" — confirms round 3's own author anticipated this needing revisit; D-16/D-17 resolve it.
 - `Islet/Notch/NotchPanel.swift:9-18` — confirms the window is already `isOpaque = false` / `backgroundColor = .clear`; no window-level change needed.
 
 </canonical_refs>
@@ -121,6 +133,12 @@ User rejected the round-2 build (`35-UAT.md` Test 1 Round 2): *"Es ist immer noc
 - User pointed to their own reference component's dark-mode CSS (`reference-GlassSurface.md`) as the precedent for how to actually darken it: a solid black `--glass-frost` overlay composited on top of the blurred backdrop, not a tint applied to the material itself — this directly grounds D-12.
 - User confirmed: narrow rim-bleed width (D-14) over a broader soft gradient, and that Liquid Glass's center is allowed to be exactly as dark as Solid Black (D-15) — the warp+fringe effect is a sufficient visual differentiator on its own, no artificial extra transparency needed in the center.
 
+### Post-UAT Pivot — Round 4 (2026-07-16)
+- User's rejection, verbatim: *"Es ist immer noch so komisch silbern und nichts in Richtung liquid glass."* — screenshot showed a uniform, medium-grey/silvery panel across the whole surface (no dark near-opaque center, no clear rim contrast), despite round 3's frost-layer fix being live.
+- Confirmed during this revision (code inspection, not a new bug): the fringe passes' `.blendMode(.screen)` plus the trailing white wash apply unmasked across the whole shape — `.screen` can only lighten, so they wash the entire surface (including the frost layer's dark center) toward grey, independent of how the frost's own opacity is tuned.
+- User chose to mask the fringe/wash to the SAME falloff the frost layer already uses (D-16) over switching blend modes or just tuning opacity down — reuses the existing mechanism rather than introducing a new one, and directly targets the structural cause rather than papering over it with lower numbers.
+- User confirmed: keep the white wash (masked, D-17); don't widen the rim to compensate for a subtler fringe (D-18) — subtlety is fine, tune fringe opacity up within the existing narrow rim if needed; ship the fix as one on-device UAT round rather than adding an intermediate frost-only checkpoint (D-19) — this fix is narrower/lower-risk than rounds 1-3's architecture changes.
+
 </specifics>
 
 <deferred>
@@ -133,4 +151,4 @@ None — discussion stayed within phase scope (the one scope extension, Settings
 ---
 
 *Phase: 35-Liquid Glass Material*
-*Context gathered: 2026-07-15, revised 2026-07-16 (round 2), revised 2026-07-16 (round 3)*
+*Context gathered: 2026-07-15, revised 2026-07-16 (round 2), revised 2026-07-16 (round 3), revised 2026-07-16 (round 4)*
