@@ -1,25 +1,27 @@
 import XCTest
 @testable import Islet
 
-// Item 6 (D-03/D-06): EqualizerBars.makeProfiles() is the pure factory extracted so the
-// random per-bar profile can be seeded once via @State instead of re-rolled on every
-// parent re-render. The "stays stable across SwiftUI re-renders" invariant itself isn't
-// unit-testable via XCTest without ViewInspector — it's verified on-device (Task 2). Here
-// we only sanity-check the extracted factory's shape and value ranges.
+// EQ-01/D-07/D-08: EqualizerBars.targetHeight(bar:bucket:) is the pure factory that replaced
+// the old per-bar sine-profile model with a periodic reroll-and-spring one (Phase 36). It's
+// `internal` (not `private`) so this file can call it directly under `@testable import` —
+// same testability precedent the old makeProfiles() established. The "bars actually spring
+// on-screen every ~100ms" behavior itself isn't unit-testable via XCTest without
+// ViewInspector — verified on-device (Task 3). Here we only sanity-check the factory's range
+// and determinism contract.
 final class EqualizerBarsTests: XCTestCase {
 
-    func testMakeProfilesReturnsBarCountProfiles() {
-        let profiles = EqualizerBars.makeProfiles()
-        XCTAssertEqual(profiles.count, 5, "makeProfiles() must return exactly EqualizerBars.barCount profiles.")
+    func testTargetHeightIsWithinExpectedRange() {
+        for bar in 0..<5 {
+            for bucket in 0..<50 {
+                let height = EqualizerBars.targetHeight(bar: bar, bucket: bucket)
+                XCTAssertTrue((4.0...14.0).contains(height), "targetHeight(bar: \(bar), bucket: \(bucket)) = \(height) must be in 4.0...14.0")
+            }
+        }
     }
 
-    func testMakeProfilesValuesAreWithinExpectedRanges() {
-        let profiles = EqualizerBars.makeProfiles()
-        for profile in profiles {
-            XCTAssertTrue((3...6).contains(profile.low), "low must be in 3...6, got \(profile.low)")
-            XCTAssertTrue((10...16).contains(profile.high), "high must be in 10...16, got \(profile.high)")
-            XCTAssertTrue((0.55...1.05).contains(profile.period), "period must be in 0.55...1.05, got \(profile.period)")
-            XCTAssertTrue((0...1).contains(profile.phase), "phase must be in 0...1, got \(profile.phase)")
-        }
+    func testTargetHeightIsDeterministic() {
+        let first = EqualizerBars.targetHeight(bar: 2, bucket: 7)
+        let second = EqualizerBars.targetHeight(bar: 2, bucket: 7)
+        XCTAssertEqual(first, second, "targetHeight(bar:bucket:) must return the same value for the same (bar, bucket) pair.")
     }
 }

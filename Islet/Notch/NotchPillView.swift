@@ -2057,7 +2057,7 @@ struct NotchPillView: View {
             artThumbnail(art, side: Self.wingsSize.height - 8, corner: 6)  // LEFT wing
                 .padding(.leading, 22)   // inset from the outer notch edge (user request)
             Spacer()                                            // clears the physical camera bridge
-            EqualizerBars(isPlaying: isPlaying, tint: nowPlayingAccent)  // RIGHT wing — D-02 bars (D-11 accent)
+            EqualizerBars(isPlaying: isPlaying)  // RIGHT wing — EQ-01 bars, fixed white (no accent)
                 .padding(.trailing, 24)  // inset from the outer notch edge (user request)
         }
         .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
@@ -2276,7 +2276,7 @@ struct NotchPillView: View {
                                 .truncationMode(.tail)
                         }
                         Spacer(minLength: 6)
-                        EqualizerBars(isPlaying: isPlaying, tint: nowPlayingAccent)   // D-11 accent on the bars
+                        EqualizerBars(isPlaying: isPlaying)   // EQ-01 bars, fixed white (no accent)
                             .frame(height: 40)    // center the bars vertically against the art row (like the collapsed wing) — not top-hanging
                     }
                     // Finding 15 (06-10): tap-to-toggle scoped ONLY to this non-button top row
@@ -2404,31 +2404,23 @@ struct NotchPillView: View {
     }
 }
 
-// D-02/D-03/D-04/D-05 — the decorative equalizer bars (the FIRST and ONLY continuous
-// animation in the app). Synthetic/decorative, NOT audio-reactive (D-03). The heights
-// animate up/down on a repeatForever autoreversing animation driven by a single `animate`
-// flag bound to `isPlaying`.
+// EQ-01 (Phase 36) — the decorative equalizer bars, redesigned to the Skiper25 reference
+// motion (reference-skiper25-equalizer.md): instead of a continuous per-bar sine wave, all
+// 5 bars reroll to new random target heights roughly every 100ms and spring-animate to each
+// new target simultaneously — a snappier, more percussive "jump" feel. Synthetic/decorative,
+// NOT audio-reactive.
 //
-// ⚠️ THE IDLE-CPU TRAP (D-04 / Pitfall 5): the `.animation(...)` MUST be CONDITIONAL on
-// `isPlaying`. When not playing it passes a FINITE `.default` animation — NOT a left-on
-// `.repeatForever`. A `.repeatForever` left attached keeps SwiftUI's render loop / display
-// link alive even when the bars look static, so idle CPU never returns to ~0. Swapping to a
-// finite animation when paused removes the repeating clock entirely (verified on-device in
-// Plan 04 UAT via `sample` / Energy idle).
+// ⚠️ THE IDLE-CPU TRAP (D-08 / Pitfall 5, preserved verbatim from the prior sine
+// implementation): `TimelineView(.animation(paused: !isPlaying))` MUST stay the outer clock
+// gate. It ticks each frame while playing and STOPS ENTIRELY when paused — no Timer, no
+// running clock — so idle CPU returns to ~0 the instant playback pauses. Do NOT swap this
+// for an unconditional `.repeatForever` or a live `Timer`; that was the exact regression
+// this struct was originally built to avoid (verified on-device in Plan 04 UAT via `sample`
+// / Energy idle).
 struct EqualizerBars: View {
-    let isPlaying: Bool                 // D-04: the SINGLE gate
+    let isPlaying: Bool                 // D-08: the SINGLE gate
     var tint: Color = .white
     private static let barCount = 5     // discretion: 3–5
-
-    // Per-bar RANDOM profile, seeded ONCE per view IDENTITY via @State's initial-value
-    // expression (held stable for the view's lifetime; re-renders don't reshuffle it).
-    // @State's initial value evaluates exactly once per identity — NOT once per struct
-    // construction — which is what actually delivers this stability: a plain stored `let`
-    // does NOT, because SwiftUI reconstructs the struct (re-running its init) on every
-    // parent re-render. Each bar oscillates between its OWN random low/high height on its
-    // OWN random period + phase offset, so the bars pulse INDEPENDENTLY (random-looking)
-    // instead of a uniform left-to-right sweep.
-    @State private var profiles: [(low: CGFloat, high: CGFloat, period: Double, phase: Double)] = EqualizerBars.makeProfiles()
 
     // Fixed box, CENTER-anchored: each bar is vertically centered and grows OUTWARD from the
     // middle (both up AND down) as its height changes — not pinned to a bottom baseline. The
@@ -2437,44 +2429,39 @@ struct EqualizerBars: View {
     private let boxHeight: CGFloat = 16
 
     // internal (not private): EqualizerBarsTests.swift calls this directly to sanity-check
-    // the extracted factory — `private` is file-scoped and would not compile from another
-    // file even under @testable import.
-    static func makeProfiles() -> [(low: CGFloat, high: CGFloat, period: Double, phase: Double)] {
-        (0..<barCount).map { _ in
-            (low: CGFloat.random(in: 3...6),
-             high: CGFloat.random(in: 10...16),
-             period: Double.random(in: 0.55...1.05),   // seconds per full up-down cycle
-             phase: Double.random(in: 0...1))          // 0..1 of a cycle → bars out of sync
-        }
+    // the range/determinism contract — `private` is file-scoped and would not compile from
+    // another file even under @testable import (same precedent the old makeProfiles() used).
+    //
+    // Combines `bar`/`bucket` through a Hasher into one deterministic pseudo-random value
+    // mapped into 4...14. `abs()` is required, not optional: Hasher.finalize() returns a
+    // signed Int, and Swift's `%` preserves the dividend's sign, so a negative hash would
+    // otherwise produce a negative remainder and map below the 4...14 floor.
+    static func targetHeight(bar: Int, bucket: Int) -> CGFloat {
+        var hasher = Hasher()
+        hasher.combine(bucket)
+        hasher.combine(bar)
+        let bucketed = abs(hasher.finalize()) % 1000
+        return 4 + Double(bucketed) / 1000.0 * 10
     }
 
     // TIME-DRIVEN (not @State-driven) so the loop is IMMUNE to ambient withAnimation(.spring)
-    // transactions — e.g. the hover spring the controller runs, which previously overrode the
+    // transactions — e.g. the hover spring the controller runs, which previously overrode a
     // state-based repeatForever and FROZE the bars on hover. TimelineView(.animation, paused:
-    // !isPlaying) ticks each frame while playing and STOPS entirely when paused (no clock → idle
-    // CPU ~0, D-04 / Pitfall 5). Each bar's height is a sine of the frame time, so a hover
-    // re-render can't interrupt it.
+    // !isPlaying) ticks each frame while playing and STOPS entirely when paused (no clock →
+    // idle CPU ~0, D-08 / Pitfall 5). `bucket` increments every ~100ms while playing, and the
+    // per-bar `.animation(value: bucket)` springs every bar to its new targetHeight in sync.
     var body: some View {
         TimelineView(.animation(paused: !isPlaying)) { context in
             let t = context.date.timeIntervalSinceReferenceDate
-            HStack(alignment: .center, spacing: 2) {
+            let bucket = Int(t / 0.1)   // D-07: ~100ms reroll interval
+            HStack(alignment: .center, spacing: 4) {
                 ForEach(0..<Self.barCount, id: \.self) { i in
-                    Capsule()
-                        .fill(tint)
-                        .frame(width: 2.5, height: height(i, at: t))
+                    Capsule().fill(tint).frame(width: 1, height: isPlaying ? Self.targetHeight(bar: i, bucket: bucket) : 4)
+                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: bucket)
                 }
             }
             .frame(height: boxHeight)
         }
-    }
-
-    // Per-bar height from the frame time: an independent sine (own period + phase) between low and
-    // high while playing; the settled low height when paused (so paused bars are flat + clock-free).
-    private func height(_ i: Int, at t: TimeInterval) -> CGFloat {
-        let p = profiles[i]
-        guard isPlaying else { return p.low }
-        let frac = sin((t / p.period + p.phase) * 2 * .pi) * 0.5 + 0.5   // 0...1
-        return p.low + (p.high - p.low) * frac
     }
 }
 
