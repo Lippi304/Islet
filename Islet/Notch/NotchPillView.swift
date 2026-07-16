@@ -1926,10 +1926,22 @@ struct NotchPillView: View {
         }
         return wingsShape {
             HStack(spacing: 0) {
-                Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (charging cue)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isCharging ? Color.green : Color.white.opacity(0.6))
-                    .padding(.leading, 12)
+                // Round N (HUD-02 Droppy restyle, D-02/D-03/D-04) — left wing gains an
+                // icon+label pairing shown only in the positive (charging) state; the
+                // 12pt leading padding moves from the icon onto this wrapping HStack so
+                // total left inset stays 12pt.
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (charging cue)
+                        .font(.system(size: 13, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(isCharging ? Color.green : Color.white.opacity(0.6))
+                    if isCharging {
+                        Text("Charging")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding(.leading, 12)
                 Spacer()                                             // clears the physical camera bridge
                 BatteryIndicator(level: percent, accent: chargingAccent)     // RIGHT — same indicator as the device glance
                     .padding(.trailing, 14)
