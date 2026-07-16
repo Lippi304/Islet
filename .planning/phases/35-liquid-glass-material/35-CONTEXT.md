@@ -155,7 +155,10 @@ None — discussion stayed within phase scope (the one scope extension, Settings
 
 </deferred>
 
+### Known Limitation — Deferred (not blocking)
+`.planning/debug/resolved/liquid-glass-black-during-transition.md` (2026-07-16): the native rim glass (D-20/D-20a) briefly shows flat black instead of live glass during transitions (collapse↔expand, tab switches) — likely because SwiftUI's bare `.glassEffect()` has no documented support for morphing across the view identity churn caused by the top-level `switch presentation` recreating the glass view on every case change. A `GlassEffectContainer`/`.glassEffectID` fix was attempted and reverted — it caused a worse regression (the whole island frosted permanently instead of just the rim). Settled/idle state is correct and user-confirmed; only the brief in-transition flicker remains. User explicitly accepted this as a known cosmetic limitation rather than risk another regression — revisit if a safer fix approach is found.
+
 ---
 
 *Phase: 35-Liquid Glass Material*
-*Context gathered: 2026-07-15, revised 2026-07-16 (round 2), revised 2026-07-16 (round 3), revised 2026-07-16 (round 4)*
+*Context gathered: 2026-07-15, revised 2026-07-16 (round 2), revised 2026-07-16 (round 3), revised 2026-07-16 (round 4), revised 2026-07-16 (round 5 — native glassEffect pivot + deferred transition-flicker limitation)*
