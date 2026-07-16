@@ -79,6 +79,7 @@
 		A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */; };
 		A8AF3A084971A06380D41ECC /* ShelfItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */; };
 		AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63FACDF43375E1DE88646B05 /* DragDropSupport.swift */; };
+		B2ADB08E18FABDBA8931EA42 /* FocusActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB884D12561F8F8110F1DB63 /* FocusActivity.swift */; };
 		B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */; };
 		B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72C119AE687341C28E9786C /* NSScreen+Notch.swift */; };
 		B8DE8D9FDE9ABC0AA193D43C /* DragDropSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */; };
@@ -208,6 +209,7 @@
 		AEB2764F70C53D7D72B4AC4A /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivityTests.swift; sourceTree = "<group>"; };
 		B94FF8FB96D00B8442591E7B /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
+		BB884D12561F8F8110F1DB63 /* FocusActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusActivity.swift; sourceTree = "<group>"; };
 		BD8C607878B62D262514A41D /* QuickActionSharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionSharingService.swift; sourceTree = "<group>"; };
 		BEFCAF742543C37096D4F714 /* BatteryIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryIndicator.swift; sourceTree = "<group>"; };
 		C2E70A8667DE9528FD2F0CFB /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
@@ -405,6 +407,7 @@
 				FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */,
 				63FACDF43375E1DE88646B05 /* DragDropSupport.swift */,
 				C75C7435C3C840FC929C873C /* DropInterceptTap.swift */,
+				BB884D12561F8F8110F1DB63 /* FocusActivity.swift */,
 				885DB8C610716B7530D89BDB /* FullscreenDetector.swift */,
 				71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */,
 				0EEA35677CE1730669284423 /* IslandPresentationState.swift */,
@@ -552,6 +555,7 @@
 				C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */,
 				AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */,
 				73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */,
+				B2ADB08E18FABDBA8931EA42 /* FocusActivity.swift in Sources */,
 				8CEEBDB51AC0041BDC1306AC /* FullscreenDetector.swift in Sources */,
 				6E7588C0E74ED25E45E3F1AE /* FullscreenSpaceProbe.swift in Sources */,
 				1C34C1BD974D50396F6713F0 /* IslandPresentationState.swift in Sources */,
