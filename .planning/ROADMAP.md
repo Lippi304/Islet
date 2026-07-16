@@ -671,7 +671,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [x] 37-01-PLAN.md — Session-boundary pure seams: ShelfCoordinator gross counter/resetSession() + IslandResolver dropSessionChipGate + ShelfViewState SessionSummaryChip/dropSessionChipContent/sessionSummaryChip
+- [ ] 37-01-PLAN.md — Session-boundary pure seams: ShelfCoordinator gross counter/resetSession() + IslandResolver dropSessionChipGate + ShelfViewState SessionSummaryChip/dropSessionChipContent/sessionSummaryChip
 
 **Wave 2** *(blocked on 37-01)*
 
