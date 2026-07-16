@@ -14,6 +14,8 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current State
 
+**Phase 35 (Liquid Glass Material, GLASS-01) shipped 2026-07-16** — v1.6's first phase. See "Current Milestone: v1.6" and Requirements → Validated below.
+
 **v1.3 Notch Shelf shipped 2026-07-11 with a known gap** (Phases 19-21, see `.planning/milestones/v1.3-ROADMAP.md`). 7 of 9 v1.3 requirements shipped and on-device verified: the shelf data model, the full shelf view (icons, per-item/delete-all trash, click-to-open, correct gating), and drag-out to Finder/other apps. **SHELF-01/02 (drag-in) did not ship** — Phase 22 spiked successfully (AppKit drag delivery does reach a click-through `NSPanel`) but then failed on-device twice for an unidentified reason (`draggingEntered` never fired despite a working spike using the same technique). Rather than keep debugging incrementally, the user chose to redesign the underlying `NotchPanel`/`NotchWindowController` architecture — this becomes the anchor of v1.4, alongside new scope inspired by a competitor app ("Droppy," found on Reddit): a first-launch onboarding flow, a visual/material redesign, and a full-screen calendar view. See `.planning/research/inspiration/notes.md` for the reference material. SHELF-01/02 carry forward as requirements into v1.4.
 
 **v1.2 Now Playing Polish shipped 2026-07-09** (Phases 17-18, see `.planning/milestones/v1.2-ROADMAP.md`). All 3 v1.2 requirements (NOW-04, NOW-05, NOW-06) shipped and on-device verified. The Now Playing glance no longer fires at launch for a merely-paused track, and genuine song changes surface a brief title+artist toast (independent 2s dismiss, its own Settings toggle) — both refined through on-device iteration.
@@ -206,12 +208,17 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 - [x] Choosing Drop stages the file(s) into Tray (TRAY-03); choosing AirDrop/Mail invokes `NSSharingService` directly with zero window-activation code, re-confirmed on real hardware (TRAY-04). Dragging back out before releasing discards the pending file(s) with no orphaned session copy (D-13b/Pitfall 6 fix). (Phase 34)
 - Shipped after a full replan: the original click-based implementation (Wave 1 of the original 34-01/34-02) passed code but was rejected in on-device UAT, then rebuilt as the drag-target model described above and re-verified on-device (7/7 checkpoint checks passed). Code review flagged one carried-forward critical issue (CR-01: synchronous main-thread file copy on drag-enter, no debounce) as a non-blocking fast-follow — see `34-REVIEW.md`. (Phase 34)
 
+**Liquid Glass Material (Phase 35 — GLASS-01):**
+
+- [x] The shared background material (collapsed pill, expanded island, all 3 activity wings) replaced by a dark, frosted "Liquid Glass" look — a solid dark frost layer masks a warped `.ultraThinMaterial` backdrop, revealed only as a narrow, chromatic-fringed rim-light right at the rounded edge (`liquidGlassEffectLayer` in `NotchPillView.swift`, `LiquidGlassShader.metal`/`.swift`). Applied as a modifier on the existing shape node at all 4 fill sites, preserving `matchedGeometryEffect` morph continuity. Settings' Theming picker gained a 3rd "Liquid Glass" segment as the new default (D-06); the Settings window itself gets a calmer, non-distorted variant of the same look, gated on that same style choice. (Phase 35)
+- Shipped after 4 rounds of on-device UAT rejection/remediation — round 1 (opaque base, no visible transparency), round 2 (raw vibrancy material read as uniformly bright, no dark tint), round 3 (unmasked chromatic-fringe/white-wash screen-blending washed the dark frost center back toward grey), round 4 (masked those layers to the same rim falloff the frost layer already uses — approved). Post-approval code review found and fixed one carried-forward critical issue (Settings window background wasn't gated on the user's material choice) plus two maintainability warnings — see `35-REVIEW.md`. (Phase 35)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
 _v1.5 (Home Focus & Widget Redesign) — see `.planning/milestones/v1.5-ROADMAP.md`/`.planning/ROADMAP.md` for the full 11-requirement traceability table. Remaining, left open in parallel: Phase 33 on-device UAT (WEATHER-01/02)._
-_v1.6 (Liquid Glass & System HUD Suite) — requirements being defined, see `.planning/REQUIREMENTS.md` once written._
+_v1.6 (Liquid Glass & System HUD Suite) — Phase 35 (GLASS-01) shipped 2026-07-16, see above. Remaining: Phases 36-42 (EQ-01, ONBOARD-04, HUD-01..08, DUAL-01) — see `.planning/REQUIREMENTS.md`._
 
 ### Out of Scope
 
@@ -310,4 +317,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-15 — Phase 34 (Quick Action Destination Picker, TRAY-02/03/04) shipped and verified on-device after a post-UAT drag-target redesign. v1.5 (Home Focus & Widget Redesign) left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT — explicit user decision to begin v1.6 requirements/roadmap work without blocking on v1.5's remaining phase. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
+*Last updated: 2026-07-16 — Phase 35 (Liquid Glass Material, GLASS-01), v1.6's first phase, shipped and verified on-device after 4 rounds of UAT rejection/remediation. v1.5 (Home Focus & Widget Redesign) still left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
