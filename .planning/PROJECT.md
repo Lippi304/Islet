@@ -14,6 +14,8 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current State
 
+**Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/HUD-02/EQ-01/ONBOARD-04) shipped 2026-07-16** — v1.6's second phase. See "Current Milestone: v1.6" and Requirements → Validated below.
+
 **Phase 35 (Liquid Glass Material, GLASS-01) shipped 2026-07-16** — v1.6's first phase. See "Current Milestone: v1.6" and Requirements → Validated below.
 
 **v1.3 Notch Shelf shipped 2026-07-11 with a known gap** (Phases 19-21, see `.planning/milestones/v1.3-ROADMAP.md`). 7 of 9 v1.3 requirements shipped and on-device verified: the shelf data model, the full shelf view (icons, per-item/delete-all trash, click-to-open, correct gating), and drag-out to Finder/other apps. **SHELF-01/02 (drag-in) did not ship** — Phase 22 spiked successfully (AppKit drag delivery does reach a click-through `NSPanel`) but then failed on-device twice for an unidentified reason (`draggingEntered` never fired despite a working spike using the same technique). Rather than keep debugging incrementally, the user chose to redesign the underlying `NotchPanel`/`NotchWindowController` architecture — this becomes the anchor of v1.4, alongside new scope inspired by a competitor app ("Droppy," found on Reddit): a first-launch onboarding flow, a visual/material redesign, and a full-screen calendar view. See `.planning/research/inspiration/notes.md` for the reference material. SHELF-01/02 carry forward as requirements into v1.4.
@@ -50,7 +52,7 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 **Target features:**
 - **Liquid Glass material** — glossier, blurred/frosted (not glass-clear) background material replacing the current gradient material, across expanded + collapsed island. User supplies reference implementation code during the relevant phase.
 - **Music equalizer bars redesign** — new visual design for the Now Playing bars. User supplies reference implementation code during the relevant phase.
-- **Onboarding signature animation** — the first onboarding page's "Welcome to Islet" text is replaced by a live handwritten-signature-style reveal animation (different color, script styling); scoped to that one page only, the app's regular font is untouched.
+- **Onboarding signature heading** — the first onboarding page's "Welcome to Islet" text is replaced by a static rainbow-gradient signature-style script heading (originally a live reveal animation, descoped per D-14 — see Phase 36 below); scoped to that one page only, the app's regular font is untouched.
 - **New collapsed-state system HUDs (Droppy-style):**
   - Volume HUD — replaces (suppresses) the native macOS volume OSD
   - Brightness HUD — replaces (suppresses) the native macOS brightness OSD
@@ -213,12 +215,19 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 - [x] The shared background material (collapsed pill, expanded island, all 3 activity wings) replaced by a dark, frosted "Liquid Glass" look — a solid dark frost layer masks a warped `.ultraThinMaterial` backdrop, revealed only as a narrow, chromatic-fringed rim-light right at the rounded edge (`liquidGlassEffectLayer` in `NotchPillView.swift`, `LiquidGlassShader.metal`/`.swift`). Applied as a modifier on the existing shape node at all 4 fill sites, preserving `matchedGeometryEffect` morph continuity. Settings' Theming picker gained a 3rd "Liquid Glass" segment as the new default (D-06); the Settings window itself gets a calmer, non-distorted variant of the same look, gated on that same style choice. (Phase 35)
 - Shipped after 4 rounds of on-device UAT rejection/remediation — round 1 (opaque base, no visible transparency), round 2 (raw vibrancy material read as uniformly bright, no dark tint), round 3 (unmasked chromatic-fringe/white-wash screen-blending washed the dark frost center back toward grey), round 4 (masked those layers to the same rim falloff the frost layer already uses — approved). Post-approval code review found and fixed one carried-forward critical issue (Settings window background wasn't gated on the user's material choice) plus two maintainability warnings — see `35-REVIEW.md`. (Phase 35)
 
+**Cosmetic Restyles & Signature Animation (Phase 36 — HUD-01, HUD-02, EQ-01, ONBOARD-04):**
+
+- [x] Bluetooth/AirPods (HUD-01) and Charging (HUD-02) collapsed wing HUDs restyled to the Droppy-pill look — a left-wing icon+label shown only in the positive state, independent left/right wing-flank sizing so a wide label never stretches the opposite flank; `DeviceCoordinator`/`BluetoothMonitor`/IOKit power monitor unchanged. Charging's trigger condition was corrected from the raw IOKit `isCharging` flag to `isOnAC && !isCharged`, since macOS "Optimized Battery Charging" routinely leaves the literal flag false while genuinely charging. (Phase 36)
+- [x] Now Playing equalizer bars (EQ-01) redesigned to the Skiper25 reference — thinner bars, wider gaps, fixed white color, periodic-reroll-and-spring motion replacing the old continuous sine wave, idle-CPU gate preserved; mandatory Skiper UI attribution added to Settings. (Phase 36)
+- [x] Onboarding signature heading (ONBOARD-04) — scope-pivoted mid-execution (D-14): the originally planned live stroke-reveal animation was replaced with a static, non-animated "Meet Islet" heading in Dancing Script Bold, "Meet" in a blue→purple→pink gradient and "Islet" in an orange→yellow→green gradient, mirroring Droppy's own static rainbow-gradient onboarding heading. The pivot followed real font-licensing risk (the reference's original font, Lastoria Bold, is all-rights-reserved, not legally shippable in a paid product) plus repeated stroke-weight/clipping friction with the animated approach; body subtext below it untouched. (Phase 36)
+- Code review found no blockers; one open, non-blocking warning carried forward: the widened Charging/Connected wing labels may extend past the existing tap hot-zone (on-device tap test confirmed no regression — see `36-REVIEW.md` WR-02). (Phase 36)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
 _v1.5 (Home Focus & Widget Redesign) — see `.planning/milestones/v1.5-ROADMAP.md`/`.planning/ROADMAP.md` for the full 11-requirement traceability table. Remaining, left open in parallel: Phase 33 on-device UAT (WEATHER-01/02)._
-_v1.6 (Liquid Glass & System HUD Suite) — Phase 35 (GLASS-01) shipped 2026-07-16, see above. Remaining: Phases 36-42 (EQ-01, ONBOARD-04, HUD-01..08, DUAL-01) — see `.planning/REQUIREMENTS.md`._
+_v1.6 (Liquid Glass & System HUD Suite) — Phase 35 (GLASS-01) and Phase 36 (HUD-01, HUD-02, EQ-01, ONBOARD-04) shipped, see above. Remaining: Phases 37-42 (HUD-05..08, DUAL-01) — see `.planning/REQUIREMENTS.md`._
 
 ### Out of Scope
 
@@ -317,4 +326,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-16 — Phase 35 (Liquid Glass Material, GLASS-01), v1.6's first phase, shipped and verified on-device after 4 rounds of UAT rejection/remediation. v1.5 (Home Focus & Widget Redesign) still left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
+*Last updated: 2026-07-16 — Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/HUD-02/EQ-01/ONBOARD-04), v1.6's second phase, shipped and verified on-device — ONBOARD-04 scope-pivoted mid-execution (D-14) from a stroke-reveal animation to a static rainbow-gradient heading after a font-licensing risk and repeated implementation friction. Phase 35 (Liquid Glass Material, GLASS-01), v1.6's first phase, shipped and verified on-device after 4 rounds of UAT rejection/remediation. v1.5 (Home Focus & Widget Redesign) still left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
