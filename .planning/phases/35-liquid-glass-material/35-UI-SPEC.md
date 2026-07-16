@@ -86,6 +86,8 @@ Starting shader parameters (on-device tuning starting points per CONTEXT.md Clau
 | `saturation` | 1.0 | 1.05–1.1 | Backdrop saturation multiplier |
 | `backgroundOpacity` (frost) | 0.04 | 0.06–0.08 | Subtle — must not wash out foreground content contrast |
 
+> **Implementation note (Plan 35-02, resolves a documentation/implementation divergence found during plan review):** `brightness` is NOT implemented as a separate runtime shader parameter or `LiquidGlassParameters` field. Plan 35-02's Metal function folds the map-center-brightness effect into the edge-falloff curve (the `smoothstep`-based transition from full warp at the edge to near-zero at the interior) — that falloff already asymptotes toward the interior the same way a mid-tone `brightness` value tempered the center of the original SVG displacement map, so a distinct field would be redundant. This row stays in the table for traceability to the reference technique's props, but has no corresponding Swift/Metal parameter.
+
 Distortion strength scales with view-state size per D-04: the collapsed pill uses the reduced/near-off column above (barely visible at 32pt anyway); the expanded island and wings use the full column. Whether this is a continuous size-driven interpolation or a binary collapsed/expanded switch is Claude's Discretion (execution-time call, whichever is cheaper to build correctly) — either satisfies this contract as long as the collapsed state reads as visibly subtler than expanded.
 
 **Hard constraints (from CONTEXT.md decisions, non-negotiable):**
@@ -143,7 +145,7 @@ Separate integration point from the island shell (not routed through `islandFill
 Not applicable — native macOS Swift project, no shadcn/npm/component registries involved.
 
 | Registry | Blocks Used | Safety Gate |
-|----------|-------------|-------------|
+|----------|-------------|--------------|
 | n/a | n/a | not applicable — non-web stack |
 
 ---
