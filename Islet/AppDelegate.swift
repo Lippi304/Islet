@@ -90,6 +90,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         setupDebugMenu()
         #endif
+
+        // Phase 38 / Plan 01 — one-time throwaway go/no-go spike (D-12); confirms which
+        // Focus/DND detection path is viable on this dev machine before FocusModeMonitor
+        // is written. Never gated behind a toggle (not a shipped feature); deleted in 38-07.
+        #if DEBUG
+        runFocusDetectionSpike()
+        #endif
     }
 
     // The SwiftUI Window(id:) NSWindow may not exist yet on the first run-loop
