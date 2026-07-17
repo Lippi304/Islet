@@ -2333,7 +2333,19 @@ struct NotchPillView: View {
         //   (c) Icon-safe-start / bar-safe-start — this function's own responsibility, now simply
         //       "whatever comes immediately before/after the camera-block HStack element."
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 8   // ROUND 12's real-onset-data-derived value, carried forward unchanged
+        // ROUND 16 — margin bump, not another mechanism change. ROUND 15's HStack rebuild is
+        // confirmed mechanically CORRECT: the on-device PASS/FAIL verdict showed the bar placed
+        // EXACTLY at `excludedMaxX` with zero slack, and `.global` vs `.named("osdWing")` readings
+        // agreed for the first time this whole saga (`384.5 - 155.5 = 229.0`, matching the named
+        // reading exactly) — the layout mechanism itself is no longer in question. But with the bar
+        // sitting exactly AT the computed boundary and zero extra buffer, ~50% of it was still
+        // reported hidden — meaning `margin` (8pt, carried forward from ROUND 12) was tuned against
+        // the BROKEN `.offset()` mechanism (rounds 10-13), so that reading was measuring noise, not
+        // a real signal. This is the first trustworthy margin-insufficiency data point. Bumped
+        // generously (8 -> 55, not another small nudge) — per explicit direction, erring toward
+        // "plainly more margin than needed" over hunting for an exact minimal value after this much
+        // effort already spent chasing precision that turned out to be built on a broken mechanism.
+        let margin: CGFloat = 55
         let notchHalfWidth = rawNotchHalfWidth + margin
         let iconLeadingPad: CGFloat = 14
         let iconWidth: CGFloat = 20
