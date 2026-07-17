@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
-stopped_at: Phase 39 gap-closure plan 39-08 complete (D-14/D-15/D-16 all confirmed working on-device)
-last_updated: "2026-07-18T00:10:00.000Z"
-last_activity: 2026-07-18 -- Plan 39-08 executed and verified on-device
+status: completed
+stopped_at: Phase 40 context gathered
+last_updated: "2026-07-17T22:41:11.296Z"
+last_activity: 2026-07-18 -- Plan 39-08 (OSD suppression re-attempt) executed and approved on-device
 progress:
   total_phases: 27
-  completed_phases: 17
-  total_plans: 77
+  completed_phases: 18
+  total_plans: 76
   completed_plans: 70
-  percent: 64
+  percent: 67
 ---
 
 # Project State
@@ -218,9 +218,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T00:10:00.000Z
-Stopped at: Phase 39 gap-closure plan 39-08 complete (D-14/D-15/D-16 all confirmed working on-device)
-Resume file: .planning/phases/39-volume-brightness-hud/39-08-SUMMARY.md
+Last session: 2026-07-17T22:41:11.284Z
+Stopped at: Phase 40 context gathered
+Resume file: .planning/phases/40-update-available-hud-sparkle-integration/40-CONTEXT.md
 
 ## Operator Next Steps
 
