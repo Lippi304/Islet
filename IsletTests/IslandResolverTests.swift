@@ -649,6 +649,9 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertFalse(ActiveTransient.charging(.charging(percent: 50)).isPersistent)
         XCTAssertFalse(ActiveTransient.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)).isPersistent)
         XCTAssertTrue(ActiveTransient.focus(.on).isPersistent)
+        // Phase 39 / HUD-03/HUD-04 (D-10): .osd is deliberately excluded, unlike Focus — it
+        // self-elapses via its own 1.5s timer.
+        XCTAssertFalse(ActiveTransient.osd(.volume(percent: 50, hardwareMuted: false)).isPersistent)
     }
 
     func testPreemptPushesFocusToFrontOfPending() {
@@ -662,5 +665,54 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(q.head, .charging(.charging(percent: 50)))
         XCTAssertTrue(q.advance())
         XCTAssertEqual(q.head, .focus(.on))
+    }
+
+    // MARK: Phase 39 / HUD-03/HUD-04 — OSD (Volume/Brightness) transient (collapsed-only,
+    // NOT persistent, same-category updateHead covers both D-09 scrub refresh and D-12
+    // cross-category instant replace)
+
+    func testOSDWinsWhenCollapsed() {
+        // D-11: an OSD transient wins when the island is NOT expanded.
+        let r = resolve(activeTransient: .osd(.volume(percent: 50, hardwareMuted: false)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .osd(.volume(percent: 50, hardwareMuted: false)))
+    }
+
+    func testOSDFallsThroughWhenExpanded() {
+        // D-11: an OSD transient does NOT win when the island IS expanded — it falls
+        // through to whatever Home/Tray/Calendar/Weather would resolve to as if no
+        // transient were active, mirroring testFocusFallsThroughWhenExpanded.
+        let r = resolve(activeTransient: .osd(.volume(percent: 50, hardwareMuted: false)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testOSDPreemptsStandingFocusHead() {
+        // D-13: pressing Volume/Brightness while a Focus HUD stands immediately preempts
+        // it (reusing TransientQueue.preempt() verbatim, unmodified — mirrors
+        // testPreemptPushesFocusToFrontOfPending with .osd(...) swapped in for .charging(...)).
+        var q = TransientQueue()
+        _ = q.enqueue(.focus(.on))
+        XCTAssertTrue(q.preempt(.osd(.volume(percent: 50, hardwareMuted: false))))
+        XCTAssertEqual(q.head, .osd(.volume(percent: 50, hardwareMuted: false)))
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, .focus(.on))
+    }
+
+    func testUpdateHeadReplacesOSDAcrossInnerCasesInstantly() {
+        // D-12: pressing Brightness while Volume shows instantly replaces it — the single
+        // (.osd, .osd) updateHead arm covers this regardless of which inner case each side
+        // holds (no direct Focus precedent — this is D-12's own mechanism).
+        var q = TransientQueue()
+        _ = q.enqueue(.osd(.volume(percent: 50, hardwareMuted: false)))
+        q.updateHead(.osd(.brightness(percent: 80)))
+        XCTAssertEqual(q.head, .osd(.brightness(percent: 80)))
     }
 }

@@ -733,6 +733,11 @@ struct NotchPillView: View {
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
+        case .osd:
+            // Phase 39 / HUD-03/HUD-04 (39-02): compiler-forced stub only, mirrors 38-02's
+            // identical precedent for .focus -- the real Volume/Brightness HUD wing view
+            // belongs to a later plan (39-04+).
+            EmptyView()
         case .idle:
             collapsedIsland                                                  // idle pill
         }

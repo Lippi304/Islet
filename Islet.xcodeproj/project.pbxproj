@@ -27,6 +27,7 @@
 		2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C997928190396DADC0ADA29 /* NotchWindowController.swift */; };
 		2F75ED15F35CB39A20ED54AB /* ActivitySettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54DE6734ABC75FD146F9FCF /* ActivitySettingsTests.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
+		3107D1164676FB8B4347666E /* OSDActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A6AB4282775F1B6C66B02D6 /* OSDActivity.swift */; };
 		3144E8E6A58EE93C8C34C163 /* DancingScript-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1FC3046FCECB25B228688FF4 /* DancingScript-OFL.txt */; };
 		34071739EA3C6FAD089AEA67 /* MediaRemoteAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */; };
 		344AC320C82085AB24E1F3EC /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */; };
@@ -145,6 +146,7 @@
 		11EDAEA183BDB83B0E678C41 /* TrialManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManagerTests.swift; sourceTree = "<group>"; };
 		143DD03B59EE64AE773112BD /* IsletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsletApp.swift; sourceTree = "<group>"; };
 		15C1DF53311CEDA936A0B43D /* ActivitySettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivitySettings.swift; sourceTree = "<group>"; };
+		1A6AB4282775F1B6C66B02D6 /* OSDActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSDActivity.swift; sourceTree = "<group>"; };
 		1A7E1D30A74E9D358BA634B1 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupportTests.swift; sourceTree = "<group>"; };
 		1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
@@ -432,6 +434,7 @@
 				E72C119AE687341C28E9786C /* NSScreen+Notch.swift */,
 				4F61A24F6789742D7442ADF0 /* OnboardingFlow.swift */,
 				FA62CE81F6539C4490617038 /* OnboardingViewState.swift */,
+				1A6AB4282775F1B6C66B02D6 /* OSDActivity.swift */,
 				76ADF16C067A181F295BA4C5 /* PowerActivity.swift */,
 				FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */,
 				BD8C607878B62D262514A41D /* QuickActionSharingService.swift */,
@@ -585,6 +588,7 @@
 				7E4D99F7223419D03FC89C5C /* NowPlayingMonitor.swift in Sources */,
 				3A5F1F3C8D2C451435E0A5BB /* NowPlayingPresentation.swift in Sources */,
 				A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */,
+				3107D1164676FB8B4347666E /* OSDActivity.swift in Sources */,
 				A1DEA7A96EC18DAD1D4DBE19 /* OnboardingFlow.swift in Sources */,
 				988EA78CF8B7C8884036E157 /* OnboardingViewState.swift in Sources */,
 				3AFB898616FDDD93C37B1906 /* PolarLicenseService.swift in Sources */,
