@@ -202,6 +202,12 @@ final class NotchWindowController {
     // process, T-04-12), mirroring powerMonitor's lifecycle exactly.
     private var nowPlayingMonitor: NowPlayingService?
 
+    // Phase 38 / HUD-05 (Plan 05) — the LIVE Focus/DND poll monitor. Constructed + started in
+    // start() ONLY when the Focus toggle is on AND permission is already granted (D-04), mirroring
+    // powerMonitor/bluetoothMonitor's toggle-gated idempotent-start discipline. Held as a plain
+    // stored property so the nonisolated deinit can call its stop() (nonisolated func stop()).
+    private var focusModeMonitor: FocusModeMonitor?
+
     // D-06 (15s paused linger) / D-07 (stop cue) — the one-shot media auto-dismiss. A single
     // DispatchWorkItem mirroring dismissWorkItem (NOT a recurring timer): one wake-up then idle,
     // so CPU stays ~0% while a paused/stopped glance lingers. Resuming playback cancels it.
@@ -456,6 +462,11 @@ final class NotchWindowController {
         // carry-over; the wiring is code-complete.)
         if activityEnabled(ActivitySettings.deviceKey) && !isOnboardingActive { startBluetoothMonitor() }
 
+        // Phase 38 / HUD-05 (D-02/D-04): auto-start ONLY if permission was already granted in a
+        // prior session — this line never triggers a permission request itself (the request lives
+        // in Plan 38-06's SettingsView code, at the moment the toggle is switched on).
+        if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized { startFocusModeMonitor() }
+
         // Phase 14 / WEATHER-01 / CAL-01: start the outfit (weather + calendar) coarse-refresh
         // cycle. Unconditional — unlike the toggle-gated monitors above, this phase has no
         // Settings toggle of its own (out of scope for 14-04). Phase 26 / D-01: deferred while
@@ -585,6 +596,14 @@ final class NotchWindowController {
         let bt = BluetoothMonitor { [weak self] reading in self?.deviceCoordinator.handle(reading) }
         bluetoothMonitor = bt
         bt.start()
+    }
+
+    // Phase 38 / HUD-05 — idempotent start, mirrors startPowerMonitor()'s exact shape.
+    private func startFocusModeMonitor() {
+        guard focusModeMonitor == nil else { return }
+        let monitor = FocusModeMonitor { [weak self] isFocused in self?.handleFocusChange(isFocused) }
+        focusModeMonitor = monitor
+        monitor.start()
     }
 
     // Phase 14 / WEATHER-01 / CAL-01 — idempotent start (mirrors startPowerMonitor/
@@ -1652,6 +1671,15 @@ final class NotchWindowController {
             flushTransients(.device)
         }
 
+        // Phase 38 / HUD-05 — Focus. Mirrors the Charging/Devices toggle-off pattern exactly:
+        // stop the poll timer, release it, and flush any standing/queued Focus splash (D-09).
+        if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized {
+            startFocusModeMonitor()
+        } else if focusModeMonitor != nil {
+            focusModeMonitor?.stop(); focusModeMonitor = nil
+            flushTransients(.focus)
+        }
+
         // Now Playing — stop the perl child on disable (RESEARCH Open Q3: prefer a clean restart);
         // re-enabling start()s + re-runs the health check, mirroring launch. While disabled,
         // currentPresentation() forces nowPlaying → .none so the ambient glance disappears live.
@@ -2041,6 +2069,10 @@ final class NotchWindowController {
         // the owner. Mirrors powerMonitor.stop()'s owner-driven teardown.
         bluetoothMonitor?.stop()
         deviceCoordinator?.cancelPendingWork()
+
+        // Phase 38 / HUD-05: tear down the Focus poll timer — mirrors bluetoothMonitor?.stop()'s
+        // owner-driven teardown discipline exactly.
+        focusModeMonitor?.stop()
 
         // Phase 24 / SHELF-01 / SHELF-02 (D-10): tear down the drop-interception tap — mirrors
         // bluetoothMonitor?.stop()'s owner-driven teardown discipline exactly.
