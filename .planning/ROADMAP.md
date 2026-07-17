@@ -747,8 +747,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 39-03-PLAN.md — OSDInterceptor.swift (spike-confirmed architecture) + VolumeReader.swift (CoreAudio) + BrightnessReader.swift (DisplayServices)
-- [ ] 39-04-PLAN.md — NotchPillView.swift osdWings(for:) Droppy-pill bar wing (D-01/D-02/D-03/D-04)
+- [x] 39-03-PLAN.md — OSDInterceptor.swift (spike-confirmed architecture) + VolumeReader.swift (CoreAudio) + BrightnessReader.swift (DisplayServices)
+- [x] 39-04-PLAN.md — NotchPillView.swift osdWings(for:) Droppy-pill bar wing (D-01/D-02/D-03/D-04)
 
 **Wave 3** *(blocked on Wave 2)*
 
