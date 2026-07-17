@@ -752,7 +752,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 39-05-PLAN.md — NotchWindowController.swift wiring (handleOSDKeyPress D-09/D-12/D-13, osdActivityDuration D-10) + ActivitySettings.swift key/hint
+- [x] 39-05-PLAN.md — NotchWindowController.swift wiring (handleOSDKeyPress D-09/D-12/D-13, osdActivityDuration D-10) + ActivitySettings.swift key/hint
 
 **Wave 4** *(blocked on Wave 3)*
 
