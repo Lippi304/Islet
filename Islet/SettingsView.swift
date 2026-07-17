@@ -214,6 +214,9 @@ struct SettingsView: View {
                             showFocusPermissionExplanation = true
                         }
                     }
+                    .popover(isPresented: $showFocusPermissionExplanation) {
+                        focusPermissionExplanationView
+                    }
                 if let hint = ActivitySettings.focusPermissionStatusHint(
                     toggleOn: focusEnabled, granted: FocusModeMonitor.isAuthorized
                 ) {
@@ -249,6 +252,33 @@ struct SettingsView: View {
             }
         }
         .padding(20)
+    }
+
+    // Phase 38 / HUD-05 — D-02/D-03/D-04's one-time explanation popover, shown at the moment
+    // the Focus Mode HUD toggle flips on while unauthorized. 38-01-SUMMARY.md's on-device spike
+    // locked detection to Path A (INFocusStatusCenter) — this builds ONLY that variant's copy
+    // from 38-UI-SPEC.md's Settings Permission Contract, not the Full Disk Access variant.
+    private var focusPermissionExplanationView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Allow Focus Status Access")
+                .font(.system(size: 15, weight: .semibold))
+            Text("Islet needs permission to detect when Focus or Do Not Disturb is on.")
+                .font(.system(size: 12))
+                .lineSpacing(12 * 0.4)
+            HStack {
+                Button("Not Now") {
+                    showFocusPermissionExplanation = false
+                }
+                Spacer()
+                Button("Continue") {
+                    FocusModeMonitor.requestAuthorization { _ in }
+                    showFocusPermissionExplanation = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
     }
 
     // D-03 — Workspace: no shelf-specific settings exist today; a quiet centered
