@@ -1957,9 +1957,32 @@ struct NotchPillView: View {
             .frame(width: size.width, height: size.height)
             // Phase 35 / GLASS-01 (D-04): wings use full-strength .expanded parameters.
             .overlay(liquidGlassEffectLayer(shape: shape, size: size, parameters: .expanded))
+            // 39-07 gap closure ROUND 11 — `alignment: .leading` added (was implicit `.center`).
+            // Root cause found by direct code read, not another guess: `.frame(width:height:)`
+            // with no `alignment:` CENTERS `content()` inside this box based on `content()`'s own
+            // NATURAL/intrinsic size, not pinned to the box's leading edge. Every existing caller
+            // (Charging/Device/Focus wings) builds `content()` as `HStack(spacing: 0) { ...
+            // Spacer() ... }` — a `Spacer()` makes the HStack's natural width expand to exactly
+            // fill whatever width it's proposed, so its natural size already equals `size.width`
+            // and centering was always a no-op for them (confirmed by reading all 3 other call
+            // sites before this change — none behave differently under `.leading` vs the old
+            // `.center` default, since a child exactly as big as its container can't be
+            // off-center in either direction). ROUND 10's OSD content is a `ZStack` with NO
+            // `Spacer()`, positioning icon/bar via `.offset(x:)` instead — and `.offset()` is a
+            // pure RENDER-TIME transform that does not contribute to a view's reported layout size
+            // to its ancestors (standard, documented SwiftUI behavior). That ZStack's natural width
+            // is therefore just its widest un-offset child (~90pt, the bar's own fixed frame),
+            // nowhere near the real `size.width` (250-300pt+ after ROUND 10's exclusion-zone math)
+            // — so the old implicit `.center` was silently shifting the WHOLE ZStack (and every
+            // offset computed relative to its origin) rightward by `(size.width - ~90) / 2`,
+            // dragging the icon behind the camera and pushing the bar's offset origin far enough
+            // right that it rendered outside the visible pill shape entirely. `.leading` pins the
+            // ZStack's un-shifted local x=0 to the box's own true leading edge, which is what
+            // every one of ROUND 10's `excludedMinX`/`excludedMaxX`-relative offsets already
+            // assumed was true.
             .overlay(
                 content()
-                    .frame(width: size.width, height: size.height)
+                    .frame(width: size.width, height: size.height, alignment: .leading)
             )
             .alignmentGuide(HorizontalAlignment.center) { _ in leftWidth }
             // Finding 15 (06-10): both remaining wing glances (wings(for:), deviceWings(for:))
