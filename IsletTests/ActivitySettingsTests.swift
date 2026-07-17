@@ -71,4 +71,28 @@ final class ActivitySettingsTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: ActivitySettings.chargingAccentKey))
         XCTAssertNil(defaults.object(forKey: ActivitySettings.deviceAccentKey))
     }
+
+    // MARK: Phase 38 / HUD-05 — focusKey + permission status hint
+
+    func testFocusKeyName() {
+        XCTAssertEqual(ActivitySettings.focusKey, "activity.focus")
+    }
+
+    func testFocusPermissionHintNilWhenToggleOff() {
+        XCTAssertNil(ActivitySettings.focusPermissionStatusHint(toggleOn: false, granted: false))
+    }
+
+    func testFocusPermissionHintNeedsGrant() {
+        XCTAssertEqual(
+            ActivitySettings.focusPermissionStatusHint(toggleOn: true, granted: false),
+            "Permission needed — tap to grant"
+        )
+    }
+
+    func testFocusPermissionHintActive() {
+        XCTAssertEqual(
+            ActivitySettings.focusPermissionStatusHint(toggleOn: true, granted: true),
+            "Active"
+        )
+    }
 }

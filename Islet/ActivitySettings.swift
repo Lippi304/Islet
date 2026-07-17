@@ -16,6 +16,10 @@ enum ActivitySettings {
     static let nowPlayingKey = "activity.nowPlaying"
     static let songChangeToastKey = "activity.songChangeToast"
     static let deviceKey     = "activity.device"
+    // Phase 38 / HUD-05: the ONE activity toggle in this codebase that defaults OFF
+    // (@AppStorage default wired in SettingsView.swift, Plan 38-06) — every sibling
+    // toggle above defaults true. This key string only; the default lives with the toggle.
+    static let focusKey = "activity.focus"
     // Phase 27 / VISUAL-03 / D-08: this key is now read ONLY as the legacy
     // migration source (see migrateLegacyAccentIfNeeded below) — never as a
     // live rendering key. The 3 per-element accent keys below replace it.
@@ -64,6 +68,15 @@ enum ActivitySettings {
     // the neutral default so it can never index out of bounds or crash.
     static func accent(for index: Int) -> Color {
         palette.indices.contains(index) ? palette[index] : palette[defaultAccentIndex]
+    }
+
+    // Phase 38 / HUD-05 / D-05: pure mapping from (toggle-on, permission-granted) to the
+    // Settings status hint text — the two locked strings from 38-UI-SPEC.md's Settings
+    // Permission Contract, verbatim. No hint while the toggle itself is off (D-02: nothing
+    // is requested/shown until the user flips it on).
+    static func focusPermissionStatusHint(toggleOn: Bool, granted: Bool) -> String? {
+        guard toggleOn else { return nil }
+        return granted ? "Active" : "Permission needed — tap to grant"
     }
 
     // Phase 27 / D-08: seeds the 3 new per-element accent keys from the
