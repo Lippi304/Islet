@@ -776,8 +776,21 @@ Plans:
   2. When a new version is published, the collapsed island shows an update-available HUD/badge, implemented as an orthogonal `@Published` flag (not a `TransientQueue` participant, since it has no expiry).
   3. Tapping the HUD triggers Sparkle's own standard install/progress dialog — confirmed on-device not to steal focus or otherwise break the panel's non-activating/click-through guarantees in this LSUIElement app.
   4. The embedded Sparkle framework is signed/entitled correctly (mirroring the existing `MediaRemoteAdapter` disable-library-validation treatment) so Release builds launch without a Gatekeeper/library-validation crash.
-**Plans**: TBD
+**Plans**: 3 plans (waves: 1={40-01}, 2={40-02}, 3={40-03})
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 40-01-PLAN.md — Sparkle SPM package + Info.plist keys + EdDSA keypair + UpdateAvailableState.swift + AppDelegate wiring (D-01..D-04, D-09..D-13)
+
+**Wave 2** *(blocked on 40-01)*
+
+- [ ] 40-02-PLAN.md — Badge overlay on NotchPillView + NotchWindowController wiring (D-05..D-08)
+
+**Wave 3** *(blocked on 40-02)*
+
+- [ ] 40-03-PLAN.md — On-device UAT: Debug pipeline+badge checkpoint + Release library-validation launch checkpoint
 
 ### Phase 41: Calendar Countdown HUD
 
