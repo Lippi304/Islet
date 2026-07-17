@@ -2208,13 +2208,34 @@ struct NotchPillView: View {
         // clamps 0...100 before this view ever sees it).
         let fraction = activity.isMuted ? 0.0 : CGFloat(percent) / 100.0
         #if DEBUG
-        // 39-07 gap closure ROUND 5 timing instrumentation (temporary, remove once responsiveness
-        // is confirmed fixed) — point (d): confirms exactly when SwiftUI actually re-evaluates this
-        // view's body for a new fraction, so an on-device Console capture can show whether any lag
-        // lives in the tap/dispatch/read path (OSDInterceptor/NotchWindowController) or in SwiftUI's
-        // own render pipeline.
-        print("[OSD-TIMING] d) osdWings body evaluated t=\(String(format: "%.2f", CFAbsoluteTimeGetCurrent() * 1000))ms fraction=\(fraction)")
-        #endif
+        // 39-07 gap closure ROUND 6 — TEMPORARY visual ruler, remove once the real trackLeft is
+        // confirmed and the fix below is applied. Rounds 2, 3, and 5 each derived a "safe" position
+        // algebraically (from a notch-half-width estimate, then from an empirically-inferred onset
+        // percentage, then from a corrected panel-budget calculation) and each one still rendered
+        // partly behind the camera on real hardware — theory isn't transferring to this view's
+        // actual coordinate space. This renders a labeled, high-contrast tick every 20pt across the
+        // wing's FULL local width (0...totalWidth, the SAME coordinate space `leftWidth`/
+        // `rightWidth`/`trackLeft` are already expressed in in the code below), alternating red/
+        // yellow backgrounds with a bold black number, so the real hidden/visible boundary can be
+        // read directly off a screenshot instead of derived. Replaces the normal icon+bar content
+        // entirely while active — this is a one-shot calibration render, not a production view.
+        let totalWidth = 118 + 262
+        let ticks = Array(stride(from: 0, through: totalWidth, by: 20))
+        return wingsShape(leftWidth: 118, rightWidth: 262) {
+            ZStack(alignment: .topLeading) {
+                ForEach(ticks, id: \.self) { x in
+                    ZStack {
+                        Rectangle().fill((x / 20).isMultiple(of: 2) ? Color.red : Color.yellow)
+                        Text("\(x)")
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundStyle(.black)
+                    }
+                    .frame(width: 20, height: 32)
+                    .offset(x: CGFloat(x))
+                }
+            }
+        }
+        #else
         // 39-07 gap closure ROUND 5 (real structural fix, corrects a mistake in ROUND 4's own
         // reasoning): ROUND 4 claimed a "hard ceiling of 210" on `rightWidth`, derived from ONLY
         // `body`'s 420pt `expandedSize.width` outer frame — but `NotchWindowController.positionAndShow`
@@ -2235,6 +2256,11 @@ struct NotchPillView: View {
         //     PAST the 265 floor, not just exactly at it) gives rightWidth = 262
         // 262 << 325 (the real budget), so this is safe with ~63pt to spare — no NotchWindowController
         // changes needed; the existing trayFrame reservation already covers it.
+        // ROUND 6 NOTE: this position STILL rendered partly behind the camera on real hardware
+        // despite the calculation above — see the ROUND 6 ruler in the #if DEBUG branch, which
+        // replaces this content in Debug builds to get one directly-measured data point instead of
+        // deriving a 4th theoretical position. Do not trust the numbers in this comment until the
+        // ruler's real-hardware reading is folded back in here.
         return wingsShape(leftWidth: 118, rightWidth: 262) {
             HStack(spacing: 0) {
                 Image(systemName: iconName)
@@ -2248,6 +2274,7 @@ struct NotchPillView: View {
                     .padding(.trailing, 20)
             }
         }
+        #endif
     }
 
     // RIGHT wing of the device glance: the battery indicator when the device reports a level
