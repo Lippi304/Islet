@@ -271,8 +271,14 @@ struct SettingsView: View {
                 }
                 Spacer()
                 Button("Continue") {
-                    FocusModeMonitor.requestAuthorization { _ in }
-                    showFocusPermissionExplanation = false
+                    FocusModeMonitor.requestAuthorization { granted in
+                        DispatchQueue.main.async {
+                            if granted {
+                                (NSApp.delegate as? AppDelegate)?.notchController?.focusPermissionGranted()
+                            }
+                            showFocusPermissionExplanation = false
+                        }
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
             }
