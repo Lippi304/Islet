@@ -736,7 +736,7 @@ Plans:
   2. Pressing a volume key shows the new Volume HUD reflecting the live system volume level; pressing a brightness key shows the new Brightness HUD reflecting the live brightness level.
   3. Rapid repeated key presses (scrubbing) update the same HUD instance in place via `TransientQueue.updateHead()` rather than stacking multiple transients.
   4. The undocumented `EnableSystemBanners` Control-Center-wide defaults toggle is not used anywhere in the implementation.
-**Plans**: 7 plans (waves: 1={39-01,39-02}, 2={39-03,39-04}, 3={39-05}, 4={39-06}, 5={39-07})
+**Plans**: 8 plans (waves: 1={39-01,39-02}, 2={39-03,39-04}, 3={39-05}, 4={39-06}, 5={39-07}, 6={39-08})
 **UI hint**: yes
 
 Plans:
@@ -761,6 +761,10 @@ Plans:
 **Wave 5** *(blocked on Wave 4)*
 
 - [x] 39-07-PLAN.md — Remove spike scaffolding + consolidated on-device UAT checkpoint (all 4 Success Criteria)
+
+**Wave 6** *(gap-closure, blocked on Wave 5)*
+
+- [x] 39-08-PLAN.md — OSD suppression re-attempt via `.cghidEventTap` (D-14, reverses 39-01's suppression-unreliable finding — SUCCESS on-device) + self-driven volume/brightness/mute (D-15) + OSDLevelBar spring retune (D-16)
 
 ### Phase 40: Update-Available HUD & Sparkle Integration
 

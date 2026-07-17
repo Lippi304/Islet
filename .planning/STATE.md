@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
-stopped_at: Phase 39 gap-closure context gathered (D-14/D-15/D-16)
-last_updated: "2026-07-17T21:54:40.362Z"
-last_activity: 2026-07-17 -- Phase 39 planning complete
+stopped_at: Phase 39 gap-closure plan 39-08 complete (D-14/D-15/D-16 all confirmed working on-device)
+last_updated: "2026-07-18T00:10:00.000Z"
+last_activity: 2026-07-18 -- Plan 39-08 executed and verified on-device
 progress:
   total_phases: 27
   completed_phases: 17
-  total_plans: 76
-  completed_plans: 69
-  percent: 63
+  total_plans: 77
+  completed_plans: 70
+  percent: 64
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 39 gap-closure — OSD suppression re-attempt (.cghidEventTap) + bar animation tuning, before moving to Phase 40
+**Current focus:** Phase 39 — volume-brightness-hud
 
 ## Current Position
 
-Phase: 39 (gap-closure)
-Plan: Not started (context gathered, ready to plan)
-Status: Ready to execute
-Last activity: 2026-07-17 -- Phase 39 planning complete
+Phase: 39 (volume-brightness-hud) — COMPLETE (8 of 8 plans, incl. gap-closure plan 39-08)
+Plan: 8 of 8
+Status: Phase 39 fully complete — ready to start Phase 40
+Last activity: 2026-07-18 -- Plan 39-08 (OSD suppression re-attempt) executed and approved on-device
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -129,6 +129,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 38, 38-09]: Focus wing visual contract deviates from `38-UI-SPEC.md` (icon-only left flank instead of icon+"Focus" label, dot+"On" text on the right instead of a bare dot) — user-directed live redesign during on-device UAT, the first time the pill was ever actually visible (both defects above had masked it until this plan). `38-UI-SPEC.md` not updated — flag for a docs-sync pass. User also flagged that Charging/Bluetooth wings have the same icon-only-flank-too-wide issue but explicitly deferred fixing those as a general follow-up, not part of Phase 38.
 - [Phase 39, 39-01]: Go/no-go spike found `suppression-unreliable` — a `.cgSessionEventTap`/`.defaultTap` CGEventTap correctly decodes and swallows (returns `nil` for) volume/brightness `NX_SYSDEFINED` events, but the native macOS notch-integrated OSD still renders regardless, on this machine/macOS Tahoe. Production `OSDInterceptor` (39-03) built `.listenOnly`-only, never attempting suppression; the Settings toggle (39-06) is a documented no-op. User explicitly accepted this as a shipped limitation rather than researching alternative private-API suppression techniques (a `.cghidEventTap`-based approach used by the open-source `dannystewart/volumeHUD` was researched as a possible future spike but not attempted this phase).
 - [Phase 39, 39-07]: Extremely costly (16 on-device gap-closure rounds) OSD wing layout saga with a genuinely reusable lesson for any future absolutely-positioned content inside this codebase's `wingsShape` helper: **`.offset(x:y:)` and `.position(x:y:)` both failed to behave as expected when applied to a view inside `wingsShape`'s content `ZStack`** — `.offset()` never actually moved the real render position (`GeometryReader` consistently reported the pre-offset origin no matter what offset value was set), and `.position()` caused the measured view to report the full parent container's size instead of its own intrinsic size. Root cause was never fully explained, just empirically confirmed via a hand-rolled `OSDFrameLogger`/`GeometryReader` diagnostic with PASS/FAIL verdicts. **The fix that actually worked**: abandon absolute-coordinate primitives entirely and use plain sequential `HStack(spacing: 0)` with concrete fixed-width `Color.clear.frame(width:)` spacer elements for excluded/blocked regions — the same pattern every other wing (Charging/Focus/Device) already used successfully. **For any future wing content that needs precise placement near the physical camera notch: default to HStack+explicit-width-spacers, not offset/position, unless a strong reason exists to deviate.** Final calibration: `margin = 55pt` beyond the measured `collapsedNotchSize` half-width, derived from real on-device visibility-percentage reports rather than theoretical notch-geometry math (which repeatedly produced numbers that didn't match reality). User confirmed final result on-device: "passt".
+- [Phase 39, 39-08]: Gap-closure re-attempt of OSD suppression **SUCCEEDED**, reversing 39-01's `suppression-unreliable` finding — `.cghidEventTap` (HID-level, before the Window Server session layer) is the working mechanism, where `.cgSessionEventTap` (session-level) was not, confirmed via `dannystewart/volumeHUD`'s (MIT) proven technique. Islet now self-drives the real system volume/brightness/mute via `AudioObjectSetPropertyData`/`DisplayServicesSetBrightness` (same selectors/bundle handle the existing readers already used) whenever a press is swallowed, with a per-type kill switch that falls back to passthrough if a self-drive write ever fails. On-device UAT: zero transport-key irregularities across all 4 media keys and 8 verification steps — native OSD genuinely suppressed, not just shown-alongside. `OSDLevelBar`'s fill spring also retuned snappier (response 0.35→0.15, damping 0.75→0.86, D-16) for single-press feel. HUD-03/HUD-04 now fully shipped with the ROADMAP's originally-accepted fallback superseded by the real fix.
 
 ### Roadmap Evolution
 
@@ -217,13 +218,14 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-17T21:34:04.958Z
-Stopped at: Phase 39 gap-closure context gathered (D-14/D-15/D-16)
-Resume file: .planning/phases/39-volume-brightness-hud/39-CONTEXT.md
+Last session: 2026-07-18T00:10:00.000Z
+Stopped at: Phase 39 gap-closure plan 39-08 complete (D-14/D-15/D-16 all confirmed working on-device)
+Resume file: .planning/phases/39-volume-brightness-hud/39-08-SUMMARY.md
 
 ## Operator Next Steps
 
-- Phase 38 (Focus Mode HUD) is complete — all 9 plans executed, ROADMAP.md and this file updated. 38-09's own on-device UAT checkpoint directly covered all 4 ROADMAP Success Criteria (see ROADMAP.md Phase 38 entry for the per-criterion confirmation), so a separate `/gsd:verify-work 38` pass is not needed, per this project's established precedent (Phase 29/36). Start `/gsd-discuss-phase 39` (Volume & Brightness HUD) next.
+- Phase 39 (Volume & Brightness HUD) is now fully complete, including its gap-closure addendum (plan 39-08): native OSD suppression genuinely works via `.cghidEventTap` (D-14), self-driven volume/brightness/mute (D-15), and a snappier fill animation (D-16) — all confirmed on-device with zero transport-key regressions. 39-08's own on-device checkpoint directly covered the gap-closure's success criteria, so a separate `/gsd:verify-work 39` pass is not needed, per this project's established precedent (Phase 29/36/38). Start `/gsd-discuss-phase 40` (Update-Available HUD & Sparkle Integration) next.
+- Phase 38 (Focus Mode HUD) is complete — all 9 plans executed, ROADMAP.md and this file updated. 38-09's own on-device UAT checkpoint directly covered all 4 ROADMAP Success Criteria (see ROADMAP.md Phase 38 entry for the per-criterion confirmation), so a separate `/gsd:verify-work 38` pass is not needed, per this project's established precedent (Phase 29/36).
 - `38-UI-SPEC.md`'s Focus Wing Contract section is now stale (describes the pre-redesign icon+label/bare-dot layout) — not fixed in this session, flag for a docs-sync pass if it matters before Phase 39 planning references it.
 - A general wing-flank-width issue (icon-only left flanks sized wider than their content needs) also affects the existing Charging/Bluetooth wings, per user observation during Phase 38 UAT — explicitly deferred by the user as a future general fix, not scoped into any current phase.
 - Phase 37 (Drop-Session Summary Chip) is fully abandoned and reverted — all code removed, build re-verified green, ROADMAP.md and this file updated to reflect the closure. HUD-07 dropped from v1.6's requirement set. No further action needed on Phase 37.
