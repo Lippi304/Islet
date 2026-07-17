@@ -709,8 +709,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 38-05-PLAN.md — NotchWindowController.swift wiring: monitor lifecycle, D-06 non-self-dismiss guard, D-08 Charging/Device preemption at both enqueue sites, D-09 silent off-flush
-- [ ] 38-06-PLAN.md — SettingsView.swift: opt-in toggle (D-01), permission-status hint (D-05), explanation popover + deep-link/authorization trigger (D-02/D-03/D-04)
+- [x] 38-05-PLAN.md — NotchWindowController.swift wiring: monitor lifecycle, D-06 non-self-dismiss guard, D-08 Charging/Device preemption at both enqueue sites, D-09 silent off-flush
+- [x] 38-06-PLAN.md — SettingsView.swift: opt-in toggle (D-01), permission-status hint (D-05), explanation popover + deep-link/authorization trigger (D-02/D-03/D-04)
 
 **Wave 4** *(blocked on Wave 3)*
 
