@@ -389,7 +389,13 @@ final class NotchWindowController {
         // own start()-time construction.
         deviceCoordinator = DeviceCoordinator(
             queueHead: { [weak self] in self?.transientQueue.head },
-            enqueue: { [weak self] t in self?.transientQueue.enqueue(t) ?? false },
+            enqueue: { [weak self] t in
+                // Phase 38 / HUD-05 (D-08): a Device transient must PREEMPT a standing Focus head
+                // exactly like handlePower(_:)'s charging branch above.
+                guard let self else { return false }
+                if case .focus = self.transientQueue.head { return self.transientQueue.preempt(t) }
+                return self.transientQueue.enqueue(t)
+            },
             updateHead: { [weak self] t in self?.transientQueue.updateHead(t) },
             presentTransientChange: { [weak self] in self?.presentTransientChange() },
             renderPresentation: { [weak self] in self?.renderPresentation() },
@@ -1540,7 +1546,15 @@ final class NotchWindowController {
             // ~3s one-shot dismiss that advances the queue. If a transient already stands it is
             // enqueued behind it (D-03 sequential) and plays when the head's ~3s elapses.
             chargingState.activity = activity   // keep the model in sync (the % tick mutates it)
-            let changed = transientQueue.enqueue(.charging(activity))
+            // Phase 38 / HUD-05 (D-08): a standing Focus head never self-elapses (isPersistent),
+            // so Charging must PREEMPT it immediately rather than queue behind it indefinitely.
+            // Every other head shape (nil, .charging, .device) behaves exactly like plain enqueue.
+            let changed: Bool
+            if case .focus = transientQueue.head {
+                changed = transientQueue.preempt(.charging(activity))
+            } else {
+                changed = transientQueue.enqueue(.charging(activity))
+            }
             if changed {
                 presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
             }
@@ -1554,6 +1568,24 @@ final class NotchWindowController {
         }
     }
 
+    // Phase 38 / HUD-05 — the live Focus/DND change lands here (already on main; the monitor's
+    // callback hopped). Focus NEVER preempts (D-08 is one-directional, only Charging/Device
+    // preempt Focus): a plain enqueue correctly becomes head immediately if nothing stands, or
+    // correctly queues behind an already-standing Charging/Device head. Turning Focus off flushes
+    // it silently (D-09), reusing the exact same removeAll(where:) mechanism the Charging/Device
+    // disable-in-Settings path already uses.
+    private func handleFocusChange(_ isFocused: Bool) {
+        if isFocused {
+            guard let activity = focusActivity(from: true) else { return }
+            let changed = transientQueue.enqueue(.focus(activity))
+            if changed {
+                presentTransientChange()
+            }
+        } else {
+            flushTransients(.focus)
+        }
+    }
+
     // D-09 / Pattern 5 / Phase 6 D-03 — the ONE one-shot dismiss, generalized from a single
     // charging splash to the transient QUEUE. A single wake-up that ADVANCES the queue inside the
     // spring, then idles (no recurring timer → idle CPU ~0%). On advance:
@@ -1564,6 +1596,11 @@ final class NotchWindowController {
     // transient leaves the head so a later in-place % tick can't touch a dismissed splash.
     private func scheduleActivityDismiss() {
         dismissWorkItem?.cancel()
+        // Phase 38 / HUD-05 (D-06): a Focus head never self-elapses -- skip arming the uniform 3s
+        // timer entirely while it stands. Every call site (presentTransientChange(), this
+        // work item's own advance-then-re-arm branch, flushTransients(_:)'s promoted-survivor
+        // re-arm) inherits this correctly with zero per-site changes.
+        guard let head = transientQueue.head, !head.isPersistent else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             _ = self.transientQueue.advance()             // D-03 — promote next pending or clear
@@ -1727,12 +1764,12 @@ final class NotchWindowController {
     // Device splash already stands). `oldHead` is captured BEFORE removeAll(where:) runs; the
     // dismiss-timer cancel/re-arm block below is now gated on `transientQueue.head != oldHead`, so
     // an untouched standing splash's already-running ~3s countdown is left exactly as it was.
-    private enum TransientCategory { case charging, device }
+    private enum TransientCategory { case charging, device, focus }
     private func flushTransients(_ category: TransientCategory) {
         let oldHead = transientQueue.head
         let matches: (ActiveTransient) -> Bool = { t in
             switch (t, category) {
-            case (.charging, .charging), (.device, .device): return true
+            case (.charging, .charging), (.device, .device), (.focus, .focus): return true
             default: return false
             }
         }
@@ -1741,6 +1778,7 @@ final class NotchWindowController {
         case .charging: chargingState.activity = nil
         case .device:
             deviceCoordinator.clearPendingBatteryPolls()   // Finding 4 — drop any pending battery polls too
+        case .focus: break   // Phase 38 / HUD-05: no separate @Published model to clear -- Focus's state lives entirely in the resolver's IslandPresentation
         }
         guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
