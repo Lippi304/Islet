@@ -1661,20 +1661,48 @@ final class NotchWindowController {
     //     enqueue; presentTransientChange() already wraps the spring + arms the dismiss, so no
     //     separate re-arm is needed on this branch.
     private func handleOSDKeyPress(_ kind: OSDKeyKind) {
+        #if DEBUG
+        // 39-07 gap closure ROUND 5 timing instrumentation (temporary, remove once responsiveness
+        // is confirmed fixed) — point (c) entry: this runs INSIDE OSDInterceptor's main.async
+        // closure (via the onKeyPress capture), so comparing this timestamp to OSDInterceptor's own
+        // point (b) logs shows the actual main-queue scheduling delay end-to-end.
+        let debugEntry = CFAbsoluteTimeGetCurrent()
+        print("[OSD-TIMING] c) handleOSDKeyPress entered t=\(String(format: "%.2f", debugEntry * 1000))ms kind=\(kind)")
+        #endif
         let activity: OSDActivity
         switch kind {
         case .volume:
+            #if DEBUG
+            let debugReadStart = CFAbsoluteTimeGetCurrent()
+            #endif
             let (percent, muted) = readSystemVolume()
+            #if DEBUG
+            let debugReadEnd = CFAbsoluteTimeGetCurrent()
+            print("[OSD-TIMING] c) readSystemVolume() took \(String(format: "%.2f", (debugReadEnd - debugReadStart) * 1000))ms, percent=\(percent) muted=\(muted)")
+            #endif
             activity = osdVolumeActivity(percent: percent, hardwareMuted: muted)
         case .brightness:
             // Silent-degrade (Plan 39-03/39-04's Int? contract): a failed brightness read
             // produces NO HUD at all for this press, never a fabricated 0%.
+            #if DEBUG
+            let debugReadStart = CFAbsoluteTimeGetCurrent()
+            #endif
             guard let percent = brightnessReader.readBrightness() else { return }
+            #if DEBUG
+            let debugReadEnd = CFAbsoluteTimeGetCurrent()
+            print("[OSD-TIMING] c) readBrightness() took \(String(format: "%.2f", (debugReadEnd - debugReadStart) * 1000))ms, percent=\(percent)")
+            #endif
             activity = osdBrightnessActivity(percent: percent)
         }
 
         if case .osd = transientQueue.head {
             transientQueue.updateHead(.osd(activity))
+            #if DEBUG
+            // Point (d) trigger: the mutation that should cause NotchPillView's osdWings(for:) body
+            // to re-evaluate with the new fraction — compare this timestamp to NotchPillView's own
+            // "[OSD-TIMING] d) osdWings body evaluated" log to isolate SwiftUI's own render latency.
+            print("[OSD-TIMING] c) about to mutate presentation (updateHead path) t=\(String(format: "%.2f", CFAbsoluteTimeGetCurrent() * 1000))ms")
+            #endif
             withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
                 renderPresentation()
             }
@@ -1687,6 +1715,9 @@ final class NotchWindowController {
                 changed = transientQueue.enqueue(.osd(activity))
             }
             if changed {
+                #if DEBUG
+                print("[OSD-TIMING] c) about to mutate presentation (enqueue/preempt path) t=\(String(format: "%.2f", CFAbsoluteTimeGetCurrent() * 1000))ms")
+                #endif
                 presentTransientChange()
             }
         }
