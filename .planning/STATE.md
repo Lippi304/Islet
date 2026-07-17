@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: ready_to_plan
-stopped_at: Phase 39 complete (7/7) — ready to discuss Phase 40
-last_updated: 2026-07-17T21:22:00.763Z
-last_activity: 2026-07-17 -- Phase 39 execution started
+status: planning
+stopped_at: Phase 39 gap-closure context gathered (D-14/D-15/D-16)
+last_updated: "2026-07-17T21:34:04.967Z"
+last_activity: 2026-07-17
 progress:
   total_phases: 27
-  completed_phases: 17
+  completed_phases: 18
   total_plans: 75
   completed_plans: 69
-  percent: 63
+  percent: 67
 ---
 
 # Project State
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 40 — update available hud & sparkle integration
+**Current focus:** Phase 39 gap-closure — OSD suppression re-attempt (.cghidEventTap) + bar animation tuning, before moving to Phase 40
 
 ## Current Position
 
-Phase: 40
-Plan: Not started
+Phase: 39 (gap-closure)
+Plan: Not started (context gathered, ready to plan)
 Status: Ready to plan
 Last activity: 2026-07-17
 
@@ -217,9 +217,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-17T13:05:18.515Z
-Stopped at: Phase 39 UI-SPEC approved
-Resume file: .planning/phases/39-volume-brightness-hud/39-UI-SPEC.md
+Last session: 2026-07-17T21:34:04.958Z
+Stopped at: Phase 39 gap-closure context gathered (D-14/D-15/D-16)
+Resume file: .planning/phases/39-volume-brightness-hud/39-CONTEXT.md
 
 ## Operator Next Steps
 
