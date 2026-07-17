@@ -2304,8 +2304,36 @@ struct NotchPillView: View {
         //    (`interaction.collapsedNotchSize`, published by `NotchWindowController.
         //    positionAndShow()` from the exact unfudged cutout macOS reports). The ONE safety
         //    margin is folded into `notchHalfWidth` here, once — nothing downstream adds another.
+        //
+        // ROUND 12 — THREE DISTINCT ZONES this codebase already models near the notch, kept
+        // deliberately separate (do not conflate them, per the user's own explicit request):
+        //   (a) Physical camera cutout — `interaction.collapsedNotchSize` (UNFUDGED, `widthFudge:
+        //       0`, the EXACT cutout macOS reports; see `NotchWindowController.positionAndShow()`'s
+        //       own D-01 comment). THIS is the only source `excludedMinX`/`excludedMaxX` below
+        //       should ever be built from — it's the tightest, most accurate measurement, and using
+        //       anything else (e.g. b or c below) would make the exclusion zone bigger than the
+        //       actual invisible area, wasting visible pill space for no reason (exactly the
+        //       "endless black margin" the user flagged).
+        //   (b) Click/hover hot-zone — `NotchWindowController.hotZone` = `collapsedFrame` (WITH
+        //       `widthFudge: 4`) inset by `hotZonePadding` (6pt) — deliberately LARGER than the
+        //       camera, for a comfortable click target. Irrelevant to what's visually rendered;
+        //       not used here, and must not be used here.
+        //   (c) Icon-safe-start (`excludedMinX` below) / bar-safe-start (`excludedMaxX` below) —
+        //       THIS function's own responsibility: derived from (a) plus a safety margin, per the
+        //       fixed `iconBoxWidth`/`barWidth`/`trailingPad` layout below.
+        // ROUND 12 margin correction (from REAL onset data, not another guess): after ROUND 11's
+        // alignment fix, the user reported the bar only becomes visible starting ~20% fill — at
+        // barWidth=90pt, that's ~18pt of avoidable excess margin (0.2 * 90). `margin` appears in
+        // BOTH `excludedMinX` (via `osdLeftWidth`) and `excludedMaxX` (going center -> edge a
+        // SECOND time) — this is legitimate geometry (two separate physical gaps: icon-to-notch
+        // and notch-to-bar, not one double-counted value), so trimming `margin` itself by ~7pt
+        // removes ~14pt from `excludedMaxX` (2 * 7), landing close to the observed ~18pt excess
+        // while leaving a small intentional residual cushion (this saga has flipped from
+        // "too generous" to "razor-thin/negative" before — see rounds 2 vs. 8 — so a full-precision
+        // zero-cushion trim is deliberately NOT applied without a real [OSD-GEOM] measurement to
+        // confirm the exact live `rawNotchHalfWidth`, which this round did not yet have).
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 15
+        let margin: CGFloat = 8
         let notchHalfWidth = rawNotchHalfWidth + margin
         // 2) The icon's own box is a CODE-GUARANTEED fixed size (not a font-rendering guess) —
         //    14pt leading pad + a 20pt fixed glyph frame — so `excludedMinX` can be solved for
