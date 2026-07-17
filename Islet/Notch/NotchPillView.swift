@@ -2743,10 +2743,17 @@ struct EqualizerBars: View {
 // `.animation()` of its own, relying entirely on the controller's shared
 // `withAnimation(.spring(response: 0.6, dampingFraction: 0.62))` wrapper (the SAME slow spring
 // used for the pill's own show/hide/shape morph) — during rapid scrubbing this made every level
-// update feel sluggish/non-real-time. 39-UI-SPEC.md's own locked D-04 fill-animation row already
-// specified a faster, bar-dedicated spring (`response: 0.35, dampingFraction: 0.75`) that this
-// view never actually applied — restoring it here, scoped to just the fill's own width change via
-// `value: fraction`, independent of and faster than the outer wing-morph spring.
+// update feel sluggish/non-real-time. 39-UI-SPEC.md's own locked D-04 fill-animation row
+// specified a bar-dedicated spring (faster than the outer wing-morph spring), applied here scoped
+// to just the fill's own width change via `value: fraction`.
+// 39-08 gap closure (D-16, post-39-07 on-device feedback): the user found even a SINGLE
+// non-held key press still felt slightly delayed — [OSD-TIMING] evidence (39-07-SUMMARY.md)
+// already ruled out the backend pipeline (single-digit milliseconds), pointing at this fill's own
+// easing curve. Retuned to `response: 0.15, dampingFraction: 0.86` — a starting value (this
+// codebase's own convention for first-pass spring constants, to be confirmed on-device): more
+// than half the response time, damping moved closer to critically damped (less overshoot), while
+// remaining a spring rather than an instant snap, preserving D-04's original "spring, not
+// instant snap" intent.
 private struct OSDLevelBar: View {
     let fraction: CGFloat
     let tint: Color
@@ -2756,7 +2763,7 @@ private struct OSDLevelBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.15))                       // empty track
                 Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled (D-02 fixed tint)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: fraction)   // D-04 locked value
+                    .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)   // D-16 retuned value
             }
         }
     }
