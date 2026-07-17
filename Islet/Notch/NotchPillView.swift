@@ -2149,25 +2149,31 @@ struct NotchPillView: View {
     // deviceAccent/chargingAccent/any theme accent — a universal system-level state should
     // read consistently regardless of the user's chosen accent theme.
     private func focusWings(for activity: FocusActivity) -> some View {
+        // User request 2026-07-17: left flank (icon-only, no label) narrower than the
+        // standard wingsSize.width/2 half — same asymmetry exists on Charging/Device's
+        // icon-only side too, deferred as a general fix; this narrows Focus only for now.
+        // Floor is the physical notch half-width (~89.5pt, notch measured 179pt) + icon +
+        // its leading padding — going below that renders the icon under the camera housing
+        // (invisible/clipped), which is what leftWidth: 100 did.
         wingsShape(
-            leftWidth: Self.wingsLabelWidth / 2,
-            rightWidth: Self.wingsSize.width / 2
+            leftWidth: 118,
+            rightWidth: 160
         ) {
             HStack(spacing: 0) {
+                Image(systemName: "moon.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white)
+                    .padding(.leading, 14)
+                Spacer()                                      // clears the physical camera bridge
                 HStack(spacing: 4) {
-                    Image(systemName: "moon.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white)
-                    Text("Focus")
+                    Circle().fill(Color.green)                 // fixed, universal active signal — never theme-tinted
+                        .frame(width: 8, height: 8)
+                    Text("On")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
                 }
-                .padding(.leading, 12)
-                Spacer()                                      // clears the physical camera bridge
-                Circle().fill(Color.green)                     // fixed, universal active signal — never theme-tinted
-                    .frame(width: 8, height: 8)
-                    .padding(.trailing, 14)
+                .padding(.trailing, 20)
             }
         }
     }
