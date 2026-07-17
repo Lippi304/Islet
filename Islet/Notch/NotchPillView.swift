@@ -2232,16 +2232,30 @@ struct NotchPillView: View {
     // below), i.e. the SAME "local x from the wing's own leading edge" space `osdWings(for:)`'s
     // own `trackLeft`/`rightWidth` math assumes — this directly tells us whether that assumption
     // itself is correct, independent of the notch's absolute screen position.
+    // ROUND 13 addition — `verdict`: an optional self-check computed FROM the measured frame,
+    // in the SAME coordinate space `geo.frame(in:)` reports (no manual conversion needed). Added
+    // because a hand cross-reference between this file's `.global` (SwiftUI window-local, top-left
+    // origin, y-down) logs and `NotchWindowController`'s screen-coordinate (AppKit, bottom-left
+    // origin, y-up) logs is exactly the kind of "two different coordinate systems, subtracted by
+    // hand" error that produces misleading conclusions — this codebase has NO existing, proven
+    // AppKit-screen <-> SwiftUI-window conversion helper (confirmed by search before writing this),
+    // so inventing one just for a diagnostic print is unnecessary complexity for a question that
+    // has a simpler, conversion-free answer: compare the icon/bar's measured frame against
+    // `excludedMinX`/`excludedMaxX` in the wing's OWN `.named("osdWing")` space — the exact same
+    // space those two values are already computed in. The app now prints the pass/fail verdict
+    // itself; no one needs to convert or subtract anything by hand.
     private struct OSDFrameLogger: ViewModifier {
         let label: String
         let space: CoordinateSpace
+        var verdict: ((CGRect) -> String)? = nil
         func body(content: Content) -> some View {
             #if DEBUG
             content.background(
                 GeometryReader { geo in
                     let g = geo.frame(in: space)
                     Color.clear.onAppear {
-                        print("[OSD-GEOM] \(label): x=\(String(format: "%.1f", g.minX)) y=\(String(format: "%.1f", g.minY)) w=\(String(format: "%.1f", g.width)) h=\(String(format: "%.1f", g.height))")
+                        let verdictText = verdict.map { " — \($0(g))" } ?? ""
+                        print("[OSD-GEOM] \(label): x=\(String(format: "%.1f", g.minX)) y=\(String(format: "%.1f", g.minY)) w=\(String(format: "%.1f", g.width)) h=\(String(format: "%.1f", g.height))\(verdictText)")
                     }
                 }
             )
@@ -2375,12 +2389,20 @@ struct NotchPillView: View {
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .frame(width: 20, height: Self.wingsSize.height, alignment: .center)
                     .offset(x: 14)                                   // matches iconBoxWidth's 14pt leading pad
-                    .modifier(OSDFrameLogger(label: "icon (named osdWing)", space: .named("osdWing")))
+                    .modifier(OSDFrameLogger(label: "icon (named osdWing)", space: .named("osdWing"), verdict: { g in
+                        g.maxX <= excludedMinX
+                            ? "PASS (icon ends at \(String(format: "%.1f", g.maxX)), excludedMinX=\(String(format: "%.1f", excludedMinX)))"
+                            : "FAIL (icon ends at \(String(format: "%.1f", g.maxX)), which is PAST excludedMinX=\(String(format: "%.1f", excludedMinX)) by \(String(format: "%.1f", g.maxX - excludedMinX))pt)"
+                    }))
                     .modifier(OSDFrameLogger(label: "icon (global)", space: .global))
                 OSDLevelBar(fraction: fraction, tint: tint)
                     .frame(width: barWidth, height: 5)
                     .offset(x: trackLeft, y: (Self.wingsSize.height - 5) / 2)   // vertically centered
-                    .modifier(OSDFrameLogger(label: "bar (named osdWing)", space: .named("osdWing")))
+                    .modifier(OSDFrameLogger(label: "bar (named osdWing)", space: .named("osdWing"), verdict: { g in
+                        g.minX >= excludedMaxX
+                            ? "PASS (bar starts at \(String(format: "%.1f", g.minX)), excludedMaxX=\(String(format: "%.1f", excludedMaxX)))"
+                            : "FAIL (bar starts at \(String(format: "%.1f", g.minX)), which is BEFORE excludedMaxX=\(String(format: "%.1f", excludedMaxX)) by \(String(format: "%.1f", excludedMaxX - g.minX))pt)"
+                    }))
                     .modifier(OSDFrameLogger(label: "bar (global)", space: .global))
             }
             .coordinateSpace(name: "osdWing")
