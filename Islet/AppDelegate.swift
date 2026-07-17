@@ -20,10 +20,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // while locked would otherwise make debug items unreachable exactly when a
     // developer most needs to flip the stub back to licensed). Absent from Release.
     private var debugStatusItem: NSStatusItem!
-    // Phase 39 Plan 01 — the two throwaway OSD spike probes (deleted in 39-07), stored so a
-    // debug menu click can lazily construct-then-start each mode independently.
-    private var osdSpikeDetectOnly: OSDInterceptionSpike?
-    private var osdSpikeDetectAndSuppress: OSDInterceptionSpike?
     #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -169,13 +165,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugForceLicensed), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Debug: Reset Trial",
                           action: #selector(debugResetTrial), keyEquivalent: "")
-        debugMenu.addItem(.separator())
-        // Phase 39 Plan 01 — menu-triggered, not auto-started at launch, so detect-only and
-        // detect+suppress can be tested one at a time on-device without relaunching the app.
-        debugMenu.addItem(withTitle: "OSD Spike: Start Detect-Only",
-                          action: #selector(startOSDSpikeDetectOnly), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "OSD Spike: Start Detect+Suppress",
-                          action: #selector(startOSDSpikeDetectAndSuppress), keyEquivalent: "")
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -198,20 +187,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // "restarted" on the next actual app relaunch, not live. Re-recording here
         // makes Reset Trial usable for on-device testing without quitting the app.
         TrialManager.shared.recordFirstLaunchIfNeeded()
-    }
-
-    @objc private func startOSDSpikeDetectOnly() {
-        if osdSpikeDetectOnly == nil {
-            osdSpikeDetectOnly = OSDInterceptionSpike(mode: .detectOnly)
-        }
-        osdSpikeDetectOnly?.start()
-    }
-
-    @objc private func startOSDSpikeDetectAndSuppress() {
-        if osdSpikeDetectAndSuppress == nil {
-            osdSpikeDetectAndSuppress = OSDInterceptionSpike(mode: .detectAndSuppress)
-        }
-        osdSpikeDetectAndSuppress?.start()
     }
     #endif
 }
