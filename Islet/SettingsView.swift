@@ -31,6 +31,11 @@ struct SettingsView: View {
     // for existing users, fresh installs read ON).
     @AppStorage(ActivitySettings.songChangeToastKey) private var songChangeToastEnabled = true
     @AppStorage(ActivitySettings.deviceKey)     private var deviceEnabled = true
+    // Phase 38 / HUD-05 (D-01) — the ONE activity toggle that defaults OFF (permission-gated,
+    // opt-in). @State drives the one-time explanation popover (D-02: shown only at the moment
+    // the toggle flips on, never at launch).
+    @AppStorage(ActivitySettings.focusKey) private var focusEnabled = false
+    @State private var showFocusPermissionExplanation = false
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
@@ -199,6 +204,24 @@ struct SettingsView: View {
                 Toggle("Now Playing", isOn: $nowPlayingEnabled)
                 Toggle("Song-Change Toast", isOn: $songChangeToastEnabled)
                 Toggle("Devices", isOn: $deviceEnabled)
+                // Phase 38 / HUD-05 — D-02: the permission ask happens ONLY at this exact
+                // off-to-on flip, never at launch. D-04: declining the explanation leaves the
+                // toggle ON with the inert hint — the tap-to-retry gesture below is the ONLY way
+                // the explanation re-appears, never automatically.
+                Toggle("Focus Mode HUD", isOn: $focusEnabled)
+                    .onChange(of: focusEnabled) { _, on in
+                        if on && !FocusModeMonitor.isAuthorized {
+                            showFocusPermissionExplanation = true
+                        }
+                    }
+                if let hint = ActivitySettings.focusPermissionStatusHint(
+                    toggleOn: focusEnabled, granted: FocusModeMonitor.isAuthorized
+                ) {
+                    Text(hint)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .onTapGesture { showFocusPermissionExplanation = true }
+                }
             }
 
             // Quick task 260709-glz — a fullscreen-visibility preference, distinct from

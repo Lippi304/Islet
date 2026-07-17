@@ -37,6 +37,7 @@
 		3AFB898616FDDD93C37B1906 /* PolarLicenseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA8943FF6A71F7546A800BD /* PolarLicenseService.swift */; };
 		3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */; };
 		40A19305FE709A3C8F605C3B /* NowPlayingPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */; };
+		415C906FD372AAD59B63EE14 /* FocusModeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7266CC288F6F27EFA1B86451 /* FocusModeMonitor.swift */; };
 		43DF0886D3878D38B6157239 /* WeatherCategoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0C1FFC49C8A8CE3E74509 /* WeatherCategoryTests.swift */; };
 		48156062092638E2BD35BAA0 /* LicenseStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B227C92D09FB6EAB081E62E /* LicenseStateTests.swift */; };
 		4D42E4610ECAF1591FEAD40D /* QuickActionSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8C607878B62D262514A41D /* QuickActionSharingService.swift */; };
@@ -186,6 +187,7 @@
 		6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCoordinator.swift; sourceTree = "<group>"; };
 		70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItemView.swift; sourceTree = "<group>"; };
 		71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSpaceProbe.swift; sourceTree = "<group>"; };
+		7266CC288F6F27EFA1B86451 /* FocusModeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusModeMonitor.swift; sourceTree = "<group>"; };
 		734F24D3CCE5D48060447B10 /* TrialManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManager.swift; sourceTree = "<group>"; };
 		73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfCoordinatorTests.swift; sourceTree = "<group>"; };
 		76ADF16C067A181F295BA4C5 /* PowerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivity.swift; sourceTree = "<group>"; };
@@ -411,6 +413,7 @@
 				63FACDF43375E1DE88646B05 /* DragDropSupport.swift */,
 				C75C7435C3C840FC929C873C /* DropInterceptTap.swift */,
 				BB884D12561F8F8110F1DB63 /* FocusActivity.swift */,
+				7266CC288F6F27EFA1B86451 /* FocusModeMonitor.swift */,
 				885DB8C610716B7530D89BDB /* FullscreenDetector.swift */,
 				71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */,
 				0EEA35677CE1730669284423 /* IslandPresentationState.swift */,
@@ -560,6 +563,7 @@
 				73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */,
 				B2ADB08E18FABDBA8931EA42 /* FocusActivity.swift in Sources */,
 				832A467CEE2D17036060F3C8 /* FocusDetectionSpike.swift in Sources */,
+				415C906FD372AAD59B63EE14 /* FocusModeMonitor.swift in Sources */,
 				8CEEBDB51AC0041BDC1306AC /* FullscreenDetector.swift in Sources */,
 				6E7588C0E74ED25E45E3F1AE /* FullscreenSpaceProbe.swift in Sources */,
 				1C34C1BD974D50396F6713F0 /* IslandPresentationState.swift in Sources */,
