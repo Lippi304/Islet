@@ -50,8 +50,8 @@ Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Dropp
 
 - [x] **HUD-01**: The Bluetooth/AirPods device-connected activity is restyled to the Droppy-pill look (visual only — `DeviceCoordinator`/`BluetoothMonitor` unchanged)
 - [x] **HUD-02**: The Charging activity is restyled to the Droppy-pill look (visual only — the existing IOKit power monitor unchanged)
-- [ ] **HUD-03**: A Volume HUD appears on volume key press showing the live level in the Droppy-pill style, and suppresses the native system OSD when the spike confirms it's safe to do so on the dev machine (falls back to showing alongside the native OSD if suppression proves unreliable — do not ship the undocumented `EnableSystemBanners` toggle without confirming it doesn't regress on the project's own macOS Tahoe hardware)
-- [ ] **HUD-04**: A Brightness HUD mirrors HUD-03's behavior for brightness key presses, sharing its OSD-replacement subsystem
+- [x] **HUD-03**: A Volume HUD appears on volume key press showing the live level in the Droppy-pill style, and suppresses the native system OSD when the spike confirms it's safe to do so on the dev machine (falls back to showing alongside the native OSD if suppression proves unreliable — do not ship the undocumented `EnableSystemBanners` toggle without confirming it doesn't regress on the project's own macOS Tahoe hardware)
+- [x] **HUD-04**: A Brightness HUD mirrors HUD-03's behavior for brightness key presses, sharing its OSD-replacement subsystem
 - [ ] **HUD-05**: A Focus Mode HUD appears when the user toggles Focus/Do Not Disturb, showing generic on/off state only (named-mode detection, e.g. "Work Focus" vs "Sleep", is not guaranteed available on current macOS — see Out of Scope)
 - [ ] **HUD-06**: An Update-available HUD appears when a new Islet version is published, backed by a real Sparkle 2 auto-update integration; tapping it triggers Sparkle's own standard install/progress dialog rather than a fully custom in-notch install flow (see Out of Scope)
 - [ ] **HUD-07**: A Drop-session summary chip briefly appears after the Tray is closed following a drop session, showing how many files were saved — requires adding a session-boundary concept to `ShelfViewState`/`ShelfCoordinator` that does not exist today (`isVisible` is currently just `!items.isEmpty`)
@@ -118,8 +118,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ONBOARD-04 | Phase 36 | Complete |
 | HUD-07 | Phase 37 | Pending |
 | HUD-05 | Phase 38 | Pending |
-| HUD-03 | Phase 39 | Pending |
-| HUD-04 | Phase 39 | Pending |
+| HUD-03 | Phase 39 | Complete |
+| HUD-04 | Phase 39 | Complete |
 | HUD-06 | Phase 40 | Pending |
 | HUD-08 | Phase 41 | Pending |
 | DUAL-01 | Phase 42 | Pending |
