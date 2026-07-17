@@ -1,10 +1,11 @@
 ---
 phase: 40
 slug: update-available-hud-sparkle-integration
-status: draft
+status: approved
 shadcn_initialized: false
 preset: not applicable — native SwiftUI/AppKit app, no component-registry tooling
 created: 2026-07-18
+reviewed_at: 2026-07-18
 ---
 
 # Phase 40 — UI Design Contract
