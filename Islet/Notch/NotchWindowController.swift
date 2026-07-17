@@ -671,7 +671,8 @@ final class NotchWindowController {
                 (self?.activityEnabled(ActivitySettings.osdSuppressionKey) ?? false)
                     && OSDInterceptor.isAccessibilityTrusted
             },
-            onKeyPress: { [weak self] kind in self?.handleOSDKeyPress(kind) }
+            onKeyPress: { [weak self] kind in self?.handleOSDKeyPress(kind) },
+            brightnessReader: brightnessReader
         )
         osdInterceptor = interceptor
         interceptor.start()
