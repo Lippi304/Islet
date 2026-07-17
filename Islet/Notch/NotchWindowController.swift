@@ -202,6 +202,12 @@ final class NotchWindowController {
     // process, T-04-12), mirroring powerMonitor's lifecycle exactly.
     private var nowPlayingMonitor: NowPlayingService?
 
+    // Phase 38 / HUD-05 (Plan 05) — the LIVE Focus/DND poll monitor. Constructed + started in
+    // start() ONLY when the Focus toggle is on AND permission is already granted (D-04), mirroring
+    // powerMonitor/bluetoothMonitor's toggle-gated idempotent-start discipline. Held as a plain
+    // stored property so the nonisolated deinit can call its stop() (nonisolated func stop()).
+    private var focusModeMonitor: FocusModeMonitor?
+
     // D-06 (15s paused linger) / D-07 (stop cue) — the one-shot media auto-dismiss. A single
     // DispatchWorkItem mirroring dismissWorkItem (NOT a recurring timer): one wake-up then idle,
     // so CPU stays ~0% while a paused/stopped glance lingers. Resuming playback cancels it.
@@ -383,7 +389,13 @@ final class NotchWindowController {
         // own start()-time construction.
         deviceCoordinator = DeviceCoordinator(
             queueHead: { [weak self] in self?.transientQueue.head },
-            enqueue: { [weak self] t in self?.transientQueue.enqueue(t) ?? false },
+            enqueue: { [weak self] t in
+                // Phase 38 / HUD-05 (D-08): a Device transient must PREEMPT a standing Focus head
+                // exactly like handlePower(_:)'s charging branch above.
+                guard let self else { return false }
+                if case .focus = self.transientQueue.head { return self.transientQueue.preempt(t) }
+                return self.transientQueue.enqueue(t)
+            },
             updateHead: { [weak self] t in self?.transientQueue.updateHead(t) },
             presentTransientChange: { [weak self] in self?.presentTransientChange() },
             renderPresentation: { [weak self] in self?.renderPresentation() },
@@ -455,6 +467,11 @@ final class NotchWindowController {
         // feeds the pure device seam → the transient queue. (On-device BT UAT is the deferred
         // carry-over; the wiring is code-complete.)
         if activityEnabled(ActivitySettings.deviceKey) && !isOnboardingActive { startBluetoothMonitor() }
+
+        // Phase 38 / HUD-05 (D-02/D-04): auto-start ONLY if permission was already granted in a
+        // prior session — this line never triggers a permission request itself (the request lives
+        // in Plan 38-06's SettingsView code, at the moment the toggle is switched on).
+        if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized { startFocusModeMonitor() }
 
         // Phase 14 / WEATHER-01 / CAL-01: start the outfit (weather + calendar) coarse-refresh
         // cycle. Unconditional — unlike the toggle-gated monitors above, this phase has no
@@ -585,6 +602,14 @@ final class NotchWindowController {
         let bt = BluetoothMonitor { [weak self] reading in self?.deviceCoordinator.handle(reading) }
         bluetoothMonitor = bt
         bt.start()
+    }
+
+    // Phase 38 / HUD-05 — idempotent start, mirrors startPowerMonitor()'s exact shape.
+    private func startFocusModeMonitor() {
+        guard focusModeMonitor == nil else { return }
+        let monitor = FocusModeMonitor { [weak self] isFocused in self?.handleFocusChange(isFocused) }
+        focusModeMonitor = monitor
+        monitor.start()
     }
 
     // Phase 14 / WEATHER-01 / CAL-01 — idempotent start (mirrors startPowerMonitor/
@@ -1521,7 +1546,15 @@ final class NotchWindowController {
             // ~3s one-shot dismiss that advances the queue. If a transient already stands it is
             // enqueued behind it (D-03 sequential) and plays when the head's ~3s elapses.
             chargingState.activity = activity   // keep the model in sync (the % tick mutates it)
-            let changed = transientQueue.enqueue(.charging(activity))
+            // Phase 38 / HUD-05 (D-08): a standing Focus head never self-elapses (isPersistent),
+            // so Charging must PREEMPT it immediately rather than queue behind it indefinitely.
+            // Every other head shape (nil, .charging, .device) behaves exactly like plain enqueue.
+            let changed: Bool
+            if case .focus = transientQueue.head {
+                changed = transientQueue.preempt(.charging(activity))
+            } else {
+                changed = transientQueue.enqueue(.charging(activity))
+            }
             if changed {
                 presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
             }
@@ -1535,6 +1568,24 @@ final class NotchWindowController {
         }
     }
 
+    // Phase 38 / HUD-05 — the live Focus/DND change lands here (already on main; the monitor's
+    // callback hopped). Focus NEVER preempts (D-08 is one-directional, only Charging/Device
+    // preempt Focus): a plain enqueue correctly becomes head immediately if nothing stands, or
+    // correctly queues behind an already-standing Charging/Device head. Turning Focus off flushes
+    // it silently (D-09), reusing the exact same removeAll(where:) mechanism the Charging/Device
+    // disable-in-Settings path already uses.
+    private func handleFocusChange(_ isFocused: Bool) {
+        if isFocused {
+            guard let activity = focusActivity(from: true) else { return }
+            let changed = transientQueue.enqueue(.focus(activity))
+            if changed {
+                presentTransientChange()
+            }
+        } else {
+            flushTransients(.focus)
+        }
+    }
+
     // D-09 / Pattern 5 / Phase 6 D-03 — the ONE one-shot dismiss, generalized from a single
     // charging splash to the transient QUEUE. A single wake-up that ADVANCES the queue inside the
     // spring, then idles (no recurring timer → idle CPU ~0%). On advance:
@@ -1545,6 +1596,11 @@ final class NotchWindowController {
     // transient leaves the head so a later in-place % tick can't touch a dismissed splash.
     private func scheduleActivityDismiss() {
         dismissWorkItem?.cancel()
+        // Phase 38 / HUD-05 (D-06): a Focus head never self-elapses -- skip arming the uniform 3s
+        // timer entirely while it stands. Every call site (presentTransientChange(), this
+        // work item's own advance-then-re-arm branch, flushTransients(_:)'s promoted-survivor
+        // re-arm) inherits this correctly with zero per-site changes.
+        guard let head = transientQueue.head, !head.isPersistent else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             _ = self.transientQueue.advance()             // D-03 — promote next pending or clear
@@ -1652,6 +1708,15 @@ final class NotchWindowController {
             flushTransients(.device)
         }
 
+        // Phase 38 / HUD-05 — Focus. Mirrors the Charging/Devices toggle-off pattern exactly:
+        // stop the poll timer, release it, and flush any standing/queued Focus splash (D-09).
+        if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized {
+            startFocusModeMonitor()
+        } else if focusModeMonitor != nil {
+            focusModeMonitor?.stop(); focusModeMonitor = nil
+            flushTransients(.focus)
+        }
+
         // Now Playing — stop the perl child on disable (RESEARCH Open Q3: prefer a clean restart);
         // re-enabling start()s + re-runs the health check, mirroring launch. While disabled,
         // currentPresentation() forces nowPlaying → .none so the ambient glance disappears live.
@@ -1699,12 +1764,12 @@ final class NotchWindowController {
     // Device splash already stands). `oldHead` is captured BEFORE removeAll(where:) runs; the
     // dismiss-timer cancel/re-arm block below is now gated on `transientQueue.head != oldHead`, so
     // an untouched standing splash's already-running ~3s countdown is left exactly as it was.
-    private enum TransientCategory { case charging, device }
+    private enum TransientCategory { case charging, device, focus }
     private func flushTransients(_ category: TransientCategory) {
         let oldHead = transientQueue.head
         let matches: (ActiveTransient) -> Bool = { t in
             switch (t, category) {
-            case (.charging, .charging), (.device, .device): return true
+            case (.charging, .charging), (.device, .device), (.focus, .focus): return true
             default: return false
             }
         }
@@ -1713,6 +1778,7 @@ final class NotchWindowController {
         case .charging: chargingState.activity = nil
         case .device:
             deviceCoordinator.clearPendingBatteryPolls()   // Finding 4 — drop any pending battery polls too
+        case .focus: break   // Phase 38 / HUD-05: no separate @Published model to clear -- Focus's state lives entirely in the resolver's IslandPresentation
         }
         guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
@@ -2041,6 +2107,10 @@ final class NotchWindowController {
         // the owner. Mirrors powerMonitor.stop()'s owner-driven teardown.
         bluetoothMonitor?.stop()
         deviceCoordinator?.cancelPendingWork()
+
+        // Phase 38 / HUD-05: tear down the Focus poll timer — mirrors bluetoothMonitor?.stop()'s
+        // owner-driven teardown discipline exactly.
+        focusModeMonitor?.stop()
 
         // Phase 24 / SHELF-01 / SHELF-02 (D-10): tear down the drop-interception tap — mirrors
         // bluetoothMonitor?.stop()'s owner-driven teardown discipline exactly.
