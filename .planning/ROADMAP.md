@@ -103,7 +103,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code (completed 2026-07-16)
 - [x] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes (completed 2026-07-16)
 - [x] **Phase 37: Drop-Session Summary Chip** - ABANDONED after on-device UAT (completed 2026-07-17, reverted 2026-07-17) — see phase detail below
-- [ ] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (7/7 plans executed 2026-07-17, gaps found in verification — pending gap closure)
+- [ ] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (7/7 plans executed 2026-07-17, gaps found in verification — gap closure plan 38-08 created, pending execution)
 - [ ] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses
 - [ ] **Phase 40: Update-Available HUD & Sparkle Integration** - Real Sparkle 2 auto-update + update-available HUD/badge
 - [ ] **Phase 41: Calendar Countdown HUD** - Live minute-countdown starting 1 hour before a calendar event, own persistent timer
@@ -693,7 +693,7 @@ Plans:
   2. Toggling Focus/DND on shows the new HUD in a generic "Focus On" state; toggling off dismisses it or shows "Focus Off" — no named-mode text (e.g. "Work Focus") anywhere.
   3. If the Full-Disk-Access-gated path is required, denying that permission degrades silently (no crash, no stuck state) rather than blocking the rest of the app.
   4. The new `FocusActivity`/`FocusModeMonitor` pipeline routes through `IslandResolver`/`TransientQueue` like every other transient — no resolver bypass.
-**Plans**: 7 plans (waves: 1={38-01,38-02}, 2={38-03,38-04}, 3={38-05,38-06}, 4={38-07}) — D-12 descope gate: if the Wave 1 spike (38-01) finds neither detection path viable, Plans 38-04 through 38-07 do not execute and the phase is closed out per Phase 37's abandonment precedent.
+**Plans**: 8 plans (waves: 1={38-01,38-02}, 2={38-03,38-04}, 3={38-05,38-06}, 4={38-07}, 5={38-08}) — D-12 descope gate: if the Wave 1 spike (38-01) finds neither detection path viable, Plans 38-04 through 38-07 do not execute and the phase is closed out per Phase 37's abandonment precedent. Wave 5 (38-08) is a gap-closure plan added after 38-VERIFICATION.md found two BLOCKER-level system-glue defects (CR-01, CR-02/WR-02).
 **UI hint**: yes
 
 Plans:
@@ -715,6 +715,10 @@ Plans:
 **Wave 4** *(blocked on Wave 3)*
 
 - [x] 38-07-PLAN.md — Remove the Wave 1 spike scaffolding + consolidated on-device UAT checkpoint (persistence, preemption, collapsed-only scope, silent off, fresh-install-no-permission)
+
+**Wave 5** *(gap closure — blocked on Wave 4)*
+
+- [ ] 38-08-PLAN.md — Fix CR-01 (`activityEnabled(_:)` wrong shared default for `focusKey`) + CR-02/WR-02 (permission-grant completion discarded, monitor never starts on first-grant flow); Debug build gate + re-verification UAT
 
 ### Phase 39: Volume & Brightness HUD
 
