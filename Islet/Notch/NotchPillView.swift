@@ -732,11 +732,7 @@ struct NotchPillView: View {
             trayFullView                                                     // 28-04 round 5: dedicated files-only Tray view
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
-        case .focus:
-            // Phase 38 / HUD-05: compiler-forced stub only (38-02 is pure-logic-only, no
-            // system glue or view code) -- the real Focus HUD wing view is built in a
-            // later plan (38-04/38-05). Renders nothing distinctive yet.
-            EmptyView()
+        case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
         case .idle:
             collapsedIsland                                                  // idle pill
         }
@@ -2144,6 +2140,38 @@ struct NotchPillView: View {
         }
     }
 
+    // Phase 38 / HUD-05 — the FOCUS collapsed wing. Mechanical reapplication of Phase 36's
+    // Droppy-pill wing language (38-UI-SPEC.md "Focus Wing Contract") — no new shape, no new
+    // sizing constants. `FocusActivity` has exactly one case (`.on`, D-09: there is no "Focus
+    // Off" render), so the label is ALWAYS shown (unlike Charging/Device's conditional-width
+    // ternary) and `wingsShape` is called with the label-width half fixed rather than switched
+    // on activity state. D-11 (locked): icon + label render in a FIXED white, never
+    // deviceAccent/chargingAccent/any theme accent — a universal system-level state should
+    // read consistently regardless of the user's chosen accent theme.
+    private func focusWings(for activity: FocusActivity) -> some View {
+        wingsShape(
+            leftWidth: Self.wingsLabelWidth / 2,
+            rightWidth: Self.wingsSize.width / 2
+        ) {
+            HStack(spacing: 0) {
+                HStack(spacing: 4) {
+                    Image(systemName: "moon.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white)
+                    Text("Focus")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+                .padding(.leading, 12)
+                Spacer()                                      // clears the physical camera bridge
+                Circle().fill(Color.green)                     // fixed, universal active signal — never theme-tinted
+                    .frame(width: 8, height: 8)
+                    .padding(.trailing, 14)
+            }
+        }
+    }
+
     // RIGHT wing of the device glance: the battery indicator when the device reports a level
     // (DEV-01), a fixed-green status ring when connected with no reported battery, otherwise the
     // disconnected connection sign. Battery is rendered GREEN (with the indicator's amber/red
@@ -2731,6 +2759,25 @@ private struct OnboardingDoneStep: View {
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))),
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
+// Focus Wings — Phase 38 / HUD-05: proves the new focusWings(for:) branch compiles and
+// renders in isolation. `.focus(.on)` is the only reachable presentation (D-09: no "Focus
+// Off" render exists).
+#Preview("Focus Wings") {
+    let state = NotchInteractionState()
+    state.phase = .collapsed
+    return NotchPillView(interaction: state,
+                         nowPlaying: NowPlayingState(),
+                         presentationState: IslandPresentationState(.focus(.on)),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
                          onboardingState: OnboardingViewState(),
