@@ -2207,7 +2207,7 @@ struct NotchPillView: View {
         // D-03: bar fully drains when muted, else reflects the clamped percent (39-02 already
         // clamps 0...100 before this view ever sees it).
         let fraction = activity.isMuted ? 0.0 : CGFloat(percent) / 100.0
-        return wingsShape(leftWidth: 118, rightWidth: 205) {
+        return wingsShape(leftWidth: 118, rightWidth: 209) {
             HStack(spacing: 0) {
                 Image(systemName: iconName)
                     .font(.system(size: 13, weight: .semibold))
@@ -2226,19 +2226,27 @@ struct NotchPillView: View {
                 // the (evidently unreliable) notch-half-width estimate: at round 2's 76pt bar, the
                 // boundary sat ~46pt (0.6 * 76) inside the track's left edge, so the WHOLE track needs
                 // to shift right by roughly that much (+buffer) to make even a low fill level visible.
-                // Achieved two ways at once (shrinking the bar alone was insufficient last round —
-                // it only moves the left edge ~14pt at most before hitting the trailing-pad floor):
-                // `rightWidth` grown 190 -> 205 (near the hard ceiling of 210 = half of `body`'s
-                // 420pt `expandedSize.width` outer frame — see NotchWindowController's panel-union
-                // sizing, which does NOT special-case OSD's width, so anything past 210 risks a real
-                // AppKit-level clip) shifts BOTH edges of the bar right without shrinking it further;
-                // combined with shrinking the bar 76pt -> 44pt (moves the left edge further right,
-                // trailing pad unchanged at 14pt), the track's left edge moves right by ~47pt total —
-                // matching the empirically-required shift, plus a small margin for measurement
-                // imprecision ("~60% or so"). Do not re-derive this from notch-width theory again —
-                // if still wrong, get a fresh onset-percentage reading and solve the same way.
+                // trackLeft = (leftWidth + rightWidth) - trailingPad - barWidth = 265 was confirmed
+                // on-device to clear the camera (low fill levels now visible) — DO NOT move it left.
+                //
+                // ROUND 4 (bar-size bump, user asked for ~90pt/"deutlich länger"): trackLeft (265) is
+                // held FIXED per the above; the only lever left to grow the bar is `rightWidth`, which
+                // has a HARD ceiling of 210 (half of `body`'s 420pt `expandedSize.width` outer frame —
+                // NotchWindowController's panel-frame union does NOT special-case OSD's width, so
+                // anything past 210 risks a real AppKit-level window clip, not just a notch-clearance
+                // issue). Pushed rightWidth 205 -> 209 (1pt safety margin under the hard ceiling — this
+                // limit is a deterministic computed constant, not an empirical hardware measurement
+                // like the notch position, so it needs far less buffer than that did). With trackLeft
+                // pinned at 265, this yields a maximum SAFE bar width of only 48pt (313 - 265), NOT the
+                // requested ~90pt — the panel's own 210pt-per-side hard limit, combined with the
+                // must-not-move left edge, is the actual ceiling here. Reaching ~90pt would require
+                // either moving the left edge back toward the camera (reintroduces the clipping bug
+                // just fixed) or widening NotchWindowController's panel-frame union with an OSD-
+                // specific asymmetric member (mirrors the existing trayFrame/weatherExpandedFrame/
+                // onboardingFrame per-presentation pattern) — a real structural change, out of this
+                // round's scope; flag for the user/coordinator to decide if it's worth doing.
                 OSDLevelBar(fraction: fraction, tint: tint)
-                    .frame(width: 44, height: 5)
+                    .frame(width: 48, height: 5)
                     .padding(.trailing, 14)
             }
         }
