@@ -54,6 +54,7 @@
 		6B351B58889CA7C8B7C93511 /* DragApproachGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */; };
 		6DA98B2B2107409BB8BD64FE /* CGSSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2151B8D097AF9D3098ED16D7 /* CGSSpace.swift */; };
 		6E7588C0E74ED25E45E3F1AE /* FullscreenSpaceProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */; };
+		728B005626AA8451C1323CF5 /* OSDInterceptionSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C36B2BC2E41D18BCD8DBD1 /* OSDInterceptionSpike.swift */; };
 		730C2D90EDBDA9578FFD3D07 /* BasicOutfitState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25742CBF490BEC1233F661FD /* BasicOutfitState.swift */; };
 		73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C75C7435C3C840FC929C873C /* DropInterceptTap.swift */; };
 		75B9F62FA809ED170142A930 /* ShelfLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB460DC51BC6612D0A4A134 /* ShelfLogicTests.swift */; };
@@ -160,6 +161,7 @@
 		2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingState.swift; sourceTree = "<group>"; };
 		30839BA1A62ECDA5057B779C /* KeychainLicenseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainLicenseStore.swift; sourceTree = "<group>"; };
 		31972FF1ED9E30425E37EE11 /* TrialLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLogic.swift; sourceTree = "<group>"; };
+		32C36B2BC2E41D18BCD8DBD1 /* OSDInterceptionSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSDInterceptionSpike.swift; sourceTree = "<group>"; };
 		353BC5A79583E82567AEE07F /* ShelfFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfFileStore.swift; sourceTree = "<group>"; };
 		3AA8943FF6A71F7546A800BD /* PolarLicenseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseService.swift; sourceTree = "<group>"; };
 		406030D1395E35FB24681FE8 /* InteractionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionStateTests.swift; sourceTree = "<group>"; };
@@ -435,6 +437,7 @@
 				4F61A24F6789742D7442ADF0 /* OnboardingFlow.swift */,
 				FA62CE81F6539C4490617038 /* OnboardingViewState.swift */,
 				1A6AB4282775F1B6C66B02D6 /* OSDActivity.swift */,
+				32C36B2BC2E41D18BCD8DBD1 /* OSDInterceptionSpike.swift */,
 				76ADF16C067A181F295BA4C5 /* PowerActivity.swift */,
 				FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */,
 				BD8C607878B62D262514A41D /* QuickActionSharingService.swift */,
@@ -589,6 +592,7 @@
 				3A5F1F3C8D2C451435E0A5BB /* NowPlayingPresentation.swift in Sources */,
 				A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */,
 				3107D1164676FB8B4347666E /* OSDActivity.swift in Sources */,
+				728B005626AA8451C1323CF5 /* OSDInterceptionSpike.swift in Sources */,
 				A1DEA7A96EC18DAD1D4DBE19 /* OnboardingFlow.swift in Sources */,
 				988EA78CF8B7C8884036E157 /* OnboardingViewState.swift in Sources */,
 				3AFB898616FDDD93C37B1906 /* PolarLicenseService.swift in Sources */,
