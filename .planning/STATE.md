@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
-stopped_at: Phase 38 UI-SPEC approved
-last_updated: "2026-07-17T01:22:04.566Z"
-last_activity: 2026-07-17 -- Phase 38 planning complete
+stopped_at: Phase 38 complete (38-09 gap closure + on-device UAT confirmed)
+last_updated: "2026-07-17T12:23:20.000Z"
+last_activity: 2026-07-17 -- Phase 38 complete, all 4 Success Criteria confirmed on-device
 progress:
   total_phases: 27
-  completed_phases: 16
-  total_plans: 68
-  completed_plans: 61
-  percent: 59
+  completed_phases: 17
+  total_plans: 69
+  completed_plans: 62
+  percent: 61
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 38 — focus-mode-hud
+**Current focus:** Phase 39 — volume-brightness-hud (not yet started)
 
 ## Current Position
 
-Phase: 38 (focus-mode-hud) — GAPS FOUND
-Plan: 8 of 8 executed; gap closure pending (new blocker post-38-08, see 38-VERIFICATION.md)
-Status: Ready to execute
-Last activity: 2026-07-17 -- Phase 38 planning complete
+Phase: 38 (focus-mode-hud) — COMPLETE
+Plan: 9 of 9
+Status: Phase 38 complete; Phase 39 not yet started
+Last activity: 2026-07-17 -- Phase 38 complete, all 4 Success Criteria confirmed on-device
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,7 +47,7 @@ Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23
 
 Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-32 complete; Phase 33 executing (Plan 1 of 2), Phase 34 not started; left open in parallel with v1.6)
 
-Progress (v1.6): [███░░░░░░░] 25% (2/8 phases — Phases 35-36 complete, Phase 37 abandoned/reverted (counts as closed, not shipped), Phase 38 next)
+Progress (v1.6): [████░░░░░░] 38% (3/8 phases — Phases 35-36-38 complete, Phase 37 abandoned/reverted (counts as closed, not shipped), Phase 39 next)
 
 ## Performance Metrics
 
@@ -124,6 +124,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 36]: abs(hasher.finalize()) required before % 1000 reduction in targetHeight(bar:bucket:) — Hasher.finalize() returns a signed Int and Swift's % preserves the dividend's sign, guarding against mapping below the 4...14 floor
 - [Phase 36]: D-14: ONBOARD-04 scope pivot — abandoned per-glyph stroke-reveal animation for a static two-word rainbow-gradient 'Meet Islet' heading (Dancing Script Bold) after repeated stroke-weight tuning friction; user-directed, mirrors Droppy's static 'meet droppy' heading; on-device approved ("passt")
 - [Phase 37]: Phase abandoned in full after 37-04's on-device UAT — the chip's Tray-close trigger requires an explicit user action to close the Tray, but in real usage the Island stays open showing dropped files and isn't closed right away, so the trigger essentially never fires under normal use. User decided the feature isn't worth keeping rather than redesigning the trigger. All 3 implementation plans (37-01/02/03) were reverted via `git revert` (5 commits total including tracking updates), working tree confirmed clean of all chip-related code, build re-verified green. HUD-07 dropped from the v1.6 requirement set.
+- [Phase 38, 38-09]: `INFocusStatusCenter.authorizationStatus == .authorized` is NOT sufficient for `focusStatus.isFocused` to report real values — macOS also requires the `com.apple.developer.usernotifications.communication` (Communication Notifications) entitlement, or it silently resolves to `false` forever (not nil), with the OS logging `DNDErrorDomain 1004 "App is missing Communication Notifications entitlement"`. This was 38-RESEARCH.md's originally predicted dead-end for this API; the Wave-1 spike (38-01) only checked `authorizationStatus`, never an actual `isFocused` read against live state, so the gap wasn't caught until 38-09's on-device UAT. Entitlement added (paid Developer Team `R7AGU84UX7` already configured). **Relevant for Phase 39**: any `Intents`-adjacent system API may carry a similar hidden entitlement requirement beyond basic authorization — verify an actual functional read early in that phase's own spike, not just `authorizationStatus`.
+- [Phase 38, 38-09]: Focus wing visual contract deviates from `38-UI-SPEC.md` (icon-only left flank instead of icon+"Focus" label, dot+"On" text on the right instead of a bare dot) — user-directed live redesign during on-device UAT, the first time the pill was ever actually visible (both defects above had masked it until this plan). `38-UI-SPEC.md` not updated — flag for a docs-sync pass. User also flagged that Charging/Bluetooth wings have the same icon-only-flank-too-wide issue but explicitly deferred fixing those as a general follow-up, not part of Phase 38.
 
 ### Roadmap Evolution
 
@@ -212,14 +214,16 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-16T23:18:29.229Z
-Stopped at: Phase 38 UI-SPEC approved
-Resume file: .planning/phases/38-focus-mode-hud/38-UI-SPEC.md
+Last session: 2026-07-17T12:23:20.000Z
+Stopped at: Phase 38 complete (38-09 gap closure executed, on-device UAT confirmed all 4 Success Criteria)
+Resume file: .planning/phases/38-focus-mode-hud/38-09-SUMMARY.md
 
 ## Operator Next Steps
 
+- Phase 38 (Focus Mode HUD) is complete — all 9 plans executed, ROADMAP.md and this file updated. 38-09's own on-device UAT checkpoint directly covered all 4 ROADMAP Success Criteria (see ROADMAP.md Phase 38 entry for the per-criterion confirmation), so a separate `/gsd:verify-work 38` pass is not needed, per this project's established precedent (Phase 29/36). Start `/gsd-discuss-phase 39` (Volume & Brightness HUD) next.
+- `38-UI-SPEC.md`'s Focus Wing Contract section is now stale (describes the pre-redesign icon+label/bare-dot layout) — not fixed in this session, flag for a docs-sync pass if it matters before Phase 39 planning references it.
+- A general wing-flank-width issue (icon-only left flanks sized wider than their content needs) also affects the existing Charging/Bluetooth wings, per user observation during Phase 38 UAT — explicitly deferred by the user as a future general fix, not scoped into any current phase.
 - Phase 37 (Drop-Session Summary Chip) is fully abandoned and reverted — all code removed, build re-verified green, ROADMAP.md and this file updated to reflect the closure. HUD-07 dropped from v1.6's requirement set. No further action needed on Phase 37.
-- Start `/gsd-discuss-phase 38` (Focus Mode HUD) next.
 - Phase 36 (Cosmetic Restyles & Signature Animation) is fully executed — all 4 plans (36-01, 36-02, 36-03, 36-04) complete. ONBOARD-04's own on-device UAT checkpoint (36-04 Task 3) already covered its ROADMAP success criterion #4 directly ("passt"). Formal phase-level verification/completion is the orchestrator's responsibility, not done in this session.
 - Phase 29 (NotchShape Flare) is complete — its own on-device UAT checkpoint (Task 3) already covered all 3 ROADMAP success criteria, so a separate `/gsd:verify-work 29` pass is not needed. Start `/gsd-discuss-phase 30` next.
 - v1.4 is code-complete but not formally closed: 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation — run `/gsd:verify-work` for v1.4 then `/gsd:complete-milestone` whenever convenient (does not block v1.5).

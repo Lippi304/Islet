@@ -103,7 +103,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code (completed 2026-07-16)
 - [x] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes (completed 2026-07-16)
 - [x] **Phase 37: Drop-Session Summary Chip** - ABANDONED after on-device UAT (completed 2026-07-17, reverted 2026-07-17) — see phase detail below
-- [ ] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (8/8 plans executed 2026-07-17 incl. gap-closure plan 38-08, which fixed CR-01/CR-02/WR-02 — but a fresh re-review + re-verification found one NEW blocker: `handleFocusChange(false)` never re-renders after flushing the Focus transient, so the HUD can stay stuck on-screen after Focus/DND turns off, violating Success Criterion #2; gap closure pending)
+- [x] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (9/9 plans executed 2026-07-17 incl. gap-closure plans 38-08 and 38-09; on-device UAT confirmed all 4 Success Criteria — see 38-09-SUMMARY.md for two further defects found and fixed during 38-09's own checkpoint: a missing NSFocusStatusUsageDescription Info.plist key causing a hard crash, and a missing Communication Notifications entitlement without which INFocusStatusCenter silently never reports real Focus state)
 - [ ] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses
 - [ ] **Phase 40: Update-Available HUD & Sparkle Integration** - Real Sparkle 2 auto-update + update-available HUD/badge
 - [ ] **Phase 41: Calendar Countdown HUD** - Live minute-countdown starting 1 hour before a calendar event, own persistent timer
@@ -693,7 +693,9 @@ Plans:
   2. Toggling Focus/DND on shows the new HUD in a generic "Focus On" state; toggling off dismisses it or shows "Focus Off" — no named-mode text (e.g. "Work Focus") anywhere.
   3. If the Full-Disk-Access-gated path is required, denying that permission degrades silently (no crash, no stuck state) rather than blocking the rest of the app.
   4. The new `FocusActivity`/`FocusModeMonitor` pipeline routes through `IslandResolver`/`TransientQueue` like every other transient — no resolver bypass.
-**Plans**: 8 plans (waves: 1={38-01,38-02}, 2={38-03,38-04}, 3={38-05,38-06}, 4={38-07}, 5={38-08}) — D-12 descope gate: if the Wave 1 spike (38-01) finds neither detection path viable, Plans 38-04 through 38-07 do not execute and the phase is closed out per Phase 37's abandonment precedent. Wave 5 (38-08) is a gap-closure plan added after 38-VERIFICATION.md found two BLOCKER-level system-glue defects (CR-01, CR-02/WR-02).
+**Plans**: 9 plans (waves: 1={38-01,38-02}, 2={38-03,38-04}, 3={38-05,38-06}, 4={38-07}, 5={38-08}, 6={38-09}) — D-12 descope gate: if the Wave 1 spike (38-01) finds neither detection path viable, Plans 38-04 through 38-07 do not execute and the phase is closed out per Phase 37's abandonment precedent. Wave 5 (38-08) is a gap-closure plan added after 38-VERIFICATION.md found two BLOCKER-level system-glue defects (CR-01, CR-02/WR-02). Wave 6 (38-09) is a second gap-closure plan for a NEW blocker found by re-verification (`handleFocusChange` render-tail); its own on-device checkpoint additionally found and fixed a hard-crash (missing Info.plist key) and a silent functional dead-end (missing Communication Notifications entitlement) — see 38-09-SUMMARY.md.
+
+**Status**: Complete (2026-07-17). All 4 Success Criteria confirmed on-device: (1) 38-01's spike confirmed `INFocusStatusCenter` as the detection path; (2) toggling Focus/DND shows/dismisses the HUD correctly, including auto-dismiss without requiring an unrelated event; (3) N/A — the Full-Disk-Access fallback path was never needed since Path A won; (4) `FocusActivity`/`FocusModeMonitor` route through `IslandResolver`/`TransientQueue` per the established pattern (code-verified across 38-02 through 38-05).
 **UI hint**: yes
 
 Plans:
@@ -719,6 +721,10 @@ Plans:
 **Wave 5** *(gap closure — blocked on Wave 4)*
 
 - [x] 38-08-PLAN.md — Fix CR-01 (`activityEnabled(_:)` wrong shared default for `focusKey`) + CR-02/WR-02 (permission-grant completion discarded, monitor never starts on first-grant flow); Debug build gate + re-verification UAT
+
+**Wave 6** *(gap closure — blocked on Wave 5)*
+
+- [x] 38-09-PLAN.md — Fix `handleFocusChange(false)`'s missing render tail; on-device checkpoint additionally found/fixed a missing NSFocusStatusUsageDescription crash and a missing Communication Notifications entitlement, plus a Focus wing visual redesign per live user feedback
 
 ### Phase 39: Volume & Brightness HUD
 
