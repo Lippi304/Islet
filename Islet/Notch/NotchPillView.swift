@@ -2215,15 +2215,23 @@ struct NotchPillView: View {
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .padding(.leading, 14)
                 Spacer()                                             // clears the physical camera bridge
-                // 39-07 gap closure (post-checkpoint on-device finding): trailing pad brought down
-                // from 39-UI-SPEC.md's starting-point 20pt (explicitly flagged there as "not a
-                // locked pixel-perfect final value") to 14pt — the SAME trailing pad already
-                // shipped and on-device-approved for the Charging wing's BatteryIndicator
-                // (`wings(for:)` above), so the bar's right edge now sits the same distance from
-                // the wing's true right edge as every other right-flank element in this codebase,
-                // instead of the wider gap Focus's compact dot+text convention happened to reuse.
+                // 39-07 gap closure ROUND 2 (root-cause fix, supersedes the round-1 padding-only
+                // tune): the on-device UAT report was "clipped/obscured", not "short of the edge"
+                // — the real bug was never the trailing padding, it was the bar's WIDTH. This
+                // wing's `alignmentGuide(.center){ leftWidth }` (wingsShape above) pins the
+                // PHYSICAL camera notch's center at local x = leftWidth = 118. Using this file's
+                // own established measured-notch convention (focusWings' comment: "physical notch
+                // half-width ~89.5pt, notch measured 179pt"), the notch's RIGHT edge sits at local
+                // x = 118 + 89.5 = 207.5, leaving only `rightWidth(190) - 89.5 = 100.5pt` of
+                // genuinely visible screen between the notch's right edge and this wing's own
+                // right edge. The original 150pt-wide bar (with ANY trailing padding, even 0)
+                // could never fit there — its leading ~50-70pt was always physically hidden behind
+                // the camera housing itself, not clipped by any SwiftUI mask. Shrunk to 76pt + the
+                // same 14pt trailing pad (= 90pt), leaving a ~10.5pt buffer past the notch edge for
+                // hardware notch-width variance across other notch MacBook models. Do not widen
+                // this bar back toward 150pt without also growing `rightWidth` by the same amount.
                 OSDLevelBar(fraction: fraction, tint: tint)
-                    .frame(width: 150, height: 5)
+                    .frame(width: 76, height: 5)
                     .padding(.trailing, 14)
             }
         }
