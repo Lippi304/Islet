@@ -673,6 +673,7 @@
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
+				INFOPLIST_KEY_NSFocusStatusUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch an, wenn du deinen Fokus- oder Nicht-stoeren-Status aenderst.";
 				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "Islet nutzt diese Berechtigung, um beim Ablegen einer Datei in der Notch zu verhindern, dass Finder die Originaldatei verschiebt.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswaehlst.";
@@ -832,6 +833,7 @@
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
+				INFOPLIST_KEY_NSFocusStatusUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch an, wenn du deinen Fokus- oder Nicht-stoeren-Status aenderst.";
 				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "Islet nutzt diese Berechtigung, um beim Ablegen einer Datei in der Notch zu verhindern, dass Finder die Originaldatei verschiebt.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswaehlst.";
