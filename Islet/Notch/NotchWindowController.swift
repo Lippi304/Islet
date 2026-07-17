@@ -31,6 +31,15 @@ import CoreBluetooth
 final class NotchWindowController {
     private var panel: NotchPanel?
     private var observer: NSObjectProtocol?
+    #if DEBUG
+    // 39-07 gap closure ROUND 9 — TEMPORARY: the REAL, already-computed physical notch frame
+    // (AppKit screen coordinates, bottom-left origin, y-up), captured from `positionAndShow()`'s
+    // own `collapsedFrame` (this file's existing, canonical source of the notch's real on-screen
+    // bounds — reused here, not re-derived) so `handleOSDKeyPress` can log it alongside
+    // NotchPillView's SwiftUI-side `.global`-space frame logs for the SAME key press, giving one
+    // consistent, ground-truth picture instead of another theoretical model.
+    private var debugLastCollapsedFrame: CGRect?
+    #endif
 
     // FS-01 (Phase 9, Candidate C, additive) — the dedicated max-level CGS Space the panel
     // joins ALONGSIDE its unchanged `.canJoinAllSpaces` collectionBehavior (NotchPanel.swift is
@@ -870,6 +879,9 @@ final class NotchWindowController {
                                               auxRightWidth: target.auxRightWidth,
                                               widthFudge: 4)
         else { return }
+        #if DEBUG
+        debugLastCollapsedFrame = collapsedFrame   // 39-07 gap closure ROUND 9 — see stored property doc comment
+        #endif
 
         // D-01 — publish the VISIBLE collapsed pill size from the SAME measured notch, but
         // UNFUDGED (widthFudge: 0 == exactly the cutout macOS reports). The fudge split is
@@ -1668,6 +1680,20 @@ final class NotchWindowController {
         // point (b) logs shows the actual main-queue scheduling delay end-to-end.
         let debugEntry = CFAbsoluteTimeGetCurrent()
         print("[OSD-TIMING] c) handleOSDKeyPress entered t=\(String(format: "%.2f", debugEntry * 1000))ms kind=\(kind)")
+        // ROUND 9 ground-truth geometry — the REAL physical notch frame (AppKit screen coords,
+        // bottom-left origin, y-up) and the REAL panel window frame (same coordinate system),
+        // logged at the exact moment a key press fires so they can be cross-referenced against
+        // NotchPillView's own "[OSD-GEOM]" SwiftUI-side (.global, top-left/y-down, window-relative)
+        // logs for the SAME press: screenX = panel.frame.origin.x + globalX (Y needs a manual
+        // origin flip using panel.frame.height, done by hand from the printed values).
+        if let f = debugLastCollapsedFrame {
+            print("[OSD-GEOM] REAL notch frame (screen coords): x=\(String(format: "%.1f", f.minX)) y=\(String(format: "%.1f", f.minY)) w=\(String(format: "%.1f", f.width)) h=\(String(format: "%.1f", f.height))")
+        } else {
+            print("[OSD-GEOM] REAL notch frame: nil (positionAndShow hasn't run yet)")
+        }
+        if let p = panel?.frame {
+            print("[OSD-GEOM] panel frame (screen coords): x=\(String(format: "%.1f", p.minX)) y=\(String(format: "%.1f", p.minY)) w=\(String(format: "%.1f", p.width)) h=\(String(format: "%.1f", p.height))")
+        }
         #endif
         let activity: OSDActivity
         switch kind {
