@@ -2207,7 +2207,35 @@ struct NotchPillView: View {
         // D-03: bar fully drains when muted, else reflects the clamped percent (39-02 already
         // clamps 0...100 before this view ever sees it).
         let fraction = activity.isMuted ? 0.0 : CGFloat(percent) / 100.0
-        return wingsShape(leftWidth: 118, rightWidth: 209) {
+        #if DEBUG
+        // 39-07 gap closure ROUND 5 timing instrumentation (temporary, remove once responsiveness
+        // is confirmed fixed) — point (d): confirms exactly when SwiftUI actually re-evaluates this
+        // view's body for a new fraction, so an on-device Console capture can show whether any lag
+        // lives in the tap/dispatch/read path (OSDInterceptor/NotchWindowController) or in SwiftUI's
+        // own render pipeline.
+        print("[OSD-TIMING] d) osdWings body evaluated t=\(String(format: "%.2f", CFAbsoluteTimeGetCurrent() * 1000))ms fraction=\(fraction)")
+        #endif
+        // 39-07 gap closure ROUND 5 (real structural fix, corrects a mistake in ROUND 4's own
+        // reasoning): ROUND 4 claimed a "hard ceiling of 210" on `rightWidth`, derived from ONLY
+        // `body`'s 420pt `expandedSize.width` outer frame — but `NotchWindowController.positionAndShow`
+        // UNCONDITIONALLY unions `trayFrame` (`NotchPillView.traySize.width` = 650pt, i.e. ±325pt
+        // around the collapsed pill's center) into the panel frame on EVERY call, regardless of which
+        // presentation is currently showing (mirrors how `onboardingFrame`/`weatherExpandedFrame`/
+        // `quickActionPickerFrame` are also always-unioned reservations, not conditional ones). ROUND
+        // 4 never checked this and wrongly treated `expandedFrame`'s narrower 420pt as the binding
+        // constraint. The REAL available half-width, already reserved by the existing Tray
+        // reservation with no code changes needed, is ~325pt — comfortably enough for a full-size bar.
+        // Design, keeping ROUND 3's confirmed-safe `trackLeft` position (265) as an absolute FLOOR
+        // (never move the bar's left edge left of it — that's what caused the camera-clipping bug):
+        //   - barWidth 48 -> 90 (the originally requested size)
+        //   - trailingPad 14 -> 20 (back to the original UI-SPEC starting value — addresses the
+        //     separate "too close to the edge of the black pill" on-device report, now that there's
+        //     room to be generous instead of shaving the pad down to the bare minimum)
+        //   - trackLeft = (118 + rightWidth) - 20 - 90; solving for trackLeft = 270 (5pt of margin
+        //     PAST the 265 floor, not just exactly at it) gives rightWidth = 262
+        // 262 << 325 (the real budget), so this is safe with ~63pt to spare — no NotchWindowController
+        // changes needed; the existing trayFrame reservation already covers it.
+        return wingsShape(leftWidth: 118, rightWidth: 262) {
             HStack(spacing: 0) {
                 Image(systemName: iconName)
                     .font(.system(size: 13, weight: .semibold))
@@ -2215,39 +2243,9 @@ struct NotchPillView: View {
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .padding(.leading, 14)
                 Spacer()                                             // clears the physical camera bridge
-                // 39-07 gap closure ROUND 3 (empirical re-derivation, supersedes round 2's
-                // theoretical notch-half-width math, which was wrong): round 2 assumed a ~89.5pt
-                // notch half-width and only trimmed the bar's WIDTH, which moves its LEFT edge but
-                // (via the fixed trailing pad) leaves its RIGHT edge unchanged — round 3's on-device
-                // report ("only visible above ~60% fill") proved the bar's own LEFT/starting edge was
-                // still under the camera the whole time, since a fill only pokes out once its own
-                // right edge (trackLeft + fraction*barWidth) crosses the hidden boundary. That
-                // observation gives a hidden-boundary-relative offset directly, with NO dependency on
-                // the (evidently unreliable) notch-half-width estimate: at round 2's 76pt bar, the
-                // boundary sat ~46pt (0.6 * 76) inside the track's left edge, so the WHOLE track needs
-                // to shift right by roughly that much (+buffer) to make even a low fill level visible.
-                // trackLeft = (leftWidth + rightWidth) - trailingPad - barWidth = 265 was confirmed
-                // on-device to clear the camera (low fill levels now visible) — DO NOT move it left.
-                //
-                // ROUND 4 (bar-size bump, user asked for ~90pt/"deutlich länger"): trackLeft (265) is
-                // held FIXED per the above; the only lever left to grow the bar is `rightWidth`, which
-                // has a HARD ceiling of 210 (half of `body`'s 420pt `expandedSize.width` outer frame —
-                // NotchWindowController's panel-frame union does NOT special-case OSD's width, so
-                // anything past 210 risks a real AppKit-level window clip, not just a notch-clearance
-                // issue). Pushed rightWidth 205 -> 209 (1pt safety margin under the hard ceiling — this
-                // limit is a deterministic computed constant, not an empirical hardware measurement
-                // like the notch position, so it needs far less buffer than that did). With trackLeft
-                // pinned at 265, this yields a maximum SAFE bar width of only 48pt (313 - 265), NOT the
-                // requested ~90pt — the panel's own 210pt-per-side hard limit, combined with the
-                // must-not-move left edge, is the actual ceiling here. Reaching ~90pt would require
-                // either moving the left edge back toward the camera (reintroduces the clipping bug
-                // just fixed) or widening NotchWindowController's panel-frame union with an OSD-
-                // specific asymmetric member (mirrors the existing trayFrame/weatherExpandedFrame/
-                // onboardingFrame per-presentation pattern) — a real structural change, out of this
-                // round's scope; flag for the user/coordinator to decide if it's worth doing.
                 OSDLevelBar(fraction: fraction, tint: tint)
-                    .frame(width: 48, height: 5)
-                    .padding(.trailing, 14)
+                    .frame(width: 90, height: 5)
+                    .padding(.trailing, 20)
             }
         }
     }
