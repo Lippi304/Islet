@@ -2207,7 +2207,7 @@ struct NotchPillView: View {
         // D-03: bar fully drains when muted, else reflects the clamped percent (39-02 already
         // clamps 0...100 before this view ever sees it).
         let fraction = activity.isMuted ? 0.0 : CGFloat(percent) / 100.0
-        return wingsShape(leftWidth: 118, rightWidth: 190) {
+        return wingsShape(leftWidth: 118, rightWidth: 205) {
             HStack(spacing: 0) {
                 Image(systemName: iconName)
                     .font(.system(size: 13, weight: .semibold))
@@ -2215,23 +2215,30 @@ struct NotchPillView: View {
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .padding(.leading, 14)
                 Spacer()                                             // clears the physical camera bridge
-                // 39-07 gap closure ROUND 2 (root-cause fix, supersedes the round-1 padding-only
-                // tune): the on-device UAT report was "clipped/obscured", not "short of the edge"
-                // — the real bug was never the trailing padding, it was the bar's WIDTH. This
-                // wing's `alignmentGuide(.center){ leftWidth }` (wingsShape above) pins the
-                // PHYSICAL camera notch's center at local x = leftWidth = 118. Using this file's
-                // own established measured-notch convention (focusWings' comment: "physical notch
-                // half-width ~89.5pt, notch measured 179pt"), the notch's RIGHT edge sits at local
-                // x = 118 + 89.5 = 207.5, leaving only `rightWidth(190) - 89.5 = 100.5pt` of
-                // genuinely visible screen between the notch's right edge and this wing's own
-                // right edge. The original 150pt-wide bar (with ANY trailing padding, even 0)
-                // could never fit there — its leading ~50-70pt was always physically hidden behind
-                // the camera housing itself, not clipped by any SwiftUI mask. Shrunk to 76pt + the
-                // same 14pt trailing pad (= 90pt), leaving a ~10.5pt buffer past the notch edge for
-                // hardware notch-width variance across other notch MacBook models. Do not widen
-                // this bar back toward 150pt without also growing `rightWidth` by the same amount.
+                // 39-07 gap closure ROUND 3 (empirical re-derivation, supersedes round 2's
+                // theoretical notch-half-width math, which was wrong): round 2 assumed a ~89.5pt
+                // notch half-width and only trimmed the bar's WIDTH, which moves its LEFT edge but
+                // (via the fixed trailing pad) leaves its RIGHT edge unchanged — round 3's on-device
+                // report ("only visible above ~60% fill") proved the bar's own LEFT/starting edge was
+                // still under the camera the whole time, since a fill only pokes out once its own
+                // right edge (trackLeft + fraction*barWidth) crosses the hidden boundary. That
+                // observation gives a hidden-boundary-relative offset directly, with NO dependency on
+                // the (evidently unreliable) notch-half-width estimate: at round 2's 76pt bar, the
+                // boundary sat ~46pt (0.6 * 76) inside the track's left edge, so the WHOLE track needs
+                // to shift right by roughly that much (+buffer) to make even a low fill level visible.
+                // Achieved two ways at once (shrinking the bar alone was insufficient last round —
+                // it only moves the left edge ~14pt at most before hitting the trailing-pad floor):
+                // `rightWidth` grown 190 -> 205 (near the hard ceiling of 210 = half of `body`'s
+                // 420pt `expandedSize.width` outer frame — see NotchWindowController's panel-union
+                // sizing, which does NOT special-case OSD's width, so anything past 210 risks a real
+                // AppKit-level clip) shifts BOTH edges of the bar right without shrinking it further;
+                // combined with shrinking the bar 76pt -> 44pt (moves the left edge further right,
+                // trailing pad unchanged at 14pt), the track's left edge moves right by ~47pt total —
+                // matching the empirically-required shift, plus a small margin for measurement
+                // imprecision ("~60% or so"). Do not re-derive this from notch-width theory again —
+                // if still wrong, get a fresh onset-percentage reading and solve the same way.
                 OSDLevelBar(fraction: fraction, tint: tint)
-                    .frame(width: 76, height: 5)
+                    .frame(width: 44, height: 5)
                     .padding(.trailing, 14)
             }
         }
