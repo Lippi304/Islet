@@ -733,11 +733,7 @@ struct NotchPillView: View {
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
-        case .osd:
-            // Phase 39 / HUD-03/HUD-04 (39-02): compiler-forced stub only, mirrors 38-02's
-            // identical precedent for .focus -- the real Volume/Brightness HUD wing view
-            // belongs to a later plan (39-04+).
-            EmptyView()
+        case .osd(let activity): osdWings(for: activity)                    // Phase 39 / HUD-03/HUD-04: rank 4 transient (39-02)
         case .idle:
             collapsedIsland                                                  // idle pill
         }
@@ -2183,6 +2179,49 @@ struct NotchPillView: View {
         }
     }
 
+    // Phase 39 / HUD-03/HUD-04 — the OSD (Volume/Brightness) collapsed wing. Mechanical
+    // reapplication of `wingsShape()` + `focusWings`'s icon-only-left-flank convention
+    // (39-UI-SPEC.md "OSD Wing Contract") — no new shape wrapper. Unlike Charging/Device,
+    // the right wing is a NEW minimal two-layer Capsule fill bar (`OSDLevelBar` below), not
+    // `BatteryIndicator` — that component's outline/nub/centered `Text("\(percent)%")` chrome
+    // directly conflicts with D-01's "no numeric text anywhere" rule. D-02 (locked): icon +
+    // bar are FIXED colors (white icon, green volume / orange brightness bar), never
+    // accent-tinted. The view drives NO animation of its own (D-04) — the controller
+    // (Plan 39-05) wraps every OSD mutation in its own `withAnimation(.spring(...))`.
+    private func osdWings(for activity: OSDActivity) -> some View {
+        let percent: Int
+        let tint: Color
+        let iconName: String
+        switch activity {
+        case .volume(let p, _):
+            percent = p
+            tint = Color.green
+            // D-03 — driven by the SAME `OSDActivity.isMuted` computed property the bar's
+            // fraction below also reads, never a second independently-triggered mute check.
+            iconName = activity.isMuted ? "speaker.slash.fill" : "speaker.wave.3.fill"
+        case .brightness(let p):
+            percent = p
+            tint = Color.orange
+            iconName = "sun.max.fill"   // no muted-equivalent state for brightness
+        }
+        // D-03: bar fully drains when muted, else reflects the clamped percent (39-02 already
+        // clamps 0...100 before this view ever sees it).
+        let fraction = activity.isMuted ? 0.0 : CGFloat(percent) / 100.0
+        return wingsShape(leftWidth: 118, rightWidth: 190) {
+            HStack(spacing: 0) {
+                Image(systemName: iconName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white)                         // D-02: never accent-tinted
+                    .padding(.leading, 14)
+                Spacer()                                             // clears the physical camera bridge
+                OSDLevelBar(fraction: fraction, tint: tint)
+                    .frame(width: 150, height: 5)
+                    .padding(.trailing, 20)
+            }
+        }
+    }
+
     // RIGHT wing of the device glance: the battery indicator when the device reports a level
     // (DEV-01), a fixed-green status ring when connected with no reported battery, otherwise the
     // disconnected connection sign. Battery is rendered GREEN (with the indicator's amber/red
@@ -2506,6 +2545,27 @@ struct EqualizerBars: View {
                 }
             }
             .frame(height: boxHeight)
+        }
+    }
+}
+
+// Phase 39 / HUD-03/HUD-04 — the OSD (Volume/Brightness) minimal fill bar: a NEW, deliberately
+// tiny two-layer Capsule (empty track + left-anchored fill), reapplying ProgressBar's own
+// GeometryReader/Capsule fill technique (below) rather than BatteryIndicator, whose outline/
+// nub/centered-text chrome conflicts with D-01's "no numeric text" rule. `fraction` is already
+// clamped by the caller (0 when muted, else percent/100); dividing by a fixed 100.0 upstream
+// keeps this view's own math bounded even if that changes. No `.animation()` here (D-04) — the
+// controller wraps every OSD mutation in its own spring.
+private struct OSDLevelBar: View {
+    let fraction: CGFloat
+    let tint: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.15))                       // empty track
+                Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled (D-02 fixed tint)
+            }
         }
     }
 }
