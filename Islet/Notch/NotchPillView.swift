@@ -2383,12 +2383,27 @@ struct NotchPillView: View {
             // is computed directly from `excludedMinX`/`excludedMaxX` above, not inferred from
             // whatever space happens to be left over after laying out its sibling.
             ZStack(alignment: .topLeading) {
+                // ROUND 14 — switched `.offset(x:)` -> `.position(x:y:)` for both elements below.
+                // Direct on-device evidence (this round's PASS/FAIL verdict) showed the bar
+                // reporting `x=0.0` despite `.offset(x: trackLeft)` being applied, and screenshots
+                // across the ENTIRE saga showed the bar's on-screen left edge never actually moving
+                // regardless of `trackLeft` changing from 229 to 265-270 and back — strong evidence
+                // `.offset()` was never affecting real render position here at all. Root cause:
+                // `.offset()` is a PAINT-time transform that does not change a view's LAYOUT
+                // footprint — `GeometryReader` (a layout-time primitive) and, per the same
+                // mechanism, this exact "place at an absolute coordinate inside a custom container"
+                // pattern, do not reliably see the shift. `.position(x:y:)` is SwiftUI's actual
+                // ABSOLUTE-placement primitive for this: it sets the view's CENTER point within its
+                // parent's coordinate space and genuinely changes both the render position and the
+                // view's participation in layout (so `GeometryReader` now sees the real position
+                // too). `.position()` takes a CENTER point, not a leading edge, so each `x:` below
+                // is the leading-edge target plus half that element's own width.
                 Image(systemName: iconName)
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .frame(width: 20, height: Self.wingsSize.height, alignment: .center)
-                    .offset(x: 14)                                   // matches iconBoxWidth's 14pt leading pad
+                    .position(x: 14 + 20 / 2, y: Self.wingsSize.height / 2)   // leading edge 14 (iconBoxWidth's pad) + half width
                     .modifier(OSDFrameLogger(label: "icon (named osdWing)", space: .named("osdWing"), verdict: { g in
                         g.maxX <= excludedMinX
                             ? "PASS (icon ends at \(String(format: "%.1f", g.maxX)), excludedMinX=\(String(format: "%.1f", excludedMinX)))"
@@ -2397,7 +2412,7 @@ struct NotchPillView: View {
                     .modifier(OSDFrameLogger(label: "icon (global)", space: .global))
                 OSDLevelBar(fraction: fraction, tint: tint)
                     .frame(width: barWidth, height: 5)
-                    .offset(x: trackLeft, y: (Self.wingsSize.height - 5) / 2)   // vertically centered
+                    .position(x: trackLeft + barWidth / 2, y: Self.wingsSize.height / 2)   // leading edge trackLeft + half width
                     .modifier(OSDFrameLogger(label: "bar (named osdWing)", space: .named("osdWing"), verdict: { g in
                         g.minX >= excludedMaxX
                             ? "PASS (bar starts at \(String(format: "%.1f", g.minX)), excludedMaxX=\(String(format: "%.1f", excludedMaxX)))"
