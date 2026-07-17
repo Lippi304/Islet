@@ -26,6 +26,12 @@ created: 2026-07-18
 
 ---
 
+## Spacing Scale
+
+This phase uses the project's standard 8-point scale: **4, 8, 16, 24, 32, 48, 64**. The badge's corner inset (below) uses **4pt**, the smallest step on the scale — no exceptions needed for this phase.
+
+---
+
 ## Update-Available Badge Contract (HUD-06)
 
 **Structural constraint (D-05/D-06, locked):** a small, fixed corner overlay on the collapsed pill only — NOT a wing, NOT a `wingsShape()` call, NOT routed through `resolve()`/`IslandPresentation`. It renders regardless of whichever `IslandPresentation` case is currently active on the collapsed pill (idle, Now Playing wings, Charging/Device/Focus/OSD splash) and disappears entirely once the island expands (D-06). Implementation-wise this means the badge overlay is attached at the OUTERMOST collapsed-pill container (the one wrapping the `switch presentation` in `NotchPillView`), not inside any individual case body — the same "must render above/beside whatever else is showing" requirement the badge's own D-05 describes as "conceptually similar to an app-icon badge dot."
@@ -37,8 +43,8 @@ created: 2026-07-18
 | Shape | `Image(systemName: "arrow.up.circle.fill")` — a filled glyph badge, not a bare `Circle()` dot. D-05 says "dot/icon"; D-08 ("icon-only, no hover tooltip") confirms the glyph-badge reading, not a plain color dot — the glyph itself communicates "update" without needing a tooltip |
 | Size | `.font(.system(size: 12, weight: .semibold))` — one step up from the 8pt plain-dot precedent (Focus's `Circle().fill(Color.green).frame(width: 8, height: 8)`, `NotchPillView.swift` ~L2209) because this badge carries a recognizable glyph, not just a color signal; stays inside the same visual weight class as every other wing icon (13pt) without competing with it |
 | Rendering mode | `.symbolRenderingMode(.hierarchical)` — matches every other SF Symbol glyph in this codebase (wing icons, moon, bolt) |
-| Placement | `.overlay(alignment: .topTrailing)` on the collapsed pill's outer container, inset 2pt from the pill's top-trailing corner (`.offset(x: -2, y: 2)` or equivalent) — mirrors the "app-icon badge dot" reference in D-05 exactly (top-right corner, small inset, not flush with the edge) |
-| Interaction | Tappable — same `.onTapGesture` convention as other interactive glyphs in this codebase (e.g. shelf trash icons). Tap calls `updaterController.checkForUpdates(nil)` (or the equivalent action wired to the badge's own tap handler), surfacing Sparkle's standard dialog. No hover state, no tooltip (D-08) |
+| Placement | `.overlay(alignment: .topTrailing)` on the collapsed pill's outer container, inset **4pt** from the pill's top-trailing corner (`.offset(x: -4, y: 4)` or equivalent) — the smallest step on the project's 8-point spacing scale, close enough to read as flush-adjacent to the corner while still mirroring the "app-icon badge dot" reference in D-05 (top-right corner, small inset, not flush with the edge) |
+| Interaction | Tappable — same `.onTapGesture` convention as other interactive glyphs in this codebase (e.g. shelf trash icons). Tap calls `updaterController.checkForUpdates(nil)` (or the equivalent action wired to the badge's own tap handler), surfacing Sparkle's standard dialog. No hover state, no tooltip (D-08). Set `.accessibilityLabel("Update available")` on the tappable glyph — VoiceOver still needs text even though D-08 locks out a visible hover tooltip |
 | Color (D-07, resolved) | Reuses `env.nowPlayingAccent` (the existing per-element accent `EnvironmentKey` from Phase 27) — **not** a new 4th accent picker row, satisfying D-07's "no new standalone color parameter." Rationale: the badge sits on the collapsed pill regardless of content, and the collapsed pill's default/idle/most-common state is the Now Playing surface — reusing that accent avoids inventing a new Settings control while still following "the existing per-element accent-theming convention" as D-07 requires (this differs from Focus/OSD's `Color.white`/`Color.green`/`Color.orange`, which are deliberately fixed "system-level state ignores theme" colors — D-07 explicitly opts OUT of that pattern for this badge) |
 | Visibility across states | Renders identically regardless of the active `IslandPresentation` case underneath (idle pill, Now Playing wings, Charging/Device/Focus/OSD splash) — same corner position, same size, unaffected by whatever else is on screen (D-05) |
 | Expanded-state behavior | Does not render at all once `interaction.isExpanded` — no badge anywhere in Home/Calendar/Weather/Tray/switcher row (D-06) |
@@ -106,7 +112,7 @@ Accent reserved for: `env.nowPlayingAccent` → update-available badge glyph fil
 |---------|------|
 | Menu item | `"Check for Updates…"` |
 | Settings toggle label | `"Automatically Check for Updates"` |
-| Badge | *(icon-only, no text, no tooltip — D-08 locked)* |
+| Badge | *(icon-only, no visible text, no tooltip — D-08 locked; VoiceOver label "Update available")* |
 | Empty state | Not applicable — no list/collection UI in this phase |
 | Error state | Not applicable — Sparkle's own standard dialog owns all success/failure/no-update-available messaging; this phase builds no custom error copy |
 | Destructive confirmation | Not applicable — no destructive actions in this phase (Sparkle's own Install/Remind Me Later/Skip This Version dialog owns any such decisions, D-14) |
@@ -130,6 +136,7 @@ Accent reserved for: `env.nowPlayingAccent` → update-available badge glyph fil
 - **`env.nowPlayingAccent` reuse is this document's own resolution of D-07's ambiguity** — flag during plan-checker review if a stronger candidate emerges (e.g. a dedicated accent) during planning; this spec's choice is the lazy/no-new-Settings-row reading of "no new standalone color parameter," not an explicit locked decision from `40-CONTEXT.md` itself.
 - **Sparkle's own dialog is unstyled by this app** — do not attempt to reskin `SPUStandardUserDriver`'s alert; REQUIREMENTS.md and `ARCHITECTURE.md` both explicitly scope this phase away from a custom `SPUUserDriver`.
 - **Settings toggle has no permission-popover pattern to reuse** (unlike Phase 38/39) — do not build one; automatic-check scheduling requires no macOS privacy grant.
+- **Badge glyph needs `.accessibilityLabel("Update available")`** — icon-only tappable elements without a hover tooltip must still expose a VoiceOver label.
 
 ---
 
@@ -143,3 +150,4 @@ Accent reserved for: `env.nowPlayingAccent` → update-available badge glyph fil
 - [ ] Dimension 6 Registry Safety: PASS
 
 **Approval:** pending
+</content>
