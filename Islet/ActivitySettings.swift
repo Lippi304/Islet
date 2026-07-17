@@ -20,6 +20,10 @@ enum ActivitySettings {
     // (@AppStorage default wired in SettingsView.swift, Plan 38-06) — every sibling
     // toggle above defaults true. This key string only; the default lives with the toggle.
     static let focusKey = "activity.focus"
+    // Phase 39 / HUD-03/HUD-04 (D-05) — gates ONLY native-OSD suppression, never the HUD's own
+    // visibility (D-06) — see NotchWindowController's unconditional `startOSDInterceptor()`
+    // call, which does NOT read this key.
+    static let osdSuppressionKey = "activity.osdSuppression"
     // Phase 27 / VISUAL-03 / D-08: this key is now read ONLY as the legacy
     // migration source (see migrateLegacyAccentIfNeeded below) — never as a
     // live rendering key. The 3 per-element accent keys below replace it.
@@ -75,6 +79,14 @@ enum ActivitySettings {
     // Permission Contract, verbatim. No hint while the toggle itself is off (D-02: nothing
     // is requested/shown until the user flips it on).
     static func focusPermissionStatusHint(toggleOn: Bool, granted: Bool) -> String? {
+        guard toggleOn else { return nil }
+        return granted ? "Active" : "Permission needed — tap to grant"
+    }
+
+    // Phase 39 / HUD-03/HUD-04 (D-05): identical shape to focusPermissionStatusHint above —
+    // 39-UI-SPEC.md's Settings Permission Contract locks these exact two strings verbatim,
+    // reused rather than reinvented.
+    static func osdPermissionStatusHint(toggleOn: Bool, granted: Bool) -> String? {
         guard toggleOn else { return nil }
         return granted ? "Active" : "Permission needed — tap to grant"
     }

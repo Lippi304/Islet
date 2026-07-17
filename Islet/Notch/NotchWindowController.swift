@@ -208,6 +208,20 @@ final class NotchWindowController {
     // stored property so the nonisolated deinit can call its stop() (nonisolated func stop()).
     private var focusModeMonitor: FocusModeMonitor?
 
+    // Phase 39 / HUD-03/HUD-04 (D-06) — the LIVE OSD key-press detector. Unlike EVERY
+    // toggle-gated monitor above (powerMonitor/bluetoothMonitor/nowPlayingMonitor/
+    // focusModeMonitor), this one starts UNCONDITIONALLY in start() — the Volume/Brightness
+    // HUD itself requires no toggle and no permission; only native-OSD SUPPRESSION is
+    // opt-in (ActivitySettings.osdSuppressionKey), read fresh inside the interceptor's own
+    // `suppressionArmed` closure. Held as a plain stored property so the nonisolated deinit
+    // can call its stop(), mirroring focusModeMonitor's own teardown discipline.
+    private var osdInterceptor: OSDInterceptor?
+    // Phase 39 / HUD-03/HUD-04 — `BrightnessReader` loads DisplayServices.framework's function
+    // pointer once at construction (see BrightnessReader.init); resolved once as a stored
+    // instance (mirrors licenseState's stored-instance pattern), never re-constructed per key
+    // press. `readSystemVolume()` has no equivalent stored state — it is called directly inline.
+    private let brightnessReader = BrightnessReader()
+
     // D-06 (15s paused linger) / D-07 (stop cue) — the one-shot media auto-dismiss. A single
     // DispatchWorkItem mirroring dismissWorkItem (NOT a recurring timer): one wake-up then idle,
     // so CPU stays ~0% while a paused/stopped glance lingers. Resuming playback cancels it.
@@ -225,6 +239,9 @@ final class NotchWindowController {
     private var dismissWorkItem: DispatchWorkItem?
     private let activityDuration: TimeInterval = 3.0   // D-09 single tuning seed
     private let songToastDuration: TimeInterval = 2.0   // song-change toast auto-dismiss (round 5, on-device request: 1s shorter than the shared activityDuration, toast-only)
+    // Phase 39 / HUD-03/HUD-04 (D-10) — deliberately separate from the shared activityDuration
+    // above, never consolidated: Volume/Brightness dismisses faster than Charging/Device/Focus.
+    private let osdActivityDuration: TimeInterval = 1.5
 
     // Phase 10 / D-12 — the best-effort ONE-SHOT proactive expiry re-check, mirroring the exact
     // property + cancel-then-reschedule + deinit-cancel idiom already used 4x in this file
@@ -473,6 +490,13 @@ final class NotchWindowController {
         // in Plan 38-06's SettingsView code, at the moment the toggle is switched on).
         if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized { startFocusModeMonitor() }
 
+        // Phase 39 / HUD-03/HUD-04 (D-06): UNCONDITIONAL start — mirrors startOutfitRefresh()'s
+        // own unconditional-start precedent below. Unlike every toggle-gated monitor above, OSD
+        // detection is NOT gated behind an activityEnabled(...) check: the Volume/Brightness HUD
+        // itself requires no toggle and no permission, only native-OSD suppression is opt-in
+        // (read fresh inside the interceptor's own suppressionArmed closure).
+        startOSDInterceptor()
+
         // Phase 14 / WEATHER-01 / CAL-01: start the outfit (weather + calendar) coarse-refresh
         // cycle. Unconditional — unlike the toggle-gated monitors above, this phase has no
         // Settings toggle of its own (out of scope for 14-04). Phase 26 / D-01: deferred while
@@ -626,6 +650,22 @@ final class NotchWindowController {
     // requiring an undocumented toggle-off/on or app relaunch.
     func focusPermissionGranted() {
         handleSettingsChanged()
+    }
+
+    // Phase 39 / HUD-03/HUD-04 (D-06) — idempotent start, mirrors startFocusModeMonitor()'s
+    // exact shape. Called UNCONDITIONALLY from start() (no activityEnabled gate) — see the
+    // call site's own comment for why.
+    private func startOSDInterceptor() {
+        guard osdInterceptor == nil else { return }
+        let interceptor = OSDInterceptor(
+            suppressionArmed: { [weak self] in
+                (self?.activityEnabled(ActivitySettings.osdSuppressionKey) ?? false)
+                    && OSDInterceptor.isAccessibilityTrusted
+            },
+            onKeyPress: { [weak self] kind in self?.handleOSDKeyPress(kind) }
+        )
+        osdInterceptor = interceptor
+        interceptor.start()
     }
 
     // Phase 14 / WEATHER-01 / CAL-01 — idempotent start (mirrors startPowerMonitor/
@@ -1607,6 +1647,51 @@ final class NotchWindowController {
         }
     }
 
+    // Phase 39 / HUD-03/HUD-04 — the live OSD key press lands here (already on main; the
+    // interceptor's callback already hopped). Builds the OSDActivity from a fresh hardware
+    // read, then branches on the CURRENT head:
+    //   • a standing .osd head (D-09/D-12) — covers BOTH a same-activity scrub (Volume held
+    //     down) AND a cross-activity Volume<->Brightness swap, since both are the SAME `.osd`
+    //     category regardless of inner case: updateHead in place, spring-animate the render,
+    //     then explicitly RE-ARM the dismiss timer (the one deliberate divergence from
+    //     Charging's %-tick branch, which does NOT re-arm — a scrub must keep resetting the
+    //     1.5s window for as long as the key keeps repeating).
+    //   • no standing .osd head — mirrors the existing D-13 Focus-preemption shape exactly
+    //     (handlePower's charging branch above): preempt a standing Focus head, else plain
+    //     enqueue; presentTransientChange() already wraps the spring + arms the dismiss, so no
+    //     separate re-arm is needed on this branch.
+    private func handleOSDKeyPress(_ kind: OSDKeyKind) {
+        let activity: OSDActivity
+        switch kind {
+        case .volume:
+            let (percent, muted) = readSystemVolume()
+            activity = osdVolumeActivity(percent: percent, hardwareMuted: muted)
+        case .brightness:
+            // Silent-degrade (Plan 39-03/39-04's Int? contract): a failed brightness read
+            // produces NO HUD at all for this press, never a fabricated 0%.
+            guard let percent = brightnessReader.readBrightness() else { return }
+            activity = osdBrightnessActivity(percent: percent)
+        }
+
+        if case .osd = transientQueue.head {
+            transientQueue.updateHead(.osd(activity))
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                renderPresentation()
+            }
+            scheduleActivityDismiss()   // D-09 — re-arm on every press while an .osd head stands
+        } else {
+            let changed: Bool
+            if case .focus = transientQueue.head {
+                changed = transientQueue.preempt(.osd(activity))
+            } else {
+                changed = transientQueue.enqueue(.osd(activity))
+            }
+            if changed {
+                presentTransientChange()
+            }
+        }
+    }
+
     // D-09 / Pattern 5 / Phase 6 D-03 — the ONE one-shot dismiss, generalized from a single
     // charging splash to the transient QUEUE. A single wake-up that ADVANCES the queue inside the
     // spring, then idles (no recurring timer → idle CPU ~0%). On advance:
@@ -1636,7 +1721,20 @@ final class NotchWindowController {
             }
         }
         dismissWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + activityDuration, execute: work)
+        // Phase 39 / HUD-03/HUD-04 (D-10 / T-39-05-01) — the ONE change to this function: the
+        // duration is now computed from the CURRENT head's category rather than hardcoded to
+        // the shared activityDuration, so an .osd head gets its own separate, shorter window
+        // without touching Charging/Device/Focus's existing 3.0s timing. Reads the SAME `head`
+        // snapshot the guard above already gated on (never re-reads transientQueue.head), so no
+        // new race window is introduced. Every other line (the guard above, the
+        // DispatchWorkItem body, the re-arm-on-advance branch) is unchanged — this same
+        // computation applies correctly to whatever category becomes the NEW head after
+        // advance() too.
+        let duration: TimeInterval = {
+            if case .osd = head { return osdActivityDuration }
+            return activityDuration
+        }()
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
 
     // Keep the per-category @Published models in step with the queue head: whichever category is
@@ -1786,12 +1884,12 @@ final class NotchWindowController {
     // Device splash already stands). `oldHead` is captured BEFORE removeAll(where:) runs; the
     // dismiss-timer cancel/re-arm block below is now gated on `transientQueue.head != oldHead`, so
     // an untouched standing splash's already-running ~3s countdown is left exactly as it was.
-    private enum TransientCategory { case charging, device, focus }
+    private enum TransientCategory { case charging, device, focus, osd }
     private func flushTransients(_ category: TransientCategory) {
         let oldHead = transientQueue.head
         let matches: (ActiveTransient) -> Bool = { t in
             switch (t, category) {
-            case (.charging, .charging), (.device, .device), (.focus, .focus): return true
+            case (.charging, .charging), (.device, .device), (.focus, .focus), (.osd, .osd): return true
             default: return false
             }
         }
@@ -1801,6 +1899,11 @@ final class NotchWindowController {
         case .device:
             deviceCoordinator.clearPendingBatteryPolls()   // Finding 4 — drop any pending battery polls too
         case .focus: break   // Phase 38 / HUD-05: no separate @Published model to clear -- Focus's state lives entirely in the resolver's IslandPresentation
+        // Phase 39 / HUD-03/HUD-04 — defensive completeness only: nothing currently calls
+        // flushTransients(.osd) since Plan 39-06's Settings toggle never stops the interceptor
+        // (D-06), but the exhaustive switch must compile. No separate @Published model to clear
+        // -- OSD's state lives entirely in the resolver's IslandPresentation (mirrors .focus).
+        case .osd: break
         }
         guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
@@ -2133,6 +2236,10 @@ final class NotchWindowController {
         // Phase 38 / HUD-05: tear down the Focus poll timer — mirrors bluetoothMonitor?.stop()'s
         // owner-driven teardown discipline exactly.
         focusModeMonitor?.stop()
+
+        // Phase 39 / HUD-03/HUD-04: tear down the OSD key-press event tap — mirrors
+        // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
+        osdInterceptor?.stop()
 
         // Phase 24 / SHELF-01 / SHELF-02 (D-10): tear down the drop-interception tap — mirrors
         // bluetoothMonitor?.stop()'s owner-driven teardown discipline exactly.
