@@ -557,9 +557,15 @@ final class NotchWindowController {
 
     // Read an activity toggle from UserDefaults. Defaults to TRUE (D-07 all default ON) when the
     // key is absent — the SettingsView @AppStorage uses the same default, so a fresh install
-    // shows everything.
+    // shows everything. EXCEPTION: Phase 38-08 (CR-01 gap closure) — ActivitySettings.focusKey
+    // defaults to FALSE, matching SettingsView.swift's `@AppStorage(ActivitySettings.focusKey)
+    // private var focusEnabled = false` (the one activity toggle documented in
+    // ActivitySettings.swift:19-22 to default OFF). Without this exception, a fresh/toggle-OFF
+    // install with prior INFocusStatusCenter authorization would silently auto-start Focus
+    // monitoring on relaunch.
     private func activityEnabled(_ key: String) -> Bool {
-        UserDefaults.standard.object(forKey: key) as? Bool ?? true
+        let defaultValue = (key == ActivitySettings.focusKey) ? false : true
+        return UserDefaults.standard.object(forKey: key) as? Bool ?? defaultValue
     }
 
     // Idempotent start: only constructs/starts if not already running (Pitfall 5 — never
@@ -610,6 +616,16 @@ final class NotchWindowController {
         let monitor = FocusModeMonitor { [weak self] isFocused in self?.handleFocusChange(isFocused) }
         focusModeMonitor = monitor
         monitor.start()
+    }
+
+    // Phase 38-08 / HUD-05 gap closure (CR-02/WR-02): called by SettingsView's Focus
+    // permission "Continue" button once FocusModeMonitor.requestAuthorization's completion
+    // resolves `true` — the one event that previously had no path to actually start the
+    // monitor. Re-runs the exact same start-gate handleSettingsChanged() already uses at
+    // launch/UserDefaults-change, so a successful grant starts polling immediately without
+    // requiring an undocumented toggle-off/on or app relaunch.
+    func focusPermissionGranted() {
+        handleSettingsChanged()
     }
 
     // Phase 14 / WEATHER-01 / CAL-01 — idempotent start (mirrors startPowerMonitor/
