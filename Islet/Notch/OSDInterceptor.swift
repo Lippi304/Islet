@@ -104,6 +104,12 @@ final class OSDInterceptor {
     // classify only, no I/O.
     fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         guard type.rawValue == 14 /* NX_SYSDEFINED */ else { return Unmanaged.passUnretained(event) }
+        #if DEBUG
+        // 39-07 gap closure ROUND 5 timing instrumentation (temporary, remove once responsiveness
+        // is confirmed fixed) — point (a): tap callback fired, on the dedicated `tapQueue`.
+        let debugT0 = CFAbsoluteTimeGetCurrent()
+        print("[OSD-TIMING] a) tap callback fired t=\(String(format: "%.2f", debugT0 * 1000))ms (tapQueue)")
+        #endif
 
         let kind: OSDKeyKind? = DispatchQueue.main.sync {
             guard let nsEvent = NSEvent(cgEvent: event) else { return nil }
@@ -123,7 +129,19 @@ final class OSDInterceptor {
         // (fresh, never cached) so a future re-enable of a suppress-capable tap variant is a
         // one-line call-site change, not a rediscovery of this contract.
         _ = suppressionArmed()
-        DispatchQueue.main.async { [onKeyPress] in onKeyPress(kind) }   // level-read/enqueue, kept off the tap's critical return path — Pitfall 3
+        #if DEBUG
+        // Point (b): immediately before the main.async hop, still on tapQueue.
+        let debugT1 = CFAbsoluteTimeGetCurrent()
+        print("[OSD-TIMING] b) before main.async dispatch t=\(String(format: "%.2f", debugT1 * 1000))ms +\(String(format: "%.2f", (debugT1 - debugT0) * 1000))ms since (a)")
+        #endif
+        DispatchQueue.main.async { [onKeyPress] in
+            #if DEBUG
+            // Point (b continued): immediately after landing on main, before onKeyPress runs.
+            let debugT2 = CFAbsoluteTimeGetCurrent()
+            print("[OSD-TIMING] b) main.async closure entered t=\(String(format: "%.2f", debugT2 * 1000))ms +\(String(format: "%.2f", (debugT2 - debugT0) * 1000))ms since (a)")
+            #endif
+            onKeyPress(kind)
+        }   // level-read/enqueue, kept off the tap's critical return path — Pitfall 3
         return Unmanaged.passUnretained(event)   // always passthrough — this branch never swallows
     }
 
