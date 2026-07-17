@@ -1,156 +1,183 @@
 ---
 phase: 38-focus-mode-hud
-reviewed: 2026-07-17T00:00:00Z
+reviewed: 2026-07-17T03:10:00Z
 depth: standard
-files_reviewed: 10
+files_reviewed: 8
 files_reviewed_list:
-  - Islet/ActivitySettings.swift
+  - Islet.xcodeproj/project.pbxproj
   - Islet/Notch/FocusActivity.swift
-  - Islet/Notch/FocusModeMonitor.swift
   - Islet/Notch/IslandResolver.swift
   - Islet/Notch/NotchPillView.swift
   - Islet/Notch/NotchWindowController.swift
   - Islet/SettingsView.swift
-  - IsletTests/ActivitySettingsTests.swift
   - IsletTests/FocusActivityTests.swift
   - IsletTests/IslandResolverTests.swift
 findings:
-  critical: 2
-  warning: 2
-  info: 0
-  total: 4
+  critical: 1
+  warning: 1
+  info: 1
+  total: 3
 status: issues_found
 ---
 
 # Phase 38: Code Review Report
 
-**Reviewed:** 2026-07-17T00:00:00Z
+**Reviewed:** 2026-07-17T03:10:00Z
 **Depth:** standard
-**Files Reviewed:** 10
+**Files Reviewed:** 8
 **Status:** issues_found
 
 ## Summary
 
-The pure seams (`FocusActivity.swift`, the `resolve(...)`/`ActiveTransient.isPersistent` additions in
-`IslandResolver.swift`) are well tested and correct — `IslandResolverTests.swift` and
-`FocusActivityTests.swift` cover the documented precedence (D-07 collapsed-only, D-06 persistent/no
-auto-dismiss, D-08 preempt-pushes-to-front) and the exhaustive `ActiveTransient`/`IslandPresentation`
-switches in `NotchPillView.swift`/`NotchWindowController.swift` were extended correctly with no missed
-case (compiler-enforced exhaustiveness, and `visibleContentZone()`/`showsSwitcherRow` correctly treat
-`.focus` as collapsed-only, matching every other wing state).
+This is a full, independent re-review of all 8 listed files, not a diff review. Gap-closure plan
+38-08 is confirmed to have correctly fixed the two prior BLOCKER findings:
 
-However, the system-glue wiring between the Settings permission flow and the controller's monitor
-lifecycle has two BLOCKER-level gaps that mean the feature this phase implements can end up either
-silently OFF-by-default-but-secretly-ON, or ON-in-Settings-but-never-actually-running — the opposite
-failure modes of the same root cause: `NotchWindowController` reads Focus's enabled/authorized state
-independently in two places with no reactive link to the moment permission is actually granted. There
-is also a queue-invariant bug in the new `TransientQueue.preempt(_:)` that can silently violate the
-documented "displaced Focus resumes on the very next advance()" and D-03 bound guarantees under a
-specific interleaving.
+- **CR-01 (prior, `activityEnabled(_:)` default)** — **RESOLVED**. `NotchWindowController.swift:566-569`
+  now special-cases `ActivitySettings.focusKey` to a `false` default, matching
+  `SettingsView.swift:37`'s `@AppStorage(focusKey) private var focusEnabled = false`. A fresh
+  install with pre-existing OS-level Focus authorization no longer silently auto-starts the monitor.
+- **CR-02/WR-02 (prior, permission-grant never wired to controller)** — **RESOLVED**.
+  `SettingsView.swift:273-282`'s "Continue" button now calls
+  `FocusModeMonitor.requestAuthorization` and, inside the completion (hopped to main), calls
+  `NotchWindowController.focusPermissionGranted()` (`NotchWindowController.swift:627-629`), which
+  re-runs `handleSettingsChanged()` — the same start-gate logic launch/toggle already use. As a
+  side effect, moving `showFocusPermissionExplanation = false` inside the completion (rather than
+  firing synchronously before the async result returns) also fixes WR-02's second half: the
+  inline-computed `ActivitySettings.focusPermissionStatusHint(...)` hint text now re-renders with
+  the correct, post-grant `FocusModeMonitor.isAuthorized` value.
+
+**WR-01 (prior, `TransientQueue.preempt(_:)` bypasses `maxDepth`)** — **STILL OPEN**, confirmed
+unchanged at `IslandResolver.swift:257-263` (explicitly out of scope for 38-08 per the gap-closure
+plan). Carried forward below as WR-01.
+
+This review also found one **new BLOCKER**: the controller path that reacts to the real macOS
+Focus/DND state turning back OFF (`NotchWindowController.handleFocusChange(false)`) never re-renders
+the resolver's verdict, so the island can get stuck showing the Focus wing indefinitely after Focus
+actually deactivates — see CR-01 below (renumbered for this fresh review; distinct from the
+now-resolved prior CR-01).
 
 ## Critical Issues
 
-### CR-01: `activityEnabled(_:)`'s default-true fallback silently overrides Focus's documented default-OFF, auto-starting the monitor without consent whenever OS authorization is already granted
+### CR-01: `handleFocusChange(false)` flushes the Focus transient but never re-renders — the island can get stuck showing "Focus" after the real Focus/DND state turns off
 
-**File:** `Islet/Notch/NotchWindowController.swift:561-563` (helper), consumed at `:474` and `:1713`
+**File:** `Islet/Notch/NotchWindowController.swift:1593-1602` (caller), `:1784-1805` (`flushTransients`)
 
-**Issue:** `activityEnabled(_:)` is the single UserDefaults read helper for every activity toggle:
+**Issue:** `FocusModeMonitor` polls every 2.5s and calls `onChange(isFocused)` unconditionally on
+every successful read (no change-detection inside the monitor itself —
+`FocusModeMonitor.swift:56-63`). When Focus turns off, this lands in:
 
 ```swift
-private func activityEnabled(_ key: String) -> Bool {
-    UserDefaults.standard.object(forKey: key) as? Bool ?? true
+private func handleFocusChange(_ isFocused: Bool) {
+    if isFocused {
+        guard let activity = focusActivity(from: true) else { return }
+        let changed = transientQueue.enqueue(.focus(activity))
+        if changed {
+            presentTransientChange()
+        }
+    } else {
+        flushTransients(.focus)
+    }
 }
 ```
 
-Its doc comment explicitly says "Defaults to TRUE (D-07 all default ON) when the key is absent". That
-is correct for `chargingKey`/`nowPlayingKey`/`deviceKey`/`songChangeToastKey` — but `focusKey` is the
-*one* toggle this phase deliberately defaults OFF (`ActivitySettings.swift:19-22`, `SettingsView.swift:37`
-`@AppStorage(focusKey) private var focusEnabled = false`). On a fresh install nothing has ever written
-`focusKey` to `UserDefaults`, so `activityEnabled(ActivitySettings.focusKey)` incorrectly returns `true`.
-
-Both call sites gate on `activityEnabled(...) && FocusModeMonitor.isAuthorized`:
+`flushTransients(_:)` mutates the queue, conditionally re-arms the shared dismiss timer, but never
+calls `renderPresentation()` or `updateVisibility()` itself:
 
 ```swift
-// start(), line 474
-if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized { startFocusModeMonitor() }
-// handleSettingsChanged(), line 1713
-if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized {
-    startFocusModeMonitor()
+private func flushTransients(_ category: TransientCategory) {
+    let oldHead = transientQueue.head
+    ...
+    transientQueue.removeAll(where: matches)
+    switch category {
+    case .charging: chargingState.activity = nil
+    case .device:   deviceCoordinator.clearPendingBatteryPolls()
+    case .focus: break
+    }
+    guard transientQueue.head != oldHead else { return }   // WR-2 guard
+    dismissWorkItem?.cancel()
+    if transientQueue.head != nil {
+        deviceCoordinator.activityPromoted()
+        scheduleActivityDismiss()
+    }
 }
 ```
 
-Since `activityEnabled` is wrong, the *only* thing currently preventing an unrequested auto-start is
-`FocusModeMonitor.isAuthorized` happening to be `false`. But `FocusModeMonitor.swift`'s own header
-comment documents that on the actual build/dev machine this project ships from, `INFocusStatusCenter`
-already reports `.authorized` with no explicit request ("Path A won — `INFocusStatusCenter` reaches
-`.authorized` on this dev machine (macOS 26/Tahoe)"). On any machine in that state, a fresh install —
-Settings never opened, toggle showing OFF per its `@AppStorage` default — will silently start polling
-Focus/DND status and show the Focus HUD at launch. This directly violates D-01 (toggle defaults OFF)
-and D-02 ("the permission ask happens ONLY at this exact off-to-on flip, never at launch" — here no ask
-is even needed because the buggy default already treated the toggle as ON).
+Every OTHER caller of `flushTransients` is `handleSettingsChanged()`, whose function tail
+unconditionally calls `renderPresentation()` + `updateVisibility()` after every branch runs
+(`NotchWindowController.swift:1762-1765`) — so the Charging/Device disable-in-Settings path is
+fine. `handleFocusChange`'s `else` branch is the *only* call site that invokes `flushTransients`
+with nothing after it.
 
-**Fix:** Give `focusKey` its own explicit default instead of reusing the shared true-default helper, e.g.:
+Trace the common case: Focus is the standing head (`.focus(.on)`, never auto-dismissing per D-06 —
+`scheduleActivityDismiss()` explicitly skips arming a timer for a persistent head), nothing else is
+queued (Charging/Device always *preempt* Focus rather than queuing behind it, so `pending` is empty
+while Focus is head). The real Focus/DND state turns off. `handleFocusChange(false)` →
+`flushTransients(.focus)` removes the head, `transientQueue.head` goes from `.focus(.on)` to `nil` —
+the `oldHead` guard passes (a change did occur) — but since the new head is `nil`, the
+`if transientQueue.head != nil` branch never runs either, so **nothing calls `renderPresentation()`**.
+`presentationState.presentation` (the `@Published` value `NotchPillView` renders) is never
+recomputed and stays frozen at `.focus(.on)`.
+
+Because the monitor calls `onChange(false)` again every subsequent 2.5s poll, `flushTransients`
+runs again each time — but `transientQueue.head` no longer differs from `oldHead` (both `nil`), so
+the guard returns early every time. The stale presentation is never corrected by this code path at
+all; it only self-heals incidentally the next time some *unrelated* event calls
+`renderPresentation()` (e.g. a hover-enter/exit cycle's grace-collapse, a click, a Now-Playing
+update, a Charging/Device event). Until then, the island visibly keeps showing the "Focus" wing long
+after the user has turned Focus/DND off — directly contradicting D-06's "stays standing until the
+underlying Focus state itself turns off."
+
+**Fix:** Re-render (and re-run the sole visibility gate) after the flush, mirroring
+`handleSettingsChanged`'s tail:
 
 ```swift
-private func activityEnabled(_ key: String) -> Bool {
-    let defaultValue = (key == ActivitySettings.focusKey) ? false : true
-    return UserDefaults.standard.object(forKey: key) as? Bool ?? defaultValue
+private func handleFocusChange(_ isFocused: Bool) {
+    if isFocused {
+        guard let activity = focusActivity(from: true) else { return }
+        let changed = transientQueue.enqueue(.focus(activity))
+        if changed {
+            presentTransientChange()
+        }
+    } else {
+        flushTransients(.focus)
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+        updateVisibility()
+    }
 }
 ```
 
 ## Warnings
 
-### WR-01: `TransientQueue.preempt(_:)` bypasses the `maxDepth` bound and conflicts with `enqueue(_:)`'s overflow-eviction order, risking the displaced Focus never resuming
+### WR-01: `TransientQueue.preempt(_:)` bypasses the `maxDepth` bound and conflicts with `enqueue(_:)`'s overflow-eviction order (carried forward, still unfixed)
 
-**File:** `Islet/Notch/IslandResolver.swift:241-263`
+**File:** `Islet/Notch/IslandResolver.swift:257-263`
 
-**Issue:** `enqueue(_:)` bounds `pending` by appending to the back and trimming the *front* (oldest) on
-overflow:
-
-```swift
-mutating func enqueue(_ t: ActiveTransient) -> Bool {
-    if head == nil { head = t; return true }
-    if head == t || pending.contains(t) { return false }
-    pending.append(t)
-    if pending.count > maxDepth { pending.removeFirst() }   // drops the FRONT on overflow
-    return false
-}
-```
-
-`preempt(_:)` inserts the displaced Focus at the *front* of `pending` specifically so it is next in
-line for `advance()` (which also pops from the front via `removeFirst()`), and it performs **no**
-`maxDepth` check of its own:
+**Issue:** Unchanged from the prior review. `preempt(_:)` inserts the displaced Focus at
+`pending[0]` with no bound check:
 
 ```swift
 mutating func preempt(_ t: ActiveTransient) -> Bool {
     guard case .focus = head else { return enqueue(t) }
     let displaced = head!
     head = t
-    pending.insert(displaced, at: 0)   // no maxDepth trim here
+    pending.insert(displaced, at: 0)
     return true
 }
 ```
 
-This produces two related bugs, both reachable via ordinary Charging/Device flapping while Focus
-stands:
+while `enqueue(_:)` bounds `pending` by appending to the back and trimming the *front* on overflow.
+If `pending` is already at `maxDepth` when a `preempt` runs, the insert grows it to 3 (bound
+violation); and because the displaced Focus sits at index 0 — the exact index `enqueue`'s overflow
+logic evicts from — two subsequent ordinary `enqueue` calls (Charging/Device queuing behind the new,
+non-Focus head) can silently evict the just-displaced Focus before `advance()` ever reaches it,
+breaking the documented "resumes on the very next `advance()`" guarantee. (Focus self-heals within
+~2.5s via the next `FocusModeMonitor` poll re-enqueueing it, so this is not a permanent loss, but the
+queue-ordering/bound contract is violated for Focus specifically, and no test exercises the
+3-plus-entry interleaving.)
 
-1. **Bound violation:** if `pending` already holds `maxDepth` (2) entries at the moment Focus is
-   promoted back to head (e.g. via a prior `advance()`), the next preempt (`pending.insert(displaced,
-   at: 0)`) grows `pending` to 3, exceeding the documented "bounded... a flapping device can never back
-   the queue up (T-06-01)" invariant — nothing ever trims it back down after an `insert`.
-2. **Guarantee violation:** because the displaced Focus is inserted at *index 0* — the exact index
-   `enqueue(_:)`'s overflow logic always evicts from (`removeFirst()`) — two subsequent distinct
-   Charging/Device transients enqueuing behind the preempting one (ordinary `enqueue`, no preempt
-   needed since head is no longer Focus) will silently evict the just-displaced Focus entry from
-   `pending` before `advance()` ever reaches it, breaking the doc comment's explicit promise: "the
-   displaced Focus is reinserted at the FRONT of `pending`... so the very next `advance()` resumes it."
-   (Focus does self-heal within ~2.5s via `FocusModeMonitor`'s poll re-enqueuing it, so this is not a
-   permanent loss, but the queue-ordering/bound contract this file otherwise tests exhaustively is
-   violated for Focus specifically, and no test in `IslandResolverTests.swift` exercises the
-   3-plus-entry interleaving.)
-
-**Fix:** Apply the same overflow trim inside `preempt(_:)` after the insert (and treat the insert as
-subject to the same bound as `enqueue`'s append), e.g.:
+**Fix:** Trim after the insert, symmetric with `enqueue`'s own bound:
 
 ```swift
 mutating func preempt(_ t: ActiveTransient) -> Bool {
@@ -163,63 +190,26 @@ mutating func preempt(_ t: ActiveTransient) -> Bool {
 }
 ```
 
-### WR-02: Granting Focus permission through the in-app flow never actually starts `FocusModeMonitor` (requires an undocumented toggle-off/toggle-on or app restart), and the Settings hint text does not live-update after granting
+## Info
 
-**File:** `Islet/SettingsView.swift:211-227, 261-282`; `Islet/Notch/NotchWindowController.swift:474, 1713`
+### IN-01: `handleFocusChange`'s `guard let activity = focusActivity(from: true)` is dead code
 
-**Issue:** The only two places `startFocusModeMonitor()` can be reached are `start()` (launch-time) and
-`handleSettingsChanged()`, both fired from `UserDefaults.didChangeNotification`. The permission grant
-itself does not write to `UserDefaults`:
+**File:** `Islet/Notch/NotchWindowController.swift:1594-1595`
 
-```swift
-// SettingsView.swift:273-276
-Button("Continue") {
-    FocusModeMonitor.requestAuthorization { _ in }   // result discarded
-    showFocusPermissionExplanation = false
-}
-```
+**Issue:** `focusActivity(from:)` is `isFocused ? .on : nil` (`FocusActivity.swift:19-21`). The call
+site is inside `if isFocused { guard let activity = focusActivity(from: true) else { return } ... }`
+— the argument is the literal `true`, so `focusActivity(from: true)` always returns `.on` and the
+`else` branch of the guard can never execute. It reads as if some future case could make this
+mapping fail, but it structurally cannot given the call site always passes a literal.
 
-Typical flow for a user who has never granted Focus/DND access: flipping the toggle ON writes
-`focusKey = true` to `UserDefaults`, which fires `handleSettingsChanged()` immediately — but at that
-instant `FocusModeMonitor.isAuthorized` is still `false` (the OS dialog hasn't resolved yet), so the
-`if activityEnabled(...) && FocusModeMonitor.isAuthorized` guard is false and the monitor is not
-started. The user then taps "Continue" in the explanation popover, `requestAuthorization` completes
-asynchronously — and nothing calls `startFocusModeMonitor()` or re-runs `handleSettingsChanged()`
-afterward. `focusEnabled` stays `true` (matching D-04's "declining leaves the toggle ON"), so no further
-`UserDefaults` write ever occurs to re-trigger the start path. The Focus Mode HUD therefore never
-activates until the user manually toggles the switch off and back on again, or restarts the app —
-neither of which is documented or discoverable, and this is the primary user-facing path for the
-feature this phase implements.
-
-Separately, `ActivitySettings.focusPermissionStatusHint(toggleOn:granted:)`'s result is read inline in
-`generalSection`'s body (`SettingsView.swift:220-227`) with no `@State`/reactive binding to
-`FocusModeMonitor.isAuthorized`. The one state mutation that happens synchronously right after
-`requestAuthorization` is *called* (`showFocusPermissionExplanation = false`, fired before the async
-completion returns) does trigger a re-render, but at that point authorization has not resolved yet, so
-the hint still reads "Permission needed — tap to grant" even after the user successfully grants access,
-until some unrelated state change (window refocus, another toggle) happens to force a re-render.
-
-**Fix:** Thread the `requestAuthorization` completion back into the controller so a grant actually
-starts the monitor, e.g. post a notification / call back into `AppDelegate`'s controller reference on
-success, and mirror it into a local `@State` so the hint text re-renders immediately:
-
-```swift
-Button("Continue") {
-    FocusModeMonitor.requestAuthorization { granted in
-        DispatchQueue.main.async {
-            if granted {
-                (NSApp.delegate as? AppDelegate)?.notchController?.focusPermissionGranted()
-            }
-            showFocusPermissionExplanation = false
-        }
-    }
-}
-```
-with a small `focusPermissionGranted()` on the controller that re-runs the same start-gate logic
-`handleSettingsChanged()` already uses.
+**Fix:** Either drop the indirection (`transientQueue.enqueue(.focus(.on))` directly) or, if the
+mirrored-pattern-with-PowerActivity style is intentional (consistency with other transient handlers
+that map a live reading through a pure function), leave a short comment noting the guard is
+unreachable by construction so a future reader isn't confused into thinking it's meaningful dead
+code protecting against something.
 
 ---
 
-_Reviewed: 2026-07-17T00:00:00Z_
+_Reviewed: 2026-07-17T03:10:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
