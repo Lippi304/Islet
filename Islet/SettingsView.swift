@@ -31,6 +31,11 @@ struct SettingsView: View {
     // for existing users, fresh installs read ON).
     @AppStorage(ActivitySettings.songChangeToastKey) private var songChangeToastEnabled = true
     @AppStorage(ActivitySettings.deviceKey)     private var deviceEnabled = true
+    // Phase 38 / HUD-05 (D-01) — the ONE activity toggle that defaults OFF (permission-gated,
+    // opt-in). @State drives the one-time explanation popover (D-02: shown only at the moment
+    // the toggle flips on, never at launch).
+    @AppStorage(ActivitySettings.focusKey) private var focusEnabled = false
+    @State private var showFocusPermissionExplanation = false
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
@@ -199,6 +204,27 @@ struct SettingsView: View {
                 Toggle("Now Playing", isOn: $nowPlayingEnabled)
                 Toggle("Song-Change Toast", isOn: $songChangeToastEnabled)
                 Toggle("Devices", isOn: $deviceEnabled)
+                // Phase 38 / HUD-05 — D-02: the permission ask happens ONLY at this exact
+                // off-to-on flip, never at launch. D-04: declining the explanation leaves the
+                // toggle ON with the inert hint — the tap-to-retry gesture below is the ONLY way
+                // the explanation re-appears, never automatically.
+                Toggle("Focus Mode HUD", isOn: $focusEnabled)
+                    .onChange(of: focusEnabled) { _, on in
+                        if on && !FocusModeMonitor.isAuthorized {
+                            showFocusPermissionExplanation = true
+                        }
+                    }
+                    .popover(isPresented: $showFocusPermissionExplanation) {
+                        focusPermissionExplanationView
+                    }
+                if let hint = ActivitySettings.focusPermissionStatusHint(
+                    toggleOn: focusEnabled, granted: FocusModeMonitor.isAuthorized
+                ) {
+                    Text(hint)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .onTapGesture { showFocusPermissionExplanation = true }
+                }
             }
 
             // Quick task 260709-glz — a fullscreen-visibility preference, distinct from
@@ -226,6 +252,33 @@ struct SettingsView: View {
             }
         }
         .padding(20)
+    }
+
+    // Phase 38 / HUD-05 — D-02/D-03/D-04's one-time explanation popover, shown at the moment
+    // the Focus Mode HUD toggle flips on while unauthorized. 38-01-SUMMARY.md's on-device spike
+    // locked detection to Path A (INFocusStatusCenter) — this builds ONLY that variant's copy
+    // from 38-UI-SPEC.md's Settings Permission Contract, not the Full Disk Access variant.
+    private var focusPermissionExplanationView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Allow Focus Status Access")
+                .font(.system(size: 15, weight: .semibold))
+            Text("Islet needs permission to detect when Focus or Do Not Disturb is on.")
+                .font(.system(size: 12))
+                .lineSpacing(12 * 0.4)
+            HStack {
+                Button("Not Now") {
+                    showFocusPermissionExplanation = false
+                }
+                Spacer()
+                Button("Continue") {
+                    FocusModeMonitor.requestAuthorization { _ in }
+                    showFocusPermissionExplanation = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
     }
 
     // D-03 — Workspace: no shelf-specific settings exist today; a quiet centered
