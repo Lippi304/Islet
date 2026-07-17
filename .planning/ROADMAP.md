@@ -742,8 +742,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 39-01-PLAN.md — On-device spike (checkpoint): confirms .cgSessionEventTap dual-mode (.listenOnly detect-only / .defaultTap detect+suppress) feasibility, NX_SYSDEFINED bit-decode constants, and native-OSD/transport-key safety
-- [ ] 39-02-PLAN.md — Pure seams (TDD): OSDActivity.swift + IslandResolver.swift extension (ActiveTransient.osd rank 4 collapsed-only, updateHead (.osd,.osd) arm for D-09/D-12)
+- [x] 39-01-PLAN.md — On-device spike (checkpoint): confirms .cgSessionEventTap dual-mode (.listenOnly detect-only / .defaultTap detect+suppress) feasibility, NX_SYSDEFINED bit-decode constants, and native-OSD/transport-key safety
+- [x] 39-02-PLAN.md — Pure seams (TDD): OSDActivity.swift + IslandResolver.swift extension (ActiveTransient.osd rank 4 collapsed-only, updateHead (.osd,.osd) arm for D-09/D-12)
 
 **Wave 2** *(blocked on Wave 1)*
 
