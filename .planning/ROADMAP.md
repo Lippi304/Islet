@@ -104,7 +104,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes (completed 2026-07-16)
 - [x] **Phase 37: Drop-Session Summary Chip** - ABANDONED after on-device UAT (completed 2026-07-17, reverted 2026-07-17) — see phase detail below
 - [x] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (9/9 plans executed 2026-07-17 incl. gap-closure plans 38-08 and 38-09; on-device UAT confirmed all 4 Success Criteria — see 38-09-SUMMARY.md for two further defects found and fixed during 38-09's own checkpoint: a missing NSFocusStatusUsageDescription Info.plist key causing a hard crash, and a missing Communication Notifications entitlement without which INFocusStatusCenter silently never reports real Focus state)
-- [ ] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses
+- [x] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses (completed 2026-07-17)
 - [ ] **Phase 40: Update-Available HUD & Sparkle Integration** - Real Sparkle 2 auto-update + update-available HUD/badge
 - [ ] **Phase 41: Calendar Countdown HUD** - Live minute-countdown starting 1 hour before a calendar event, own persistent timer
 - [ ] **Phase 42: Dual-Activity Display** - Main pill + secondary bubble when two top-priority activities are live at once, additive resolver extension
@@ -760,7 +760,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 39-07-PLAN.md — Remove spike scaffolding + consolidated on-device UAT checkpoint (all 4 Success Criteria)
+- [x] 39-07-PLAN.md — Remove spike scaffolding + consolidated on-device UAT checkpoint (all 4 Success Criteria)
 
 ### Phase 40: Update-Available HUD & Sparkle Integration
 

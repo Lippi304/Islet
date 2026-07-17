@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
-stopped_at: Phase 39 UI-SPEC approved
-last_updated: "2026-07-17T13:37:43.664Z"
+status: ready_to_plan
+stopped_at: Phase 39 complete (7/7) — ready to discuss Phase 40
+last_updated: 2026-07-17T21:22:00.763Z
 last_activity: 2026-07-17 -- Phase 39 execution started
 progress:
   total_phases: 27
   completed_phases: 17
   total_plans: 75
-  completed_plans: 62
+  completed_plans: 69
   percent: 63
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 39 — volume-brightness-hud
+**Current focus:** Phase 40 — update available hud & sparkle integration
 
 ## Current Position
 
-Phase: 39 (volume-brightness-hud) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 39
-Last activity: 2026-07-17 -- Phase 39 execution started
+Phase: 40
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-17
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,13 +47,13 @@ Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23
 
 Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-32 complete; Phase 33 executing (Plan 1 of 2), Phase 34 not started; left open in parallel with v1.6)
 
-Progress (v1.6): [████░░░░░░] 38% (3/8 phases — Phases 35-36-38 complete, Phase 37 abandoned/reverted (counts as closed, not shipped), Phase 39 next)
+Progress (v1.6): [█████░░░░░] 50% (4/8 phases — Phases 35-36-38-39 complete, Phase 37 abandoned/reverted (counts as closed, not shipped), Phase 40 next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 88
+- Total plans completed: 95
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -88,6 +88,7 @@ Progress (v1.6): [████░░░░░░] 38% (3/8 phases — Phases 35-
 | 34 | 2 | - | - |
 | 35 | 10 | - | - |
 | 36 | 4 | - | - |
+| 39 | 7 | - | - |
 
 **Recent Trend:**
 
@@ -126,6 +127,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 37]: Phase abandoned in full after 37-04's on-device UAT — the chip's Tray-close trigger requires an explicit user action to close the Tray, but in real usage the Island stays open showing dropped files and isn't closed right away, so the trigger essentially never fires under normal use. User decided the feature isn't worth keeping rather than redesigning the trigger. All 3 implementation plans (37-01/02/03) were reverted via `git revert` (5 commits total including tracking updates), working tree confirmed clean of all chip-related code, build re-verified green. HUD-07 dropped from the v1.6 requirement set.
 - [Phase 38, 38-09]: `INFocusStatusCenter.authorizationStatus == .authorized` is NOT sufficient for `focusStatus.isFocused` to report real values — macOS also requires the `com.apple.developer.usernotifications.communication` (Communication Notifications) entitlement, or it silently resolves to `false` forever (not nil), with the OS logging `DNDErrorDomain 1004 "App is missing Communication Notifications entitlement"`. This was 38-RESEARCH.md's originally predicted dead-end for this API; the Wave-1 spike (38-01) only checked `authorizationStatus`, never an actual `isFocused` read against live state, so the gap wasn't caught until 38-09's on-device UAT. Entitlement added (paid Developer Team `R7AGU84UX7` already configured). **Relevant for Phase 39**: any `Intents`-adjacent system API may carry a similar hidden entitlement requirement beyond basic authorization — verify an actual functional read early in that phase's own spike, not just `authorizationStatus`.
 - [Phase 38, 38-09]: Focus wing visual contract deviates from `38-UI-SPEC.md` (icon-only left flank instead of icon+"Focus" label, dot+"On" text on the right instead of a bare dot) — user-directed live redesign during on-device UAT, the first time the pill was ever actually visible (both defects above had masked it until this plan). `38-UI-SPEC.md` not updated — flag for a docs-sync pass. User also flagged that Charging/Bluetooth wings have the same icon-only-flank-too-wide issue but explicitly deferred fixing those as a general follow-up, not part of Phase 38.
+- [Phase 39, 39-01]: Go/no-go spike found `suppression-unreliable` — a `.cgSessionEventTap`/`.defaultTap` CGEventTap correctly decodes and swallows (returns `nil` for) volume/brightness `NX_SYSDEFINED` events, but the native macOS notch-integrated OSD still renders regardless, on this machine/macOS Tahoe. Production `OSDInterceptor` (39-03) built `.listenOnly`-only, never attempting suppression; the Settings toggle (39-06) is a documented no-op. User explicitly accepted this as a shipped limitation rather than researching alternative private-API suppression techniques (a `.cghidEventTap`-based approach used by the open-source `dannystewart/volumeHUD` was researched as a possible future spike but not attempted this phase).
+- [Phase 39, 39-07]: Extremely costly (16 on-device gap-closure rounds) OSD wing layout saga with a genuinely reusable lesson for any future absolutely-positioned content inside this codebase's `wingsShape` helper: **`.offset(x:y:)` and `.position(x:y:)` both failed to behave as expected when applied to a view inside `wingsShape`'s content `ZStack`** — `.offset()` never actually moved the real render position (`GeometryReader` consistently reported the pre-offset origin no matter what offset value was set), and `.position()` caused the measured view to report the full parent container's size instead of its own intrinsic size. Root cause was never fully explained, just empirically confirmed via a hand-rolled `OSDFrameLogger`/`GeometryReader` diagnostic with PASS/FAIL verdicts. **The fix that actually worked**: abandon absolute-coordinate primitives entirely and use plain sequential `HStack(spacing: 0)` with concrete fixed-width `Color.clear.frame(width:)` spacer elements for excluded/blocked regions — the same pattern every other wing (Charging/Focus/Device) already used successfully. **For any future wing content that needs precise placement near the physical camera notch: default to HStack+explicit-width-spacers, not offset/position, unless a strong reason exists to deviate.** Final calibration: `margin = 55pt` beyond the measured `collapsedNotchSize` half-width, derived from real on-device visibility-percentage reports rather than theoretical notch-geometry math (which repeatedly produced numbers that didn't match reality). User confirmed final result on-device: "passt".
 
 ### Roadmap Evolution
 
