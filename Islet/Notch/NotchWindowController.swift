@@ -1598,7 +1598,12 @@ final class NotchWindowController {
                 presentTransientChange()
             }
         } else {
+            // 38-09 gap closure — mirrors handleSettingsChanged's render tail, flushTransients never renders itself
             flushTransients(.focus)
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                renderPresentation()
+            }
+            updateVisibility()
         }
     }
 
