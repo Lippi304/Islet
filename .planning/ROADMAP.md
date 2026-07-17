@@ -736,8 +736,31 @@ Plans:
   2. Pressing a volume key shows the new Volume HUD reflecting the live system volume level; pressing a brightness key shows the new Brightness HUD reflecting the live brightness level.
   3. Rapid repeated key presses (scrubbing) update the same HUD instance in place via `TransientQueue.updateHead()` rather than stacking multiple transients.
   4. The undocumented `EnableSystemBanners` Control-Center-wide defaults toggle is not used anywhere in the implementation.
-**Plans**: TBD
+**Plans**: 7 plans (waves: 1={39-01,39-02}, 2={39-03,39-04}, 3={39-05}, 4={39-06}, 5={39-07})
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 39-01-PLAN.md — On-device spike (checkpoint): confirms .cgSessionEventTap dual-mode (.listenOnly detect-only / .defaultTap detect+suppress) feasibility, NX_SYSDEFINED bit-decode constants, and native-OSD/transport-key safety
+- [ ] 39-02-PLAN.md — Pure seams (TDD): OSDActivity.swift + IslandResolver.swift extension (ActiveTransient.osd rank 4 collapsed-only, updateHead (.osd,.osd) arm for D-09/D-12)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 39-03-PLAN.md — OSDInterceptor.swift (spike-confirmed architecture) + VolumeReader.swift (CoreAudio) + BrightnessReader.swift (DisplayServices)
+- [ ] 39-04-PLAN.md — NotchPillView.swift osdWings(for:) Droppy-pill bar wing (D-01/D-02/D-03/D-04)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 39-05-PLAN.md — NotchWindowController.swift wiring (handleOSDKeyPress D-09/D-12/D-13, osdActivityDuration D-10) + ActivitySettings.swift key/hint
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 39-06-PLAN.md — SettingsView.swift OSD suppression toggle + Accessibility deep-link popover (D-05/D-06/D-07/D-08)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 39-07-PLAN.md — Remove spike scaffolding + consolidated on-device UAT checkpoint (all 4 Success Criteria)
 
 ### Phase 40: Update-Available HUD & Sparkle Integration
 
