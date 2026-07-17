@@ -1647,6 +1647,7 @@ final class NotchWindowController {
         case .charging: break
         case .device:   chargingState.activity = nil
         case .focus:    chargingState.activity = nil   // Phase 38 / HUD-05: not charging -- no standing charging splash
+        case .osd:      chargingState.activity = nil   // Phase 39 / HUD-03/HUD-04: not charging -- no standing charging splash
         case nil:       chargingState.activity = nil
         }
     }

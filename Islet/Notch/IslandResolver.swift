@@ -57,6 +57,7 @@ enum IslandPresentation: Equatable {
     case charging(ChargingActivity)                        // D-02 rank 1 transient
     case device(DeviceActivity)                            // D-02 rank 2 transient
     case focus(FocusActivity)                              // Phase 38 / HUD-05: rank 3 transient, collapsed-only (D-07)
+    case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 4 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
     case nowPlayingWings(NowPlayingPresentation)           // D-02 rank 3 ambient (collapsed glance)
     case nowPlayingExpanded(NowPlayingPresentation, healthy: Bool) // D-12 expanded media / "nicht verfügbar"
     case homeLastPlayed                                    // Phase 30 / HOME-02: Home, nothing playing now, but something played this session
@@ -73,6 +74,7 @@ enum ActiveTransient: Equatable {
     case charging(ChargingActivity)
     case device(DeviceActivity)
     case focus(FocusActivity)
+    case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 4 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
 }
 
 // Phase 38 / HUD-05 (D-06) — the seam Plan 38-05's controller wiring reads to decide
@@ -80,6 +82,8 @@ enum ActiveTransient: Equatable {
 // no natural "done" moment the way a charging/device splash settles after ~3s), so it
 // stays standing until the underlying Focus state itself turns off; every other
 // transient dismisses on the shared timer as before.
+// .osd is deliberately excluded from isPersistent so it self-elapses (D-10's own 1.5s timer),
+// unlike Focus.
 extension ActiveTransient {
     var isPersistent: Bool {
         if case .focus = self { return true }
@@ -119,6 +123,8 @@ func resolve(activeTransient: ActiveTransient?,
     case .device(let d):   return .device(d)             // D-02 rank 2
     case .focus(let f) where !isExpanded: return .focus(f) // Phase 38 / HUD-05 rank 3, collapsed-only (D-07)
     case .focus: break                                    // expanded -- falls through to the isExpanded branch below, unmodified
+    case .osd(let o) where !isExpanded: return .osd(o)    // Phase 39 / HUD-03/HUD-04 rank 4, collapsed-only (D-11)
+    case .osd: break                                      // expanded -- falls through to the isExpanded branch below, unmodified
     case nil: break
     }
     if isExpanded {
@@ -280,6 +286,7 @@ struct TransientQueue {
         switch (h, t) {
         case (.charging, .charging): head = t
         case (.device, .device):     head = t
+        case (.osd, .osd): head = t   // Phase 39 D-09/D-12: same-activity scrub refresh AND Volume<->Brightness instant replace
         default: break   // different category — ignore (use enqueue)
         }
     }
