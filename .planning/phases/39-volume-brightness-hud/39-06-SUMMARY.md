@@ -86,3 +86,9 @@ The Settings UI fully implements D-05/D-06/D-08's locked contract. `xcodebuild b
 ---
 *Phase: 39-volume-brightness-hud*
 *Completed: 2026-07-17*
+
+## Self-Check: PASSED
+- FOUND: Islet/SettingsView.swift
+- FOUND: .planning/phases/39-volume-brightness-hud/39-06-SUMMARY.md
+- FOUND: a8127c7 (task commit)
+- FOUND: 4cffffe (docs commit)
