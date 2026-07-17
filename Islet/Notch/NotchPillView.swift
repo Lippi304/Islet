@@ -2215,9 +2215,16 @@ struct NotchPillView: View {
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .padding(.leading, 14)
                 Spacer()                                             // clears the physical camera bridge
+                // 39-07 gap closure (post-checkpoint on-device finding): trailing pad brought down
+                // from 39-UI-SPEC.md's starting-point 20pt (explicitly flagged there as "not a
+                // locked pixel-perfect final value") to 14pt — the SAME trailing pad already
+                // shipped and on-device-approved for the Charging wing's BatteryIndicator
+                // (`wings(for:)` above), so the bar's right edge now sits the same distance from
+                // the wing's true right edge as every other right-flank element in this codebase,
+                // instead of the wider gap Focus's compact dot+text convention happened to reuse.
                 OSDLevelBar(fraction: fraction, tint: tint)
                     .frame(width: 150, height: 5)
-                    .padding(.trailing, 20)
+                    .padding(.trailing, 14)
             }
         }
     }
@@ -2554,8 +2561,15 @@ struct EqualizerBars: View {
 // GeometryReader/Capsule fill technique (below) rather than BatteryIndicator, whose outline/
 // nub/centered-text chrome conflicts with D-01's "no numeric text" rule. `fraction` is already
 // clamped by the caller (0 when muted, else percent/100); dividing by a fixed 100.0 upstream
-// keeps this view's own math bounded even if that changes. No `.animation()` here (D-04) — the
-// controller wraps every OSD mutation in its own spring.
+// keeps this view's own math bounded even if that changes.
+// 39-07 gap closure (post-checkpoint on-device finding): the fill previously had NO
+// `.animation()` of its own, relying entirely on the controller's shared
+// `withAnimation(.spring(response: 0.6, dampingFraction: 0.62))` wrapper (the SAME slow spring
+// used for the pill's own show/hide/shape morph) — during rapid scrubbing this made every level
+// update feel sluggish/non-real-time. 39-UI-SPEC.md's own locked D-04 fill-animation row already
+// specified a faster, bar-dedicated spring (`response: 0.35, dampingFraction: 0.75`) that this
+// view never actually applied — restoring it here, scoped to just the fill's own width change via
+// `value: fraction`, independent of and faster than the outer wing-morph spring.
 private struct OSDLevelBar: View {
     let fraction: CGFloat
     let tint: Color
@@ -2565,6 +2579,7 @@ private struct OSDLevelBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.15))                       // empty track
                 Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled (D-02 fixed tint)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: fraction)   // D-04 locked value
             }
         }
     }
