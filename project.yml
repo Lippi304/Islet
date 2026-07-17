@@ -73,6 +73,10 @@ targets:
         # Monitoring "for free," so both TCC entries may show up. There is no Accessibility
         # equivalent Info.plist usage-description key for this API — do not add one.
         INFOPLIST_KEY_NSInputMonitoringUsageDescription: "Islet nutzt diese Berechtigung, um beim Ablegen einer Datei in der Notch zu verhindern, dass Finder die Originaldatei verschiebt."
+        # Phase 38 / HUD-05 (38-09 gap closure) — same class of gap as the Bluetooth key above:
+        # INFocusStatusCenter.requestAuthorization/.authorizationStatus HARD CRASHES without this
+        # key ("attempted to access privacy-sensitive data without a usage description").
+        INFOPLIST_KEY_NSFocusStatusUsageDescription: "Islet zeigt eine kurze Mitteilung in der Notch an, wenn du deinen Fokus- oder Nicht-stoeren-Status aenderst."
         GENERATE_INFOPLIST_FILE: YES                   # modern Xcode: synthesize Info.plist from build settings
         MARKETING_VERSION: "1.0"                       # -> CFBundleShortVersionString (D-14: 1.0 is the public launch)
         CURRENT_PROJECT_VERSION: "1"                   # -> CFBundleVersion (build number)
