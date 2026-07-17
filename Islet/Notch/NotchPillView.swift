@@ -262,24 +262,20 @@ struct NotchPillView: View {
     // centered on the physical notch.
     static let wingsLabelWidth: CGFloat = 400
 
-    // 39-07 gap closure ROUND 7 — the empirically-measured camera-safe leading inset, extracted
-    // as a shared constant so no future wing has to rediscover this the hard way. Measured via an
-    // on-device DEBUG-only calibration ruler (labeled ticks every 20pt across `osdWings(for:)`'s
-    // full local width) against THIS specific dev machine's camera notch: ticks below x=100 were
-    // hidden behind the camera housing, x=100 was the first fully visible one. This is an
-    // EMPIRICAL, on-device-measured value, NOT a theoretical derivation — three separate algebraic
-    // attempts using the `wingsLabelWidth` comment's own ~89.5pt-notch-half-width convention above
-    // (which is itself cross-validated elsewhere: `290 - 2 * 89.5 = ~111`, close to that comment's
-    // own "~55pt flanks" claim once its symmetric 290pt/145pt-per-side wingsSize is factored in)
-    // each still put content partly behind the camera on real hardware for `osdWings(for:)`'s own
-    // 118pt `leftWidth`/wide asymmetric right flank — the two methods disagree by a wide margin for
-    // reasons not yet root-caused, so trust THIS measured value over that older theory until/unless
-    // someone re-derives why they diverge. Any future wing content that needs to sit clear of the
-    // camera should start no earlier than this constant (i.e. `leadingContentStart >=
-    // cameraSafeZoneLeadingInset`, in the SAME `wingsShape(leftWidth:rightWidth:)`-relative local
-    // coordinate space `osdWings(for:)` uses below), plus a small safety margin (~10pt) for
-    // hardware/rendering variance, mirroring `osdWings(for:)`'s own usage.
-    static let cameraSafeZoneLeadingInset: CGFloat = 100
+    // 39-07 gap closure ROUND 9 — RETRACTED. This constant (formerly `cameraSafeZoneLeadingInset =
+    // 100`) was derived from an on-device DEBUG-only ruler and treated as "the real camera boundary
+    // in local coordinates" — but it was measuring a CONFOUNDED quantity, not pure camera occlusion:
+    // 3 rounds built on it (7, 8, and this one) each still failed on real hardware in ways the
+    // constant alone couldn't explain (getting SMALLER/more hidden each round despite the formula
+    // being internally self-consistent every time). Root cause: this file already has a PROVEN,
+    // live-measured source of the real notch geometry — `interaction.collapsedNotchSize` (published
+    // by `NotchWindowController.positionAndShow()` from `notchSize(...)`, the exact unfudged cutout
+    // macOS reports — see `collapsedIsland` below, which already sizes the idle pill to this EXACT
+    // value and is proven correct simply by existing/shipping: a wrong value there would show up
+    // immediately as a black pill that doesn't match the physical notch, or a broken click-through
+    // hot-zone). `osdWings(for:)` now reads that live value directly instead of a hardcoded/
+    // empirically-guessed constant — see that function's own ROUND 9 comment for the corrected
+    // derivation.
 
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
@@ -2198,6 +2194,40 @@ struct NotchPillView: View {
         }
     }
 
+    // 39-07 gap closure ROUND 9 — TEMPORARY runtime geometry instrumentation (remove once the
+    // real fix is confirmed and applied). Three rounds (5, 7, 8) of THEORETICAL local-coordinate
+    // derivation have each been wrong on real hardware, even with a self-consistency `assert` —
+    // that assert only checks the formula agrees with itself, not that it agrees with reality.
+    // This logs the ACTUAL on-screen frame SwiftUI renders for a view, no assumptions involved.
+    // `space: .global` reports coordinates relative to the hosting window (top-left origin,
+    // y-down, SwiftUI's own convention) — combined with `NotchWindowController`'s own `panel.frame`
+    // (AppKit screen coordinates, bottom-left origin, y-up, logged separately at the same moment a
+    // key press fires), the two can be reconciled into one absolute-screen-coordinate picture:
+    // `screenX = panel.frame.origin.x + globalX` (Y needs an origin flip, panel.frame.height is
+    // enough to do that by hand from the printed values). `space: .named("osdWing")` instead
+    // reports coordinates relative to the wing's own outer container (set via `.coordinateSpace`
+    // below), i.e. the SAME "local x from the wing's own leading edge" space `osdWings(for:)`'s
+    // own `trackLeft`/`rightWidth` math assumes — this directly tells us whether that assumption
+    // itself is correct, independent of the notch's absolute screen position.
+    private struct OSDFrameLogger: ViewModifier {
+        let label: String
+        let space: CoordinateSpace
+        func body(content: Content) -> some View {
+            #if DEBUG
+            content.background(
+                GeometryReader { geo in
+                    let g = geo.frame(in: space)
+                    Color.clear.onAppear {
+                        print("[OSD-GEOM] \(label): x=\(String(format: "%.1f", g.minX)) y=\(String(format: "%.1f", g.minY)) w=\(String(format: "%.1f", g.width)) h=\(String(format: "%.1f", g.height))")
+                    }
+                }
+            )
+            #else
+            content
+            #endif
+        }
+    }
+
     // Phase 39 / HUD-03/HUD-04 — the OSD (Volume/Brightness) collapsed wing. Mechanical
     // reapplication of `wingsShape()` + `focusWings`'s icon-only-left-flank convention
     // (39-UI-SPEC.md "OSD Wing Contract") — no new shape wrapper. Unlike Charging/Device,
@@ -2235,48 +2265,40 @@ struct NotchPillView: View {
         // temporarily replaced this whole block; still needed, the timing readout is still pending.)
         print("[OSD-TIMING] d) osdWings body evaluated t=\(String(format: "%.2f", CFAbsoluteTimeGetCurrent() * 1000))ms fraction=\(fraction)")
         #endif
-        // 39-07 gap closure ROUND 7 (real, directly-measured fix — supersedes ROUND 5's still-wrong
-        // calculation and removes ROUND 6's temporary calibration ruler; the measured boundary is
-        // now `Self.cameraSafeZoneLeadingInset`, defined above near `wingsSize`/`wingsLabelWidth` —
-        // see that constant's own comment for the full calibration story). Three algebraic passes
-        // (rounds 2, 3, 5) each computed a "safe" trackLeft from a notch-half-width constant/
-        // derived estimate and each still rendered partly behind the camera — that constant does
-        // not apply 1:1 to this view's coordinate space. Keeping barWidth=90 (the originally
-        // requested size) and trailingPad=20 (matches the original UI-SPEC value), `rightWidth` is
-        // now DERIVED from the shared constant instead of a locally-hardcoded number, so a future
-        // recalibration only ever needs to change one place.
-        // NOTE: the icon (leading-padded 14pt, inside the 0-118 `osdLeftWidth` flank) sits BEFORE
-        // `cameraSafeZoneLeadingInset` — this measurement was scoped to the bar only per
-        // instruction, so the icon's own visibility was not re-verified here; flag if it turns out
-        // to also be partially obscured.
-        //
-        // ROUND 8 (regression fix): `rightWidth` is a WIDTH (the right flank's own magnitude), not
-        // itself a local coordinate — the actual constraint on the wing's TOTAL local coordinate
-        // span (`osdLeftWidth + rightWidth`, the same 0...totalWidth space `trackLeft` is measured
-        // in, per `wingsShape`'s `.frame(width: leftWidth + rightWidth, ...)`) is that it must be
-        // >= `trackLeft + barWidth + trailingPad` (220), so the bar's full required extent actually
-        // fits inside the wing's own rendered canvas. ROUND 7's formula computed this correctly IN
-        // PRINCIPLE (`rightWidth = trackLeft + barWidth + trailingPad - osdLeftWidth = 102`,
-        // confirmed by re-tracing the literal committed formula — NOT the "122" mis-stated in that
-        // round's own commit message/report, which was a documentation typo, not what the code
-        // actually computed) — but landing EXACTLY at the bare mathematical minimum
-        // (`osdLeftWidth + rightWidth = 118 + 102 = 220`, matching the 220 requirement with ZERO
-        // pixels of slack) is a razor-thin, degenerate-boundary fit that visibly broke on real
-        // hardware (near-total invisibility reported). Added a genuine safety margin this time so
-        // the wing's total width comfortably EXCEEDS the bar's required extent instead of exactly
-        // equaling it pixel-for-pixel — mirrors this same round's own `cameraSafeZoneLeadingInset`
-        // margin discipline (measured boundary + a real buffer, never the bare boundary itself).
+        // 39-07 gap closure ROUND 9 (real fix — reuses this file's own PROVEN notch-geometry
+        // source instead of yet another hardcoded/empirically-guessed constant). Rounds 2, 3, 5, 7,
+        // and 8 each derived the camera-safe boundary from a DIFFERENT independent source — a
+        // stale project-memory number, an inferred onset percentage, a corrected panel-budget
+        // calculation, an on-device ruler reading — and each still failed on real hardware despite
+        // internally self-consistent math every time, because none of them were actually anchored
+        // to the REAL, LIVE notch measurement. This file already has that: `collapsedIsland` below
+        // sizes the idle pill to `interaction.collapsedNotchSize` (published by
+        // `NotchWindowController.positionAndShow()` from `notchSize(...)`, the exact UNFUDGED
+        // cutout macOS reports) — proven correct simply by shipping (a wrong value there would
+        // show up immediately as a black pill that doesn't match the physical notch). Since
+        // `wingsShape`'s `alignmentGuide` pins local x=`leftWidth` to the SAME true notch center
+        // `collapsedIsland`'s own default-centered shape already sits on, the notch's real
+        // half-width IN THIS EXACT LOCAL COORDINATE SPACE is simply `collapsedNotchSize.width / 2`
+        // — no separate derivation needed, no re-measurement, just reading the value this codebase
+        // already trusts elsewhere. `osdLeftWidth` (118) is left UNCHANGED — it already matches
+        // `focusWings(for:)`'s own identical icon/padding/font convention, which has shipped
+        // without an icon-visibility complaint across its whole history, so there's no evidence
+        // it's wrong; only the RIGHT side (bar), which every failed round so far tried to fix with
+        // an independent guess, is rebuilt here from the live measurement.
         let osdLeftWidth: CGFloat = 118
         let barWidth: CGFloat = 90
         let trailingPad: CGFloat = 20
-        let trackLeft = Self.cameraSafeZoneLeadingInset + 10   // measured boundary + safety margin
-        let contentMargin: CGFloat = 40   // slack beyond the bare-minimum total-width requirement
-        let rightWidth = trackLeft + barWidth + trailingPad + contentMargin - osdLeftWidth
+        let notchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        let margin: CGFloat = 15   // safety buffer past the notch's real measured edge
+        let rightWidth = notchHalfWidth + margin + barWidth + trailingPad
+        let trackLeft = osdLeftWidth + notchHalfWidth + margin
         // Runtime self-check (Swift's assert compiles out of Release) — catches this exact class of
-        // regression immediately if a future edit shrinks `rightWidth` back toward the bare
-        // mathematical minimum without noticing the total-width invariant it depends on.
+        // regression immediately if a future edit breaks the total-width invariant this depends on.
         assert(osdLeftWidth + rightWidth >= trackLeft + barWidth + trailingPad,
-               "OSD wing total width (\(osdLeftWidth + rightWidth)) must cover the bar's full required extent (\(trackLeft + barWidth + trailingPad)) — see the ROUND 8 comment above")
+               "OSD wing total width (\(osdLeftWidth + rightWidth)) must cover the bar's full required extent (\(trackLeft + barWidth + trailingPad)) — see the ROUND 9 comment above")
+        #if DEBUG
+        print("[OSD-GEOM] ROUND 9 live derivation: collapsedNotchSize=\(String(describing: interaction.collapsedNotchSize)) notchHalfWidth=\(notchHalfWidth) osdLeftWidth=\(osdLeftWidth) rightWidth=\(rightWidth) trackLeft=\(trackLeft)")
+        #endif
         return wingsShape(leftWidth: osdLeftWidth, rightWidth: rightWidth) {
             HStack(spacing: 0) {
                 Image(systemName: iconName)
@@ -2284,11 +2306,17 @@ struct NotchPillView: View {
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .padding(.leading, 14)
+                    .modifier(OSDFrameLogger(label: "icon (named osdWing)", space: .named("osdWing")))
+                    .modifier(OSDFrameLogger(label: "icon (global)", space: .global))
                 Spacer()                                             // clears the physical camera bridge
                 OSDLevelBar(fraction: fraction, tint: tint)
                     .frame(width: barWidth, height: 5)
                     .padding(.trailing, trailingPad)
+                    .modifier(OSDFrameLogger(label: "bar (named osdWing)", space: .named("osdWing")))
+                    .modifier(OSDFrameLogger(label: "bar (global)", space: .global))
             }
+            .coordinateSpace(name: "osdWing")
+            .modifier(OSDFrameLogger(label: "wing container (global)", space: .global))
         }
     }
 
