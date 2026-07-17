@@ -1,7 +1,7 @@
 # Phase 39: Volume & Brightness HUD - Context
 
 **Gathered:** 2026-07-17
-**Status:** Ready for planning
+**Status:** Gap-closure addendum added 2026-07-17 (post-39-07 UAT) — see "Gap-Closure Addendum" below
 
 <domain>
 ## Phase Boundary
@@ -33,6 +33,14 @@ An on-device research spike first confirms whether `.cgSessionEventTap` (never t
 ### Volume↔Brightness↔Focus Priority
 - **D-12:** Volume and Brightness instantly replace each other (cross-category, not same-category) — pressing Brightness while Volume's HUD is still showing immediately swaps to Brightness, it does NOT queue behind Volume the way Charging/Device dedup today. Mirrors the native macOS OSD, which only ever shows the most recent key's HUD. Both categories should be modeled so this "instant mutual replace" falls out naturally (e.g., as sub-cases of one shared `ActiveTransient` case) rather than as two independent cases requiring bespoke cross-category logic — see Claude's Discretion below.
 - **D-13:** Rank order: Charging (1) → Device (2) → Focus (3) → Volume/Brightness (4, new, shared rank). Volume/Brightness are below Focus, but since Focus is `isPersistent` (never self-elapses) and `TransientQueue.advance()` only promotes a queued item when the current head elapses, a plain `enqueue()` behind Focus would mean Volume/Brightness NEVER show while Focus is active (queued forever). To avoid that, Volume/Brightness must use Phase 38's existing `TransientQueue.preempt()` mechanism against a standing Focus head too (not just Charging/Device) — they briefly interrupt Focus's pill for their ~1.5s duration, then Focus's pill automatically restores, exactly like Charging/Device already do (Phase 38 D-08).
+
+### Gap-Closure Addendum (2026-07-17, post-39-07 UAT)
+
+User reopened two items after Phase 39 was marked complete: the native OSD is still visible and "muss unbedingt weg" (absolutely must go), and volume/brightness key presses "bisschen delayed" (feel a bit delayed) even on a single, non-held press.
+
+- **D-14:** A new spike will test `.cghidEventTap` (HID-level tap, BEFORE the Window Server session layer) instead of the already-tried-and-failed `.cgSessionEventTap`/`.defaultTap` swallow (39-01's `suppression-unreliable` finding). Source: `dannystewart/volumeHUD` (github.com/dannystewart/volumeHUD, MIT, actively maintained for macOS Tahoe) uses exactly this technique and works. **Fallback policy: immediate abort and rollback to the current safe listen-only state at the first sign of ANY transport-key (play/pause/next/previous) irregularity** — no compromise, no "mostly working." This mirrors 39-01's own threat model (T-39-01-01) and the project's documented Tahoe regression risk (wrong CGEventTap variant breaking transport keys system-wide).
+- **D-15:** If `.cghidEventTap` swallows the key successfully, Islet must **self-drive** the actual volume/brightness change (CoreAudio `AudioObjectSetPropertyData` on `kAudioHardwareServiceDeviceProperty_VirtualMainVolume`/`kAudioDevicePropertyMute` for volume; `DisplayServicesSetBrightness` via the same dynamically-loaded `DisplayServices.framework` handle `BrightnessReader` already opened, for brightness) — full scope matching `volumeHUD`'s proven approach, not a partial "just swallow and hope" attempt. Swallowing without self-driving would mean the system value never actually changes on key press.
+- **D-16:** The user confirmed the perceived delay occurs even on a SINGLE, non-held key press — ruling out macOS's own key-repeat cadence as the explanation (that only applies during held/repeat). This points at the bar's spring/animation easing curve (`OSDLevelBar`'s `.animation(response: 0.35, dampingFraction: 0.75, ...)` from the 39-07 gap-closure work) rather than the backend pipeline (already proven single-digit-millisecond via `[OSD-TIMING]` evidence in 39-07). Planner/executor should treat this as an animation-feel tuning task (snappier response/damping, or reconsidering whether a spring is the right curve at all for this instant-feedback use case) — not re-investigate the already-conclusively-fast backend.
 
 ### Claude's Discretion
 - Whether Volume and Brightness are modeled as one shared `ActiveTransient` case with an inner enum (e.g., `.osd(OSDActivity)` where `OSDActivity` is `.volume(Int)`/`.brightness(Int)`) or as two separate cases — planner's call on the cleanest way to satisfy D-12's "instant mutual replace" requirement and the ROADMAP's "one shared OSD-replacement subsystem" language without duplicating logic. A single shared case makes `updateHead`'s existing same-category-replace semantics apply for free; two separate cases need new cross-category replace logic.
@@ -71,6 +79,11 @@ An on-device research spike first confirms whether `.cgSessionEventTap` (never t
 
 ### Phase 38 precedent this phase directly extends
 - `.planning/phases/38-focus-mode-hud/38-CONTEXT.md` — D-01 (opt-in toggle), D-03 (deep-link pattern), D-04 (silent degrade on permission denial), D-07 (collapsed-only scoping), D-08 (preempt-then-restore against Focus) — every one of these is directly reused/mirrored by D-05 through D-11 and D-13 above.
+
+### Gap-closure sources (D-14 through D-16)
+- `.planning/phases/39-volume-brightness-hud/39-01-SUMMARY.md` — the original spike's `suppression-unreliable` finding and confirmed NX_KEYTYPE_* keyCode constants (`SOUND_UP=0, SOUND_DOWN=1, BRIGHTNESS_UP=2, BRIGHTNESS_DOWN=3, MUTE=7`) — still valid, the new spike only changes the tap TYPE, not the decode.
+- `.planning/phases/39-volume-brightness-hud/39-07-SUMMARY.md` — the 16-round gap-closure history: confirms the `[OSD-TIMING]` backend-is-fast evidence D-16 relies on, and the `.offset()`/`.position()` layout-primitive lesson (avoid both inside `wingsShape`'s content `ZStack`; use plain `HStack` with fixed-width spacer elements) if this gap-closure work touches `osdWings(for:)` again.
+- `github.com/dannystewart/volumeHUD` `MediaKeyInterceptor.swift` — the external reference implementation for D-14/D-15's `.cghidEventTap` + self-driven CoreAudio/DisplayServices technique (researched live during this session, not yet read in full by an agent — the new spike's planner/researcher should read the actual source before implementing).
 
 ### Phase 36 visual precedent this phase partially diverges from
 - `.planning/phases/36-cosmetic-restyles-signature-animation/36-CONTEXT.md` — D-01 through D-04 (Droppy-pill icon+label convention, fixed-vs-accent-tinted color rule) — D-01/D-02 above intentionally diverge from the icon+label layout (bar instead) while keeping the fixed-color rule.
