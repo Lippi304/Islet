@@ -2769,6 +2769,25 @@ private struct OnboardingDoneStep: View {
         .background(Color.gray.opacity(0.3))
 }
 
+// Focus Wings — Phase 38 / HUD-05: proves the new focusWings(for:) branch compiles and
+// renders in isolation. `.focus(.on)` is the only reachable presentation (D-09: no "Focus
+// Off" render exists).
+#Preview("Focus Wings") {
+    let state = NotchInteractionState()
+    state.phase = .collapsed
+    return NotchPillView(interaction: state,
+                         nowPlaying: NowPlayingState(),
+                         presentationState: IslandPresentationState(.focus(.on)),
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
 // Media Wings (playing) — collapsed glance, art LEFT / animated bars RIGHT (D-02). The
 // nil artwork falls to the music.note placeholder (Open Q3); `.playing` animates the bars.
 #Preview("Media Wings (playing)") {
