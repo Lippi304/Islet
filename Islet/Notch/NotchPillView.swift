@@ -2265,53 +2265,70 @@ struct NotchPillView: View {
         // temporarily replaced this whole block; still needed, the timing readout is still pending.)
         print("[OSD-TIMING] d) osdWings body evaluated t=\(String(format: "%.2f", CFAbsoluteTimeGetCurrent() * 1000))ms fraction=\(fraction)")
         #endif
-        // 39-07 gap closure ROUND 9 (real fix — reuses this file's own PROVEN notch-geometry
-        // source instead of yet another hardcoded/empirically-guessed constant). Rounds 2, 3, 5, 7,
-        // and 8 each derived the camera-safe boundary from a DIFFERENT independent source — a
-        // stale project-memory number, an inferred onset percentage, a corrected panel-budget
-        // calculation, an on-device ruler reading — and each still failed on real hardware despite
-        // internally self-consistent math every time, because none of them were actually anchored
-        // to the REAL, LIVE notch measurement. This file already has that: `collapsedIsland` below
-        // sizes the idle pill to `interaction.collapsedNotchSize` (published by
-        // `NotchWindowController.positionAndShow()` from `notchSize(...)`, the exact UNFUDGED
-        // cutout macOS reports) — proven correct simply by shipping (a wrong value there would
-        // show up immediately as a black pill that doesn't match the physical notch). Since
-        // `wingsShape`'s `alignmentGuide` pins local x=`leftWidth` to the SAME true notch center
-        // `collapsedIsland`'s own default-centered shape already sits on, the notch's real
-        // half-width IN THIS EXACT LOCAL COORDINATE SPACE is simply `collapsedNotchSize.width / 2`
-        // — no separate derivation needed, no re-measurement, just reading the value this codebase
-        // already trusts elsewhere. `osdLeftWidth` (118) is left UNCHANGED — it already matches
-        // `focusWings(for:)`'s own identical icon/padding/font convention, which has shipped
-        // without an icon-visibility complaint across its whole history, so there's no evidence
-        // it's wrong; only the RIGHT side (bar), which every failed round so far tried to fix with
-        // an independent guess, is rebuilt here from the live measurement.
-        let osdLeftWidth: CGFloat = 118
+        // 39-07 gap closure ROUND 10 (explicit hard exclusion zone — supersedes ROUND 9's
+        // Spacer-implied gap, which the user correctly identified as the real bug: ROUND 9
+        // guaranteed the BAR's position algebraically but never verified the ICON, and used the
+        // HStack's `Spacer()` — leftover space, not a deliberately computed boundary — as an
+        // implicit stand-in for "the camera is somewhere in there." That's backwards: the camera's
+        // excluded region must be computed FIRST, directly from the real notch measurement, and
+        // EVERY piece of content (icon AND bar) placed by EXPLICIT absolute offset so it either
+        // ends at-or-before the zone's left edge or starts at-or-after its right edge — never
+        // inferred from "whatever space is left after the HStack lays out its other children."
+        //
+        // 1) The excluded x-range, in this wing's own local coordinate space (0 = the wing's own
+        //    left edge). `wingsShape`'s `alignmentGuide` pins local x=`osdLeftWidth` to the notch's
+        //    TRUE center — the same live, proven measurement `collapsedIsland` already uses
+        //    (`interaction.collapsedNotchSize`, published by `NotchWindowController.
+        //    positionAndShow()` from the exact unfudged cutout macOS reports). The ONE safety
+        //    margin is folded into `notchHalfWidth` here, once — nothing downstream adds another.
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        let margin: CGFloat = 15
+        let notchHalfWidth = rawNotchHalfWidth + margin
+        // 2) The icon's own box is a CODE-GUARANTEED fixed size (not a font-rendering guess) —
+        //    14pt leading pad + a 20pt fixed glyph frame — so `excludedMinX` can be solved for
+        //    directly instead of estimated: `osdLeftWidth` is DEFINED as
+        //    `notchHalfWidth + iconBoxWidth`, which makes `excludedMinX == iconBoxWidth` exactly,
+        //    by construction (checked below, not just assumed).
+        let iconBoxWidth: CGFloat = 34   // 14pt leading pad + 20pt fixed icon frame
+        let osdLeftWidth = notchHalfWidth + iconBoxWidth
+        let excludedMinX = osdLeftWidth - notchHalfWidth
+        let excludedMaxX = osdLeftWidth + notchHalfWidth
+        // 3) The bar starts EXACTLY at the excluded zone's right edge — no separate Spacer, no
+        //    second margin (already folded into notchHalfWidth above).
         let barWidth: CGFloat = 90
         let trailingPad: CGFloat = 20
-        let notchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 15   // safety buffer past the notch's real measured edge
-        let rightWidth = notchHalfWidth + margin + barWidth + trailingPad
-        let trackLeft = osdLeftWidth + notchHalfWidth + margin
-        // Runtime self-check (Swift's assert compiles out of Release) — catches this exact class of
-        // regression immediately if a future edit breaks the total-width invariant this depends on.
-        assert(osdLeftWidth + rightWidth >= trackLeft + barWidth + trailingPad,
-               "OSD wing total width (\(osdLeftWidth + rightWidth)) must cover the bar's full required extent (\(trackLeft + barWidth + trailingPad)) — see the ROUND 9 comment above")
+        let trackLeft = excludedMaxX
+        let rightWidth = (trackLeft + barWidth + trailingPad) - osdLeftWidth
+        // Runtime self-check (Swift's assert compiles out of Release) — the HARD invariant this
+        // round's fix is actually about: the icon's full box must end at-or-before the excluded
+        // zone, and the bar's leading edge must start at-or-after it. Written as literal
+        // comparisons against `excludedMinX`/`excludedMaxX`, not derived tautologically from the
+        // same formula that produced them, so a future edit that reintroduces a hardcoded
+        // `osdLeftWidth` (exactly this saga's original mistake) trips this immediately.
+        assert(iconBoxWidth <= excludedMinX,
+               "OSD icon box (\(iconBoxWidth)) must fit entirely before the camera's excluded zone (excludedMinX=\(excludedMinX))")
+        assert(trackLeft >= excludedMaxX,
+               "OSD bar's leading edge (\(trackLeft)) must start at or after the camera's excluded zone (excludedMaxX=\(excludedMaxX))")
         #if DEBUG
-        print("[OSD-GEOM] ROUND 9 live derivation: collapsedNotchSize=\(String(describing: interaction.collapsedNotchSize)) notchHalfWidth=\(notchHalfWidth) osdLeftWidth=\(osdLeftWidth) rightWidth=\(rightWidth) trackLeft=\(trackLeft)")
+        print("[OSD-GEOM] ROUND 10 exclusion zone: collapsedNotchSize=\(String(describing: interaction.collapsedNotchSize)) notchHalfWidth(+margin)=\(notchHalfWidth) excludedMinX=\(excludedMinX) excludedMaxX=\(excludedMaxX) osdLeftWidth=\(osdLeftWidth) rightWidth=\(rightWidth) trackLeft=\(trackLeft)")
         #endif
         return wingsShape(leftWidth: osdLeftWidth, rightWidth: rightWidth) {
-            HStack(spacing: 0) {
+            // ZStack + explicit `.offset(x:)` for every element — NOT an HStack with a `Spacer()`.
+            // There is no "gap between icon and bar" concept here at all: each element's position
+            // is computed directly from `excludedMinX`/`excludedMaxX` above, not inferred from
+            // whatever space happens to be left over after laying out its sibling.
+            ZStack(alignment: .topLeading) {
                 Image(systemName: iconName)
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
-                    .padding(.leading, 14)
+                    .frame(width: 20, height: Self.wingsSize.height, alignment: .center)
+                    .offset(x: 14)                                   // matches iconBoxWidth's 14pt leading pad
                     .modifier(OSDFrameLogger(label: "icon (named osdWing)", space: .named("osdWing")))
                     .modifier(OSDFrameLogger(label: "icon (global)", space: .global))
-                Spacer()                                             // clears the physical camera bridge
                 OSDLevelBar(fraction: fraction, tint: tint)
                     .frame(width: barWidth, height: 5)
-                    .padding(.trailing, trailingPad)
+                    .offset(x: trackLeft, y: (Self.wingsSize.height - 5) / 2)   // vertically centered
                     .modifier(OSDFrameLogger(label: "bar (named osdWing)", space: .named("osdWing")))
                     .modifier(OSDFrameLogger(label: "bar (global)", space: .global))
             }
