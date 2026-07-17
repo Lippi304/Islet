@@ -36,6 +36,15 @@ struct SettingsView: View {
     // the toggle flips on, never at launch).
     @AppStorage(ActivitySettings.focusKey) private var focusEnabled = false
     @State private var showFocusPermissionExplanation = false
+    // Phase 39 / HUD-03/HUD-04 (D-05): identical shape to focusEnabled above — off by default,
+    // permission-gated. NOTE: per 39-03-SUMMARY.md's on-device spike finding
+    // (suppression-unreliable), OSDInterceptor is a PERMANENT .listenOnly-only detector that
+    // NEVER suppresses the native OSD regardless of this toggle's value — flipping it on
+    // currently has no visible effect on the system OSD. The toggle/popover UI is still built
+    // per the locked UI-SPEC contract (D-06/D-08) since Accessibility could become viable again
+    // in a future macOS/permission-tier change; see 39-06-SUMMARY.md for the full no-op note.
+    @AppStorage(ActivitySettings.osdSuppressionKey) private var osdSuppressionEnabled = false
+    @State private var showOSDPermissionExplanation = false
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
@@ -225,6 +234,29 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                         .onTapGesture { showFocusPermissionExplanation = true }
                 }
+
+                // Phase 39 / HUD-03/HUD-04 — D-05/D-06/D-08: identical shape to the Focus Mode
+                // toggle above. Label is the exact locked string from 39-UI-SPEC.md — never
+                // "Volume/Brightness HUD" (that would incorrectly imply this toggle gates the
+                // HUD's own visibility, which it does not per D-06; the HUD keeps showing
+                // regardless of this toggle's value).
+                Toggle("Replace System Volume/Brightness OSD", isOn: $osdSuppressionEnabled)
+                    .onChange(of: osdSuppressionEnabled) { _, on in
+                        if on && !OSDInterceptor.isAccessibilityTrusted {
+                            showOSDPermissionExplanation = true
+                        }
+                    }
+                    .popover(isPresented: $showOSDPermissionExplanation) {
+                        osdPermissionExplanationView
+                    }
+                if let hint = ActivitySettings.osdPermissionStatusHint(
+                    toggleOn: osdSuppressionEnabled, granted: OSDInterceptor.isAccessibilityTrusted
+                ) {
+                    Text(hint)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .onTapGesture { showOSDPermissionExplanation = true }
+                }
             }
 
             // Quick task 260709-glz — a fullscreen-visibility preference, distinct from
@@ -279,6 +311,39 @@ struct SettingsView: View {
                             showFocusPermissionExplanation = false
                         }
                     }
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
+    }
+
+    // Phase 39 / HUD-03/HUD-04 — D-08's one-time explanation popover, shown at the moment the
+    // OSD suppression toggle flips on while Accessibility is untrusted. This is the ONE
+    // genuinely new mechanism in this phase: Accessibility has no `requestAuthorization(
+    // completion:)`-style re-request API the way Focus's `INFocusStatusCenter` does, so the
+    // primary action deep-links to System Settings' Accessibility pane instead. This button's
+    // job ends at opening the pane — OSDInterceptor's own health-check timer (Plan 39-03) is
+    // the sole mechanism that later confirms a grant, not this view.
+    private var osdPermissionExplanationView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Replace System OSD")
+                .font(.system(size: 15, weight: .semibold))
+            Text("Islet needs Accessibility access to hide the native volume/brightness indicator. Islet only intercepts volume and brightness key presses — it never reads, modifies, or sends anything else on your Mac.")
+                .font(.system(size: 12))
+                .lineSpacing(12 * 0.4)
+            HStack {
+                // D-06: declining leaves the toggle ON — the HUD keeps showing (unsuppressed)
+                // regardless of this dismissal. Do NOT revert osdSuppressionEnabled here.
+                Button("Not Now") {
+                    showOSDPermissionExplanation = false
+                }
+                Spacer()
+                Button("Open System Settings") {
+                    NSWorkspace.shared.open(URL(string:
+                        "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+                    showOSDPermissionExplanation = false
                 }
                 .keyboardShortcut(.defaultAction)
             }
