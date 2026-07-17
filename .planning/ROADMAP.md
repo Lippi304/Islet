@@ -704,8 +704,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 38-03-PLAN.md — FocusModeMonitor.swift (spike-confirmed detection path) + ActivitySettings.swift (focusKey, D-05 status-hint mapping) — halts here if 38-01 recorded a descope
-- [ ] 38-04-PLAN.md — NotchPillView.swift focusWings(for:) (D-10/D-11 Droppy-pill wing) + presentationSwitch dispatch + preview
+- [x] 38-03-PLAN.md — FocusModeMonitor.swift (spike-confirmed detection path) + ActivitySettings.swift (focusKey, D-05 status-hint mapping) — halts here if 38-01 recorded a descope
+- [x] 38-04-PLAN.md — NotchPillView.swift focusWings(for:) (D-10/D-11 Droppy-pill wing) + presentationSwitch dispatch + preview
 
 **Wave 3** *(blocked on Wave 2)*
 
