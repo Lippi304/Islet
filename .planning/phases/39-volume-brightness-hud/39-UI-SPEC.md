@@ -68,6 +68,8 @@ The bar is the focal element of this HUD (no numeric text exists anywhere, so th
 
 **Reference match:** `reference-droppy-volume-charging-pills.png` (Phase 36, still on disk in `.planning/phases/36-cosmetic-restyles-signature-animation/`) is the canonical visual reference for bar color/style — green volume bar, orange/yellow brightness bar, icon-left/bar-right layout — reinterpreted into this project's own two-flank structure per the Structural constraint above, not copied as a single continuous pill.
 
+**Spacing exception:** the 14pt/20pt flank padding and the bar's 150×5pt/2.5-corner-radius dimensions are not 4pt-grid multiples — same class of exception as `36-UI-SPEC.md`'s hardware-anchored padding: these are physical-notch-geometry-constrained (padding) or primary-content-element-sized (bar), not gap/padding values subject to the grid rule.
+
 ---
 
 ## Settings Permission Contract (D-05–D-08)
@@ -180,11 +182,11 @@ Accent reserved for: `Color.green` → Volume bar fill only. `Color.orange` → 
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS (non-blocking FLAG resolved — added Spacing exception note)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-07-17
