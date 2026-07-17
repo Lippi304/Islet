@@ -103,7 +103,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code (completed 2026-07-16)
 - [x] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes (completed 2026-07-16)
 - [x] **Phase 37: Drop-Session Summary Chip** - ABANDONED after on-device UAT (completed 2026-07-17, reverted 2026-07-17) — see phase detail below
-- [x] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (7/7 plans executed 2026-07-17, gaps found in verification — gap closure plan 38-08 created, pending execution) (completed 2026-07-17)
+- [ ] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (8/8 plans executed 2026-07-17 incl. gap-closure plan 38-08, which fixed CR-01/CR-02/WR-02 — but a fresh re-review + re-verification found one NEW blocker: `handleFocusChange(false)` never re-renders after flushing the Focus transient, so the HUD can stay stuck on-screen after Focus/DND turns off, violating Success Criterion #2; gap closure pending)
 - [ ] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses
 - [ ] **Phase 40: Update-Available HUD & Sparkle Integration** - Real Sparkle 2 auto-update + update-available HUD/badge
 - [ ] **Phase 41: Calendar Countdown HUD** - Live minute-countdown starting 1 hour before a calendar event, own persistent timer

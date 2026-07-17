@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 ## Current Position
 
-Phase: 38 (focus-mode-hud) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 38
-Last activity: 2026-07-17 -- Phase 38 execution started
+Phase: 38 (focus-mode-hud) — GAPS FOUND
+Plan: 8 of 8 executed; gap closure pending (new blocker post-38-08, see 38-VERIFICATION.md)
+Status: Verification found 1 new blocker — needs gap-closure plan (38-09) before phase can close
+Last activity: 2026-07-17 -- Phase 38 re-verification found stuck-HUD-after-Focus-off blocker
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
