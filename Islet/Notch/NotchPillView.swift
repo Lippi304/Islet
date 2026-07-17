@@ -2249,11 +2249,34 @@ struct NotchPillView: View {
         // `cameraSafeZoneLeadingInset` — this measurement was scoped to the bar only per
         // instruction, so the icon's own visibility was not re-verified here; flag if it turns out
         // to also be partially obscured.
+        //
+        // ROUND 8 (regression fix): `rightWidth` is a WIDTH (the right flank's own magnitude), not
+        // itself a local coordinate — the actual constraint on the wing's TOTAL local coordinate
+        // span (`osdLeftWidth + rightWidth`, the same 0...totalWidth space `trackLeft` is measured
+        // in, per `wingsShape`'s `.frame(width: leftWidth + rightWidth, ...)`) is that it must be
+        // >= `trackLeft + barWidth + trailingPad` (220), so the bar's full required extent actually
+        // fits inside the wing's own rendered canvas. ROUND 7's formula computed this correctly IN
+        // PRINCIPLE (`rightWidth = trackLeft + barWidth + trailingPad - osdLeftWidth = 102`,
+        // confirmed by re-tracing the literal committed formula — NOT the "122" mis-stated in that
+        // round's own commit message/report, which was a documentation typo, not what the code
+        // actually computed) — but landing EXACTLY at the bare mathematical minimum
+        // (`osdLeftWidth + rightWidth = 118 + 102 = 220`, matching the 220 requirement with ZERO
+        // pixels of slack) is a razor-thin, degenerate-boundary fit that visibly broke on real
+        // hardware (near-total invisibility reported). Added a genuine safety margin this time so
+        // the wing's total width comfortably EXCEEDS the bar's required extent instead of exactly
+        // equaling it pixel-for-pixel — mirrors this same round's own `cameraSafeZoneLeadingInset`
+        // margin discipline (measured boundary + a real buffer, never the bare boundary itself).
         let osdLeftWidth: CGFloat = 118
         let barWidth: CGFloat = 90
         let trailingPad: CGFloat = 20
         let trackLeft = Self.cameraSafeZoneLeadingInset + 10   // measured boundary + safety margin
-        let rightWidth = trackLeft + barWidth + trailingPad - osdLeftWidth
+        let contentMargin: CGFloat = 40   // slack beyond the bare-minimum total-width requirement
+        let rightWidth = trackLeft + barWidth + trailingPad + contentMargin - osdLeftWidth
+        // Runtime self-check (Swift's assert compiles out of Release) — catches this exact class of
+        // regression immediately if a future edit shrinks `rightWidth` back toward the bare
+        // mathematical minimum without noticing the total-width invariant it depends on.
+        assert(osdLeftWidth + rightWidth >= trackLeft + barWidth + trailingPad,
+               "OSD wing total width (\(osdLeftWidth + rightWidth)) must cover the bar's full required extent (\(trackLeft + barWidth + trailingPad)) — see the ROUND 8 comment above")
         return wingsShape(leftWidth: osdLeftWidth, rightWidth: rightWidth) {
             HStack(spacing: 0) {
                 Image(systemName: iconName)
