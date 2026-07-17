@@ -262,6 +262,25 @@ struct NotchPillView: View {
     // centered on the physical notch.
     static let wingsLabelWidth: CGFloat = 400
 
+    // 39-07 gap closure ROUND 7 — the empirically-measured camera-safe leading inset, extracted
+    // as a shared constant so no future wing has to rediscover this the hard way. Measured via an
+    // on-device DEBUG-only calibration ruler (labeled ticks every 20pt across `osdWings(for:)`'s
+    // full local width) against THIS specific dev machine's camera notch: ticks below x=100 were
+    // hidden behind the camera housing, x=100 was the first fully visible one. This is an
+    // EMPIRICAL, on-device-measured value, NOT a theoretical derivation — three separate algebraic
+    // attempts using the `wingsLabelWidth` comment's own ~89.5pt-notch-half-width convention above
+    // (which is itself cross-validated elsewhere: `290 - 2 * 89.5 = ~111`, close to that comment's
+    // own "~55pt flanks" claim once its symmetric 290pt/145pt-per-side wingsSize is factored in)
+    // each still put content partly behind the camera on real hardware for `osdWings(for:)`'s own
+    // 118pt `leftWidth`/wide asymmetric right flank — the two methods disagree by a wide margin for
+    // reasons not yet root-caused, so trust THIS measured value over that older theory until/unless
+    // someone re-derives why they diverge. Any future wing content that needs to sit clear of the
+    // camera should start no earlier than this constant (i.e. `leadingContentStart >=
+    // cameraSafeZoneLeadingInset`, in the SAME `wingsShape(leftWidth:rightWidth:)`-relative local
+    // coordinate space `osdWings(for:)` uses below), plus a small safety margin (~10pt) for
+    // hardware/rendering variance, mirroring `osdWings(for:)`'s own usage.
+    static let cameraSafeZoneLeadingInset: CGFloat = 100
+
     // Phase 25 / VISUAL-01 (D-01/D-02) — the shared black-to-transparent vertical gradient
     // material. Single source of truth for every fill site below (collapsedFill, blobShape,
     // wingsShape, mediaWingsOrToast) so the collapsed pill, expanded island, and all activity
@@ -2208,60 +2227,34 @@ struct NotchPillView: View {
         // clamps 0...100 before this view ever sees it).
         let fraction = activity.isMuted ? 0.0 : CGFloat(percent) / 100.0
         #if DEBUG
-        // 39-07 gap closure ROUND 6 — TEMPORARY visual ruler, remove once the real trackLeft is
-        // confirmed and the fix below is applied. Rounds 2, 3, and 5 each derived a "safe" position
-        // algebraically (from a notch-half-width estimate, then from an empirically-inferred onset
-        // percentage, then from a corrected panel-budget calculation) and each one still rendered
-        // partly behind the camera on real hardware — theory isn't transferring to this view's
-        // actual coordinate space. This renders a labeled, high-contrast tick every 20pt across the
-        // wing's FULL local width (0...totalWidth, the SAME coordinate space `leftWidth`/
-        // `rightWidth`/`trackLeft` are already expressed in in the code below), alternating red/
-        // yellow backgrounds with a bold black number, so the real hidden/visible boundary can be
-        // read directly off a screenshot instead of derived. Replaces the normal icon+bar content
-        // entirely while active — this is a one-shot calibration render, not a production view.
-        let totalWidth = 118 + 262
-        let ticks = Array(stride(from: 0, through: totalWidth, by: 20))
-        return wingsShape(leftWidth: 118, rightWidth: 262) {
-            ZStack(alignment: .topLeading) {
-                ForEach(ticks, id: \.self) { x in
-                    ZStack {
-                        Rectangle().fill((x / 20).isMultiple(of: 2) ? Color.red : Color.yellow)
-                        Text("\(x)")
-                            .font(.system(size: 9, weight: .black))
-                            .foregroundStyle(.black)
-                    }
-                    .frame(width: 20, height: 32)
-                    .offset(x: CGFloat(x))
-                }
-            }
-        }
-        #else
-        // 39-07 gap closure ROUND 5 (real structural fix, corrects a mistake in ROUND 4's own
-        // reasoning): ROUND 4 claimed a "hard ceiling of 210" on `rightWidth`, derived from ONLY
-        // `body`'s 420pt `expandedSize.width` outer frame — but `NotchWindowController.positionAndShow`
-        // UNCONDITIONALLY unions `trayFrame` (`NotchPillView.traySize.width` = 650pt, i.e. ±325pt
-        // around the collapsed pill's center) into the panel frame on EVERY call, regardless of which
-        // presentation is currently showing (mirrors how `onboardingFrame`/`weatherExpandedFrame`/
-        // `quickActionPickerFrame` are also always-unioned reservations, not conditional ones). ROUND
-        // 4 never checked this and wrongly treated `expandedFrame`'s narrower 420pt as the binding
-        // constraint. The REAL available half-width, already reserved by the existing Tray
-        // reservation with no code changes needed, is ~325pt — comfortably enough for a full-size bar.
-        // Design, keeping ROUND 3's confirmed-safe `trackLeft` position (265) as an absolute FLOOR
-        // (never move the bar's left edge left of it — that's what caused the camera-clipping bug):
-        //   - barWidth 48 -> 90 (the originally requested size)
-        //   - trailingPad 14 -> 20 (back to the original UI-SPEC starting value — addresses the
-        //     separate "too close to the edge of the black pill" on-device report, now that there's
-        //     room to be generous instead of shaving the pad down to the bare minimum)
-        //   - trackLeft = (118 + rightWidth) - 20 - 90; solving for trackLeft = 270 (5pt of margin
-        //     PAST the 265 floor, not just exactly at it) gives rightWidth = 262
-        // 262 << 325 (the real budget), so this is safe with ~63pt to spare — no NotchWindowController
-        // changes needed; the existing trayFrame reservation already covers it.
-        // ROUND 6 NOTE: this position STILL rendered partly behind the camera on real hardware
-        // despite the calculation above — see the ROUND 6 ruler in the #if DEBUG branch, which
-        // replaces this content in Debug builds to get one directly-measured data point instead of
-        // deriving a 4th theoretical position. Do not trust the numbers in this comment until the
-        // ruler's real-hardware reading is folded back in here.
-        return wingsShape(leftWidth: 118, rightWidth: 262) {
+        // 39-07 gap closure ROUND 5 timing instrumentation (temporary, remove once responsiveness
+        // is confirmed fixed) — point (d): confirms exactly when SwiftUI actually re-evaluates this
+        // view's body for a new fraction, so an on-device Console capture can show whether any lag
+        // lives in the tap/dispatch/read path (OSDInterceptor/NotchWindowController) or in SwiftUI's
+        // own render pipeline. (Restored in ROUND 7 — was accidentally dropped when ROUND 6's ruler
+        // temporarily replaced this whole block; still needed, the timing readout is still pending.)
+        print("[OSD-TIMING] d) osdWings body evaluated t=\(String(format: "%.2f", CFAbsoluteTimeGetCurrent() * 1000))ms fraction=\(fraction)")
+        #endif
+        // 39-07 gap closure ROUND 7 (real, directly-measured fix — supersedes ROUND 5's still-wrong
+        // calculation and removes ROUND 6's temporary calibration ruler; the measured boundary is
+        // now `Self.cameraSafeZoneLeadingInset`, defined above near `wingsSize`/`wingsLabelWidth` —
+        // see that constant's own comment for the full calibration story). Three algebraic passes
+        // (rounds 2, 3, 5) each computed a "safe" trackLeft from a notch-half-width constant/
+        // derived estimate and each still rendered partly behind the camera — that constant does
+        // not apply 1:1 to this view's coordinate space. Keeping barWidth=90 (the originally
+        // requested size) and trailingPad=20 (matches the original UI-SPEC value), `rightWidth` is
+        // now DERIVED from the shared constant instead of a locally-hardcoded number, so a future
+        // recalibration only ever needs to change one place.
+        // NOTE: the icon (leading-padded 14pt, inside the 0-118 `osdLeftWidth` flank) sits BEFORE
+        // `cameraSafeZoneLeadingInset` — this measurement was scoped to the bar only per
+        // instruction, so the icon's own visibility was not re-verified here; flag if it turns out
+        // to also be partially obscured.
+        let osdLeftWidth: CGFloat = 118
+        let barWidth: CGFloat = 90
+        let trailingPad: CGFloat = 20
+        let trackLeft = Self.cameraSafeZoneLeadingInset + 10   // measured boundary + safety margin
+        let rightWidth = trackLeft + barWidth + trailingPad - osdLeftWidth
+        return wingsShape(leftWidth: osdLeftWidth, rightWidth: rightWidth) {
             HStack(spacing: 0) {
                 Image(systemName: iconName)
                     .font(.system(size: 13, weight: .semibold))
@@ -2270,11 +2263,10 @@ struct NotchPillView: View {
                     .padding(.leading, 14)
                 Spacer()                                             // clears the physical camera bridge
                 OSDLevelBar(fraction: fraction, tint: tint)
-                    .frame(width: 90, height: 5)
-                    .padding(.trailing, 20)
+                    .frame(width: barWidth, height: 5)
+                    .padding(.trailing, trailingPad)
             }
         }
-        #endif
     }
 
     // RIGHT wing of the device glance: the battery indicator when the device reports a level
