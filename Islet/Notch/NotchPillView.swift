@@ -2215,9 +2215,24 @@ struct NotchPillView: View {
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .padding(.leading, 14)
                 Spacer()                                             // clears the physical camera bridge
+                // 39-07 gap closure ROUND 2 (root-cause fix, supersedes the round-1 padding-only
+                // tune): the on-device UAT report was "clipped/obscured", not "short of the edge"
+                // — the real bug was never the trailing padding, it was the bar's WIDTH. This
+                // wing's `alignmentGuide(.center){ leftWidth }` (wingsShape above) pins the
+                // PHYSICAL camera notch's center at local x = leftWidth = 118. Using this file's
+                // own established measured-notch convention (focusWings' comment: "physical notch
+                // half-width ~89.5pt, notch measured 179pt"), the notch's RIGHT edge sits at local
+                // x = 118 + 89.5 = 207.5, leaving only `rightWidth(190) - 89.5 = 100.5pt` of
+                // genuinely visible screen between the notch's right edge and this wing's own
+                // right edge. The original 150pt-wide bar (with ANY trailing padding, even 0)
+                // could never fit there — its leading ~50-70pt was always physically hidden behind
+                // the camera housing itself, not clipped by any SwiftUI mask. Shrunk to 76pt + the
+                // same 14pt trailing pad (= 90pt), leaving a ~10.5pt buffer past the notch edge for
+                // hardware notch-width variance across other notch MacBook models. Do not widen
+                // this bar back toward 150pt without also growing `rightWidth` by the same amount.
                 OSDLevelBar(fraction: fraction, tint: tint)
-                    .frame(width: 150, height: 5)
-                    .padding(.trailing, 20)
+                    .frame(width: 76, height: 5)
+                    .padding(.trailing, 14)
             }
         }
     }
@@ -2554,8 +2569,15 @@ struct EqualizerBars: View {
 // GeometryReader/Capsule fill technique (below) rather than BatteryIndicator, whose outline/
 // nub/centered-text chrome conflicts with D-01's "no numeric text" rule. `fraction` is already
 // clamped by the caller (0 when muted, else percent/100); dividing by a fixed 100.0 upstream
-// keeps this view's own math bounded even if that changes. No `.animation()` here (D-04) — the
-// controller wraps every OSD mutation in its own spring.
+// keeps this view's own math bounded even if that changes.
+// 39-07 gap closure (post-checkpoint on-device finding): the fill previously had NO
+// `.animation()` of its own, relying entirely on the controller's shared
+// `withAnimation(.spring(response: 0.6, dampingFraction: 0.62))` wrapper (the SAME slow spring
+// used for the pill's own show/hide/shape morph) — during rapid scrubbing this made every level
+// update feel sluggish/non-real-time. 39-UI-SPEC.md's own locked D-04 fill-animation row already
+// specified a faster, bar-dedicated spring (`response: 0.35, dampingFraction: 0.75`) that this
+// view never actually applied — restoring it here, scoped to just the fill's own width change via
+// `value: fraction`, independent of and faster than the outer wing-morph spring.
 private struct OSDLevelBar: View {
     let fraction: CGFloat
     let tint: Color
@@ -2565,6 +2587,7 @@ private struct OSDLevelBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.15))                       // empty track
                 Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled (D-02 fixed tint)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: fraction)   // D-04 locked value
             }
         }
     }
