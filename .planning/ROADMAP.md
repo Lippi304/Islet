@@ -756,7 +756,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 39-06-PLAN.md — SettingsView.swift OSD suppression toggle + Accessibility deep-link popover (D-05/D-06/D-07/D-08)
+- [x] 39-06-PLAN.md — SettingsView.swift OSD suppression toggle + Accessibility deep-link popover (D-05/D-06/D-07/D-08)
 
 **Wave 5** *(blocked on Wave 4)*
 
