@@ -781,6 +781,27 @@ struct NotchPillView: View {
             // the rim, a worse regression than the momentary flat-black-during-transition bug
             // it was meant to fix. Back to rendering presentationSwitch directly.
             presentationSwitch
+
+            // Phase 42 / DUAL-01 (D-05/D-08/D-09) — the secondary bubble, composed as a SIBLING
+            // to presentationSwitch, never a case inside it (presentationSwitch's own switch
+            // above is untouched). `resolveSecondary` (Plan 42-01) guarantees this only ever
+            // mounts when `presentation == .calendarCountdown`, whose wing always renders with a
+            // fixed `rightWidth: Self.wingsLabelWidth / 2` (200pt) — so the bubble's center sits
+            // at 200 + secondaryBubbleGap(8) + secondaryBubbleDiameter/2(12) = 220pt right of the
+            // shared notch center (x=0 in this ZStack's local space, the same origin every other
+            // shape's own `.alignmentGuide(HorizontalAlignment.center)` pins to). `.offset(x:)`
+            // flagged UNVERIFIED by 42-RESEARCH.md in THIS specific top-level ZStack (the
+            // documented 39-07 `.offset()` failure occurred inside `wingsShape`'s OWN nested
+            // content ZStack, a different context) — confirm via the "Secondary Bubble" #Preview
+            // below that the bubble renders 220pt right of center with a visible, non-overlapping
+            // gap from the countdown wing; if it renders at its pre-offset origin instead (the
+            // 39-07 symptom), switch this to an HStack(spacing: secondaryBubbleGap) sibling
+            // approach per 42-UI-SPEC.md's stated fallback.
+            if let secondary = presentationState.secondary {
+                secondaryBubble(secondary)
+                    .offset(x: 220)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
         // Phase 21 bugfix (SHELF-06 UAT) — this outer container's height was still the
         // pre-Phase-20 constant, so blobShape's own +shelfRowHeight growth (for
@@ -3165,6 +3186,28 @@ private struct OnboardingDoneStep: View {
     return NotchPillView(interaction: state,
                          nowPlaying: NowPlayingState(),
                          presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))),
+                         outfit: BasicOutfitState(),
+                         shelfViewState: ShelfViewState(),
+                         onboardingState: OnboardingViewState(),
+                         viewSwitcherState: ViewSwitcherState(),
+                         calendarViewState: CalendarViewState())
+        .frame(width: NotchPillView.expandedSize.width,
+               height: NotchPillView.expandedSize.height)
+        .background(Color.gray.opacity(0.3))
+}
+
+// Secondary Bubble — Phase 42 / DUAL-01: hand-seeds `presentationState.secondary` alongside a
+// `.calendarCountdown` primary (the only presentation resolveSecondary ever pairs it with) to
+// prove D-05/D-08/D-09: a round bubble to the right of the countdown wing, distinct from and
+// not overlapping it, with a visible gap.
+#Preview("Secondary Bubble") {
+    let interactionState = NotchInteractionState()
+    interactionState.phase = .collapsed
+    let presentationState = IslandPresentationState(.calendarCountdown(CalendarCountdownActivity(eventStart: Date().addingTimeInterval(1800))))
+    presentationState.secondary = .nowPlaying(.playing(title: "Test", artist: "Test"))
+    return NotchPillView(interaction: interactionState,
+                         nowPlaying: NowPlayingState(),
+                         presentationState: presentationState,
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
                          onboardingState: OnboardingViewState(),
