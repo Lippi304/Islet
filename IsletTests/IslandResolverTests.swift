@@ -759,4 +759,75 @@ final class IslandResolverTests: XCTestCase {
                         calendarCountdown: countdown)
         XCTAssertEqual(r, .charging(.charging(percent: 47)))
     }
+
+    // MARK: Phase 42 / DUAL-01 — Secondary Activity
+
+    func testResolveSecondaryReturnsNowPlayingWhenCountdownIsPrimaryAndMediaLive() {
+        // D-01/D-02: both Countdown and NowPlaying live, no transient, collapsed — primary is
+        // .calendarCountdown, so resolveSecondary surfaces the live media as the secondary bubble.
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let np = NowPlayingPresentation.playing(title: "Song", artist: "Artist")
+        let primary = resolve(activeTransient: nil,
+                               nowPlaying: np,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: false,
+                               calendarCountdown: countdown)
+        XCTAssertEqual(resolveSecondary(primary: primary, nowPlaying: np), .nowPlaying(np))
+    }
+
+    func testResolveSecondaryNilWhenOnlyCountdownLive() {
+        // D-04: single activity, no bubble — Countdown is primary but no media is playing.
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let primary = resolve(activeTransient: nil,
+                               nowPlaying: .none,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: false,
+                               calendarCountdown: countdown)
+        XCTAssertNil(resolveSecondary(primary: primary, nowPlaying: .none))
+    }
+
+    func testResolveSecondaryNilWhenOnlyNowPlayingLive() {
+        // D-04: single activity, no bubble — NowPlaying is primary (.nowPlayingWings), no
+        // countdown at all, so primary != .calendarCountdown.
+        let np = NowPlayingPresentation.playing(title: "Song", artist: "Artist")
+        let primary = resolve(activeTransient: nil,
+                               nowPlaying: np,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: false,
+                               calendarCountdown: nil)
+        XCTAssertNil(resolveSecondary(primary: primary, nowPlaying: np))
+    }
+
+    func testResolveSecondaryNilWhenTransientStanding() {
+        // D-10: a standing transient (.charging here) suppresses the secondary too, even with
+        // both Countdown and NowPlaying inputs live — falls out of primary's own shape
+        // (.charging), zero new activeTransient-checking logic in resolveSecondary itself.
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let np = NowPlayingPresentation.playing(title: "Song", artist: "Artist")
+        let primary = resolve(activeTransient: .charging(.charging(percent: 47)),
+                               nowPlaying: np,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: false,
+                               calendarCountdown: countdown)
+        XCTAssertNil(resolveSecondary(primary: primary, nowPlaying: np))
+    }
+
+    func testResolveSecondaryNilWhenExpanded() {
+        // isExpanded == true always yields secondary == nil — resolve() never returns
+        // .calendarCountdown from its isExpanded branch, so primary can't be .calendarCountdown.
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let np = NowPlayingPresentation.playing(title: "Song", artist: "Artist")
+        let primary = resolve(activeTransient: nil,
+                               nowPlaying: np,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: true,
+                               selectedView: .home,
+                               calendarCountdown: countdown)
+        XCTAssertNil(resolveSecondary(primary: primary, nowPlaying: np))
+    }
 }
