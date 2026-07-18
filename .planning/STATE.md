@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
-stopped_at: Phase 41 context gathered
-last_updated: "2026-07-18T02:19:34.421Z"
+stopped_at: Phase 41 UI-SPEC approved
+last_updated: "2026-07-18T02:29:03.273Z"
 last_activity: 2026-07-17 -- Phase 40 execution started
 progress:
   total_phases: 27
@@ -218,9 +218,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T02:19:34.405Z
-Stopped at: Phase 41 context gathered
-Resume file: .planning/phases/41-calendar-countdown-hud/41-CONTEXT.md
+Last session: 2026-07-18T02:29:03.254Z
+Stopped at: Phase 41 UI-SPEC approved
+Resume file: .planning/phases/41-calendar-countdown-hud/41-UI-SPEC.md
 
 ## Operator Next Steps
 
