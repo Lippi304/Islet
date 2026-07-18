@@ -158,7 +158,7 @@ Plans:
 
 **v1.5:** 5/6 phases complete (83%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md. Phase 33 (WEATHER-01/02) completed 2026-07-15 — on-device UAT required 6 gap-closure rounds (stale hourly data, text-wrap doubling row height, blobShape missing content-clipping onto the panel background, NotchShape's real taper clipping the daily row, final height/gap tuning); see 33-02-SUMMARY.md. Only Phase 34 (Quick Action Destination Picker) remains.
 
-**v1.6:** 7/8 phases complete (88%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34. Phase 35 (GLASS-01) completed 2026-07-16 — on-device UAT required 4 rounds (round 1 flat opaque grey, round 2 uniformly bright, round 3 screen-blend washout over the frost's dark center, round 4 rim-masked the fringe/wash layers to the same edge falloff and passed); see 35-12-SUMMARY.md. A round-5 post-completion regression (flat grey rim, D-20) pivoted the island to SwiftUI's native `.glassEffect()` on macOS 26+, keeping the custom shader as the `<26` fallback; see 35-12-ADDENDUM-SUMMARY.md. Phase 41 (HUD-08, Calendar Countdown HUD) completed 2026-07-18 — on-device UAT found and fixed a real-hardware-only bug: the countdown's mm:ss text partially rendered under the physical camera housing until its wing's right flank was widened to the same label-clearing width `deviceWings` already uses; see 41-04-SUMMARY.md. Phase 40 (Sparkle/Update HUD) completed 2026-07-18 — its on-device UAT re-run (40-03) root-caused the carried-over badge-tap bug to a click-through hot-zone gap and redesigned the update indicator from a collapsed-pill badge to a menu-bar status-item dot; see 40-03-SUMMARY.md. Only Phase 42 (Dual-Activity Display) remains, not yet planned.
+**v1.6:** 7/8 phases complete (88%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34. Phase 35 (GLASS-01) completed 2026-07-16 — on-device UAT required 4 rounds (round 1 flat opaque grey, round 2 uniformly bright, round 3 screen-blend washout over the frost's dark center, round 4 rim-masked the fringe/wash layers to the same edge falloff and passed); see 35-12-SUMMARY.md. A round-5 post-completion regression (flat grey rim, D-20) pivoted the island to SwiftUI's native `.glassEffect()` on macOS 26+, keeping the custom shader as the `<26` fallback; see 35-12-ADDENDUM-SUMMARY.md. Phase 41 (HUD-08, Calendar Countdown HUD) completed 2026-07-18 — on-device UAT found and fixed a real-hardware-only bug: the countdown's mm:ss text partially rendered under the physical camera housing until its wing's right flank was widened to the same label-clearing width `deviceWings` already uses; see 41-04-SUMMARY.md. Phase 40 (Sparkle/Update HUD) completed 2026-07-18 — its on-device UAT re-run (40-03) root-caused the carried-over badge-tap bug to a click-through hot-zone gap and redesigned the update indicator from a collapsed-pill badge to a menu-bar status-item dot; see 40-03-SUMMARY.md. Only Phase 42 (Dual-Activity Display) remains, now planned (4 plans across 3 waves — see Phase 42 detail below).
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -829,5 +829,19 @@ Plans:
   2. The primary/secondary promotion-demotion rule is implemented as an explicit ordered table (not scattered conditionals) and correctly generalizes to any two competing top-priority activities, not just Calendar+Music.
   3. Primary and secondary slots use distinct `matchedGeometryEffect` namespaces — no visual glitches, geometry collisions, or dropped frames when either slot's content changes.
   4. The extension is additive — the existing `IslandResolver.resolve()` single-winner pass and every existing `IslandPresentation` switch site are otherwise unchanged, confirmed via a diff review.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 42-01-PLAN.md — Resolver extension: SecondaryActivity enum + resolveSecondary(primary:nowPlaying:) pure function + IslandPresentationState.secondary field (D-01/D-02/D-03/D-04/D-10)
+- [ ] 42-02-PLAN.md — On-device spike: does tapping the far outer edge of an existing wing register a click today? (resolves 42-RESEARCH.md Pitfall 2 before bubble work begins)
+
+**Wave 2** *(blocked on 42-01)*
+
+- [ ] 42-03-PLAN.md — NotchPillView secondaryBubble view (circular artwork crop, distinct matchedGeometryEffect id, D-05/D-06/D-07/D-08/D-09/D-13) composed alongside presentationSwitch
+
+**Wave 3** *(blocked on 42-02, 42-03)*
+
+- [ ] 42-04-PLAN.md — NotchWindowController wiring: dual-field renderPresentation(), D-11 staggered reveal, D-12 tap-to-expand, conditional hot-zone widening + on-device UAT hard-merge gate
 **UI hint**: yes
