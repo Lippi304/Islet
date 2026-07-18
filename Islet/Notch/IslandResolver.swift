@@ -175,6 +175,25 @@ func resolve(activeTransient: ActiveTransient?,
     return .idle
 }
 
+// Phase 42 / DUAL-01 (D-01/D-02/D-03/D-04/D-10) — the secondary activity shown as a small
+// bubble alongside the primary pill when two top-priority activities are live at once.
+// Foundation-only, mirrors nowPlayingHealthGate/nowPlayingLaunchGate's "small pure helper"
+// shape immediately below. Deliberately takes `primary` (resolve()'s own already-computed
+// verdict) rather than re-deriving activeTransient/isExpanded itself — D-10 (a standing
+// transient suppresses the secondary) and D-04 (isExpanded suppresses it) both fall out for
+// free from primary's own shape (resolve() only ever returns .calendarCountdown from its
+// ambient/collapsed, no-transient branch), per 42-RESEARCH.md Pitfall 1's warning against two
+// independent computations of the same live facts drifting out of sync.
+enum SecondaryActivity: Equatable {
+    case nowPlaying(NowPlayingPresentation)
+}
+
+func resolveSecondary(primary: IslandPresentation, nowPlaying: NowPlayingPresentation) -> SecondaryActivity? {
+    guard case .calendarCountdown = primary else { return nil }
+    guard nowPlaying != .none else { return nil }
+    return .nowPlaying(nowPlaying)
+}
+
 // Gap-closure fix (Finding 5) — TOTAL pure helper: a disabled Now Playing must be INVISIBLE to
 // the resolver, not silently degraded to "nicht verfügbar" (D-12) for a feature the user turned
 // off. When disabled, forces a neutral/healthy `true` regardless of the (possibly stale) real
