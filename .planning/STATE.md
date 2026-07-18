@@ -4,13 +4,13 @@ milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
 stopped_at: Phase 41 UI-SPEC approved
-last_updated: "2026-07-18T12:52:05.205Z"
+last_updated: "2026-07-18T12:58:58.016Z"
 last_activity: 2026-07-18
 progress:
   total_phases: 27
   completed_phases: 18
   total_plans: 83
-  completed_plans: 74
+  completed_plans: 75
   percent: 67
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 ## Current Position
 
 Phase: 41 (calendar-countdown-hud) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-18
 
@@ -103,6 +103,7 @@ Progress (v1.6): [█████░░░░░] 50% (4/8 phases — Phases 35-
 | Phase 36 P04 | multi-session | 3 tasks | 2 files |
 | Phase 41 P01 | 10min | 3 tasks | 7 files |
 | Phase 41 P02 | 10min | 2 tasks | 3 files |
+| Phase 41 P03 | 8min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 39, 39-08]: Gap-closure re-attempt of OSD suppression **SUCCEEDED**, reversing 39-01's `suppression-unreliable` finding — `.cghidEventTap` (HID-level, before the Window Server session layer) is the working mechanism, where `.cgSessionEventTap` (session-level) was not, confirmed via `dannystewart/volumeHUD`'s (MIT) proven technique. Islet now self-drives the real system volume/brightness/mute via `AudioObjectSetPropertyData`/`DisplayServicesSetBrightness` (same selectors/bundle handle the existing readers already used) whenever a press is swallowed, with a per-type kill switch that falls back to passthrough if a self-drive write ever fails. On-device UAT: zero transport-key irregularities across all 4 media keys and 8 verification steps — native OSD genuinely suppressed, not just shown-alongside. `OSDLevelBar`'s fill spring also retuned snappier (response 0.35→0.15, damping 0.75→0.86, D-16) for single-press feel. HUD-03/HUD-04 now fully shipped with the ROADMAP's originally-accepted fallback superseded by the real fix.
 - [Phase 41]: D-01 priority check placed as literal first statement of resolve()'s ambient branch, before nowPlayingLaunchGate — the only place the countdown-over-media priority rule is expressed
 - [Phase 41]: handleCalendarCountdownChange(_:) body is exactly 3 lines with zero transientQueue/scheduleActivityDismiss references — the countdown is ambient, not an ActiveTransient (Pitfall 5)
+- [Phase 41]: [Phase 41-03] countdownWings(for:) computes icon+text urgency color once inside one shared TimelineView tick closure, structurally preventing icon/text color desync
 
 ### Roadmap Evolution
 
@@ -222,7 +224,7 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T12:50:37.761Z
+Last session: 2026-07-18T12:57:27.480Z
 Stopped at: Phase 41 UI-SPEC approved
 Resume file: None
 
