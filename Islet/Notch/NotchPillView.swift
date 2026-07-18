@@ -144,6 +144,11 @@ struct NotchPillView: View {
     // (and any unit construction) build without a controller.
     var onClick: () -> Void = {}
 
+    // Phase 42 / DUAL-01 (D-12) — the secondary bubble's tap callback, mirroring `onClick`'s
+    // exact declaration style. Defaults to a no-op so the DEBUG #Previews build without a
+    // controller; Plan 42-04 wires the real behavior.
+    var onSecondaryTap: () -> Void = {}
+
     // NOW-02 — the transport callbacks, plain closures mirroring `onClick`. The view stays
     // AppKit-free + focus-safe: a button tap only REPORTS the intent; NotchWindowController
     // (Plan 04) owns the closures and forwards them to NowPlayingMonitor.togglePlayPause()/
@@ -261,6 +266,15 @@ struct NotchPillView: View {
     // See wingsShape's alignmentGuide for how the two halves size independently while staying
     // centered on the physical notch.
     static let wingsLabelWidth: CGFloat = 400
+
+    // Phase 42 / DUAL-01 (D-05/D-07/D-08) — the secondary bubble's size + gap from the
+    // primary pill. 24pt is the bottom of UI-SPEC's 24-28pt range (subordinate to the 32pt
+    // wing/pill height, D-07); 8pt is the `sm` 8-point-scale gap token (visible, non-touching
+    // separation, D-08). Small geometry constants get tuned on-device against real hardware —
+    // same precedent as wingsSize/wingsLabelWidth above (Phase 39/41) — so both are tunable in
+    // Plan 42-04's checkpoint.
+    static let secondaryBubbleDiameter: CGFloat = 24
+    static let secondaryBubbleGap: CGFloat = 8
 
     // 39-07 gap closure ROUND 9 — RETRACTED. This constant (formerly `cameraSafeZoneLeadingInset =
     // 100`) was derived from an on-device DEBUG-only ruler and treated as "the real camera boundary
@@ -2532,6 +2546,80 @@ struct NotchPillView: View {
                         .font(.system(size: side * 0.45))
                         .foregroundStyle(.white.opacity(0.7))
                 )
+        }
+    }
+
+    // Phase 42 / DUAL-01 (D-06) — circular sibling of `artThumbnail(_:side:corner:)` above,
+    // for the secondary bubble. Same nil → music-note-placeholder structure, `Circle()`
+    // instead of `RoundedRectangle`. Async artwork fill-in works identically: when
+    // `nowPlaying.artwork` flips from nil to an image, SwiftUI re-renders this branch.
+    @ViewBuilder
+    private func artThumbnailCircular(_ art: NSImage?, diameter: CGFloat) -> some View {
+        if let art {
+            Image(nsImage: art)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: diameter, height: diameter)
+                .clipShape(Circle())
+        } else {
+            Circle()
+                .fill(Color.white.opacity(0.12))
+                .frame(width: diameter, height: diameter)
+                .overlay(
+                    Image(systemName: "music.note")
+                        .font(.system(size: diameter * 0.45))
+                        .foregroundStyle(.white.opacity(0.7))
+                )
+        }
+    }
+
+    // Phase 42 / DUAL-01 (D-05/D-09) — the secondary activity bubble: a round shape, distinct
+    // `matchedGeometryEffect` id from the primary pill's "island", so both can be visible and
+    // morph independently in the same frame (this file's first two-simultaneous-shape case).
+    // Pure render-only consumer of `SecondaryActivity` — never decides primary/secondary
+    // precedence itself (that's `resolveSecondary`, Plan 42-01). Currently exactly one case,
+    // `.nowPlaying`: the associated `NowPlayingPresentation` carries only title/artist, so the
+    // artwork comes from this view's own `nowPlaying.artwork` property instead, the same
+    // source `mediaExpanded(p, art: nowPlaying.artwork)` already uses.
+    private func secondaryBubble(_ activity: SecondaryActivity) -> some View {
+        switch activity {
+        case .nowPlaying:
+            return Circle()
+                .fill(islandFill)
+                // matchedGeometryEffect MUST precede .frame (3x-fixed bug in this file).
+                .matchedGeometryEffect(id: "secondaryBubble", in: ns)
+                .frame(width: Self.secondaryBubbleDiameter, height: Self.secondaryBubbleDiameter)
+                .overlay(secondaryBubbleGlassOverlay)
+                .overlay(artThumbnailCircular(nowPlaying.artwork, diameter: Self.secondaryBubbleDiameter))
+                .onTapGesture { onSecondaryTap() }             // D-12 — no .onHover anywhere (D-13)
+        }
+    }
+
+    // Deviation from plan (Rule 3 — blocking compile issue): `liquidGlassEffectLayer(shape:...)`
+    // is typed to the concrete `NotchShape` (its legacy branch reads `shape.topCornerRadius`/
+    // `.bottomCornerRadius` directly, and `LiquidGlassRimRingShape` stores a `NotchShape` base),
+    // so it cannot accept `Circle()` — genericizing that whole subsystem for one 24pt bubble
+    // would be a much bigger diff than this needs. Instead, the bubble applies the SAME native
+    // macOS 26 `.glassEffect(.regular.tint(...))` API directly against `Circle()` (which IS
+    // generic over `Shape`), filling the whole circle rather than extracting a rim-only band —
+    // a full-fill glass tint is the natural look for a shape this small, where a thin rim would
+    // be barely visible. No legacy (<26) shader variant exists for the bubble specifically;
+    // this build machine runs macOS 26 (Tahoe), matching the rest of this file's precedent that
+    // the native branch is what actually executes here (ponytail: legacy-material variant for
+    // the bubble is unimplemented — add if a genuinely <26 deployment target is needed later).
+    @ViewBuilder
+    private var secondaryBubbleGlassOverlay: some View {
+        if materialStyle == .liquidGlass {
+            if #available(macOS 26.0, *) {
+                Color.clear
+                    .frame(width: Self.secondaryBubbleDiameter, height: Self.secondaryBubbleDiameter)
+                    .glassEffect(.regular.tint(Color.black.opacity(0.35)), in: Circle())
+                    .allowsHitTesting(false)
+            } else {
+                EmptyView()
+            }
+        } else {
+            EmptyView()
         }
     }
 
