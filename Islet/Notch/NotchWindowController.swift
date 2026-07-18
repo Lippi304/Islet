@@ -1846,6 +1846,8 @@ final class NotchWindowController {
                       presentationState: presentationState,
                       outfit: outfitState,
                       shelfViewState: shelfViewState,
+                      updateAvailableState: updateAvailableState,
+                      onUpdateBadgeTap: { [weak self] in self?.onUpdateBadgeTapped() },
                       onboardingState: onboardingState,
                       viewSwitcherState: viewSwitcherState,
                       calendarViewState: calendarViewState,
