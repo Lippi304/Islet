@@ -2307,7 +2307,13 @@ struct NotchPillView: View {
     // TimelineView (frozen color, never re-renders) and only the Text inside would desync
     // icon/text color, exactly what 41-UI-SPEC.md's Verification Notes warns against.
     private func countdownWings(for activity: CalendarCountdownActivity) -> some View {
-        wingsShape(leftWidth: 118, rightWidth: Self.wingsSize.width / 2) {
+        // Bugfix (post-checkpoint, on-device report): rightWidth previously used the narrow
+        // wingsSize.width/2 (145pt) tuned for icon-only content (battery ring/xmark) — the
+        // mm:ss TEXT on this side needs the same label-clearing flank deviceWings already uses
+        // for its "Connected" text (wingsLabelWidth/2 = 200pt), or its leading digit renders
+        // under the physical camera housing (invisible), same root cause as the Round N label-
+        // clip fix documented on wingsLabelWidth above.
+        wingsShape(leftWidth: 118, rightWidth: Self.wingsLabelWidth / 2) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let remaining = max(0, activity.eventStart.timeIntervalSince(context.date))
                 let color = urgencyColor(for: activity.eventStart, at: context.date)
