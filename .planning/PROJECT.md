@@ -14,13 +14,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current State
 
-**Phase 42 (Dual-Activity Display, DUAL-01) shipped 2026-07-19 — the last phase of v1.6.** v1.6 (Liquid Glass & System HUD Suite) is now fully code-complete (8/8 phases), pending a formal `/gsd:complete-milestone`. On-device UAT ran 3 rounds: round 1 approved the functional behavior but flagged the secondary bubble as visually attached to the top edge instead of a distinct floating circle; round 2 fixed vertical centering + added a contrast rim; round 3 replaced the bubble's original tap-to-expand/no-hover design (locked decisions D-12/D-13) with a hover-reveal play/pause control, per an explicit live user decision — see `42-04-SUMMARY.md` and `42-CONTEXT.md`'s superseded-by notes. Post-UAT verification also caught and closed one real gap (the resolver's primary/secondary rule was 2 hardcoded guard clauses, not the small ordered table D-03 itself specified) plus one code-review warning (a hardcoded hot-zone offset now derives from the bubble's own positioning constants) — see `42-VERIFICATION.md`.
-
-**Note:** PROJECT.md's Current State/Validated sections were not updated for Phases 38-41 (their `update_project_md` step appears to have been skipped in those runs) — the "Last updated" footer jumped from Phase 36 (2026-07-16) straight to this entry. Consider a `/gsd-docs-update` pass to backfill that gap if it matters for onboarding/handoff purposes.
-
-**Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/HUD-02/EQ-01/ONBOARD-04) shipped 2026-07-16** — v1.6's second phase. See "Current Milestone: v1.6" and Requirements → Validated below.
-
-**Phase 35 (Liquid Glass Material, GLASS-01) shipped 2026-07-16** — v1.6's first phase. See "Current Milestone: v1.6" and Requirements → Validated below.
+**v1.6 Liquid Glass & System HUD Suite shipped 2026-07-19** (Phases 35-42, see `.planning/milestones/v1.6-ROADMAP.md`). 11 of 12 v1.6 requirements shipped and on-device verified — HUD-07 (Drop-session summary chip) was abandoned after on-device UAT found its Tray-close trigger essentially never fires under normal use, and dropped from scope. Islet now has a shader-based "Liquid Glass" background material (with a native macOS 26 `.glassEffect()` fast path), five new/restyled collapsed-state system HUDs (Bluetooth/Charging restyles, Focus Mode, Volume/Brightness with genuine native-OSD suppression, Update-available via real Sparkle 2 integration, Calendar Countdown), a redesigned equalizer + onboarding signature heading, and a new dual-activity display concept (a secondary bubble alongside the main pill when two top-priority activities are live at once — e.g. Calendar Countdown + Now Playing). See Requirements → Validated below for the full per-phase breakdown.
 
 **v1.3 Notch Shelf shipped 2026-07-11 with a known gap** (Phases 19-21, see `.planning/milestones/v1.3-ROADMAP.md`). 7 of 9 v1.3 requirements shipped and on-device verified: the shelf data model, the full shelf view (icons, per-item/delete-all trash, click-to-open, correct gating), and drag-out to Finder/other apps. **SHELF-01/02 (drag-in) did not ship** — Phase 22 spiked successfully (AppKit drag delivery does reach a click-through `NSPanel`) but then failed on-device twice for an unidentified reason (`draggingEntered` never fired despite a working spike using the same technique). Rather than keep debugging incrementally, the user chose to redesign the underlying `NotchPanel`/`NotchWindowController` architecture — this becomes the anchor of v1.4, alongside new scope inspired by a competitor app ("Droppy," found on Reddit): a first-launch onboarding flow, a visual/material redesign, and a full-screen calendar view. See `.planning/research/inspiration/notes.md` for the reference material. SHELF-01/02 carry forward as requirements into v1.4.
 
@@ -32,7 +26,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-Other standing candidates for a future milestone: a countdown timer (still Out of Scope below until picked up).
+v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19. v1.5 (Home Focus & Widget Redesign) remains open in parallel — see "Milestone In Progress" below; only Phase 33 (Weather widget) on-device UAT is outstanding before it can formally close too. No new milestone has been scoped yet — run `/gsd:new-milestone` once v1.5 closes (or sooner, if the user wants to start scoping v2 work in parallel again). Other standing candidates for a future milestone: a countdown timer (still Out of Scope below until picked up).
 
 ## Milestone In Progress (Parallel): v1.5 (Home Focus & Widget Redesign)
 
@@ -49,7 +43,8 @@ Other standing candidates for a future milestone: a countdown timer (still Out o
 
 See `.planning/research/inspiration/notes.md` for the Droppy reference material (additional Quick-Action and widget reference screenshots captured during v1.5 discussion — see discussion log once written).
 
-## Current Milestone: v1.6 (Liquid Glass & System HUD Suite)
+<details>
+<summary>v1.6 Liquid Glass & System HUD Suite — original scope (shipped 2026-07-19)</summary>
 
 **Goal:** Give Islet an edgier "Liquid Glass" material look and a suite of new Droppy-style collapsed-state system HUDs, plus a new dual-activity display concept for when two top-priority activities are live at once.
 
@@ -71,6 +66,10 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 **Key context:**
 - Volume/Brightness OSD suppression and Focus Mode detection are technical unknowns similar in kind to the MediaRemote precedent (undocumented/private-API territory) — good candidates for a research phase before planning.
 - User will supply custom reference code for the Liquid Glass material and the equalizer bars redesign during their respective phases.
+
+**Outcome:** 11/12 requirements shipped (HUD-07 dropped — Phase 37 abandoned after on-device UAT found its Tray-close trigger essentially never fires in normal use). Volume/Brightness OSD suppression, initially found unreliable in Phase 39's spike, was later proven working via a gap-closure plan using `.cghidEventTap`. See Requirements → Validated above for the full per-phase breakdown and `.planning/milestones/v1.6-ROADMAP.md` for the archived roadmap.
+
+</details>
 
 ## Requirements
 
@@ -226,6 +225,27 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 - [x] Onboarding signature heading (ONBOARD-04) — scope-pivoted mid-execution (D-14): the originally planned live stroke-reveal animation was replaced with a static, non-animated "Meet Islet" heading in Dancing Script Bold, "Meet" in a blue→purple→pink gradient and "Islet" in an orange→yellow→green gradient, mirroring Droppy's own static rainbow-gradient onboarding heading. The pivot followed real font-licensing risk (the reference's original font, Lastoria Bold, is all-rights-reserved, not legally shippable in a paid product) plus repeated stroke-weight/clipping friction with the animated approach; body subtext below it untouched. (Phase 36)
 - Code review found no blockers; one open, non-blocking warning carried forward: the widened Charging/Connected wing labels may extend past the existing tap hot-zone (on-device tap test confirmed no regression — see `36-REVIEW.md` WR-02). (Phase 36)
 
+**Focus Mode HUD (Phase 38 — HUD-05):**
+
+- [x] A generic on/off Focus/Do Not Disturb HUD — `FocusModeMonitor` polls `INFocusStatusCenter.focusStatus.isFocused` every 2.5s (Path A, confirmed reachable via an on-device spike over the research-predicted Assertions.json/FDA fallback), driving a collapsed-pill wing (icon-only left flank, dot+"On"-label right flank, redesigned live on-device from the original icon+label/bare-dot spec). Opt-in Settings toggle, default OFF, with a manual permission-status hint popover. (Phase 38)
+- On-device UAT found and fixed two hidden-requirement gaps beyond `authorizationStatus == .authorized`: a missing `NSFocusStatusUsageDescription` Info.plist key that hard-crashed at first `INFocusStatusCenter` access, and a missing Communication Notifications entitlement without which `isFocused` silently resolves to `false` forever (not nil) — both undetected until 38-09's actual functional read against live state, not just an authorization check. All 4 ROADMAP Success Criteria confirmed; 9/9 plans shipped including gap-closure. (Phase 38)
+
+**Volume & Brightness HUD (Phase 39 — HUD-03, HUD-04):**
+
+- [x] Volume and Brightness key presses show a Droppy-pill HUD (icon + fill-bar wing) via a pure `OSDActivity` model ranked into a dedicated collapsed-only `IslandResolver` tier, reading live levels from CoreAudio/DisplayServices. (Phase 39 — HUD-03/HUD-04)
+- [x] Native system OSD suppression — reversed from 39-01's initial "unreliable" spike finding: a `.cgSessionEventTap` failed to suppress the notch-integrated OSD, but gap-closure plan 39-08 found `.cghidEventTap` (HID-level, before the Window Server session layer) works, matching `dannystewart/volumeHUD`'s proven technique. Islet now self-drives real system volume/brightness/mute via `AudioObjectSetPropertyData`/`DisplayServicesSetBrightness` whenever a press is swallowed, with a per-type kill switch that falls back to passthrough if a self-drive write ever fails — the Settings suppression toggle is now a real control, not the originally-shipped no-op. Zero transport-key regressions across all 4 media keys on-device. (Phase 39)
+- A genuinely reusable lesson from a 16-round on-device layout debugging saga: `.offset()`/`.position()` both silently misbehave for content placed inside `wingsShape`'s content `ZStack`; the fix was a plain `HStack(spacing: 0)` with fixed-width `Color.clear` spacers for excluded regions — the same pattern every other wing already used. See STATE.md decision log (39-07) for the full diagnostic record. (Phase 39)
+
+**Update-Available HUD & Sparkle Integration (Phase 40 — HUD-06):**
+
+- [x] Real Sparkle 2.9.4 auto-update integration (`SPUStandardUpdaterController`, generated EdDSA keypair) — tapping an available update triggers Sparkle's own standard install/progress dialog, not a custom in-notch flow. (Phase 40 — HUD-06)
+- [x] The update-available indicator was redesigned mid-phase from a collapsed-pill corner badge to a small red dot on the menu-bar status-item icon, after on-device UAT root-caused the badge's tap-dispatch bug to a click-through hot-zone gap in `NotchWindowController` (the same fragility class later re-found and fixed in Phase 42's own hot-zone work) — the status-item dot sidesteps the whole click-through-zone bug class by construction. `UpdateAvailableState.swift` and the pill badge overlay were deleted. Release-archive launch confirmed crash-free under Hardened Runtime with the embedded Sparkle.framework. (Phase 40)
+
+**Calendar Countdown HUD (Phase 41 — HUD-08):**
+
+- [x] Starting 1 hour before a calendar event, the collapsed pill shows a live minute-countdown (calendar icon left, mm:ss right, recoloring orange→red together from one shared per-tick `TimelineView` value) via a dedicated, event-driven `CalendarCountdownMonitor` with its own one-shot-deadline timer — ambient only, never touches `TransientQueue`. Ranked ahead of Now-Playing wings in `IslandPresentation`. Default-ON Settings toggle, no permission surface (reads through the existing EventKit service layer). (Phase 41 — HUD-08)
+- On-device UAT found and fixed a real-hardware-only bug: the countdown text's leading digit rendered under the physical camera housing until the wing's right flank was widened from `wingsSize.width/2` to `wingsLabelWidth/2`, reusing the existing label-clearing constant `deviceWings` already established rather than a new magic number. (Phase 41)
+
 **Dual-Activity Display (Phase 42 — DUAL-01):**
 
 - [x] When Calendar Countdown and Now Playing are both live, the collapsed island shows the countdown pill plus a small round secondary bubble (real album art) instead of one activity strictly winning — additive `IslandResolver.resolveSecondary()` extension, `IslandPresentation`/`resolve()` untouched. Primary/secondary pairing is expressed as a genuine small ordered table (per locked decision D-03), scoped to today's 2 activity kinds. (Phase 42)
@@ -237,7 +257,6 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
 _v1.5 (Home Focus & Widget Redesign) — see `.planning/milestones/v1.5-ROADMAP.md`/`.planning/ROADMAP.md` for the full 11-requirement traceability table. Remaining, left open in parallel: Phase 33 on-device UAT (WEATHER-01/02)._
-_v1.6 (Liquid Glass & System HUD Suite) — fully code-complete, 8/8 phases shipped (Phase 37 abandoned, see ROADMAP; Phases 35/36/38-42 shipped, see Validated above and `.planning/REQUIREMENTS.md`). Pending a formal `/gsd:complete-milestone` to close out._
 
 ### Out of Scope
 
@@ -317,6 +336,12 @@ _v1.6 (Liquid Glass & System HUD Suite) — fully code-complete, 8/8 phases ship
 | "Home" shows Now-Playing controls when something is playing, idle glance otherwise — reverses the original v1.4 research note ("keep the idle default, don't copy Droppy's music-default") | User re-decided live on-device during Phase 28's checkpoint, after finding the original design made Now-Playing an unreachable, switcher-blocking override rather than a selectable state; explicitly confirmed via an orchestrator clarifying question before implementation, not a silent drift | ✓ Phase 28 — resolver precedence rewritten so explicit Tray/Calendar/Weather selection always wins, Now-Playing only wins on Home |
 | Switcher pill expanded from the originally-locked 3 icons (Home/Tray/Calendar, D-01) to 4 (adds Weather) | User's own on-device request mid-checkpoint, after the 3-icon design already shipped through 3 rounds of UAT; Weather reuses existing current-conditions data only — no new WeatherKit forecast call was added without asking first | ✓ Phase 28 — `SelectedView`/`IslandPresentation` both gained a `.weather`/`.weatherExpanded` case |
 | Tray became its own dedicated files-only resolver case (`.trayExpanded`) instead of the originally-planned additive shelf-strip-under-Home approach | User's on-device comparison against Droppy's actual Tray page, which shows only files, never glance content underneath; the original additive design (Phase 20/28 D-02) was kept for auto-reveal-on-drop from OTHER tabs, which stays unbroken | ✓ Phase 28 — `forcedByTray` removed as dead code once Tray had its own presentation case |
+| Liquid Glass material pivoted to SwiftUI's native `.glassEffect()` on macOS 26+, with the custom Metal shader stack (D-01–D-19) kept as the <26 fallback | A round-5 post-completion regression (flat grey rim) surfaced after 4 rounds of shader-based on-device UAT remediation already got GLASS-01 approved; native `.glassEffect()` matched the target look with far less shader-tuning risk going forward | ✓ Phase 35 — D-20, both paths shipped |
+| Phase 37 (Drop-Session Summary Chip) abandoned rather than redesigned | The chip's Tray-close trigger requires an explicit close action, but in real usage the Island stays open showing dropped files and isn't closed right away — the trigger essentially never fires under normal use; user decided the feature isn't worth keeping | ✓ All 3 implementation plans reverted via `git revert`, HUD-07 dropped from the v1.6 requirement set |
+| Focus Mode detection uses `INFocusStatusCenter` Path A (polled `isFocused`), not the Assertions.json/FDA fallback (Path B) | An on-device spike confirmed Path A reaches `.authorized`; Path B needs a manual, unprompted Full Disk Access grant with zero automatic TCC prompt — worse UX for the same generic on/off signal | ✓ Phase 38 — shipped, though `isFocused` also silently required the undocumented Communication Notifications entitlement beyond authorization, found only via 38-09's actual functional read |
+| Volume/Brightness native OSD suppression re-attempted and shipped via `.cghidEventTap`, reversing Phase 39's own initial "unreliable" spike finding | `.cgSessionEventTap` (session-level) didn't suppress the notch-integrated OSD on this hardware, but `.cghidEventTap` (HID-level, before the Window Server session layer) does, confirmed via `dannystewart/volumeHUD`'s (MIT) proven technique | ✓ Phase 39 gap-closure (39-08) — zero transport-key regressions across all 4 media keys on real hardware |
+| Update-available indicator redesigned from a collapsed-pill corner badge to a menu-bar status-item dot | On-device UAT root-caused the badge's tap-dispatch bug to a click-through hot-zone gap in `NotchWindowController` — the status-item dot is always fully clickable by construction, sidestepping the whole click-through-zone bug class rather than patching the geometry | ✓ Phase 40 — `UpdateAvailableState.swift` and the pill badge overlay deleted |
+| Dual-activity secondary bubble's interaction redesigned live from tap-to-expand/no-hover (locked D-12/D-13) to hover-reveal play/pause | User's explicit on-device UAT round-3 decision, not scope drift — hovering darkens the bubble and reveals a play/pause glyph, tapping toggles playback directly via the existing `NowPlayingMonitor` | ✓ Phase 42 — see `42-04-SUMMARY.md`/`42-CONTEXT.md` supersession notes |
 
 ## Evolution
 
@@ -336,4 +361,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-19 — Phase 42 (Dual-Activity Display, DUAL-01), the last phase of v1.6, shipped and verified on-device across 3 UAT rounds — the bubble's tap-to-expand/no-hover design (D-12/D-13) was superseded live by explicit user decision in favor of a hover-reveal play/pause control. v1.6 (Liquid Glass & System HUD Suite) is now fully code-complete (8/8 phases), pending formal `/gsd:complete-milestone`. Note: this file's Validated/Current-State sections were not updated for Phases 38-41 during their own runs — see the Current State note above. v1.5 (Home Focus & Widget Redesign) still left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
+*Last updated: 2026-07-19 after v1.6 milestone close — Liquid Glass & System HUD Suite (Phases 35-42) shipped: 11/12 requirements delivered, HUD-07 dropped (Phase 37 abandoned). Backfilled Validated write-ups for Phases 38-41, whose own runs had skipped this file's update step. v1.5 (Home Focus & Widget Redesign) still left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*

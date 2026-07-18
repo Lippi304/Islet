@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: Liquid Glass & System HUD Suite
-status: verifying
-stopped_at: Phase 42 UI-SPEC approved
-last_updated: "2026-07-18T22:10:24.493Z"
-last_activity: 2026-07-18
+milestone: v1.5
+milestone_name: Home Focus & Widget Redesign
+status: active
+stopped_at: v1.6 milestone closed and archived; v1.5 left open in parallel — only Phase 33 (Weather widget) on-device UAT remains before it can close too
+last_updated: 2026-07-18T22:41:00.000Z
+last_activity: 2026-07-19
 progress:
   total_phases: 27
   completed_phases: 21
@@ -18,17 +18,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-13)
+See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 42 — dual-activity-display
+**Current focus:** v1.6 shipped and archived. v1.5 left open in parallel — only Phase 33 on-device UAT remains before it can close too. No new milestone scoped yet.
 
 ## Current Position
 
-Phase: 42 (dual-activity-display) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-07-18
+Phase: 33 (v1.5, remaining open work) — 42 was the last v1.6 phase, now archived
+Plan: 33-02 code-complete, on-device UAT (Task 4) pending
+Status: v1.6 milestone shipped 2026-07-19
+Last activity: 2026-07-19
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,13 +47,13 @@ Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23
 
 Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-32 complete; Phase 33 executing (Plan 1 of 2), Phase 34 not started; left open in parallel with v1.6)
 
-Progress (v1.6): [██████░░░░] 63% (5/8 phases — Phases 35-36-38-39-41 complete, Phase 37 abandoned/reverted (counts as closed, not shipped), Phase 40 pending on-device UAT re-run (40-03), Phase 42 not yet planned)
+Progress (v1.6): [██████████] 100% — SHIPPED 2026-07-19 (8/8 phases; Phase 37 abandoned/reverted, HUD-07 dropped; see `.planning/milestones/v1.6-ROADMAP.md`)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 95
+- Total plans completed: 99
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -89,6 +89,7 @@ Progress (v1.6): [██████░░░░] 63% (5/8 phases — Phases 35-
 | 35 | 10 | - | - |
 | 36 | 4 | - | - |
 | 39 | 7 | - | - |
+| 42 | 4 | - | - |
 
 **Recent Trend:**
 
@@ -230,13 +231,29 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 **v1.4 close (pending):** All 6 phases (23-28) code-complete; 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation before `/gsd:complete-milestone` formally closes v1.4. Not blocking v1.5/v1.6 phase work.
 
+**v1.6 close (2026-07-19):** `gsd-sdk query audit-open` flagged 21 items; all acknowledged and deferred, none blocking v1.6's own scope (Phases 35-42, all shipped and on-device UAT'd):
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug_session | knowledge-base | unknown — untriaged, no further detail available; acknowledged rather than investigated |
+| quick_task | 260705-l4i, 260705-mzj, 260708-nnu, 260708-nzj, 260708-ol8, 260708-u47, 260709-glz, 260709-gvy, 260714-3k6, 260715-vsd | missing (same tool status-detection false positive as v1.2/v1.3 close — all have completed PLAN.md + SUMMARY.md on disk) |
+| uat_gaps | Phase 21, Phase 27, Phase 36 | resolved, 0 pending scenarios — not real open work |
+| uat_gaps | Phase 28 | partial, 2 pending — pre-existing carry from v1.4, unrelated to v1.6 scope (see v1.4 close note above) |
+| uat_gaps | Phase 35 | partial per tool, but 0 pending scenarios listed — false positive |
+| verification_gaps | Phase 20, Phase 27, Phase 28, Phase 36 | human_needed — pre-existing/unrelated to v1.6 scope, several already covered by their own phase's on-device UAT checkpoint per this project's established precedent |
+| verification_gaps | Phase 38 | gaps_found — stale record from before 38-09's gap-closure plan; 38-09-SUMMARY.md documents the on-device UAT that closed the two defects found (missing NSFocusStatusUsageDescription key, missing Communication Notifications entitlement); all 4 ROADMAP Success Criteria confirmed |
+
+Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-05 (Phase 38) and HUD-06 (Phase 40) were still marked "Pending" despite both phases shipping and passing on-device UAT — updated to Complete. HUD-07 (Phase 37) was marked "Pending" but Phase 37 was abandoned/reverted after on-device UAT rejection — updated to "Dropped" (not counted toward shipped coverage). Root cause: phases 38-41's own completion runs skipped their REQUIREMENTS.md traceability update step.
+
 ## Session Continuity
 
-Last session: 2026-07-18T22:09:10.021Z
-Stopped at: Phase 42 UI-SPEC approved
+Last session: 2026-07-18T22:41:00.000Z
+Stopped at: v1.6 milestone closed and archived (`/gsd:complete-milestone v1.6`)
 Resume file: None
 
 ## Operator Next Steps
+
+- **v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19.** All 8 phases (35-42) archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 dropped (Phase 37 abandoned). PROJECT.md fully updated, including backfilled Validated write-ups for Phases 38-41 whose own runs had skipped that step. v1.5 (Home Focus & Widget Redesign) remains open in parallel — only Phase 33's on-device UAT (Task 4) is outstanding before it can formally close too; run `/gsd-verify-work 33` once that's done, then `/gsd:complete-milestone v1.5`. No new milestone has been scoped yet — run `/gsd:new-milestone` when ready.
 
 - Phase 40 (Update-Available HUD & Sparkle Integration) is now fully complete. This session's on-device checkpoint (40-03) root-caused the badge-tap bug carried over from the prior session: tapping the collapsed-pill badge passed the click straight through the app window because `NotchWindowController`'s click-through `hotZone` didn't reliably cover the badge overlay's actual position. Rather than patch that geometry, the update-available indicator was redesigned to a small red dot on the menu-bar status item icon — always fully clickable by construction, sidestepping the whole click-through-zone class of bug. `UpdateAvailableState.swift` and the pill badge overlay were deleted; see `40-03-SUMMARY.md` for the full record, including which of the original 40-UI-SPEC.md decisions (D-05/D-06/D-07) this supersedes. Release archive launch (embedded Sparkle.framework under Hardened Runtime) confirmed crash-free on-device. Only Phase 42 (Dual-Activity Display) remains for v1.6 — start `/gsd-discuss-phase 42` next.
 - Phase 39 (Volume & Brightness HUD) is now fully complete, including its gap-closure addendum (plan 39-08): native OSD suppression genuinely works via `.cghidEventTap` (D-14), self-driven volume/brightness/mute (D-15), and a snappier fill animation (D-16) — all confirmed on-device with zero transport-key regressions. 39-08's own on-device checkpoint directly covered the gap-closure's success criteria, so a separate `/gsd:verify-work 39` pass is not needed, per this project's established precedent (Phase 29/36/38). Start `/gsd-discuss-phase 40` (Update-Available HUD & Sparkle Integration) next.

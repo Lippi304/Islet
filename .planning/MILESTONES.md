@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.6 Liquid Glass & System HUD Suite (Shipped: 2026-07-19)
+
+**Phases completed:** 8 phases (35-42), 43 plans, 191 phase commits, 185 files changed (+28.5k/-244 lines)
+
+**Key accomplishments:**
+
+- Replaced the shared background material across the collapsed pill, expanded island, and every activity wing with a shader-based "Liquid Glass" look — 4 rounds of on-device UAT remediation (opaque grey → uniformly bright → washed-out silvery → approved), then pivoted to SwiftUI's native `.glassEffect()` on macOS 26+ after a post-completion regression, keeping the custom Metal shader stack as the `<26` fallback.
+- Shipped 5 new/restyled collapsed-state system HUDs (Bluetooth/Charging Droppy-pill restyles, Focus Mode, Volume/Brightness, Update-available) plus a redesigned equalizer and a static rainbow-gradient onboarding signature heading.
+- Genuine native-OSD suppression for Volume/Brightness key presses, reversing an initial "unreliable" spike finding: `.cghidEventTap` (HID-level) works where `.cgSessionEventTap` (session-level) didn't — Islet now self-drives real system volume/brightness/mute with a per-type kill-switch fallback, confirmed zero transport-key regressions across all 4 media keys on real hardware.
+- Real Sparkle 2 auto-update integration; the update-available indicator was redesigned mid-phase from a collapsed-pill badge to a menu-bar status-item dot after on-device UAT root-caused its tap-dispatch bug to a click-through hot-zone gap — the same fragility class later independently re-found and fixed in the Dual-Activity Display phase.
+- A live-minute Calendar Countdown HUD with its own persistent timer, and a new dual-activity display concept (`IslandResolver.resolveSecondary()`) showing a secondary bubble alongside the main pill when two top-priority activities are live at once — its tap-to-expand interaction was redesigned live during on-device UAT to hover-reveal play/pause, by explicit user decision.
+- Phase 37 (Drop-Session Summary Chip) was fully implemented then abandoned after on-device UAT found its Tray-close trigger essentially never fires in real usage — all code reverted via `git revert`, HUD-07 dropped from scope rather than shipped as dead weight.
+
+**Known Gaps**
+
+- HUD-07 (Drop-Session Summary Chip) not shipped — see above; dropped from v1.6's requirement set by explicit user decision, not carried forward.
+
+---
+
 ## v1.3 Notch Shelf (Shipped: 2026-07-11)
 
 **Phases completed:** 3 phases (19-21), 5 plans, 12 tasks

@@ -8,8 +8,8 @@
 - ✅ **v1.2 Now Playing Polish** — Phases 17-18 (shipped 2026-07-09)
 - ✅ **v1.3 Notch Shelf** — Phases 19-21 (shipped 2026-07-11, known gap: SHELF-01/02 drag-in deferred to v1.4)
 - 🚧 **v1.4 Architecture Redesign** — Phases 23-28 (in progress)
-- 📋 **v1.5 Home Focus & Widget Redesign** — Phases 29-34 (planned)
-- 📋 **v1.6 Liquid Glass & System HUD Suite** — Phases 35-42 (planned)
+- 🚧 **v1.5 Home Focus & Widget Redesign** — Phases 29-34 (in progress, left open in parallel)
+- ✅ **v1.6 Liquid Glass & System HUD Suite** — Phases 35-42 (shipped 2026-07-19)
 
 ## Phases
 
@@ -96,18 +96,21 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 33: Weather Widget Redesign** - Medium (header + hourly row) always shown, Settings-gated Large adds a daily range-bar list — 1:1 iOS Weather widget clone (completed 2026-07-15)
 - [x] **Phase 34: Quick Action Destination Picker** - Drop/AirDrop/Mail destination picker shown on every file drop (completed 2026-07-15)
 
-### 📋 v1.6 Liquid Glass & System HUD Suite (Planned)
+<details>
+<summary>✅ v1.6 Liquid Glass & System HUD Suite (Phases 35-42) — SHIPPED 2026-07-19</summary>
 
-**Milestone Goal:** Give Islet an edgier "Liquid Glass" material look and a suite of new Droppy-style collapsed-state system HUDs, plus a new dual-activity display concept for when two top-priority activities are live at once. Sequenced material-first (every other visual feature renders inside it), then risk-ascending through the new-transient-case pattern (cosmetic restyles → drop-session chip → Focus Mode spike → Volume/Brightness spike), with the fully-independent Sparkle integration floating after Phase 35, and the architecturally novel dual-activity display sequenced last, after Calendar Countdown exists as a proven single-winner case to combine with Now Playing. Numbered from Phase 35 to avoid colliding with v1.5's still-open Phase 34 (v1.5 remains open in parallel, not archived).
+- [x] Phase 35: Liquid Glass Material (12/12 plans) — completed 2026-07-16
+- [x] Phase 36: Cosmetic Restyles & Signature Animation (4/4 plans) — completed 2026-07-16
+- [x] Phase 37: Drop-Session Summary Chip (ABANDONED — reverted after on-device UAT rejection) — 2026-07-17
+- [x] Phase 38: Focus Mode HUD (9/9 plans incl. gap-closure) — completed 2026-07-17
+- [x] Phase 39: Volume & Brightness HUD (8/8 plans incl. gap-closure) — completed 2026-07-17
+- [x] Phase 40: Update-Available HUD & Sparkle Integration (3/3 plans) — completed 2026-07-18
+- [x] Phase 41: Calendar Countdown HUD (4/4 plans) — completed 2026-07-18
+- [x] Phase 42: Dual-Activity Display (4/4 plans) — completed 2026-07-19
 
-- [x] **Phase 35: Liquid Glass Material** - Shared background material (pill, expanded island, all wings) replaced by the Liquid Glass look from user-supplied reference code (completed 2026-07-16)
-- [x] **Phase 36: Cosmetic Restyles & Signature Animation** - Bluetooth/Charging HUD restyles, equalizer bars redesign, onboarding signature animation — pure view-layer, zero resolver/monitor changes (completed 2026-07-16)
-- [x] **Phase 37: Drop-Session Summary Chip** - ABANDONED after on-device UAT (completed 2026-07-17, reverted 2026-07-17) — see phase detail below
-- [x] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (9/9 plans executed 2026-07-17 incl. gap-closure plans 38-08 and 38-09; on-device UAT confirmed all 4 Success Criteria — see 38-09-SUMMARY.md for two further defects found and fixed during 38-09's own checkpoint: a missing NSFocusStatusUsageDescription Info.plist key causing a hard crash, and a missing Communication Notifications entitlement without which INFocusStatusCenter silently never reports real Focus state)
-- [x] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses (completed 2026-07-17)
-- [x] **Phase 40: Update-Available HUD & Sparkle Integration** - Real Sparkle 2 auto-update + update-available indicator (completed 2026-07-18; on-device UAT root-caused the badge-tap bug to a click-through hot-zone gap, indicator redesigned from a collapsed-pill badge to a menu-bar status-item dot — see 40-03-SUMMARY.md)
-- [x] **Phase 41: Calendar Countdown HUD** - Live minute-countdown starting 1 hour before a calendar event, own persistent timer, camera-cutout layout bug found and fixed during on-device UAT (completed 2026-07-18)
-- [x] **Phase 42: Dual-Activity Display** - Main pill + secondary bubble when two top-priority activities are live at once, additive resolver extension (completed 2026-07-19; on-device UAT superseded D-12/D-13 with a hover-reveal play/pause control on the bubble instead of tap-to-expand — see 42-04-SUMMARY.md)
+Full phase details, goals, success criteria, and plan lists: `.planning/milestones/v1.6-ROADMAP.md`
+
+</details>
 
 ## Phase Details
 
@@ -158,7 +161,7 @@ Plans:
 
 **v1.5:** 5/6 phases complete (83%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md. Phase 33 (WEATHER-01/02) completed 2026-07-15 — on-device UAT required 6 gap-closure rounds (stale hourly data, text-wrap doubling row height, blobShape missing content-clipping onto the panel background, NotchShape's real taper clipping the daily row, final height/gap tuning); see 33-02-SUMMARY.md. Only Phase 34 (Quick Action Destination Picker) remains.
 
-**v1.6:** 8/8 phases complete (100%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34. Phase 35 (GLASS-01) completed 2026-07-16 — on-device UAT required 4 rounds (round 1 flat opaque grey, round 2 uniformly bright, round 3 screen-blend washout over the frost's dark center, round 4 rim-masked the fringe/wash layers to the same edge falloff and passed); see 35-12-SUMMARY.md. A round-5 post-completion regression (flat grey rim, D-20) pivoted the island to SwiftUI's native `.glassEffect()` on macOS 26+, keeping the custom shader as the `<26` fallback; see 35-12-ADDENDUM-SUMMARY.md. Phase 41 (HUD-08, Calendar Countdown HUD) completed 2026-07-18 — on-device UAT found and fixed a real-hardware-only bug: the countdown's mm:ss text partially rendered under the physical camera housing until its wing's right flank was widened to the same label-clearing width `deviceWings` already uses; see 41-04-SUMMARY.md. Phase 40 (Sparkle/Update HUD) completed 2026-07-18 — its on-device UAT re-run (40-03) root-caused the carried-over badge-tap bug to a click-through hot-zone gap and redesigned the update indicator from a collapsed-pill badge to a menu-bar status-item dot; see 40-03-SUMMARY.md. Phase 42 (Dual-Activity Display, DUAL-01) completed 2026-07-19 — on-device UAT approved the full dual-activity display across 3 rounds; the original tap-to-expand/no-hover bubble design (D-12/D-13) was superseded live by the user in favor of a hover-reveal play/pause control, see 42-04-SUMMARY.md. v1.6 is now fully code-complete pending formal `/gsd:complete-milestone`.
+**v1.6:** 8/8 phases complete (100%) — see `.planning/milestones/v1.6-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-19; 11/12 requirements delivered (HUD-07 dropped, Phase 37 abandoned).
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -578,270 +581,7 @@ Plans:
 - [x] 34-02-PLAN.md — REVISED (UAT drag-target redesign): moves pendingDrop population to the dragEntered edge (D-10), fixes the drag-out-before-release session-copy leak (D-13b/Pitfall 6), live per-button drag-hover highlight (D-11) + release-on-target routing (D-12/D-13) replacing the click-based Button(action:) wiring, geometry three-site rule at the new 117pt height + consolidated on-device UAT checkpoint (D-08 spike re-run, CR-01 trace, drag-in/out/re-entry trace, D-04/D-05 transient-interrupt-resume, Drop/AirDrop/Mail real hand-off) — supersedes the original click-based controller wiring, which shipped but was rejected on-device
 **UI hint**: yes
 
-### Phase 35: Liquid Glass Material
 
-**Goal**: The shared background material — pill, expanded island, and all activity wings — is replaced by a "Liquid Glass" look (glossier, blurred/frosted, not glass-clear), built from user-supplied reference code and plugging into the existing `MaterialStyle`/`islandMaterial` seam. Every later HUD phase in this milestone inherits the finished material for free instead of retrofitting each new view individually.
-**Depends on**: Nothing — first phase of the v1.6 milestone.
-**Requirements**: GLASS-01
-**Success Criteria** (what must be TRUE):
-  1. The collapsed pill, expanded island, and every activity wing (Charging, Device, Now Playing) render the new Liquid Glass material, replacing today's gradient material.
-  2. The new material is applied as a modifier on the existing shape node that already carries the `matchedGeometryEffect` id — not a new sibling/wrapper view — so morph continuity is preserved.
-  3. A Phase-25-style on-device UAT checklist (material renders correctly through collapse↔expand, no artifacts, no dropped frames) passes as a hard merge gate.
-  4. The visual result is user-approved on-device against the supplied reference code.
-**Plans**: 12 plans (35-05 rejected on-device round 1 — flat opaque grey, no transparency; 35-08 rejected on-device round 2 — uniformly bright/light, no dark glass; 35-10 rejected on-device round 3 — uniform silvery/washed-out, unmasked fringe+wash screen-blending over the frost's dark center; superseded by round-4 remediation plans 35-11/35-12 per 35-CONTEXT.md D-16/D-17/D-18/D-19)
-**UI hint**: yes
+## v1.6 Liquid Glass & System HUD Suite — SHIPPED 2026-07-19
 
-Plans:
-**Wave 1**
-
-- [x] 35-01-PLAN.md — MaterialStyle.liquidGlass case (D-05) + EnvironmentKey default flip (D-06) + islandFill exhaustive-switch branch
-- [x] 35-02-PLAN.md — LiquidGlassShader.metal distortion function (D-01) + LiquidGlassParameters/channelShaders contract (D-04)
-
-**Wave 2** *(blocked on 35-01, 35-02)*
-
-- [x] 35-03-PLAN.md — liquidGlassEffectLayer helper wired into all 4 island-shell fill sites (D-01/D-02/D-03/D-04)
-- [x] 35-04-PLAN.md — Settings Theming picker 3rd segment + default flip (D-05/D-06) + calmer Settings-window background (D-08/D-09) *(blocked on 35-01 only, parallel to 35-03)*
-
-**Wave 3** *(blocked on 35-03, 35-04)*
-
-- [x] 35-05-PLAN.md — On-device UAT hard merge gate, round 1 (Success Criteria #3/#4) — **REJECTED** (flat opaque grey, no visible warp/transparency; see 35-UAT.md Test 1) — root cause D-02 superseded by D-10/D-11, remediated by 35-06/35-07/35-08 below
-
-**Wave 4 (remediation)** *(blocked on 35-02)*
-
-- [x] 35-06-PLAN.md — liquidGlassEdgeFalloff shared helper + liquidGlassEdgeOpacity colorEffect shader (D-11) + retuned LiquidGlassParameters (D-10/D-11)
-
-**Wave 5 (remediation)** *(blocked on 35-06, 35-03)*
-
-- [x] 35-07-PLAN.md — islandFill + liquidGlassEffectLayer translucent-material wiring (D-10/D-11)
-
-**Wave 6 (remediation)** *(blocked on 35-06, 35-07)*
-
-- [x] 35-08-PLAN.md — On-device UAT hard merge gate, round 2 (Success Criteria #3/#4) — supersedes rejected 35-05 — **REJECTED (round 2)** (island now translucent but reads as uniformly bright/light, not dark glass with edge-only bleed; see 35-UAT.md Test 1 Round 2) — root cause hypothesis: raw `.ultraThinMaterial` has no inherent dark tint, needs remediation round 3
-
-**Wave 7 (remediation round 3)** *(blocked on nothing new — restructures 35-06/35-07's already-merged code)*
-
-- [x] 35-09-PLAN.md — islandFill D-12 frost base + liquidGlassEffectLayer frost-over-material compositing (D-12/D-13/D-14/D-15) + retuned LiquidGlassParameters — no `.metal` file changes, reuses liquidGlassEdgeOpacity as-is
-
-**Wave 8 (remediation round 3)** *(blocked on 35-09)*
-
-- [x] 35-10-PLAN.md — On-device UAT hard merge gate, round 3 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08 — **REJECTED (round 3)** (uniform, medium-grey/silvery panel across the whole surface, no dark near-opaque center, no clear rim contrast; see 35-UAT.md Test 1 Round 3) — root cause: unmasked chromatic-fringe passes (.blendMode(.screen)) + trailing white-wash overlay lighten the WHOLE surface including the frost's dark center, remediated by 35-11/35-12 below
-
-**Wave 9 (remediation round 4)** *(blocked on nothing new — restructures 35-09's already-merged code)*
-
-- [x] 35-11-PLAN.md — Mask the 3 chromatic-fringe passes + white-wash overlay to the shared liquidGlassEdgeOpacity falloff via a new liquidGlassRimMask helper (D-16/D-17/D-18) — no `.metal`/parameter-file changes, reuses liquidGlassEdgeOpacity as-is with mask-only arguments
-
-**Wave 10 (remediation round 4)** *(blocked on 35-11)*
-
-- [x] 35-12-PLAN.md — On-device UAT hard merge gate, round 4 (Success Criteria #3/#4) — supersedes rejected 35-05/35-08/35-10 (D-19: single UAT round, no intermediate checkpoint)
-
-**Post-completion regression (round 5, outside formal plan artifacts)** — 2026-07-16, resolved via `.planning/debug/resolved/liquid-glass-grey-rim-regression.md`: round 4 was approved but a fresh on-device look showed a flat grey rim, no color. Root cause: 2 latent bugs the UAT screenshots never exercised (collapsed-pill DEBUG red-tint override; under-separated RGB fringe offsets) plus D-20's architectural pivot — the custom Metal shader (D-01–D-19) is now the `<macOS 26` fallback; `macOS 26.0+` uses SwiftUI's native `.glassEffect(_:in:)` for real system-rendered glass. Re-verified on-device, user-approved.
-
-### Phase 36: Cosmetic Restyles & Signature Animation
-
-**Goal**: Bluetooth/AirPods and Charging activities are restyled to the Droppy-pill look, the Now Playing equalizer bars get a new visual design, and the onboarding flow's first page gains a static rainbow-gradient signature-style heading — all pure view-layer changes with zero resolver, monitor, or data changes, proving the new visual language renders correctly inside Phase 35's material.
-**Depends on**: Phase 35 — these restyles render inside the new Liquid Glass material rather than the old one.
-**Requirements**: HUD-01, HUD-02, EQ-01, ONBOARD-04
-**Success Criteria** (what must be TRUE):
-  1. The Bluetooth/AirPods device-connected activity visually matches the Droppy-pill restyle; `DeviceCoordinator`/`BluetoothMonitor` are unchanged.
-  2. The Charging activity visually matches the Droppy-pill restyle; the existing IOKit power monitor is unchanged.
-  3. The Now Playing equalizer bars render the user-supplied reference visual design with no change to the underlying playback data or monitor.
-  4. (D-14 scope pivot) The onboarding flow's first page shows a static rainbow-gradient signature-style script heading ("Meet" in blue→purple→pink, "Islet" in orange→yellow→green, Dancing Script Bold) replacing the "Welcome to Islet" text — scoped to that one page only, the rest of the app's typography is unaffected. Originally specified as a live stroke-reveal animation; descoped to a static heading after repeated font-licensing/implementation friction, per direct user decision.
-**Plans**: 4 plans (waves: 1={36-01,36-03}, 2={36-02}, 3={36-04})
-
-Plans:
-- [x] 36-01-PLAN.md — Charging + Bluetooth Droppy-pill wing restyle (HUD-01, HUD-02)
-- [x] 36-02-PLAN.md — Equalizer bars motion/geometry redesign + Skiper UI attribution (EQ-01)
-- [x] 36-03-PLAN.md — Signature font (OFL) + Core Text glyph-extraction contract (ONBOARD-04)
-- [x] 36-04-PLAN.md — Signature heading: static rainbow-gradient design (scope-pivoted from stroke-reveal animation, ONBOARD-04)
-**UI hint**: yes
-
-### Phase 37: Drop-Session Summary Chip — ABANDONED
-
-**Status**: All 4 plans (37-01/02/03/04) were executed and merged 2026-07-17, then fully reverted the same day after failing on-device UAT (37-04). Reason: the chip's trigger requires the user to explicitly close the Tray after a drop, but in real usage the Island stays open showing the dropped files and isn't closed right away — the trigger condition essentially never fires under normal use. Per user decision, the feature isn't worth keeping; all code was reverted via `git revert` (5 commits, working tree confirmed clean of all `sessionFilesSaved`/`dropSessionChipGate`/`SessionSummaryChip`/`chipDismissWorkItem` traces, build re-verified green). HUD-07 is dropped from the milestone's requirement set.
-
-**Goal** *(as originally planned, not achieved)*: After the Tray is closed following a drop session, a brief "N files saved" chip appears — first adding the missing "shelf session" boundary concept to `ShelfViewState`/`ShelfCoordinator`, then building the chip itself as a one-shot orthogonal toast reusing the already-shipped Phase-18 song-change-toast pattern.
-**Depends on**: Nothing hard — independent of Phases 35-36, though it renders inside whatever material is current.
-**Requirements**: ~~HUD-07~~ (dropped)
-**Success Criteria** (what must be TRUE) — never reached, superseded by abandonment:
-  1. `ShelfViewState`/`ShelfCoordinator` track an explicit session boundary (files dropped since Tray was last closed), distinct from today's `isVisible = !items.isEmpty` check.
-  2. Closing the Tray after at least one file was dropped during that session briefly shows a chip reading "N files saved," then auto-dismisses.
-  3. Closing the Tray with zero files dropped during that session shows no chip.
-  4. The chip is implemented as a one-shot `@Published` orthogonal toast (mirroring Phase 18's song-change toast), not a new `IslandResolver`/`TransientQueue` case.
-**Plans**: 4 plans (waves: 1={37-01}, 2={37-02,37-03}, 3={37-04}) — all executed, then reverted
-
-Plans:
-**Wave 1**
-
-- [x] 37-01-PLAN.md — Session-boundary pure seams: ShelfCoordinator gross counter/resetSession() + IslandResolver dropSessionChipGate + ShelfViewState SessionSummaryChip/dropSessionChipContent/sessionSummaryChip *(reverted)*
-
-**Wave 2** *(blocked on 37-01)*
-
-- [x] 37-02-PLAN.md — NotchPillView chip rendering: chipTextRow(_:) wired into collapsedIsland and mediaWingsOrToast *(reverted)*
-- [x] 37-03-PLAN.md — NotchWindowController wiring: collapse-trigger (D-01/D-02/D-03/D-06) + interrupt-clear (D-07) *(reverted)*
-
-**Wave 3** *(blocked on 37-02, 37-03)*
-
-- [x] 37-04-PLAN.md — On-device UAT checkpoint — FAILED (chip's Tray-close trigger doesn't fire in real usage), phase abandoned and reverted
-
-### Phase 38: Focus Mode HUD
-
-**Goal**: A generic on/off Focus Mode HUD appears when the user toggles Focus/Do Not Disturb — an on-device research spike confirms the detection mechanism first, then the feature is built as the first genuinely new `ActiveTransient` case in this milestone, proving the "new pure Activity type → Monitor → resolver case → wing view" pipeline once, cheaply, before Phase 39 attempts the same pipeline under real private-API risk.
-**Depends on**: Nothing hard — independent of Phases 35-37, sequenced here per research to prove the new-transient pipeline before the higher-risk Volume/Brightness phase.
-**Requirements**: HUD-05
-**Success Criteria** (what must be TRUE):
-  1. An on-device spike confirms and records which detection path is used (`INFocusStatusCenter`'s public boolean signal, preferred, vs. Assertions.json polling behind a manual Full Disk Access grant) before full implementation proceeds.
-  2. Toggling Focus/DND on shows the new HUD in a generic "Focus On" state; toggling off dismisses it or shows "Focus Off" — no named-mode text (e.g. "Work Focus") anywhere.
-  3. If the Full-Disk-Access-gated path is required, denying that permission degrades silently (no crash, no stuck state) rather than blocking the rest of the app.
-  4. The new `FocusActivity`/`FocusModeMonitor` pipeline routes through `IslandResolver`/`TransientQueue` like every other transient — no resolver bypass.
-**Plans**: 9 plans (waves: 1={38-01,38-02}, 2={38-03,38-04}, 3={38-05,38-06}, 4={38-07}, 5={38-08}, 6={38-09}) — D-12 descope gate: if the Wave 1 spike (38-01) finds neither detection path viable, Plans 38-04 through 38-07 do not execute and the phase is closed out per Phase 37's abandonment precedent. Wave 5 (38-08) is a gap-closure plan added after 38-VERIFICATION.md found two BLOCKER-level system-glue defects (CR-01, CR-02/WR-02). Wave 6 (38-09) is a second gap-closure plan for a NEW blocker found by re-verification (`handleFocusChange` render-tail); its own on-device checkpoint additionally found and fixed a hard-crash (missing Info.plist key) and a silent functional dead-end (missing Communication Notifications entitlement) — see 38-09-SUMMARY.md.
-
-**Status**: Complete (2026-07-17). All 4 Success Criteria confirmed on-device: (1) 38-01's spike confirmed `INFocusStatusCenter` as the detection path; (2) toggling Focus/DND shows/dismisses the HUD correctly, including auto-dismiss without requiring an unrelated event; (3) N/A — the Full-Disk-Access fallback path was never needed since Path A won; (4) `FocusActivity`/`FocusModeMonitor` route through `IslandResolver`/`TransientQueue` per the established pattern (code-verified across 38-02 through 38-05).
-**UI hint**: yes
-
-Plans:
-**Wave 1**
-
-- [x] 38-01-PLAN.md — On-device detection-path spike (checkpoint): confirms INFocusStatusCenter vs. Assertions.json+FDA, or records a D-12 descope decision
-- [x] 38-02-PLAN.md — Pure seams (TDD): FocusActivity.swift + IslandResolver.swift extension (ActiveTransient.focus, IslandPresentation.focus, D-07 where-guard, ActiveTransient.isPersistent for D-06, TransientQueue.preempt(_:) for D-08)
-
-**Wave 2** *(blocked on Wave 1)*
-
-- [x] 38-03-PLAN.md — FocusModeMonitor.swift (spike-confirmed detection path) + ActivitySettings.swift (focusKey, D-05 status-hint mapping) — halts here if 38-01 recorded a descope
-- [x] 38-04-PLAN.md — NotchPillView.swift focusWings(for:) (D-10/D-11 Droppy-pill wing) + presentationSwitch dispatch + preview
-
-**Wave 3** *(blocked on Wave 2)*
-
-- [x] 38-05-PLAN.md — NotchWindowController.swift wiring: monitor lifecycle, D-06 non-self-dismiss guard, D-08 Charging/Device preemption at both enqueue sites, D-09 silent off-flush
-- [x] 38-06-PLAN.md — SettingsView.swift: opt-in toggle (D-01), permission-status hint (D-05), explanation popover + deep-link/authorization trigger (D-02/D-03/D-04)
-
-**Wave 4** *(blocked on Wave 3)*
-
-- [x] 38-07-PLAN.md — Remove the Wave 1 spike scaffolding + consolidated on-device UAT checkpoint (persistence, preemption, collapsed-only scope, silent off, fresh-install-no-permission)
-
-**Wave 5** *(gap closure — blocked on Wave 4)*
-
-- [x] 38-08-PLAN.md — Fix CR-01 (`activityEnabled(_:)` wrong shared default for `focusKey`) + CR-02/WR-02 (permission-grant completion discarded, monitor never starts on first-grant flow); Debug build gate + re-verification UAT
-
-**Wave 6** *(gap closure — blocked on Wave 5)*
-
-- [x] 38-09-PLAN.md — Fix `handleFocusChange(false)`'s missing render tail; on-device checkpoint additionally found/fixed a missing NSFocusStatusUsageDescription crash and a missing Communication Notifications entitlement, plus a Focus wing visual redesign per live user feedback
-
-### Phase 39: Volume & Brightness HUD
-
-**Goal**: Volume and Brightness HUDs appear on key press in the Droppy-pill style and suppress the native macOS OSD when an on-device spike confirms it's safe — the milestone's single highest-risk item, isolated as its own spike-then-implement phase per this project's own Phase 22/Phase 8→9 precedent, sharing one OSD-replacement subsystem across both HUDs rather than duplicating the risky suppression work.
-**Depends on**: Nothing hard — independent of Phases 35-38, but reuses the `ActiveTransient` pipeline shape Phase 38 proves first.
-**Requirements**: HUD-03, HUD-04
-**Success Criteria** (what must be TRUE):
-  1. An on-device spike confirms `.cgSessionEventTap` (never the annotated variant) intercepts volume/brightness `NX_SYSDEFINED` events without breaking any of the 4 media transport keys, with the go/no-go decision and fallback behavior (show the HUD alongside the native OSD if suppression proves unreliable) explicitly recorded before full implementation.
-  2. Pressing a volume key shows the new Volume HUD reflecting the live system volume level; pressing a brightness key shows the new Brightness HUD reflecting the live brightness level.
-  3. Rapid repeated key presses (scrubbing) update the same HUD instance in place via `TransientQueue.updateHead()` rather than stacking multiple transients.
-  4. The undocumented `EnableSystemBanners` Control-Center-wide defaults toggle is not used anywhere in the implementation.
-**Plans**: 8 plans (waves: 1={39-01,39-02}, 2={39-03,39-04}, 3={39-05}, 4={39-06}, 5={39-07}, 6={39-08})
-**UI hint**: yes
-
-Plans:
-**Wave 1**
-
-- [x] 39-01-PLAN.md — On-device spike (checkpoint): confirms .cgSessionEventTap dual-mode (.listenOnly detect-only / .defaultTap detect+suppress) feasibility, NX_SYSDEFINED bit-decode constants, and native-OSD/transport-key safety
-- [x] 39-02-PLAN.md — Pure seams (TDD): OSDActivity.swift + IslandResolver.swift extension (ActiveTransient.osd rank 4 collapsed-only, updateHead (.osd,.osd) arm for D-09/D-12)
-
-**Wave 2** *(blocked on Wave 1)*
-
-- [x] 39-03-PLAN.md — OSDInterceptor.swift (spike-confirmed architecture) + VolumeReader.swift (CoreAudio) + BrightnessReader.swift (DisplayServices)
-- [x] 39-04-PLAN.md — NotchPillView.swift osdWings(for:) Droppy-pill bar wing (D-01/D-02/D-03/D-04)
-
-**Wave 3** *(blocked on Wave 2)*
-
-- [x] 39-05-PLAN.md — NotchWindowController.swift wiring (handleOSDKeyPress D-09/D-12/D-13, osdActivityDuration D-10) + ActivitySettings.swift key/hint
-
-**Wave 4** *(blocked on Wave 3)*
-
-- [x] 39-06-PLAN.md — SettingsView.swift OSD suppression toggle + Accessibility deep-link popover (D-05/D-06/D-07/D-08)
-
-**Wave 5** *(blocked on Wave 4)*
-
-- [x] 39-07-PLAN.md — Remove spike scaffolding + consolidated on-device UAT checkpoint (all 4 Success Criteria)
-
-**Wave 6** *(gap-closure, blocked on Wave 5)*
-
-- [x] 39-08-PLAN.md — OSD suppression re-attempt via `.cghidEventTap` (D-14, reverses 39-01's suppression-unreliable finding — SUCCESS on-device) + self-driven volume/brightness/mute (D-15) + OSDLevelBar spring retune (D-16)
-
-### Phase 40: Update-Available HUD & Sparkle Integration
-
-**Goal**: A real Sparkle 2 auto-update integration ships alongside an update-available HUD/badge — independent of every other phase in this milestone, floats anywhere after Phase 35.
-**Depends on**: Nothing hard — independent, can be sequenced anywhere after Phase 35.
-**Requirements**: HUD-06
-**Success Criteria** (what must be TRUE):
-  1. Islet checks for updates via a real `SPUStandardUpdaterController`/`SPUUpdater`, with a "Check for Updates…" menu item available from the status-item menu. ✅ confirmed on-device.
-  2. When a new version is published, an update-available indicator appears — ORIGINALLY a collapsed-island badge; **redesigned during 40-03's on-device checkpoint to a small red dot on the menu-bar status item icon** after the badge's tap target was found to sit outside `NotchWindowController`'s click-through hot-zone (clicks passed through to the desktop). Still an orthogonal `@Published`/AppKit-view flag, not a `TransientQueue` participant. ✅ confirmed on-device (see 40-03-SUMMARY.md).
-  3. Tapping the update indicator (now: clicking the menu-bar icon, which has always been fully click-through-safe) triggers Sparkle's own standard install/progress dialog — confirmed on-device not to steal focus or otherwise break the panel's non-activating/click-through guarantees in this LSUIElement app. ✅ confirmed on-device.
-  4. The embedded Sparkle framework is signed/entitled correctly (mirroring the existing `MediaRemoteAdapter` disable-library-validation treatment) so Release builds launch without a Gatekeeper/library-validation crash. ✅ confirmed on-device via a Release archive launched outside Xcode's debugger.
-**Plans**: 3 plans (waves: 1={40-01}, 2={40-02}, 3={40-03})
-**UI hint**: yes
-
-Plans:
-**Wave 1**
-
-- [x] 40-01-PLAN.md — Sparkle SPM package + Info.plist keys + EdDSA keypair + UpdateAvailableState.swift + AppDelegate wiring (D-01..D-04, D-09..D-13)
-
-**Wave 2** *(blocked on 40-01)*
-
-- [x] 40-02-PLAN.md — Badge overlay on NotchPillView + NotchWindowController wiring (D-05..D-08) — superseded by the 40-03 redesign below (badge removed, `UpdateAvailableState.swift` deleted)
-
-**Wave 3** *(blocked on 40-02)*
-
-- [x] 40-03-PLAN.md — On-device UAT: Debug pipeline checkpoint + Release library-validation launch checkpoint; badge-tap bug root-caused and the indicator redesigned to a menu-bar dot (see 40-03-SUMMARY.md)
-
-### Phase 41: Calendar Countdown HUD
-
-**Goal**: Starting 1 hour before a calendar event, the collapsed pill shows a live minute-countdown (calendar icon left, event time right), driven by its own persistent per-minute timer rather than the shared 3s `activityDuration` auto-dismiss pattern. Calendar data already exists via EventKit (Phase 28) — this phase de-risks the timer/data pipeline as a single-winner ambient feature before Phase 42 needs it as a proven input.
-**Depends on**: Nothing hard — EventKit data already shipped in Phase 28; sequenced before Phase 42 so dual-activity has a proven single-winner case to combine with Now Playing.
-**Requirements**: HUD-08
-**Success Criteria** (what must be TRUE):
-  1. Within 1 hour of a real calendar event's start time, the collapsed pill shows a calendar icon (left) and a live minutes-remaining countdown (right) that updates continuously without user interaction.
-  2. The countdown HUD dismisses at (or shortly after) the event's start time, using its own scheduling — never the shared 3s `activityDuration` auto-dismiss.
-  3. The countdown timer is scheduled to actual minute boundaries rather than a tight poll loop, verified via Activity Monitor's Idle Wake Ups column showing no regression.
-  4. The countdown participates in `IslandResolver` as an ambient single-winner activity, correctly yielding to any higher-priority Charging/Device transient.
-**Plans**: 4 plans (waves: 1={41-01}, 2={41-02,41-03}, 3={41-04})
-**UI hint**: yes
-
-Plans:
-**Wave 1**
-
-- [x] 41-01-PLAN.md — Pure seams: nextUpcomingEvent (CalendarGlance) + CalendarService.fetchUpcomingRaw + IslandResolver ambient-pair extension (CalendarCountdownActivity, D-01) + ActivitySettings key
-
-**Wave 2** *(blocked on 41-01)*
-
-- [x] 41-02-PLAN.md — CalendarCountdownMonitor.swift (deadline-scheduled, EKEventStoreChanged-driven) + NotchWindowController wiring
-- [x] 41-03-PLAN.md — NotchPillView countdownWings(for:) wing view (D-04/D-05/D-06) + Settings toggle (D-03)
-
-**Wave 3** *(blocked on 41-02, 41-03)*
-
-- [x] 41-04-PLAN.md — On-device UAT: Debug build + Cmd-U gate, consolidated 10-step checkpoint covering all 4 ROADMAP Success Criteria (approved; camera-cutout countdown-text layout bug found and fixed)
-
-### Phase 42: Dual-Activity Display
-
-**Goal**: When two top-priority activities are live simultaneously (e.g. the Calendar countdown and Now Playing), the collapsed state shows a main pill plus a small secondary bubble instead of one activity strictly winning — the milestone's single most architecturally novel change, extending the single-winner `IslandResolver` via an additive `secondary: SecondaryActivity?` field rather than reshaping `IslandPresentation`. Sequenced last, after Phase 41 gives it a real, independently-stable single-winner case to combine with Now Playing.
-**Depends on**: Phase 41 — needs Calendar Countdown proven and independently correct before this phase has to solve only "how do two correct signals combine," not "is this new signal even correct."
-**Requirements**: DUAL-01
-**Success Criteria** (what must be TRUE):
-  1. With Calendar Countdown and Now Playing both live at once, the collapsed island shows a main pill (one activity) plus a small secondary bubble (the other) rather than one activity hiding the other.
-  2. The primary/secondary promotion-demotion rule is implemented as an explicit ordered table (not scattered conditionals) and correctly generalizes to any two competing top-priority activities, not just Calendar+Music.
-  3. Primary and secondary slots use distinct `matchedGeometryEffect` namespaces — no visual glitches, geometry collisions, or dropped frames when either slot's content changes.
-  4. The extension is additive — the existing `IslandResolver.resolve()` single-winner pass and every existing `IslandPresentation` switch site are otherwise unchanged, confirmed via a diff review.
-**Plans**: 4 plans
-
-Plans:
-**Wave 1**
-
-- [x] 42-01-PLAN.md — Resolver extension: SecondaryActivity enum + resolveSecondary(primary:nowPlaying:) pure function + IslandPresentationState.secondary field (D-01/D-02/D-03/D-04/D-10)
-- [x] 42-02-PLAN.md — On-device spike: does tapping the far outer edge of an existing wing register a click today? (resolves 42-RESEARCH.md Pitfall 2 before bubble work begins)
-
-**Wave 2** *(blocked on 42-01)*
-
-- [x] 42-03-PLAN.md — NotchPillView secondaryBubble view (circular artwork crop, distinct matchedGeometryEffect id, D-05/D-06/D-07/D-08/D-09/D-13) composed alongside presentationSwitch
-
-**Wave 3** *(blocked on 42-02, 42-03)*
-
-- [x] 42-04-PLAN.md — NotchWindowController wiring: dual-field renderPresentation(), D-11 staggered reveal, D-12 tap-to-expand (superseded on-device to hover play/pause, see D-12/D-13 supersession note), conditional hot-zone widening + on-device UAT hard-merge gate
-**UI hint**: yes
+Phases 35-42 full detail (goals, success criteria, plans, on-device UAT history) archived to `.planning/milestones/v1.6-ROADMAP.md`. Requirements archived to `.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 (Drop-Session Summary Chip, Phase 37) dropped after on-device UAT found its trigger essentially never fires in real usage.

@@ -30,36 +30,7 @@ Home is decluttered to music-only (dropping the idle weather/calendar/date fallb
 
 - [x] **SHAPE-01**: The expanded-state notch silhouette gains an outward-flaring top-edge transition into the screen bezel; the idle/collapsed pill shape stays exactly as it is today
 
-## v1.6 Requirements — Liquid Glass & System HUD Suite
-
-Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Droppy-style collapsed-state system HUDs, and a new dual-activity display concept for when two top-priority activities are live at once. See `.planning/research/SUMMARY.md` for the full research backing these (Stack/Features/Architecture/Pitfalls).
-
-### Material
-
-- [x] **GLASS-01**: The shared background material (pill, expanded island, all activity wings) is replaced by a "Liquid Glass" look — glossier and blurred/frosted rather than glass-clear — implemented from the user-supplied reference code, plugging into the existing `MaterialStyle`/`islandMaterial` seam
-
-### Now Playing Polish
-
-- [x] **EQ-01**: The Now Playing equalizer bars are redesigned to the user-supplied reference visual style (view-layer only, no data/monitor changes)
-
-### Onboarding
-
-- [x] **ONBOARD-04**: The first onboarding page's "Welcome to Islet" text is replaced by a static rainbow-gradient signature-style script heading (distinct color, script styling) — scoped to that one page only, the rest of the app's font is unaffected
-
-### System HUDs
-
-- [x] **HUD-01**: The Bluetooth/AirPods device-connected activity is restyled to the Droppy-pill look (visual only — `DeviceCoordinator`/`BluetoothMonitor` unchanged)
-- [x] **HUD-02**: The Charging activity is restyled to the Droppy-pill look (visual only — the existing IOKit power monitor unchanged)
-- [x] **HUD-03**: A Volume HUD appears on volume key press showing the live level in the Droppy-pill style, and suppresses the native system OSD when the spike confirms it's safe to do so on the dev machine (falls back to showing alongside the native OSD if suppression proves unreliable — do not ship the undocumented `EnableSystemBanners` toggle without confirming it doesn't regress on the project's own macOS Tahoe hardware)
-- [x] **HUD-04**: A Brightness HUD mirrors HUD-03's behavior for brightness key presses, sharing its OSD-replacement subsystem
-- [ ] **HUD-05**: A Focus Mode HUD appears when the user toggles Focus/Do Not Disturb, showing generic on/off state only (named-mode detection, e.g. "Work Focus" vs "Sleep", is not guaranteed available on current macOS — see Out of Scope)
-- [ ] **HUD-06**: An Update-available HUD appears when a new Islet version is published, backed by a real Sparkle 2 auto-update integration; tapping it triggers Sparkle's own standard install/progress dialog rather than a fully custom in-notch install flow (see Out of Scope)
-- [ ] **HUD-07**: A Drop-session summary chip briefly appears after the Tray is closed following a drop session, showing how many files were saved — requires adding a session-boundary concept to `ShelfViewState`/`ShelfCoordinator` that does not exist today (`isVisible` is currently just `!items.isEmpty`)
-- [x] **HUD-08**: Starting 1 hour before a calendar event, the collapsed pill shows a live minute-countdown (calendar icon left, event time right) that updates continuously until the event starts — uses its own persistent timer, not the shared 3s `activityDuration` auto-dismiss
-
-### Dual-Activity Display
-
-- [x] **DUAL-01**: When two top-priority activities are live simultaneously (e.g. the Calendar countdown and Now Playing), the collapsed state shows a main pill plus a small secondary bubble instead of one activity strictly winning via the current single-winner `IslandResolver` — generalizes to any two competing top-priority activities, not just Calendar+Music
+> **v1.6 Requirements (Liquid Glass & System HUD Suite) shipped 2026-07-19** — archived to `.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped, HUD-07 dropped (Phase 37 abandoned).
 
 ## v2 Requirements
 
@@ -111,31 +82,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAY-02 | Phase 34 | Complete |
 | TRAY-03 | Phase 34 | Complete |
 | TRAY-04 | Phase 34 | Complete |
-| GLASS-01 | Phase 35 | Complete |
-| HUD-01 | Phase 36 | Complete |
-| HUD-02 | Phase 36 | Complete |
-| EQ-01 | Phase 36 | Complete |
-| ONBOARD-04 | Phase 36 | Complete |
-| HUD-07 | Phase 37 | Pending |
-| HUD-05 | Phase 38 | Pending |
-| HUD-03 | Phase 39 | Complete |
-| HUD-04 | Phase 39 | Complete |
-| HUD-06 | Phase 40 | Pending |
-| HUD-08 | Phase 41 | Complete |
-| DUAL-01 | Phase 42 | Complete |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
 - Mapped to phases: 11 (100%)
 - Unmapped: 0
 
-**Coverage (v1.6):**
-- v1.6 requirements: 12 total
-- Mapped to phases: 12 (100%)
-- Unmapped: 0
+v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is archived in `.planning/milestones/v1.6-REQUIREMENTS.md`.
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
-*v1.6 requirements defined: 2026-07-15 — 12 REQ-IDs (GLASS-01, EQ-01, ONBOARD-04, HUD-01..08, DUAL-01) backed by parallel Stack/Features/Architecture/Pitfalls research (`.planning/research/SUMMARY.md`). v1.5 left open in parallel, not archived.*
-*v1.6 roadmap created 2026-07-15 — 8 phases (35-42), 100% coverage (12/12). Phase numbering starts at 35 (not 34) to avoid colliding with v1.5's still-open, unarchived Phase 34. Order: Liquid Glass Material (35) → Cosmetic Restyles & Signature Animation (36) → Drop-Session Summary Chip (37) → Focus Mode HUD spike (38) → Volume & Brightness HUD spike (39, kept as ONE phase since both share the OSD-replacement subsystem) → Update-Available HUD & Sparkle (40) → Calendar Countdown HUD (41) → Dual-Activity Display (42, sequenced last per its own dependency on Calendar Countdown as a proven single-winner input).*
+*Last updated: 2026-07-19 — v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`. v1.5 remains open in parallel — Phase 33 (Weather widget) on-device UAT still pending.*
+*v1.5 requirements defined 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
