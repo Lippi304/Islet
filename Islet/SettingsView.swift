@@ -45,6 +45,10 @@ struct SettingsView: View {
     // in a future macOS/permission-tier change; see 39-06-SUMMARY.md for the full no-op note.
     @AppStorage(ActivitySettings.osdSuppressionKey) private var osdSuppressionEnabled = false
     @State private var showOSDPermissionExplanation = false
+    // Phase 40 / HUD-06 (D-11/D-12) — default true: the one deliberate exception among the
+    // Activities toggles (besides osdSuppression's off-default), since this gates no system
+    // permission, just a background network check.
+    @AppStorage(ActivitySettings.autoUpdateCheckKey) private var autoUpdateCheckEnabled = true
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
@@ -257,6 +261,12 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                         .onTapGesture { showOSDPermissionExplanation = true }
                 }
+
+                // Phase 40 / HUD-06 (D-11) — automatic-check scheduling requires no macOS
+                // privacy grant, unlike Focus/OSD's permission-gated toggles above: no
+                // .onChange, no .popover, no status-hint Text (40-UI-SPEC.md Settings Toggle
+                // Contract).
+                Toggle("Automatically Check for Updates", isOn: $autoUpdateCheckEnabled)
             }
 
             // Quick task 260709-glz — a fullscreen-visibility preference, distinct from

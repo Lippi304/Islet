@@ -66,6 +66,7 @@
 		7BEE2DF28EF5A73EDB7BA551 /* OnboardingFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E50622410CCEEA5EC66C796 /* OnboardingFlowTests.swift */; };
 		7E4D99F7223419D03FC89C5C /* NowPlayingMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 483917501E43A12ECCFB85A2 /* NowPlayingMonitor.swift */; };
 		83ACBA698B65021287F454A4 /* DiagnosticReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0EC5F0178A64AECEBD91C8C /* DiagnosticReportTests.swift */; };
+		84AE20F54147C5E35D88CD80 /* UpdateAvailableState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CDFB5F239DBC2E0A6709422 /* UpdateAvailableState.swift */; };
 		85C8C46347EB08A657DB3CEE /* BluetoothMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F2A9A634959D28CB05024E /* BluetoothMonitor.swift */; };
 		873F50F44716655751E47E8B /* ShelfLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58372E319659DF8AA32F403D /* ShelfLogic.swift */; };
 		880123373A38864B1A861C2C /* WeatherServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73B4C1FB5F1134D07D697B9 /* WeatherServiceTests.swift */; };
@@ -203,6 +204,7 @@
 		74A9A9669B73F37C9B93F564 /* OSDInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSDInterceptor.swift; sourceTree = "<group>"; };
 		76ADF16C067A181F295BA4C5 /* PowerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivity.swift; sourceTree = "<group>"; };
 		77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityDecisionTests.swift; sourceTree = "<group>"; };
+		7CDFB5F239DBC2E0A6709422 /* UpdateAvailableState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateAvailableState.swift; sourceTree = "<group>"; };
 		7D373EEE76BE733AFEDD28FD /* CalendarViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewState.swift; sourceTree = "<group>"; };
 		8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlanceTests.swift; sourceTree = "<group>"; };
 		83B2D92BF83095959068F293 /* NotchPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanelTests.swift; sourceTree = "<group>"; };
@@ -454,6 +456,7 @@
 				BD8C607878B62D262514A41D /* QuickActionSharingService.swift */,
 				70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */,
 				FE9C66C68BBF764EDA77D7F4 /* SignatureHeading.swift */,
+				7CDFB5F239DBC2E0A6709422 /* UpdateAvailableState.swift */,
 				5FD7011AF8E607471C7F73FB /* ViewSwitcherState.swift */,
 				4CA20EFAA3BB87C9966C5BC9 /* VolumeReader.swift */,
 			);
@@ -665,6 +668,7 @@
 				945E7037D8F44BB922D79D41 /* SignatureHeading.swift in Sources */,
 				04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */,
 				98F28BB61930892735C9F48A /* TrialManager.swift in Sources */,
+				84AE20F54147C5E35D88CD80 /* UpdateAvailableState.swift in Sources */,
 				19C104D4C4BCFDB492D88B16 /* ViewSwitcherState.swift in Sources */,
 				4328BB2EFCD60AD4247AEDF3 /* VolumeReader.swift in Sources */,
 				68CE6D5F610C8C037058F697 /* WeatherCategory.swift in Sources */,
