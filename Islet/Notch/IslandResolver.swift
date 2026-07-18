@@ -188,10 +188,27 @@ enum SecondaryActivity: Equatable {
     case nowPlaying(NowPlayingPresentation)
 }
 
+// Gap-closure fix (42-VERIFICATION.md gap #1, D-03) — the pairing rule expressed as a literal
+// small ORDERED TABLE walked generically, not an if/else chain, per D-03's own wording. Scoped
+// to exactly the 1 pairing that exists today (Countdown primary -> Now-Playing secondary,
+// covering the 2 activity kinds D-03 names) — deliberately NOT a generic priority-resolution
+// engine; a future 3rd ambient activity extends this array with one more row, no resolver
+// surgery required (D-03's own "extend the table later" instruction).
+private struct SecondaryPairing {
+    let primaryMatches: (IslandPresentation) -> Bool
+    let secondary: (NowPlayingPresentation) -> SecondaryActivity?
+}
+
+private let secondaryPairings: [SecondaryPairing] = [
+    SecondaryPairing(
+        primaryMatches: { if case .calendarCountdown = $0 { return true } else { return false } },
+        secondary: { nowPlaying in nowPlaying != .none ? .nowPlaying(nowPlaying) : nil }
+    )
+]
+
 func resolveSecondary(primary: IslandPresentation, nowPlaying: NowPlayingPresentation) -> SecondaryActivity? {
-    guard case .calendarCountdown = primary else { return nil }
-    guard nowPlaying != .none else { return nil }
-    return .nowPlaying(nowPlaying)
+    guard let pairing = secondaryPairings.first(where: { $0.primaryMatches(primary) }) else { return nil }
+    return pairing.secondary(nowPlaying)
 }
 
 // Gap-closure fix (Finding 5) — TOTAL pure helper: a disabled Now Playing must be INVISIBLE to
