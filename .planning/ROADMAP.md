@@ -106,7 +106,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 38: Focus Mode HUD** - Research spike + generic on/off Focus/DND HUD, first new ActiveTransient case (9/9 plans executed 2026-07-17 incl. gap-closure plans 38-08 and 38-09; on-device UAT confirmed all 4 Success Criteria — see 38-09-SUMMARY.md for two further defects found and fixed during 38-09's own checkpoint: a missing NSFocusStatusUsageDescription Info.plist key causing a hard crash, and a missing Communication Notifications entitlement without which INFocusStatusCenter silently never reports real Focus state)
 - [x] **Phase 39: Volume & Brightness HUD** - Research spike + shared OSD-replacement subsystem for volume/brightness key presses (completed 2026-07-17)
 - [ ] **Phase 40: Update-Available HUD & Sparkle Integration** - Real Sparkle 2 auto-update + update-available HUD/badge
-- [ ] **Phase 41: Calendar Countdown HUD** - Live minute-countdown starting 1 hour before a calendar event, own persistent timer
+- [x] **Phase 41: Calendar Countdown HUD** - Live minute-countdown starting 1 hour before a calendar event, own persistent timer, camera-cutout layout bug found and fixed during on-device UAT (completed 2026-07-18)
 - [ ] **Phase 42: Dual-Activity Display** - Main pill + secondary bubble when two top-priority activities are live at once, additive resolver extension
 
 ## Phase Details
@@ -158,7 +158,7 @@ Plans:
 
 **v1.5:** 5/6 phases complete (83%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md. Phase 33 (WEATHER-01/02) completed 2026-07-15 — on-device UAT required 6 gap-closure rounds (stale hourly data, text-wrap doubling row height, blobShape missing content-clipping onto the panel background, NotchShape's real taper clipping the daily row, final height/gap tuning); see 33-02-SUMMARY.md. Only Phase 34 (Quick Action Destination Picker) remains.
 
-**v1.6:** 1/8 phases complete (13%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34. Phase 35 (GLASS-01) completed 2026-07-16 — on-device UAT required 4 rounds (round 1 flat opaque grey, round 2 uniformly bright, round 3 screen-blend washout over the frost's dark center, round 4 rim-masked the fringe/wash layers to the same edge falloff and passed); see 35-12-SUMMARY.md. A round-5 post-completion regression (flat grey rim, D-20) pivoted the island to SwiftUI's native `.glassEffect()` on macOS 26+, keeping the custom shader as the `<26` fallback; see 35-12-ADDENDUM-SUMMARY.md.
+**v1.6:** 6/8 phases complete (75%) — roadmap created 2026-07-15. Phases 35-42, 12/12 v1.6 requirements mapped. Left open in parallel with v1.5 (not archived); numbering starts at 35 to avoid colliding with v1.5's still-open Phase 34. Phase 35 (GLASS-01) completed 2026-07-16 — on-device UAT required 4 rounds (round 1 flat opaque grey, round 2 uniformly bright, round 3 screen-blend washout over the frost's dark center, round 4 rim-masked the fringe/wash layers to the same edge falloff and passed); see 35-12-SUMMARY.md. A round-5 post-completion regression (flat grey rim, D-20) pivoted the island to SwiftUI's native `.glassEffect()` on macOS 26+, keeping the custom shader as the `<26` fallback; see 35-12-ADDENDUM-SUMMARY.md. Phase 41 (HUD-08, Calendar Countdown HUD) completed 2026-07-18 — on-device UAT found and fixed a real-hardware-only bug: the countdown's mm:ss text partially rendered under the physical camera housing until its wing's right flank was widened to the same label-clearing width `deviceWings` already uses; see 41-04-SUMMARY.md. Phase 40 (Sparkle/Update HUD) still pending on-device UAT re-run (40-03); Phase 42 (Dual-Activity Display) not yet planned.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -817,7 +817,7 @@ Plans:
 
 **Wave 3** *(blocked on 41-02, 41-03)*
 
-- [ ] 41-04-PLAN.md — On-device UAT: live countdown, dismiss-at-start, idle-wakeup check, transient yield + back-to-back re-arm
+- [x] 41-04-PLAN.md — On-device UAT: Debug build + Cmd-U gate, consolidated 10-step checkpoint covering all 4 ROADMAP Success Criteria (approved; camera-cutout countdown-text layout bug found and fixed)
 
 ### Phase 42: Dual-Activity Display
 

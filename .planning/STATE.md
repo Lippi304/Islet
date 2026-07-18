@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
+status: completed
 stopped_at: Phase 41 UI-SPEC approved
-last_updated: "2026-07-18T12:58:58.016Z"
-last_activity: 2026-07-18
+last_updated: "2026-07-18T13:12:56.378Z"
+last_activity: 2026-07-18 -- Phase 41 marked complete
 progress:
   total_phases: 27
-  completed_phases: 18
+  completed_phases: 19
   total_plans: 83
-  completed_plans: 75
-  percent: 67
+  completed_plans: 76
+  percent: 70
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 41 — calendar-countdown-hud
+**Current focus:** Phase 41 complete — next: Phase 40 on-device UAT re-run (40-03) or Phase 42 planning (Dual-Activity Display)
 
 ## Current Position
 
-Phase: 41 (calendar-countdown-hud) — EXECUTING
+Phase: 41 — COMPLETE
 Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-07-18
+Status: Phase 41 complete
+Last activity: 2026-07-18 -- Phase 41 marked complete
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,7 +47,7 @@ Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23
 
 Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-32 complete; Phase 33 executing (Plan 1 of 2), Phase 34 not started; left open in parallel with v1.6)
 
-Progress (v1.6): [█████░░░░░] 50% (4/8 phases — Phases 35-36-38-39 complete, Phase 37 abandoned/reverted (counts as closed, not shipped), Phase 40 next)
+Progress (v1.6): [██████░░░░] 63% (5/8 phases — Phases 35-36-38-39-41 complete, Phase 37 abandoned/reverted (counts as closed, not shipped), Phase 40 pending on-device UAT re-run (40-03), Phase 42 not yet planned)
 
 ## Performance Metrics
 
@@ -136,6 +136,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 41]: D-01 priority check placed as literal first statement of resolve()'s ambient branch, before nowPlayingLaunchGate — the only place the countdown-over-media priority rule is expressed
 - [Phase 41]: handleCalendarCountdownChange(_:) body is exactly 3 lines with zero transientQueue/scheduleActivityDismiss references — the countdown is ambient, not an ActiveTransient (Pitfall 5)
 - [Phase 41]: [Phase 41-03] countdownWings(for:) computes icon+text urgency color once inside one shared TimelineView tick closure, structurally preventing icon/text color desync
+- [Phase 41]: countdownWings rightWidth widened from wingsSize.width/2 (145pt) to wingsLabelWidth/2 (200pt) to clear the physical camera cutout — On-device UAT found the mm:ss countdown text's leading digit rendering under the camera housing at the narrower icon-only-tuned width; reused the existing label-clearing constant deviceWings already established rather than a new magic number
 
 ### Roadmap Evolution
 
