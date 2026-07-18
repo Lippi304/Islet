@@ -32,6 +32,43 @@ Home is decluttered to music-only (dropping the idle weather/calendar/date fallb
 
 > **v1.6 Requirements (Liquid Glass & System HUD Suite) shipped 2026-07-19** — archived to `.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped, HUD-07 dropped (Phase 37 abandoned).
 
+## v1.7 Requirements — Interaction & Calendar Polish
+
+Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipped, plus 2 new Now Playing capabilities (favorite/like write-back, audio-output switcher) added mid-scoping and backed by dedicated research (`.planning/research/SUMMARY.md`). Started 2026-07-19 while v1.4 and v1.5 both remain open in parallel.
+
+### Drag Detection
+
+- [ ] **DRAG-01**: The island's auto-expand / Quick Action destination picker (Drop/AirDrop/Mail) only triggers on a genuine external file drag approaching the island (via `DragApproachDetector`) — a plain click or hover on the collapsed/expanded island never triggers it
+- [ ] **DRAG-02**: The Quick Action picker (the during-drag view shown before a file lands) renders at the exact same width as the real Tray view, so file icon sizing is visually consistent between the drag-preview and landed states
+
+### Tray
+
+- [ ] **TRAY-06**: The Tray/island is widened so every file icon fits without visual squeeze at typical file counts — per-file icon and button sizes stay unchanged from today
+
+### View Switcher
+
+- [ ] **SWITCH-01**: Switching between Home/Tray/Calendar/Weather tabs animates the island continuously (single spring morph via the existing `matchedGeometryEffect`) directly to the new tab's size — no intermediate disappear/rebuild flicker
+- [ ] **SWITCH-02**: The visual glitch where the island briefly renders behind the switcher pill buttons during a large→small transition (e.g. Calendar → Tray) is eliminated
+
+### Calendar Quick-Add
+
+- [ ] **CALVIEW-05**: Quick-add gains a date+time picker — Events get a start/end time range, Reminders get a single time. Default date is the calendar day the user tapped; default time is the next full hour if that day is today, otherwise 00:00
+- [ ] **CALVIEW-06**: The add-event button moves from the right edge (currently visually clipped) to the left, next to the day-list divider
+- [ ] **CALVIEW-07**: Calendar event rows get more padding/margin; the island grows a few pt wider and gains extra height to accommodate the added breathing room
+
+### Now Playing — Favorite
+
+- [ ] **FAV-01**: A star button, positioned left of the transport controls in the expanded Now Playing view, toggles the current track's favorite/liked status — writing back to the source app's own library: Apple Music via the AppleScript `loved` property, Spotify via its OAuth Web API for authorized accounts
+- [ ] **FAV-02**: Spotify write-back works only for accounts explicitly authorized through Islet's own OAuth flow — a small, manually-approved set of users under Spotify's Development Mode quota (not unlimited without Spotify granting Extended Quota to an organization); documented as an accepted limitation, not silently discovered
+- [ ] **FAV-03**: If a like/favorite write fails (e.g. Apple Music's documented bug for tracks not yet in the local library, or an unauthenticated/expired Spotify session), the star button visibly reflects the failure rather than silently appearing to succeed
+
+### Now Playing — Audio Output Switcher
+
+- [ ] **OUTPUT-01**: A speaker-icon button, positioned right of the transport controls in the expanded Now Playing view, reveals a panel with a volume slider (a thick draggable bar) controlling the current audio output's volume
+- [ ] **OUTPUT-02**: The panel also shows a vertical list of all available system audio outputs, with the current output visually highlighted and shown on top, others listed below
+- [ ] **OUTPUT-03**: Tapping a non-current output in the list makes it the active system audio output and it animates to the top of the list (tap-to-select, not drag-to-reorder)
+- [ ] **OUTPUT-04**: The output list stays correct when a device connects or disconnects while the panel is open (e.g. AirPods reconnect) — no duplicate or stale entries, keyed by device UID not the ephemeral `AudioDeviceID`
+
 ## v2 Requirements
 
 Deferred to a future milestone, not in this roadmap.
@@ -92,5 +129,6 @@ v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is 
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-19 — v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`. v1.5 remains open in parallel — Phase 33 (Weather widget) on-device UAT still pending.*
+*Last updated: 2026-07-19 — v1.7 (Interaction & Calendar Polish) requirements defined: 15 REQ-IDs total. 8 scoped directly from user bug reports, no research needed (DRAG-01/02, TRAY-06, SWITCH-01/02, CALVIEW-05/06/07). 7 added mid-scoping after a dedicated 4-dimension research pass (`.planning/research/SUMMARY.md`) — FAV-01/02/03 (Now Playing favorite/like write-back) and OUTPUT-01/02/03/04 (audio-output switcher). v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
+*v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
 *v1.5 requirements defined 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
