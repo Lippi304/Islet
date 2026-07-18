@@ -55,7 +55,7 @@ Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Dropp
 - [ ] **HUD-05**: A Focus Mode HUD appears when the user toggles Focus/Do Not Disturb, showing generic on/off state only (named-mode detection, e.g. "Work Focus" vs "Sleep", is not guaranteed available on current macOS — see Out of Scope)
 - [ ] **HUD-06**: An Update-available HUD appears when a new Islet version is published, backed by a real Sparkle 2 auto-update integration; tapping it triggers Sparkle's own standard install/progress dialog rather than a fully custom in-notch install flow (see Out of Scope)
 - [ ] **HUD-07**: A Drop-session summary chip briefly appears after the Tray is closed following a drop session, showing how many files were saved — requires adding a session-boundary concept to `ShelfViewState`/`ShelfCoordinator` that does not exist today (`isVisible` is currently just `!items.isEmpty`)
-- [x] **HUD-08**: Starting 1 hour before a calendar event, the collapsed pill shows a live minute-countdown (calendar icon left, event time right) that updates continuously until the event starts — uses its own persistent timer, not the shared 3s `activityDuration` auto-dismiss
+- [ ] **HUD-08**: Starting 1 hour before a calendar event, the collapsed pill shows a live minute-countdown (calendar icon left, event time right) that updates continuously until the event starts — uses its own persistent timer, not the shared 3s `activityDuration` auto-dismiss
 
 ### Dual-Activity Display
 
@@ -121,7 +121,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HUD-03 | Phase 39 | Complete |
 | HUD-04 | Phase 39 | Complete |
 | HUD-06 | Phase 40 | Pending |
-| HUD-08 | Phase 41 | Complete |
+| HUD-08 | Phase 41 | Pending |
 | DUAL-01 | Phase 42 | Pending |
 
 **Coverage (v1.5):**
