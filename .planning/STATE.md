@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: completed
-stopped_at: Phase 41 UI-SPEC approved
-last_updated: "2026-07-18T13:12:56.378Z"
-last_activity: 2026-07-18 -- Phase 41 marked complete
+stopped_at: Phase 40 marked complete
+last_updated: "2026-07-18T17:56:00.000Z"
+last_activity: 2026-07-18 -- Phase 40 marked complete (40-03 badge-tap bug root-caused, indicator redesigned to menu-bar dot)
 progress:
   total_phases: 27
-  completed_phases: 19
+  completed_phases: 20
   total_plans: 83
-  completed_plans: 76
-  percent: 70
+  completed_plans: 77
+  percent: 74
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 41 complete — next: Phase 40 on-device UAT re-run (40-03) or Phase 42 planning (Dual-Activity Display)
+**Current focus:** Phase 40 complete — next: Phase 42 planning (Dual-Activity Display), the only remaining v1.6 phase
 
 ## Current Position
 
-Phase: 41 — COMPLETE
-Plan: 4 of 4
-Status: Phase 41 complete
-Last activity: 2026-07-18 -- Phase 41 marked complete
+Phase: 40 — COMPLETE
+Plan: 3 of 3
+Status: Phase 40 complete
+Last activity: 2026-07-18 -- Phase 40 marked complete (40-03 badge-tap bug root-caused, indicator redesigned to menu-bar dot)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -225,12 +225,13 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T12:57:27.480Z
-Stopped at: Phase 41 UI-SPEC approved
+Last session: 2026-07-18T17:56:00.000Z
+Stopped at: Phase 40 marked complete
 Resume file: None
 
 ## Operator Next Steps
 
+- Phase 40 (Update-Available HUD & Sparkle Integration) is now fully complete. This session's on-device checkpoint (40-03) root-caused the badge-tap bug carried over from the prior session: tapping the collapsed-pill badge passed the click straight through the app window because `NotchWindowController`'s click-through `hotZone` didn't reliably cover the badge overlay's actual position. Rather than patch that geometry, the update-available indicator was redesigned to a small red dot on the menu-bar status item icon — always fully clickable by construction, sidestepping the whole click-through-zone class of bug. `UpdateAvailableState.swift` and the pill badge overlay were deleted; see `40-03-SUMMARY.md` for the full record, including which of the original 40-UI-SPEC.md decisions (D-05/D-06/D-07) this supersedes. Release archive launch (embedded Sparkle.framework under Hardened Runtime) confirmed crash-free on-device. Only Phase 42 (Dual-Activity Display) remains for v1.6 — start `/gsd-discuss-phase 42` next.
 - Phase 39 (Volume & Brightness HUD) is now fully complete, including its gap-closure addendum (plan 39-08): native OSD suppression genuinely works via `.cghidEventTap` (D-14), self-driven volume/brightness/mute (D-15), and a snappier fill animation (D-16) — all confirmed on-device with zero transport-key regressions. 39-08's own on-device checkpoint directly covered the gap-closure's success criteria, so a separate `/gsd:verify-work 39` pass is not needed, per this project's established precedent (Phase 29/36/38). Start `/gsd-discuss-phase 40` (Update-Available HUD & Sparkle Integration) next.
 - Phase 38 (Focus Mode HUD) is complete — all 9 plans executed, ROADMAP.md and this file updated. 38-09's own on-device UAT checkpoint directly covered all 4 ROADMAP Success Criteria (see ROADMAP.md Phase 38 entry for the per-criterion confirmation), so a separate `/gsd:verify-work 38` pass is not needed, per this project's established precedent (Phase 29/36).
 - `38-UI-SPEC.md`'s Focus Wing Contract section is now stale (describes the pre-redesign icon+label/bare-dot layout) — not fixed in this session, flag for a docs-sync pass if it matters before Phase 39 planning references it.
