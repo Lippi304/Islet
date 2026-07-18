@@ -105,3 +105,8 @@ None - no external service configuration required this plan.
 ---
 *Phase: 40-update-available-hud-sparkle-integration*
 *Completed: 2026-07-18*
+
+## Self-Check: PASSED
+
+All modified files verified present on disk; all 3 task/plan commits (`6a2fe53`, `5390407`,
+`f6132cf`) verified present in git log.
