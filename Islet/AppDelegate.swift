@@ -1,11 +1,17 @@
 import SwiftUI
 import AppKit
+import Sparkle
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menu: NSMenu!
     private var didHideSettingsAtLaunch = false
     private var licenseObserver: NSObjectProtocol?
+    // Phase 40 / HUD-06 — owns the Sparkle updater for the app's lifetime, parallel to
+    // notchController. `userDriverDelegate: nil` means Sparkle's own default
+    // SPUStandardUserDriver renders the standard alert (no custom SPUUserDriver, explicitly
+    // out of scope per REQUIREMENTS.md).
+    private var updaterController: SPUStandardUpdaterController!
     // Phase 1: owns the notch overlay panel. Retained for the app's lifetime so the
     // panel and its screen-change observer stay alive (a dropped controller would
     // tear down the overlay). Parallel to `statusItem`.
@@ -50,6 +56,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu = NSMenu()
         menu.addItem(withTitle: "Settings…",
                      action: #selector(openSettings), keyEquivalent: ",")
+        // Phase 40 / HUD-06 — sits between "Settings…" and the separator (40-UI-SPEC.md Menu
+        // Item Contract).
+        menu.addItem(withTitle: "Check for Updates…",
+                     action: #selector(checkForUpdates), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Islet",
                      action: #selector(quit), keyEquivalent: "q")
@@ -66,6 +76,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             forName: UserDefaults.didChangeNotification, object: nil, queue: .main
         ) { [weak self] _ in
             self?.applyMenuBarClickRouting(isLicensed: LicenseState.shared.isEntitled)
+            // Phase 40 / HUD-06 (D-11) — re-apply the auto-update-check toggle live, mirrors
+            // applyMenuBarClickRouting's own re-apply-on-change pattern above.
+            self?.updaterController?.updater.automaticallyChecksForUpdates = UserDefaults.standard.object(forKey: ActivitySettings.autoUpdateCheckKey) as? Bool ?? true
         }
 
         // Phase 1: build and show the notch overlay on the built-in notched display.
@@ -74,6 +87,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = NotchWindowController()
         controller.start(isFirstLaunch: isFirstLaunch)
         self.notchController = controller
+
+        // Phase 40 / HUD-06 — construct Sparkle after the notch controller so
+        // `controller.onUpdateBadgeTapped` has a live `updaterController` to close over.
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
+        // D-12: the `UserDefaults.standard.object(forKey:) as? Bool ?? true` shape mirrors
+        // NotchWindowController.activityEnabled(_:)'s pattern but with a `true` default,
+        // distinct from that method's focusKey-only `false` branch.
+        updaterController.updater.automaticallyChecksForUpdates = UserDefaults.standard.object(forKey: ActivitySettings.autoUpdateCheckKey) as? Bool ?? true
+        controller.onUpdateBadgeTapped = { [weak self] in self?.updaterController.checkForUpdates(nil) }
 
         // A menu-bar agent must NOT show its Settings window on launch — once
         // "Launch at login" is enabled it would otherwise pop up on every login.
@@ -138,6 +160,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .makeKeyAndOrderFront(nil)
     }
 
+    // Phase 40 / HUD-06 — RESEARCH.md Pitfall 2 / 40-UI-SPEC.md Menu Item Contract: unlike
+    // openSettings(), no NSApp.activate(ignoringOtherApps:) here — this is an explicit
+    // user-initiated click, so Sparkle's own dialog activating/stealing focus on tap is
+    // expected and acceptable.
+    @objc private func checkForUpdates() {
+        updaterController.checkForUpdates(nil)
+    }
+
     @objc private func quit() {
         NSApp.terminate(nil)
     }
@@ -189,4 +219,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         TrialManager.shared.recordFirstLaunchIfNeeded()
     }
     #endif
+}
+
+// Phase 40 / HUD-06 (D-13, RESEARCH.md Pattern 2) — no updaterDidNotFindUpdate override: the
+// flag only needs to go true on a genuine find, nothing needs to actively clear it.
+extension AppDelegate: SPUUpdaterDelegate {
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        notchController?.updateAvailableState.updateAvailable = true
+    }
 }

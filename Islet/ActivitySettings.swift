@@ -24,6 +24,10 @@ enum ActivitySettings {
     // visibility (D-06) — see NotchWindowController's unconditional `startOSDInterceptor()`
     // call, which does NOT read this key.
     static let osdSuppressionKey = "activity.osdSuppression"
+    // Phase 40 / HUD-06 (D-11) — gates Sparkle's automaticallyChecksForUpdates only; default
+    // ON (D-12, wired in SettingsView.swift) since it gates no system permission, just a
+    // background network check.
+    static let autoUpdateCheckKey = "activity.autoUpdateCheck"
     // Phase 27 / VISUAL-03 / D-08: this key is now read ONLY as the legacy
     // migration source (see migrateLegacyAccentIfNeeded below) — never as a
     // live rendering key. The 3 per-element accent keys below replace it.
