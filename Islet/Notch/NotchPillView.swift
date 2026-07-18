@@ -752,8 +752,8 @@ struct NotchPillView: View {
             deviceWings(for: d)                                              // D-02 rank 2 transient
         case .nowPlayingWings(let p):
             mediaWingsOrToast(p)                                             // D-02 collapsed media glance / Phase 18 toast
-        case .calendarCountdown:
-            EmptyView()  // Phase 41 / HUD-08 placeholder — Plan 03 replaces this arm with countdownWings(for:)
+        case .calendarCountdown(let activity):
+            countdownWings(for: activity)  // Phase 41 / HUD-08: ambient, D-01 always wins over nowPlayingWings
         case .nowPlayingExpanded(let p, true):
             mediaExpanded(p, art: nowPlaying.artwork)                        // NOW-01/02 controls (healthy)
         case .nowPlayingExpanded(_, false):
@@ -2284,6 +2284,46 @@ struct NotchPillView: View {
                         .foregroundStyle(.white)
                 }
                 .padding(.trailing, 20)
+            }
+        }
+    }
+
+    // Phase 41 / HUD-08 (D-05) — urgency threshold: instant switch at 60s remaining, no
+    // gradient/interpolation between orange and red (locked, 41-UI-SPEC.md).
+    private func urgencyColor(for eventStart: Date, at now: Date) -> Color {
+        eventStart.timeIntervalSince(now) < 60 ? .red : .orange
+    }
+
+    // Phase 41 / HUD-08 (D-04) — mm:ss, zero-padded, no hour component (max 59:59 since the
+    // countdown only starts 1 hour before the event).
+    private func formatMMSS(_ seconds: TimeInterval) -> String {
+        let total = max(0, Int(seconds))
+        return String(format: "%02d:%02d", total / 60, total % 60)
+    }
+
+    // Phase 41 / HUD-08 — calendar icon left / live mm:ss right, mirrors focusWings(for:)'s
+    // shape. CRITICAL: both the icon and text colors come from ONE shared `color` computed
+    // inside the single TimelineView tick closure below — putting the Image outside the
+    // TimelineView (frozen color, never re-renders) and only the Text inside would desync
+    // icon/text color, exactly what 41-UI-SPEC.md's Verification Notes warns against.
+    private func countdownWings(for activity: CalendarCountdownActivity) -> some View {
+        wingsShape(leftWidth: 118, rightWidth: Self.wingsSize.width / 2) {
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let remaining = max(0, activity.eventStart.timeIntervalSince(context.date))
+                let color = urgencyColor(for: activity.eventStart, at: context.date)
+                HStack(spacing: 0) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 13, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(color)
+                        .padding(.leading, 14)
+                    Spacer()                                      // clears the physical camera bridge
+                    Text(formatMMSS(remaining))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(color)
+                        .padding(.trailing, 20)
+                }
             }
         }
     }
