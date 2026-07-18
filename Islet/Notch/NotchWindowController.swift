@@ -228,6 +228,16 @@ final class NotchWindowController {
     // stored property so the nonisolated deinit can call its stop() (nonisolated func stop()).
     private var focusModeMonitor: FocusModeMonitor?
 
+    // Phase 41 / HUD-08 — the LIVE Calendar Countdown monitor. Constructed + started in start()
+    // ONLY when the toggle is on (default ON, D-03) — unlike Focus, there is no separate
+    // permission-authorized gate to check, Calendar access is already resolved lazily inside
+    // CalendarService.
+    private var calendarCountdownMonitor: CalendarCountdownMonitor?
+    // Phase 41 / HUD-08 — controller-owned state read fresh on every currentPresentation() call;
+    // the pure resolver has no memory across calls (mirrors pendingDrop's shape, not
+    // nowPlayingState.presentation's separate-ObservableObject shape).
+    private var calendarCountdownActivity: CalendarCountdownActivity?
+
     // Phase 39 / HUD-03/HUD-04 (D-06) — the LIVE OSD key-press detector. Unlike EVERY
     // toggle-gated monitor above (powerMonitor/bluetoothMonitor/nowPlayingMonitor/
     // focusModeMonitor), this one starts UNCONDITIONALLY in start() — the Volume/Brightness
@@ -510,6 +520,9 @@ final class NotchWindowController {
         // in Plan 38-06's SettingsView code, at the moment the toggle is switched on).
         if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized { startFocusModeMonitor() }
 
+        // Phase 41 / HUD-08 (D-03): default-ON toggle, no permission gate to check.
+        if activityEnabled(ActivitySettings.calendarCountdownKey) { startCalendarCountdownMonitor() }
+
         // Phase 39 / HUD-03/HUD-04 (D-06): UNCONDITIONAL start — mirrors startOutfitRefresh()'s
         // own unconditional-start precedent below. Unlike every toggle-gated monitor above, OSD
         // detection is NOT gated behind an activityEnabled(...) check: the Volume/Brightness HUD
@@ -662,6 +675,16 @@ final class NotchWindowController {
         monitor.start()
     }
 
+    // Phase 41 / HUD-08 — idempotent start, mirrors startFocusModeMonitor()'s exact shape.
+    private func startCalendarCountdownMonitor() {
+        guard calendarCountdownMonitor == nil else { return }
+        let monitor = CalendarCountdownMonitor(calendarService: calendarService) { [weak self] activity in
+            self?.handleCalendarCountdownChange(activity)
+        }
+        calendarCountdownMonitor = monitor
+        monitor.start()
+    }
+
     // Phase 38-08 / HUD-05 gap closure (CR-02/WR-02): called by SettingsView's Focus
     // permission "Continue" button once FocusModeMonitor.requestAuthorization's completion
     // resolves `true` — the one event that previously had no path to actually start the
@@ -784,7 +807,8 @@ final class NotchWindowController {
                        isExpanded: interaction.isExpanded,
                        selectedView: viewSwitcherState.selectedView,
                        onboardingStep: onboardingStep,
-                       pendingDrop: pendingDrop)
+                       pendingDrop: pendingDrop,
+                       calendarCountdown: calendarCountdownActivity)
     }
 
     // Write the resolver's verdict to the @Published carrier the view observes. The CALLER owns
@@ -1671,6 +1695,19 @@ final class NotchWindowController {
         }
     }
 
+    // Phase 41 / HUD-08 — the live Calendar Countdown change lands here (already on main; the
+    // monitor's callback hopped). This is the ENTIRE function body: it never touches
+    // transientQueue.enqueue/preempt, flushTransients, or scheduleActivityDismiss (Pitfall 5 —
+    // the countdown is ambient, not an ActiveTransient); it only mutates the plain stored
+    // property currentPresentation() reads fresh on every call.
+    private func handleCalendarCountdownChange(_ activity: CalendarCountdownActivity?) {
+        calendarCountdownActivity = activity
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+        updateVisibility()
+    }
+
     // Phase 39 / HUD-03/HUD-04 — the live OSD key press lands here (already on main; the
     // interceptor's callback already hopped). Builds the OSDActivity from a fresh hardware
     // read, then branches on the CURRENT head:
@@ -1906,6 +1943,20 @@ final class NotchWindowController {
         } else if focusModeMonitor != nil {
             focusModeMonitor?.stop(); focusModeMonitor = nil
             flushTransients(.focus)
+        }
+
+        // Phase 41 / HUD-08 — Calendar Countdown. Mirrors the Charging/Devices toggle-off
+        // pattern exactly: stop the monitor, release it, clear the ambient state, re-render.
+        if activityEnabled(ActivitySettings.calendarCountdownKey) {
+            startCalendarCountdownMonitor()
+        } else if calendarCountdownMonitor != nil {
+            calendarCountdownMonitor?.stop()
+            calendarCountdownMonitor = nil
+            calendarCountdownActivity = nil
+            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                renderPresentation()
+            }
+            updateVisibility()
         }
 
         // Now Playing — stop the perl child on disable (RESEARCH Open Q3: prefer a clean restart);
@@ -2307,6 +2358,10 @@ final class NotchWindowController {
         // Phase 38 / HUD-05: tear down the Focus poll timer — mirrors bluetoothMonitor?.stop()'s
         // owner-driven teardown discipline exactly.
         focusModeMonitor?.stop()
+
+        // Phase 41 / HUD-08: tear down the Calendar Countdown monitor — mirrors
+        // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
+        calendarCountdownMonitor?.stop()
 
         // Phase 39 / HUD-03/HUD-04: tear down the OSD key-press event tap — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
