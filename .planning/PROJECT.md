@@ -14,6 +14,10 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current State
 
+**Phase 42 (Dual-Activity Display, DUAL-01) shipped 2026-07-19 — the last phase of v1.6.** v1.6 (Liquid Glass & System HUD Suite) is now fully code-complete (8/8 phases), pending a formal `/gsd:complete-milestone`. On-device UAT ran 3 rounds: round 1 approved the functional behavior but flagged the secondary bubble as visually attached to the top edge instead of a distinct floating circle; round 2 fixed vertical centering + added a contrast rim; round 3 replaced the bubble's original tap-to-expand/no-hover design (locked decisions D-12/D-13) with a hover-reveal play/pause control, per an explicit live user decision — see `42-04-SUMMARY.md` and `42-CONTEXT.md`'s superseded-by notes. Post-UAT verification also caught and closed one real gap (the resolver's primary/secondary rule was 2 hardcoded guard clauses, not the small ordered table D-03 itself specified) plus one code-review warning (a hardcoded hot-zone offset now derives from the bubble's own positioning constants) — see `42-VERIFICATION.md`.
+
+**Note:** PROJECT.md's Current State/Validated sections were not updated for Phases 38-41 (their `update_project_md` step appears to have been skipped in those runs) — the "Last updated" footer jumped from Phase 36 (2026-07-16) straight to this entry. Consider a `/gsd-docs-update` pass to backfill that gap if it matters for onboarding/handoff purposes.
+
 **Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/HUD-02/EQ-01/ONBOARD-04) shipped 2026-07-16** — v1.6's second phase. See "Current Milestone: v1.6" and Requirements → Validated below.
 
 **Phase 35 (Liquid Glass Material, GLASS-01) shipped 2026-07-16** — v1.6's first phase. See "Current Milestone: v1.6" and Requirements → Validated below.
@@ -222,12 +226,18 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 - [x] Onboarding signature heading (ONBOARD-04) — scope-pivoted mid-execution (D-14): the originally planned live stroke-reveal animation was replaced with a static, non-animated "Meet Islet" heading in Dancing Script Bold, "Meet" in a blue→purple→pink gradient and "Islet" in an orange→yellow→green gradient, mirroring Droppy's own static rainbow-gradient onboarding heading. The pivot followed real font-licensing risk (the reference's original font, Lastoria Bold, is all-rights-reserved, not legally shippable in a paid product) plus repeated stroke-weight/clipping friction with the animated approach; body subtext below it untouched. (Phase 36)
 - Code review found no blockers; one open, non-blocking warning carried forward: the widened Charging/Connected wing labels may extend past the existing tap hot-zone (on-device tap test confirmed no regression — see `36-REVIEW.md` WR-02). (Phase 36)
 
+**Dual-Activity Display (Phase 42 — DUAL-01):**
+
+- [x] When Calendar Countdown and Now Playing are both live, the collapsed island shows the countdown pill plus a small round secondary bubble (real album art) instead of one activity strictly winning — additive `IslandResolver.resolveSecondary()` extension, `IslandPresentation`/`resolve()` untouched. Primary/secondary pairing is expressed as a genuine small ordered table (per locked decision D-03), scoped to today's 2 activity kinds. (Phase 42)
+- [x] Tapping/hovering the bubble was redesigned live during on-device UAT: hovering darkens the bubble and reveals a play/pause glyph matching current playback state; tapping toggles play/pause directly via the existing `NowPlayingMonitor.togglePlayPause()` — this supersedes the original plan's tap-to-expand/no-hover design (D-12/D-13), by explicit user decision, not scope drift. (Phase 42)
+- Code review found no blockers; one warning (hardcoded hot-zone offset) was fixed post-review since it duplicated the exact fragility class that caused the Phase 40-03 badge-tap regression — see `42-REVIEW.md`/`42-VERIFICATION.md`. Three smaller warnings (duplicated launch-gate derivation, a missing `deinit` cancel, hover-state view scoping) remain as non-blocking backlog. (Phase 42)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
 _v1.5 (Home Focus & Widget Redesign) — see `.planning/milestones/v1.5-ROADMAP.md`/`.planning/ROADMAP.md` for the full 11-requirement traceability table. Remaining, left open in parallel: Phase 33 on-device UAT (WEATHER-01/02)._
-_v1.6 (Liquid Glass & System HUD Suite) — Phase 35 (GLASS-01) and Phase 36 (HUD-01, HUD-02, EQ-01, ONBOARD-04) shipped, see above. Remaining: Phases 37-42 (HUD-05..08, DUAL-01) — see `.planning/REQUIREMENTS.md`._
+_v1.6 (Liquid Glass & System HUD Suite) — fully code-complete, 8/8 phases shipped (Phase 37 abandoned, see ROADMAP; Phases 35/36/38-42 shipped, see Validated above and `.planning/REQUIREMENTS.md`). Pending a formal `/gsd:complete-milestone` to close out._
 
 ### Out of Scope
 
@@ -326,4 +336,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-16 — Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/HUD-02/EQ-01/ONBOARD-04), v1.6's second phase, shipped and verified on-device — ONBOARD-04 scope-pivoted mid-execution (D-14) from a stroke-reveal animation to a static rainbow-gradient heading after a font-licensing risk and repeated implementation friction. Phase 35 (Liquid Glass Material, GLASS-01), v1.6's first phase, shipped and verified on-device after 4 rounds of UAT rejection/remediation. v1.5 (Home Focus & Widget Redesign) still left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
+*Last updated: 2026-07-19 — Phase 42 (Dual-Activity Display, DUAL-01), the last phase of v1.6, shipped and verified on-device across 3 UAT rounds — the bubble's tap-to-expand/no-hover design (D-12/D-13) was superseded live by explicit user decision in favor of a hover-reveal play/pause control. v1.6 (Liquid Glass & System HUD Suite) is now fully code-complete (8/8 phases), pending formal `/gsd:complete-milestone`. Note: this file's Validated/Current-State sections were not updated for Phases 38-41 during their own runs — see the Current State note above. v1.5 (Home Focus & Widget Redesign) still left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
