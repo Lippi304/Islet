@@ -1250,7 +1250,7 @@ final class NotchWindowController {
         // While expanded, the keep-open region is the full expanded island so the pointer can
         // travel down to the transport controls without reading as a hot-zone exit (which would
         // collapse the island after the grace delay). Collapsed/hovering use the small pill zone.
-        let activeZone = interaction.isExpanded ? (expandedZone ?? hotZone) : hotZone
+        let activeZone = interaction.isExpanded ? (expandedZone ?? hotZone) : collapsedInteractiveZone()
         guard let zone = activeZone else { return }
         let inside = zone.contains(point)
         // WR-01: the enter/exit edge is about the POINTER being in the zone, so track it
@@ -1273,6 +1273,24 @@ final class NotchWindowController {
         if interaction.isExpanded {
             syncClickThrough()
         }
+    }
+
+    // Phase 42 / DUAL-01 (T-42-07) — 42-02's on-device spike confirmed "passes through": the
+    // plain `hotZone` (sized to the small collapsed pill) does NOT cover wing-tier-adjacent
+    // content, the same mechanism as the Phase 40-03 badge-tap regression. Returns `hotZone`
+    // UNCHANGED for every case except when a secondary bubble is actually showing, in which case
+    // it widens the TRAILING (right) edge out to cover the bubble's own real screen position —
+    // bounded to an exact, code-reviewed constant tied 1:1 to 42-03's shipped `.offset(x: 220)`
+    // bubble-center positioning (never an open-ended region, T-42-07).
+    private func collapsedInteractiveZone() -> CGRect? {
+        guard let hotZone else { return nil }
+        guard presentationState.secondary != nil else { return hotZone }
+        let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
+        let bubbleFarEdge = collapsedFrame.midX + 220
+            + NotchPillView.secondaryBubbleDiameter / 2 + hotZonePadding
+        guard bubbleFarEdge > hotZone.maxX else { return hotZone }
+        return CGRect(x: hotZone.minX, y: hotZone.minY,
+                      width: bubbleFarEdge - hotZone.minX, height: hotZone.height)
     }
 
     // CR-01 — the actual VISIBLE-content rect, narrower than expandedZone (which is the
@@ -1503,6 +1521,23 @@ final class NotchWindowController {
         // (expand → interactive, toggle-shut while still in zone → still interactive until
         // exit, toggle-shut already out → pass-through).
         syncClickThrough()
+    }
+
+    // Phase 42 / DUAL-01 (D-12) — tapping the secondary bubble expands to the Now-Playing/Home
+    // media view. Mirrors handleClick()'s guard-first / withAnimation / trailing-updateVisibility
+    // shape, but deliberately SKIPS the expand transition if the island is already expanded (D-12
+    // says "expands to", not "toggles" — a second tap on the bubble while already expanded on
+    // Home must not re-collapse it).
+    private func handleSecondaryTap() {
+        guard !isOnboardingActive else { return }
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            viewSwitcherState.selectedView = .home
+            if !interaction.isExpanded {
+                interaction.phase = nextState(interaction.phase, .clicked)
+            }
+            renderPresentation()
+        }
+        updateVisibility()
     }
 
     // Phase 28 / CALVIEW-01/02/04 — routes through the SAME `calendarService` property
@@ -1912,6 +1947,7 @@ final class NotchWindowController {
                       viewSwitcherState: viewSwitcherState,
                       calendarViewState: calendarViewState,
                       onClick: { [weak self] in self?.handleClick() },
+                      onSecondaryTap: { [weak self] in self?.handleSecondaryTap() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
                       // monitor — no re-spawn, no focus steal.
                       onTogglePlayPause: { [weak self] in self?.nowPlayingMonitor?.togglePlayPause() },
