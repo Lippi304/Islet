@@ -23,6 +23,15 @@ protocol CalendarService: AnyObject {
     ///   Settles `[]` (never `nil`) on Calendar access denial — never retries, never re-prompts.
     func fetchMonth(containing date: Date, completion: @escaping ([EventInput]) -> Void)
 
+    /// Phase 41 / HUD-08: fetch the raw upcoming-event list (same 2-day predicate window as
+    /// `fetchUpcoming`, all active calendars) for `CalendarCountdownMonitor` (Plan 02), which
+    /// needs the raw list to find the next not-yet-started event via
+    /// `nextUpcomingEvent(events:now:lookahead:)`, beyond just the immediate 1hr countdown
+    /// lookahead.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   Settles `[]` (never `nil`) on Calendar access denial (D-03) — never retries, never re-prompts.
+    func fetchUpcomingRaw(completion: @escaping ([EventInput]) -> Void)
+
     /// Create a new Calendar event via the quick-add UI.
     /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
     ///   D-06: no new permission request here — Calendar write access is already covered by
@@ -79,6 +88,28 @@ final class EventKitService: CalendarService {
             // D-02: ALL active calendars, no per-calendar filter (same as fetchUpcoming).
             let calendars = store.calendars(for: .event)
             let predicate = store.predicateForEvents(withStart: interval.start, end: interval.end,
+                                                      calendars: calendars)
+            let events = store.events(matching: predicate)
+            let mapped = events.map { mapToEventInput($0) }
+            await MainActor.run { completion(mapped) }
+        }
+    }
+
+    func fetchUpcomingRaw(completion: @escaping ([EventInput]) -> Void) {
+        Task {
+            let granted = (try? await store.requestFullAccessToEvents()) ?? false
+            guard granted else {
+                // D-03: access denied — settle [], no retry, no re-prompt.
+                await MainActor.run { completion([]) }
+                return
+            }
+
+            // Mirrors fetchUpcoming's exact 2-day predicate/ALL-calendars shape (not
+            // fetchMonth's calendar-month-boundary predicate) — avoids missing a
+            // late-month event whose 1hr lookahead crosses into next month.
+            let calendars = store.calendars(for: .event)
+            let predicate = store.predicateForEvents(withStart: Date(),
+                                                      end: Date().addingTimeInterval(2 * 24 * 3600),
                                                       calendars: calendars)
             let events = store.events(matching: predicate)
             let mapped = events.map { mapToEventInput($0) }
