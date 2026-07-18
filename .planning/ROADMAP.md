@@ -834,7 +834,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 42-01-PLAN.md — Resolver extension: SecondaryActivity enum + resolveSecondary(primary:nowPlaying:) pure function + IslandPresentationState.secondary field (D-01/D-02/D-03/D-04/D-10)
+- [x] 42-01-PLAN.md — Resolver extension: SecondaryActivity enum + resolveSecondary(primary:nowPlaying:) pure function + IslandPresentationState.secondary field (D-01/D-02/D-03/D-04/D-10)
 - [ ] 42-02-PLAN.md — On-device spike: does tapping the far outer edge of an existing wing register a click today? (resolves 42-RESEARCH.md Pitfall 2 before bubble work begins)
 
 **Wave 2** *(blocked on 42-01)*

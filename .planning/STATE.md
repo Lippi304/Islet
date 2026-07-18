@@ -4,13 +4,13 @@ milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
 stopped_at: Phase 42 UI-SPEC approved
-last_updated: "2026-07-18T19:04:10.185Z"
-last_activity: 2026-07-18 -- Phase 42 planning complete
+last_updated: "2026-07-18T19:16:42.173Z"
+last_activity: 2026-07-18
 progress:
   total_phases: 27
   completed_phases: 20
   total_plans: 87
-  completed_plans: 77
+  completed_plans: 78
   percent: 74
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 40 complete — next: Phase 42 planning (Dual-Activity Display), the only remaining v1.6 phase
+**Current focus:** Phase 42 — dual-activity-display
 
 ## Current Position
 
-Phase: 40 — COMPLETE
-Plan: 3 of 3
+Phase: 42 (dual-activity-display) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-18 -- Phase 42 planning complete
+Last activity: 2026-07-18
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -104,6 +104,7 @@ Progress (v1.6): [██████░░░░] 63% (5/8 phases — Phases 35-
 | Phase 41 P01 | 10min | 3 tasks | 7 files |
 | Phase 41 P02 | 10min | 2 tasks | 3 files |
 | Phase 41 P03 | 8min | 2 tasks | 2 files |
+| Phase 42 P01 | 10min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 41]: handleCalendarCountdownChange(_:) body is exactly 3 lines with zero transientQueue/scheduleActivityDismiss references — the countdown is ambient, not an ActiveTransient (Pitfall 5)
 - [Phase 41]: [Phase 41-03] countdownWings(for:) computes icon+text urgency color once inside one shared TimelineView tick closure, structurally preventing icon/text color desync
 - [Phase 41]: countdownWings rightWidth widened from wingsSize.width/2 (145pt) to wingsLabelWidth/2 (200pt) to clear the physical camera cutout — On-device UAT found the mm:ss countdown text's leading digit rendering under the camera housing at the narrower icon-only-tuned width; reused the existing label-clearing constant deviceWings already established rather than a new magic number
+- [Phase 42-01]: resolveSecondary(primary:nowPlaying:) takes primary as input rather than re-deriving activeTransient/isExpanded, so D-10/D-04 fall out structurally instead of via duplicated checks
 
 ### Roadmap Evolution
 
@@ -225,9 +227,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T18:36:03.037Z
+Last session: 2026-07-18T19:15:25.263Z
 Stopped at: Phase 42 UI-SPEC approved
-Resume file: .planning/phases/42-dual-activity-display/42-UI-SPEC.md
+Resume file: None
 
 ## Operator Next Steps
 

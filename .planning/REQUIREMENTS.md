@@ -59,7 +59,7 @@ Islet gets an edgier "Liquid Glass" material look, a suite of new/restyled Dropp
 
 ### Dual-Activity Display
 
-- [ ] **DUAL-01**: When two top-priority activities are live simultaneously (e.g. the Calendar countdown and Now Playing), the collapsed state shows a main pill plus a small secondary bubble instead of one activity strictly winning via the current single-winner `IslandResolver` — generalizes to any two competing top-priority activities, not just Calendar+Music
+- [x] **DUAL-01**: When two top-priority activities are live simultaneously (e.g. the Calendar countdown and Now Playing), the collapsed state shows a main pill plus a small secondary bubble instead of one activity strictly winning via the current single-winner `IslandResolver` — generalizes to any two competing top-priority activities, not just Calendar+Music
 
 ## v2 Requirements
 
@@ -122,7 +122,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HUD-04 | Phase 39 | Complete |
 | HUD-06 | Phase 40 | Pending |
 | HUD-08 | Phase 41 | Complete |
-| DUAL-01 | Phase 42 | Pending |
+| DUAL-01 | Phase 42 | Complete |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
