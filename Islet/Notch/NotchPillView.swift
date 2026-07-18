@@ -153,6 +153,15 @@ struct NotchPillView: View {
     // `islandFill` below can branch per-user-preference at all 4 fill sites.
     @Environment(\.islandMaterialStyle) private var materialStyle
 
+    // Phase 40 / HUD-06 (D-05) gap closure — 40-03 on-device UAT: an earlier GeometryReader +
+    // PreferenceKey + .overlayPreferenceValue attempt at cross-case badge placement rendered the
+    // badge stuck near the container's origin regardless of which shape was active (preference
+    // never propagated a real value on-device). This plain @State + onChange(of: proxy.size)
+    // approach only needs WIDTH (not a full absolute frame) — vertical alignment is handled for
+    // free by `.overlay(alignment: .top)` sharing the SAME top-pinned position presentationSwitch
+    // already uses, so there's no named-coordinate-space math to get wrong.
+    @State private var currentPillWidth: CGFloat = Self.collapsedSize.width
+
     // D-02 — the CLICK-to-expand callback. The view stays AppKit-free: it only reports
     // "the pill was tapped" via this plain closure. NotchWindowController owns the
     // closure and runs the focus-safe `nextState(_, .clicked)` mutation inside its spring
@@ -781,23 +790,49 @@ struct NotchPillView: View {
             // on-device it made the whole island read as uniform frosted glass instead of just
             // the rim, a worse regression than the momentary flat-black-during-transition bug
             // it was meant to fix. Back to rendering presentationSwitch directly.
+            //
+            // Phase 40 / HUD-06 (D-05) gap closure — tracks presentationSwitch's own resolved
+            // WIDTH into currentPillWidth (see @State decl above for why width-only, not a full
+            // PreferenceKey frame).
             presentationSwitch
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear
+                            .onAppear { currentPillWidth = proxy.size.width }
+                            .onChange(of: proxy.size.width) { _, newWidth in
+                                currentPillWidth = newWidth
+                            }
+                    }
+                )
         }
-        // Phase 40 / HUD-06 (D-05/D-06/D-07) — attached to the SAME outer container as
-        // presentationSwitch (not inside any individual IslandPresentation case body), so
-        // the badge renders regardless of whichever case is active (D-05). The `if` gates
-        // the badge's PRESENCE, not its opacity — no badge in the view tree at all when
-        // updateAvailable == false, mirroring the absence-based pattern OSD/Charging use.
-        // Reuses the existing nowPlayingAccent environment read (D-07) — no new EnvironmentKey.
-        .overlay(alignment: .topTrailing) {
+        // Phase 40 / HUD-06 (D-05) gap closure — an HStack pinned to the SAME top alignment
+        // presentationSwitch uses, sized to its tracked width so it's centered identically
+        // within the wide outer container (both share the same later .frame() calls, so
+        // matching widths land at the same edges). Spacer() pushes the badge to the trailing
+        // edge = the visible shape's own trailing edge, for whichever case is on screen.
+        .overlay(alignment: .top) {
             if shouldShowUpdateBadge(updateAvailable: updateAvailableState.updateAvailable, isExpanded: interaction.isExpanded) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(nowPlayingAccent)
-                    .offset(x: -4, y: 4)
-                    .accessibilityLabel("Update available")
-                    .onTapGesture { onUpdateBadgeTap() }
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(nowPlayingAccent)
+                        // 40-03 on-device UAT: the 12pt glyph's own default hit-testable area was
+                        // too small/imprecise to reliably tap. .contentShape widens the tappable
+                        // region to this full padded frame without growing the VISIBLE icon.
+                        .padding(8)
+                        .contentShape(Rectangle())
+                        .accessibilityLabel("Update available")
+                        .onTapGesture {
+                            #if DEBUG
+                            print("[HUD-06] update badge tapped")
+                            #endif
+                            onUpdateBadgeTap()
+                        }
+                }
+                .frame(width: currentPillWidth)
+                .allowsHitTesting(true)
             }
         }
         // Phase 21 bugfix (SHELF-06 UAT) — this outer container's height was still the

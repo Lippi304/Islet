@@ -78,7 +78,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.applyMenuBarClickRouting(isLicensed: LicenseState.shared.isEntitled)
             // Phase 40 / HUD-06 (D-11) — re-apply the auto-update-check toggle live, mirrors
             // applyMenuBarClickRouting's own re-apply-on-change pattern above.
-            self?.updaterController?.updater.automaticallyChecksForUpdates = UserDefaults.standard.object(forKey: ActivitySettings.autoUpdateCheckKey) as? Bool ?? true
+            // Guarded by equality: Sparkle's setter itself writes back to UserDefaults
+            // (SUHost setBool:forUserDefaultsKey:), which re-posts didChangeNotification —
+            // an unconditional set here re-triggers this closure forever (crash-loop).
+            let desired = UserDefaults.standard.object(forKey: ActivitySettings.autoUpdateCheckKey) as? Bool ?? true
+            if self?.updaterController?.updater.automaticallyChecksForUpdates != desired {
+                self?.updaterController?.updater.automaticallyChecksForUpdates = desired
+            }
         }
 
         // Phase 1: build and show the notch overlay on the built-in notched display.

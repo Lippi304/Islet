@@ -567,6 +567,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		6A6753D42077823B5927504B /* Workaround: Sparkle SPM embed path bug (clean up bare-name copy) */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -581,10 +582,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nrm -rf \"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle\"\nrm -rf \"${BUILT_PRODUCTS_DIR}/Sparkle\"\n";
+			shellScript = "set -e\nrm -rf \"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle\"\nrm -rf \"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle-product\"\nrm -rf \"${BUILT_PRODUCTS_DIR}/Sparkle\"\nrm -rf \"${BUILT_PRODUCTS_DIR}/Sparkle-product\"\nrm -f \"${BUILT_PRODUCTS_DIR}/Sparkle-product\"\n";
 		};
 		9BB521F0896B252FBF2405FF /* Workaround: Sparkle SPM embed path bug (stage) */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -599,7 +601,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nARTIFACT_ROOT=\"${BUILD_DIR%/Build/*}/SourcePackages/artifacts/sparkle\"\nSRC=$(find \"$ARTIFACT_ROOT\" -type d -name \"Sparkle.framework\" -path \"*Sparkle.xcframework*\" 2>/dev/null | head -1)\nif [ -n \"$SRC\" ] && [ -d \"$SRC\" ]; then\n  FW_DIR=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\n  mkdir -p \"$FW_DIR\"\n  rm -rf \"$FW_DIR/Sparkle\"\n  ditto \"$SRC\" \"$FW_DIR/Sparkle\"\n  mkdir -p \"${BUILT_PRODUCTS_DIR}\"\n  rm -rf \"${BUILT_PRODUCTS_DIR}/Sparkle\"\n  ditto \"$SRC\" \"${BUILT_PRODUCTS_DIR}/Sparkle\"\nfi\n";
+			shellScript = "set -e\nARTIFACT_ROOT=\"${BUILD_DIR%/Build/*}/SourcePackages/artifacts/sparkle\"\nSRC=$(find \"$ARTIFACT_ROOT\" -type d -name \"Sparkle.framework\" -path \"*Sparkle.xcframework*\" 2>/dev/null | head -1)\nif [ -n \"$SRC\" ] && [ -d \"$SRC\" ]; then\n  FW_DIR=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\n  mkdir -p \"$FW_DIR\"\n  rm -rf \"$FW_DIR/Sparkle\"\n  ditto \"$SRC\" \"$FW_DIR/Sparkle\"\n  mkdir -p \"${BUILT_PRODUCTS_DIR}\"\n  rm -rf \"${BUILT_PRODUCTS_DIR}/Sparkle\"\n  ditto \"$SRC\" \"${BUILT_PRODUCTS_DIR}/Sparkle\"\n  # Xcode.app's GUI build planner (distinct from `xcodebuild -scheme` CLI) ALSO runs an\n  # internal \"Copy Frameworks/Sparkle-product -> Products/Debug/Sparkle-product\" task for\n  # the synthesized \"Sparkle-product\" package-product target, which never actually builds\n  # anything on this toolchain. Stage a REAL copy (not an empty marker — that gets copied\n  # verbatim into Contents/Frameworks/Sparkle-product and breaks the final whole-app\n  # CodeSign step with \"code object is not signed at all\") so that copy task's own\n  # dependency-analysis finds its source already satisfied and no-ops.\n  rm -rf \"${BUILT_PRODUCTS_DIR}/Sparkle-product\"\n  ditto \"$SRC\" \"${BUILT_PRODUCTS_DIR}/Sparkle-product\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
