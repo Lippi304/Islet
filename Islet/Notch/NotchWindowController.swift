@@ -1523,21 +1523,14 @@ final class NotchWindowController {
         syncClickThrough()
     }
 
-    // Phase 42 / DUAL-01 (D-12) — tapping the secondary bubble expands to the Now-Playing/Home
-    // media view. Mirrors handleClick()'s guard-first / withAnimation / trailing-updateVisibility
-    // shape, but deliberately SKIPS the expand transition if the island is already expanded (D-12
-    // says "expands to", not "toggles" — a second tap on the bubble while already expanded on
-    // Home must not re-collapse it).
+    // Phase 42 / DUAL-01 (D-12, SUPERSEDED 2026-07-19 — live user decision during Plan 42-04
+    // Task 3's on-device UAT) — this used to expand to the Now-Playing/Home media view (D-12).
+    // No caller besides `makeRootView`'s `onSecondaryTap` wiring exists, so it's repurposed here
+    // rather than adding a second closure: tapping the bubble now toggles play/pause directly via
+    // the SAME `nowPlayingMonitor.togglePlayPause()` the transport row's play/pause button already
+    // calls (see `onTogglePlayPause` in `makeRootView`) — no expand, no view-switch.
     private func handleSecondaryTap() {
-        guard !isOnboardingActive else { return }
-        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-            viewSwitcherState.selectedView = .home
-            if !interaction.isExpanded {
-                interaction.phase = nextState(interaction.phase, .clicked)
-            }
-            renderPresentation()
-        }
-        updateVisibility()
+        nowPlayingMonitor?.togglePlayPause()
     }
 
     // Phase 28 / CALVIEW-01/02/04 — routes through the SAME `calendarService` property

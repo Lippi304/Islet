@@ -144,9 +144,12 @@ struct NotchPillView: View {
     // (and any unit construction) build without a controller.
     var onClick: () -> Void = {}
 
-    // Phase 42 / DUAL-01 (D-12) — the secondary bubble's tap callback, mirroring `onClick`'s
-    // exact declaration style. Defaults to a no-op so the DEBUG #Previews build without a
-    // controller; Plan 42-04 wires the real behavior.
+    // Phase 42 / DUAL-01 (D-12, SUPERSEDED 2026-07-19 — live user decision during Plan 42-04
+    // Task 3's on-device UAT) — the secondary bubble's tap callback, mirroring `onClick`'s
+    // exact declaration style. Originally wired to expand to Now-Playing (D-12); now repurposed
+    // to toggle play/pause directly (see `secondaryBubble(_:)` and
+    // `NotchWindowController.handleSecondaryTap()`). Defaults to a no-op so the DEBUG #Previews
+    // build without a controller.
     var onSecondaryTap: () -> Void = {}
 
     // NOW-02 — the transport callbacks, plain closures mirroring `onClick`. The view stays
@@ -2610,9 +2613,20 @@ struct NotchPillView: View {
     // `.nowPlaying`: the associated `NowPlayingPresentation` carries only title/artist, so the
     // artwork comes from this view's own `nowPlaying.artwork` property instead, the same
     // source `mediaExpanded(p, art: nowPlaying.artwork)` already uses.
+    // Debug session `secondary-bubble-hover-playpause` (2026-07-19, live user decision during
+    // Plan 42-04 Task 3's on-device UAT) — SUPERSEDES D-12/D-13 (42-CONTEXT.md), scoped strictly
+    // to this bubble (no other hover state in this file is affected): hovering now darkens the
+    // bubble and reveals a play/pause glyph reflecting the CURRENT playback state, and tapping
+    // now toggles play/pause directly instead of expanding to Now-Playing. Only one bubble ever
+    // renders at a time (D-04: exactly one secondary slot), so a single instance-level @State
+    // bool is enough — unlike TransportButton below, this doesn't need its own private View
+    // struct just to get independent per-instance hover state.
+    @State private var isSecondaryBubbleHovering = false
+
     private func secondaryBubble(_ activity: SecondaryActivity) -> some View {
         switch activity {
-        case .nowPlaying:
+        case .nowPlaying(let p):
+            let isPlaying = isPlayingFor(p)
             return Circle()
                 .fill(islandFill)
                 // matchedGeometryEffect MUST precede .frame (3x-fixed bug in this file).
@@ -2630,7 +2644,19 @@ struct NotchPillView: View {
                 // (consistent with the Liquid Glass aesthetic) and separates it from the pill
                 // at a glance, on top of the artwork so it stays visible.
                 .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 1))
-                .onTapGesture { onSecondaryTap() }             // D-12 — no .onHover anywhere (D-13)
+                // Round 2 (supersedes D-12/D-13, see @State decl above) — darken-on-hover +
+                // hover-revealed play/pause glyph, reusing the SAME `isPlayingFor(_:)` verdict
+                // the equalizer bars elsewhere in this file already derive from `p`.
+                .overlay(Circle().fill(Color.black.opacity(isSecondaryBubbleHovering ? 0.45 : 0)))
+                .overlay(
+                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .opacity(isSecondaryBubbleHovering ? 1 : 0)
+                )
+                .onHover { isSecondaryBubbleHovering = $0 }
+                // Tap now toggles playback directly (see onSecondaryTap's own decl comment).
+                .onTapGesture { onSecondaryTap() }
         }
     }
 
