@@ -111,6 +111,46 @@
 
 ---
 
+## Milestone: v1.6 — Liquid Glass & System HUD Suite
+
+**Shipped:** 2026-07-19
+**Phases:** 8 (35-42; Phase 37 abandoned/reverted) | **Plans:** 43 | **Sessions:** several across 2026-07-15 → 2026-07-19
+
+### What Was Built
+- A shader-based "Liquid Glass" background material across the collapsed pill, expanded island, and every activity wing, with a native SwiftUI `.glassEffect()` fast path on macOS 26+ and the custom Metal shader stack as the `<26` fallback (Phase 35, GLASS-01)
+- Bluetooth/Charging Droppy-pill restyles, a redesigned equalizer, and a static rainbow-gradient onboarding heading (Phase 36, HUD-01/02/EQ-01/ONBOARD-04)
+- Focus Mode HUD via `INFocusStatusCenter` (Phase 38, HUD-05), Volume/Brightness HUD with genuine native-OSD suppression via `.cghidEventTap` (Phase 39, HUD-03/04), a real Sparkle 2 auto-update integration (Phase 40, HUD-06), and a live Calendar Countdown HUD (Phase 41, HUD-08)
+- A new dual-activity display concept — `IslandResolver.resolveSecondary()` shows a secondary bubble alongside the main pill when two top-priority activities are live at once (Phase 42, DUAL-01)
+- **Not built:** Drop-Session Summary Chip (HUD-07) — Phase 37 was fully implemented, then abandoned and reverted after on-device UAT found its Tray-close trigger essentially never fires in real usage.
+
+### What Worked
+- **Isolating the milestone's highest-risk item as its own spike-then-implement phase (Phase 39) worked again** — same pattern as v1.3's Phase 22 isolation, but this time the spike's initial "unreliable" finding was later *reversed* in a gap-closure plan (39-08) rather than the phase being abandoned, showing the pattern also supports iterating past an initial negative spike result when a different technique (`.cghidEventTap` vs `.cgSessionEventTap`) is found.
+- **Proving the new-`ActiveTransient`-case pipeline cheaply on Focus Mode (Phase 38) before attempting it under real private-API risk on Volume/Brightness (Phase 39)** paid off — Phase 38 surfaced real pipeline gaps (missing render-tail re-render, wrong shared-default fallback) that Phase 39 then didn't repeat.
+- **Abandoning Phase 37 outright rather than redesigning its trigger** was the right call in hindsight — the milestone shipped a cleaner scope (11/12 requirements) instead of carrying a half-working feature or burning another phase's worth of time forcing a fix onto a fundamentally mismatched trigger condition.
+
+### What Was Inefficient
+- **The REQUIREMENTS.md/PROJECT.md sync-drift lesson (flagged at v1.0, v1.2, v1.3 close) recurred at v1.6 close, worse than before.** Phases 38, 39, 40, and 41 all skipped their own `update_project_md`/REQUIREMENTS.md-traceability step — HUD-05/HUD-06 sat marked "Pending" despite shipping and passing on-device UAT, and PROJECT.md's Validated section had no entries at all for 4 of the milestone's 8 phases until backfilled during this milestone-close review. This is now a confirmed repeat pattern across 4 milestones, not 3 — the retrospective's own top lesson about this has not stopped it from recurring, meaning a retrospective note alone is not a sufficient fix.
+- **The same click-through hot-zone fragility class caused two separate bugs in two different phases** (Phase 40's badge-tap bug, Phase 42's wing-tier-content pass-through) — both traced to `NotchWindowController`'s hot-zone not covering some tier of rendered content. The Phase 40 fix (redesigning to a menu-bar dot) sidestepped the class entirely for that feature, but didn't prevent Phase 42 from independently rediscovering the same underlying gap two phases later.
+- **A 16-round on-device layout debugging saga (Phase 39-07)** for the OSD wings traced to `.offset()`/`.position()` unreliably positioning content inside `wingsShape`'s shared `ZStack` — a genuinely reusable lesson (use `HStack`+fixed-width-spacers instead) that had to be rediscovered empirically rather than being already documented as a codebase convention before this phase started.
+- **Liquid Glass (Phase 35) needed 4 full on-device UAT rejection/remediation rounds plus a 5th post-completion regression** before landing — each round's root cause (opaque base, wrong-material brightness, unmasked chromatic-fringe washout, then a shader/DEBUG-tint bug) was only found via looking at the actual rendered result on hardware, not via reasoning about the shader math in advance.
+
+### Patterns Established
+- **A negative spike finding is not always final** — Phase 39's own gap-closure plan reversed its own initial "OSD suppression unreliable" conclusion by trying a different, more specific technique (`.cghidEventTap` vs `.cgSessionEventTap`), sourced from a proven open-source reference (`dannystewart/volumeHUD`). Worth checking for a more targeted technique before accepting a spike's negative result as permanent.
+- **`wingsShape`'s shared content `ZStack` does not support `.offset()`/`.position()` reliably** — any future wing content needing precise placement should default to `HStack(spacing: 0)` with explicit fixed-width `Color.clear` spacers, matching every wing that already works this way (see STATE.md decision log, Phase 39-07).
+- **On-device UAT is where interaction design actually gets decided for this project**, not the pre-execution UI-SPEC — both Phase 37's abandonment and Phase 42's D-12/D-13 supersession (tap-to-expand → hover-reveal play/pause) were live on-device redesigns, continuing the pattern v1.2's retrospective already named for Phase 18's toast.
+
+### Key Lessons
+1. The REQUIREMENTS.md/PROJECT.md sync-drift issue needs an actual workflow-level fix (e.g., a hard gate in `phase.complete` or `/gsd:verify-work`), not another retrospective note — this is the 4th milestone in a row it has recurred, and it got worse (4 consecutive phases skipped it) rather than better.
+2. When a new bug traces to a previously-fixed fragility class (here: click-through hot-zone gaps), treat that as a signal to sweep the whole codebase for other instances of the same class, not just patch the one instance found — Phase 42 rediscovering Phase 40's bug class independently suggests other undiscovered instances may still exist.
+3. Document empirically-discovered SwiftUI layout gotchas (like the `wingsShape`/`.offset()` failure) as an explicit codebase convention note immediately after the debugging session that found them, not just in a phase's own STATE.md decision-log entry — the next phase needing similar placement shouldn't have to rediscover it.
+4. A spike's negative finding is worth one targeted re-attempt with a more specific technique (not just abandoning the feature) before accepting it as final — Phase 39's OSD suppression reversal shipped a materially better feature than the originally-accepted fallback.
+
+### Cost Observations
+- Sessions: several across 2026-07-15 → 2026-07-19 (5 days wall-clock)
+- Notable: Phase 35 (Liquid Glass) and Phase 39 (Volume/Brightness) together absorbed the large majority of on-device iteration rounds in this milestone (4+1 UAT rounds and 16 layout-debugging rounds respectively) — both were the milestone's two explicitly-flagged highest-risk items, so the iteration cost landed where research predicted it would
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -122,6 +162,7 @@
 | v1.1 | — (retrospective not captured at close) | 4 (10-13) | Trial/lockout, Polar.sh licensing, real notarization |
 | v1.2 | 1 | 2 (17-18) | Smallest milestone to date; on-device iteration used as the actual design process for Phase 18 |
 | v1.3 | 2 | 3 shipped of 4 planned (19-21; Phase 22 blocked/aborted) | First milestone to close "shipped with a known gap" — blocked drag-in requirement carried forward instead of the milestone staying open indefinitely |
+| v1.6 | several | 8 shipped of 8 planned (35-42; Phase 37 abandoned/reverted) | First milestone where a spike's own negative finding was later reversed by a gap-closure plan (Phase 39 OSD suppression); REQUIREMENTS.md/PROJECT.md sync-drift recurred across 4 consecutive phases (38-41), worst instance of that pattern yet |
 
 ### Cumulative Quality
 
@@ -132,9 +173,12 @@
 | v1.1 | 185 (XCTest) | Not measured | none |
 | v1.2 | 185+ (4 new `IslandResolverTests` + toast seam tests; exact count not re-tallied) | Not measured | none |
 | v1.3 | 261 (XCTest) | Not measured | none |
+| v1.6 | Not re-tallied this close (16,212 total Swift LOC at close) | Not measured | Sparkle 2 (SPM) |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Planning-artifact bookkeeping (ROADMAP.md checkboxes, REQUIREMENTS.md checkboxes, PROJECT.md Validated Requirements, debug-session/UAT status fields) drifts silently unless actively audited — `gsd-sdk query audit-open` catches some of this, but not PROJECT.md drift, so a milestone-close read-through is still needed. **Recurred at v1.2 close** (NOW-04 sat unchecked after Phase 17) **and again at v1.3 close** (Phase 20's Validated Requirements entry was never added) — a confirmed repeat pattern across 3 milestones now, not a one-off.
+1. Planning-artifact bookkeeping (ROADMAP.md checkboxes, REQUIREMENTS.md checkboxes, PROJECT.md Validated Requirements, debug-session/UAT status fields) drifts silently unless actively audited — `gsd-sdk query audit-open` catches some of this, but not PROJECT.md drift, so a milestone-close read-through is still needed. **Recurred at v1.2 close** (NOW-04 sat unchecked after Phase 17), **again at v1.3 close** (Phase 20's Validated Requirements entry was never added), **and again, worse, at v1.6 close** (4 consecutive phases — 38, 39, 40, 41 — all skipped it). A confirmed repeat pattern across 4 milestones now, trending worse, not better — a workflow-level gate is needed, not another retrospective note (see v1.6 Key Lesson 1).
 2. The retrospective-append step itself gets skipped under time pressure (v1.0.1 and v1.1 both shipped without a retrospective section, only backfilled retroactively at v1.2 close) — treat it as a required milestone-close step, not optional polish.
 3. When an on-device integration bug resists a plan's stated-assumption fix, diff against the last known-working reference implementation directly rather than reasoning further from the (possibly wrong) assumption — v1.3's Phase 22 spent two full UAT cycles reasoning from a disproven assumption before the user chose to abandon it for a broader architecture redesign.
+4. A negative spike finding deserves one targeted re-attempt with a more specific technique before being accepted as permanent — v1.3's Phase 22 (drag-in) never got this re-attempt and was abandoned, but v1.6's Phase 39 (OSD suppression) did and shipped a materially better feature as a result. The difference: Phase 39 had a concrete alternative technique to try (`.cghidEventTap`, sourced from a proven reference); Phase 22 didn't have an equivalent lead. Worth actively looking for one before abandoning a blocked integration point.
+5. The same fragility class can cause independent bugs in separate phases if the underlying gap isn't swept codebase-wide after the first fix — v1.6's click-through hot-zone bug hit Phase 40 (badge) and Phase 42 (wing-tier bubble) separately, months apart in phase-numbering terms but both within the same milestone.
