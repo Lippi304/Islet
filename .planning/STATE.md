@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
-status: executing
+status: verifying
 stopped_at: Phase 42 UI-SPEC approved
-last_updated: "2026-07-18T21:37:51.782Z"
+last_updated: "2026-07-18T22:10:24.493Z"
 last_activity: 2026-07-18
 progress:
   total_phases: 27
-  completed_phases: 20
+  completed_phases: 21
   total_plans: 87
-  completed_plans: 80
-  percent: 74
+  completed_plans: 81
+  percent: 78
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 
 Phase: 42 (dual-activity-display) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-18
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -106,6 +106,7 @@ Progress (v1.6): [██████░░░░] 63% (5/8 phases — Phases 35-
 | Phase 41 P03 | 8min | 2 tasks | 2 files |
 | Phase 42 P01 | 10min | 2 tasks | 3 files |
 | Phase 42 P03 | 15min | 2 tasks | 1 files |
+| Phase 42 P04 | multi-session | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 42-01]: resolveSecondary(primary:nowPlaying:) takes primary as input rather than re-deriving activeTransient/isExpanded, so D-10/D-04 fall out structurally instead of via duplicated checks
 - [Phase 42-02]: On-device spike confirmed "passes through": today's NotchWindowController.hotZone does not cover wing-tier tap targets (Countdown wing tested) — Plan 42-04 Task 2 must widen the collapsed/wing-tier click-through zone before the secondary bubble's tap target can work
 - [Phase 42-03]: secondaryBubble applies native macOS 26 .glassEffect(.regular.tint(...)) directly against Circle() (full-fill, not rim-only) instead of reusing liquidGlassEffectLayer, which is typed to concrete NotchShape and cannot accept Circle()
+- [Phase 42]: D-12/D-13 superseded live during on-device UAT — secondary bubble tap now toggles play/pause directly (not expand-to-Now-Playing), hover reveals a play/pause glyph (not inert); collapsedInteractiveZone() hot-zone widening closes T-42-07 (see 42-04-SUMMARY.md)
 
 ### Roadmap Evolution
 
@@ -230,7 +232,7 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T21:36:37.958Z
+Last session: 2026-07-18T22:09:10.021Z
 Stopped at: Phase 42 UI-SPEC approved
 Resume file: None
 

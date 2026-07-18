@@ -32,7 +32,9 @@ When two top-priority ambient activities are live simultaneously — today, the 
 
 ### Tap/click on the secondary bubble
 - **D-12:** Tapping the secondary bubble expands to that activity's own view — e.g. tapping the Now-Playing secondary circle while Countdown is primary opens Home/the media view, exactly as tapping Now-Playing as primary would today. The bubble is a real, independent tap target, not inert.
+  - **SUPERSEDED (2026-07-19, Plan 42-04 Task 3 on-device UAT):** Tapping the bubble now toggles play/pause directly instead of expanding — an explicit live user decision made during on-device verification, not a bug or scope drift. Full rationale in `42-04-SUMMARY.md`.
 - **D-13:** No hover-reveal or highlight on the secondary bubble — stays consistent with Phase 41 D-08 (Countdown pill has no hover-reveal either); hovering the bubble does nothing extra.
+  - **SUPERSEDED (2026-07-19, Plan 42-04 Task 3 on-device UAT):** Hovering the bubble now darkens it and reveals a play/pause SF Symbol glyph reflecting current playback state — an explicit live user decision made during on-device verification. Full rationale in `42-04-SUMMARY.md`.
 
 ### Claude's Discretion
 - Exact pixel values for the bubble diameter (within the ~24-28pt range), the gap width (D-08), and the stagger delay duration (D-11) are implementation details for planning/research to resolve against real on-device measurement, mirroring the project's established "tune small geometry constants on-device" precedent (e.g. Phase 41's countdown wing width fix).
