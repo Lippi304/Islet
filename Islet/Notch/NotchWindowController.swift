@@ -197,17 +197,6 @@ final class NotchWindowController {
     // Until then it stays .none/healthy → the view shows the existing collapsed/date-time states.
     let nowPlayingState = NowPlayingState()
 
-    // Phase 40 / HUD-06 — the badge-truth-source carrier AppDelegate reaches into from its
-    // Sparkle SPUUpdaterDelegate callback (mirrors the nowPlayingState.isHealthy reach-in
-    // precedent documented in AppDelegate.swift's own class-header comment). Not private so
-    // AppDelegate can flip .updateAvailable directly.
-    let updateAvailableState = UpdateAvailableState()
-    // Phase 40 / HUD-06 — a settable closure AppDelegate wires post-construction to trigger a
-    // manual Sparkle check from the badge tap. NotchWindowController never imports Sparkle
-    // itself — Sparkle is an app-lifecycle concern, this controller is only ever handed the
-    // resulting boolean state (RESEARCH.md Anti-Pattern).
-    var onUpdateBadgeTapped: () -> Void = {}
-
     // CHG-01 / CHG-02 (Plan 03) — the LIVE IOKit power-source monitor. Event-driven
     // (IOPSNotificationCreateRunLoopSource), no polling clock. Each plug/unplug hops to
     // main and lands in handlePower. Constructed + started in start() (so the [weak self]
@@ -1883,8 +1872,6 @@ final class NotchWindowController {
                       presentationState: presentationState,
                       outfit: outfitState,
                       shelfViewState: shelfViewState,
-                      updateAvailableState: updateAvailableState,
-                      onUpdateBadgeTap: { [weak self] in self?.onUpdateBadgeTapped() },
                       onboardingState: onboardingState,
                       viewSwitcherState: viewSwitcherState,
                       calendarViewState: calendarViewState,

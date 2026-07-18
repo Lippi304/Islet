@@ -5,6 +5,12 @@ import Sparkle
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menu: NSMenu!
+    // Phase 40 / HUD-06 (redesign) — a small red dot on the menu-bar icon itself, shown when
+    // Sparkle finds an update. Replaces the earlier collapsed-pill badge overlay (D-05), which
+    // needed the pointer to land inside NotchWindowController's click-through hot-zone to be
+    // tappable at all — the status item's button is always fully clickable, so this sidesteps
+    // that whole class of bug instead of fixing it.
+    private var updateDotView: NSView!
     private var didHideSettingsAtLaunch = false
     private var licenseObserver: NSObjectProtocol?
     // Phase 40 / HUD-06 — owns the Sparkle updater for the app's lifetime, parallel to
@@ -50,6 +56,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 accessibilityDescription: "Islet")
             image?.isTemplate = true        // template image = the key line
             button.image = image
+
+            // Phase 40 / HUD-06 (redesign) — fixed-size red dot, top-trailing corner of the
+            // icon, hidden until an update is found. A plain colored NSView (not baked into the
+            // template image) so it keeps its red color regardless of the auto-tinted icon.
+            let dot = NSView()
+            dot.wantsLayer = true
+            dot.layer?.backgroundColor = NSColor.systemRed.cgColor
+            dot.layer?.cornerRadius = 3
+            dot.isHidden = true
+            dot.translatesAutoresizingMaskIntoConstraints = false
+            button.addSubview(dot)
+            NSLayoutConstraint.activate([
+                dot.widthAnchor.constraint(equalToConstant: 6),
+                dot.heightAnchor.constraint(equalToConstant: 6),
+                dot.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -1),
+                dot.topAnchor.constraint(equalTo: button.topAnchor, constant: 1)
+            ])
+            updateDotView = dot
         }
 
         // The dropdown menu shown when the status item is clicked.
@@ -94,14 +118,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.start(isFirstLaunch: isFirstLaunch)
         self.notchController = controller
 
-        // Phase 40 / HUD-06 — construct Sparkle after the notch controller so
-        // `controller.onUpdateBadgeTapped` has a live `updaterController` to close over.
+        // Phase 40 / HUD-06 — construct Sparkle after the notch controller.
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
         // D-12: the `UserDefaults.standard.object(forKey:) as? Bool ?? true` shape mirrors
         // NotchWindowController.activityEnabled(_:)'s pattern but with a `true` default,
         // distinct from that method's focusKey-only `false` branch.
         updaterController.updater.automaticallyChecksForUpdates = UserDefaults.standard.object(forKey: ActivitySettings.autoUpdateCheckKey) as? Bool ?? true
-        controller.onUpdateBadgeTapped = { [weak self] in self?.updaterController.checkForUpdates(nil) }
 
         // A menu-bar agent must NOT show its Settings window on launch — once
         // "Launch at login" is enabled it would otherwise pop up on every login.
@@ -228,9 +250,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 // Phase 40 / HUD-06 (D-13, RESEARCH.md Pattern 2) — no updaterDidNotFindUpdate override: the
-// flag only needs to go true on a genuine find, nothing needs to actively clear it.
+// dot only needs to go visible on a genuine find, nothing needs to actively hide it again (a
+// successful install relaunches the app, resetting it to hidden on next launch).
 extension AppDelegate: SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
-        notchController?.updateAvailableState.updateAvailable = true
+        updateDotView?.isHidden = false
     }
 }

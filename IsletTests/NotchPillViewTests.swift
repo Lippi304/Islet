@@ -38,24 +38,4 @@ final class NotchPillViewTests: XCTestCase {
         XCTAssertFalse(view.shelfStripVisible,
                         "shelfStripVisible must stay false even with a non-empty shelf — the additive shelf-strip reveal is Tray-only (TRAY-01).")
     }
-
-    // Phase 40 / HUD-06 (D-05/D-06) — truth-table for the update-available badge's pure
-    // visibility gate, mirroring this codebase's per-boolean-branch test convention
-    // (FocusActivityTests, OSDActivityTests, PowerActivityTests).
-    func testShouldShowUpdateBadgeWhenAvailableAndCollapsed() {
-        XCTAssertTrue(shouldShowUpdateBadge(updateAvailable: true, isExpanded: false))
-    }
-
-    func testShouldShowUpdateBadgeHiddenWhenExpanded() {
-        XCTAssertFalse(shouldShowUpdateBadge(updateAvailable: true, isExpanded: true),
-                        "the badge must never render in any expanded view (D-06)")
-    }
-
-    func testShouldShowUpdateBadgeHiddenWhenNoUpdateAndCollapsed() {
-        XCTAssertFalse(shouldShowUpdateBadge(updateAvailable: false, isExpanded: false))
-    }
-
-    func testShouldShowUpdateBadgeHiddenWhenNoUpdateAndExpanded() {
-        XCTAssertFalse(shouldShowUpdateBadge(updateAvailable: false, isExpanded: true))
-    }
 }

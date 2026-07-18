@@ -14,13 +14,6 @@ import AppKit   // Phase 33 / WEATHER-02 (D-08) — NSColor.blended(withFraction
 // state mutation in a spring animation (response 0.35, dampingFraction 0.65) and SwiftUI
 // animates the dependent matchedGeometryEffect/scaleEffect automatically. That keeps the
 // idle/collapsed pill provably static (D-08): no driving clock here.
-// Phase 40 / HUD-06 — pure gating logic for the update-available badge (D-05/D-06),
-// testable in isolation, mirrors this codebase's "every boolean-gated presentation
-// branch gets a pure test" convention (FocusActivityTests, OSDActivityTests, PowerActivityTests).
-func shouldShowUpdateBadge(updateAvailable: Bool, isExpanded: Bool) -> Bool {
-    updateAvailable && !isExpanded
-}
-
 struct NotchPillView: View {
     // Plan 03 owns the instance and injects it via
     // `NSHostingView(rootView: NotchPillView(interaction: state))`.
@@ -112,16 +105,6 @@ struct NotchPillView: View {
     // published — no ShelfCoordinator, no file I/O.
     @ObservedObject var shelfViewState: ShelfViewState
 
-    // Phase 40 / HUD-06 — the badge-truth-source carrier from Plan 01, and the tap action
-    // it forwards to. DEVIATION from every other @ObservedObject above (all non-defaulted,
-    // explicitly passed at all ~13 #Preview call sites): these two get defaults because the
-    // badge is a corner overlay ADDITIVE to every existing preview scenario, not core content
-    // any preview is testing — defaulting avoids touching ~13 preview blocks for zero
-    // behavioral gain. NotchWindowController.makeRootView still explicitly passes the REAL
-    // objects so the shipped feature works; only the previews rely on the default.
-    @ObservedObject var updateAvailableState: UpdateAvailableState = UpdateAvailableState()
-    var onUpdateBadgeTap: () -> Void = {}
-
     // Phase 26 / ONBOARD-01 — the SEPARATE @Published onboarding-permissions model,
     // mirroring nowPlaying/presentationState/outfit/shelfViewState's existing ownership
     // contract: the controller (Plan 26-04) always owns and injects a real instance, never
@@ -152,15 +135,6 @@ struct NotchPillView: View {
     // Phase 27 / VISUAL-03 — the island material look (Gradient vs Solid Black), read here so
     // `islandFill` below can branch per-user-preference at all 4 fill sites.
     @Environment(\.islandMaterialStyle) private var materialStyle
-
-    // Phase 40 / HUD-06 (D-05) gap closure — 40-03 on-device UAT: an earlier GeometryReader +
-    // PreferenceKey + .overlayPreferenceValue attempt at cross-case badge placement rendered the
-    // badge stuck near the container's origin regardless of which shape was active (preference
-    // never propagated a real value on-device). This plain @State + onChange(of: proxy.size)
-    // approach only needs WIDTH (not a full absolute frame) — vertical alignment is handled for
-    // free by `.overlay(alignment: .top)` sharing the SAME top-pinned position presentationSwitch
-    // already uses, so there's no named-coordinate-space math to get wrong.
-    @State private var currentPillWidth: CGFloat = Self.collapsedSize.width
 
     // D-02 — the CLICK-to-expand callback. The view stays AppKit-free: it only reports
     // "the pill was tapped" via this plain closure. NotchWindowController owns the
@@ -792,50 +766,7 @@ struct NotchPillView: View {
             // on-device it made the whole island read as uniform frosted glass instead of just
             // the rim, a worse regression than the momentary flat-black-during-transition bug
             // it was meant to fix. Back to rendering presentationSwitch directly.
-            //
-            // Phase 40 / HUD-06 (D-05) gap closure — tracks presentationSwitch's own resolved
-            // WIDTH into currentPillWidth (see @State decl above for why width-only, not a full
-            // PreferenceKey frame).
             presentationSwitch
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear
-                            .onAppear { currentPillWidth = proxy.size.width }
-                            .onChange(of: proxy.size.width) { _, newWidth in
-                                currentPillWidth = newWidth
-                            }
-                    }
-                )
-        }
-        // Phase 40 / HUD-06 (D-05) gap closure — an HStack pinned to the SAME top alignment
-        // presentationSwitch uses, sized to its tracked width so it's centered identically
-        // within the wide outer container (both share the same later .frame() calls, so
-        // matching widths land at the same edges). Spacer() pushes the badge to the trailing
-        // edge = the visible shape's own trailing edge, for whichever case is on screen.
-        .overlay(alignment: .top) {
-            if shouldShowUpdateBadge(updateAvailable: updateAvailableState.updateAvailable, isExpanded: interaction.isExpanded) {
-                HStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(nowPlayingAccent)
-                        // 40-03 on-device UAT: the 12pt glyph's own default hit-testable area was
-                        // too small/imprecise to reliably tap. .contentShape widens the tappable
-                        // region to this full padded frame without growing the VISIBLE icon.
-                        .padding(8)
-                        .contentShape(Rectangle())
-                        .accessibilityLabel("Update available")
-                        .onTapGesture {
-                            #if DEBUG
-                            print("[HUD-06] update badge tapped")
-                            #endif
-                            onUpdateBadgeTap()
-                        }
-                }
-                .frame(width: currentPillWidth)
-                .allowsHitTesting(true)
-            }
         }
         // Phase 21 bugfix (SHELF-06 UAT) — this outer container's height was still the
         // pre-Phase-20 constant, so blobShape's own +shelfRowHeight growth (for
