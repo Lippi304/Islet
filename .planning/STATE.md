@@ -4,13 +4,13 @@ milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
 stopped_at: Phase 41 UI-SPEC approved
-last_updated: "2026-07-18T12:29:32.692Z"
-last_activity: 2026-07-18 -- Phase 41 planning complete
+last_updated: "2026-07-18T12:41:56.659Z"
+last_activity: 2026-07-18
 progress:
   total_phases: 27
   completed_phases: 18
   total_plans: 83
-  completed_plans: 72
+  completed_plans: 73
   percent: 67
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 40 — update-available-hud-sparkle-integration
+**Current focus:** Phase 41 — calendar-countdown-hud
 
 ## Current Position
 
-Phase: 40 (update-available-hud-sparkle-integration) — EXECUTING
-Plan: 1 of 3
+Phase: 41 (calendar-countdown-hud) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-18 -- Phase 41 planning complete
+Last activity: 2026-07-18
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -101,6 +101,7 @@ Progress (v1.6): [█████░░░░░] 50% (4/8 phases — Phases 35-
 | Phase 31 P01 | 25min | 3 tasks | 5 files |
 | Phase 36 P02 | multi-session | 3 tasks | 3 files |
 | Phase 36 P04 | multi-session | 3 tasks | 2 files |
+| Phase 41 P01 | 10min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 39, 39-01]: Go/no-go spike found `suppression-unreliable` — a `.cgSessionEventTap`/`.defaultTap` CGEventTap correctly decodes and swallows (returns `nil` for) volume/brightness `NX_SYSDEFINED` events, but the native macOS notch-integrated OSD still renders regardless, on this machine/macOS Tahoe. Production `OSDInterceptor` (39-03) built `.listenOnly`-only, never attempting suppression; the Settings toggle (39-06) is a documented no-op. User explicitly accepted this as a shipped limitation rather than researching alternative private-API suppression techniques (a `.cghidEventTap`-based approach used by the open-source `dannystewart/volumeHUD` was researched as a possible future spike but not attempted this phase).
 - [Phase 39, 39-07]: Extremely costly (16 on-device gap-closure rounds) OSD wing layout saga with a genuinely reusable lesson for any future absolutely-positioned content inside this codebase's `wingsShape` helper: **`.offset(x:y:)` and `.position(x:y:)` both failed to behave as expected when applied to a view inside `wingsShape`'s content `ZStack`** — `.offset()` never actually moved the real render position (`GeometryReader` consistently reported the pre-offset origin no matter what offset value was set), and `.position()` caused the measured view to report the full parent container's size instead of its own intrinsic size. Root cause was never fully explained, just empirically confirmed via a hand-rolled `OSDFrameLogger`/`GeometryReader` diagnostic with PASS/FAIL verdicts. **The fix that actually worked**: abandon absolute-coordinate primitives entirely and use plain sequential `HStack(spacing: 0)` with concrete fixed-width `Color.clear.frame(width:)` spacer elements for excluded/blocked regions — the same pattern every other wing (Charging/Focus/Device) already used successfully. **For any future wing content that needs precise placement near the physical camera notch: default to HStack+explicit-width-spacers, not offset/position, unless a strong reason exists to deviate.** Final calibration: `margin = 55pt` beyond the measured `collapsedNotchSize` half-width, derived from real on-device visibility-percentage reports rather than theoretical notch-geometry math (which repeatedly produced numbers that didn't match reality). User confirmed final result on-device: "passt".
 - [Phase 39, 39-08]: Gap-closure re-attempt of OSD suppression **SUCCEEDED**, reversing 39-01's `suppression-unreliable` finding — `.cghidEventTap` (HID-level, before the Window Server session layer) is the working mechanism, where `.cgSessionEventTap` (session-level) was not, confirmed via `dannystewart/volumeHUD`'s (MIT) proven technique. Islet now self-drives the real system volume/brightness/mute via `AudioObjectSetPropertyData`/`DisplayServicesSetBrightness` (same selectors/bundle handle the existing readers already used) whenever a press is swallowed, with a per-type kill switch that falls back to passthrough if a self-drive write ever fails. On-device UAT: zero transport-key irregularities across all 4 media keys and 8 verification steps — native OSD genuinely suppressed, not just shown-alongside. `OSDLevelBar`'s fill spring also retuned snappier (response 0.35→0.15, damping 0.75→0.86, D-16) for single-press feel. HUD-03/HUD-04 now fully shipped with the ROADMAP's originally-accepted fallback superseded by the real fix.
+- [Phase 41]: D-01 priority check placed as literal first statement of resolve()'s ambient branch, before nowPlayingLaunchGate — the only place the countdown-over-media priority rule is expressed
 
 ### Roadmap Evolution
 
@@ -218,9 +220,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T02:29:03.254Z
+Last session: 2026-07-18T12:40:52.605Z
 Stopped at: Phase 41 UI-SPEC approved
-Resume file: .planning/phases/41-calendar-countdown-hud/41-UI-SPEC.md
+Resume file: None
 
 ## Operator Next Steps
 

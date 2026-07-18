@@ -808,7 +808,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 41-01-PLAN.md — Pure seams: nextUpcomingEvent (CalendarGlance) + CalendarService.fetchUpcomingRaw + IslandResolver ambient-pair extension (CalendarCountdownActivity, D-01) + ActivitySettings key
+- [x] 41-01-PLAN.md — Pure seams: nextUpcomingEvent (CalendarGlance) + CalendarService.fetchUpcomingRaw + IslandResolver ambient-pair extension (CalendarCountdownActivity, D-01) + ActivitySettings key
 
 **Wave 2** *(blocked on 41-01)*
 
