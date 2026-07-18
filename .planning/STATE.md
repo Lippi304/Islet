@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: completed
-stopped_at: Phase 40 marked complete
-last_updated: "2026-07-18T17:56:00.000Z"
+stopped_at: Phase 42 context gathered
+last_updated: "2026-07-18T18:22:11.920Z"
 last_activity: 2026-07-18 -- Phase 40 marked complete (40-03 badge-tap bug root-caused, indicator redesigned to menu-bar dot)
 progress:
   total_phases: 27
@@ -225,9 +225,9 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T17:56:00.000Z
-Stopped at: Phase 40 marked complete
-Resume file: None
+Last session: 2026-07-18T18:22:11.910Z
+Stopped at: Phase 42 context gathered
+Resume file: .planning/phases/42-dual-activity-display/42-CONTEXT.md
 
 ## Operator Next Steps
 
