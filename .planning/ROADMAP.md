@@ -812,7 +812,7 @@ Plans:
 
 **Wave 2** *(blocked on 41-01)*
 
-- [ ] 41-02-PLAN.md — CalendarCountdownMonitor.swift (deadline-scheduled, EKEventStoreChanged-driven) + NotchWindowController wiring
+- [x] 41-02-PLAN.md — CalendarCountdownMonitor.swift (deadline-scheduled, EKEventStoreChanged-driven) + NotchWindowController wiring
 - [ ] 41-03-PLAN.md — NotchPillView countdownWings(for:) wing view (D-04/D-05/D-06) + Settings toggle (D-03)
 
 **Wave 3** *(blocked on 41-02, 41-03)*
