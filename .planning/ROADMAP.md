@@ -782,7 +782,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 40-01-PLAN.md — Sparkle SPM package + Info.plist keys + EdDSA keypair + UpdateAvailableState.swift + AppDelegate wiring (D-01..D-04, D-09..D-13)
+- [x] 40-01-PLAN.md — Sparkle SPM package + Info.plist keys + EdDSA keypair + UpdateAvailableState.swift + AppDelegate wiring (D-01..D-04, D-09..D-13)
 
 **Wave 2** *(blocked on 40-01)*
 

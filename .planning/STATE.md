@@ -4,8 +4,8 @@ milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
 stopped_at: Phase 40 UI-SPEC approved
-last_updated: "2026-07-17T23:23:32.342Z"
-last_activity: 2026-07-17 -- Phase 40 planning complete
+last_updated: "2026-07-17T23:25:41.896Z"
+last_activity: 2026-07-17 -- Phase 40 execution started
 progress:
   total_phases: 27
   completed_phases: 18
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 39 — volume-brightness-hud
+**Current focus:** Phase 40 — update-available-hud-sparkle-integration
 
 ## Current Position
 
-Phase: 39 (volume-brightness-hud) — COMPLETE (8 of 8 plans, incl. gap-closure plan 39-08)
-Plan: 8 of 8
-Status: Ready to execute
-Last activity: 2026-07-17 -- Phase 40 planning complete
+Phase: 40 (update-available-hud-sparkle-integration) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 40
+Last activity: 2026-07-17 -- Phase 40 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
