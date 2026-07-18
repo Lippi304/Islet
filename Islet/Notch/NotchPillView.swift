@@ -279,6 +279,15 @@ struct NotchPillView: View {
     static let secondaryBubbleDiameter: CGFloat = 24
     static let secondaryBubbleGap: CGFloat = 8
 
+    // WR-03 gap closure (42-REVIEW.md) — the bubble's center offset from the notch center,
+    // derived from the named constants above instead of repeated as a bare literal (`220`) at
+    // both this file's own render site and NotchWindowController's click-through hot-zone math.
+    // A future on-device tune of wingsLabelWidth/secondaryBubbleGap now updates BOTH sites from
+    // this single source, closing the exact desync class CR-01/CR-02 (28-REVIEW.md) already hit.
+    static var secondaryBubbleCenterOffset: CGFloat {
+        wingsLabelWidth / 2 + secondaryBubbleGap + secondaryBubbleDiameter / 2
+    }
+
     // 39-07 gap closure ROUND 9 — RETRACTED. This constant (formerly `cameraSafeZoneLeadingInset =
     // 100`) was derived from an on-device DEBUG-only ruler and treated as "the real camera boundary
     // in local coordinates" — but it was measuring a CONFOUNDED quantity, not pure camera occlusion:
@@ -790,7 +799,8 @@ struct NotchPillView: View {
             // above is untouched). `resolveSecondary` (Plan 42-01) guarantees this only ever
             // mounts when `presentation == .calendarCountdown`, whose wing always renders with a
             // fixed `rightWidth: Self.wingsLabelWidth / 2` (200pt) — so the bubble's center sits
-            // at 200 + secondaryBubbleGap(8) + secondaryBubbleDiameter/2(12) = 220pt right of the
+            // at `Self.secondaryBubbleCenterOffset` (WR-03 gap closure: wingsLabelWidth/2(200) +
+            // secondaryBubbleGap(8) + secondaryBubbleDiameter/2(12) = 220pt), right of the
             // shared notch center (x=0 in this ZStack's local space, the same origin every other
             // shape's own `.alignmentGuide(HorizontalAlignment.center)` pins to). `.offset(x:)`
             // CONFIRMED working in THIS specific top-level ZStack by on-device UAT (Plan 42-04
@@ -810,7 +820,7 @@ struct NotchPillView: View {
             // needed for this offset.
             if let secondary = presentationState.secondary {
                 secondaryBubble(secondary)
-                    .offset(x: 220, y: (Self.wingsSize.height - Self.secondaryBubbleDiameter) / 2)
+                    .offset(x: Self.secondaryBubbleCenterOffset, y: (Self.wingsSize.height - Self.secondaryBubbleDiameter) / 2)
                     .transition(.scale.combined(with: .opacity))
             }
         }

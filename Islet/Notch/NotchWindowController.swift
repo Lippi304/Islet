@@ -1280,13 +1280,18 @@ final class NotchWindowController {
     // content, the same mechanism as the Phase 40-03 badge-tap regression. Returns `hotZone`
     // UNCHANGED for every case except when a secondary bubble is actually showing, in which case
     // it widens the TRAILING (right) edge out to cover the bubble's own real screen position —
-    // bounded to an exact, code-reviewed constant tied 1:1 to 42-03's shipped `.offset(x: 220)`
-    // bubble-center positioning (never an open-ended region, T-42-07).
+    // bounded to an exact, code-reviewed constant tied 1:1 to 42-03's shipped bubble-center
+    // positioning (never an open-ended region, T-42-07).
+    // WR-03 gap closure (42-REVIEW.md) — derives that offset from NotchPillView's own
+    // `secondaryBubbleCenterOffset` (single source of truth, wingsLabelWidth/secondaryBubbleGap/
+    // secondaryBubbleDiameter) instead of repeating the `220` result as a bare literal here, so a
+    // future on-device tune of any of those three constants can't silently desync this
+    // click-through zone from the rendered bubble — the exact CR-01/CR-02 failure class.
     private func collapsedInteractiveZone() -> CGRect? {
         guard let hotZone else { return nil }
         guard presentationState.secondary != nil else { return hotZone }
         let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
-        let bubbleFarEdge = collapsedFrame.midX + 220
+        let bubbleFarEdge = collapsedFrame.midX + NotchPillView.secondaryBubbleCenterOffset
             + NotchPillView.secondaryBubbleDiameter / 2 + hotZonePadding
         guard bubbleFarEdge > hotZone.maxX else { return hotZone }
         return CGRect(x: hotZone.minX, y: hotZone.minY,
