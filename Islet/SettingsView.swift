@@ -31,6 +31,10 @@ struct SettingsView: View {
     // for existing users, fresh installs read ON).
     @AppStorage(ActivitySettings.songChangeToastKey) private var songChangeToastEnabled = true
     @AppStorage(ActivitySettings.deviceKey)     private var deviceEnabled = true
+    // Phase 41 / HUD-08 (D-03) — default ON, matches Charging/Device's opt-out convention;
+    // no permission popover needed (CalendarService's existing EventKit authorization,
+    // Phase 14/28, is reused as-is).
+    @AppStorage(ActivitySettings.calendarCountdownKey) private var calendarCountdownEnabled = true
     // Phase 38 / HUD-05 (D-01) — the ONE activity toggle that defaults OFF (permission-gated,
     // opt-in). @State drives the one-time explanation popover (D-02: shown only at the moment
     // the toggle flips on, never at launch).
@@ -217,6 +221,7 @@ struct SettingsView: View {
                 Toggle("Now Playing", isOn: $nowPlayingEnabled)
                 Toggle("Song-Change Toast", isOn: $songChangeToastEnabled)
                 Toggle("Devices", isOn: $deviceEnabled)
+                Toggle("Calendar Countdown", isOn: $calendarCountdownEnabled)
                 // Phase 38 / HUD-05 — D-02: the permission ask happens ONLY at this exact
                 // off-to-on flip, never at launch. D-04: declining the explanation leaves the
                 // toggle ON with the inert hint — the tap-to-retry gesture below is the ONLY way
