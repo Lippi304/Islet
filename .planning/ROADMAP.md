@@ -786,7 +786,7 @@ Plans:
 
 **Wave 2** *(blocked on 40-01)*
 
-- [ ] 40-02-PLAN.md — Badge overlay on NotchPillView + NotchWindowController wiring (D-05..D-08)
+- [x] 40-02-PLAN.md — Badge overlay on NotchPillView + NotchWindowController wiring (D-05..D-08)
 
 **Wave 3** *(blocked on 40-02)*
 
