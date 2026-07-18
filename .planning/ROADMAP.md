@@ -802,8 +802,22 @@ Plans:
   2. The countdown HUD dismisses at (or shortly after) the event's start time, using its own scheduling — never the shared 3s `activityDuration` auto-dismiss.
   3. The countdown timer is scheduled to actual minute boundaries rather than a tight poll loop, verified via Activity Monitor's Idle Wake Ups column showing no regression.
   4. The countdown participates in `IslandResolver` as an ambient single-winner activity, correctly yielding to any higher-priority Charging/Device transient.
-**Plans**: TBD
+**Plans**: 4 plans (waves: 1={41-01}, 2={41-02,41-03}, 3={41-04})
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 41-01-PLAN.md — Pure seams: nextUpcomingEvent (CalendarGlance) + CalendarService.fetchUpcomingRaw + IslandResolver ambient-pair extension (CalendarCountdownActivity, D-01) + ActivitySettings key
+
+**Wave 2** *(blocked on 41-01)*
+
+- [ ] 41-02-PLAN.md — CalendarCountdownMonitor.swift (deadline-scheduled, EKEventStoreChanged-driven) + NotchWindowController wiring
+- [ ] 41-03-PLAN.md — NotchPillView countdownWings(for:) wing view (D-04/D-05/D-06) + Settings toggle (D-03)
+
+**Wave 3** *(blocked on 41-02, 41-03)*
+
+- [ ] 41-04-PLAN.md — On-device UAT: live countdown, dismiss-at-start, idle-wakeup check, transient yield + back-to-back re-arm
 
 ### Phase 42: Dual-Activity Display
 
