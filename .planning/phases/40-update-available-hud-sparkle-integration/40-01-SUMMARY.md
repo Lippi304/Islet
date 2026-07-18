@@ -194,3 +194,8 @@ real Vercel route (see `docs/RELEASE.md`).
 ---
 *Phase: 40-update-available-hud-sparkle-integration*
 *Completed: 2026-07-18*
+
+## Self-Check: PASSED
+
+All created files verified present on disk; all 4 task/plan commits (`66e346c`, `de6dff5`,
+`847f835`, `258efd4`) verified present in git log.
