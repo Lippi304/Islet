@@ -256,6 +256,11 @@ final class NotchWindowController {
     // graceWorkItem (NOT a recurring timer): one wake-up then idle, so CPU stays ~0% while a
     // splash stands. Hover cancels it; pointer-leave reschedules it.
     private var dismissWorkItem: DispatchWorkItem?
+    // Phase 42 / DUAL-01 (D-11) — the secondary bubble's staggered-reveal one-shot, mirroring
+    // dismissWorkItem's own cancel-then-reschedule discipline. Only used on a fresh nil→non-nil
+    // transition; a nil target or an already-non-nil update never touches this.
+    private var secondaryRevealWorkItem: DispatchWorkItem?
+    private static let secondaryStaggerDelay: TimeInterval = 0.15   // UI-SPEC's locked starting value
     private let activityDuration: TimeInterval = 3.0   // D-09 single tuning seed
     private let songToastDuration: TimeInterval = 2.0   // song-change toast auto-dismiss (round 5, on-device request: 1s shorter than the shared activityDuration, toast-only)
     // Phase 39 / HUD-03/HUD-04 (D-10) — deliberately separate from the shared activityDuration
@@ -781,7 +786,7 @@ final class NotchWindowController {
     // ambient glance disappears live; charging/device are excluded by stopping their monitors
     // (so they never enqueue a transient). The queue's `head` is the active transient (rank 1/2);
     // the resolver falls through to the now-playing wings / idle pill when no transient stands.
-    private func currentPresentation() -> IslandPresentation {
+    private func currentPresentation() -> (presentation: IslandPresentation, secondary: SecondaryActivity?) {
         let npEnabled = activityEnabled(ActivitySettings.nowPlayingKey)
         let np = npEnabled ? nowPlayingState.presentation : .none   // D-09 disabled NP → forced .none
         // Gap-closure fix (Finding 5): gate the health flag through the same npEnabled switch as
@@ -789,7 +794,7 @@ final class NotchWindowController {
         // not silently degraded to "nicht verfügbar" from a stale `false` left over from before
         // the toggle.
         let healthy = nowPlayingHealthGate(enabled: npEnabled, isHealthy: nowPlayingState.isHealthy)
-        return resolve(activeTransient: transientQueue.head,
+        let presentation = resolve(activeTransient: transientQueue.head,
                        nowPlaying: np,
                        nowPlayingHealthy: healthy,
                        hasPlayedSinceLaunch: nowPlayingState.hasPlayedSinceLaunch,
@@ -798,13 +803,44 @@ final class NotchWindowController {
                        onboardingStep: onboardingStep,
                        pendingDrop: pendingDrop,
                        calendarCountdown: calendarCountdownActivity)
+        // Phase 42 / DUAL-01 — the SAME launch-gated `np` resolve()'s own ambient branch applies
+        // internally (D-01/NOW-04) is applied here too, so a track that hasn't launch-gated
+        // through never populates the secondary bubble either (42-RESEARCH.md Pitfall 1: never
+        // two independent computations of the same live facts).
+        let gatedNp = nowPlayingLaunchGate(hasPlayedSinceLaunch: nowPlayingState.hasPlayedSinceLaunch, nowPlaying: np)
+        let secondary = resolveSecondary(primary: presentation, nowPlaying: gatedNp)
+        return (presentation, secondary)
     }
 
     // Write the resolver's verdict to the @Published carrier the view observes. The CALLER owns
     // the spring wrapper (so the morph is attached AT the originating mutation, D-08) — this just
-    // assigns. Every head/expanded/now-playing mutation ends by calling this + updateVisibility().
+    // assigns `presentation` immediately, inheriting whatever animation context the caller
+    // already established. `secondary` follows D-11's 3-way rule: (a) nil → cancel any pending
+    // stagger, clear immediately, same animation context, no stagger on the way out; (b) fresh
+    // nil→non-nil transition → stagger the reveal ~150ms behind the primary pill via its own
+    // DispatchWorkItem (mirrors scheduleActivityDismiss's cancel-then-schedule shape); (c) a
+    // content update while already non-nil (e.g. track change with both still live) → assign
+    // directly in the caller's own animation context, no stagger.
     private func renderPresentation() {
-        presentationState.presentation = currentPresentation()
+        let next = currentPresentation()
+        presentationState.presentation = next.presentation
+        if next.secondary == nil {
+            secondaryRevealWorkItem?.cancel()
+            presentationState.secondary = nil
+        } else if presentationState.secondary == nil {
+            secondaryRevealWorkItem?.cancel()
+            let value = next.secondary
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                    self.presentationState.secondary = value
+                }
+            }
+            secondaryRevealWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.secondaryStaggerDelay, execute: work)
+        } else {
+            presentationState.secondary = next.secondary
+        }
     }
 
     // Finding 11 — consolidates the identical enqueue-render-dismiss triplet that handlePower
