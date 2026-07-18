@@ -1,285 +1,268 @@
-# Pitfalls Research — v1.6 (Liquid Glass & System HUD Suite)
+# Pitfalls Research
 
-**Domain:** Native macOS notch-overlay background agent — adding OSD suppression, Focus Mode detection, Sparkle auto-update, custom blur material, and a dual-activity resolver to an existing single-winner `IslandResolver` architecture (Islet)
-**Researched:** 2026-07-15
-**Confidence:** MEDIUM-HIGH — grounded in the actual open-source code of the app this milestone is cloning (Droppy, `github.com/1of1Adam/Droppy`, GPL-3.0+Commons-Clause, live 2026 source), plus Sparkle's official docs/issues and this project's own prior WR-01/WR-02 findings.
-
-## Risk-Tier Summary (read this first)
-
-| # | Feature | Risk Tier | Verdict |
-|---|---------|-----------|---------|
-| 1 | Volume/Brightness HUD suppression | **HIGH** | Achievable — Droppy ships it today — but fragile, permission-gated, and has a documented macOS-Tahoe-specific breakage mode. Needs a spike before committing scope. |
-| 2 | Focus Mode / DND detection | **HIGH** | Achievable only via an undocumented file + Full Disk Access, a manual, unprompted, easily-declined TCC grant. Real UX cost, real breakage risk. Needs a spike + an explicit "what if the user says no" fallback design before committing scope. |
-| 3 | Sparkle in an LSUIElement app | MEDIUM | Well-trodden path, Sparkle has explicit LSUIElement support, but multiple sharp edges (activation/focus behavior changed across Sparkle versions, EdDSA setup, key rotation). Standard research-and-follow-the-docs, not a spike. |
-| 4 | Liquid Glass / frosted material | MEDIUM | SwiftUI gives you the materials for free; the risk is entirely self-inflicted (this project already broke `matchedGeometryEffect` continuity once — WR-02 — doing exactly this class of change). |
-| 5 | Dual-activity display (2-slot resolver) | MEDIUM | No private API involved, pure architecture problem. Real complexity: race conditions, two `matchedGeometryEffect` groups, combinatorial test growth. Solvable with discipline. |
-| 6 | 7+ new HUD types in/around the resolver | MEDIUM (self-inflicted if ignored) | Pure software-engineering risk — the codebase already has the right pattern (`IslandResolver`); the pitfall is bypassing it under time pressure. |
-| 7 | Calendar countdown HUD (per-minute, up to 1hr) | LOW | This project already has the exact convention needed (event-driven, idle-CPU-gated, as in `EqualizerBars`). Straightforward if the existing convention is followed. |
-
-**Bottom line for roadmap sequencing:** Items 1 and 2 are the ones that could fail to ship as designed on current macOS and should get a dedicated research/spike phase *before* any UI work is planned around them — exactly as `v1.6`'s own `Key context` note in PROJECT.md already flags. Items 3–6 are normal feature phases with known-sharp-edges to design around up front. Item 7 needs no special phase treatment beyond following the project's existing timer-hygiene convention.
-
----
+**Domain:** Writing "liked" status back to Spotify/Apple Music from a third-party macOS app; enumerating/switching CoreAudio output devices — both as additions to Islet's existing Now Playing expanded view (v1.7 "Interaction & Calendar Polish" scope)
+**Researched:** 2026-07-19
+**Confidence:** MEDIUM (Spotify Web API policy findings HIGH-confidence/official; several CoreAudio/AppleScript specifics MEDIUM — single-source or forum-corroborated, flagged individually; own-hardware behavior remains genuinely unverified until spiked)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Volume/Brightness OSD suppression — wrong event-tap variant breaks transport keys on this exact macOS version
+### Pitfall 1: Spotify has no AppleScript (or MediaRemote command) path to "like" a track — Web API + OAuth is the only real option, and it's now gated behind a policy Islet likely fails
 
 **What goes wrong:**
-There is no public API to suppress `com.apple.OSDUIHelper`'s system HUD. The only known working technique — used today by the reference app Droppy (`Droppy/MediaKeyInterceptor.swift`) — is a `CGEvent.tapCreate` on `CGEventType.systemDefined` (raw value 14) events, decoding `NX_SYSDEFINED`/`NX_SUBTYPE_AUX_CONTROL_BUTTONS` key codes for volume/brightness, and returning `nil` from the callback to swallow the event system-wide (which prevents `OSDUIHelper` from ever seeing it and spawning its HUD). Droppy's own source comments record that using `.cgAnnotatedSessionEventTap` (rather than `.cgSessionEventTap`) **breaks play/pause/next/previous transport controls on macOS Tahoe** — it intercepts those events before they reach the media subsystem even when the app tries to pass them through. This project's build/dev machine is confirmed macOS 26 (Tahoe), so this is not a hypothetical edge case — it is the exact OS in use.
+The obvious "cheap" implementation — reuse the same private-API/AppleScript pattern Islet already trusts for Now Playing — does not exist for this feature. Spotify's AppleScript dictionary has never exposed a "save/like track" command (the Spotify Community itself has an open, unresolved feature request for this going back years; even the deprecated `starred` playlist property doesn't help — MEDIUM confidence, community-sourced but consistent). Separately, `mediaremote-adapter`'s own documented command table (14 IDs: play/pause/stop/next/prev/seek/shuffle/repeat) has no like/love/favorite/rate command — despite streamed metadata sometimes carrying read-only `isLiked`/`isBanned`/`isInWishList`-shaped fields, there is no corresponding *write* command (MEDIUM confidence — no official spec, inferred from the adapter's documented command list). The only real path is Spotify's own Web API (`PUT /me/tracks`, "Save Tracks for Current User"), which requires a full OAuth Authorization Code + PKCE flow — a Spotify Developer Dashboard app registration, a Client ID, a loopback/custom-URL redirect, and a browser-based login the user must complete once.
+
+Worse: as of May 15, 2025, Spotify's Developer Policy update restricts **Extended Quota Mode** (the tier that lifts the 5-user cap and higher rate limits) to organizations with an "established, scalable, impactful" platform use case — individual/hobby developers are explicitly deprioritized (HIGH confidence — Spotify's own developer blog post). Left in **Development Mode**, a Spotify app is capped at 5 manually-allowlisted Spotify accounts total. Since Islet is a paid, publicly-distributed hobby product from a single developer, it will very likely NOT qualify for Extended Quota under the new criteria — meaning a single shared Islet Client ID could only ever serve 5 real customers' Spotify accounts before hitting a hard wall.
 
 **Why it happens:**
-Apple offers two tap variants (`cgSessionEventTap` and the "annotated" variant) with subtly different event-delivery-order semantics that aren't documented for this specific interaction, and that semantics can silently change release-to-release. Developers reach for whichever tap variant a tutorial shows without testing the transport-key path specifically.
+Islet's own precedent (MediaRemote via `mediaremote-adapter`) trained the instinct that "there's always a private-API/scripting bridge for this." Liking/saving is different: it mutates the user's cloud library, which every major streaming platform gates behind an authenticated, rate-limited, policy-reviewed API — not a local scripting hook.
 
 **How to avoid:**
-- Use `CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap, eventsOfInterest: ...)` — not the annotated variant — and explicitly test all 4 transport keys (play/pause, next, previous/rewind) plus volume/brightness after wiring the tap, on the actual dev machine's macOS version.
-- Explicitly allowlist which `NX_KEYTYPE_*` codes are handled (`SOUND_UP/DOWN/MUTE`, `BRIGHTNESS_UP/DOWN`) and immediately pass through anything else (especially `PLAY`/`FAST`/`REWIND`/`PREVIOUS`) without any processing — do not run them through the same suppress/pass-through decision path as volume/brightness.
-- Requires **Accessibility** permission (System Settings → Privacy & Security → Accessibility), not just Input Monitoring — `CGEvent.tapCreate` with `.defaultTap` (able to consume/suppress events, not just observe) needs it. Gate `start()` on a cached permission check; don't silently no-op if denied.
-- Fall back to system handling for devices Islet can't control (e.g. USB audio interfaces without software volume control) — check `supportsVolumeControl`/`canHandleBrightness` before consuming the key event, otherwise the user loses volume control entirely on unsupported hardware.
-- Isolate all of this behind one `VolumeHUDInterceptor`/`BrightnessHUDInterceptor` protocol, exactly like the project's existing `NowPlayingMonitor` pattern — this is the single most likely thing Apple disrupts in a future OS.
+1. Spike this FIRST, before writing any UI. Concretely: create a real Spotify Developer Dashboard app, implement the Authorization Code + PKCE flow with a loopback redirect (`http://127.0.0.1:<port>/callback`), and call `PUT https://api.spotify.com/v1/me/tracks` for a real logged-in account, end to end, on real hardware.
+2. During that spike, explicitly check the Dashboard's current quota-mode requirements/criteria (they may keep changing) — confirm whether extended quota is realistically obtainable, or whether Islet must ship a "bring your own Spotify Client ID" flow (the workaround pattern several small third-party Spotify menu-bar apps use, e.g. Spotiglass) where each user creates their own Developer Dashboard app and pastes in a Client ID. This is a materially worse onboarding UX and must be a conscious, user-visible product decision, not a silent workaround discovered mid-implementation.
+3. If neither Extended Quota nor bring-your-own-Client-ID is acceptable, the Spotify half of this feature may need to be explicitly descoped (Apple Music only) — decide this BEFORE committing a full phase to it.
+4. Do not assume the MediaRemote-streamed `isLiked`-shaped field (if present at all) is anything more than a read-only echo of Spotify's own state — verify on real hardware whether it exists and is reliable before designing the star button's "already liked" initial state around it.
 
 **Warning signs:**
-- Play/pause or track-skip stops working system-wide (not just in Islet) after this feature ships — the classic annotated-tap symptom.
-- Two HUDs briefly flash (system's + Islet's) — indicates the event tap is winning the suppression race too late or the callback is running on a contended thread (Droppy's own history notes a "double HUD on M4 Macs" bug fixed by moving the tap's run loop off the main thread onto a dedicated `DispatchQueue`).
-- App becomes unresponsive to media/volume/brightness keys entirely after a permission change — indicates the tap-disabled-by-timeout/by-user-input callback path isn't correctly re-checking permission before blindly re-enabling (a naive re-enable-on-disable loop can fight the system and freeze the WindowServer).
-- `NSEvent(cgEvent:)` constructed off the main thread when Caps Lock is involved crashes via Text Services Manager assertion — extract event data on the main thread (`DispatchQueue.main.sync`) inside the C callback, not off it.
+Any implementation plan that budgets "reuse mediaremote-adapter / AppleScript, no new auth flow" for the Spotify half is planning against a capability that doesn't exist. If Wave 1 of implementation doesn't include an actual Spotify Developer Dashboard registration and a live OAuth round-trip, the plan hasn't touched the real risk yet.
 
 **Phase to address:**
-Dedicated research/spike phase before UI work — validate the tap variant, permission flow, and transport-key passthrough on-device first; this is exactly the kind of unknown PROJECT.md already flags for a research phase.
+Dedicated spike/research phase before full implementation (see downstream recommendation) — this is the single highest-risk item of the whole milestone, on the same order of magnitude as the OSD-suppression and Focus-Mode-entitlement surprises from Phase 38/39.
 
 ---
 
-### Pitfall 2: Focus Mode / DND detection has no supported API — the only path costs the user a manual, unprompted Full Disk Access grant
+### Pitfall 2: Apple Music's AppleScript "loved" property is real, but the "current track" reference it needs is documented-broken for exactly Islet's playback scenario
 
 **What goes wrong:**
-Apple's only semi-official third-party Focus API is `INFocusStatusCenter`/`FocusStatusCenter` (`isFocused`), which is scoped to communication/VoIP-style apps for suppressing notification interruptions — it tells you "is the user in *some* focus state," gated behind `requestAuthorization`, and does **not** expose which Focus Mode is active or a live per-mode toggle stream suitable for driving a HUD. It is the wrong tool for "show a HUD when the user turns Focus on/off." The only method that actually works today (confirmed by Droppy's live source, `Droppy/DNDManager.swift`) is polling the undocumented file `~/Library/DoNotDisturb/DB/Assertions.json` and checking whether `storeAssertionRecords` is non-empty. This file lives under **Full Disk Access** protection — there is no programmatic TCC prompt for Full Disk Access; the user must manually open System Settings → Privacy & Security → Full Disk Access and add the app themselves, with zero in-app nudge Apple will show automatically.
+`Music.app`'s scripting dictionary does have a track-level `loved`/`favorited` property that can, in principle, be set via AppleScript. But multiple corroborating sources (Apple Developer Forums threads, community reports) describe `current track`/`current playlist` as broken specifically for Apple Music (non-local, streaming) tracks on recent macOS — attempting to read or set properties via `current track` throws `"Music got an error: Can't get name of current track."`, and per one forum thread this is confirmed as an open, filed bug (FB19908171) as of macOS Tahoe-era releases. Critically, this fails hardest for a track that is playing but **not yet added to the user's local library** — which is a completely normal Apple Music streaming scenario, not an edge case Islet can dismiss.
 
 **Why it happens:**
-Apple has publicly said (per multiple community reports) that a real third-party Focus API is coming "eventually," but as of macOS 26 it still doesn't exist for this use case. Developers assume `NSStatusItem`'s `Visible FocusModes`/`Visible DoNotDisturb` plist keys (in `com.apple.controlcenter.plist`) are a shortcut — they are not reliable, since the focus menu-bar icon can be visible even when no Focus is actually active.
+`current track` in the Music scripting dictionary was designed around iTunes-era local libraries; Apple Music's cloud-streamed catalog only partially maps onto that model, and Apple has not kept the AppleScript bridge in sync as streaming became the primary use case.
 
 **How to avoid:**
-- Do not build this against `INFocusStatusCenter` expecting it to report per-mode state — it can't.
-- Plan for Full Disk Access as a real, separate onboarding step with its own explanation UI (why Islet needs it, a deep link to the System Settings pane) — do not silently gate the feature behind a permission the user was never told about.
-- Design an explicit degraded path for "permission denied/not granted": the Focus HUD feature must silently not exist rather than crash or spin — mirror the project's existing "any column degrades silently to absent on permission denial" convention from the Phase 14 weather/calendar work.
-- Poll, don't assume push notifications exist for this file — there is no `NSDistributedNotificationCenter` event for Focus changes; Droppy polls every 0.5s via a `DispatchSourceTimer`. Treat the poll interval as a tunable tradeoff (see Pitfall 7 / idle-CPU discussion) rather than copying 0.5s uncritically.
-- Isolate behind one `FocusModeMonitor` protocol — this is squarely in "next thing Apple might restrict further" territory (Full Disk Access grants are exactly the kind of surface Apple tightens release over release).
+1. Do not build the "like" button around `tell application "Music" to set loved of current track to true`. Spike it on real hardware FIRST against multiple real scenarios: a track already in the library, a track only in the "For You"/streaming catalog not yet added locally, and a track mid-play vs. paused.
+2. If `current track` proves unreliable exactly as documented, the fallback is looking the track up by a stable identifier (e.g. matching on `persistent ID`/database ID via `tracks of library playlist 1 whose name is ... and artist is ...`) rather than `current track` — but title/artist matching is itself fragile (duplicate titles, remasters, features) and must be treated as a real accuracy risk, not just a technical annoyance.
+3. Wrap every AppleScript call in a try/catch (Apple's own suggested workaround) and design the star button to show a distinct "couldn't verify/set" state rather than silently doing nothing or claiming success.
 
 **Warning signs:**
-- Feature works in your dev environment (because Full Disk Access was already granted for other tooling) but silently does nothing for a fresh install — the #1 way this pitfall goes undetected until a real user reports it.
-- JSON parse of `Assertions.json` throws/returns empty during a Focus *transition* (not just off) — the file can be transiently in a shape that doesn't match the expected schema; treat a parse failure as "no data yet," not "Focus is off."
+The star button appears to work in a quick manual test (song already in library, recently added) but silently fails or throws for freshly-streamed tracks — this exact bimodal failure pattern is what the forum reports describe, so a "works when I tested it" result from a single manual check is not sufficient evidence.
 
 **Phase to address:**
-Dedicated research/spike phase before UI work — this is the highest-uncertainty item in the whole milestone; confirm the Full Disk Access UX is acceptable to the user (it requires explaining a fairly scary-sounding permission for what looks like a small feature) before committing to it as scoped, and have a documented fallback/descope plan if it's rejected.
+Same dedicated spike phase as Pitfall 1 (Apple Music sub-track).
 
 ---
 
-### Pitfall 3: Sparkle in a non-activating, LSUIElement (accessory) app — update UI can appear behind everything or never focus
+### Pitfall 3: Automation (Apple Events) permission prompts have a documented reliability bug — the TCC prompt can silently fail to appear, and the target app can silently vanish from System Settings → Automation
 
 **What goes wrong:**
-Sparkle's behavior toward accessory/background apps has changed across versions: older Sparkle releases had the update-available window silently open behind the user's other windows for apps without a Dock icon (a real filed issue: "Updater Window sometimes hidden by main application window"); more recent Sparkle explicitly "focuses \[LSUIElement apps] before displaying the update alert," but even more recent behavior notes show the opposite tension — showing the update window *behind* other apps rather than stealing focus, to avoid an agent app rudely interrupting the user. Because Islet's entire design principle is "never steals focus, non-activating panel," pulling in Sparkle's default alert UI is a values collision: Sparkle's dialog *does* need to activate and focus itself when the user needs to act on it (approve an install), which conflicts with everything else in this app's window model.
+Controlling either Spotify or Music.app via AppleScript requires the user to grant Islet Automation permission (an Apple Events / TCC prompt, backed by `NSAppleEventsUsageDescription` in Info.plist and, in some configurations, the `com.apple.security.automation.apple-events` entitlement — required regardless of Islet's existing unsandboxed status). Multiple developer forum reports describe a real, currently-open bug: if the target app (Spotify/Music) hasn't been used in a while, the permission prompt sometimes never fires on first automation attempt, AND the target app doesn't show up in System Settings → Privacy & Security → Automation for the user to manually grant it — leaving no UI path to fix it short of a full reset (`tccutil reset AppleEvents`) or reinstall. Reports note this affects Apple Music more than Spotify.
 
 **Why it happens:**
-Sparkle is designed primarily for normal Dock-icon apps; LSUIElement support is a secondary path that has been patched over time rather than designed in from the start, so its exact activation semantics are version-dependent and easy to get wrong by pinning an old tutorial's setup code.
+This is a real macOS TCC subsystem bug (not an Islet implementation mistake), apparently tied to some app-launch-state race in how TCC discovers the automation target the first time it's addressed after a long idle period.
 
 **How to avoid:**
-- Pin to a current Sparkle 2.x release and read the CHANGELOG for the specific LSUIElement-focus-behavior entries before wiring it up — don't copy a Stack Overflow snippet from an older major version.
-- Decide explicitly (as a design decision, not a default): should Islet's own "Update-available HUD" replace Sparkle's default alert entirely (driving `SPUUpdater` programmatically and only using Sparkle for the download/verify/install machinery), or should Sparkle's native dialog be allowed to activate the app the one time it truly needs user attention? Given the project's hard "never steals focus" rule, the former (custom UI driving `SPUUpdaterDelegate`, suppressing Sparkle's own UI) is the more consistent choice — but it's real extra integration work, not a checkbox.
-- `SPUUpdater`/`SPUStandardUpdaterController` needs `NSApplicationActivationPolicy` correctly set (`.accessory` for Islet); test that "Check for Updates" and the install-and-relaunch flow both work correctly with no Dock icon and no menu bar app menu present — a bare LSUIElement app has no standard "Sparkle" menu item host by default and needs one wired manually (e.g., via the existing status-item menu).
+1. Islet must detect and surface this failure mode distinctly from "user denied" — a generic AppleScript error (`-1743`, "not authorized to send Apple events") should NOT be presented to the user as a simple "permission needed, click to grant" flow if the app never even appears in the Automation pane to grant against.
+2. Add a documented manual recovery path in Settings/help text: quitting and relaunching the target app (Spotify/Music) once, then retrying, is the most commonly reported workaround; a "reset and retry" affordance in Islet's own UI (re-trigger the AppleScript call after prompting the user to relaunch the target app) is cheap and directly addresses the known trigger.
+3. Confirm both `NSAppleEventsUsageDescription` (required for the prompt text at all) and, if the entitlements list needs it, `com.apple.security.automation.apple-events` are present — verify this is not blocked by anything in Islet's existing hardened-runtime/notarization entitlement set (it already carries `disable-library-validation` for MediaRemoteAdapter; check for conflicts).
 
 **Warning signs:**
-- Update dialog appears but pointer/keyboard focus stays on whatever app was frontmost — user doesn't notice an update is available.
-- App silently installs an update while fullscreen/DND is active, in a way that visually interrupts — mirror the existing fullscreen-suppression convention used for activities.
+"It worked on my dev machine" is not sufficient verification here — this bug is described as intermittent and state-dependent (idle time before first automation attempt). Test after actually leaving Spotify/Music unopened for a day, not just freshly launched.
 
 **Phase to address:**
-Normal feature phase — well-documented territory, budget time for reading current Sparkle docs/changelog rather than trusting older tutorials, and for an explicit focus-policy decision up front.
+Same dedicated spike phase — this is an integration precondition for Pitfall 2's whole Apple Music path, and partially for a `Music`-based fallback if Islet ever needs one for Spotify too.
 
 ---
 
-### Pitfall 4: Custom blur/frosted material re-triggers the exact `matchedGeometryEffect` continuity break this project already hit once (WR-02)
+### Pitfall 4: AudioDeviceID is not a stable identity — using it (instead of the UID) to key the draggable device list will double-count or silently swap devices across Bluetooth reconnects
 
 **What goes wrong:**
-PROJECT.md's own tech-debt log records WR-02: "accent-change view-tree rehost breaking `matchedGeometryEffect` continuity" from Phase 27's theming work. Swapping the background material (gradient → frosted/blurred "Liquid Glass") is the same category of change: if the new material is implemented as a *different view type* (e.g., swapping `Rectangle().fill(gradient)` for an `NSVisualEffectView`-backed material or a differently-structured `.background(.ultraThinMaterial)` modifier chain) rather than a value-only change to an *existing* view in the same position in the view tree, SwiftUI will treat it as inserting/removing a view identity — which breaks the `matchedGeometryEffect` morph between collapsed and expanded states (the single most important visual trick in this app) instead of animating it.
+CoreAudio assigns a fresh, session-scoped `AudioDeviceID` (a plain integer) to a device essentially every time it appears in the device graph — including every Bluetooth reconnect. If Islet's new output-device list (or its drag-reorder state) is keyed by `AudioDeviceID`, a routine AirPods sleep/wake or reconnect will make the "same" physical device look like a brand-new entry: either it appears to vanish and reappear at the bottom of the list (breaking the user's drag-ordered preference), or — worse — a stale ID silently now points at nothing / at a different device, and a "switch to this device" action does the wrong thing.
 
 **Why it happens:**
-Material/blur effects in SwiftUI are commonly reached for via `.background(Material)`/`NSVisualEffectView` wrapped in a new `NSViewRepresentable`, which is structurally a different node in the view tree than a plain `Shape.fill(...)`. Developers focus on getting the visual right in isolation and only discover the morph is broken once it's live in the full collapsed↔expanded flow.
+`AudioDeviceID` is explicitly documented as ephemeral/process-session-scoped, not a persistent identifier — but it is also the type every CoreAudio call (`AudioObjectSetPropertyData` for the default device, `AudioObjectGetPropertyData` for per-device properties) actually operates on, so it's tempting to just use it as the dictionary/list key directly since it's "right there."
 
 **How to avoid:**
-- Apply the new material as a **modifier on the existing shape/view that already carries the `matchedGeometryEffect` id** (e.g., `.fill()` → `.background(Material, in: shape)` on the *same* `RoundedRectangle`/`Capsule` node), not as a new sibling/wrapper view.
-- If an `NSVisualEffectView`-backed representable is unavoidable (true frosted-glass blur, not just a SwiftUI `Material`), host it *underneath* the shape that owns the `matchedGeometryEffect` id (as a background layer) rather than making it the animated node itself.
-- Regression-test exactly the same 7-point on-device checklist Phase 25 already used for the gradient material change (gradient/material depth, corner roundness, spring feel, no morph artifacts, rapid hover-enter/exit, activity-content regression) — this is the proven verification method for this exact class of change in this codebase.
+1. Always resolve and store `kAudioDevicePropertyDeviceUID` (a stable string, persistent across reconnects/reboots) as the actual identity key for the device list, drag order, and any "last selected output" persistence. Re-resolve the current `AudioDeviceID` from the UID immediately before every CoreAudio call that needs it (devices can be looked up by UID via `kAudioHardwarePropertyTranslateUIDToDevice`).
+2. This exactly mirrors a pattern Islet's own `BluetoothMonitor.swift` already uses correctly — it keys `disconnectTokens` by `device.addressString`, not by any ephemeral object reference. Reuse that discipline explicitly for the new CoreAudio device monitor rather than re-deriving it from scratch.
 
 **Warning signs:**
-- The pill visually "pops"/cross-fades between collapsed and expanded instead of morphing — the signature symptom of a broken `matchedGeometryEffect` pairing.
-- Material renders correctly at rest but glitches only during the spring animation — indicates the material view is being recreated mid-animation rather than persisting.
+A device silently duplicates in the list after an AirPods sleep/wake cycle, or the drag-reordered position doesn't survive a Bluetooth reconnect — both are direct symptoms of keying by `AudioDeviceID`.
 
 **Phase to address:**
-The material redesign phase itself — treat the Phase-25-style on-device UAT checklist as a hard gate before merging, not an optional nice-to-have.
+Implementation phase for the audio-output switcher (does not need its own dedicated spike phase — this is a documented, public-API discipline, not an unknown — but must be an explicit code-review gate item, analogous to the CR-01 click-through class of bug this project has repeatedly reintroduced).
 
 ---
 
-### Pitfall 5: Extending `IslandResolver` to a two-slot (main + secondary bubble) model races two independently-updating activities and doubles the `matchedGeometryEffect` surface
+### Pitfall 5: CoreAudio's device-list/default-device-change notifications fire off the main thread — reintroducing the exact "forgot to hop to main" class of bug this codebase has hit twice before
 
 **What goes wrong:**
-Today's `IslandResolver` is a pure, ranked, single-winner reduce over independently-updating sources (Charging/Device/Now Playing/etc. each publish state changes on their own timers/callbacks) feeding one `TransientQueue`. A dual-activity model (main pill + secondary bubble) means **two** activities can be independently live and independently updating at once — e.g., a calendar countdown ticking every minute while a song changes — and the resolver now has to decide not just "who wins" but "who's primary vs. secondary, and what happens when the secondary activity itself changes/ends while the primary is unaffected." This is a materially different problem than the existing 14+ single-winner tests cover, and naive extension (e.g., "just also track a second `TransientQueue` in parallel") reintroduces races: two independent publishers can both mutate resolver state in the same runloop tick, and depending on evaluation order the secondary bubble can flicker, show stale content, or briefly show the wrong activity as primary.
+`AudioObjectAddPropertyListenerBlock` (or the older `AudioObjectAddPropertyListener` C-callback form) for `kAudioHardwarePropertyDevices` / `kAudioHardwarePropertyDefaultOutputDevice` delivers callbacks on a CoreAudio-internal dispatch queue, not the main thread. A new `AudioOutputMonitor` written without an explicit main-thread hop before touching `@Published` state or driving `NSWindow`/SwiftUI updates will intermittently corrupt window state or silently no-op, exactly like the pre-fix `BluetoothMonitor`/`PowerSourceMonitor` callback pattern this codebase's own comments already document as a solved problem.
 
 **Why it happens:**
-It's tempting to treat "dual activity" as "run the existing single-winner logic twice," but the two slots are not independent — promotion/demotion between primary and secondary needs a single, ordered decision point (same discipline as the current one-arbiter design), or you end up with two arbiters that can disagree.
+It's an easy trap for a first-time programmer (or an AI executor pattern-matching too loosely) to assume `@MainActor` on the class is sufficient — but, exactly as `BluetoothMonitor.swift`'s own inline comments explain, Swift actor isolation does NOT retroactively main-isolate a callback that a system framework invokes via its own queue/ObjC runtime dispatch.
 
 **How to avoid:**
-- Keep the "one pure arbiter" principle intact: extend `IslandResolver`'s output type from a single winner to a small ordered structure (e.g., `(primary: Activity?, secondary: Activity?)`) computed by **one** reduce pass over all live activities, not two independent resolver instances.
-- Explicitly define and test the promotion rules as data, not scattered conditionals: what happens when the primary activity ends while a secondary is live (secondary promotes)? When a new activity outranks the current secondary but not the primary? When both slots would resolve to the same activity?
-- Two `matchedGeometryEffect` groups (one per slot) need **distinct namespaces**, not just distinct ids within one namespace — reusing one shared `@Namespace` across both slots risks SwiftUI picking an unintended source/target pairing across slots (a documented `matchedGeometryEffect` failure mode when multiple views compete for the same id+namespace).
-- Grow the test suite proportionally: the existing single-winner suite (14+ tests) should not just gain a few new cases — expect roughly a combinatorial expansion (each existing single-activity scenario × "with/without a concurrent second activity" × promotion/demotion transitions) to actually cover the new state space.
+Explicitly wrap every CoreAudio listener callback body in `DispatchQueue.main.async { … }` before touching any state, mirroring `BluetoothMonitor.connected(_:device:)`/`disconnected(_:device:)` and `NowPlayingMonitor`'s documented discipline verbatim. This should be a one-line code-review checklist item, not a design question.
 
 **Warning signs:**
-- Secondary bubble briefly shows the wrong activity's content for one frame during a transition — an ordering race between two independent state updates landing in the same animation tick.
-- Primary and secondary bubble momentarily show the *same* activity — a symptom of the "distinct ids per slot" invariant not being enforced.
+Intermittent UI glitches under real Bluetooth-connect timing that don't reproduce when triggered manually/slowly (classic off-main-thread symptom); a code review that doesn't find an explicit `DispatchQueue.main.async`/`@MainActor` hop inside the new monitor's callback closures.
 
 **Phase to address:**
-Its own phase, sequenced after the single-HUD types are proven, not combined with them — the resolver extension is independently risky enough to isolate (matches this project's own established pattern of isolating the one genuinely uncertain integration point per phase, as done with Phase 22's drag-in spike).
+Implementation phase — enforce via code review, not a spike (this is a known, already-solved pattern in the codebase, purely a discipline/consistency risk).
 
 ---
 
-### Pitfall 6: Adding 7+ new HUD types as scattered if-chains instead of through `IslandResolver` reintroduces the exact bug class the resolver was built to prevent
+### Pitfall 6: The new CoreAudio output-device list and the existing `BluetoothMonitor`'s connect/disconnect activity are two independent signals for the same physical event — integrating them naively double-shows or desyncs a device
 
 **What goes wrong:**
-`IslandResolver` exists specifically because pre-Phase-6 priority logic was scattered across the view/controller layer and produced real defects (WR-1/WR-2, identity-match and dismiss-timer bugs, closed in gap-closure). Adding 7 new HUD types (Volume, Brightness, Focus, Update-available, Bluetooth/AirPods restyle, Charging restyle, Drop-session summary, Calendar countdown) under time pressure creates strong temptation to special-case a few of them directly in the view layer ("just show the Update HUD whenever `updateAvailable == true`, bypassing the queue, because it's simple") — which is exactly the anti-pattern the resolver prevents. Once even one HUD type bypasses the arbiter, the "one pure arbiter" invariant is broken and every future interaction between that HUD and everything else has to be reasoned about ad hoc.
+When AirPods connect, TWO separate, asynchronously-firing system signals occur: IOBluetooth's connect notification (already driving Islet's existing Device-Connected HUD via `BluetoothMonitor`) and CoreAudio's `kAudioHardwarePropertyDevices` list-changed notification (driving the new output-device list). These do not fire in a guaranteed order or with any correlation ID linking them — a naive integration (e.g. showing the AirPods as a distinct row keyed on whichever signal arrived first, or trying to synchronously derive one from the other) can produce a flickering duplicate entry, a device that shows as "connected" in one UI surface and "disconnected" in the other for a brief window, or race-condition ordering bugs (Bluetooth connects, but the CoreAudio device isn't enumerable yet for another beat — the same kind of timing gap that already forced Islet's own delayed battery-refresh lookup in `BluetoothMonitor.battery(forAddress:)`).
 
 **Why it happens:**
-Some of the new HUDs feel "too simple to need the full resolver machinery" (a one-shot toast like the drop-session summary chip looks a lot like the existing song-change toast, which itself has some special-cased suppression rules per Phase 18's Key Decisions). The existing precedent of special-casing suppression rules (skip during Charging/Device, suppress while manually expanded) is reasonable *within* the resolver's model, but is easy to misread as license to bypass the resolver entirely for "simple" cases.
+IOBluetooth (pairing/RF layer) and CoreAudio (audio routing layer) are genuinely different subsystems with independent event timelines; a device being Bluetooth-connected and a device being audio-output-capable-and-enumerated are related but not simultaneous facts.
 
 **How to avoid:**
-- Every new HUD type — no exceptions, including ones that feel trivial — enqueues through the same `IslandResolver`/`TransientQueue` path as the existing three activities. Suppression rules (e.g., "Focus HUD skips if Charging is active") are expressed as priority/ranking rules *within* the resolver, the same way Phase 18's song-change-toast suppression rules were implemented, not as `if` guards in the view.
-- Before implementation, write out the full priority ranking for all activities as one ordered list/table (a single source of truth) — this is cheap to review and catches "wait, what happens when Focus and Calendar-countdown are both live" questions before they become runtime bugs.
-- Watch for HUD-specific one-off timers/dismiss-durations proliferating outside `TransientQueue`'s shared duration model (each new HUD invented its own bespoke `DispatchQueue.main.asyncAfter` dismiss timer is a visible warning sign of the pattern breaking down).
+1. Do NOT try to derive the output-device list's Bluetooth devices FROM `BluetoothMonitor`'s existing state, and do not try to derive Bluetooth-connected/disconnected activity FROM the CoreAudio device list. Keep them as two independently-sourced, independently-correct monitors (this also matches the project's own established `ActivityCoordinator`/single-responsibility-monitor convention from Phase 16's `DeviceCoordinator` extraction).
+2. Reconcile ONLY at the display layer if a "this is your AirPods" label/icon needs to match between the two surfaces — match loosely by name substring, never assume a 1:1 timing relationship, and treat a temporary mismatch (Bluetooth says connected, CoreAudio device list hasn't caught up yet) as an expected, transient state, not a bug to eliminate.
+3. Filter the CoreAudio device list to actual output-capable devices only (`kAudioDevicePropertyStreams` on the output scope > 0) before ever surfacing it, so aggregate/virtual/input-only devices don't pollute the list independent of the Bluetooth-overlap question.
 
 **Warning signs:**
-- A HUD type has its own local `@State isVisible` toggle set directly from a monitor callback, bypassing the resolver — grep for this pattern during review.
-- Two HUDs visibly overlap or flash in sequence when their underlying events fire in the same tick (e.g., plugging in a charger while a calendar countdown is active) — this is the resolver's job to arbitrate; if it happens, something bypassed it.
+A device transiently appears twice in the switcher UI right at connect time, or the switcher and the existing Bluetooth HUD briefly disagree about whether a device is connected — both point at an attempted hard link between the two monitors rather than accepting them as independent sources of truth.
 
 **Phase to address:**
-Ongoing code-review discipline across every HUD-adding phase, not a single dedicated phase — but worth an explicit up-front phase (or a shared design doc) that enumerates the full priority table for all 7+ new HUD types before splitting the work across phases, so no phase invents its own local ordering.
+Implementation phase (design decision, not a spike) — but flag explicitly in the phase's plan/context doc so the executor doesn't reach for `BluetoothMonitor` as a shortcut data source for the new feature.
 
 ---
 
-### Pitfall 7: Calendar countdown HUD ticking every minute for up to an hour becomes an idle-CPU/wake-up regression if it doesn't follow the project's existing timer-hygiene convention
+### Pitfall 7: Not every output device supports the same volume-control property — a naive single-property volume slider will silently fail, mute unexpectedly, or crash on unsupported devices
 
 **What goes wrong:**
-A naive implementation drives the countdown off a `Timer`/`DispatchSourceTimer` firing every 60s continuously whenever *any* calendar event exists within the next hour, regardless of whether the countdown HUD is actually visible (e.g., resolver has a higher-priority activity showing, or the panel itself is hidden in fullscreen). Every timer wake is a real, measurable energy cost (Apple's own Energy Efficiency Guide: "any kind of timer must wake the system from its idle state... associated energy cost"), and a naive polling-everywhere pattern is precisely what this project has already deliberately avoided elsewhere (`EqualizerBars` only animates while playing; the Charging/Device activities are event-driven off IOKit/IOBluetooth notifications, not polling).
+`kAudioDevicePropertyVolumeScalar` (the obvious "just set the volume" property) is not universally supported. Some devices only expose per-channel volume (channel 1/2) rather than a single master scalar; some (documented as a real regression starting macOS 12.0.1, forum-reported) misbehave specifically for Bluetooth devices, where a set call ends up muting output entirely instead of scaling it; and calling `AudioObjectSetPropertyData` for a property a given device genuinely doesn't support returns `kAudioHardwareUnknownPropertyError` rather than silently no-op-ing — an unguarded call can surface as a runtime error path if not defensively checked first.
 
 **Why it happens:**
-A per-minute countdown feels like it obviously needs a per-minute timer, and it's easy to wire that timer up at the `CalendarCountdownMonitor`'s init time rather than gating it to "only run while the countdown is actually the thing that could be shown" and "only recompute at the actual minute boundary, not on a fixed-since-launch interval."
+CoreAudio's property system is intentionally generic/pluggable across wildly different hardware (built-in speakers, aggregate devices, USB DACs, Bluetooth codecs) — there is no single volume mechanism guaranteed to exist and behave identically everywhere.
 
 **How to avoid:**
-- Compute the *next* relevant fire time (next full-minute boundary, or next state transition — event starts in <1hr, event starts, event passed) and schedule exactly one `DispatchSourceTimer`/`Timer` firing at that instant, rescheduling after each fire — not a perpetual 60s repeating timer with a tolerance bolted on as an afterthought.
-- Gate the monitor's timer lifecycle to the same on/off conditions the rest of the app already uses: don't run it while there's no calendar event within the lookahead window, and set a tolerance (~10% of interval per Apple's own guidance) to allow timer coalescing.
-- Reuse the resolver-visibility gate already used elsewhere (fullscreen suppression, etc.) to decide whether the countdown HUD *can* show — but the underlying EventKit next-event computation can stay cheap/lazy (recomputed on calendar-change notifications, not polled) independent of whether the timer to trigger a re-render needs to run.
-- Contrast with Droppy's own Focus-detection polling (0.5s indefinite `DispatchSourceTimer`, Pitfall 2) as a worked example of the anti-pattern to specifically avoid replicating for the calendar countdown.
+1. Before wiring the volume slider to any device, call `AudioObjectHasProperty`/`AudioHardwareServiceHasProperty` for `kAudioDevicePropertyVolumeScalar` on the master channel (0) first; if absent, try per-channel (1/2) as a fallback; if both are absent, disable/hide the slider for that device rather than presenting a control that silently does nothing.
+2. This mirrors a defensive pattern Islet's own `BluetoothMonitor.batteryPercent(_:)` already uses (`responds(to:)`-guarded KVC reads with graceful `nil` fallback rather than an unchecked call) — apply the same "check before calling, degrade gracefully" discipline here rather than assuming the property exists.
+3. Spike the actual behavior on Islet's own dev-hardware Bluetooth headset specifically (the same machine that already surfaced the `.cgSessionEventTap`-vs-`.cghidEventTap` and Focus-Mode-entitlement surprises) before locking in the slider's implementation — don't trust generic documentation over an actual on-device read, per this project's own established lesson.
 
 **Warning signs:**
-- Activity Monitor → Energy → "Idle Wake Ups" column shows non-trivial wakeups from Islet with no calendar event actually imminent — the concrete way to verify this in practice, per Apple's own debugging guidance.
-- Countdown timer keeps running after the panel enters hidden/fullscreen-suppressed state.
+The volume slider visibly moves but the device's actual audible volume doesn't change (silent no-op), or moving the slider unexpectedly mutes the device outright — both are the documented Bluetooth-specific failure modes, not generic bugs to debug from scratch.
 
 **Phase to address:**
-The calendar countdown HUD's own phase — low risk if the existing `EqualizerBars`/event-driven convention is explicitly restated as an acceptance criterion for this feature, not assumed.
+Implementation phase, but with a mandatory on-device functional-read spike step at the start (not just a code-level `AudioObjectHasProperty` check in isolation) — same "verify on real hardware, not just API surface" lesson as Phase 38's Communication Notifications entitlement gap.
+
+---
+
+### Pitfall 8: Switching the default output device is audibly glitchy, and a documented macOS bug can make Islet's own device-switch silently overridden by the system
+
+**What goes wrong:**
+Setting `kAudioHardwarePropertyDefaultOutputDevice` causes an audible pop/click as CoreAudio tears down and re-establishes the active output stream — an unavoidable OS-level artifact, not something Islet's implementation can fully eliminate. Separately, Apple Developer Forums document a real bug specific to AirPods handoff scenarios: after AirPods hand off from iPhone back to the Mac, an app's attempt to set a different default output device can be silently overridden — the system just switches back to AirPods immediately regardless of what the app requested, with no error returned to the calling app.
+
+**Why it happens:**
+The pop/click is inherent to how CoreAudio's HAL re-negotiates the active stream on a device switch; the AirPods-handoff override is a reported, unresolved system-level bug (not something a third-party app can detect or work around reliably from public API).
+
+**How to avoid:**
+1. Accept the pop/click as an OS-level limitation to design around (e.g., a very brief system-driven fade if Islet controls playback timing, though this is polish, not correctness) rather than a bug to chase — do not burn a debugging cycle here the way Phase 39's OSD-tap investigation initially did on a genuinely fixable issue; this one may not be fixable.
+2. For the AirPods-handoff-override case: after calling `AudioObjectSetPropertyData` to change the default device, re-read `kAudioHardwarePropertyDefaultOutputDevice` shortly after (e.g. via the existing default-device-changed listener) to confirm the switch actually stuck; if it silently reverted, surface this to the user as "couldn't switch — try again" rather than leaving the UI showing a selection that isn't actually active.
+3. Do not promise instantaneous, glitch-free switching in the UI/UX spec — set the expectation (brief mention in the phase's UI-SPEC) that a switch involves a momentary audio interruption, matching real CoreAudio behavior rather than an idealized instant cut.
+
+**Warning signs:**
+A code review or on-device UAT that treats "the slider/list updated" as proof the switch worked, without confirming the actual `kAudioHardwarePropertyDefaultOutputDevice` value afterward, will miss the silent-override case entirely.
+
+**Phase to address:**
+Implementation phase — the confirm-after-set discipline should be a concrete Success Criterion in that phase's ROADMAP entry, not left implicit.
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|-----------------|-----------------|
-| Use `.cgAnnotatedSessionEventTap` because a tutorial shows it | Slightly simpler event decoding | Silently breaks play/pause/next/prev on Tahoe (confirmed regression class) | Never — always use `.cgSessionEventTap` per Pitfall 1 |
-| Poll `Assertions.json` on a tight 0.1–0.5s interval "to feel responsive" | Focus HUD appears to react instantly | Needless idle wakeups, battery cost, no real UX benefit since Focus changes are rare human actions | Only acceptable if lookahead is capped and interval is ≥1s with tolerance; never sub-second |
-| Bypass `IslandResolver` for a "simple" one-off HUD (e.g., drop-session summary chip) | Faster to ship | Reintroduces the exact scattered-priority-logic bug class Phase 6 was built to eliminate | Never — see Pitfall 6 |
-| New material as a fresh `NSViewRepresentable`/wrapper view instead of a modifier on the existing shape | Easier to get the blur "just right" in isolation | Breaks `matchedGeometryEffect` continuity (WR-02-class regression) | Never for the pill/expanded shell; acceptable for genuinely new, non-morphing sub-elements only |
-| Ship Sparkle's default update-alert UI unmodified in an LSUIElement app | Zero custom UI work | Conflicts with the app's "never steals focus" design principle; version-dependent focus behavior | Acceptable only as a stopgap for an internal/dev build, not the public release |
+|----------|-------------------|-----------------|------------------|
+| Match "now playing" track to a Spotify/Apple Music library item by title+artist string instead of a stable ID | No extra API surface, ships faster | Wrong track liked (remix/live/remaster collisions), silently corrupts user's library | Only as an interim spike-stage hack — never for the shipped feature; must be replaced once a stable per-track identifier is confirmed reachable (Spotify: track URI from the Web API's currently-playing/search match; Apple Music: persistent ID lookup) |
+| "Bring your own Spotify Client ID" UX instead of a shared Islet-owned app | Sidesteps the 5-user Development Mode cap entirely, ships without waiting on Spotify's review process | Materially worse onboarding (user must create a Developer Dashboard app themselves) — a real product/UX cost, not free | Acceptable ONLY as an explicit, user-communicated decision after Pitfall 1's spike confirms Extended Quota isn't realistically obtainable — not as a silent fallback discovered mid-implementation |
+| Key the CoreAudio output-device list by `AudioDeviceID` instead of `kAudioDevicePropertyDeviceUID` | Slightly less code (no UID resolution step) | Duplicate/stale entries across every Bluetooth reconnect — a correctness bug, not a corner case | Never |
+| Skip the `AudioObjectHasProperty` guard before volume-property calls | Fewer lines, works on the dev machine's tested devices | Runtime error / silent mute on unsupported hardware for real customers with different audio setups | Never — this class of unguarded-call bug is exactly what `BluetoothMonitor`'s existing `responds(to:)` guard pattern was written to prevent; reuse the discipline, don't skip it |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|-----------------|-------------------|
-| CGEventTap (volume/brightness) | Requesting only Input Monitoring, assuming it's enough to suppress the system HUD | Requires **Accessibility** permission (`.defaultTap`, not `.listenOnly`) to actually consume/suppress the event |
-| `~/Library/DoNotDisturb/DB/Assertions.json` (Focus) | Assuming a normal TCC prompt will appear | Full Disk Access has no programmatic prompt — must design an explicit "please grant this manually" onboarding step |
-| Sparkle + LSUIElement | Copying an older Sparkle 1.x/early-2.x integration guide | Use current Sparkle 2.x, verify LSUIElement focus behavior against the current CHANGELOG, decide explicitly whether to suppress Sparkle's own alert UI in favor of a custom in-notch Update HUD |
-| Sparkle appcast/EdDSA | Forgetting `sparkle:edSignature` on a manually-edited appcast entry, or rotating the EdDSA key and the Developer ID signing identity in the same release | Always run `generate_appcast` (never hand-edit signatures); rotate EdDSA key and Developer ID identity in separate releases, never both at once |
-| `IslandResolver` + new HUD types | Wiring a new monitor's callback directly to view-layer `@State` | Every new activity source enqueues through the existing resolver/`TransientQueue` path, no exceptions |
+| Spotify Web API (OAuth) | Assuming a shared Islet Client ID scales to all paying customers like any other API integration | Verify quota-mode reality first (Pitfall 1) — may require a bring-your-own-Client-ID flow or Apple-Music-only scope for v1 of this feature |
+| Music.app AppleScript | Building the like-toggle around `current track` | Spike `current track` reliability first for streamed (not-yet-library) tracks; fall back to an identifier-based library lookup if broken (Pitfall 2) |
+| Automation/Apple Events permission | Treating any AppleScript failure as "just ask for permission again" | Detect the documented "app never appears in Automation pane" failure mode distinctly; provide a relaunch-target-app recovery path (Pitfall 3) |
+| `mediaremote-adapter` | Assuming its 14-command table has a like/love/rate command because the metadata payload sometimes carries `isLiked`-shaped fields | Treat any such field as read-only/unverified; the write path must go through Web API (Spotify) or AppleScript (Apple Music), never through the command-send path |
+| CoreAudio ↔ `BluetoothMonitor` | Deriving the output-device switcher's Bluetooth entries from `BluetoothMonitor`'s existing connect state, or vice versa | Keep both monitors independent; reconcile only loosely at the display layer (Pitfall 6) |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|-----------------|
-| Perpetual 60s-repeating countdown timer with no gating | Elevated idle wakeups in Activity Monitor even with no calendar event soon | Schedule one-shot timers to the next actual boundary; gate to "event exists within lookahead" | Immediately measurable, not a scale issue — a single always-on timer is enough to show up in Energy Impact |
-| 0.5s (or faster) Focus-state poll running indefinitely | Continuous small CPU/energy draw, worse on battery | ≥1s interval with tolerance, or event-driven if a better signal is ever found | Immediately measurable |
-| Blur/material re-rendered on every hover/drag frame inside the `NSPanel` | Frame drops during the collapse/expand spring, visible stutter | Ensure the material modifier isn't forcing a layout-identity change every frame (see Pitfall 4); profile with Instruments' Core Animation/SwiftUI templates during the spring animation specifically | Visible even at small scale — this is a per-frame concern, not a data-scale one |
+| Re-checking "is this track liked?" via a fresh AppleScript/Web-API call on every track-metadata tick from `NowPlayingMonitor` | Extra AppleScript round-trips or Spotify API calls fire far more often than the track actually changes, risking Spotify rate limits and audible AppleScript-launch stutter | Only re-check liked-state on a genuine track-identity change (mirror the existing song-change-toast's own change-detection, not the raw metadata stream), and cache the result until the track changes again | Noticeable once a user leaves Islet running through a long listening session with frequent track changes |
+| Polling the full CoreAudio device list on a timer instead of relying on the `kAudioHardwarePropertyDevices` change listener | Wasted CPU wake-ups, fights this project's own established idle-CPU-gating convention (equalizer bars, countdown timer) | Use the property listener exclusively — this is a public, reliable, event-driven API, unlike the private-framework cases that forced polling elsewhere in this project (Focus Mode) | N/A — this is avoidable from the start, no threshold; flag any implementation that polls as a design mistake, not a scale issue |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| CGEventTap callback blindly re-enables itself on `tapDisabledByTimeout`/`tapDisabledByUserInput` without re-checking permission | If Accessibility is revoked mid-session, a naive re-enable loop fights the system and can freeze the WindowServer | Check permission status before re-enabling; stop the interceptor entirely if permission was revoked (Droppy's own fix for this exact bug) |
-| Sparkle EdDSA private signing key stored/accessible on the same machine that hosts the appcast/update files | A compromised web host also compromises the ability to sign malicious "updates" | Keep the EdDSA private key off the hosting machine; sign releases locally, upload only the signed artifacts + appcast |
-| Full Disk Access requested "just in case" broader than the one file actually needed | Unnecessarily broad permission footprint for a small feature, raises user suspicion and App-notarization-adjacent scrutiny | Request/explain Full Disk Access specifically and only in the context of the Focus feature; make it possible to use the rest of the app fully without granting it |
+| Storing the Spotify OAuth refresh token in `UserDefaults`/plist instead of Keychain | Trivially exfiltrated/reset, same class of mistake this project explicitly avoided for trial/license state (Phase 10 decision) | Store Spotify tokens in the Keychain, mirroring the existing `KeychainLicenseStore` pattern already proven in this codebase |
+| Embedding a Spotify Client Secret in the shipped app binary (if any flow variant calls for one) | A statically extractable secret in a distributed macOS app is not actually secret — publicly extractable via `strings`/binary inspection | Use Authorization Code with PKCE specifically (no client secret required/storable client-side) — this is Spotify's own documented recommendation for exactly this app class |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-------------------|
-| Focus Mode feature silently does nothing pre-Full-Disk-Access with no explanation | User thinks the feature is broken/buggy | Explicit first-use explanation + deep link to the System Settings pane, mirroring the project's existing onboarding-flow pattern |
-| Sparkle's default update alert steals focus from whatever the user was doing | Breaks the app's core "never interrupts" promise, feels un-Islet | Route update-available through the same in-notch HUD pattern as everything else; only let Sparkle's own UI appear for the actual install/relaunch confirmation step, if at all |
-| Volume/brightness suppression silently fails for a USB audio device the app can't control | User's volume keys appear completely dead | Explicit fallback: if Islet can't control the target device, don't consume the key event — let the system handle it and show the system HUD as before |
-| Dual-activity secondary bubble flickers/shows stale content during rapid activity changes (e.g., skipping tracks near a countdown boundary) | Feels janky, undermines the "polished, Apple-quality" bar this project holds itself to | Single ordered arbiter pass per Pitfall 5, not two independent resolvers racing |
+| Star button shows an optimistic "liked" state immediately on tap, with no confirmation the underlying AppleScript/API call actually succeeded | User believes a song is saved to their library when the write silently failed (Automation permission bug, broken `current track`, API error) | Show a distinct pending/failed state, not just instant-toggle — the star should reflect confirmed state, with a brief revert-on-failure exactly like this project's existing license-validation "never silently claim success" precedent (Phase 12 decision) |
+| Volume slider or output-switcher item shown for a device that doesn't actually support the operation just attempted (Pitfall 7/8) | User acts on a control that silently does nothing, looks broken | Hide/disable controls the device doesn't support rather than showing them unconditionally |
+| Promising instant, glitch-free output switching in the UI copy/animation | Sets an expectation CoreAudio's actual HAL behavior can't meet (audible pop is normal) | Design the switch transition/animation acknowledging a brief real-world audio interruption rather than implying an instant silent cut |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Volume/Brightness HUD suppression:** Often missing a verified transport-key passthrough test — verify play/pause/next/previous still work system-wide after wiring the tap, specifically on the current macOS version.
-- [ ] **Focus Mode HUD:** Often missing the "Full Disk Access denied" path entirely — verify a fresh, ungranted install doesn't crash, spin, or silently poll forever with no user-visible explanation.
-- [ ] **Sparkle integration:** Often missing a real end-to-end update-and-relaunch test on an LSUIElement build — verify the app actually restarts correctly with no Dock icon/menu bar app menu assumptions baked into Sparkle's default flow.
-- [ ] **Liquid Glass material:** Often missing the full Phase-25-style 7-point on-device UAT — verify the collapsed↔expanded morph specifically, not just static screenshots of each state.
-- [ ] **Dual-activity display:** Often missing tests for the *transition* moments (promotion, demotion, simultaneous end) — verify not just "two activities can coexist" but "what happens in the frame where one ends."
-- [ ] **New HUD types generally:** Often missing resolver-priority documentation — verify every new HUD's rank is written down in one place, not inferred from scattered `if` conditions.
-- [ ] **Calendar countdown HUD:** Often missing idle-CPU verification — verify via Activity Monitor's Idle Wake Ups column with no imminent event, not just "it counts down correctly when I test it."
+- [ ] **Spotify like button:** Often "done" after testing with the developer's OWN allowlisted Spotify account in Development Mode — verify it isn't secretly capped at 5 total users before considering the feature customer-ready.
+- [ ] **Apple Music like button:** Often "done" after testing only against tracks already in the local library — verify against a freshly-streamed, not-yet-added track (the documented `current track` failure mode).
+- [ ] **Automation permission flow:** Often "done" after testing on a dev machine where Spotify/Music was just recently opened — verify behavior after the target app has sat unused for a day (the documented prompt-reliability bug).
+- [ ] **Output device list:** Often "done" after testing with one Bluetooth device connected the whole session — verify across an actual disconnect/reconnect cycle (duplicate-entry / stale-ID risk).
+- [ ] **Volume slider:** Often "done" after testing only with built-in speakers (which reliably support `kAudioDevicePropertyVolumeScalar`) — verify against the actual Bluetooth headset/AirPods on the dev machine.
+- [ ] **Output device switch:** Often "done" after a single manual switch test — verify the post-switch value was actually confirmed (re-read `kAudioHardwarePropertyDefaultOutputDevice`), not just that the UI updated optimistically.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|-----------------|-----------------|
-| Annotated-tap transport-key breakage shipped to users | LOW | Swap to `.cgSessionEventTap`, ship a patch release — isolated to one file if `VolumeHUDInterceptor` was properly isolated per Pitfall 1 |
-| Focus Mode feature rejected/descoped after spike finds Full Disk Access UX unacceptable | LOW–MEDIUM | Drop the feature cleanly since it should already be isolated behind one `FocusModeMonitor` protocol; no other feature should depend on it |
-| `matchedGeometryEffect` continuity broken by the material redesign | MEDIUM | Revert the material to a modifier on the existing shape node (same fix pattern as this project would use for WR-02); re-run the Phase-25 UAT checklist |
-| Resolver bypassed by a HUD shipped outside `IslandResolver` | MEDIUM–HIGH | Refactor the offending HUD's trigger path into the resolver/`TransientQueue`, re-verify against the full priority table — cost scales with how many other features grew dependent on the bypass in the meantime |
-| Dual-activity race causes visible flicker in production | MEDIUM | Collapse to a single ordered arbiter pass if two independent resolver paths were built; add the missing transition-moment tests that would have caught it |
+|---------|----------------|------------------|
+| Spotify quota-mode wall discovered mid-implementation | HIGH | Descope to Apple-Music-only for this milestone, or pivot to bring-your-own-Client-ID — both are real replanning, not a quick patch; this is exactly why it must be spiked FIRST |
+| Apple Music `current track` unreliable as designed | MEDIUM | Swap to identifier/library-lookup-based track resolution — contained to the one AppleScript integration file if isolated behind a protocol from the start (mirror `NowPlayingService`'s one-file-swap precedent) |
+| Output device list double-counts after a reconnect | LOW | Re-key the list by UID instead of `AudioDeviceID` — a contained, mechanical fix if caught in code review before shipping |
+| Volume slider silently no-ops on unsupported devices | LOW | Add the missing `AudioObjectHasProperty` guard and hide the control — contained, single-file fix |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|-------------------|----------------|
-| Wrong event-tap variant breaks transport keys | Dedicated OSD-suppression research/spike phase | On-device test of all 4 transport keys + volume/brightness on current macOS, before any HUD UI is built on top |
-| Focus Mode has no supported API, needs Full Disk Access | Dedicated Focus-detection research/spike phase | Confirm the Full Disk Access onboarding flow with the user before committing to the feature as scoped; have a documented fallback if rejected |
-| Sparkle/LSUIElement focus conflicts | Sparkle integration phase | End-to-end update-and-relaunch test on the actual LSUIElement build, current Sparkle version's CHANGELOG reviewed |
-| Material redesign breaks `matchedGeometryEffect` | Liquid Glass material phase | Reuse Phase-25's 7-point on-device UAT checklist as a hard gate |
-| Dual-activity races / geometry conflicts | Its own isolated phase, after single-HUD types are proven | Combinatorial test coverage for promotion/demotion/simultaneous-end transitions, not just steady-state coexistence |
-| HUD case-explosion bypassing the resolver | Shared design doc/phase enumerating the full priority table before splitting HUD work across phases | Code review checklist: every new activity source enqueues through `IslandResolver`/`TransientQueue`, no direct `@State` wiring |
-| Calendar countdown timer hygiene | Calendar countdown HUD phase | Activity Monitor Idle Wake Ups check with no imminent event; one-shot rescheduling verified, not perpetual polling |
+| 1. Spotify Web API / quota-mode wall | Dedicated spike/research phase (before full "favorite" implementation) | A real OAuth round-trip + a real `PUT /me/tracks` call against a live account, plus an explicit read of Spotify's current quota-mode criteria, both completed and documented before locking implementation scope |
+| 2. Apple Music `current track` reliability | Same spike phase | On-device test against both a library track and a freshly-streamed track, both play and pause states |
+| 3. Automation permission reliability bug | Same spike phase | On-device test after leaving the target app (Spotify/Music) unopened for at least several hours; confirm the app appears in System Settings → Automation after the first grant |
+| 4. AudioDeviceID vs UID identity | Implementation phase, code-review gate | Code review confirms the device list/persistence is keyed by `kAudioDevicePropertyDeviceUID`, not `AudioDeviceID` |
+| 5. Off-main CoreAudio callbacks | Implementation phase, code-review gate | Code review confirms every CoreAudio listener callback explicitly hops to main before touching `@Published`/AppKit state |
+| 6. BluetoothMonitor/CoreAudio double-signal integration | Implementation phase, design decision documented in phase CONTEXT.md | On-device UAT: connect/disconnect a Bluetooth device and confirm no duplicate/desynced entries appear across the existing Device HUD and the new output switcher |
+| 7. Non-uniform volume-property support | Implementation phase, with a functional on-device spike step at phase start | On-device test against Islet's actual Bluetooth headset/AirPods, not just built-in speakers, before the slider UI is locked |
+| 8. Output-switch glitch / silent AirPods-handoff override | Implementation phase | ROADMAP Success Criteria explicitly includes a post-switch re-read/confirm step, verified on-device |
 
 ## Sources
 
-- **Droppy** (`github.com/1of1Adam/Droppy`, GPL-3.0+Commons-Clause, live source read directly 2026-07-15) — HIGH confidence, this is the actual reference app's shipping implementation:
-  - `Droppy/MediaKeyInterceptor.swift` — CGEventTap volume/brightness suppression technique, the Tahoe annotated-tap transport-key regression, Accessibility permission requirement, main-thread-contention double-HUD fix, Caps Lock/TSM crash fix, tap-disabled re-enable-loop safety fix
-  - `Droppy/DNDManager.swift` — Focus/DND detection via polling `~/Library/DoNotDisturb/DB/Assertions.json`, Full Disk Access requirement, 0.5s poll interval
-  - `Droppy/AutoUpdater.swift`, `DroppyUpdater/main.swift` — Droppy notably built a **custom** updater/helper rather than adopting Sparkle (worth noting as a data point, though this project's STACK.md has already chosen Sparkle)
-  - `docs/HUD_IMPLEMENTATION_STANDARDS.md` — HUD sizing/layout/priority conventions (single-HUD-at-a-time priority list, visibility guards)
-  - `Droppy/Droppy.entitlements` — confirms no special entitlement beyond sandbox-off is needed for the OSD-suppression technique
-- **Sparkle official docs/changelog/issues** (`sparkle-project.org`, `github.com/sparkle-project/Sparkle`) — HIGH confidence on API existence, MEDIUM on exact current-version LSUIElement focus behavior (changed across versions, verify against the CHANGELOG at implementation time):
-  - CHANGELOG entries on LSUIElement focus-before-alert behavior
-  - Issue #705 (agent app checking updates on behalf of a main bundle), #503 (updater window hidden behind main window)
-  - `sparkle-project.org/documentation/eddsa-migration/`, GitHub discussions #2174/#2401/#2597, issue #1521/#1605 — EdDSA signing/key-rotation pitfalls
-- **Apple Developer Documentation** — HIGH confidence:
-  - `developer.apple.com/documentation/appintents/focus`, INFocusStatusCenter docs and forum thread 682143 — confirms Focus Status API scope is communication-app-oriented, not a general per-mode HUD trigger
-  - `developer.apple.com/library/archive/.../power_efficiency_guidelines_osx/Timers.html` — timer coalescing/tolerance/Idle-Wake-Ups guidance
-  - `developer.apple.com/documentation/appkit/nsevent/addglobalmonitorforevents` — Accessibility vs. Input Monitoring distinction
-- **SwiftUI Lab** (`swiftui-lab.com/matchedgeometryeffect-part1/`, `part2/`, bug writeup) — MEDIUM-HIGH, well-established reference on `matchedGeometryEffect` id/namespace collision failure modes
-- **This project's own `.planning/PROJECT.md`** — HIGH confidence, primary source for WR-01/WR-02 precedent, `IslandResolver`/`TransientQueue` architecture, and the MediaRemote-break precedent that motivates the "isolate behind one protocol" mitigation pattern repeated throughout this document
+- Spotify Community — "Add 'Like song' as a method to AppleScript" (open feature request, unresolved) — MEDIUM confidence, community-sourced
+- Spotify Community — AppleScript `starred` property deprecated — MEDIUM confidence
+- `ungive/mediaremote-adapter` (GitHub) — documented 14-command table, no like/love/rate command — MEDIUM-HIGH confidence (direct repo read via WebFetch)
+- Spotify for Developers — "Updating the Criteria for Web API Extended Access" (developer.spotify.com/blog, effective 2025-05-15) — HIGH confidence, official
+- Spotify for Developers — Authorization Code with PKCE Flow docs (developer.spotify.com/documentation/web-api) — HIGH confidence, official
+- Spotify for Developers — Quota modes docs (developer.spotify.com/documentation/web-api/concepts/quota-modes) — HIGH confidence, official
+- Apple Developer Forums thread 798267 — "Apple Script for Music app no longer supports current track event" — MEDIUM-HIGH confidence, multiple corroborating reports, references filed bug FB19908171
+- Apple Developer Forums thread 669239 — "AppleScript to retrieve track properties in Music no longer..." — MEDIUM confidence
+- Apple Developer Forums thread 792157 — "App doesn't trigger Privacy Apple Events prompt after a while" — MEDIUM-HIGH confidence, developer-reported bug pattern
+- Apple Developer Documentation — `NSAppleEventsUsageDescription`, `kAudioHardwarePropertyDefaultOutputDevice`, `kAudioHardwarePropertyDefaultSystemOutputDevice`, `AudioDeviceID` — HIGH confidence, official
+- Apple Developer Forums thread 763583 — default output device set silently overridden after AirPods handoff — MEDIUM confidence, single forum thread but describes a specific, plausible mechanism
+- Apple Developer Forums thread 693516 — `AudioObjectSetPropertyData` Bluetooth volume behavior change (macOS 12.0.1+) — MEDIUM confidence
+- `Islet/Notch/BluetoothMonitor.swift`, `Islet/Notch/NowPlayingMonitor.swift` (this repo) — direct source read, HIGH confidence for existing-codebase conventions (off-main dispatch discipline, `responds(to:)` defensive guards, UID/address-based keying)
+- `.planning/STATE.md` decision log entries for Phase 38 (38-09) and Phase 39 (39-01, 39-07, 39-08) — this project's own prior undocumented-API/hidden-requirement precedent, used to calibrate the spike-first recommendation
 
 ---
-*Pitfalls research for: v1.6 Liquid Glass & System HUD Suite (Islet)*
-*Researched: 2026-07-15*
+*Pitfalls research for: Islet v1.7+ Now Playing "favorite" writeback + audio-output switcher*
+*Researched: 2026-07-19*
