@@ -305,17 +305,19 @@ private func countdownWings(for activity: CalendarCountdownActivity) -> some Vie
 
 **If this table is empty:** N/A — see above, both entries are genuine open implementation choices flagged for planner/discuss-phase confirmation, not verified facts.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **How does `CalendarCountdownMonitor` obtain the raw `[EventInput]` list?**
+1. **How does `CalendarCountdownMonitor` obtain the raw `[EventInput]` list?** (RESOLVED)
    - What we know: `CalendarService.fetchUpcoming(completion:)` only returns an already-reduced `CalendarGlance?` (via `nextRelevantEvent`), not the raw fetched events; `fetchMonth(containing:completion:)` DOES return raw `[EventInput]` but is scoped to a calendar month and was designed for the month-grid view (Phase 28), not for a lookahead-window query.
    - What's unclear: Whether to (a) call `fetchMonth(containing: Date())` and filter/select via the new `nextUpcomingEvent` function (zero protocol changes, smallest diff, A2's edge case), or (b) add a new `CalendarService` protocol method that mirrors `fetchUpcoming`'s exact 2-day-predicate query shape but returns raw `[EventInput]` instead of a reduced `CalendarGlance` (clean 2-day window, no month-boundary edge case, but touches the `CalendarService` protocol + both its `EventKitService` conformer and any test doubles).
    - Recommendation: Option (b) is the more correct/robust shape given this project's existing "mirror the exact fetch shape, factor only the truly duplicated part" convention (see `mapToEventInput`'s WR-04 factoring precedent) — flag this explicitly for the planner to lock in Wave 1, since it determines whether `CalendarService.swift` is a touched file for this phase.
+   - **Resolution:** Locked as Option (b) in `41-01-PLAN.md` Task 2 — `CalendarService.fetchUpcomingRaw(completion:)` was added to the protocol and its sole conformer `EventKitService`, mirroring `fetchUpcoming`'s exact 2-day predicate but returning the raw `[EventInput]` list (settling `[]`, never `nil`, on access denial).
 
-2. **Does the countdown need to re-fetch from EventKit on every dismiss (D-09), or can it reuse a recently-cached event list?**
+2. **Does the countdown need to re-fetch from EventKit on every dismiss (D-09), or can it reuse a recently-cached event list?** (RESOLVED)
    - What we know: D-09 requires "the monitor must re-check for the next relevant event on every dismiss, not only on the next scheduled minute-boundary tick" — i.e., a fresh EventKit query at the exact moment the current countdown's event starts.
    - What's unclear: Whether a fresh `EKEventStore` query at that instant is fast/cheap enough to run synchronously inside the dismiss timer's fire handler without a visible gap, or whether it should kick off the async fetch slightly before the dismiss instant (e.g. a few seconds early) so the result is ready by the time the dismiss fires.
    - Recommendation: `EKEventStore.events(matching:)` is a synchronous, in-memory-indexed local query (not a network fetch) once `requestFullAccessToEvents()` has already resolved `true` earlier in the app's lifetime (which it will have, by the time any countdown is active) — a fresh query fired exactly at the dismiss instant should be fast enough with no pre-fetch needed; confirm via the phase's own on-device UAT (Success Criterion #1's "updates continuously without user interaction" already implicitly covers this).
+   - **Resolution:** Locked in `41-02-PLAN.md` Task 1 — `CalendarCountdownMonitor.scheduleNext(from:)` re-fetches synchronously via `fetchUpcomingRaw` on every timer fire (deadline instant) AND on every `.EKEventStoreChanged` notification, with no pre-fetch/caching layer; this is the direct implementation of the recommendation above, confirmed cheap enough (one in-memory EventKit query + one pure function call + at most one timer reschedule).
 
 ## Environment Availability
 

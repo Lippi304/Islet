@@ -2,8 +2,8 @@
 phase: 41
 slug: calendar-countdown-hud
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-07-18
 ---
 
@@ -49,7 +49,7 @@ created: 2026-07-18
 
 ## Wave 0 Requirements
 
-- [ ] Confirm whether `IsletTests` already has a `CalendarGlanceTests.swift` (grep found none as of this research pass — `nextRelevantEvent`/`daysInMonth`/`events(on:events:)` appear to have no dedicated test file yet); if absent, this phase's Wave 0 should create one covering both the pre-existing untested pure functions AND the new `nextUpcomingEvent` (small, in-scope addition, not scope creep — the new function lives in the same file and the same testing gap applies)
+- [x] Confirm whether `IsletTests` already has a `CalendarGlanceTests.swift` — CONFIRMED PRESENT (contradicts 41-RESEARCH.md's initial "no dedicated test file yet" scan; `41-PATTERNS.md` verified `IsletTests/CalendarGlanceTests.swift` already exists with full coverage of `nextRelevantEvent`/`daysInMonth`/`events(on:)`). `41-01-PLAN.md` Task 1 adds the new `nextUpcomingEvent` test cases to this existing file rather than creating a new one — no gap remains.
 
 *No framework install needed — `IsletTests` target and XCTest are already fully configured.*
 
@@ -68,11 +68,11 @@ created: 2026-07-18
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references — `CalendarGlanceTests.swift` already exists, no scaffold gap
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s per task (build-only gate; project-wide `xcodebuild build` latency of ~30-60s is an accepted inherent constraint, not a plan defect)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved
