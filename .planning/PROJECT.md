@@ -26,7 +26,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19. v1.5 (Home Focus & Widget Redesign) remains open in parallel — see "Milestone In Progress" below; only Phase 33 (Weather widget) on-device UAT is outstanding before it can formally close too. No new milestone has been scoped yet — run `/gsd:new-milestone` once v1.5 closes (or sooner, if the user wants to start scoping v2 work in parallel again). Other standing candidates for a future milestone: a countdown timer (still Out of Scope below until picked up).
+v1.7 (Interaction & Calendar Polish) started 2026-07-19 — see "Current Milestone: v1.7" below. v1.4 (Architecture Redesign) and v1.5 (Home Focus & Widget Redesign) both remain open in parallel — v1.5 only needs Phase 33's on-device UAT to close. Other standing candidates for a future milestone: a countdown timer, gesture-based swipe navigation, Animation Speed presets (ARCH-P1), a Permissions Overview rollup (ARCH-P2), alternate app icon variants (still Out of Scope below until picked up).
 
 ## Milestone In Progress (Parallel): v1.5 (Home Focus & Widget Redesign)
 
@@ -70,6 +70,24 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 **Outcome:** 11/12 requirements shipped (HUD-07 dropped — Phase 37 abandoned after on-device UAT found its Tray-close trigger essentially never fires in normal use). Volume/Brightness OSD suppression, initially found unreliable in Phase 39's spike, was later proven working via a gap-closure plan using `.cghidEventTap`. See Requirements → Validated above for the full per-phase breakdown and `.planning/milestones/v1.6-ROADMAP.md` for the archived roadmap.
 
 </details>
+
+## Current Milestone: v1.7 (Interaction & Calendar Polish)
+
+**Goal:** Fix a set of real-usage interaction and layout bugs surfaced since v1.4-v1.6 shipped — no new features, pure polish. Started 2026-07-19 while v1.4 and v1.5 both remain open in parallel (explicit user decision).
+
+**Target features:**
+- **Drag-detection hardening** — the `DragApproachDetector`/Quick Action picker auto-expand currently false-triggers on an ordinary click on the island, not just a real external file drag approaching it; must only fire on a genuine inbound file drag. The Quick Action picker (the during-drag view) should render at the exact same width as the real Tray view.
+- **Tray/Island width** — the island widens so all file icons in the Tray fit without visual squeeze; per-file icon/button sizes stay unchanged.
+- **View-switcher transition fix** — switching tabs (Home/Tray/Calendar/Weather) currently makes the island briefly disappear and rebuild instead of morphing fluidly straight to the new content's size; includes the glitch where a large→small transition (Calendar → Tray) briefly renders behind the switcher pill buttons.
+- **Calendar quick-add improvements:**
+  - A date+time picker: Events get a start/end time range, Reminders get a single time.
+  - Default date = the calendar day the user tapped. Default time = the next full hour if that day is today, otherwise 00:00.
+  - The add-event button moves from the right edge (currently visually clipped) to the left, next to the day-list divider.
+  - More padding/margin around calendar event rows; the island grows a few pt wider and gains extra height to accommodate.
+
+**Key context:**
+- All 4 items are regressions/rough edges in already-shipped features (Phase 24/34 drag-in + Quick Action picker, Phase 28 calendar view + Phase 32 Tray widening, Phase 28's view switcher) — no new domain research needed, scoped directly from user report.
+- The view-switcher "disappear and rebuild" symptom suggests the tab-switch is doing a hard content swap rather than a continuous `matchedGeometryEffect` morph — worth investigating the switcher's presentation-state wiring at plan time.
 
 ## Requirements
 
@@ -256,7 +274,8 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
-_v1.5 (Home Focus & Widget Redesign) — see `.planning/milestones/v1.5-ROADMAP.md`/`.planning/ROADMAP.md` for the full 11-requirement traceability table. Remaining, left open in parallel: Phase 33 on-device UAT (WEATHER-01/02)._
+_v1.5 (Home Focus & Widget Redesign) — see `.planning/ROADMAP.md`/`.planning/REQUIREMENTS.md` for the full 11-requirement traceability table (not yet archived — still open in parallel). Remaining: Phase 33 on-device UAT (WEATHER-01/02)._
+_v1.7 (Interaction & Calendar Polish) — see "Current Milestone: v1.7" above. Pure interaction/layout bugfixes to already-shipped Tray, view-switcher, and Calendar-quick-add features; no REQ-IDs shipped yet, roadmap not yet created._
 
 ### Out of Scope
 
@@ -361,4 +380,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-19 after v1.6 milestone close — Liquid Glass & System HUD Suite (Phases 35-42) shipped: 11/12 requirements delivered, HUD-07 dropped (Phase 37 abandoned). Backfilled Validated write-ups for Phases 38-41, whose own runs had skipped this file's update step. v1.5 (Home Focus & Widget Redesign) still left open in parallel, not formally closed: 5/6 phases shipped, Phase 33 code-complete pending on-device UAT. v1.4 (Architecture Redesign) also remains code-complete with 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation.*
+*Last updated: 2026-07-19 — started v1.7 (Interaction & Calendar Polish) milestone: drag-detection hardening, Tray/Island width, view-switcher transition fix, Calendar quick-add improvements. v1.4 (Architecture Redesign) and v1.5 (Home Focus & Widget Redesign) both remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close; v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation. v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19, archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`.*

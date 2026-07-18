@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Home Focus & Widget Redesign
-status: active
-stopped_at: v1.6 milestone closed and archived; v1.5 left open in parallel — only Phase 33 (Weather widget) on-device UAT remains before it can close too
-last_updated: 2026-07-18T22:41:00.000Z
-last_activity: 2026-07-19
+milestone: v1.7
+milestone_name: Interaction & Calendar Polish
+status: planning
+last_updated: "2026-07-18T23:27:13.245Z"
+last_activity: 2026-07-18
 progress:
-  total_phases: 27
-  completed_phases: 21
-  total_plans: 87
-  completed_plans: 81
-  percent: 78
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 33 (v1.5, remaining open work) — 42 was the last v1.6 phase, now archived
-Plan: 33-02 code-complete, on-device UAT (Task 4) pending
-Status: v1.6 milestone shipped 2026-07-19
-Last activity: 2026-07-19
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-18 — Milestone v1.7 started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
