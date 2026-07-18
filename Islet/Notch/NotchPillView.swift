@@ -790,16 +790,24 @@ struct NotchPillView: View {
             // at 200 + secondaryBubbleGap(8) + secondaryBubbleDiameter/2(12) = 220pt right of the
             // shared notch center (x=0 in this ZStack's local space, the same origin every other
             // shape's own `.alignmentGuide(HorizontalAlignment.center)` pins to). `.offset(x:)`
-            // flagged UNVERIFIED by 42-RESEARCH.md in THIS specific top-level ZStack (the
-            // documented 39-07 `.offset()` failure occurred inside `wingsShape`'s OWN nested
-            // content ZStack, a different context) — confirm via the "Secondary Bubble" #Preview
-            // below that the bubble renders 220pt right of center with a visible, non-overlapping
-            // gap from the countdown wing; if it renders at its pre-offset origin instead (the
-            // 39-07 symptom), switch this to an HStack(spacing: secondaryBubbleGap) sibling
-            // approach per 42-UI-SPEC.md's stated fallback.
+            // CONFIRMED working in THIS specific top-level ZStack by on-device UAT (Plan 42-04
+            // Task 3) — unlike the documented 39-07 failure inside `wingsShape`'s OWN nested
+            // content ZStack, x-offset renders correctly here.
+            //
+            // Plan 42-04 Task 3 on-device UAT round 1 fix — the outer `ZStack(alignment: .top)`
+            // top-aligns BOTH this bubble and `countdownWings` (the only wing `resolveSecondary`
+            // ever pairs it with, rendered via `wingsShape` at a fixed `Self.wingsSize.height`
+            // band) to the SAME origin. With no y-offset, the bubble's top edge — not its
+            // center — sat flush with the wing's top edge, reading as "pinned to the top edge"
+            // instead of centered on the wing's vertical midline (42-UI-SPEC.md "Vertical
+            // alignment: Centered on the primary pill's vertical midline"). `secondary` never
+            // coexists with `isExpanded` (resolveSecondary only fires from resolve()'s
+            // ambient/collapsed branch, never the expanded one — see IslandResolver.swift), so
+            // the wing's height is always exactly `Self.wingsSize.height`; no isExpanded gating
+            // needed for this offset.
             if let secondary = presentationState.secondary {
                 secondaryBubble(secondary)
-                    .offset(x: 220)
+                    .offset(x: 220, y: (Self.wingsSize.height - Self.secondaryBubbleDiameter) / 2)
                     .transition(.scale.combined(with: .opacity))
             }
         }
@@ -2612,6 +2620,16 @@ struct NotchPillView: View {
                 .frame(width: Self.secondaryBubbleDiameter, height: Self.secondaryBubbleDiameter)
                 .overlay(secondaryBubbleGlassOverlay)
                 .overlay(artThumbnailCircular(nowPlaying.artwork, diameter: Self.secondaryBubbleDiameter))
+                // Plan 42-04 Task 3 on-device UAT round 1 fix — user: "es sollte mehr
+                // herausstechen" (should stand out more). The bubble's dark islandFill +
+                // 0.35-opacity black glass tint read too close to the black pill's own fill,
+                // visually merging instead of popping. Reuses this file's existing circular-
+                // rim precedent (Circle().strokeBorder(Color.white.opacity(...), lineWidth: 1),
+                // see the calendar-day/onboarding-dot markers above) rather than inventing a
+                // new visual language — a thin light rim reads as "floating glass bubble"
+                // (consistent with the Liquid Glass aesthetic) and separates it from the pill
+                // at a glance, on top of the artwork so it stays visible.
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 1))
                 .onTapGesture { onSecondaryTap() }             // D-12 — no .onHover anywhere (D-13)
         }
     }
