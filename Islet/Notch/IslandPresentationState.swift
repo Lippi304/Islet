@@ -23,6 +23,13 @@ final class IslandPresentationState: ObservableObject {
     // computer, of this value — mirrors `presentation` itself in that respect.
     @Published var hoveredQuickActionButtonIndex: Int? = nil
 
+    // Phase 42 / DUAL-01 — the live secondary-activity bubble carrier, alongside `presentation`
+    // itself. Controller-owned: `NotchWindowController.renderPresentation()` (Plan 42-04) is the
+    // only writer, computing it via the pure `resolveSecondary(primary:nowPlaying:)` reducer. The
+    // view is a pure consumer, never a computer, of this value — mirrors `presentation` itself
+    // in that respect.
+    @Published var secondary: SecondaryActivity? = nil
+
     init(_ presentation: IslandPresentation = .idle) {
         self.presentation = presentation
     }
