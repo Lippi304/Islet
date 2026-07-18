@@ -715,4 +715,48 @@ final class IslandResolverTests: XCTestCase {
         q.updateHead(.osd(.brightness(percent: 80)))
         XCTAssertEqual(q.head, .osd(.brightness(percent: 80)))
     }
+
+    // MARK: Phase 41 / HUD-08 — Calendar Countdown
+
+    func testCalendarCountdownOutranksAmbientMedia() {
+        // D-01: resolve(...) returns .calendarCountdown ahead of .nowPlayingWings when both a
+        // calendarCountdown and a .playing nowPlaying input are present, collapsed, no active
+        // transient (mirrors testDeviceOutranksAmbientMedia's shape).
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        calendarCountdown: countdown)
+        XCTAssertEqual(r, .calendarCountdown(countdown))
+    }
+
+    func testCalendarCountdownFallsThroughWhenExpanded() {
+        // D-01: resolve(...) never returns .calendarCountdown while isExpanded == true — falls
+        // through to whatever the expanded branch would resolve to as if calendarCountdown
+        // were nil (mirrors testFocusFallsThroughWhenExpanded's shape).
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home,
+                        calendarCountdown: countdown)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testChargingOutranksCalendarCountdownEvenCollapsed() {
+        // A standing .charging activeTransient outranks a present calendarCountdown even
+        // collapsed (mirrors testChargingOutranksDeviceAndMedia's shape).
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let r = resolve(activeTransient: .charging(.charging(percent: 47)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        calendarCountdown: countdown)
+        XCTAssertEqual(r, .charging(.charging(percent: 47)))
+    }
 }

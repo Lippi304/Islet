@@ -16,6 +16,9 @@ enum ActivitySettings {
     static let nowPlayingKey = "activity.nowPlaying"
     static let songChangeToastKey = "activity.songChangeToast"
     static let deviceKey     = "activity.device"
+    // Phase 41 / HUD-08 (D-03) — default ON, matches Charging/Device/Now-Playing's opt-out
+    // convention, not Focus/OSD's permission-gated opt-in one.
+    static let calendarCountdownKey = "activity.calendarCountdown"
     // Phase 38 / HUD-05: the ONE activity toggle in this codebase that defaults OFF
     // (@AppStorage default wired in SettingsView.swift, Plan 38-06) — every sibling
     // toggle above defaults true. This key string only; the default lives with the toggle.

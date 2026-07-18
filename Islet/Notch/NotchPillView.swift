@@ -752,6 +752,8 @@ struct NotchPillView: View {
             deviceWings(for: d)                                              // D-02 rank 2 transient
         case .nowPlayingWings(let p):
             mediaWingsOrToast(p)                                             // D-02 collapsed media glance / Phase 18 toast
+        case .calendarCountdown:
+            EmptyView()  // Phase 41 / HUD-08 placeholder — Plan 03 replaces this arm with countdownWings(for:)
         case .nowPlayingExpanded(let p, true):
             mediaExpanded(p, art: nowPlaying.artwork)                        // NOW-01/02 controls (healthy)
         case .nowPlayingExpanded(_, false):

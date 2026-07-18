@@ -48,6 +48,13 @@ struct PendingDrop: Equatable {
     let items: [ShelfItem]
 }
 
+// Phase 41 / HUD-08 (D-06) — the ambient calendar-countdown activity. Foundation-only, no
+// `title` field at all: the event title is NEVER shown on the collapsed pill, so this pure
+// layer's data path structurally cannot leak it (T-41-01).
+struct CalendarCountdownActivity: Equatable {
+    let eventStart: Date
+}
+
 // What the island renders. The expanded media health (D-12) rides on the
 // nowPlayingExpanded case's `healthy:` flag, kept orthogonal to the .none vs playing
 // snapshot — see NowPlayingPresentation.swift's header for why D-11 ≠ D-12.
@@ -59,6 +66,7 @@ enum IslandPresentation: Equatable {
     case focus(FocusActivity)                              // Phase 38 / HUD-05: rank 3 transient, collapsed-only (D-07)
     case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 4 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
     case nowPlayingWings(NowPlayingPresentation)           // D-02 rank 3 ambient (collapsed glance)
+    case calendarCountdown(CalendarCountdownActivity)      // Phase 41 / HUD-08: ambient tier, D-01 always wins over nowPlayingWings
     case nowPlayingExpanded(NowPlayingPresentation, healthy: Bool) // D-12 expanded media / "nicht verfügbar"
     case homeLastPlayed                                    // Phase 30 / HOME-02: Home, nothing playing now, but something played this session
     case homeEmpty                                         // Phase 30 / HOME-03: Home, nothing has played this session
@@ -113,7 +121,8 @@ func resolve(activeTransient: ActiveTransient?,
              isExpanded: Bool,
              selectedView: SelectedView = .home,
              onboardingStep: OnboardingStep? = nil,
-             pendingDrop: PendingDrop? = nil) -> IslandPresentation {
+             pendingDrop: PendingDrop? = nil,
+             calendarCountdown: CalendarCountdownActivity? = nil) -> IslandPresentation {
     // Phase 26 D-09: forced flow -- a forced onboarding session is never pre-empted by any
     // transient or expanded state. Checked at the single arbiter, as the literal first
     // statement, rather than as a scattered guard duplicated across call sites (T-26-02).
@@ -154,6 +163,11 @@ func resolve(activeTransient: ActiveTransient?,
         if hasPlayedSinceLaunch { return .homeLastPlayed }
         return .homeEmpty
     }
+    // Phase 41 / HUD-08 (D-01): a present countdown always wins over ambient now-playing wings
+    // — checked FIRST in this branch, before nowPlayingLaunchGate, the ONLY place this
+    // priority rule may be expressed (Pitfall 3: never a suppression flag in a monitor or the
+    // view layer).
+    if let countdown = calendarCountdown { return .calendarCountdown(countdown) }
     // Phase 17 / NOW-04 — D-01/D-03: the launch gate applies ONLY to this ambient branch; the
     // isExpanded branch above is untouched, so a manual expand always reveals the real state.
     let ambient = nowPlayingLaunchGate(hasPlayedSinceLaunch: hasPlayedSinceLaunch, nowPlaying: nowPlaying)
