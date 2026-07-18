@@ -14,6 +14,13 @@ import AppKit   // Phase 33 / WEATHER-02 (D-08) — NSColor.blended(withFraction
 // state mutation in a spring animation (response 0.35, dampingFraction 0.65) and SwiftUI
 // animates the dependent matchedGeometryEffect/scaleEffect automatically. That keeps the
 // idle/collapsed pill provably static (D-08): no driving clock here.
+// Phase 40 / HUD-06 — pure gating logic for the update-available badge (D-05/D-06),
+// testable in isolation, mirrors this codebase's "every boolean-gated presentation
+// branch gets a pure test" convention (FocusActivityTests, OSDActivityTests, PowerActivityTests).
+func shouldShowUpdateBadge(updateAvailable: Bool, isExpanded: Bool) -> Bool {
+    updateAvailable && !isExpanded
+}
+
 struct NotchPillView: View {
     // Plan 03 owns the instance and injects it via
     // `NSHostingView(rootView: NotchPillView(interaction: state))`.
@@ -104,6 +111,16 @@ struct NotchPillView: View {
     // owns and injects a real instance, never defaulted. This view only RENDERS whatever is
     // published — no ShelfCoordinator, no file I/O.
     @ObservedObject var shelfViewState: ShelfViewState
+
+    // Phase 40 / HUD-06 — the badge-truth-source carrier from Plan 01, and the tap action
+    // it forwards to. DEVIATION from every other @ObservedObject above (all non-defaulted,
+    // explicitly passed at all ~13 #Preview call sites): these two get defaults because the
+    // badge is a corner overlay ADDITIVE to every existing preview scenario, not core content
+    // any preview is testing — defaulting avoids touching ~13 preview blocks for zero
+    // behavioral gain. NotchWindowController.makeRootView still explicitly passes the REAL
+    // objects so the shipped feature works; only the previews rely on the default.
+    @ObservedObject var updateAvailableState: UpdateAvailableState = UpdateAvailableState()
+    var onUpdateBadgeTap: () -> Void = {}
 
     // Phase 26 / ONBOARD-01 — the SEPARATE @Published onboarding-permissions model,
     // mirroring nowPlaying/presentationState/outfit/shelfViewState's existing ownership
@@ -765,6 +782,23 @@ struct NotchPillView: View {
             // the rim, a worse regression than the momentary flat-black-during-transition bug
             // it was meant to fix. Back to rendering presentationSwitch directly.
             presentationSwitch
+        }
+        // Phase 40 / HUD-06 (D-05/D-06/D-07) — attached to the SAME outer container as
+        // presentationSwitch (not inside any individual IslandPresentation case body), so
+        // the badge renders regardless of whichever case is active (D-05). The `if` gates
+        // the badge's PRESENCE, not its opacity — no badge in the view tree at all when
+        // updateAvailable == false, mirroring the absence-based pattern OSD/Charging use.
+        // Reuses the existing nowPlayingAccent environment read (D-07) — no new EnvironmentKey.
+        .overlay(alignment: .topTrailing) {
+            if shouldShowUpdateBadge(updateAvailable: updateAvailableState.updateAvailable, isExpanded: interaction.isExpanded) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(nowPlayingAccent)
+                    .offset(x: -4, y: 4)
+                    .accessibilityLabel("Update available")
+                    .onTapGesture { onUpdateBadgeTap() }
+            }
         }
         // Phase 21 bugfix (SHELF-06 UAT) — this outer container's height was still the
         // pre-Phase-20 constant, so blobShape's own +shelfRowHeight growth (for
