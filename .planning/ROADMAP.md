@@ -839,7 +839,7 @@ Plans:
 
 **Wave 2** *(blocked on 42-01)*
 
-- [ ] 42-03-PLAN.md — NotchPillView secondaryBubble view (circular artwork crop, distinct matchedGeometryEffect id, D-05/D-06/D-07/D-08/D-09/D-13) composed alongside presentationSwitch
+- [x] 42-03-PLAN.md — NotchPillView secondaryBubble view (circular artwork crop, distinct matchedGeometryEffect id, D-05/D-06/D-07/D-08/D-09/D-13) composed alongside presentationSwitch
 
 **Wave 3** *(blocked on 42-02, 42-03)*
 

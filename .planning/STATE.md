@@ -4,13 +4,13 @@ milestone: v1.6
 milestone_name: Liquid Glass & System HUD Suite
 status: executing
 stopped_at: Phase 42 UI-SPEC approved
-last_updated: "2026-07-18T21:28:07.852Z"
+last_updated: "2026-07-18T21:37:51.782Z"
 last_activity: 2026-07-18
 progress:
   total_phases: 27
   completed_phases: 20
   total_plans: 87
-  completed_plans: 79
+  completed_plans: 80
   percent: 74
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-13)
 ## Current Position
 
 Phase: 42 (dual-activity-display) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-18
 
@@ -105,6 +105,7 @@ Progress (v1.6): [██████░░░░] 63% (5/8 phases — Phases 35-
 | Phase 41 P02 | 10min | 2 tasks | 3 files |
 | Phase 41 P03 | 8min | 2 tasks | 2 files |
 | Phase 42 P01 | 10min | 2 tasks | 3 files |
+| Phase 42 P03 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 41]: countdownWings rightWidth widened from wingsSize.width/2 (145pt) to wingsLabelWidth/2 (200pt) to clear the physical camera cutout — On-device UAT found the mm:ss countdown text's leading digit rendering under the camera housing at the narrower icon-only-tuned width; reused the existing label-clearing constant deviceWings already established rather than a new magic number
 - [Phase 42-01]: resolveSecondary(primary:nowPlaying:) takes primary as input rather than re-deriving activeTransient/isExpanded, so D-10/D-04 fall out structurally instead of via duplicated checks
 - [Phase 42-02]: On-device spike confirmed "passes through": today's NotchWindowController.hotZone does not cover wing-tier tap targets (Countdown wing tested) — Plan 42-04 Task 2 must widen the collapsed/wing-tier click-through zone before the secondary bubble's tap target can work
+- [Phase 42-03]: secondaryBubble applies native macOS 26 .glassEffect(.regular.tint(...)) directly against Circle() (full-fill, not rim-only) instead of reusing liquidGlassEffectLayer, which is typed to concrete NotchShape and cannot accept Circle()
 
 ### Roadmap Evolution
 
@@ -228,7 +230,7 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 ## Session Continuity
 
-Last session: 2026-07-18T21:27:06.787Z
+Last session: 2026-07-18T21:36:37.958Z
 Stopped at: Phase 42 UI-SPEC approved
 Resume file: None
 
