@@ -51,6 +51,7 @@
 		62BB9F9BCB658F55890D95BD /* LicenseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471EC72A07A658DCBFCDDB38 /* LicenseServiceTests.swift */; };
 		62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */; };
 		6760B75E8CA5DA979BB43486 /* KeychainLicenseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30839BA1A62ECDA5057B779C /* KeychainLicenseStore.swift */; };
+		6792F78DC530A9635F3D2FED /* Sparkle in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 121EF57B076562C03445F3D4 /* Sparkle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		6834F012466C396EF5D7439B /* BrightnessReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5304DD9EE0040C6059114A1 /* BrightnessReader.swift */; };
 		68CE6D5F610C8C037058F697 /* WeatherCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B811CCD53A0E77D86C48E5 /* WeatherCategory.swift */; };
 		6B351B58889CA7C8B7C93511 /* DragApproachGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */; };
@@ -97,6 +98,7 @@
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
 		DB506F16085ECD1612616899 /* EqualizerBarsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */; };
 		DE3C88D60447745B95BF4F52 /* OSDInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A9A9669B73F37C9B93F564 /* OSDInterceptor.swift */; };
+		E5B578444004340719E35097 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 121EF57B076562C03445F3D4 /* Sparkle */; };
 		E80E54F355F9DD7F3895158E /* ShelfFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BC5A79583E82567AEE07F /* ShelfFileStore.swift */; };
 		EA29DD5F3A34C0E54249CFD8 /* LiquidGlassShader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A615165F39E760B6745AEAD1 /* LiquidGlassShader.swift */; };
 		EB0A6293AAD242E76B254033 /* PowerSourceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDA6D11E5FD99E29B189B9CC /* PowerSourceMonitor.swift */; };
@@ -133,6 +135,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				78E654D36EEE2891E43D8957 /* MediaRemoteAdapter in Embed Frameworks */,
+				6792F78DC530A9635F3D2FED /* Sparkle in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -183,6 +186,7 @@
 		5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManagerTests.swift; sourceTree = "<group>"; };
 		5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseServiceTests.swift; sourceTree = "<group>"; };
 		58372E319659DF8AA32F403D /* ShelfLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfLogic.swift; sourceTree = "<group>"; };
+		5998347EF705695E4C020094 /* Info-Sparkle.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-Sparkle.plist"; sourceTree = "<group>"; };
 		5D869CDF80317230429414E1 /* PowerActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivityTests.swift; sourceTree = "<group>"; };
 		5F13DD9E9F8F782EEAE48FC2 /* Islet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Islet.entitlements; sourceTree = "<group>"; };
 		5FD7011AF8E607471C7F73FB /* ViewSwitcherState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewSwitcherState.swift; sourceTree = "<group>"; };
@@ -255,6 +259,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				34071739EA3C6FAD089AEA67 /* MediaRemoteAdapter in Frameworks */,
+				E5B578444004340719E35097 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -352,6 +357,7 @@
 				F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */,
 				46B181CF063D1999E055DD9B /* Assets.xcassets */,
 				B94FF8FB96D00B8442591E7B /* Diagnostics.swift */,
+				5998347EF705695E4C020094 /* Info-Sparkle.plist */,
 				5F13DD9E9F8F782EEAE48FC2 /* Islet.entitlements */,
 				143DD03B59EE64AE773112BD /* IsletApp.swift */,
 				0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */,
@@ -461,10 +467,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 381E4B6B537864FE6387E85B /* Build configuration list for PBXNativeTarget "Islet" */;
 			buildPhases = (
+				9BB521F0896B252FBF2405FF /* Workaround: Sparkle SPM embed path bug (stage) */,
 				990BC17A77347B07C89113AB /* Sources */,
 				449F05D2898C80051C5AEFB8 /* Resources */,
 				2B4E2E7EC8F67970757B6F45 /* Frameworks */,
 				E21BD8C4B2ECE3BCBFB7F2EE /* Embed Frameworks */,
+				6A6753D42077823B5927504B /* Workaround: Sparkle SPM embed path bug (clean up bare-name copy) */,
 			);
 			buildRules = (
 			);
@@ -473,6 +481,7 @@
 			name = Islet;
 			packageProductDependencies = (
 				D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */,
+				121EF57B076562C03445F3D4 /* Sparkle */,
 			);
 			productName = Islet;
 			productReference = 9CE81E9432BCF90C884078EA /* Islet.app */;
@@ -526,6 +535,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				8DD604879E4D768C7539449C /* XCRemoteSwiftPackageReference "mediaremote-adapter" */,
+				95C1EC0DE8AB78FB5AFDCF22 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C177373778F579B56E86969A /* Products */;
@@ -550,6 +560,45 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		6A6753D42077823B5927504B /* Workaround: Sparkle SPM embed path bug (clean up bare-name copy) */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Workaround: Sparkle SPM embed path bug (clean up bare-name copy)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nrm -rf \"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle\"\nrm -rf \"${BUILT_PRODUCTS_DIR}/Sparkle\"\n";
+		};
+		9BB521F0896B252FBF2405FF /* Workaround: Sparkle SPM embed path bug (stage) */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Workaround: Sparkle SPM embed path bug (stage)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nARTIFACT_ROOT=\"${BUILD_DIR%/Build/*}/SourcePackages/artifacts/sparkle\"\nSRC=$(find \"$ARTIFACT_ROOT\" -type d -name \"Sparkle.framework\" -path \"*Sparkle.xcframework*\" 2>/dev/null | head -1)\nif [ -n \"$SRC\" ] && [ -d \"$SRC\" ]; then\n  FW_DIR=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\n  mkdir -p \"$FW_DIR\"\n  rm -rf \"$FW_DIR/Sparkle\"\n  ditto \"$SRC\" \"$FW_DIR/Sparkle\"\n  mkdir -p \"${BUILT_PRODUCTS_DIR}\"\n  rm -rf \"${BUILT_PRODUCTS_DIR}/Sparkle\"\n  ditto \"$SRC\" \"${BUILT_PRODUCTS_DIR}/Sparkle\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		990BC17A77347B07C89113AB /* Sources */ = {
@@ -688,6 +737,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Islet/Info-Sparkle.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Islet;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
@@ -848,6 +898,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Islet/Info-Sparkle.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Islet;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
@@ -950,9 +1001,22 @@
 				revision = cf30c4f1af29b5829d859f088f8dbdf12611a046;
 			};
 		};
+		95C1EC0DE8AB78FB5AFDCF22 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		121EF57B076562C03445F3D4 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 95C1EC0DE8AB78FB5AFDCF22 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 8DD604879E4D768C7539449C /* XCRemoteSwiftPackageReference "mediaremote-adapter" */;

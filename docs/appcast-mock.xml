@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 40 / HUD-06 — a hand-authored, minimally valid Sparkle appcast used ONLY by Plan 03's
+  on-device checkpoint to confirm the update-available signal fires. It is never referenced by
+  any Info.plist key and never shipped inside the app bundle — the real live appcast route
+  (hosted on the Vercel domain that will replace project.yml's placeholder SUFeedURL) is
+  explicitly out of this phase's scope (D-03). See docs/RELEASE.md's "Sparkle Auto-Update"
+  section for how to point Islet at this file with a temporary local `file://` SUFeedURL
+  override during manual testing.
+-->
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Islet Updates (mock)</title>
+    <link>https://REPLACE-WITH-VERCEL-DOMAIN.example.com/appcast.xml</link>
+    <description>Mock appcast for local Sparkle testing — not a real release feed.</description>
+    <language>en</language>
+    <item>
+      <title>Version 99.0</title>
+      <description><![CDATA[<p>Mock release for on-device Sparkle update-flow testing (Phase 40 Plan 03).</p>]]></description>
+      <pubDate>Sat, 18 Jul 2026 00:00:00 +0000</pubDate>
+      <sparkle:shortVersionString>99.0</sparkle:shortVersionString>
+      <sparkle:version>99</sparkle:version>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://github.com/Lippi304/notch/releases/download/v99.0/Islet.dmg"
+        sparkle:version="99"
+        sparkle:shortVersionString="99.0"
+        length="1"
+        type="application/octet-stream"
+        sparkle:edSignature="PLACEHOLDER-NOT-A-REAL-SIGNATURE-not-functional=="
+      />
+    </item>
+  </channel>
+</rss>
