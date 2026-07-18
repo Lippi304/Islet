@@ -57,6 +57,20 @@ func nextRelevantEvent(events: [EventInput], now: Date) -> CalendarGlance? {
     return nil   // D-04: neither today nor tomorrow has a relevant event
 }
 
+// Phase 41 / HUD-08 (D-04) — the countdown's own event-selection seam, deliberately a NEW
+// sibling of nextRelevantEvent(events:now:) rather than a modification of it (Pitfall 2):
+// nextRelevantEvent is IN-PROGRESS-INCLUSIVE (`end > now`), which is correct for the
+// idle-glance "what's happening" summary but wrong for a countdown — counting down to an
+// event that already started makes no sense. nextUpcomingEvent is NOT-YET-STARTED-ONLY
+// (`start > now`), diverging on exactly that case. Foundation-only, total, never crashes on
+// an empty `events` array.
+func nextUpcomingEvent(events: [EventInput], now: Date, lookahead: TimeInterval = 3600) -> EventInput? {
+    events
+        .filter { $0.start > now && $0.start <= now.addingTimeInterval(lookahead) }
+        .sorted { $0.start < $1.start }
+        .first
+}
+
 // Phase 28 / CALVIEW-01 — the calendar grid's day-cell generator. Total function: never
 // crashes, returns `[]` if the Calendar API can't resolve the month (T-14-02 precedent).
 // Leading `nil` entries pad the grid so the 1st of the month lands in its correct weekday

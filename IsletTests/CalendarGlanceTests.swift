@@ -132,4 +132,67 @@ final class CalendarGlanceTests: XCTestCase {
         let result = events(on: Date(), events: [])
         XCTAssertEqual(result, [])
     }
+
+    // Phase 41 / HUD-08: nextUpcomingEvent(events:now:lookahead:) — the countdown's
+    // NOT-YET-STARTED-ONLY selection seam, diverging from nextRelevantEvent (Pitfall 2).
+
+    func testNextUpcomingEventReturnsEventStartingWithinLookahead() {
+        // An event starting in 30 min (within the default 1hr lookahead) is returned.
+        let now = Date()
+        let event = EventInput(title: "Standup", start: now.addingTimeInterval(30 * 60),
+                                end: now.addingTimeInterval(60 * 60),
+                                colorRed: 1, colorGreen: 0, colorBlue: 0)
+        let result = nextUpcomingEvent(events: [event], now: now)
+        XCTAssertEqual(result, event)
+    }
+
+    func testNextUpcomingEventExcludesAlreadyStartedEvent() {
+        // An event that already started (start <= now, even though end > now) is EXCLUDED --
+        // this is exactly the case nextRelevantEvent would include; proves the divergence.
+        let now = Date()
+        let inProgress = EventInput(title: "In Progress", start: now.addingTimeInterval(-10 * 60),
+                                     end: now.addingTimeInterval(20 * 60),
+                                     colorRed: 0, colorGreen: 1, colorBlue: 0)
+        let result = nextUpcomingEvent(events: [inProgress], now: now)
+        XCTAssertNil(result)
+    }
+
+    func testNextUpcomingEventIncludesEventExactlyAtLookaheadBoundary() {
+        // An event starting exactly at now + lookahead is INCLUDED (inclusive <=).
+        let now = Date()
+        let lookahead: TimeInterval = 3600
+        let event = EventInput(title: "Boundary", start: now.addingTimeInterval(lookahead),
+                                end: now.addingTimeInterval(lookahead + 3600),
+                                colorRed: 0, colorGreen: 0, colorBlue: 1)
+        let result = nextUpcomingEvent(events: [event], now: now, lookahead: lookahead)
+        XCTAssertEqual(result, event)
+    }
+
+    func testNextUpcomingEventExcludesEventOutsideLookaheadWindow() {
+        // An event starting too far in the future (beyond the lookahead) is excluded.
+        let now = Date()
+        let tooFar = EventInput(title: "Too Far", start: now.addingTimeInterval(2 * 3600),
+                                 end: now.addingTimeInterval(3 * 3600),
+                                 colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let result = nextUpcomingEvent(events: [tooFar], now: now, lookahead: 3600)
+        XCTAssertNil(result)
+    }
+
+    func testNextUpcomingEventReturnsNilForEmptyEventsListWithoutCrashing() {
+        // T-14-02 precedent: an empty events array must never force-unwrap or crash -- nil.
+        let result = nextUpcomingEvent(events: [], now: Date())
+        XCTAssertNil(result)
+    }
+
+    func testNextUpcomingEventReturnsEarliestStartingAmongMultipleQualifying() {
+        // Multiple qualifying (not-yet-started, within lookahead) events -- the EARLIEST-
+        // starting one is returned.
+        let now = Date()
+        let later = EventInput(title: "Later", start: now.addingTimeInterval(50 * 60),
+                                end: now.addingTimeInterval(70 * 60), colorRed: 1, colorGreen: 1, colorBlue: 0)
+        let earlier = EventInput(title: "Earlier", start: now.addingTimeInterval(10 * 60),
+                                  end: now.addingTimeInterval(20 * 60), colorRed: 0, colorGreen: 1, colorBlue: 1)
+        let result = nextUpcomingEvent(events: [later, earlier], now: now)
+        XCTAssertEqual(result, earlier)
+    }
 }
