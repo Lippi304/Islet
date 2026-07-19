@@ -661,7 +661,16 @@ struct NotchPillView: View {
     // different once the real blocker (unreachable trayEmptyState, see debug session
     // tray-spacing-fix-not-applying) was fixed and the view became visible for the first time.
     static let traySize = CGSize(width: 650, height: 144)
-    static let trayContentHeight: CGFloat = 145
+    // Phase 44 UAT gap-closure (round 4) — explicit user override: "Können wir die File Tray
+    // genauso so groß machen wie die Ablage zum reinziehen jetzt ist. Die Höhe will ich genauso
+    // bei beiden." Ties trayContentHeight directly to quickActionPickerContentHeight (117) so the
+    // two can never drift apart again. KNOWN RISK, called out and accepted by the user before
+    // this change: 117 is LESS than cameraClearance(42) + trayShelfRowTopInset(10) +
+    // trayShelfRowHeight(70) = 122 alone, with zero bottom margin — below the minimum this
+    // constant needed across several prior UAT rounds (see the round 2/4 history below) to avoid
+    // clipping file icons/text at the bottom of the Tray box. Needs an explicit on-device check
+    // with a full shelf of files before this is considered verified, not just a green build.
+    static let trayContentHeight: CGFloat = quickActionPickerContentHeight
 
     // Quick task 260715-vsd — the Calendar-only width override. calendarFullView's own
     // `.padding(.horizontal, 16)` is 8pt short of the 24pt wall-inset every NotchShape edge

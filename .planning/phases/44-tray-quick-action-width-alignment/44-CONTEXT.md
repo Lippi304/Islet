@@ -53,6 +53,20 @@ No new capabilities — pure geometry/sizing alignment of already-shipped featur
   instead of a bare comment. **D-04 (width = traySize.width) is unaffected** — only height
   reverted; the picker is still exactly as WIDE as the real Tray, just not as tall.
 
+- **D-10 (further extends D-09, reverses the original relationship):** Round 4 asked to go the
+  other direction — instead of the picker matching Tray, make the real (landed) Tray match the
+  now-117pt picker: "Können wir die File Tray genauso so groß machen wie die Ablage zum reinziehen
+  jetzt ist. Die Höhe will ich genauso bei beiden." `NotchPillView.trayContentHeight` (previously
+  145, tuned up over 3+ prior gap-closure rounds specifically to stop file icons/text clipping)
+  now equals `quickActionPickerContentHeight` (117) directly, single-source-of-truth. **Explicit,
+  acknowledged risk:** 117 is LESS than `cameraClearance(42) + trayShelfRowTopInset(10) +
+  trayShelfRowHeight(70) = 122` alone, with zero bottom margin — below the minimum trayContentHeight
+  needed in that documented prior history. User was shown this exact math and the regression
+  precedent and chose to proceed anyway ("Trotzdem exakt auf 117pt setzen"). **Needs an explicit
+  on-device check with a full shelf of files (not just a green build) before being considered
+  verified** — if file icons/text clip at the bottom, the fix is almost certainly
+  `trayShelfRowHeight`/`trayShelfRowTopInset` re-tuning, not reverting this height tie.
+
 </decisions>
 
 <canonical_refs>
