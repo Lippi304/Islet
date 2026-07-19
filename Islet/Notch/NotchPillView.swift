@@ -1485,7 +1485,13 @@ struct NotchPillView: View {
                     .multilineTextAlignment(.center)
             }
         }
-        .padding(.top, 24)
+        // Phase 44 UAT gap-closure (round 5) — this 24pt top padding was tuned for the old
+        // 145pt-tall trayContentHeight box; combined with the Group's own cameraClearance(42)
+        // padding in trayFullView, the icon+text block started 66pt down, leaving only ~51pt for
+        // ~61pt of content (icon 28 + text block ~33) in the new 117pt box — the title/subtitle
+        // ("No files yet" / "Drag files onto...") got pushed past the box's clipped bottom edge.
+        // Trimmed to 8pt so the block starts at 50pt total, comfortably inside the shorter box.
+        .padding(.top, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
