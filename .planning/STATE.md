@@ -4,8 +4,8 @@ milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
 stopped_at: Phase 46 UI-SPEC approved
-last_updated: "2026-07-19T20:21:39.355Z"
-last_activity: 2026-07-19 -- Phase 46 planning complete
+last_updated: "2026-07-19T20:32:00.403Z"
+last_activity: 2026-07-19
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 45 — view-switcher-morph-fix (complete) — next: Phase 46
+**Current focus:** Phase 46 — calendar-quick-add-improvements
 
 ## Current Position
 
-Phase: 45 (view-switcher-morph-fix) — COMPLETE
-Plan: 2 of 2 (both complete)
+Phase: 46 (calendar-quick-add-improvements) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-19 -- Phase 46 planning complete
+Last activity: 2026-07-19
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -116,6 +116,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | Phase 44 P01 | 10min | 2 tasks | 3 files |
 | Phase 45 P01 | 10min | 2 tasks | 2 files |
 | Phase 45 P02 | <1min | 1 task | 0 files |
+| Phase 46 P01 | 12min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -159,6 +160,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 44-01]: Reused NotchPillView.traySize/trayContentHeight/switcherRowHeight at all 3 Quick Action picker geometry sites (panel reservation, contentSize branch, blobShape call) instead of inventing new numbers; deleted the orphaned quickActionPickerContentHeight constant
 - [Phase 45-01]: tabWidth/tabHeight consolidation shipped as the SWITCH-01/02 structural fix; trayFullView's shelfItems/shelfVisible override dropped in favor of the unified call site's uniform arguments (no-op, shelfStripVisible is a hardcoded false constant); SWITCH-01/SWITCH-02 left Pending in REQUIREMENTS.md until 45-02's on-device 12-pairwise verification confirms the morph fix
 - [Phase 45-02]: On-device 12-pairwise-transition sweep (all 12 tab pairs, both directions), interrupted mid-morph tap retarget check (D-01), and populated-Home sanity check all confirmed glitch-free by the user ("approved") — SWITCH-01/SWITCH-02 marked Complete in REQUIREMENTS.md, closing Phase 45. Per this project's own Phase 29/36/38/39 precedent, this on-device checkpoint directly covers the phase's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed.
+- [Phase 46-01] isProgrammaticEndUpdate suppression flag distinguishes startRow's auto-follow write to endTime from a genuine user edit, so endRow's onChange doesn't misflip endManuallyEdited after one Start change
+- [Phase 46-01] onQuickAdd widened at its single controller call site (Rule 3 blocking fix) to compile against the new 4-arg signature; new Date/Date? args intentionally discarded there, real wiring deferred to Plan 46-02 Task 1
 
 ### Roadmap Evolution
 
@@ -268,9 +271,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T19:18:37.774Z
+Last session: 2026-07-19T20:30:41.580Z
 Stopped at: Phase 46 UI-SPEC approved
-Resume file: .planning/phases/46-calendar-quick-add-improvements/46-UI-SPEC.md
+Resume file: None
 
 ## Operator Next Steps
 

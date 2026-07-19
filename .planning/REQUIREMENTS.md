@@ -52,7 +52,7 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 
 ### Calendar Quick-Add
 
-- [ ] **CALVIEW-05**: Quick-add gains a date+time picker — Events get a start/end time range, Reminders get a single time. Default date is the calendar day the user tapped; default time is the next full hour if that day is today, otherwise 00:00
+- [x] **CALVIEW-05**: Quick-add gains a date+time picker — Events get a start/end time range, Reminders get a single time. Default date is the calendar day the user tapped; default time is the next full hour if that day is today, otherwise 00:00
 - [ ] **CALVIEW-06**: The add-event button moves from the right edge (currently visually clipped) to the left, next to the day-list divider
 - [ ] **CALVIEW-07**: Calendar event rows get more padding/margin; the island grows a few pt wider and gains extra height to accommodate the added breathing room
 
@@ -129,7 +129,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DRAG-02 | Phase 44 | Complete |
 | SWITCH-01 | Phase 45 | Complete |
 | SWITCH-02 | Phase 45 | Complete |
-| CALVIEW-05 | Phase 46 | Pending |
+| CALVIEW-05 | Phase 46 | Complete |
 | CALVIEW-06 | Phase 46 | Pending |
 | CALVIEW-07 | Phase 46 | Pending |
 | OUTPUT-01 | Phase 48 | Pending |

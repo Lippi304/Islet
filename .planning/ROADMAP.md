@@ -675,7 +675,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 46-01-PLAN.md — Pure seam (defaultQuickAddTime) + QuickAddPopover date+time picker rows, widened onSubmit/onQuickAdd signature (D-01..D-05, D-07)
+- [x] 46-01-PLAN.md — Pure seam (defaultQuickAddTime) + QuickAddPopover date+time picker rows, widened onSubmit/onQuickAdd signature (D-01..D-05, D-07)
 
 **Wave 2** *(blocked on 46-01)*
 
