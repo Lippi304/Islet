@@ -695,7 +695,20 @@ Plans:
   2. `AudioOutputMonitor` enumerates real system audio-output devices, keyed by the stable `kAudioDevicePropertyDeviceUID` (never the session-ephemeral `AudioDeviceID`), and reflects live connect/disconnect/default-output changes via `AudioObjectAddPropertyListener`.
   3. Every CoreAudio callback-driven state update is confirmed to hop to the main thread before touching `@Published` state (mirrors `BluetoothMonitor`'s already-solved pattern).
   4. Per-device volume-property support (`kAudioDevicePropertyVolumeScalar`) is verified against the dev machine's actual Bluetooth headset, not just built-in speakers, so Phase 48 can wire a slider to it with confidence.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 47-01-PLAN.md — AudioOutputDevice value type + isOutputCapableDevice(outputChannelCount:) classifier (D-01) + sortedAudioOutputDevices(_:) default-pinned-first/alphabetical sort (D-02), TDD
+
+**Wave 2** *(blocked on 47-01)*
+
+- [ ] 47-02-PLAN.md — AudioOutputMonitor: idempotent start/stop + UID-keyed device enumeration + off-main listener hop (Pitfalls 4/5/6) + setDefaultOutput confirm-after-set (Pitfall 8) + hasVolumeControl guard (Pitfall 7)
+
+**Wave 3** *(blocked on 47-02)*
+
+- [ ] 47-03-PLAN.md — Manual Cmd-U spike harness + on-device D-03 verification (built-in speakers, 2 distinct Bluetooth devices, USB/wired device)
 
 ### Phase 48: Audio Output Switcher — UI Wiring
 
