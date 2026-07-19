@@ -669,8 +669,21 @@ Plans:
   1. Quick-add shows a date+time picker — Events get a start/end time range, Reminders get a single time — defaulting to the tapped calendar day and the next full hour (if that day is today) or 00:00 (otherwise).
   2. The add-event button sits on the left, next to the day-list divider, fully visible with no clipping — replacing its previous clipped right-edge position.
   3. Calendar event rows in the day list show visibly more padding/margin than today, and the island grows a few pt wider and gains extra height to accommodate the roomier rows without cramping.
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 46-01-PLAN.md — Pure seam (defaultQuickAddTime) + QuickAddPopover date+time picker rows, widened onSubmit/onQuickAdd signature (D-01..D-05, D-07)
+
+**Wave 2** *(blocked on 46-01)*
+
+- [ ] 46-02-PLAN.md — NotchWindowController wiring (real dates to CalendarService) + "+ Add" left-edge placement (D-06) + row padding + calendarWidth/calendarContentHeight (D-08/D-09/D-10)
+
+**Wave 3** *(blocked on 46-02)*
+
+- [ ] 46-03-PLAN.md — On-device UAT: date-picker create-flow, button/popover placement, row/island sizing tune (D-11)
 
 ### Phase 47: Audio Output Switcher — Pure Seam + Monitor
 
