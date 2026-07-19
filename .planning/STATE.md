@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: planning
-last_updated: "2026-07-18T23:27:13.245Z"
-last_activity: 2026-07-18
+last_updated: "2026-07-19T00:05:00.000Z"
+last_activity: 2026-07-19
 progress:
-  total_phases: 0
+  total_phases: 8
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** v1.6 shipped and archived. v1.5 left open in parallel — only Phase 33 on-device UAT remains before it can close too. No new milestone scoped yet.
+**Current focus:** v1.7 (Interaction & Calendar Polish) roadmap created — 8 phases (43-50), 15/15 requirements mapped. v1.4 and v1.5 remain open in parallel (v1.5 only needs Phase 33 on-device UAT to close). Ready to start with `/gsd-discuss-phase 43`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 43 (Drag Detection Hardening) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-18 — Milestone v1.7 started
+Status: Roadmap created, awaiting phase planning
+Last activity: 2026-07-19 — v1.7 ROADMAP.md/REQUIREMENTS.md created (8 phases, 43-50)
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -47,6 +47,8 @@ Progress (v1.4): [██████████] 100% (6/6 phases — Phases 23
 Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-32 complete; Phase 33 executing (Plan 1 of 2), Phase 34 not started; left open in parallel with v1.6)
 
 Progress (v1.6): [██████████] 100% — SHIPPED 2026-07-19 (8/8 phases; Phase 37 abandoned/reverted, HUD-07 dropped; see `.planning/milestones/v1.6-ROADMAP.md`)
+
+Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap created 2026-07-19, Phases 43-50, 15/15 requirements mapped; not yet started)
 
 ## Performance Metrics
 
@@ -144,6 +146,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 42-02]: On-device spike confirmed "passes through": today's NotchWindowController.hotZone does not cover wing-tier tap targets (Countdown wing tested) — Plan 42-04 Task 2 must widen the collapsed/wing-tier click-through zone before the secondary bubble's tap target can work
 - [Phase 42-03]: secondaryBubble applies native macOS 26 .glassEffect(.regular.tint(...)) directly against Circle() (full-fill, not rim-only) instead of reusing liquidGlassEffectLayer, which is typed to concrete NotchShape and cannot accept Circle()
 - [Phase 42]: D-12/D-13 superseded live during on-device UAT — secondary bubble tap now toggles play/pause directly (not expand-to-Now-Playing), hover reveals a play/pause glyph (not inert); collapsedInteractiveZone() hot-zone widening closes T-42-07 (see 42-04-SUMMARY.md)
+- [v1.7 roadmap] Phase order 43→44→45→46→47→48→49→50: the 4 independent, no-research-dependency bugfixes (Drag Detection, Tray/Picker Width, View Switcher, Calendar Quick-Add) sequenced first since none block or are blocked by the Now Playing work; DRAG-02 bundled with TRAY-06 into one phase (44) rather than split, since both touch the same shared width geometry and splitting them risks a repeat-touch-the-geometry regression (this project's own Phase 31→32 "touch `visibleContentZone()` once, not twice" precedent). The Now Playing pair then follows research's explicit risk-isolation recommendation: Audio Output Switcher (zero external-API risk, public CoreAudio) split pure-seam-first (47) then UI wiring (48, hard dependency), before Favorite/Like (this milestone's highest-risk item — Spotify OAuth+quota, Apple Music AppleScript reliability, Automation/TCC bug) split spike-first (49) then implementation (50, hard dependency) — mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent. Phases 47 and 49 carry no formal REQ-ID (infrastructure/spike phases), matching the Phase 15/16/19/22-01/24-01/38-01/39-01 precedent of pure-seam or spike work preceding the phase that actually ships user-facing requirements.
 
 ### Roadmap Evolution
 
@@ -157,6 +160,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - Phase 25 edited: rescoped from generic frosted/glossy+slower-spring to a specific black-to-transparent vertical gradient material, fluid/bouncy Dynamic-Island-style animation, and a new Theming settings section (VISUAL-03 added); explicitly scoped to shared shell chrome only, not individual activity content views
 - v1.5 (Home Focus & Widget Redesign) roadmap created 2026-07-13: Phase 29 (NotchShape Flare, SHAPE-01), Phase 30 (Home Music-Only, HOME-01/02/03), Phase 31 (Shelf Consolidation to Tray-Only, TRAY-01), Phase 32 (Tray Widening, TRAY-05), Phase 33 (Weather Widget Redesign, WEATHER-01/02), Phase 34 (Quick Action Destination Picker, TRAY-02/03/04) — 100% coverage (11/11). Phase numbering continues from Phase 28. REQUIREMENTS.md's initial "10 total" count corrected to 11 (the actual v1.5 requirement ID list has 11 entries).
 - v1.6 (Liquid Glass & System HUD Suite) roadmap created 2026-07-15: Phase 35 (Liquid Glass Material, GLASS-01), Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/02/EQ-01/ONBOARD-04), Phase 37 (Drop-Session Summary Chip, HUD-07), Phase 38 (Focus Mode HUD, HUD-05), Phase 39 (Volume & Brightness HUD, HUD-03/04), Phase 40 (Update-Available HUD & Sparkle Integration, HUD-06), Phase 41 (Calendar Countdown HUD, HUD-08), Phase 42 (Dual-Activity Display, DUAL-01) — 100% coverage (12/12). Phase numbering starts at 35 (not 34) to avoid colliding with v1.5's still-open, unarchived Phase 34. v1.5 remains open in parallel; both milestones' phases coexist on the live ROADMAP.md.
+- v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19: Phase 43 (Drag Detection Hardening, DRAG-01), Phase 44 (Tray & Quick Action Width Alignment, TRAY-06/DRAG-02), Phase 45 (View Switcher Morph Fix, SWITCH-01/02), Phase 46 (Calendar Quick-Add Improvements, CALVIEW-05/06/07), Phase 47 (Audio Output Switcher — Pure Seam + Monitor, no formal REQ-ID), Phase 48 (Audio Output Switcher — UI Wiring, OUTPUT-01/02/03/04), Phase 49 (Favorite/Like — Spike, no formal REQ-ID), Phase 50 (Favorite/Like — Implementation, FAV-01/02/03) — 100% coverage (15/15). Phase numbering continues from Phase 42 (v1.6's last phase). v1.4 and v1.5 both remain open in parallel; all three milestones' phases coexist on the live ROADMAP.md.
 
 ### Pending Todos
 
@@ -168,8 +172,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 
 [Issues that affect future work]
 
-- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3/v1.4/v1.5/v1.6 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
-- [v1.4, pending] 2 items in `28-HUMAN-UAT.md` remain pending final on-device re-confirmation of the two code-review fixes; run `/gsd:verify-work` for v1.4 once confirmed, then `/gsd:complete-milestone` for v1.4 whenever convenient — does not block starting v1.5/v1.6 phase work.
+- [Carried, pre-existing] Phase 2's 8 on-device UAT scenarios (`02-HUMAN-UAT.md`) remain unexercised since v1.0 close — unrelated to v1.1/v1.2/v1.3/v1.4/v1.5/v1.6/v1.7 scope, still open. Revisit via `/gsd:verify-work 2` if desired.
+- [v1.4, pending] 2 items in `28-HUMAN-UAT.md` remain pending final on-device re-confirmation of the two code-review fixes; run `/gsd:verify-work` for v1.4 once confirmed, then `/gsd:complete-milestone` for v1.4 whenever convenient — does not block starting v1.5/v1.6/v1.7 phase work.
 - [v1.5, from research] Quick Action picker precedence tier (Phase 34) — whether a Charging/Device transient interrupts an open picker or queues behind it is an explicit open product decision, not yet resolved; flag for `/gsd-discuss-phase 34` before that phase's planning.
 - [v1.5, from research] `NSSharingService`/`NSSharingServicePicker` behavior from Islet's permanently non-key `NotchPanel` is unverified in this codebase (WebSearch-corroborated only) — Phase 34 must spike this in isolation before committing to the full picker plan.
 - [v1.5, from research] NotchShape flare (Phase 29) has an open geometry question — whether the flare stays inside the existing panel-frame reservation or needs the panel to grow upward past `screenFrame.maxY` — resolve via a quick on-device check during Phase 29 planning/execution.
@@ -180,6 +184,10 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.6, from research] Volume/Brightness OSD suppression (Phase 39) is undocumented/private-API territory with a confirmed macOS-Tahoe-specific regression mode (wrong `CGEventTap` variant breaks transport keys system-wide) — must be independently re-confirmed on this project's own dev machine during the phase's own spike, not assumed transferable from the reference app (Droppy).
 - [v1.6, from research] Update-available HUD's UI shape (badge vs. custom in-notch driver) is an open design decision for Phase 40 — default to Sparkle's standard alert + a simple badge, revisit a custom `SPUUserDriver` only if that proves insufficient on-device.
 - [v1.6, from research] Dual-activity display's (Phase 42) exact promotion/demotion rules are not yet specified as data — phase planning must produce an explicit ordered rule table before implementation.
+- [v1.7, from research] Spotify's 2025 policy caps unapproved OAuth apps at 5 total allowlisted users (Development Mode) — Phase 49's spike must confirm current quota-mode criteria directly on the Spotify Developer Dashboard before Phase 50 commits to a shared-Client-ID design; be ready to descope Spotify to Apple-Music-only.
+- [v1.7, from research] Whether the vendored `mediaremote-adapter` wrapper's `MediaController` exposes sending a like/love command at all is undocumented in any research pass — Phase 49 must spike it directly (worst case: patch the wrapper's own command table, contained to `NowPlayingMonitor.swift`).
+- [v1.7, from research] The Automation (Apple Events/TCC) permission prompt has a documented reliability bug (can silently fail to appear; target app can vanish from System Settings → Automation after idle) — Phase 49 must reproduce or rule this out and Phase 50 needs a distinct "couldn't verify"/recovery UI state for it, not just denied/granted.
+- [v1.7, from research] Apple Music's `current track` AppleScript reference is documented-broken for streamed (not-yet-in-library) tracks — Phase 49 must spike against a library track, a streaming-only track, and both play/pause states before Phase 50 builds the star button around it.
 
 ### Quick Tasks Completed
 
@@ -228,7 +236,7 @@ Pre-existing debt from Phase 2 (Hover, Expand & Fullscreen Hardening) and Phase 
 
 Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, Phase 22) remained unshipped** — Phase 22 was blocked twice on-device (AppKit drag delivery never reached `NotchPanel`, root cause unidentified) and the user chose to abandon the incremental fix in favor of a broader NotchPanel/NotchWindowController architecture redesign. SHELF-01/02 now formally re-scoped into v1.4 Phase 24, gated behind Phase 23's shell rewrite.
 
-**v1.4 close (pending):** All 6 phases (23-28) code-complete; 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation before `/gsd:complete-milestone` formally closes v1.4. Not blocking v1.5/v1.6 phase work.
+**v1.4 close (pending):** All 6 phases (23-28) code-complete; 2 items in `28-HUMAN-UAT.md` await final on-device re-confirmation before `/gsd:complete-milestone` formally closes v1.4. Not blocking v1.5/v1.6/v1.7 phase work.
 
 **v1.6 close (2026-07-19):** `gsd-sdk query audit-open` flagged 21 items; all acknowledged and deferred, none blocking v1.6's own scope (Phases 35-42, all shipped and on-device UAT'd):
 
@@ -246,13 +254,14 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-18T22:41:00.000Z
-Stopped at: v1.6 milestone closed and archived (`/gsd:complete-milestone v1.6`)
+Last session: 2026-07-19T00:05:00.000Z
+Stopped at: v1.7 ROADMAP.md/REQUIREMENTS.md created (8 phases, 43-50, 15/15 requirements mapped)
 Resume file: None
 
 ## Operator Next Steps
 
-- **v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19.** All 8 phases (35-42) archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 dropped (Phase 37 abandoned). PROJECT.md fully updated, including backfilled Validated write-ups for Phases 38-41 whose own runs had skipped that step. v1.5 (Home Focus & Widget Redesign) remains open in parallel — only Phase 33's on-device UAT (Task 4) is outstanding before it can formally close too; run `/gsd-verify-work 33` once that's done, then `/gsd:complete-milestone v1.5`. No new milestone has been scoped yet — run `/gsd:new-milestone` when ready.
+- **v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19.** 8 phases (43-50), 15/15 requirements mapped, 100% coverage. Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48), then Favorite/Like split spike-first (49) then implementation (50). Start with `/gsd-discuss-phase 43`.
+- **v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19.** All 8 phases (35-42) archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 dropped (Phase 37 abandoned). PROJECT.md fully updated, including backfilled Validated write-ups for Phases 38-41 whose own runs had skipped that step. v1.5 (Home Focus & Widget Redesign) remains open in parallel — only Phase 33's on-device UAT (Task 4) is outstanding before it can formally close too; run `/gsd-verify-work 33` once that's done, then `/gsd:complete-milestone v1.5`.
 
 - Phase 40 (Update-Available HUD & Sparkle Integration) is now fully complete. This session's on-device checkpoint (40-03) root-caused the badge-tap bug carried over from the prior session: tapping the collapsed-pill badge passed the click straight through the app window because `NotchWindowController`'s click-through `hotZone` didn't reliably cover the badge overlay's actual position. Rather than patch that geometry, the update-available indicator was redesigned to a small red dot on the menu-bar status item icon — always fully clickable by construction, sidestepping the whole click-through-zone class of bug. `UpdateAvailableState.swift` and the pill badge overlay were deleted; see `40-03-SUMMARY.md` for the full record, including which of the original 40-UI-SPEC.md decisions (D-05/D-06/D-07) this supersedes. Release archive launch (embedded Sparkle.framework under Hardened Runtime) confirmed crash-free on-device. Only Phase 42 (Dual-Activity Display) remains for v1.6 — start `/gsd-discuss-phase 42` next.
 - Phase 39 (Volume & Brightness HUD) is now fully complete, including its gap-closure addendum (plan 39-08): native OSD suppression genuinely works via `.cghidEventTap` (D-14), self-driven volume/brightness/mute (D-15), and a snappier fill animation (D-16) — all confirmed on-device with zero transport-key regressions. 39-08's own on-device checkpoint directly covered the gap-closure's success criteria, so a separate `/gsd:verify-work 39` pass is not needed, per this project's established precedent (Phase 29/36/38). Start `/gsd-discuss-phase 40` (Update-Available HUD & Sparkle Integration) next.

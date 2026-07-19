@@ -89,6 +89,8 @@ Deferred to a future milestone, not in this roadmap.
 - Named/labeled Focus Mode detection ("Work Focus", "Sleep", etc.) — only if a future spike finds a reliable read path beyond the legacy binary DND flag (v1.6 research: PITFALLS.md)
 - Dual-activity display generalized to 3+ concurrent activities — DUAL-01 explicitly scopes to exactly two; a third-slot model is out of scope until two-slot ships and is validated on real usage
 - Full custom Sparkle install/progress flow rendered entirely as notch HUD — HUD-06 only needs the "available" notification, not the whole install UX
+- Persisted "recently used outputs" quick-toggle ordering (audio-output switcher) — defer until the basic switcher is proven in daily use (v1.7 research: SUMMARY.md)
+- Drag-to-promote/reorder as an accelerator on top of tap-to-select for the audio-output list — v1.7 research explicitly recommends tap-only for v1
 
 ## Out of Scope
 
@@ -101,6 +103,9 @@ Deferred to a future milestone, not in this roadmap.
 | OUTFIT-01 (the original combined weather+calendar+date Home glance) | Being actively removed from Home per HOME-03, not formalized — its calendar half already shipped independently as CALVIEW-01..04 |
 | Named Focus Mode labels (HUD-05) | No confirmed public-or-quasi-public read path to the specific active Focus mode exists on current macOS — only the legacy binary DND flag is reliably readable; building UI around a mode name would stall on an unverified unknown (v1.6 research: PITFALLS.md) |
 | True system-wide OSD suppression as an unconditional default (HUD-03/04) | The undocumented `defaults write com.apple.controlcenter EnableSystemBanners -bool false` toggle changes system behavior outside Islet's own window and is unverified beyond community forum reports; shipping it unconditionally without an on-device spike risks the confirmed Tahoe regression where a related technique breaks system-wide media-key passthrough |
+| `SimplyCoreAudio` (or any third-party CoreAudio wrapper) for the audio-output switcher | Archived/unmaintained since March 2024; project's own "no dependency for a tiny native surface" precedent (IOKit, IOBluetooth) applies — public `AudioObject*`/`AudioHardwareService*` C API is a direct, small surface (v1.7 research: STACK.md) |
+| Full MusicKit REST integration for Apple Music favorite/like | Unnecessary complexity for a same-Mac, same-user write — plain `NSAppleScript` against the `loved` property suffices (v1.7 research: FEATURES.md) |
+| Fuzzy title/artist search to resolve Spotify track identity for favorite/like | False-positive risk (liking the wrong track); the track URI read directly from the current session is used instead (v1.7 research: PITFALLS.md) |
 
 ## Traceability
 
@@ -119,16 +124,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAY-02 | Phase 34 | Complete |
 | TRAY-03 | Phase 34 | Complete |
 | TRAY-04 | Phase 34 | Complete |
+| DRAG-01 | Phase 43 | Pending |
+| TRAY-06 | Phase 44 | Pending |
+| DRAG-02 | Phase 44 | Pending |
+| SWITCH-01 | Phase 45 | Pending |
+| SWITCH-02 | Phase 45 | Pending |
+| CALVIEW-05 | Phase 46 | Pending |
+| CALVIEW-06 | Phase 46 | Pending |
+| CALVIEW-07 | Phase 46 | Pending |
+| OUTPUT-01 | Phase 48 | Pending |
+| OUTPUT-02 | Phase 48 | Pending |
+| OUTPUT-03 | Phase 48 | Pending |
+| OUTPUT-04 | Phase 48 | Pending |
+| FAV-01 | Phase 50 | Pending |
+| FAV-02 | Phase 50 | Pending |
+| FAV-03 | Phase 50 | Pending |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
 - Mapped to phases: 11 (100%)
 - Unmapped: 0
 
+**Coverage (v1.7):**
+- v1.7 requirements: 15 total
+- Mapped to phases: 15 (100%)
+- Unmapped: 0
+- Phase 47 (Audio Output — Pure Seam + Monitor) and Phase 49 (Favorite/Like — Spike) carry no formal REQ-ID themselves — they're infrastructure/spike phases preceding Phase 48/50's user-facing requirements, mirroring this project's own Phase 15/16/19 and Phase 22-01/24-01/38-01/39-01 precedent.
+
 v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is archived in `.planning/milestones/v1.6-REQUIREMENTS.md`.
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-19 — v1.7 (Interaction & Calendar Polish) requirements defined: 15 REQ-IDs total. 8 scoped directly from user bug reports, no research needed (DRAG-01/02, TRAY-06, SWITCH-01/02, CALVIEW-05/06/07). 7 added mid-scoping after a dedicated 4-dimension research pass (`.planning/research/SUMMARY.md`) — FAV-01/02/03 (Now Playing favorite/like write-back) and OUTPUT-01/02/03/04 (audio-output switcher). v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
+*Last updated: 2026-07-19 — v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*
+*v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
 *v1.5 requirements defined 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*

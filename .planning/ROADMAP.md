@@ -10,6 +10,7 @@
 - 🚧 **v1.4 Architecture Redesign** — Phases 23-28 (in progress)
 - 🚧 **v1.5 Home Focus & Widget Redesign** — Phases 29-34 (in progress, left open in parallel)
 - ✅ **v1.6 Liquid Glass & System HUD Suite** — Phases 35-42 (shipped 2026-07-19)
+- 🚧 **v1.7 Interaction & Calendar Polish** — Phases 43-50 (planned, left open in parallel)
 
 ## Phases
 
@@ -112,6 +113,19 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 </details>
 
+### 🚧 v1.7 Interaction & Calendar Polish (Planned)
+
+**Milestone Goal:** Fix a set of real-usage interaction and layout bugs surfaced since v1.4-v1.6 shipped (drag-detection false-triggers, Tray/picker width squeeze, view-switcher disappear/rebuild flicker, calendar quick-add friction) — no new features in that half. Also adds two new Now Playing capabilities: an audio-output switcher (low-risk, public CoreAudio API, sequenced first) and a favorite/like write-back to Spotify/Apple Music (this milestone's highest-risk item, gated behind a dedicated spike before implementation — mirroring this project's own Phase 22/38/39 spike-first precedent). Started 2026-07-19 while v1.4 and v1.5 both remain open in parallel. Phase numbering continues from Phase 42 (v1.6's last phase).
+
+- [ ] **Phase 43: Drag Detection Hardening** - Quick Action picker auto-expand only fires on a genuine inbound file drag, never a plain click/hover
+- [ ] **Phase 44: Tray & Quick Action Width Alignment** - Tray widens to fit every file icon; the drag-preview picker matches that width exactly
+- [ ] **Phase 45: View Switcher Morph Fix** - Tab switches morph continuously with no disappear/rebuild flicker or behind-buttons glitch
+- [ ] **Phase 46: Calendar Quick-Add Improvements** - Date+time picker with smart defaults, unclipped add button, roomier event rows
+- [ ] **Phase 47: Audio Output Switcher — Pure Seam + Monitor** - Device value type + event-driven CoreAudio monitor, proven in isolation before any UI is built
+- [ ] **Phase 48: Audio Output Switcher — UI Wiring** - Speaker-icon panel: live device list, tap-to-select, real volume slider
+- [ ] **Phase 49: Favorite/Like — Spike** - Resolve Spotify quota, Apple Music reliability, and Automation-TCC unknowns; documented go/no-go scope decision
+- [ ] **Phase 50: Favorite/Like — Implementation** - Star button write-back to Apple Music/Spotify, scoped per Phase 49's findings
+
 ## Phase Details
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
@@ -162,6 +176,8 @@ Plans:
 **v1.5:** 5/6 phases complete (83%) — roadmap created 2026-07-13. Phases 29-34, 11/11 v1.5 requirements mapped. Phase 29 (SHAPE-01) completed 2026-07-14. Phase 30 (HOME-01/02/03) completed 2026-07-14. Phase 31 (TRAY-01) completed 2026-07-14 — implementation shipped ahead of formal planning via quick task 260714-3k6, verified and closed by this phase's own plan. Phase 32 (TRAY-05) completed 2026-07-15 — on-device UAT required 11 gap-closure rounds (width narrowed 840→750→650pt, ScrollView top-clearance centering bug, filename horizontal-overhang fix); see 32-01-SUMMARY.md. Phase 33 (WEATHER-01/02) completed 2026-07-15 — on-device UAT required 6 gap-closure rounds (stale hourly data, text-wrap doubling row height, blobShape missing content-clipping onto the panel background, NotchShape's real taper clipping the daily row, final height/gap tuning); see 33-02-SUMMARY.md. Only Phase 34 (Quick Action Destination Picker) remains.
 
 **v1.6:** 8/8 phases complete (100%) — see `.planning/milestones/v1.6-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-19; 11/12 requirements delivered (HUD-07 dropped, Phase 37 abandoned).
+
+**v1.7:** 0/8 phases complete (0%) — roadmap created 2026-07-19. Phases 43-50, 15/15 v1.7 requirements mapped. Phase order: the 4 independent, no-research-dependency bugfixes first (Drag Detection → Tray/Picker Width Alignment → View Switcher Morph → Calendar Quick-Add), then the Now Playing work split per research's risk-isolation recommendation — Audio Output Switcher (public CoreAudio API, pure-seam-then-UI-wiring, no external unknowns) before Favorite/Like (spike-then-implementation, this milestone's highest-risk item: Spotify OAuth+quota reality, Apple Music AppleScript reliability, Automation/TCC permission bug), mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -429,7 +445,7 @@ Plans:
 
 ### Phase 28: Calendar Full View
 
-**Goal**: Users get a full calendar view — month grid, day detail, and quick-add — as a third view alongside Home and Tray, sharing one EventKit service layer with the existing glance.
+**Goal:** Users get a full calendar view — month grid, day detail, and quick-add — as a third view alongside Home and Tray, sharing one EventKit service layer with the existing glance.
 **Depends on**: None — independent of the shell work; soft-pairs with Phase 27's view-switcher slot but not a hard blocker.
 **Requirements**: CALVIEW-01, CALVIEW-02, CALVIEW-03, CALVIEW-04
 **Success Criteria** (what must be TRUE):
@@ -585,3 +601,99 @@ Plans:
 ## v1.6 Liquid Glass & System HUD Suite — SHIPPED 2026-07-19
 
 Phases 35-42 full detail (goals, success criteria, plans, on-device UAT history) archived to `.planning/milestones/v1.6-ROADMAP.md`. Requirements archived to `.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 (Drop-Session Summary Chip, Phase 37) dropped after on-device UAT found its trigger essentially never fires in real usage.
+
+## v1.7 Interaction & Calendar Polish — PLANNED
+
+### Phase 43: Drag Detection Hardening
+
+**Goal**: The island's auto-expand / Quick Action destination picker only fires on a genuine external file drag approaching it — a plain click or hover on the collapsed or expanded island never triggers it, closing the false-trigger regression reported since Phase 24/34 shipped.
+**Depends on**: Nothing (independent bugfix, no research dependency)
+**Requirements**: DRAG-01
+**Success Criteria** (what must be TRUE):
+  1. Clicking the collapsed island (an ordinary click, no external drag in progress) never opens the Quick Action picker.
+  2. Hovering the collapsed or expanded island with no active external file drag never opens the Quick Action picker.
+  3. Dragging a real file from Finder toward the island still reliably auto-expands it and shows the picker, exactly as before — the correct-trigger path is unaffected by the false-trigger fix.
+**Plans**: TBD
+
+### Phase 44: Tray & Quick Action Width Alignment
+
+**Goal**: The Tray view (and island) widens so every file icon fits without visual squeeze, and the drag-preview Quick Action picker always renders at that same width — bundled into one phase so the shared width constant is established once and both consumers stay in sync by construction, avoiding a repeat-touch-the-geometry regression (this project's own Phase 31→32 sequencing precedent).
+**Depends on**: Nothing (independent bugfix, no research dependency)
+**Requirements**: TRAY-06, DRAG-02
+**Success Criteria** (what must be TRUE):
+  1. At typical file counts, every file icon in the Tray view fits without visual squeezing or overlap; individual file icon/button sizes are unchanged from today.
+  2. The Quick Action picker shown during an in-progress drag renders at the exact same width as the real (widened) Tray view — no visible size mismatch between the drag-preview and landed states.
+  3. Click-through hit-testing remains correct at the new width — re-verified via the on-device hover→expand→move-down trace, closing off the CR-01/CR-02 failure class.
+**Plans**: TBD
+
+### Phase 45: View Switcher Morph Fix
+
+**Goal**: Switching between the Home/Tray/Calendar/Weather views morphs the island continuously to the new view's size via the existing `matchedGeometryEffect` spring, eliminating both the disappear/rebuild flicker and the large→small render-behind-buttons glitch.
+**Depends on**: Nothing (independent bugfix, no research dependency)
+**Requirements**: SWITCH-01, SWITCH-02
+**Success Criteria** (what must be TRUE):
+  1. Switching views (Home/Tray/Calendar/Weather, any direction) shows one continuous spring morph directly to the new view's size — the island never visibly disappears or "rebuilds" mid-transition.
+  2. A large→small transition (e.g., Calendar → Tray) no longer shows the island rendering behind/underneath the switcher pill buttons during the morph.
+  3. All 12 pairwise view-to-view transitions are verified glitch-free on-device (or a representative sample covering every size-direction combination).
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 46: Calendar Quick-Add Improvements
+
+**Goal**: Calendar quick-add gains a proper date+time picker with sensible day-aware defaults, the add-event button moves off the currently-clipped right edge, and event rows get more breathing room.
+**Depends on**: Nothing (independent bugfix, no research dependency)
+**Requirements**: CALVIEW-05, CALVIEW-06, CALVIEW-07
+**Success Criteria** (what must be TRUE):
+  1. Quick-add shows a date+time picker — Events get a start/end time range, Reminders get a single time — defaulting to the tapped calendar day and the next full hour (if that day is today) or 00:00 (otherwise).
+  2. The add-event button sits on the left, next to the day-list divider, fully visible with no clipping — replacing its previous clipped right-edge position.
+  3. Calendar event rows in the day list show visibly more padding/margin than today, and the island grows a few pt wider and gains extra height to accommodate the roomier rows without cramping.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 47: Audio Output Switcher — Pure Seam + Monitor
+
+**Goal**: The pure device-list/sort logic and the event-driven CoreAudio monitor exist and are proven correct in isolation — public, documented API, same risk tier as the already-shipped `VolumeReader`/`BrightnessReader` and `BluetoothMonitor` — safe to build and fully de-risk before any UI is wired to it (research's explicit build-order recommendation).
+**Depends on**: Nothing (independent of the bugfix phases and of Favorite/Like; no external API unknowns)
+**Requirements**: None formally scoped to this phase — infrastructure phase preceding Phase 48's OUTPUT-01..04, mirroring this project's own pure-seam-first precedent (Phase 15/16/19, Phase 22-01/24-01/38-01/39-01 spikes)
+**Success Criteria** (what must be TRUE):
+  1. `AudioOutputPresentation`'s device value type and sort/reorder logic are pure, unit-tested Foundation-only code with zero AppKit/SwiftUI dependency.
+  2. `AudioOutputMonitor` enumerates real system audio-output devices, keyed by the stable `kAudioDevicePropertyDeviceUID` (never the session-ephemeral `AudioDeviceID`), and reflects live connect/disconnect/default-output changes via `AudioObjectAddPropertyListener`.
+  3. Every CoreAudio callback-driven state update is confirmed to hop to the main thread before touching `@Published` state (mirrors `BluetoothMonitor`'s already-solved pattern).
+  4. Per-device volume-property support (`kAudioDevicePropertyVolumeScalar`) is verified against the dev machine's actual Bluetooth headset, not just built-in speakers, so Phase 48 can wire a slider to it with confidence.
+**Plans**: TBD
+
+### Phase 48: Audio Output Switcher — UI Wiring
+
+**Goal**: The reserved speaker-icon slot (right of the transport controls, held open since Phase 27's D-09) in the expanded Now Playing view becomes a real, working audio-output switcher — zero remaining external-API risk once Phase 47 lands, per research.
+**Depends on**: Phase 47 — hard dependency; the panel wires against the pure seam and monitor built there.
+**Requirements**: OUTPUT-01, OUTPUT-02, OUTPUT-03, OUTPUT-04
+**Success Criteria** (what must be TRUE):
+  1. Tapping the speaker icon reveals a panel with a thick draggable volume slider that controls the current audio output's real system volume in real time.
+  2. The panel shows a vertical list of all available system audio outputs, with the current output visually highlighted and shown on top, others listed below.
+  3. Tapping a non-current output in the list makes it the active system audio output and it animates to the top of the list (tap-to-select, not drag-to-reorder).
+  4. The output list stays correct — no duplicate or stale entries — when a device connects or disconnects while the panel is open (e.g. AirPods reconnect), keyed by device UID not `AudioDeviceID`.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 49: Favorite/Like — Spike
+
+**Goal**: Resolve this milestone's three genuine, undocumented/policy-gated unknowns — Apple Music `current track`/`loved` reliability, Spotify OAuth/quota-mode reality, and the Automation (TCC) permission-prompt bug — on real hardware, producing a documented go/no-go scope decision before any Favorite/Like UI is planned in detail. Mirrors this project's own Phase 22/24 (drag-in) and Phase 38/39 (undocumented-API) spike-first precedent.
+**Depends on**: Nothing — shares no code path with the Audio Output Switcher work (Phases 47-48), so this spike can proceed independently and in parallel-safe order.
+**Requirements**: None formally scoped to this phase — spike phase preceding Phase 50's FAV-01..03, mirroring Phase 22-01/24-01/38-01/39-01 precedent
+**Success Criteria** (what must be TRUE):
+  1. A real round-trip test confirms (or disproves) whether the vendored `mediaremote-adapter` wrapper can send a like/love command, and whether the streamed payload ever reports a favorite read-state.
+  2. Apple Music's `current track`/`loved` AppleScript behavior is confirmed on this project's own dev hardware across library, streaming-only, and play/pause states — not assumed transferable from forum reports.
+  3. A real Spotify OAuth PKCE round-trip plus a real `PUT` save-track call is exercised, and current quota-mode/Extended-Access criteria are confirmed directly on the Spotify Developer Dashboard.
+  4. The Automation (Apple Events/TCC) permission-prompt reliability bug is reproduced or ruled out on this hardware, and a documented go/no-go scope decision (ship Spotify OAuth / bring-your-own-Client-ID / Apple-Music-only for this milestone) is recorded.
+**Plans**: TBD
+
+### Phase 50: Favorite/Like — Implementation
+
+**Goal**: A star button in the expanded Now Playing view lets the user favorite/like the current track, writing back to the source app's own library, scoped precisely to what Phase 49's spike confirmed is real (read/write, write-only, or Apple-Music-only).
+**Depends on**: Phase 49 — hard dependency; the concrete write path (and whether Spotify ships at all) is only known once the spike concludes.
+**Requirements**: FAV-01, FAV-02, FAV-03
+**Success Criteria** (what must be TRUE):
+  1. A star button, positioned left of the transport controls in the expanded Now Playing view, toggles the current track's favorite/liked status and writes back to Apple Music (AppleScript `loved`) and/or Spotify (OAuth Web API), per Phase 49's confirmed scope.
+  2. Spotify write-back (if shipped) works only for accounts explicitly authorized through Islet's own OAuth flow, with the small-quota limitation documented (Settings/About), not silently discovered by the user.
+  3. If a like/favorite write fails (e.g. a streaming-only track Apple Music can't yet love, or an expired/unauthenticated Spotify session), the star button visibly reflects the failure rather than silently appearing to succeed.
+**Plans**: TBD
