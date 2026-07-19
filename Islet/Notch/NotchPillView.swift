@@ -185,6 +185,15 @@ struct NotchPillView: View {
     var onNext: () -> Void = {}
     var onPrevious: () -> Void = {}
 
+    // Phase 48 / OUTPUT-01/02/03 — the output-panel callbacks, plain closures mirroring the
+    // transport callbacks above: the view stays AppKit/CoreAudio-free, only REPORTS intent.
+    // NotchWindowController (Plan 48-03) owns these and forwards them to setSystemVolume(_:)/
+    // setDefaultOutput(uid:)/presentationState.outputPanelOpen writes. Defaulted to no-ops so
+    // the DEBUG #Previews build without a controller.
+    var onToggleOutputPanel: () -> Void = {}
+    var onSelectOutputDevice: (AudioOutputDevice) -> Void = { _ in }
+    var onVolumeChange: (Float) -> Void = { _ in }
+
     // Phase 20 / SHELF-04/05 — the shelf-item callbacks, plain closures mirroring the transport
     // callbacks above: the view stays AppKit-free, only REPORTS intent. NotchWindowController
     // (Plan 20-02) owns these and forwards them to ShelfCoordinator/NSWorkspace. Defaulted to
@@ -2869,7 +2878,10 @@ struct NotchPillView: View {
                 Spacer()
                 TransportButton(systemName: "forward.fill", action: onNext)             // ⏩
                 Spacer()
-                Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
+                // Phase 48 / D-08 — was a reserved Repeat slot (never built, dropped here the
+                // same way the Star/favorite slot was dropped above); now the real output-
+                // switcher toggle. Symmetric tap: opens the panel below, re-tapping closes it.
+                TransportButton(systemName: "speaker.wave.2.fill", action: onToggleOutputPanel)
             }
         }
         .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
