@@ -720,7 +720,12 @@ Plans:
   2. The panel shows a vertical list of all available system audio outputs, with the current output visually highlighted and shown on top, others listed below.
   3. Tapping a non-current output in the list makes it the active system audio output and it animates to the top of the list (tap-to-select, not drag-to-reorder).
   4. The output list stays correct — no duplicate or stale entries — when a device connects or disconnects while the panel is open (e.g. AirPods reconnect), keyed by device UID not `AudioDeviceID`.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 48-01-PLAN.md — Data layer & AudioOutputMonitor wiring (VolumeReader absolute-set, IslandPresentationState fields, monitor lifecycle)
+- [ ] 48-02-PLAN.md — NotchPillView UI (speaker button, draggable OutputVolumeSlider, device list panel, tabHeight height bump)
+- [ ] 48-03-PLAN.md — Controller handlers, geometry three-site rule, on-device verification checkpoint
 **UI hint**: yes
 
 ### Phase 49: Favorite/Like — Spike
