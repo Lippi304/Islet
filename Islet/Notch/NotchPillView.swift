@@ -811,31 +811,57 @@ struct NotchPillView: View {
             mediaWingsOrToast(p)                                             // D-02 collapsed media glance / Phase 18 toast
         case .calendarCountdown(let activity):
             countdownWings(for: activity)  // Phase 41 / HUD-08: ambient, D-01 always wins over nowPlayingWings
-        case .nowPlayingExpanded(let p, true):
-            mediaExpanded(p, art: nowPlaying.artwork)                        // NOW-01/02 controls (healthy)
-        case .nowPlayingExpanded(_, false):
-            mediaUnavailable                                                 // D-12 "nicht verfügbar"
-        case .homeLastPlayed:
-            // Phase 30 / HOME-02 (D-04): synthesize a .paused presentation from the sticky
-            // last-played snapshot and feed the SAME mediaExpanded(_:art:) the live state
-            // uses -- no second parallel view.
-            mediaExpanded(.paused(title: nowPlaying.lastKnownTrack?.title ?? "",
-                                   artist: nowPlaying.lastKnownTrack?.artist ?? ""),
-                          art: nowPlaying.lastKnownTrack?.artwork)
-        case .homeEmpty:
-            homeEmptyState                                                   // Phase 30 / HOME-03
-        case .calendarExpanded:
-            calendarFullView                                                 // Phase 28 / CALVIEW-01: month grid + day list
-        case .weatherExpanded:
-            weatherFullView                                                  // 28-04 round 4: current-conditions full view
-        case .trayExpanded:
-            trayFullView                                                     // 28-04 round 5: dedicated files-only Tray view
+        // Phase 45 / SWITCH-01/SWITCH-02 — these 6 cases used to each call `blobShape`
+        // independently (6 distinct structural subtrees -> SwiftUI remove+insert on tab
+        // switch, the root cause of the disappear/rebuild flicker + dual-switcherRow
+        // z-order glitch). Grouping them into ONE case arm to `tabContentView`, which
+        // makes the SINGLE remaining `blobShape` call for all 6, gives every case one
+        // continuously-identified subtree so `matchedGeometryEffect` morphs it directly.
+        case .nowPlayingExpanded, .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded:
+            tabContentView
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
         case .osd(let activity): osdWings(for: activity)                    // Phase 39 / HUD-03/HUD-04: rank 4 transient (39-02)
         case .idle:
             collapsedIsland                                                  // idle pill
+        }
+    }
+
+    // Phase 45 / SWITCH-01/SWITCH-02 — the SINGLE `blobShape` call site shared by all 6
+    // switcher-row `IslandPresentation` cases (was 6 independent calls, one per case arm
+    // above). `tabWidth`/`tabHeight` (plain CGFloat properties, not a branched View) size
+    // it per-case; the trailing closure's inner switch dispatches to the content-only
+    // producers, so `switcherRow` (inside `blobShape`) is instantiated exactly once
+    // regardless of which tab is active — this is what gives `matchedGeometryEffect` one
+    // continuous subtree to morph across instead of tearing down and rebuilding.
+    private var tabContentView: some View {
+        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
+                  width: tabWidth, height: tabHeight, shelfItems: shelfViewState.items,
+                  shelfVisible: shelfStripVisible, showSwitcher: true) {
+            switch presentation {
+            case .nowPlayingExpanded(let p, true):
+                mediaContent(p, art: nowPlaying.artwork)
+            case .nowPlayingExpanded(_, false):
+                mediaUnavailableContent
+            case .homeLastPlayed:
+                // Phase 30 / HOME-02 (D-04): synthesize a .paused presentation from the
+                // sticky last-played snapshot and feed the SAME mediaContent(_:art:) the
+                // live state uses -- no second parallel view.
+                mediaContent(.paused(title: nowPlaying.lastKnownTrack?.title ?? "",
+                                      artist: nowPlaying.lastKnownTrack?.artist ?? ""),
+                             art: nowPlaying.lastKnownTrack?.artwork)
+            case .homeEmpty:
+                homeEmptyContent
+            case .calendarExpanded:
+                calendarContent
+            case .weatherExpanded:
+                weatherContent
+            case .trayExpanded:
+                trayContent
+            default:
+                EmptyView()   // unreachable — presentationSwitch only routes here for the 6 cases above
+            }
         }
     }
 
@@ -985,44 +1011,40 @@ struct NotchPillView: View {
     // from `trayEmptyState`'s structure (D-09, LOCKED) with the icon/copy swapped (D-10,
     // LOCKED). Same blobShape/showSwitcher convention every other Home/switcher-row
     // presentation uses.
-    private var homeEmptyState: some View {
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
-                  height: Self.homeContentHeight, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfStripVisible, showSwitcher: true) {
-            VStack(spacing: 4) {
-                Image(systemName: "music.note")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.white.opacity(0.4))
-                Text("Nothing Playing")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
-                Text("Start something in Spotify or Music.")
-                    .font(.system(size: 11, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            // Quick task 260715-vsd gap-closure round 3 — the dead gap before the switcher row
-            // here is `Self.switcherContentHeight` (196) minus this content's own natural
-            // height; it is NOT reducible from inside this view (a round-2 Spacer attempt here
-            // had zero visual effect, since the switcher row's Y position is fixed by the shared
-            // box height alone, not by how content fills it). switcherContentHeight itself is a
-            // hard floor: its 196pt is exactly what calendarFullView's worst-case 6-row month
-            // grid needs (see that constant's own box-math comment), shared uniformly across
-            // every switcher-row tab specifically to keep the switcher pill's on-screen
-            // position constant across tab switches (28-04 round 5 misclick-bug fix — a
-            // per-tab box height literally used to make people misclick and collapse the
-            // island). Shrinking it here would either reintroduce that regression (if done
-            // per-case) or risk clipping Calendar (if done globally). Left as a known, deliberate
-            // trade-off pending a product decision — flagged to the user rather than guessed at.
-            // Quick task 260714-3k6 gap-closure — was a bare `24`, unlike every other
-            // switcher-row presentation (mediaExpanded/calendarFullView/weatherFullView/
-            // trayFullView), which all clear the camera/notch band via the shared
-            // `Self.cameraClearance` (42) constant. The mismatch sat this empty state's icon
-            // noticeably higher/closer to the camera than the playing-state view. Matching the
-            // same constant here aligns the vertical position with every sibling presentation.
-            .padding(.top, Self.cameraClearance)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    private var homeEmptyContent: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "music.note")
+                .font(.system(size: 28))
+                .foregroundStyle(.white.opacity(0.4))
+            Text("Nothing Playing")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+            Text("Start something in Spotify or Music.")
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
+        // Quick task 260715-vsd gap-closure round 3 — the dead gap before the switcher row
+        // here is `Self.switcherContentHeight` (196) minus this content's own natural
+        // height; it is NOT reducible from inside this view (a round-2 Spacer attempt here
+        // had zero visual effect, since the switcher row's Y position is fixed by the shared
+        // box height alone, not by how content fills it). switcherContentHeight itself is a
+        // hard floor: its 196pt is exactly what calendarFullView's worst-case 6-row month
+        // grid needs (see that constant's own box-math comment), shared uniformly across
+        // every switcher-row tab specifically to keep the switcher pill's on-screen
+        // position constant across tab switches (28-04 round 5 misclick-bug fix — a
+        // per-tab box height literally used to make people misclick and collapse the
+        // island). Shrinking it here would either reintroduce that regression (if done
+        // per-case) or risk clipping Calendar (if done globally). Left as a known, deliberate
+        // trade-off pending a product decision — flagged to the user rather than guessed at.
+        // Quick task 260714-3k6 gap-closure — was a bare `24`, unlike every other
+        // switcher-row presentation (mediaExpanded/calendarFullView/weatherFullView/
+        // trayFullView), which all clear the camera/notch band via the shared
+        // `Self.cameraClearance` (42) constant. The mismatch sat this empty state's icon
+        // noticeably higher/closer to the camera than the playing-state view. Matching the
+        // same constant here aligns the vertical position with every sibling presentation.
+        .padding(.top, Self.cameraClearance)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     // Phase 28 / CALVIEW-01/02 (28-UI-SPEC.md "Calendar full view") — the month grid + day
@@ -1031,7 +1053,7 @@ struct NotchPillView: View {
     // the two showsSwitcherRow cases). Month grid LEFT, day list RIGHT, a thin divider between —
     // both read through Plan 01's pure `daysInMonth(for:)`/`events(on:events:)` functions, never
     // a re-implementation (RESEARCH.md Anti-Pattern: no Date()/Date.now threaded into month math).
-    private var calendarFullView: some View {
+    private var calendarContent: some View {
         // 28-04 on-device UAT bugfix — `alignment: .top` (was default `.center`). The month
         // grid's real content is taller than expandedSize.height; centering it in that box
         // spilled the overflow equally above AND below, and the ABOVE half rendered under the
@@ -1041,25 +1063,21 @@ struct NotchPillView: View {
         // `blobShape` now applies the shared `switcherContentHeight` box UNCONDITIONALLY
         // whenever `showSwitcher` is true (see that constant's doc comment), so this call site
         // no longer needs its own per-case height.
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top, width: Self.calendarWidth,
-                  shelfItems: shelfViewState.items,
-                  shelfVisible: shelfStripVisible, showSwitcher: true) {
-            HStack(spacing: 0) {
-                monthGridColumn
-                Rectangle()
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 1)
-                    .padding(.horizontal, 12)
-                dayListColumn
-                    .frame(maxWidth: .infinity, alignment: .top)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
-            // Quick task 260715-vsd — scales the whole padded HStack (month grid, divider, day
-            // list + "+ Add" button) inward by 4% from its own center, pulling the Add button
-            // further from the curved wall on top of the extra calendarWidth from step 1.
-            .scaleEffect(0.96)
+        HStack(spacing: 0) {
+            monthGridColumn
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(width: 1)
+                .padding(.horizontal, 12)
+            dayListColumn
+                .frame(maxWidth: .infinity, alignment: .top)
         }
+        .padding(.horizontal, 16)
+        .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
+        // Quick task 260715-vsd — scales the whole padded HStack (month grid, divider, day
+        // list + "+ Add" button) inward by 4% from its own center, pulling the Add button
+        // further from the curved wall on top of the extra calendarWidth from step 1.
+        .scaleEffect(0.96)
     }
 
     // LEFT column — month/year header (13px semibold) flanked by prev/next chevrons, over a
@@ -1233,28 +1251,23 @@ struct NotchPillView: View {
     // Medium is now ALWAYS an explicit height (no more nil-falls-through-to-switcherContentHeight
     // case, D-03's "no Compact-only state" revision) and Large animates to the taller height
     // inside the controller's existing spring — no new animation wrapper, no relaunch.
-    private var weatherFullView: some View {
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
-                  height: weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight,
-                  shelfItems: shelfViewState.items,
-                  shelfVisible: shelfStripVisible, showSwitcher: true) {
-            Group {
-                if let weather = outfit.weather {
-                    VStack(spacing: 0) {
-                        weatherFullContent(weather)
-                        if let hourly = outfit.hourlyForecast {
-                            hourlyForecastRow(hourly)
-                        }
-                        if weatherStyle == .large, let daily = outfit.forecast {
-                            dailyForecastList(daily)
-                        }
+    private var weatherContent: some View {
+        Group {
+            if let weather = outfit.weather {
+                VStack(spacing: 0) {
+                    weatherFullContent(weather)
+                    if let hourly = outfit.hourlyForecast {
+                        hourlyForecastRow(hourly)
                     }
-                } else {
-                    weatherFullUnavailable
+                    if weatherStyle == .large, let daily = outfit.forecast {
+                        dailyForecastList(daily)
+                    }
                 }
+            } else {
+                weatherFullUnavailable
             }
-            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
         }
+        .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
     }
 
     // The populated state: location name (or "Local" fallback) above the icon, then icon +
@@ -1453,36 +1466,32 @@ struct NotchPillView: View {
     // the additive shelf strip mechanism (`ShelfViewState.isVisible`, still used to
     // auto-reveal files under Home/Calendar/Weather/NowPlaying per Phase 24) must NOT also
     // append itself a second time below this content.
-    private var trayFullView: some View {
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
-                  width: Self.traySize.width, height: Self.trayContentHeight, shelfItems: [],
-                  shelfVisible: false, showSwitcher: true) {
-            // Gap-closure (on-device UAT round 2) — dropped the extra ancestor-level
-            // `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)` wrapper that
-            // used to sit here: it was the ONE structural difference from calendarFullView/
-            // weatherFullView's proven pattern (Group{if/else}.padding(.top, cameraClearance),
-            // nothing else) and let shelfRow render at its natural/intrinsic (un-stretched)
-            // width instead of the full card width, which is what made the file tiles hug the
-            // top-left corner instead of sitting inset. shelfRow now self-declares its own
-            // `maxWidth: .infinity` (mirrors dayListColumn's precedent), so it fills the
-            // available width without needing an ancestor to force it — matching every other
-            // switcher-row presentation's structure exactly.
-            Group {
-                if shelfViewState.items.isEmpty {
-                    trayEmptyState
-                } else {
-                    // Gap-closure (round 3) — trayShelfRowHeight override, sized for the 40x40pt
-                    // icons Task 3 grew this row to; the shared shelfRowHeight default (56) was
-                    // too short and let the filename caption spill past the shape's bottom edge.
-                    // Gap-closure (round 4/8) — trayShelfRowTopInset gives the icon/delete-badge
-                    // deterministic clearance from the shape's top edge; round 8 fixed shelfRow's
-                    // internal centering so this inset actually reaches the icon (see shelfRow's
-                    // own comment) instead of just growing empty space elsewhere.
-                    shelfRow(shelfViewState.items, rowHeight: Self.trayShelfRowHeight, topInset: Self.trayShelfRowTopInset)
-                }
+    private var trayContent: some View {
+        // Gap-closure (on-device UAT round 2) — dropped the extra ancestor-level
+        // `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)` wrapper that
+        // used to sit here: it was the ONE structural difference from calendarFullView/
+        // weatherFullView's proven pattern (Group{if/else}.padding(.top, cameraClearance),
+        // nothing else) and let shelfRow render at its natural/intrinsic (un-stretched)
+        // width instead of the full card width, which is what made the file tiles hug the
+        // top-left corner instead of sitting inset. shelfRow now self-declares its own
+        // `maxWidth: .infinity` (mirrors dayListColumn's precedent), so it fills the
+        // available width without needing an ancestor to force it — matching every other
+        // switcher-row presentation's structure exactly.
+        Group {
+            if shelfViewState.items.isEmpty {
+                trayEmptyState
+            } else {
+                // Gap-closure (round 3) — trayShelfRowHeight override, sized for the 40x40pt
+                // icons Task 3 grew this row to; the shared shelfRowHeight default (56) was
+                // too short and let the filename caption spill past the shape's bottom edge.
+                // Gap-closure (round 4/8) — trayShelfRowTopInset gives the icon/delete-badge
+                // deterministic clearance from the shape's top edge; round 8 fixed shelfRow's
+                // internal centering so this inset actually reaches the icon (see shelfRow's
+                // own comment) instead of just growing empty space elsewhere.
+                shelfRow(shelfViewState.items, rowHeight: Self.trayShelfRowHeight, topInset: Self.trayShelfRowTopInset)
             }
-            .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
         }
+        .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
     }
 
     // The empty state — mirrors `calendarEmptyState`'s tone/structure (heading + secondary
@@ -2801,80 +2810,76 @@ struct NotchPillView: View {
     //   • A centered control row: a reserved LEFT slot (future Shuffle — D-09, not built),
     //     ⏪ ⏯ ⏩, and a reserved RIGHT slot (future Repeat — D-09, not built). The
     //     Star/favorite is DROPPED entirely (no slot — D-09).
-    private func mediaExpanded(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
+    private func mediaContent(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
         let isPlaying = isPlayingFor(presentation)
         let meta = titleArtist(presentation)
         // alignment: .top + .padding(.top, 32) pins the content to the camera-clearance
         // band: nothing renders under the physical notch/camera. (Default .overlay CENTERS,
         // which with ~84pt content in a 128pt blob would leave only ~22pt top clearance —
         // not enough to clear the 32pt camera band. Top-pinning makes the clearance exact.)
-        return blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
-                          height: Self.homeContentHeight, shelfItems: shelfViewState.items,
-                          shelfVisible: shelfStripVisible, showSwitcher: true) {
-                VStack(spacing: 6) {
-                    // Top: art LEFT · title/artist · bars TOP-RIGHT
-                    HStack(alignment: .top, spacing: 10) {
-                        artThumbnail(art, side: 40, corner: 8)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(meta.title)
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Text(meta.artist)
-                                .font(.system(size: 12, design: .rounded))
-                                .foregroundStyle(.secondary)   // grey (D-10)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                        }
-                        Spacer(minLength: 6)
-                        EqualizerBars(isPlaying: isPlaying)   // EQ-01 bars, fixed white (no accent)
-                            .frame(height: 40)    // center the bars vertically against the art row (like the collapsed wing) — not top-hanging
-                    }
-                    // Finding 15 (06-10): tap-to-toggle scoped ONLY to this non-button top row
-                    // (art/title/artist/bars) — never to the enclosing VStack or the bottom
-                    // HStack below, which holds the transport Buttons. This guarantees no tap
-                    // gesture recognizer sits above the transport buttons' region. Tradeoff:
-                    // the reserved Shuffle/Repeat placeholder corners no longer toggle collapse.
-                    .onTapGesture { onClick() }
-                    // PBAR-01: the D-09 reserved seek-bar spacer is now the real display-only
-                    // progress bar (elapsed/total labels + accent-filled track).
-                    ProgressBar(position: nowPlaying.position, isPlaying: isPlaying, tint: nowPlayingAccent)
-                    // Bottom: centered control row.
-                    HStack(spacing: 0) {
-                        Color.clear.frame(width: 28, height: 28)   // reserved Shuffle slot (D-09, not built)
-                        Spacer()
-                        TransportButton(systemName: "backward.fill", action: onPrevious)        // ⏪
-                        Spacer()
-                        TransportButton(systemName: "playpause.fill", action: onTogglePlayPause) // ⏯
-                        Spacer()
-                        TransportButton(systemName: "forward.fill", action: onNext)             // ⏩
-                        Spacer()
-                        Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
-                    }
+        return VStack(spacing: 6) {
+            // Top: art LEFT · title/artist · bars TOP-RIGHT
+            HStack(alignment: .top, spacing: 10) {
+                artThumbnail(art, side: 40, corner: 8)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(meta.title)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text(meta.artist)
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(.secondary)   // grey (D-10)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
-                .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
-                .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve (restored to its pre-260715-vsd value —
-                // gap-closure round 3 finding: the switcher row's Y position is fixed by the shared
-                // `switcherContentHeight` box height alone, NOT by this content's own internal
-                // padding — a bottom padding change here cannot move the switcher row closer/
-                // further, so rounds 1-2's attempts to "shrink the gap" via this padding had no
-                // real effect either way. See homeEmptyState's comment for the actual constraint
-                // that governs this box height.)
-                // Quick task 260714-3k6 gap-closure round 2 — was `.padding(.horizontal, 26)`
-                // (a fix for the round-1 wall-overlap bug: NotchShape's side walls sit at a
-                // CONSTANT `topCornerRadius`/24pt inset from each edge, independent of panel
-                // width — see NotchShape.swift's addLine calls). At 420pt wide, that padding
-                // still let the HStacks' Spacers (the art/title <-> equalizer-bars gap, the
-                // transport-button gaps) stretch to fill the full ~368pt remaining width, so
-                // the player read as "spread out" rather than the tighter 360pt-era feel.
-                // Capping the whole card's width here (322 ~= the OLD 360pt panel's own
-                // content width) makes every Spacer-driven gap inside collapse back to that
-                // same density, and — being centered by blobShape's own `alignment: .top`
-                // outer frame with ~49pt margin each side — automatically clears the 24pt
-                // wall inset too, so the separate horizontal padding is no longer needed.
-                .frame(maxWidth: 322)
+                Spacer(minLength: 6)
+                EqualizerBars(isPlaying: isPlaying)   // EQ-01 bars, fixed white (no accent)
+                    .frame(height: 40)    // center the bars vertically against the art row (like the collapsed wing) — not top-hanging
             }
+            // Finding 15 (06-10): tap-to-toggle scoped ONLY to this non-button top row
+            // (art/title/artist/bars) — never to the enclosing VStack or the bottom
+            // HStack below, which holds the transport Buttons. This guarantees no tap
+            // gesture recognizer sits above the transport buttons' region. Tradeoff:
+            // the reserved Shuffle/Repeat placeholder corners no longer toggle collapse.
+            .onTapGesture { onClick() }
+            // PBAR-01: the D-09 reserved seek-bar spacer is now the real display-only
+            // progress bar (elapsed/total labels + accent-filled track).
+            ProgressBar(position: nowPlaying.position, isPlaying: isPlaying, tint: nowPlayingAccent)
+            // Bottom: centered control row.
+            HStack(spacing: 0) {
+                Color.clear.frame(width: 28, height: 28)   // reserved Shuffle slot (D-09, not built)
+                Spacer()
+                TransportButton(systemName: "backward.fill", action: onPrevious)        // ⏪
+                Spacer()
+                TransportButton(systemName: "playpause.fill", action: onTogglePlayPause) // ⏯
+                Spacer()
+                TransportButton(systemName: "forward.fill", action: onNext)             // ⏩
+                Spacer()
+                Color.clear.frame(width: 28, height: 28)   // reserved Repeat slot (D-09, not built)
+            }
+        }
+        .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
+        .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve (restored to its pre-260715-vsd value —
+        // gap-closure round 3 finding: the switcher row's Y position is fixed by the shared
+        // `switcherContentHeight` box height alone, NOT by this content's own internal
+        // padding — a bottom padding change here cannot move the switcher row closer/
+        // further, so rounds 1-2's attempts to "shrink the gap" via this padding had no
+        // real effect either way. See homeEmptyState's comment for the actual constraint
+        // that governs this box height.)
+        // Quick task 260714-3k6 gap-closure round 2 — was `.padding(.horizontal, 26)`
+        // (a fix for the round-1 wall-overlap bug: NotchShape's side walls sit at a
+        // CONSTANT `topCornerRadius`/24pt inset from each edge, independent of panel
+        // width — see NotchShape.swift's addLine calls). At 420pt wide, that padding
+        // still let the HStacks' Spacers (the art/title <-> equalizer-bars gap, the
+        // transport-button gaps) stretch to fill the full ~368pt remaining width, so
+        // the player read as "spread out" rather than the tighter 360pt-era feel.
+        // Capping the whole card's width here (322 ~= the OLD 360pt panel's own
+        // content width) makes every Spacer-driven gap inside collapse back to that
+        // same density, and — being centered by blobShape's own `alignment: .top`
+        // outer frame with ~49pt margin each side — automatically clears the 24pt
+        // wall inset too, so the separate horizontal padding is no longer needed.
+        .frame(maxWidth: 322)
     }
 
     // D-05 — a single transport button (NOW-02) with a hover-triggered rounded-rectangle
@@ -2908,23 +2913,19 @@ struct NotchPillView: View {
     // D-12 — the "Now Playing nicht verfügbar" health state (adapter blocked/dead). Same
     // expanded blob shape so the island still morphs; a single centered message. Distinct
     // from D-11 (.none + healthy → date/time): isHealthy is the orthogonal axis.
-    private var mediaUnavailable: some View {
+    private var mediaUnavailableContent: some View {
         // 28-04 round 5 — alignment: .top + .padding(.top, 32), same reasoning as
         // expandedIsland's own round-5 change (both are shorter than the shared
         // switcherContentHeight box now that blobShape applies it uniformly).
         // Quick task 260715-vsd gap-closure round 5 — height: Self.homeContentHeight, same as
         // homeEmptyState/mediaExpanded (see that constant's comment) so the switcher row stays
         // at a constant Y across all three Home sub-states.
-        blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
-                  height: Self.homeContentHeight, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfStripVisible, showSwitcher: true) {
-            Text("Now Playing nicht verfügbar")
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
-                .padding(.top, Self.cameraClearance)
-        }
+        Text("Now Playing nicht verfügbar")
+            .font(.system(size: 14, weight: .medium, design: .rounded))
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 16)
+            .padding(.top, Self.cameraClearance)
     }
 
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
