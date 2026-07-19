@@ -776,7 +776,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 48-01-PLAN.md — Data layer & AudioOutputMonitor wiring (VolumeReader absolute-set, IslandPresentationState fields, monitor lifecycle)
+- [x] 48-01-PLAN.md — Data layer & AudioOutputMonitor wiring (VolumeReader absolute-set, IslandPresentationState fields, monitor lifecycle)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
