@@ -84,22 +84,18 @@ final class AudioOutputMonitor {
     // CoreAudio call that needs one below — never a cached/stale ID.
     private func resolveDeviceID(uid: String) -> AudioDeviceID? {
         var cfUID = uid as CFString
-        var deviceID = AudioDeviceID(0)
+        var deviceID = AudioDeviceID(kAudioObjectUnknown)
+        var propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
         var addr = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyTranslateUIDToDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain)
 
+        // The UID is passed as qualifier data (not wrapped in an AudioValueTranslation ioData
+        // struct — that's the deprecated AudioHardwareGetProperty-era pattern and trips HAL's
+        // "wrong data size" validation under the modern AudioObjectGetPropertyData call).
         let status = withUnsafeMutablePointer(to: &cfUID) { uidPointer -> OSStatus in
-            withUnsafeMutablePointer(to: &deviceID) { deviceIDPointer -> OSStatus in
-                var translation = AudioValueTranslation(
-                    mInputData: UnsafeMutableRawPointer(uidPointer),
-                    mInputDataSize: UInt32(MemoryLayout<CFString>.size),
-                    mOutputData: UnsafeMutableRawPointer(deviceIDPointer),
-                    mOutputDataSize: UInt32(MemoryLayout<AudioDeviceID>.size))
-                var translationSize = UInt32(MemoryLayout<AudioValueTranslation>.size)
-                return AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &translationSize, &translation)
-            }
+            AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, UInt32(MemoryLayout<CFString>.size), uidPointer, &propertySize, &deviceID)
         }
         guard status == noErr, deviceID != kAudioObjectUnknown else { return nil }
         return deviceID
