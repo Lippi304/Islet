@@ -1106,8 +1106,9 @@ final class NotchWindowController {
             && isGenuineFileDrag(currentChangeCount: currentChangeCount,
                                   gestureBaselineChangeCount: dragPasteboardChangeCount, urls: urls) {
             isDragApproaching = true
-            // 43-02 bugfix — mirror what a real hover-enter would have set, so the exit branch
-            // below can later detect a true->false edge and resume the grace-collapse timer.
+            // 43-02 bugfix — mirror what a real hover-enter would have set, keeping
+            // pointerInZone truthful for any handlePointer(at:) call that happens to run before
+            // the exit branch below (which now resumes collapse directly, not via this flag).
             pointerInZone = true
             graceWorkItem?.cancel()
             graceWorkItem = nil
@@ -1149,12 +1150,17 @@ final class NotchWindowController {
                 discardPendingDrop()
                 renderPresentation()
             }
-            // 43-02 bugfix — re-sync `pointerInZone` now that it was seeded true on arm above.
-            // `point` is outside the accept zone here (the `!geometryInside` guard on this
-            // branch), so this correctly flips `pointerInZone` false and invokes
-            // `handleHoverExit()`, resuming the normal grace-collapse timer instead of leaving
-            // `interaction.phase` stuck at `.expanded` forever.
-            handlePointer(at: point)
+            // 43-02 bugfix, round 2 — `isWithinDragAcceptRegion` ANDs `expandedZone.contains(point)`
+            // with `point.y <= dragLandingMaxY` (the Mission-Control-safe landing margin). Exiting
+            // THIS region can happen purely via the Y-margin term while `point` is still inside the
+            // plain `expandedZone` rect — so routing through `handlePointer(at:)` (whose own inside
+            // check is `expandedZone.contains(point)` alone, no maxY) can find `inside == true` and
+            // silently skip the pointerInZone edge, leaving `interaction.phase` stuck at `.expanded`
+            // exactly as round 1 still reproduced on-device. Call `handleHoverExit()` directly
+            // instead: it does not depend on either zone's geometry lining up, it just starts the
+            // exact same grace-collapse sequence a real hover-exit would.
+            pointerInZone = false
+            handleHoverExit()
         }
     }
 
