@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: Completed 43-01-PLAN.md
-last_updated: "2026-07-19T00:52:27.954Z"
+stopped_at: Completed 43-02-PLAN.md
+last_updated: "2026-07-19T03:28:00.000Z"
 last_activity: 2026-07-19
 progress:
   total_phases: 19
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 43 (drag-detection-hardening) — EXECUTING
-Plan: 2 of 2
-Status: Ready to execute
+Phase: 43 (drag-detection-hardening) — both plans complete, phase-level verification pending
+Plan: 2 of 2 (complete)
+Status: Plan 43-02 on-device UAT confirmed after 4 rounds ("Perfekt klappt") — DRAG-01 closed
 Last activity: 2026-07-19
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -150,6 +150,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 42]: D-12/D-13 superseded live during on-device UAT — secondary bubble tap now toggles play/pause directly (not expand-to-Now-Playing), hover reveals a play/pause glyph (not inert); collapsedInteractiveZone() hot-zone widening closes T-42-07 (see 42-04-SUMMARY.md)
 - [v1.7 roadmap] Phase order 43→44→45→46→47→48→49→50: the 4 independent, no-research-dependency bugfixes (Drag Detection, Tray/Picker Width, View Switcher, Calendar Quick-Add) sequenced first since none block or are blocked by the Now Playing work; DRAG-02 bundled with TRAY-06 into one phase (44) rather than split, since both touch the same shared width geometry and splitting them risks a repeat-touch-the-geometry regression (this project's own Phase 31→32 "touch `visibleContentZone()` once, not twice" precedent). The Now Playing pair then follows research's explicit risk-isolation recommendation: Audio Output Switcher (zero external-API risk, public CoreAudio) split pure-seam-first (47) then UI wiring (48, hard dependency), before Favorite/Like (this milestone's highest-risk item — Spotify OAuth+quota, Apple Music AppleScript reliability, Automation/TCC bug) split spike-first (49) then implementation (50, hard dependency) — mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent. Phases 47 and 49 carry no formal REQ-ID (infrastructure/spike phases), matching the Phase 15/16/19/22-01/24-01/38-01/39-01 precedent of pure-seam or spike work preceding the phase that actually ships user-facing requirements.
 - [Phase 43]: dragPasteboardChangeCount is now a stable per-gesture baseline, refreshed only in handleDragApproachEnd unconditionally before the isDragApproaching guard, never mutated in handleDragApproachTick (DRAG-01)
+- [Phase 43, 43-02]: On-device UAT of DRAG-01's fix took 4 rounds to close two regressions no build/unit-test gate could see: (1) the island got permanently stuck expanded after discarding a drag, because the auto-collapse grace-timer only fires from `.mouseMoved`-driven hover-exit, which never occurs during an active `.leftMouseDragged` session; (2) even after that was fixed, resolving the Quick Action picker (Drop/AirDrop/Mail/discard) still flashed the underlying Home/Now-Playing/Tray content for the ~0.4s grace window. Fixed by adding a dedicated `.dismissed` InteractionEvent (expanded→collapsed, immediate, no grace defer) to the pure `nextState` reducer plus a shared `dismissExpandedImmediately()` helper used by all 4 picker-resolution paths. User confirmed "Perfekt klappt" after round 4. See `43-02-SUMMARY.md`.
 
 ### Roadmap Evolution
 
@@ -257,9 +258,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T00:52:27.942Z
-Stopped at: Completed 43-01-PLAN.md
-Resume file: .planning/phases/43-drag-detection-hardening/43-02-PLAN.md
+Last session: 2026-07-19T03:28:00.000Z
+Stopped at: Completed 43-02-PLAN.md — both plans done, phase-level verification/completion next
+Resume file: none — continue via /gsd:execute-phase 43 to run phase-level verification and completion
 
 ## Operator Next Steps
 
