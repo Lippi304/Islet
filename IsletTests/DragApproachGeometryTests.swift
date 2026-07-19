@@ -35,44 +35,56 @@ final class DragApproachGeometryTests: XCTestCase {
     // computeQuickActionButtonFrames(card:)'s pure geometry math (34-RESEARCH.md Pattern 3).
     // Mirrors this file's own fixture-free convention: one test method per behavior.
 
+    // Phase 44 UAT gap-closure (round 2) — these 6 tests were written against the old
+    // (pre-Phase-44) 420x117 flex-fill/bottom-anchor box; that card size is now dead in
+    // production (the picker is always NotchPillView.traySize.width-wide since Plan 44-01), and
+    // computeQuickActionButtonFrames's formula changed from flex-fill/bottom-anchored to
+    // fixed-width/centered/top-anchored (see that function's own comment). Rebuilt against the
+    // real production card size, matching testQuickActionButtonFramesFitWithinNewTrayAlignedCard's
+    // existing precedent of deriving from NotchPillView constants instead of hardcoded literals.
+    private static let productionCard = CGRect(x: 0, y: 0,
+                                                 width: NotchPillView.traySize.width,
+                                                 height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight)
+
     func testReturnsExactlyThreeFrames() {
-        let card = CGRect(x: 0, y: 0, width: 420, height: 117)
-        XCTAssertEqual(computeQuickActionButtonFrames(card: card).count, 3)
+        XCTAssertEqual(computeQuickActionButtonFrames(card: Self.productionCard).count, 3)
     }
 
     func testAllThreeFramesHaveEqualWidth() {
-        let card = CGRect(x: 0, y: 0, width: 420, height: 117)
-        let frames = computeQuickActionButtonFrames(card: card)
-        let expectedWidth: CGFloat = (420 - 2 * 16 - 2 * 16) / 3
+        let frames = computeQuickActionButtonFrames(card: Self.productionCard)
         for frame in frames {
-            XCTAssertEqual(frame.width, expectedWidth, accuracy: 0.01)
+            XCTAssertEqual(frame.width, NotchPillView.quickActionButtonWidth, accuracy: 0.01)
         }
     }
 
-    func testFirstFrameStartsAtHorizontalInset() {
-        let card = CGRect(x: 0, y: 0, width: 420, height: 117)
+    func testFramesAreCenteredWithEqualMargins() {
+        let card = Self.productionCard
         let frames = computeQuickActionButtonFrames(card: card)
-        XCTAssertEqual(frames[0].minX, card.minX + 16)
+        let leftMargin = frames[0].minX - card.minX
+        let rightMargin = card.maxX - frames[2].maxX
+        XCTAssertEqual(leftMargin, rightMargin, accuracy: 0.01)
     }
 
-    func testLastFrameEndsAtInsetFromRightEdge() {
-        let card = CGRect(x: 0, y: 0, width: 420, height: 117)
+    func testFramesStayWithinHorizontalBounds() {
+        let card = Self.productionCard
         let frames = computeQuickActionButtonFrames(card: card)
-        XCTAssertEqual(frames[2].maxX, card.maxX - 16, accuracy: 0.01)
+        XCTAssertGreaterThanOrEqual(frames[0].minX, card.minX)
+        XCTAssertLessThanOrEqual(frames[2].maxX, card.maxX)
     }
 
-    func testFirstFrameSitsAtBottomInsetAboveCardOrigin() {
-        let card = CGRect(x: 0, y: 0, width: 420, height: 117)
+    func testFirstFrameTopEdgeSitsCameraClearanceBelowCardTop() {
+        let card = Self.productionCard
         let frames = computeQuickActionButtonFrames(card: card)
-        XCTAssertEqual(frames[0].minY, card.minY + 16)
+        XCTAssertEqual(frames[0].maxY, card.maxY - NotchPillView.cameraClearance, accuracy: 0.01)
     }
 
     func testOffsetIsIdenticalOnNonZeroOriginCard() {
-        let zeroOriginCard = CGRect(x: 0, y: 0, width: 420, height: 117)
-        let offsetCard = CGRect(x: 1000, y: 500, width: 420, height: 117)
+        let zeroOriginCard = Self.productionCard
+        let offsetCard = zeroOriginCard.offsetBy(dx: 1000, dy: 500)
         let zeroFrames = computeQuickActionButtonFrames(card: zeroOriginCard)
         let offsetFrames = computeQuickActionButtonFrames(card: offsetCard)
         XCTAssertEqual(offsetFrames[1].minX - offsetCard.minX, zeroFrames[1].minX - zeroOriginCard.minX)
+        XCTAssertEqual(offsetFrames[1].minY - offsetCard.minY, zeroFrames[1].minY - zeroOriginCard.minY)
     }
 
     // Phase 44 / TRAY-06/DRAG-02 (D-08) — lock-in coverage: computeQuickActionButtonFrames still

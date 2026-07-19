@@ -51,18 +51,31 @@ func isGenuineFileDrag(currentChangeCount: Int, gestureBaselineChangeCount: Int,
 // `card` is the caller's already-computed `quickActionPickerFrame` (real screen-space when called
 // from the controller); returns the 3 destination buttons' frames in that SAME coordinate space,
 // left-to-right (index 0 = Drop, 1 = AirDrop, 2 = Mail), matching `quickActionButtonRow`'s
-// `HStack(spacing: 16)` of 3 equal-flex chips.
+// `HStack(spacing: 16)` of 3 fixed-width (`NotchPillView.quickActionButtonWidth`) chips.
+//
+// Phase 44 UAT gap-closure (round 2) — this function's original bottom-anchored y (`card.minY +
+// bottomInset`) only matched the SwiftUI-rendered row (which is anchored from the TOP via
+// `.padding(.top, cameraClearance)`) by coincidence: the old 117pt-tall card happened to satisfy
+// cameraClearance(42) + buttonRowHeight(59) + bottomInset(16) == 117, so a bottom-up formula and
+// a top-down layout landed on the same pixels. Plan 44-01 grew the card to 189pt without touching
+// that identity, so the ~72pt of new headroom went entirely into the GAP between the (still
+// bottom-anchored) hit-test zone and the (still top-anchored) visual buttons — hover registered
+// well below where the buttons actually rendered. Now anchored from `card.maxY` (the card's top
+// edge, nearest the notch) via the SAME `NotchPillView.cameraClearance` constant the SwiftUI view
+// pads by, so hit-test and render can never drift apart again regardless of card height.
+// Horizontal layout mirrors quickActionButton's fixed `quickActionButtonWidth` (no longer flex-
+// fill), centered in the card exactly as `.frame(alignment: .top)` centers the HStack in SwiftUI.
 func computeQuickActionButtonFrames(card: CGRect) -> [CGRect] {
-    let horizontalInset: CGFloat = 16
     let buttonRowHeight: CGFloat = 59   // icon 22 + gap 8 + label ~13 + vPadding 2x8
-    let bottomInset: CGFloat = 16
     let gap: CGFloat = 16
-    // AppKit bottom-left/y-up: the row sits `bottomInset` ABOVE the card's bottom edge (card.minY).
-    let rowRect = CGRect(x: card.minX + horizontalInset, y: card.minY + bottomInset,
-                          width: card.width - 2 * horizontalInset, height: buttonRowHeight)
-    let colWidth = (rowRect.width - 2 * gap) / 3
+    let chipWidth = NotchPillView.quickActionButtonWidth
+    let totalContentWidth = 3 * chipWidth + 2 * gap
+    let centeringInset = (card.width - totalContentWidth) / 2
+    let rowRect = CGRect(x: card.minX + centeringInset,
+                          y: card.maxY - NotchPillView.cameraClearance - buttonRowHeight,
+                          width: totalContentWidth, height: buttonRowHeight)
     return (0..<3).map { i in
-        CGRect(x: rowRect.minX + CGFloat(i) * (colWidth + gap), y: rowRect.minY,
-               width: colWidth, height: rowRect.height)
+        CGRect(x: rowRect.minX + CGFloat(i) * (chipWidth + gap), y: rowRect.minY,
+               width: chipWidth, height: rowRect.height)
     }
 }

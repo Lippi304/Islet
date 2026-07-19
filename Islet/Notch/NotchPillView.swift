@@ -719,6 +719,16 @@ struct NotchPillView: View {
     static let hourlyChipCount = 6
     static let largeDailyRowCount = 4
 
+    // Phase 44 UAT gap-closure (round 2) — quickActionButton() previously used
+    // `.frame(maxWidth: .infinity)`, so on the new 650pt-wide picker card (Plan 44-01) the 3
+    // chips flex-filled far wider than their pre-Phase-44 size, which broke D-06's "buttons stay
+    // the same size" contract and read as loose/sprawled on-device. Fixed at the old flush-edge
+    // 420pt-box chip width -- (420 - 2*16 gap) / 3 = 129.33, rounded to 130 -- so the 3 chips now
+    // render at their original size and cluster centered in the wider card instead of stretching.
+    // computeQuickActionButtonFrames(card:) in DragDropSupport.swift must mirror this exact value
+    // for its hit-test math (this codebase's own geometry N-site rule).
+    static let quickActionButtonWidth: CGFloat = 130
+
     // Debug session `liquid-glass-black-during-transition` — extracted verbatim out of
     // `body` so it can be wrapped in a GlassEffectContainer (macOS 26+) without
     // duplicating the switch for the pre-26 fallback branch.
@@ -1510,7 +1520,7 @@ struct NotchPillView: View {
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
         }
         .foregroundStyle(.white.opacity(enabled ? 1.0 : 0.3))   // D-09 disabled dim
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: Self.quickActionButtonWidth)   // Phase 44 gap-closure round 2 — was .infinity, see quickActionButtonWidth's own comment
         .padding(.vertical, 8)   // reused verbatim from chipButton's own .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
