@@ -101,7 +101,7 @@ struct NotchPillView: View {
 
     var tabHeight: CGFloat {
         switch presentation {
-        case .calendarExpanded: return Self.switcherContentHeight
+        case .calendarExpanded: return Self.calendarContentHeight
         case .trayExpanded: return Self.trayContentHeight
         case .weatherExpanded: return weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight
         default: return Self.homeContentHeight
@@ -710,7 +710,15 @@ struct NotchPillView: View {
     // `.frame(maxWidth: 322)` comment); combined with `calendarFullView`'s 4% content
     // scale-down, the extra +40pt width gives the right-aligned "+ Add" trigger enough
     // clearance from that curve to render fully inside the visible shape.
-    static let calendarWidth: CGFloat = 460
+    static let calendarWidth: CGFloat = 472
+    // Phase 46-02 / CALVIEW-07 (D-08/D-11) — a DEDICATED Calendar-only content height,
+    // replacing the shared `switcherContentHeight` (196, unchanged below — Home/Weather/default
+    // still read it via `homeContentHeight`/their own case, per `trayContentHeight`'s own
+    // per-tab-override precedent). This is a directional starting point, not a final-tuned
+    // number: it accounts for `dayEventsList`'s bumped row padding/spacing (D-09) needing a
+    // little more vertical room than the 196pt box gave; tune on-device in Plan 46-03 if the
+    // real rendered padding bump needs more or less.
+    static let calendarContentHeight: CGFloat = 220
     // Gap-closure (on-device UAT round 3) — the shared `shelfRowHeight` (56, sized for the
     // OTHER shelfRow callers' 28x28pt icons) is too short for Tray's 40x40pt icons (Task 3):
     // 40 (icon) + 2 (VStack spacing) + ~13 (9pt filename line, incl. SF Pro Text leading) = ~55pt
@@ -1162,11 +1170,11 @@ struct NotchPillView: View {
     private var dayListColumn: some View {
         let dayEvents = calendarViewState.monthEvents.map { events(on: calendarViewState.selectedDay, events: $0) }
         return VStack(alignment: .trailing, spacing: 4) {
-            // CALVIEW-03 — the "+ Add" trigger, top-right of the day-list column
-            // (28-UI-SPEC.md Layout Contract).
+            // CALVIEW-06 / D-06 — the "+ Add" trigger, LEFT edge of the day-list column, next
+            // to the month-grid/day-list divider (was right edge, previously visually clipped).
             HStack {
-                Spacer()
                 QuickAddPopover(onSubmit: onQuickAdd, selectedDay: calendarViewState.selectedDay)
+                Spacer()
             }
             Group {
                 if let dayEvents {
@@ -1208,7 +1216,8 @@ struct NotchPillView: View {
     // changed.
     private func dayEventsList(_ dayEvents: [EventInput]) -> some View {
         ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 6) {
+            // CALVIEW-07 / D-09 — roomier row padding/spacing (was 8h/5v/6-spacing).
+            VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(dayEvents.enumerated()), id: \.offset) { _, event in
                     HStack(spacing: 6) {
                         Circle()
@@ -1225,8 +1234,8 @@ struct NotchPillView: View {
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(Color.white.opacity(0.06))

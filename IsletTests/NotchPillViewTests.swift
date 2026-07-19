@@ -69,10 +69,10 @@ final class NotchPillViewTests: XCTestCase {
             XCTAssertEqual(view.tabHeight, 170, "\(presentation)")
         }
 
-        // Calendar — 460 x 196
+        // Calendar — 472 x 220
         let calendarView = makeView(.calendarExpanded)
-        XCTAssertEqual(calendarView.tabWidth, 460)
-        XCTAssertEqual(calendarView.tabHeight, 196)
+        XCTAssertEqual(calendarView.tabWidth, 472)
+        XCTAssertEqual(calendarView.tabHeight, 220)
 
         // Tray — 650 x 117
         let trayView = makeView(.trayExpanded)
