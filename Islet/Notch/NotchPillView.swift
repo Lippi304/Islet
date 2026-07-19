@@ -719,13 +719,6 @@ struct NotchPillView: View {
     static let hourlyChipCount = 6
     static let largeDailyRowCount = 4
 
-    // Phase 34 (UAT revision, D-15) / 34-UI-SPEC.md §2 — the picker's content height, shrunk
-    // from 188 to 117 now that the preview block (D-14) and its 16pt section gap are gone. Only
-    // camera-clearance + the button row + a bottom inset remain:
-    //   cameraClearance(42) + buttonChip(icon 22 + gap 8 + label ~13 + vPadding 2x8 ~= 59)
-    //   + bottomInset(16) = 117.
-    static let quickActionPickerContentHeight: CGFloat = 117
-
     // Debug session `liquid-glass-black-during-transition` — extracted verbatim out of
     // `body` so it can be wrapped in a GlassEffectContainer (macOS 26+) without
     // duplicating the switch for the pre-26 fallback branch.
@@ -1470,8 +1463,8 @@ struct NotchPillView: View {
     // unchanged, by Plan 02's button handlers).
     private func quickActionPickerView() -> some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
-                  height: Self.quickActionPickerContentHeight, shelfItems: [],
-                  shelfVisible: false, showSwitcher: false) {
+                  width: Self.traySize.width, height: Self.trayContentHeight + Self.switcherRowHeight,
+                  shelfItems: [], shelfVisible: false, showSwitcher: false) {
             quickActionButtonRow()
                 .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches every other full-view
         }
