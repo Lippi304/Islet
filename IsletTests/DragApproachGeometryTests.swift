@@ -75,6 +75,25 @@ final class DragApproachGeometryTests: XCTestCase {
         XCTAssertEqual(offsetFrames[1].minX - offsetCard.minX, zeroFrames[1].minX - zeroOriginCard.minX)
     }
 
+    // Phase 44 / TRAY-06/DRAG-02 (D-08) — lock-in coverage: computeQuickActionButtonFrames still
+    // produces 3 in-bounds button frames now that the picker card grew from 420x117 to the real
+    // Tray-aligned footprint (650x189). Built from the real production constants (not hardcoded
+    // literals) so this test tracks NotchPillView.traySize/trayContentHeight/switcherRowHeight if
+    // they ever change again, rather than silently going stale against a fixed number.
+    func testQuickActionButtonFramesFitWithinNewTrayAlignedCard() {
+        let card = CGRect(x: 0, y: 0,
+                           width: NotchPillView.traySize.width,
+                           height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight)
+        let frames = computeQuickActionButtonFrames(card: card)
+        XCTAssertEqual(frames.count, 3)
+        for frame in frames {
+            XCTAssertGreaterThanOrEqual(frame.minX, card.minX)
+            XCTAssertLessThanOrEqual(frame.maxX, card.maxX)
+            XCTAssertGreaterThanOrEqual(frame.minY, card.minY)
+            XCTAssertLessThanOrEqual(frame.maxY, card.maxY)
+        }
+    }
+
     // Phase 43 / DRAG-01 (D-01/D-02) — unit coverage for isGenuineFileDrag's 4 behavior cases.
 
     func testUnchangedCountWithURLsReturnsFalse() {
