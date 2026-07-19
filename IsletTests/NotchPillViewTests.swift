@@ -38,4 +38,70 @@ final class NotchPillViewTests: XCTestCase {
         XCTAssertFalse(view.shelfStripVisible,
                         "shelfStripVisible must stay false even with a non-empty shelf — the additive shelf-strip reveal is Tray-only (TRAY-01).")
     }
+
+    // Phase 45 / SWITCH-01/SWITCH-02 — regression lock: tabWidth/tabHeight must reproduce
+    // today's exact per-case width/height mapping (the 6 former per-case blobShape call
+    // sites' own arguments) across all 7 switcher-row presentation states, so Task 2's
+    // consolidation into one tabContentView call site cannot silently drift the geometry.
+    func testTabWidthHeightMatchesKnownPerCaseValues() {
+        func makeView(_ presentation: IslandPresentation) -> NotchPillView {
+            let state = NotchInteractionState()
+            state.phase = .expanded
+            return NotchPillView(interaction: state,
+                                  nowPlaying: NowPlayingState(),
+                                  presentationState: IslandPresentationState(presentation),
+                                  outfit: BasicOutfitState(),
+                                  shelfViewState: ShelfViewState(),
+                                  onboardingState: OnboardingViewState(),
+                                  viewSwitcherState: ViewSwitcherState(),
+                                  calendarViewState: CalendarViewState())
+        }
+
+        // Home / NowPlaying group — 420 x 170
+        for presentation: IslandPresentation in [
+            .homeEmpty,
+            .homeLastPlayed,
+            .nowPlayingExpanded(.playing(title: "t", artist: "a"), healthy: true),
+            .nowPlayingExpanded(.none, healthy: false),
+        ] {
+            let view = makeView(presentation)
+            XCTAssertEqual(view.tabWidth, 420, "\(presentation)")
+            XCTAssertEqual(view.tabHeight, 170, "\(presentation)")
+        }
+
+        // Calendar — 460 x 196
+        let calendarView = makeView(.calendarExpanded)
+        XCTAssertEqual(calendarView.tabWidth, 460)
+        XCTAssertEqual(calendarView.tabHeight, 196)
+
+        // Tray — 650 x 117
+        let trayView = makeView(.trayExpanded)
+        XCTAssertEqual(trayView.tabWidth, 650)
+        XCTAssertEqual(trayView.tabHeight, 117)
+
+        // Weather — 420 x (290 medium / 410 large), both branches locked explicitly via
+        // UserDefaults.standard (no store: override at NotchPillView.swift:100, per this
+        // project's established @AppStorage-test-isolation precedent) so this test never
+        // depends on whatever weatherStyle happens to be persisted on the machine running it.
+        let defaults = UserDefaults.standard
+        let key = ActivitySettings.weatherStyleKey
+        let originalValue = defaults.string(forKey: key)
+        defer {
+            if let originalValue {
+                defaults.set(originalValue, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        defaults.set(ActivitySettings.WeatherStyle.medium.rawValue, forKey: key)
+        let weatherMediumView = makeView(.weatherExpanded)
+        XCTAssertEqual(weatherMediumView.tabWidth, 420)
+        XCTAssertEqual(weatherMediumView.tabHeight, 290)
+
+        defaults.set(ActivitySettings.WeatherStyle.large.rawValue, forKey: key)
+        let weatherLargeView = makeView(.weatherExpanded)
+        XCTAssertEqual(weatherLargeView.tabWidth, 420)
+        XCTAssertEqual(weatherLargeView.tabHeight, 410)
+    }
 }

@@ -84,6 +84,30 @@ struct NotchPillView: View {
         Islet.showsSwitcherRow(for: presentation)
     }
 
+    // Phase 45 / SWITCH-01/SWITCH-02 — the per-case width/height for the 6 switcher-row
+    // tabs, computed as plain CGFloat values (not a branched View) so Task 2's single
+    // `tabContentView` call site can hand ONE `blobShape` call the right size regardless
+    // of which tab is active — mirroring the existing "compute a value, don't branch the
+    // View" precedent already proven at `body`'s own outer `.frame` ternary above.
+    // internal (not private): NotchPillViewTests.swift asserts these directly (regression
+    // lock), same testability precedent as `shelfStripVisible`.
+    var tabWidth: CGFloat {
+        switch presentation {
+        case .calendarExpanded: return Self.calendarWidth
+        case .trayExpanded: return Self.traySize.width
+        default: return Self.expandedSize.width
+        }
+    }
+
+    var tabHeight: CGFloat {
+        switch presentation {
+        case .calendarExpanded: return Self.switcherContentHeight
+        case .trayExpanded: return Self.trayContentHeight
+        case .weatherExpanded: return weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight
+        default: return Self.homeContentHeight
+        }
+    }
+
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model (weather +
     // calendar), mirroring nowPlaying/presentationState's ownership contract: the controller
     // (14-04) is the only writer, this view only RENDERS whatever is published. No default
