@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: Phase 47 Plan 01 executed
-last_updated: "2026-07-19T21:28:56.576Z"
-last_activity: 2026-07-19 -- Phase 47 Plan 01 (Audio Output Presentation seam) executed
+stopped_at: Completed 47-02-PLAN.md
+last_updated: "2026-07-19T21:43:04.873Z"
+last_activity: 2026-07-19
 progress:
   total_phases: 19
   completed_phases: 15
-  total_plans: 40
-  completed_plans: 39
+  total_plans: 39
+  completed_plans: 38
   percent: 79
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 47 — EXECUTING
-Plan: 1 of 3
-Status: Plan 01 complete (AudioOutputPresentation.swift pure seam) — Plan 02 (AudioOutputMonitor) next
-Last activity: 2026-07-19 -- Phase 47 Plan 01 executed
+Phase: 47 (audio-output-switcher-pure-seam-monitor) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-07-19
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -119,6 +119,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | Phase 46 P01 | 12min | 2 tasks | 4 files |
 | Phase 46 P02 | 9min | 2 tasks | 3 files |
 | Phase 47 P01 | 15min | 2 tasks | 2 files |
+| Phase 47 P02 | 12min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 46-01] onQuickAdd widened at its single controller call site (Rule 3 blocking fix) to compile against the new 4-arg signature; new Date/Date? args intentionally discarded there, real wiring deferred to Plan 46-02 Task 1
 - [Phase 46-02]: Plan 46-02 executed exactly as written (no deviations); handleQuickAdd now forwards real picked Start/End/Due dates to CalendarService, Add trigger moved to left edge, day-list row padding bumped, calendarWidth/calendarContentHeight now 472/220
 - [Phase 47-01]: AudioOutputDevice.id derives from uid (String), never AudioDeviceID (Pitfall 4 baked into the type); sortedAudioOutputDevices uses localizedStandardCompare (not raw ASCII <) for human-natural alphabetical ordering — plan executed exactly as written, no deviations
+- [Phase 47-02]: listenerBlock stored as nonisolated(unsafe) (not plain private var as literally stated) so nonisolated func stop() can read/clear it without a main-actor isolation compile error — mirrors BluetoothMonitor's nonisolated(unsafe) token fields, a mechanical Swift 6 concurrency requirement not a design change
 
 ### Roadmap Evolution
 
@@ -275,9 +277,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T21:28:56.576Z
-Stopped at: Phase 47 Plan 01 executed
-Resume file: .planning/phases/47-audio-output-switcher-pure-seam-monitor/47-02-PLAN.md
+Last session: 2026-07-19T21:43:04.864Z
+Stopped at: Completed 47-02-PLAN.md
+Resume file: .planning/phases/47-audio-output-switcher-pure-seam-monitor/47-03-PLAN.md
 
 ## Operator Next Steps
 

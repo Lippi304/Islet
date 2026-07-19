@@ -704,7 +704,7 @@ Plans:
 
 **Wave 2** *(blocked on 47-01)*
 
-- [ ] 47-02-PLAN.md — AudioOutputMonitor: idempotent start/stop + UID-keyed device enumeration + off-main listener hop (Pitfalls 4/5/6) + setDefaultOutput confirm-after-set (Pitfall 8) + hasVolumeControl guard (Pitfall 7)
+- [x] 47-02-PLAN.md — AudioOutputMonitor: idempotent start/stop + UID-keyed device enumeration + off-main listener hop (Pitfalls 4/5/6) + setDefaultOutput confirm-after-set (Pitfall 8) + hasVolumeControl guard (Pitfall 7)
 
 **Wave 3** *(blocked on 47-02)*
 
