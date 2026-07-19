@@ -664,12 +664,16 @@ struct NotchPillView: View {
     // Phase 44 UAT gap-closure (round 4) — explicit user override: "Können wir die File Tray
     // genauso so groß machen wie die Ablage zum reinziehen jetzt ist. Die Höhe will ich genauso
     // bei beiden." Ties trayContentHeight directly to quickActionPickerContentHeight (117) so the
-    // two can never drift apart again. KNOWN RISK, called out and accepted by the user before
-    // this change: 117 is LESS than cameraClearance(42) + trayShelfRowTopInset(10) +
-    // trayShelfRowHeight(70) = 122 alone, with zero bottom margin — below the minimum this
-    // constant needed across several prior UAT rounds (see the round 2/4 history below) to avoid
-    // clipping file icons/text at the bottom of the Tray box. Needs an explicit on-device check
-    // with a full shelf of files before this is considered verified, not just a green build.
+    // two can never drift apart again.
+    // Code review (44-REVIEW.md WR-02) corrected this comment's original math: `shelfRow`'s
+    // OUTERMOST modifier is `.frame(height: rowHeight)` (line ~2029) — `trayShelfRowTopInset` is
+    // applied INSIDE that already-height-fixed ScrollView (`.padding(.top, topInset)` on the
+    // inner HStack), so it shifts content within the fixed 70pt row rather than adding external
+    // height, unlike trayEmptyState's own top padding which genuinely does stack on top of
+    // cameraClearance. Real total for a populated Tray: cameraClearance(42) +
+    // trayShelfRowHeight(70) = 112, which fits inside 117 with ~5pt to spare — no clipping risk
+    // from this constant. Round 6 on-device UAT approved a populated shelf at this height,
+    // consistent with this corrected math.
     static let trayContentHeight: CGFloat = quickActionPickerContentHeight
 
     // Quick task 260715-vsd — the Calendar-only width override. calendarFullView's own
