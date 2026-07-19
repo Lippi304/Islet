@@ -1644,19 +1644,19 @@ final class NotchWindowController {
     }
 
     // Phase 28 / CALVIEW-03 — quick-add for both Event and Reminder, routed through the SAME
-    // shared CalendarService (CALVIEW-04). Event defaults to a 1-hour duration starting at the
-    // selected day (no time picker exists per the UI-SPEC's Copywriting Contract) and refreshes
-    // the month afterward so it appears in the day list immediately; Reminder has no rendering
-    // surface in this phase (CALVIEW-03 is create-only for reminders), so no refresh is needed.
-    private func handleQuickAdd(_ kind: QuickAddKind, title: String) {
-        let day = calendarViewState.selectedDay
+    // shared CalendarService (CALVIEW-04). Event/Reminder dates now come from QuickAddPopover's
+    // real Start/End (Event) or Due (Reminder) DatePickers (Phase 46-02 / CALVIEW-05) — refreshes
+    // the month afterward so a new event appears in the day list immediately; Reminder has no
+    // rendering surface in this phase (CALVIEW-03 is create-only for reminders), so no refresh is
+    // needed.
+    private func handleQuickAdd(_ kind: QuickAddKind, title: String, start: Date, end: Date?) {
         switch kind {
         case .event:
-            calendarService.createEvent(title: title, start: day, end: day.addingTimeInterval(3600)) { [weak self] _ in
+            calendarService.createEvent(title: title, start: start, end: end ?? start.addingTimeInterval(3600)) { [weak self] _ in
                 self?.refreshCalendarMonth()
             }
         case .reminder:
-            calendarService.createReminder(title: title, dueDate: day) { _ in }
+            calendarService.createReminder(title: title, dueDate: start) { _ in }
         }
     }
 
@@ -2008,10 +2008,9 @@ final class NotchWindowController {
                       onSwitcherSelect: { [weak self] view in self?.handleSwitcherSelect(view) },
                       onCalendarMonthChange: { [weak self] delta in self?.handleCalendarMonthChange(delta) },
                       onCalendarDaySelect: { [weak self] day in self?.handleCalendarDaySelect(day) },
-                      // Phase 46-01 (Rule 3 blocking fix): onQuickAdd's signature widened to
-                      // (QuickAddKind, String, Date, Date?) by this plan's QuickAddPopover work;
-                      // Date/Date? are not yet consumed here — that wiring is Plan 46-02 Task 1.
-                      onQuickAdd: { [weak self] kind, title, _, _ in self?.handleQuickAdd(kind, title: title) })
+                      // Phase 46-02 / CALVIEW-05 — forwards QuickAddPopover's real picked Start/End
+                      // (Event) or Due (Reminder) Date(s) into handleQuickAdd.
+                      onQuickAdd: { [weak self] kind, title, start, end in self?.handleQuickAdd(kind, title: title, start: start, end: end) })
             .environment(\.nowPlayingAccent, ActivitySettings.accent(for: theme.nowPlaying))
             .environment(\.chargingAccent, ActivitySettings.accent(for: theme.charging))
             .environment(\.deviceAccent, ActivitySettings.accent(for: theme.device))
