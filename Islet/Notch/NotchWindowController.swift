@@ -235,6 +235,12 @@ final class NotchWindowController {
     // `suppressionArmed` closure. Held as a plain stored property so the nonisolated deinit
     // can call its stop(), mirroring focusModeMonitor's own teardown discipline.
     private var osdInterceptor: OSDInterceptor?
+
+    // Phase 48 / OUTPUT-04 — the LIVE audio-output device-list monitor (Phase 47). Like
+    // osdInterceptor, starts UNCONDITIONALLY in start() — the speaker button/panel has no
+    // Settings toggle this phase. Held as a plain stored property so the nonisolated deinit
+    // can call its stop(), mirroring osdInterceptor's own teardown discipline.
+    private var audioOutputMonitor: AudioOutputMonitor?
     // Phase 39 / HUD-03/HUD-04 — `BrightnessReader` loads DisplayServices.framework's function
     // pointer once at construction (see BrightnessReader.init); resolved once as a stored
     // instance (mirrors licenseState's stored-instance pattern), never re-constructed per key
@@ -525,6 +531,11 @@ final class NotchWindowController {
         // (read fresh inside the interceptor's own suppressionArmed closure).
         startOSDInterceptor()
 
+        // Phase 48 / OUTPUT-04: UNCONDITIONAL start, mirrors startOSDInterceptor()'s own
+        // unconditional-no-activityEnabled-gate precedent immediately above — the speaker
+        // button/panel has no Settings toggle this phase.
+        startAudioOutputMonitor()
+
         // Phase 14 / WEATHER-01 / CAL-01: start the outfit (weather + calendar) coarse-refresh
         // cycle. Unconditional — unlike the toggle-gated monitors above, this phase has no
         // Settings toggle of its own (out of scope for 14-04). Phase 26 / D-01: deferred while
@@ -705,6 +716,32 @@ final class NotchWindowController {
         )
         osdInterceptor = interceptor
         interceptor.start()
+    }
+
+    // Phase 48 / OUTPUT-04 — idempotent start, mirrors startOSDInterceptor()'s exact
+    // UNCONDITIONAL-start-no-activityEnabled-gate shape — the speaker button/panel is always
+    // available, not a toggleable HUD activity. Delivers an initial synchronous snapshot AND
+    // every live connect/disconnect/default-change event to handleAudioOutputDevicesChanged(_:).
+    private func startAudioOutputMonitor() {
+        guard audioOutputMonitor == nil else { return }
+        let monitor = AudioOutputMonitor { [weak self] devices in
+            self?.handleAudioOutputDevicesChanged(devices)
+        }
+        audioOutputMonitor = monitor
+        monitor.start()
+    }
+
+    // Phase 48 / OUTPUT-04 — the single writer of presentationState.outputDevices/
+    // outputHasVolumeControl/outputCurrentVolumeFraction, keeping them live across every
+    // connect/disconnect/default-change event. No DispatchQueue.main.async wrapper needed —
+    // AudioOutputMonitor's own callback already hops to main before invoking onDevicesChanged
+    // (Pitfall 5), so this handler can assume it is already on main.
+    private func handleAudioOutputDevicesChanged(_ devices: [AudioOutputDevice]) {
+        presentationState.outputDevices = devices
+        if let current = devices.first(where: { $0.isDefault }) {
+            presentationState.outputHasVolumeControl = audioOutputMonitor?.hasVolumeControl(deviceUID: current.uid) ?? false
+            presentationState.outputCurrentVolumeFraction = CGFloat(readSystemVolume().percent) / 100.0
+        }
     }
 
     // Phase 14 / WEATHER-01 / CAL-01 — idempotent start (mirrors startPowerMonitor/
@@ -2470,6 +2507,10 @@ final class NotchWindowController {
         // Phase 39 / HUD-03/HUD-04: tear down the OSD key-press event tap — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
         osdInterceptor?.stop()
+
+        // Phase 48 / OUTPUT-04: tear down the audio-output device-list monitor — mirrors
+        // osdInterceptor?.stop()'s owner-driven teardown discipline exactly.
+        audioOutputMonitor?.stop()
 
         // Phase 24 / SHELF-01 / SHELF-02 (D-10): tear down the drop-interception tap — mirrors
         // bluetoothMonitor?.stop()'s owner-driven teardown discipline exactly.
