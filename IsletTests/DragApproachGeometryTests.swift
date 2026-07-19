@@ -74,4 +74,24 @@ final class DragApproachGeometryTests: XCTestCase {
         let offsetFrames = computeQuickActionButtonFrames(card: offsetCard)
         XCTAssertEqual(offsetFrames[1].minX - offsetCard.minX, zeroFrames[1].minX - zeroOriginCard.minX)
     }
+
+    // Phase 43 / DRAG-01 (D-01/D-02) — unit coverage for isGenuineFileDrag's 4 behavior cases.
+
+    func testUnchangedCountWithURLsReturnsFalse() {
+        XCTAssertFalse(isGenuineFileDrag(currentChangeCount: 5, gestureBaselineChangeCount: 5,
+                                          urls: [URL(fileURLWithPath: "/tmp/test.txt")]))
+    }
+
+    func testChangedCountWithNoURLsReturnsFalse() {
+        XCTAssertFalse(isGenuineFileDrag(currentChangeCount: 6, gestureBaselineChangeCount: 5, urls: []))
+    }
+
+    func testChangedCountWithURLsReturnsTrue() {
+        XCTAssertTrue(isGenuineFileDrag(currentChangeCount: 6, gestureBaselineChangeCount: 5,
+                                         urls: [URL(fileURLWithPath: "/tmp/test.txt")]))
+    }
+
+    func testUnchangedCountWithNoURLsReturnsFalse() {
+        XCTAssertFalse(isGenuineFileDrag(currentChangeCount: 5, gestureBaselineChangeCount: 5, urls: []))
+    }
 }

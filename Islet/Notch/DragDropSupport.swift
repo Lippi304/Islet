@@ -29,6 +29,19 @@ func isWithinDragAcceptRegion(_ point: CGPoint, zone: CGRect?, maxY: CGFloat?) -
     return zone.contains(point) && point.y <= maxY
 }
 
+// Phase 43 / DRAG-01 (D-01/D-02) — the genuine-external-file-drag gate. `NSPasteboard(name: .drag)`
+// is a persistent, system-wide named pasteboard whose content stays whatever was last written by
+// ANY real OS-level drag anywhere on the system until a NEW drag session overwrites it -- so
+// "genuine" requires BOTH a changeCount delta since the current gesture's own baseline (proving
+// THIS gesture actually wrote it, not a stale leftover from an earlier unrelated drag or an
+// ordinary click's incidental .leftMouseDragged wobble) AND non-empty file URLs (excluding
+// non-file drags -- a Finder window move, a text/URL/image drag -- per D-01). Takes plain value
+// types (`Int`, `[URL]`), not a live `NSPasteboard`, mirroring `isWithinDragAcceptRegion`'s
+// `CGPoint`/`CGRect?` signature style so it stays directly unit-testable via `@testable import Islet`.
+func isGenuineFileDrag(currentChangeCount: Int, gestureBaselineChangeCount: Int, urls: [URL]) -> Bool {
+    currentChangeCount != gestureBaselineChangeCount && !urls.isEmpty
+}
+
 // Phase 34 (UAT revision, D-11/D-12) / 34-RESEARCH.md Pattern 3 — the Quick Action picker's
 // per-button live drop-target geometry. Pure arithmetic, mirroring `expandedNotchFrame`/
 // `topPinnedFrame`'s existing style (NotchGeometry.swift) rather than a GeometryReader/
