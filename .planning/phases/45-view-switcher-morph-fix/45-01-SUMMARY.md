@@ -105,3 +105,12 @@ None.
 ---
 *Phase: 45-view-switcher-morph-fix*
 *Completed: 2026-07-19*
+
+## Self-Check: PASSED
+
+- FOUND: Islet/Notch/NotchPillView.swift
+- FOUND: IsletTests/NotchPillViewTests.swift
+- FOUND: .planning/phases/45-view-switcher-morph-fix/45-01-SUMMARY.md
+- FOUND: bff2fc3 (test commit)
+- FOUND: 625a203 (fix commit)
+- FOUND: 3d401df (summary commit)

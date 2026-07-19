@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: Phase 45 context gathered
-last_updated: "2026-07-19T15:11:50.617Z"
-last_activity: 2026-07-19 -- Phase 45 planning complete
+stopped_at: Completed 45-01-PLAN.md
+last_updated: "2026-07-19T15:25:54.838Z"
+last_activity: 2026-07-19
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 45 — view switcher morph fix
+**Current focus:** Phase 45 — view-switcher-morph-fix
 
 ## Current Position
 
-Phase: 45
-Plan: Not started
+Phase: 45 (view-switcher-morph-fix) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-19 -- Phase 45 planning complete
+Last activity: 2026-07-19
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -114,6 +114,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | Phase 42 P04 | multi-session | 3 tasks | 2 files |
 | Phase 43 P01 | 10min | 2 tasks | 3 files |
 | Phase 44 P01 | 10min | 2 tasks | 3 files |
+| Phase 45 P01 | 10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 43]: dragPasteboardChangeCount is now a stable per-gesture baseline, refreshed only in handleDragApproachEnd unconditionally before the isDragApproaching guard, never mutated in handleDragApproachTick (DRAG-01)
 - [Phase 43, 43-02]: On-device UAT of DRAG-01's fix took 4 rounds to close two regressions no build/unit-test gate could see: (1) the island got permanently stuck expanded after discarding a drag, because the auto-collapse grace-timer only fires from `.mouseMoved`-driven hover-exit, which never occurs during an active `.leftMouseDragged` session; (2) even after that was fixed, resolving the Quick Action picker (Drop/AirDrop/Mail/discard) still flashed the underlying Home/Now-Playing/Tray content for the ~0.4s grace window. Fixed by adding a dedicated `.dismissed` InteractionEvent (expanded→collapsed, immediate, no grace defer) to the pure `nextState` reducer plus a shared `dismissExpandedImmediately()` helper used by all 4 picker-resolution paths. User confirmed "Perfekt klappt" after round 4. See `43-02-SUMMARY.md`.
 - [Phase 44-01]: Reused NotchPillView.traySize/trayContentHeight/switcherRowHeight at all 3 Quick Action picker geometry sites (panel reservation, contentSize branch, blobShape call) instead of inventing new numbers; deleted the orphaned quickActionPickerContentHeight constant
+- [Phase 45-01]: tabWidth/tabHeight consolidation shipped as the SWITCH-01/02 structural fix; trayFullView's shelfItems/shelfVisible override dropped in favor of the unified call site's uniform arguments (no-op, shelfStripVisible is a hardcoded false constant); SWITCH-01/SWITCH-02 left Pending in REQUIREMENTS.md until 45-02's on-device 12-pairwise verification confirms the morph fix
 
 ### Roadmap Evolution
 
@@ -264,9 +266,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T14:39:57.586Z
-Stopped at: Phase 45 context gathered
-Resume file: .planning/phases/45-view-switcher-morph-fix/45-CONTEXT.md
+Last session: 2026-07-19T15:25:54.829Z
+Stopped at: Completed 45-01-PLAN.md
+Resume file: .planning/phases/45-view-switcher-morph-fix/45-02-PLAN.md
 
 ## Operator Next Steps
 

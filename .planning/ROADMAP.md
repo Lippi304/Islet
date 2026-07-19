@@ -651,7 +651,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 45-01-PLAN.md — Consolidate presentationSwitch's 6 per-case blobShape calls into one shared tabContentView call site (tabWidth/tabHeight computed props + regression test)
+- [x] 45-01-PLAN.md — Consolidate presentationSwitch's 6 per-case blobShape calls into one shared tabContentView call site (tabWidth/tabHeight computed props + regression test)
 
 **Wave 2** *(blocked on 45-01)*
 
