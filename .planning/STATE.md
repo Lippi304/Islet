@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
-status: executing
-stopped_at: 47-03-PLAN.md Task 1 complete, paused at Task 2 blocking human-verify checkpoint (on-device D-03 hardware verification)
-last_updated: "2026-07-19T21:47:43.769Z"
-last_activity: 2026-07-19
+status: completed
+stopped_at: Completed 47-03-PLAN.md — Phase 47 fully complete
+last_updated: "2026-07-19T22:42:36.100Z"
+last_activity: 2026-07-20
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 47 — audio-output-switcher-pure-seam-monitor
+**Current focus:** Phase 48 — audio-output-switcher-ui-wiring (next)
 
 ## Current Position
 
-Phase: 47 (audio-output-switcher-pure-seam-monitor) — EXECUTING
-Plan: 3 of 3 (Task 1 complete, paused at Task 2 blocking human-verify checkpoint)
-Status: Awaiting on-device D-03 verification (see 47-03-PLAN.md Task 2)
-Last activity: 2026-07-19
+Phase: 47 (audio-output-switcher-pure-seam-monitor) — COMPLETE
+Plan: 3 of 3 — all plans executed and on-device verified
+Status: Phase 47 fully shipped (47-01, 47-02, 47-03 all complete); Phase 48 not yet started
+Last activity: 2026-07-20
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -49,7 +49,7 @@ Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-
 
 Progress (v1.6): [██████████] 100% — SHIPPED 2026-07-19 (8/8 phases; Phase 37 abandoned/reverted, HUD-07 dropped; see `.planning/milestones/v1.6-ROADMAP.md`)
 
-Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap created 2026-07-19, Phases 43-50, 15/15 requirements mapped; not yet started)
+Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/46/47 complete; Phase 48 next, then 49/50)
 
 ## Performance Metrics
 
@@ -120,6 +120,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | Phase 46 P02 | 9min | 2 tasks | 3 files |
 | Phase 47 P01 | 15min | 2 tasks | 2 files |
 | Phase 47 P02 | 12min | 2 tasks | 1 files |
+| Phase 47 P03 | multi-session | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -168,6 +169,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 46-02]: Plan 46-02 executed exactly as written (no deviations); handleQuickAdd now forwards real picked Start/End/Due dates to CalendarService, Add trigger moved to left edge, day-list row padding bumped, calendarWidth/calendarContentHeight now 472/220
 - [Phase 47-01]: AudioOutputDevice.id derives from uid (String), never AudioDeviceID (Pitfall 4 baked into the type); sortedAudioOutputDevices uses localizedStandardCompare (not raw ASCII <) for human-natural alphabetical ordering — plan executed exactly as written, no deviations
 - [Phase 47-02]: listenerBlock stored as nonisolated(unsafe) (not plain private var as literally stated) so nonisolated func stop() can read/clear it without a main-actor isolation compile error — mirrors BluetoothMonitor's nonisolated(unsafe) token fields, a mechanical Swift 6 concurrency requirement not a design change
+- [Phase 47-03]: On-device Cmd-U checkpoint surfaced a real bug — resolveDeviceID(uid:) used the deprecated AudioValueTranslation-wrapped-in-ioData pattern for kAudioHardwarePropertyTranslateUIDToDevice, causing HAL "wrong data size" errors, resolveDeviceID always returning nil, hasVolumeControl always false, and setDefaultOutput's confirm-after-set never succeeding; fixed to the qualifier-data calling convention (UID via inQualifierData/inQualifierDataSize, ioData holds only the AudioDeviceID output). Re-verified on-device: Pitfall 4 (UID stability across a Jabra Bluetooth disconnect/reconnect) and Pitfall 8 (confirmed-after-set switch to Elgato USB) both confirmed; hasVolumeControl recorded true for built-in/Bluetooth/USB, false for an external-monitor output. D-03's "2 distinct Bluetooth devices" scope accepted as single-device (only one BT output device available) — user-confirmed, documented limitation, Phase 48 should re-check if a second BT device becomes available.
 
 ### Roadmap Evolution
 
@@ -277,12 +279,13 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T21:47:43.758Z
-Stopped at: Completed 47-02-PLAN.md
+Last session: 2026-07-20T00:00:00.000Z
+Stopped at: Completed 47-03-PLAN.md — Phase 47 fully complete
 Resume file: None
 
 ## Operator Next Steps
 
+- **Phase 47 (Audio Output Switcher — Pure Seam + Monitor) is now fully complete.** All 3 plans (47-01 pure seam, 47-02 monitor, 47-03 on-device verification) done. 47-03's on-device checkpoint surfaced and fixed a real HAL "wrong data size" bug in `resolveDeviceID(uid:)` (qualifier-data pattern fix), then re-confirmed clean: Pitfall 4 (UID stability across a Bluetooth reconnect) and Pitfall 8 (confirmed-after-set switch) both hold on real hardware; `hasVolumeControl` recorded for 4 device types (built-in/Bluetooth/USB=true, external monitor=false) as Phase 48's authoritative slider input. Known scope limitation: D-03 asked for 2 distinct Bluetooth devices, only 1 was available — user-confirmed and accepted. See `47-03-SUMMARY.md`. Per this project's own Phase 29/36/38/39/45 precedent, 47-03's own on-device checkpoint directly covers Phase 47's ROADMAP success criteria, so a separate `/gsd:verify-work 47` pass is not needed. Start `/gsd-discuss-phase 48` (Audio Output Switcher — UI Wiring) next.
 - **Phase 47 Plan 01 (Audio Output Presentation seam) is now complete.** `AudioOutputDevice`, `isOutputCapableDevice(outputChannelCount:)` (D-01), and `sortedAudioOutputDevices(_:)` (D-02) are all implemented, unit-tested (9 tests), Foundation-only, Debug build + test-build both green. See `47-01-SUMMARY.md`. A manual Cmd-U pass to actually run the new tests is recommended (per this project's `xcodebuild test` headless-hang precedent) before Plan 47-02 begins consuming these functions. Next: execute Plan 47-02 (`AudioOutputMonitor` — event-driven CoreAudio glue).
 - **Phase 45 (View Switcher Morph Fix) is now fully complete.** Both plans (45-01 structural fix, 45-02 on-device 12-pairwise verification) done; SWITCH-01/SWITCH-02 shipped. 45-02's own on-device checkpoint directly covered Phase 45's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed (per this project's Phase 29/36/38/39 precedent). Start `/gsd-discuss-phase 46` (Calendar Quick-Add Improvements) next.
 - **v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19.** 8 phases (43-50), 15/15 requirements mapped, 100% coverage. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, next) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48), then Favorite/Like split spike-first (49) then implementation (50).

@@ -121,7 +121,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 44: Tray & Quick Action Width Alignment** - Tray widens to fit every file icon; the drag-preview picker matches that width exactly (completed 2026-07-19)
 - [x] **Phase 45: View Switcher Morph Fix** - Tab switches morph continuously with no disappear/rebuild flicker or behind-buttons glitch (completed 2026-07-19)
 - [x] **Phase 46: Calendar Quick-Add Improvements** - Date+time picker with smart defaults, unclipped add button, roomier event rows (completed 2026-07-19)
-- [ ] **Phase 47: Audio Output Switcher — Pure Seam + Monitor** - Device value type + event-driven CoreAudio monitor, proven in isolation before any UI is built
+- [x] **Phase 47: Audio Output Switcher — Pure Seam + Monitor** - Device value type + event-driven CoreAudio monitor, proven in isolation before any UI is built (completed 2026-07-19)
 - [ ] **Phase 48: Audio Output Switcher — UI Wiring** - Speaker-icon panel: live device list, tap-to-select, real volume slider
 - [ ] **Phase 49: Favorite/Like — Spike** - Resolve Spotify quota, Apple Music reliability, and Automation-TCC unknowns; documented go/no-go scope decision
 - [ ] **Phase 50: Favorite/Like — Implementation** - Star button write-back to Apple Music/Spotify, scoped per Phase 49's findings
@@ -708,7 +708,7 @@ Plans:
 
 **Wave 3** *(blocked on 47-02)*
 
-- [ ] 47-03-PLAN.md — Manual Cmd-U spike harness + on-device D-03 verification (built-in speakers, 2 distinct Bluetooth devices, USB/wired device)
+- [x] 47-03-PLAN.md — Manual Cmd-U spike harness + on-device D-03 verification (built-in speakers, 2 distinct Bluetooth devices, USB/wired device)
 
 ### Phase 48: Audio Output Switcher — UI Wiring
 
