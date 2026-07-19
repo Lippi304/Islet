@@ -48,6 +48,7 @@
 		56BC6DBE6E5F1E2B6F485BE0 /* CalendarGlance.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECDB797EE481836D5DD878FD /* CalendarGlance.swift */; };
 		57E10B87D7BD50703138D12D /* FocusActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B95E794C13DE3DAA7C2891B /* FocusActivityTests.swift */; };
 		59A9F1A6B642331EFB7EBE26 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E70A8667DE9528FD2F0CFB /* LocationProvider.swift */; };
+		5D3091F521E6A6CCBF2EF35A /* AudioOutputPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903726B931FE524FE3691AA2 /* AudioOutputPresentationTests.swift */; };
 		5E2A0DEF48DA471FE9426F9A /* CalendarViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D373EEE76BE733AFEDD28FD /* CalendarViewState.swift */; };
 		62BB9F9BCB658F55890D95BD /* LicenseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471EC72A07A658DCBFCDDB38 /* LicenseServiceTests.swift */; };
 		62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */; };
@@ -66,6 +67,7 @@
 		78E654D36EEE2891E43D8957 /* MediaRemoteAdapter in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7BEE2DF28EF5A73EDB7BA551 /* OnboardingFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E50622410CCEEA5EC66C796 /* OnboardingFlowTests.swift */; };
 		7E4D99F7223419D03FC89C5C /* NowPlayingMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 483917501E43A12ECCFB85A2 /* NowPlayingMonitor.swift */; };
+		7F111C2193277EE973787E41 /* AudioOutputPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 233B903DFE51437E26FADD7B /* AudioOutputPresentation.swift */; };
 		83ACBA698B65021287F454A4 /* DiagnosticReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0EC5F0178A64AECEBD91C8C /* DiagnosticReportTests.swift */; };
 		85C8C46347EB08A657DB3CEE /* BluetoothMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F2A9A634959D28CB05024E /* BluetoothMonitor.swift */; };
 		873F50F44716655751E47E8B /* ShelfLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58372E319659DF8AA32F403D /* ShelfLogic.swift */; };
@@ -160,6 +162,7 @@
 		1B95E794C13DE3DAA7C2891B /* FocusActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusActivityTests.swift; sourceTree = "<group>"; };
 		1FC3046FCECB25B228688FF4 /* DancingScript-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "DancingScript-OFL.txt"; sourceTree = "<group>"; };
 		2151B8D097AF9D3098ED16D7 /* CGSSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGSSpace.swift; sourceTree = "<group>"; };
+		233B903DFE51437E26FADD7B /* AudioOutputPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputPresentation.swift; sourceTree = "<group>"; };
 		25742CBF490BEC1233F661FD /* BasicOutfitState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BasicOutfitState.swift; sourceTree = "<group>"; };
 		279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargingActivityState.swift; sourceTree = "<group>"; };
 		28316551B58651959797184D /* DeviceActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivity.swift; sourceTree = "<group>"; };
@@ -213,6 +216,7 @@
 		885DB8C610716B7530D89BDB /* FullscreenDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDetector.swift; sourceTree = "<group>"; };
 		88743B92F1F6E038198A24A6 /* TrialLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLogicTests.swift; sourceTree = "<group>"; };
 		8AECFB326AA1C46FECE017D0 /* IslandResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandResolver.swift; sourceTree = "<group>"; };
+		903726B931FE524FE3691AA2 /* AudioOutputPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputPresentationTests.swift; sourceTree = "<group>"; };
 		9363716285E9774909D180F5 /* OSDActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSDActivityTests.swift; sourceTree = "<group>"; };
 		984325CC40BE13B07D21477D /* NotchGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometryTests.swift; sourceTree = "<group>"; };
 		988CD84C4B7A33F83F928BD1 /* NotchPillViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillViewTests.swift; sourceTree = "<group>"; };
@@ -285,6 +289,7 @@
 			isa = PBXGroup;
 			children = (
 				C54DE6734ABC75FD146F9FCF /* ActivitySettingsTests.swift */,
+				903726B931FE524FE3691AA2 /* AudioOutputPresentationTests.swift */,
 				8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */,
 				AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */,
 				0A6FA5F67CABA606F19ED731 /* DeviceCoordinatorTests.swift */,
@@ -418,6 +423,7 @@
 			isa = PBXGroup;
 			children = (
 				6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */,
+				233B903DFE51437E26FADD7B /* AudioOutputPresentation.swift */,
 				25742CBF490BEC1233F661FD /* BasicOutfitState.swift */,
 				BEFCAF742543C37096D4F714 /* BatteryIndicator.swift */,
 				E3F2A9A634959D28CB05024E /* BluetoothMonitor.swift */,
@@ -613,6 +619,7 @@
 				774A2C14E09EB8BE82006A9B /* ActivityCoordinator.swift in Sources */,
 				F168E6273C7AF9808D244CCA /* ActivitySettings.swift in Sources */,
 				2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */,
+				7F111C2193277EE973787E41 /* AudioOutputPresentation.swift in Sources */,
 				730C2D90EDBDA9578FFD3D07 /* BasicOutfitState.swift in Sources */,
 				9924445F8465340818CC6973 /* BatteryIndicator.swift in Sources */,
 				85C8C46347EB08A657DB3CEE /* BluetoothMonitor.swift in Sources */,
@@ -683,6 +690,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2F75ED15F35CB39A20ED54AB /* ActivitySettingsTests.swift in Sources */,
+				5D3091F521E6A6CCBF2EF35A /* AudioOutputPresentationTests.swift in Sources */,
 				B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */,
 				3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */,
 				16A051D140699708997B8A33 /* DeviceCoordinatorTests.swift in Sources */,
