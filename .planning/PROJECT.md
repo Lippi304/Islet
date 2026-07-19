@@ -270,12 +270,17 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 - [x] Tapping/hovering the bubble was redesigned live during on-device UAT: hovering darkens the bubble and reveals a play/pause glyph matching current playback state; tapping toggles play/pause directly via the existing `NowPlayingMonitor.togglePlayPause()` — this supersedes the original plan's tap-to-expand/no-hover design (D-12/D-13), by explicit user decision, not scope drift. (Phase 42)
 - Code review found no blockers; one warning (hardcoded hot-zone offset) was fixed post-review since it duplicated the exact fragility class that caused the Phase 40-03 badge-tap regression — see `42-REVIEW.md`/`42-VERIFICATION.md`. Three smaller warnings (duplicated launch-gate derivation, a missing `deinit` cancel, hover-state view scoping) remain as non-blocking backlog. (Phase 42)
 
+**Drag Detection Hardening (Phase 43 — DRAG-01):**
+
+- [x] The island's auto-expand / Quick Action destination picker only fires on a genuine external file drag approaching it — an ordinary click or hover on the collapsed/expanded island never triggers it. Fixed via `isGenuineFileDrag(currentChangeCount:gestureBaselineChangeCount:urls:)`, a pasteboard-change-count gate wired into `recheckDragAcceptRegion`'s auto-expand arm branch. (Phase 43 — DRAG-01)
+- On-device UAT of the fix took 4 rounds and found 2 further real regressions no build/unit-test gate could see: the island got permanently stuck expanded after discarding a drag (the auto-collapse grace-timer only fires from `.mouseMoved`-driven hover-exit, which never occurs during an active OS drag session), and even after that was fixed, resolving the Quick Action picker still briefly flashed the underlying Home/Now-Playing/Tray content before collapsing. Both closed by adding a dedicated `.dismissed` state-machine event (immediate `expanded → collapsed`, no grace defer) and a shared `dismissExpandedImmediately()` helper consolidating all 4 picker-resolution paths (Drop, AirDrop, Mail, discard). See `43-02-SUMMARY.md` for the full round-by-round record. (Phase 43)
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
 
 _v1.5 (Home Focus & Widget Redesign) — see `.planning/ROADMAP.md`/`.planning/REQUIREMENTS.md` for the full 11-requirement traceability table (not yet archived — still open in parallel). Remaining: Phase 33 on-device UAT (WEATHER-01/02)._
-_v1.7 (Interaction & Calendar Polish) — see "Current Milestone: v1.7" above. Pure interaction/layout bugfixes to already-shipped Tray, view-switcher, and Calendar-quick-add features; no REQ-IDs shipped yet, roadmap not yet created._
+_v1.7 (Interaction & Calendar Polish) — see "Current Milestone: v1.7" above. Phase 43 (Drag Detection Hardening, DRAG-01) shipped 2026-07-19. Remaining: Phase 44 (Tray & Quick Action Width Alignment, TRAY-06/DRAG-02) onward._
 
 ### Out of Scope
 
@@ -380,4 +385,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-19 — started v1.7 (Interaction & Calendar Polish) milestone: drag-detection hardening, Tray/Island width, view-switcher transition fix, Calendar quick-add improvements. v1.4 (Architecture Redesign) and v1.5 (Home Focus & Widget Redesign) both remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close; v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation. v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19, archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`.*
+*Last updated: 2026-07-19 — Phase 43 (Drag Detection Hardening, DRAG-01) shipped, closing v1.7's first phase. v1.4 (Architecture Redesign) and v1.5 (Home Focus & Widget Redesign) both remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close; v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation. v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19, archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`.*
