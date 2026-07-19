@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: Phase 47 context gathered
-last_updated: "2026-07-19T21:23:17.279Z"
-last_activity: 2026-07-19 -- Phase 47 planning complete
+stopped_at: Phase 47 Plan 01 executed
+last_updated: "2026-07-19T21:28:56.576Z"
+last_activity: 2026-07-19 -- Phase 47 Plan 01 (Audio Output Presentation seam) executed
 progress:
   total_phases: 19
   completed_phases: 15
-  total_plans: 39
-  completed_plans: 38
+  total_plans: 40
+  completed_plans: 39
   percent: 79
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 46 — calendar-quick-add-improvements
+**Current focus:** Phase 47 — audio-output-switcher-pure-seam-monitor
 
 ## Current Position
 
-Phase: 46 — COMPLETE
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-19 -- Phase 47 planning complete
+Phase: 47 — EXECUTING
+Plan: 1 of 3
+Status: Plan 01 complete (AudioOutputPresentation.swift pure seam) — Plan 02 (AudioOutputMonitor) next
+Last activity: 2026-07-19 -- Phase 47 Plan 01 executed
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -118,6 +118,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | Phase 45 P02 | <1min | 1 task | 0 files |
 | Phase 46 P01 | 12min | 2 tasks | 4 files |
 | Phase 46 P02 | 9min | 2 tasks | 3 files |
+| Phase 47 P01 | 15min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 46-01] isProgrammaticEndUpdate suppression flag distinguishes startRow's auto-follow write to endTime from a genuine user edit, so endRow's onChange doesn't misflip endManuallyEdited after one Start change
 - [Phase 46-01] onQuickAdd widened at its single controller call site (Rule 3 blocking fix) to compile against the new 4-arg signature; new Date/Date? args intentionally discarded there, real wiring deferred to Plan 46-02 Task 1
 - [Phase 46-02]: Plan 46-02 executed exactly as written (no deviations); handleQuickAdd now forwards real picked Start/End/Due dates to CalendarService, Add trigger moved to left edge, day-list row padding bumped, calendarWidth/calendarContentHeight now 472/220
+- [Phase 47-01]: AudioOutputDevice.id derives from uid (String), never AudioDeviceID (Pitfall 4 baked into the type); sortedAudioOutputDevices uses localizedStandardCompare (not raw ASCII <) for human-natural alphabetical ordering — plan executed exactly as written, no deviations
 
 ### Roadmap Evolution
 
@@ -273,12 +275,13 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T21:03:56.821Z
-Stopped at: Phase 47 context gathered
-Resume file: .planning/phases/47-audio-output-switcher-pure-seam-monitor/47-CONTEXT.md
+Last session: 2026-07-19T21:28:56.576Z
+Stopped at: Phase 47 Plan 01 executed
+Resume file: .planning/phases/47-audio-output-switcher-pure-seam-monitor/47-02-PLAN.md
 
 ## Operator Next Steps
 
+- **Phase 47 Plan 01 (Audio Output Presentation seam) is now complete.** `AudioOutputDevice`, `isOutputCapableDevice(outputChannelCount:)` (D-01), and `sortedAudioOutputDevices(_:)` (D-02) are all implemented, unit-tested (9 tests), Foundation-only, Debug build + test-build both green. See `47-01-SUMMARY.md`. A manual Cmd-U pass to actually run the new tests is recommended (per this project's `xcodebuild test` headless-hang precedent) before Plan 47-02 begins consuming these functions. Next: execute Plan 47-02 (`AudioOutputMonitor` — event-driven CoreAudio glue).
 - **Phase 45 (View Switcher Morph Fix) is now fully complete.** Both plans (45-01 structural fix, 45-02 on-device 12-pairwise verification) done; SWITCH-01/SWITCH-02 shipped. 45-02's own on-device checkpoint directly covered Phase 45's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed (per this project's Phase 29/36/38/39 precedent). Start `/gsd-discuss-phase 46` (Calendar Quick-Add Improvements) next.
 - **v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19.** 8 phases (43-50), 15/15 requirements mapped, 100% coverage. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, next) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48), then Favorite/Like split spike-first (49) then implementation (50).
 - **v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19.** All 8 phases (35-42) archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 dropped (Phase 37 abandoned). PROJECT.md fully updated, including backfilled Validated write-ups for Phases 38-41 whose own runs had skipped that step. v1.5 (Home Focus & Widget Redesign) remains open in parallel — only Phase 33's on-device UAT (Task 4) is outstanding before it can formally close too; run `/gsd-verify-work 33` once that's done, then `/gsd:complete-milestone v1.5`.

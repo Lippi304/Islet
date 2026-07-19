@@ -700,7 +700,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 47-01-PLAN.md — AudioOutputDevice value type + isOutputCapableDevice(outputChannelCount:) classifier (D-01) + sortedAudioOutputDevices(_:) default-pinned-first/alphabetical sort (D-02), TDD
+- [x] 47-01-PLAN.md — AudioOutputDevice value type + isOutputCapableDevice(outputChannelCount:) classifier (D-01) + sortedAudioOutputDevices(_:) default-pinned-first/alphabetical sort (D-02), TDD
 
 **Wave 2** *(blocked on 47-01)*
 
