@@ -118,7 +118,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 **Milestone Goal:** Fix a set of real-usage interaction and layout bugs surfaced since v1.4-v1.6 shipped (drag-detection false-triggers, Tray/picker width squeeze, view-switcher disappear/rebuild flicker, calendar quick-add friction) — no new features in that half. Also adds two new Now Playing capabilities: an audio-output switcher (low-risk, public CoreAudio API, sequenced first) and a favorite/like write-back to Spotify/Apple Music (this milestone's highest-risk item, gated behind a dedicated spike before implementation — mirroring this project's own Phase 22/38/39 spike-first precedent). Started 2026-07-19 while v1.4 and v1.5 both remain open in parallel. Phase numbering continues from Phase 42 (v1.6's last phase).
 
 - [x] **Phase 43: Drag Detection Hardening** - Quick Action picker auto-expand only fires on a genuine inbound file drag, never a plain click/hover (completed 2026-07-19)
-- [ ] **Phase 44: Tray & Quick Action Width Alignment** - Tray widens to fit every file icon; the drag-preview picker matches that width exactly
+- [x] **Phase 44: Tray & Quick Action Width Alignment** - Tray widens to fit every file icon; the drag-preview picker matches that width exactly (completed 2026-07-19)
 - [ ] **Phase 45: View Switcher Morph Fix** - Tab switches morph continuously with no disappear/rebuild flicker or behind-buttons glitch
 - [ ] **Phase 46: Calendar Quick-Add Improvements** - Date+time picker with smart defaults, unclipped add button, roomier event rows
 - [ ] **Phase 47: Audio Output Switcher — Pure Seam + Monitor** - Device value type + event-driven CoreAudio monitor, proven in isolation before any UI is built
@@ -635,7 +635,7 @@ Plans:
 
 **Wave 2** *(blocked on 44-01)*
 
-- [ ] 44-02-PLAN.md — On-device verification: picker-vs-Tray size match, click-through hover→expand→move-down trace, button tap-zone re-check, TRAY-06 re-verification
+- [x] 44-02-PLAN.md — On-device verification: picker-vs-Tray size match, click-through hover→expand→move-down trace, button tap-zone re-check, TRAY-06 re-verification
 
 ### Phase 45: View Switcher Morph Fix
 
