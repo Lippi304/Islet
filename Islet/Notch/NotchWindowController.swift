@@ -2008,7 +2008,10 @@ final class NotchWindowController {
                       onSwitcherSelect: { [weak self] view in self?.handleSwitcherSelect(view) },
                       onCalendarMonthChange: { [weak self] delta in self?.handleCalendarMonthChange(delta) },
                       onCalendarDaySelect: { [weak self] day in self?.handleCalendarDaySelect(day) },
-                      onQuickAdd: { [weak self] kind, title in self?.handleQuickAdd(kind, title: title) })
+                      // Phase 46-01 (Rule 3 blocking fix): onQuickAdd's signature widened to
+                      // (QuickAddKind, String, Date, Date?) by this plan's QuickAddPopover work;
+                      // Date/Date? are not yet consumed here — that wiring is Plan 46-02 Task 1.
+                      onQuickAdd: { [weak self] kind, title, _, _ in self?.handleQuickAdd(kind, title: title) })
             .environment(\.nowPlayingAccent, ActivitySettings.accent(for: theme.nowPlaying))
             .environment(\.chargingAccent, ActivitySettings.accent(for: theme.charging))
             .environment(\.deviceAccent, ActivitySettings.accent(for: theme.device))

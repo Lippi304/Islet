@@ -216,7 +216,11 @@ struct NotchPillView: View {
     var onCalendarDaySelect: (Date) -> Void = { _ in }
     // Phase 28 / CALVIEW-03 — the quick-add report closure (Task 3): (kind, title) forwarded
     // unmodified, no EventKit/EKEventStore code in this view file.
-    var onQuickAdd: (QuickAddKind, String) -> Void = { _, _ in }
+    // Phase 46 / CALVIEW-05 — widened to carry the picked Start/Due (Date) and End (Date?,
+    // Event only) out of QuickAddPopover; not yet wired to the controller in this plan (that's
+    // Plan 46-02 Task 1) — the default no-op closure keeps every #Preview referencing
+    // NotchPillView compiling unmodified in the meantime.
+    var onQuickAdd: (QuickAddKind, String, Date, Date?) -> Void = { _, _, _, _ in }
 
     // Phase 34 / TRAY-02 (D-09 fallback) — AirDrop/Mail dim + disable only if Plan 02 Task 3's
     // on-device spike finds no working invocation path; default `true` per 34-RESEARCH.md's
@@ -1162,7 +1166,7 @@ struct NotchPillView: View {
             // (28-UI-SPEC.md Layout Contract).
             HStack {
                 Spacer()
-                QuickAddPopover(onSubmit: onQuickAdd)
+                QuickAddPopover(onSubmit: onQuickAdd, selectedDay: calendarViewState.selectedDay)
             }
             Group {
                 if let dayEvents {
@@ -3126,7 +3130,21 @@ private struct QuickAddPopover: View {
     @State private var isShowing = false
     @State private var kind: QuickAddKind = .event
     @State private var title = ""
-    let onSubmit: (QuickAddKind, String) -> Void
+    // Phase 46 / CALVIEW-05 — the real date+time picker's backing state. `startTime`/`endTime`
+    // placeholder values are never user-visible: `.onChange(of: isShowing)` below overwrites
+    // them from `defaultQuickAddTime` the moment the popover actually opens (`@State` defaults
+    // cannot call an instance method needing `selectedDay`).
+    @State private var startTime: Date = Date()
+    @State private var endTime: Date = Date()
+    // D-04 — once the user directly edits End, it stops auto-following Start for the rest of
+    // this popover session.
+    @State private var endManuallyEdited = false
+    // D-04 — distinguishes startRow's own auto-follow write to `endTime` from a genuine user
+    // edit, so endRow's onChange doesn't misread its own sibling's write as a manual edit and
+    // incorrectly flip endManuallyEdited after just one Start change.
+    @State private var isProgrammaticEndUpdate = false
+    let onSubmit: (QuickAddKind, String, Date, Date?) -> Void
+    let selectedDay: Date
 
     // The trigger button. `chipButton`'s exact visual convention (RoundedRectangle +
     // Color.white.opacity(0.12) fill, 28-UI-SPEC.md "Quick-add control chrome") — mirrored here
@@ -3145,8 +3163,19 @@ private struct QuickAddPopover: View {
                 )
         }
         .buttonStyle(.plain)
-        .popover(isPresented: $isShowing) {
+        .popover(isPresented: $isShowing, arrowEdge: .trailing) {
             quickAddContent
+        }
+        // D-07 — seed startTime/endTime fresh every time the popover opens; this is a live
+        // system-clock read at a SwiftUI event-handler call site (not inside a pure function),
+        // matching CalendarGlance.swift's own documented exception for view-level seeding — not
+        // a violation of that file's "no inline Date() in pure logic" rule.
+        .onChange(of: isShowing) { _, newValue in
+            guard newValue else { return }
+            let seed = defaultQuickAddTime(selectedDay: selectedDay, now: Date())
+            startTime = seed
+            endTime = seed.addingTimeInterval(3600)
+            endManuallyEdited = false
         }
     }
 
@@ -3162,13 +3191,19 @@ private struct QuickAddPopover: View {
             .pickerStyle(.segmented)
             TextField("What's this for?", text: $title)
                 .font(.system(size: 12, weight: .regular, design: .rounded))
+            if kind == .event {
+                startRow
+                endRow
+            } else {
+                dueRow
+            }
             Button(action: {
                 // WR-03 fix (28-REVIEW.md) — a trimmed-empty title silently created a
                 // blank-titled EKEvent/EKReminder; guard here too (belt-and-suspenders with
                 // .disabled below, which covers the visible affordance).
                 let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmedTitle.isEmpty else { return }
-                onSubmit(kind, trimmedTitle)
+                onSubmit(kind, trimmedTitle, startTime, kind == .event ? endTime : nil)
                 title = ""
                 isShowing = false
             }) {
@@ -3188,7 +3223,68 @@ private struct QuickAddPopover: View {
             .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(12)
-        .frame(width: 220)
+        .frame(width: 240)
+    }
+
+    // D-01/D-02 — Event's Start row: a labeled compact DatePicker, no separate Date picker
+    // (the day comes from `selectedDay`, already fixed by the calendar's own selection).
+    private var startRow: some View {
+        HStack {
+            Text("Starts")
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.white)
+            Spacer()
+            DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                .datePickerStyle(.compact)
+                .labelsHidden()
+        }
+        .onChange(of: startTime) { _, newValue in
+            // D-04 — Start shifts End to preserve a 1-hour duration until End is edited
+            // directly. Setting the suppression flag BEFORE the write lets endRow's onChange
+            // recognize this specific write as auto-follow, not a user edit.
+            guard !endManuallyEdited else { return }
+            isProgrammaticEndUpdate = true
+            endTime = newValue.addingTimeInterval(3600)
+        }
+    }
+
+    // D-01/D-02/D-03 — Event's End row: its own labeled compact DatePicker on its own row, not
+    // a side-by-side HStack with Start.
+    private var endRow: some View {
+        HStack {
+            Text("Ends")
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.white)
+            Spacer()
+            DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
+                .datePickerStyle(.compact)
+                .labelsHidden()
+        }
+        .onChange(of: endTime) { _, _ in
+            // D-04 — this onChange fires on EVERY write to endTime, including startRow's own
+            // programmatic auto-follow write above; without this suppression check, the first
+            // Start change would incorrectly flip endManuallyEdited = true and silently kill
+            // auto-follow after one use. The flag consumes itself so the very next direct user
+            // edit is correctly detected.
+            if isProgrammaticEndUpdate {
+                isProgrammaticEndUpdate = false
+            } else {
+                endManuallyEdited = true
+            }
+        }
+    }
+
+    // D-05 — Reminder has no End field at all, not disabled/greyed, just absent.
+    private var dueRow: some View {
+        HStack {
+            Text("Due")
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.white)
+            Spacer()
+            DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                .datePickerStyle(.compact)
+                .labelsHidden()
+        }
     }
 }
 
