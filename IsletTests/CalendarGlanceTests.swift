@@ -195,4 +195,38 @@ final class CalendarGlanceTests: XCTestCase {
         let result = nextUpcomingEvent(events: [later, earlier], now: now)
         XCTAssertEqual(result, earlier)
     }
+
+    // Phase 46 / CALVIEW-05: defaultQuickAddTime(selectedDay:now:) — quick-add popover's
+    // default-time seed, today/not-today/hour-rollover branches.
+
+    func testDefaultQuickAddTimeForTodayReturnsNextFullHour() {
+        // Given selectedDay == now == today at 14:23:00, defaultQuickAddTime returns today at
+        // 15:00:00 (next full hour, minutes/seconds zeroed).
+        let calendar = Calendar.current
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 19, hour: 14, minute: 23, second: 0))!
+        let expected = calendar.date(from: DateComponents(year: 2026, month: 7, day: 19, hour: 15, minute: 0, second: 0))!
+        let result = defaultQuickAddTime(selectedDay: now, now: now)
+        XCTAssertEqual(result, expected)
+    }
+
+    func testDefaultQuickAddTimeForNonTodayReturnsStartOfSelectedDay() {
+        // Given selectedDay is 3 days from now (any time), defaultQuickAddTime returns
+        // startOfDay(selectedDay) -- 00:00:00 on that day -- regardless of `now`.
+        let calendar = Calendar.current
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 19, hour: 9, minute: 0, second: 0))!
+        let selectedDay = calendar.date(from: DateComponents(year: 2026, month: 7, day: 22, hour: 18, minute: 45, second: 0))!
+        let expected = calendar.date(from: DateComponents(year: 2026, month: 7, day: 22, hour: 0, minute: 0, second: 0))!
+        let result = defaultQuickAddTime(selectedDay: selectedDay, now: now)
+        XCTAssertEqual(result, expected)
+    }
+
+    func testDefaultQuickAddTimeRollsOverToNextDayAtMidnightBoundary() {
+        // Given selectedDay == now == today at 23:50:00, adding 1 hour crosses midnight --
+        // defaultQuickAddTime returns 00:00:00 on the FOLLOWING day, not a wraparound bug.
+        let calendar = Calendar.current
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 19, hour: 23, minute: 50, second: 0))!
+        let expected = calendar.date(from: DateComponents(year: 2026, month: 7, day: 20, hour: 0, minute: 0, second: 0))!
+        let result = defaultQuickAddTime(selectedDay: now, now: now)
+        XCTAssertEqual(result, expected)
+    }
 }

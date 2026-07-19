@@ -71,6 +71,22 @@ func nextUpcomingEvent(events: [EventInput], now: Date, lookahead: TimeInterval 
         .first
 }
 
+// Phase 46 / CALVIEW-05 (D-...) — the quick-add popover's default-time seed. Total function,
+// Foundation-only, `now` always an explicit parameter (never Date()/Date.now inline), mirroring
+// nextRelevantEvent/nextUpcomingEvent's discipline exactly. If `selectedDay` is today, seeds to
+// the next full hour (minutes/seconds zeroed); otherwise seeds to 00:00 of `selectedDay`.
+func defaultQuickAddTime(selectedDay: Date, now: Date) -> Date {
+    let calendar = Calendar.current
+
+    guard calendar.isDateInToday(selectedDay) else {
+        return calendar.startOfDay(for: selectedDay)
+    }
+
+    let nextHour = calendar.date(byAdding: .hour, value: 1, to: now) ?? now
+    let components = calendar.dateComponents([.year, .month, .day, .hour], from: nextHour)
+    return calendar.date(from: components) ?? nextHour
+}
+
 // Phase 28 / CALVIEW-01 — the calendar grid's day-cell generator. Total function: never
 // crashes, returns `[]` if the Calendar API can't resolve the month (T-14-02 precedent).
 // Leading `nil` entries pad the grid so the 1st of the month lands in its correct weekday
