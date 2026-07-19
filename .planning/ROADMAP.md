@@ -626,7 +626,16 @@ Phases 35-42 full detail (goals, success criteria, plans, on-device UAT history)
   1. At typical file counts, every file icon in the Tray view fits without visual squeezing or overlap; individual file icon/button sizes are unchanged from today.
   2. The Quick Action picker shown during an in-progress drag renders at the exact same width as the real (widened) Tray view — no visible size mismatch between the drag-preview and landed states.
   3. Click-through hit-testing remains correct at the new width — re-verified via the on-device hover→expand→move-down trace, closing off the CR-01/CR-02 failure class.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 44-01-PLAN.md — Align the 3-site picker geometry to Tray's real width/height (traySize.width, trayContentHeight + switcherRowHeight) + lock-in button-frame test
+
+**Wave 2** *(blocked on 44-01)*
+
+- [ ] 44-02-PLAN.md — On-device verification: picker-vs-Tray size match, click-through hover→expand→move-down trace, button tap-zone re-check, TRAY-06 re-verification
 
 ### Phase 45: View Switcher Morph Fix
 
