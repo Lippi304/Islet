@@ -613,7 +613,9 @@ Phases 35-42 full detail (goals, success criteria, plans, on-device UAT history)
   1. Clicking the collapsed island (an ordinary click, no external drag in progress) never opens the Quick Action picker.
   2. Hovering the collapsed or expanded island with no active external file drag never opens the Quick Action picker.
   3. Dragging a real file from Finder toward the island still reliably auto-expands it and shows the picker, exactly as before — the correct-trigger path is unaffected by the false-trigger fix.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 43-01-PLAN.md — Add genuine-file-drag gate (isGenuineFileDrag) + wire into recheckDragAcceptRegion/handleDragApproachEnd
+- [ ] 43-02-PLAN.md — On-device verification of the 3 D-04 scenarios
 
 ### Phase 44: Tray & Quick Action Width Alignment
 
