@@ -40,6 +40,19 @@ No new capabilities — pure geometry/sizing alignment of already-shipped featur
 - Whether `quickActionPickerContentHeight` (117) is deleted/replaced outright or kept as a named constant with a new value — implementation detail.
 - Any animation/transition detail for the picker's size change when a drag starts while a non-Tray tab was active — not raised as a concern by the user; treat as a normal geometry-parameter change like Phase 32's `width:`/`height:` overrides, no special-cased transition needed.
 
+### D-05 superseded — on-device UAT round 3 (44-02)
+- **D-09 (supersedes D-05):** Height no longer matches Tray's full footprint. Rounds 1-2 of the
+  44-02 on-device checkpoint fixed the button-overflow and hover-hit-test bugs D-05's height
+  choice exposed; round 3 feedback was that the resulting empty margin below the button row (the
+  picker never renders switcher-row content, D-06) looked wrong regardless — "Mach die Island von
+  der Höhe mal ein bisschen wieder kleiner das ist zu viel Rand finde ich." User explicitly chose
+  to override D-05 (re-introduce a size difference vs. the landed Tray view) rather than pad the
+  empty space with content. Height reverted to a content-hugging value —
+  `NotchPillView.quickActionPickerContentHeight` = `cameraClearance + quickActionButtonRowHeight +
+  16` = 117, numerically identical to the pre-Phase-44 constant, now derived from named constants
+  instead of a bare comment. **D-04 (width = traySize.width) is unaffected** — only height
+  reverted; the picker is still exactly as WIDE as the real Tray, just not as tall.
+
 </decisions>
 
 <canonical_refs>

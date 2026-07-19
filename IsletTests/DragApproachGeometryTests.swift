@@ -42,9 +42,12 @@ final class DragApproachGeometryTests: XCTestCase {
     // fixed-width/centered/top-anchored (see that function's own comment). Rebuilt against the
     // real production card size, matching testQuickActionButtonFramesFitWithinNewTrayAlignedCard's
     // existing precedent of deriving from NotchPillView constants instead of hardcoded literals.
+    // Phase 44 UAT gap-closure (round 3) — height reverted to a content-hugging size
+    // (quickActionPickerContentHeight) instead of Tray's full height; width still matches Tray.
+    // See NotchPillView.quickActionPickerContentHeight's own comment.
     private static let productionCard = CGRect(x: 0, y: 0,
                                                  width: NotchPillView.traySize.width,
-                                                 height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight)
+                                                 height: NotchPillView.quickActionPickerContentHeight)
 
     func testReturnsExactlyThreeFrames() {
         XCTAssertEqual(computeQuickActionButtonFrames(card: Self.productionCard).count, 3)
@@ -88,14 +91,13 @@ final class DragApproachGeometryTests: XCTestCase {
     }
 
     // Phase 44 / TRAY-06/DRAG-02 (D-08) — lock-in coverage: computeQuickActionButtonFrames still
-    // produces 3 in-bounds button frames now that the picker card grew from 420x117 to the real
-    // Tray-aligned footprint (650x189). Built from the real production constants (not hardcoded
-    // literals) so this test tracks NotchPillView.traySize/trayContentHeight/switcherRowHeight if
+    // produces 3 in-bounds button frames at the real production card size. Width matches Tray
+    // (traySize.width, D-04); height is quickActionPickerContentHeight, a content-hugging size
+    // reverted from Tray's full height in round 3 UAT (see that constant's own comment). Built
+    // from the real production constants (not hardcoded literals) so this test tracks them if
     // they ever change again, rather than silently going stale against a fixed number.
-    func testQuickActionButtonFramesFitWithinNewTrayAlignedCard() {
-        let card = CGRect(x: 0, y: 0,
-                           width: NotchPillView.traySize.width,
-                           height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight)
+    func testQuickActionButtonFramesFitWithinPickerCard() {
+        let card = Self.productionCard
         let frames = computeQuickActionButtonFrames(card: card)
         XCTAssertEqual(frames.count, 3)
         for frame in frames {

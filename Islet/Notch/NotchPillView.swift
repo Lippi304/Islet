@@ -728,6 +728,23 @@ struct NotchPillView: View {
     // computeQuickActionButtonFrames(card:) in DragDropSupport.swift must mirror this exact value
     // for its hit-test math (this codebase's own geometry N-site rule).
     static let quickActionButtonWidth: CGFloat = 130
+    // Phase 44 UAT gap-closure (round 2) — hoisted out of a duplicated local `let` inside
+    // computeQuickActionButtonFrames(card:) so the hit-test math and the height math below derive
+    // from ONE source instead of two copies of the same magic number silently drifting apart
+    // (exactly the class of bug round 2 just fixed for the vertical anchor).
+    static let quickActionButtonRowHeight: CGFloat = 59   // icon 22 + gap 8 + label ~13 + vPadding 2x8
+    // Phase 44 UAT gap-closure (round 3) — "zu viel Rand": D-03/D-05 originally locked the
+    // picker's height to the full Tray footprint (trayContentHeight + switcherRowHeight = 189) so
+    // the picker would never look smaller than the real landed Tray box (DRAG-02's whole point).
+    // On-device, the empty space below the button row (the picker never renders switcher-row
+    // content, D-06) read as too much margin, so per explicit user override this round, height no
+    // longer matches Tray -- only width (traySize.width, D-04) still does. Reverts to the exact
+    // same box-math the original (deleted in round 1) `quickActionPickerContentHeight` used --
+    // cameraClearance(42) + buttonRowHeight(59) + bottomMargin(16) = 117 -- now derived from named
+    // constants instead of a bare comment, so the three geometry sites (NotchWindowController's
+    // frame reservation + contentSize branch, NotchPillView's blobShape call) can't drift from the
+    // button row's actual rendered position ever again.
+    static let quickActionPickerContentHeight: CGFloat = cameraClearance + quickActionButtonRowHeight + 16
 
     // Debug session `liquid-glass-black-during-transition` — extracted verbatim out of
     // `body` so it can be wrapped in a GlassEffectContainer (macOS 26+) without
@@ -1473,7 +1490,7 @@ struct NotchPillView: View {
     // unchanged, by Plan 02's button handlers).
     private func quickActionPickerView() -> some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
-                  width: Self.traySize.width, height: Self.trayContentHeight + Self.switcherRowHeight,
+                  width: Self.traySize.width, height: Self.quickActionPickerContentHeight,
                   shelfItems: [], shelfVisible: false, showSwitcher: false) {
             quickActionButtonRow()
                 .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches every other full-view

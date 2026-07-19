@@ -1016,15 +1016,17 @@ final class NotchWindowController {
         let weatherExpandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                        expandedSize: CGSize(width: expandedSize.width,
                                                                              height: NotchPillView.weatherLargeContentHeight + NotchPillView.switcherRowHeight))
-        // Phase 44 / TRAY-06/DRAG-02 (D-03/D-04/D-05, geometry three-site rule) — the picker's
-        // reservation now matches trayFrame's footprint exactly (width AND height), so the
-        // during-drag picker never renders smaller than the real, already-widened Tray view the
-        // user compares it against. This is a reservation-only addend sizing the AppKit panel
-        // union; the picker's own `showSwitcher: false` (D-06, unchanged) still means the
-        // switcher row's CONTENT never actually renders inside it.
+        // Phase 44 / TRAY-06/DRAG-02 (D-03/D-04, geometry three-site rule) — the picker's width
+        // still matches trayFrame's footprint (traySize.width), so it never renders NARROWER than
+        // the real, already-widened Tray view the user compares it against. Height, however, no
+        // longer matches Tray's full footprint (round 3 UAT override of D-05 — see
+        // NotchPillView.quickActionPickerContentHeight's own comment): it reverted to a
+        // content-hugging height sized just for the button row, since the picker never renders
+        // switcher-row content (D-06) and matching Tray's full height read as too much empty
+        // margin on-device.
         let quickActionPickerFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                          expandedSize: CGSize(width: NotchPillView.traySize.width,
-                                                                               height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight))
+                                                                               height: NotchPillView.quickActionPickerContentHeight))
         // Phase 34 (UAT revision, Pattern 3) — the 3 destination buttons' live global frames,
         // computed once per positionAndShow() alongside quickActionPickerFrame itself.
         quickActionButtonFrames = computeQuickActionButtonFrames(card: quickActionPickerFrame)
@@ -1386,14 +1388,14 @@ final class NotchWindowController {
             contentSize = CGSize(width: expandedSize.width,
                                  height: (style == .large ? NotchPillView.weatherLargeContentHeight : NotchPillView.weatherMediumContentHeight) + switcherHeight)
         } else if case .quickActionPicker = presentationState.presentation {
-            // Phase 44 / TRAY-06/DRAG-02 (D-03/D-04/D-05, CR-01 geometry three-site rule) — must
-            // mirror positionAndShow's quickActionPickerFrame reservation and NotchPillView's
+            // Phase 44 / TRAY-06/DRAG-02 (D-03/D-04, CR-01 geometry three-site rule) — must mirror
+            // positionAndShow's quickActionPickerFrame reservation and NotchPillView's
             // quickActionPickerView height exactly, or the click-swallowing/dead-zone regression
-            // class comes back. Uses the unconditional NotchPillView.switcherRowHeight constant
-            // directly (not the local switcherHeight var above, which is conditional on
-            // switcherRowShowing) since the picker's own showSwitcher stays false (D-06).
+            // class comes back. Width still matches Tray (traySize.width, D-04); height reverted
+            // to a content-hugging size in round 3 UAT — see
+            // NotchPillView.quickActionPickerContentHeight's own comment (D-05 override).
             contentSize = CGSize(width: NotchPillView.traySize.width,
-                                 height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight)
+                                 height: NotchPillView.quickActionPickerContentHeight)
         } else if case .calendarExpanded = presentationState.presentation {
             // Quick task 260715-vsd (geometry three-site rule) — must mirror
             // calendarFullView's new `blobShape(width: NotchPillView.calendarWidth)` override,
