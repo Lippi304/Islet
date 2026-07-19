@@ -324,9 +324,10 @@ final class NotchWindowController {
 
     // Phase 24 / SHELF-01 / SHELF-02 — the drag-approach edge-tracked flag, mirroring
     // pointerInZone's own edge-tracking discipline immediately below: armed on a genuine
-    // pasteboard-changeCount-confirmed drag entering the accept region, disarmed
-    // unconditionally at every .leftMouseUp (handleDragApproachEnd's literal first action) so
-    // a geometrically-ambiguous Escape-cancel can never leave the island stuck expanded.
+    // pasteboard-changeCount-confirmed drag entering the accept region (Phase 43 / DRAG-01
+    // makes this literally true via isGenuineFileDrag), disarmed unconditionally at every
+    // .leftMouseUp (handleDragApproachEnd's literal first action) so a geometrically-ambiguous
+    // Escape-cancel can never leave the island stuck expanded.
     private var isDragApproaching = false
 
     // WR-01: the pointer-in-hot-zone edge, tracked from RAW geometry — NOT derived from
@@ -1055,17 +1056,14 @@ final class NotchWindowController {
     }
 
     // Phase 24 / SHELF-01 / SHELF-02 — every .leftMouseDragged tick during a real OS drag
-    // session. Tracks a genuine pasteboard content change (Pattern 1/Pitfall 2 — an ordinary
-    // window-move/text-select drag never touches NSPasteboard(name: .drag)) purely to keep
-    // dragPasteboardChangeCount current; geometry is polled UNCONDITIONALLY on every tick
-    // (there is no draggingUpdated equivalent for a global monitor, Pattern 2).
+    // session. Geometry is polled UNCONDITIONALLY on every tick (there is no draggingUpdated
+    // equivalent for a global monitor, Pattern 2). Phase 43 / DRAG-01: `dragPasteboardChangeCount`
+    // is now a STABLE per-gesture baseline (refreshed only in handleDragApproachEnd, never here) —
+    // the freshly-read `count` is passed straight into recheckDragAcceptRegion so it can compare
+    // against that baseline via isGenuineFileDrag.
     private func handleDragApproachTick() {
-        let pasteboard = NSPasteboard(name: .drag)
-        let count = pasteboard.changeCount
-        if count != dragPasteboardChangeCount {
-            dragPasteboardChangeCount = count
-        }
-        recheckDragAcceptRegion()
+        let count = NSPasteboard(name: .drag).changeCount
+        recheckDragAcceptRegion(currentChangeCount: count)
         // Phase 34 UAT revision (D-11/Pitfall 8) — live per-button hover hit-test while a picker
         // is showing, published ONLY on change (never unconditionally every tick — dozens of
         // ticks/second during a real drag would otherwise re-render the picker for no visual
@@ -1093,10 +1091,15 @@ final class NotchWindowController {
     // isDragApproaching — leaving handleDragApproachEnd()'s guard to bail out on every real
     // drop. `!interaction.isExpanded` therefore appears ONLY in the rising-edge arm condition
     // below; the exit condition depends purely on geometry.
-    private func recheckDragAcceptRegion() {
+    private func recheckDragAcceptRegion(currentChangeCount: Int) {
         let point = NSEvent.mouseLocation
         let geometryInside = isWithinDragAcceptRegion(point, zone: expandedZone, maxY: dragLandingMaxY)
-        if geometryInside && !isDragApproaching && !interaction.isExpanded {
+        // Phase 43 / DRAG-01 — read urls ONCE, reused both by the genuine-drag gate below and by
+        // the pendingDrop-population block inside the arm branch.
+        let urls = fileURLs(from: NSPasteboard(name: .drag))
+        if geometryInside && !isDragApproaching && !interaction.isExpanded
+            && isGenuineFileDrag(currentChangeCount: currentChangeCount,
+                                  gestureBaselineChangeCount: dragPasteboardChangeCount, urls: urls) {
             isDragApproaching = true
             graceWorkItem?.cancel()
             graceWorkItem = nil
@@ -1107,7 +1110,6 @@ final class NotchWindowController {
                 // auto-expand, not at release (handleDragApproachEnd). The session-copy MECHANISM
                 // itself is UNCHANGED (ShelfFileStore.makeSessionCopy) — only the call-site moved,
                 // so the picker's first-ever render already reflects the populated pendingDrop.
-                let urls = fileURLs(from: NSPasteboard(name: .drag))
                 if !urls.isEmpty {
                     var items: [ShelfItem] = []
                     for url in urls {
@@ -1147,6 +1149,13 @@ final class NotchWindowController {
     // harmless idempotent no-op, and unconditionally clearing the flag next means a
     // geometrically-ambiguous Escape-cancel can never leave the island stuck expanded (T-24-04).
     private func handleDragApproachEnd() {
+        // Phase 43 / DRAG-01 (D-01/D-02) — refresh the per-gesture baseline unconditionally, on
+        // EVERY .leftMouseUp system-wide (ordinary clicks included), BEFORE the isDragApproaching
+        // guard below. `NSPasteboard(name: .drag)` is a persistent, system-wide pasteboard, so
+        // without this the baseline could go stale forever across a gesture that never touched it
+        // (an unrelated real drag elsewhere on the system, or an ordinary click) — placing the
+        // guard first would skip this refresh for exactly those ordinary-click cases.
+        dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
         guard isDragApproaching else { return }
         isDragApproaching = false
 
