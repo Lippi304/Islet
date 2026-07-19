@@ -1080,8 +1080,13 @@ final class NotchWindowController {
 
     // Edge-tracks isDragApproaching exactly like pointerInZone's shape in handlePointer(at:).
     // Entering the accept region auto-expands the island via the existing pure .dragEntered
-    // transition (D-04); leaving it again is a silent no-op — the normal grace-collapse timer
-    // resumes on its own.
+    // transition (D-04). Bugfix (43-02 on-device UAT): leaving it again used to be a claimed
+    // "silent no-op" that the normal grace-collapse timer supposedly resumed on its own — that
+    // was never actually true, because `pointerInZone` was never seeded true on arm, so the exit
+    // branch below could never detect a true->false edge and `handleHoverExit()` was never
+    // called, leaving the island stuck expanded. Fixed by seeding `pointerInZone = true` on arm
+    // and re-syncing via `handlePointer(at:)` on exit so the existing grace-collapse machinery
+    // actually resumes as originally intended.
     //
     // Bugfix (Task 3 on-device UAT, round 2): the collapsed-origin gate (D-09 — only allow
     // ARMING while still collapsed) must NOT also gate the exit/sustain check. Auto-expand sets
@@ -1101,6 +1106,9 @@ final class NotchWindowController {
             && isGenuineFileDrag(currentChangeCount: currentChangeCount,
                                   gestureBaselineChangeCount: dragPasteboardChangeCount, urls: urls) {
             isDragApproaching = true
+            // 43-02 bugfix — mirror what a real hover-enter would have set, so the exit branch
+            // below can later detect a true->false edge and resume the grace-collapse timer.
+            pointerInZone = true
             graceWorkItem?.cancel()
             graceWorkItem = nil
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
@@ -1141,6 +1149,12 @@ final class NotchWindowController {
                 discardPendingDrop()
                 renderPresentation()
             }
+            // 43-02 bugfix — re-sync `pointerInZone` now that it was seeded true on arm above.
+            // `point` is outside the accept zone here (the `!geometryInside` guard on this
+            // branch), so this correctly flips `pointerInZone` false and invokes
+            // `handleHoverExit()`, resuming the normal grace-collapse timer instead of leaving
+            // `interaction.phase` stuck at `.expanded` forever.
+            handlePointer(at: point)
         }
     }
 
