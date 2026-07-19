@@ -30,6 +30,29 @@ final class IslandPresentationState: ObservableObject {
     // in that respect.
     @Published var secondary: SecondaryActivity? = nil
 
+    // Phase 48 / OUTPUT-04 — the output panel's sibling state, alongside `presentation` and
+    // `secondary` themselves. Controller-owned: `NotchWindowController.handleToggleOutputPanel()`
+    // (Plan 48-03) is the only writer. Read by the view (`NotchPillView`'s `tabHeight` and
+    // `mediaContent`, Plan 48-02) AND by the controller's own `visibleContentZone()`/
+    // `positionAndShow()` geometry (Plan 48-03) — the CR-01 three-site invariant requires all
+    // three reads see the identical boolean, which is exactly why this lives here rather than
+    // as plain SwiftUI `@State`.
+    @Published var outputPanelOpen: Bool = false
+
+    // Phase 48 / OUTPUT-04 — controller-owned (`NotchWindowController.
+    // handleAudioOutputDevicesChanged(_:)`), already sorted (list order IS the is-default
+    // signal, per `AudioOutputPresentation.sortedAudioOutputDevices`) — the view never re-sorts
+    // client-side.
+    @Published var outputDevices: [AudioOutputDevice] = []
+
+    // Phase 48 / OUTPUT-01 — controller-owned, 0...1, the slider's fill fraction when not
+    // actively being dragged.
+    @Published var outputCurrentVolumeFraction: CGFloat = 0
+
+    // Phase 48 / D-06 — controller-owned, whether the CURRENT default device supports volume
+    // control (Phase 47's `hasVolumeControl(deviceUID:)`); the slider dims/disables when `false`.
+    @Published var outputHasVolumeControl: Bool = true
+
     init(_ presentation: IslandPresentation = .idle) {
         self.presentation = presentation
     }
