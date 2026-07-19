@@ -6,7 +6,7 @@ import CoreGraphics
 // feeds events in here. Keeping the choreography pure is what makes the most
 // bug-prone part (grace-delay races) unit-testable.
 enum InteractionPhase: Equatable { case collapsed, hovering, expanded }
-enum InteractionEvent: Equatable { case pointerEntered, pointerExited, clicked, graceElapsed, dragEntered }
+enum InteractionEvent: Equatable { case pointerEntered, pointerExited, clicked, graceElapsed, dragEntered, dismissed }
 
 func nextState(_ current: InteractionPhase, _ event: InteractionEvent) -> InteractionPhase {
     switch (current, event) {
@@ -24,6 +24,12 @@ func nextState(_ current: InteractionPhase, _ event: InteractionEvent) -> Intera
     case (.expanded,  .graceElapsed):   return .collapsed  // D-03: grace elapsed while expanded
     case (.expanded,  .pointerEntered): return .expanded   // stay expanded
     case (.expanded,  .clicked):        return .collapsed  // toggle shut
+    // Phase 43 / DRAG-01 gap closure (43-02 UAT round 4) — a resolved Quick Action picker
+    // (staged, shared, or discarded) is a definitive gesture completion, not a lingering hover;
+    // it must close NOW rather than defer through the .graceElapsed grace-timer path the way
+    // .pointerExited does, or the underlying Home/Now-Playing/Tray content flashes for the grace
+    // window before the deferred collapse catches up.
+    case (.expanded,  .dismissed):      return .collapsed
     default:                            return current     // idempotent no-ops
     }
 }

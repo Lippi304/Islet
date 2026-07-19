@@ -1080,13 +1080,11 @@ final class NotchWindowController {
 
     // Edge-tracks isDragApproaching exactly like pointerInZone's shape in handlePointer(at:).
     // Entering the accept region auto-expands the island via the existing pure .dragEntered
-    // transition (D-04). Bugfix (43-02 on-device UAT): leaving it again used to be a claimed
-    // "silent no-op" that the normal grace-collapse timer supposedly resumed on its own — that
-    // was never actually true, because `pointerInZone` was never seeded true on arm, so the exit
-    // branch below could never detect a true->false edge and `handleHoverExit()` was never
-    // called, leaving the island stuck expanded. Fixed by seeding `pointerInZone = true` on arm
-    // and re-syncing via `handlePointer(at:)` on exit so the existing grace-collapse machinery
-    // actually resumes as originally intended.
+    // transition (D-04). Leaving it again (dragging the file back out before releasing) discards
+    // the pending drop and force-collapses immediately via dismissExpandedImmediately() — see
+    // that function's comment for why this can't defer through the normal hover-exit grace timer
+    // (43-02 on-device UAT rounds 1-4 each found a different way the deferred/edge-detected path
+    // left the island stuck expanded or briefly flashed the underlying content).
     //
     // Bugfix (Task 3 on-device UAT, round 2): the collapsed-origin gate (D-09 — only allow
     // ARMING while still collapsed) must NOT also gate the exit/sustain check. Auto-expand sets
@@ -1106,10 +1104,6 @@ final class NotchWindowController {
             && isGenuineFileDrag(currentChangeCount: currentChangeCount,
                                   gestureBaselineChangeCount: dragPasteboardChangeCount, urls: urls) {
             isDragApproaching = true
-            // 43-02 bugfix — mirror what a real hover-enter would have set, keeping
-            // pointerInZone truthful for any handlePointer(at:) call that happens to run before
-            // the exit branch below (which now resumes collapse directly, not via this flag).
-            pointerInZone = true
             graceWorkItem?.cancel()
             graceWorkItem = nil
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
@@ -1146,21 +1140,8 @@ final class NotchWindowController {
             // that its lifetime starts at dragEntered instead of release: without this, dragging
             // back out before releasing leaves pendingDrop set (the picker never disappears) and
             // re-entering overwrites it, leaking the first session-copied temp file on disk.
-            withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-                discardPendingDrop()
-                renderPresentation()
-            }
-            // 43-02 bugfix, round 2 — `isWithinDragAcceptRegion` ANDs `expandedZone.contains(point)`
-            // with `point.y <= dragLandingMaxY` (the Mission-Control-safe landing margin). Exiting
-            // THIS region can happen purely via the Y-margin term while `point` is still inside the
-            // plain `expandedZone` rect — so routing through `handlePointer(at:)` (whose own inside
-            // check is `expandedZone.contains(point)` alone, no maxY) can find `inside == true` and
-            // silently skip the pointerInZone edge, leaving `interaction.phase` stuck at `.expanded`
-            // exactly as round 1 still reproduced on-device. Call `handleHoverExit()` directly
-            // instead: it does not depend on either zone's geometry lining up, it just starts the
-            // exact same grace-collapse sequence a real hover-exit would.
-            pointerInZone = false
-            handleHoverExit()
+            discardPendingDrop()
+            dismissExpandedImmediately()
         }
     }
 
@@ -1187,7 +1168,6 @@ final class NotchWindowController {
         // already-discarded pending drop) — no release-time item-building fallback is reintroduced
         // here (34-RESEARCH.md Open Question 2).
         let point = NSEvent.mouseLocation
-        var didDiscardWithoutButtonHit = false
         if pendingDrop != nil {
             if let hit = quickActionButtonFrames.firstIndex(where: { $0.contains(point) }) {
                 switch hit {
@@ -1197,48 +1177,57 @@ final class NotchWindowController {
                 default: break
                 }
             } else {
-                // D-13: released inside the picker card but not on a button — discard.
-                withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-                    discardPendingDrop()
-                    renderPresentation()
-                }
-                didDiscardWithoutButtonHit = true
+                // D-13: released inside the picker card but not on a button — discard, then
+                // force-collapse immediately via dismissExpandedImmediately() (43-02 round 4) —
+                // this release point is typically STILL inside expandedZone (the picker card the
+                // pointer just released in), so deferring through the normal hover-exit grace
+                // timer either never got an exit edge at all (stuck expanded, round 3) or briefly
+                // flashed the underlying content while waiting out the grace delay.
+                discardPendingDrop()
+                dismissExpandedImmediately()
             }
             presentationState.hoveredQuickActionButtonIndex = nil
         }
         // Pitfall 3 — pointerInZone/lastPointerLocation/syncClickThrough() go stale during ANY
         // OS drag session; re-sync unconditionally, mirroring endShelfItemDrag()'s own final line.
         handlePointer(at: NSEvent.mouseLocation)
-        // 43-02 bugfix, round 3 — same class of bug as recheckDragAcceptRegion's exit branch:
-        // the release point here is typically STILL inside expandedZone (the picker card the
-        // pointer just released in), so the handlePointer(at:) resync above finds `inside` true
-        // and, since it's also the FIRST time pointerInZone gets set at all this gesture, reads
-        // as an enter (not an exit) — no edge fires the other way, no collapse gets scheduled,
-        // island stuck at `.expanded` forever. Force the grace-collapse directly, and do it AFTER
-        // the resync above so it can't be immediately cancelled by handleHoverEnter() running
-        // inside that same resync.
-        if didDiscardWithoutButtonHit {
-            pointerInZone = false
-            handleHoverExit()
-        }
     }
 
     // MARK: - Phase 34 / TRAY-02/03/04 — Quick Action Destination Picker handlers
 
+    // Phase 43 / DRAG-01 gap closure (43-02 UAT rounds 2-4) — force-collapses the island the
+    // instant a Quick Action picker interaction resolves, instead of deferring through the
+    // normal hover-exit grace timer. A resolved picker interaction (staged, shared, or
+    // discarded) is a definitive user gesture, not a lingering hover — waiting out the ~0.4s
+    // grace delay let whatever "normal" expanded content (Home/Now-Playing/Tray) sits
+    // underneath the picker visibly flash for that window before the deferred collapse caught
+    // up. Callers own their own pendingDrop bookkeeping BEFORE calling this — the Drop path
+    // keeps the staged file's session copy, so it must NOT run through discardPendingDrop().
+    private func dismissExpandedImmediately() {
+        graceWorkItem?.cancel()
+        graceWorkItem = nil
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            interaction.phase = nextState(interaction.phase, .dismissed)
+            renderPresentation()
+        }
+        pointerInZone = false
+        updateVisibility()
+        syncClickThrough()
+    }
+
     // TRAY-03 — "Drop": stage the pending item(s) into the shelf exactly as the old
     // unconditional-stage path did, switch the active view to Tray, and close the picker.
-    // Mirrors handleSwitcherSelect's own closing withAnimation/syncClickThrough sequence.
     private func handleQuickActionDrop() {
         for item in pendingDrop?.items ?? [] {
             shelfCoordinator.append(item)
         }
         resyncShelfViewState()
-        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-            viewSwitcherState.selectedView = .tray
-            pendingDrop = nil
-            renderPresentation()
-        }
-        syncClickThrough()
+        viewSwitcherState.selectedView = .tray
+        pendingDrop = nil
+        // 43-02 round 4 — collapse immediately: isExpanded is already false by the time this
+        // renders, so the resolver's `if isExpanded` branch (which would otherwise have shown
+        // `.trayExpanded` for a frame) never runs.
+        dismissExpandedImmediately()
     }
 
     // Shared close-out for the AirDrop/Mail paths (T-34-08): these items were NEVER handed to
@@ -1249,10 +1238,8 @@ final class NotchWindowController {
         for item in pendingDrop?.items ?? [] {
             ShelfFileStore.deleteSessionCopy(at: item.localURL)
         }
-        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
-            pendingDrop = nil
-            renderPresentation()
-        }
+        pendingDrop = nil
+        dismissExpandedImmediately()
     }
 
     // TRAY-04 — "AirDrop": hand the pending item(s) to the isolated NSSharingService seam.

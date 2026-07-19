@@ -66,6 +66,19 @@ final class InteractionStateTests: XCTestCase {
         XCTAssertEqual(nextState(.expanded, .clicked), .collapsed)
     }
 
+    func testExpandedDismissedCollapsesImmediately() {
+        // 43-02 round 4: resolving a Quick Action picker closes now, no grace defer.
+        XCTAssertEqual(nextState(.expanded, .dismissed), .collapsed)
+    }
+
+    func testCollapsedDismissedIsNoOp() {
+        XCTAssertEqual(nextState(.collapsed, .dismissed), .collapsed)
+    }
+
+    func testHoveringDismissedIsNoOp() {
+        XCTAssertEqual(nextState(.hovering, .dismissed), .hovering)
+    }
+
     func testCollapsedGraceElapsedIsNoOp() {
         // Idempotent: a stray grace tick while collapsed is a no-op.
         XCTAssertEqual(nextState(.collapsed, .graceElapsed), .collapsed)
