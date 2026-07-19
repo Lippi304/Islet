@@ -35,6 +35,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Debug session old-islet-instance-stays-open (2026-07-19): Xcode's Stop button is
+        // documented to not always reliably kill LSUIElement/background-agent apps (Apple
+        // Developer Forums thread 47777) — a stopped debug process can keep running
+        // invisibly with its menu-bar icon still live. Self-heal on every launch by force-
+        // terminating any other running Islet process first, so a fresh Cmd+R always
+        // converges to exactly one instance instead of requiring a manual quit.
+        let bundleID = Bundle.main.bundleIdentifier ?? ""
+        for other in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+        where other != .current {
+            other.forceTerminate()
+        }
+
         // TRIAL-01/D-10: must run before controller.start() so LicenseState.shared
         // already has a valid trial start date the first time updateVisibility()
         // runs inside start().
