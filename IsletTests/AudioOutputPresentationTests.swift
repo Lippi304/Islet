@@ -34,4 +34,36 @@ final class AudioOutputPresentationTests: XCTestCase {
         // never treated as capable, matching osdVolumeActivity's clamp discipline.
         XCTAssertFalse(isOutputCapableDevice(outputChannelCount: -1))
     }
+
+    // MARK: - sortedAudioOutputDevices(_:) — D-02
+
+    func testSortPinsDefaultFirstThenAlphabetical() {
+        let zoomRoom = AudioOutputDevice(uid: "zoom", name: "Zoom Room", isDefault: false)
+        let airpods = AudioOutputDevice(uid: "airpods", name: "AirPods", isDefault: true)
+        let beats = AudioOutputDevice(uid: "beats", name: "Beats", isDefault: false)
+        XCTAssertEqual(sortedAudioOutputDevices([zoomRoom, airpods, beats]), [airpods, beats, zoomRoom])
+    }
+
+    func testSortEmptyReturnsEmpty() {
+        XCTAssertEqual(sortedAudioOutputDevices([]), [])
+    }
+
+    func testSortSingleDeviceUnchanged() {
+        let device = AudioOutputDevice(uid: "solo", name: "Solo Speaker", isDefault: false)
+        XCTAssertEqual(sortedAudioOutputDevices([device]), [device])
+    }
+
+    func testSortWithNoDefaultMarkedIsPurelyAlphabetical() {
+        let beats = AudioOutputDevice(uid: "beats", name: "beats", isDefault: false)
+        let airpods = AudioOutputDevice(uid: "airpods", name: "AirPods", isDefault: false)
+        XCTAssertEqual(sortedAudioOutputDevices([beats, airpods]), [airpods, beats])
+    }
+
+    func testSortUsesLocalizedStandardCompareNotRawASCII() {
+        // Raw ASCII `<` would misorder mixed-case names ("AirPods" < "airpods" lexically);
+        // localizedStandardCompare orders these naturally instead.
+        let lowercase = AudioOutputDevice(uid: "a", name: "airpods", isDefault: false)
+        let mixedCase = AudioOutputDevice(uid: "b", name: "AirPods Max", isDefault: false)
+        XCTAssertEqual(sortedAudioOutputDevices([lowercase, mixedCase]), [lowercase, mixedCase])
+    }
 }

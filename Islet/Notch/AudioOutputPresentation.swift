@@ -29,3 +29,15 @@ struct AudioOutputDevice: Equatable, Identifiable {
 func isOutputCapableDevice(outputChannelCount: Int) -> Bool {
     outputChannelCount > 0
 }
+
+// D-02 — "list order IS the is-default signal" (this phase's data-flow framing). Pins the
+// isDefault-marked device(s) first (preserving their original relative order — never crash
+// or arbitrarily drop one if more than one is somehow marked default), then sorts the
+// remainder alphabetically by name via localizedStandardCompare for human-natural ordering
+// (not raw ASCII `<`, which would misorder mixed-case names).
+func sortedAudioOutputDevices(_ devices: [AudioOutputDevice]) -> [AudioOutputDevice] {
+    let defaultDevices = devices.filter { $0.isDefault }
+    let otherDevices = devices.filter { !$0.isDefault }
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    return defaultDevices + otherDevices
+}
