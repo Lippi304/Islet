@@ -4,8 +4,8 @@ milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
 stopped_at: Phase 44 context gathered
-last_updated: "2026-07-19T13:06:08.717Z"
-last_activity: 2026-07-19 -- Phase 44 planning complete
+last_updated: "2026-07-19T13:12:43.526Z"
+last_activity: 2026-07-19
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 44 — tray & quick action width alignment
+**Current focus:** Phase 44 — tray-quick-action-width-alignment
 
 ## Current Position
 
-Phase: 44
-Plan: Not started
+Phase: 44 (tray-quick-action-width-alignment) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-19 -- Phase 44 planning complete
+Last activity: 2026-07-19
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -112,6 +112,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | Phase 42 P03 | 15min | 2 tasks | 1 files |
 | Phase 42 P04 | multi-session | 3 tasks | 2 files |
 | Phase 43 P01 | 10min | 2 tasks | 3 files |
+| Phase 44 P01 | 10min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -152,6 +153,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.7 roadmap] Phase order 43→44→45→46→47→48→49→50: the 4 independent, no-research-dependency bugfixes (Drag Detection, Tray/Picker Width, View Switcher, Calendar Quick-Add) sequenced first since none block or are blocked by the Now Playing work; DRAG-02 bundled with TRAY-06 into one phase (44) rather than split, since both touch the same shared width geometry and splitting them risks a repeat-touch-the-geometry regression (this project's own Phase 31→32 "touch `visibleContentZone()` once, not twice" precedent). The Now Playing pair then follows research's explicit risk-isolation recommendation: Audio Output Switcher (zero external-API risk, public CoreAudio) split pure-seam-first (47) then UI wiring (48, hard dependency), before Favorite/Like (this milestone's highest-risk item — Spotify OAuth+quota, Apple Music AppleScript reliability, Automation/TCC bug) split spike-first (49) then implementation (50, hard dependency) — mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent. Phases 47 and 49 carry no formal REQ-ID (infrastructure/spike phases), matching the Phase 15/16/19/22-01/24-01/38-01/39-01 precedent of pure-seam or spike work preceding the phase that actually ships user-facing requirements.
 - [Phase 43]: dragPasteboardChangeCount is now a stable per-gesture baseline, refreshed only in handleDragApproachEnd unconditionally before the isDragApproaching guard, never mutated in handleDragApproachTick (DRAG-01)
 - [Phase 43, 43-02]: On-device UAT of DRAG-01's fix took 4 rounds to close two regressions no build/unit-test gate could see: (1) the island got permanently stuck expanded after discarding a drag, because the auto-collapse grace-timer only fires from `.mouseMoved`-driven hover-exit, which never occurs during an active `.leftMouseDragged` session; (2) even after that was fixed, resolving the Quick Action picker (Drop/AirDrop/Mail/discard) still flashed the underlying Home/Now-Playing/Tray content for the ~0.4s grace window. Fixed by adding a dedicated `.dismissed` InteractionEvent (expanded→collapsed, immediate, no grace defer) to the pure `nextState` reducer plus a shared `dismissExpandedImmediately()` helper used by all 4 picker-resolution paths. User confirmed "Perfekt klappt" after round 4. See `43-02-SUMMARY.md`.
+- [Phase 44-01]: Reused NotchPillView.traySize/trayContentHeight/switcherRowHeight at all 3 Quick Action picker geometry sites (panel reservation, contentSize branch, blobShape call) instead of inventing new numbers; deleted the orphaned quickActionPickerContentHeight constant
 
 ### Roadmap Evolution
 
@@ -261,9 +263,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T02:15:46.116Z
+Last session: 2026-07-19T13:12:35.554Z
 Stopped at: Phase 44 context gathered
-Resume file: .planning/phases/44-tray-quick-action-width-alignment/44-CONTEXT.md
+Resume file: None
 
 ## Operator Next Steps
 

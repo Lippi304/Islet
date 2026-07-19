@@ -631,7 +631,7 @@ Phases 35-42 full detail (goals, success criteria, plans, on-device UAT history)
 Plans:
 **Wave 1**
 
-- [ ] 44-01-PLAN.md — Align the 3-site picker geometry to Tray's real width/height (traySize.width, trayContentHeight + switcherRowHeight) + lock-in button-frame test
+- [x] 44-01-PLAN.md — Align the 3-site picker geometry to Tray's real width/height (traySize.width, trayContentHeight + switcherRowHeight) + lock-in button-frame test
 
 **Wave 2** *(blocked on 44-01)*
 

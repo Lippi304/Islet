@@ -39,11 +39,11 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 ### Drag Detection
 
 - [x] **DRAG-01**: The island's auto-expand / Quick Action destination picker (Drop/AirDrop/Mail) only triggers on a genuine external file drag approaching the island (via `DragApproachDetector`) — a plain click or hover on the collapsed/expanded island never triggers it
-- [ ] **DRAG-02**: The Quick Action picker (the during-drag view shown before a file lands) renders at the exact same width as the real Tray view, so file icon sizing is visually consistent between the drag-preview and landed states
+- [x] **DRAG-02**: The Quick Action picker (the during-drag view shown before a file lands) renders at the exact same width as the real Tray view, so file icon sizing is visually consistent between the drag-preview and landed states
 
 ### Tray
 
-- [ ] **TRAY-06**: The Tray/island is widened so every file icon fits without visual squeeze at typical file counts — per-file icon and button sizes stay unchanged from today
+- [x] **TRAY-06**: The Tray/island is widened so every file icon fits without visual squeeze at typical file counts — per-file icon and button sizes stay unchanged from today
 
 ### View Switcher
 
@@ -125,8 +125,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAY-03 | Phase 34 | Complete |
 | TRAY-04 | Phase 34 | Complete |
 | DRAG-01 | Phase 43 | Complete |
-| TRAY-06 | Phase 44 | Pending |
-| DRAG-02 | Phase 44 | Pending |
+| TRAY-06 | Phase 44 | Complete |
+| DRAG-02 | Phase 44 | Complete |
 | SWITCH-01 | Phase 45 | Pending |
 | SWITCH-02 | Phase 45 | Pending |
 | CALVIEW-05 | Phase 46 | Pending |
