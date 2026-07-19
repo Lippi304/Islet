@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
-status: executing
-stopped_at: Completed 43-02-PLAN.md
-last_updated: "2026-07-19T03:28:00.000Z"
+status: ready_to_plan
+stopped_at: Phase 43 complete (2/2) — ready to discuss Phase 44
+last_updated: 2026-07-19T01:46:22.587Z
 last_activity: 2026-07-19
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 39
-  completed_plans: 38
+  completed_plans: 40
   percent: 79
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 43 — drag-detection-hardening
+**Current focus:** Phase 44 — tray & quick action width alignment
 
 ## Current Position
 
-Phase: 43 (drag-detection-hardening) — both plans complete, phase-level verification pending
-Plan: 2 of 2 (complete)
-Status: Plan 43-02 on-device UAT confirmed after 4 rounds ("Perfekt klappt") — DRAG-01 closed
+Phase: 44
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-07-19
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -55,7 +55,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 
 **Velocity:**
 
-- Total plans completed: 99
+- Total plans completed: 101
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -92,6 +92,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | 36 | 4 | - | - |
 | 39 | 7 | - | - |
 | 42 | 4 | - | - |
+| 43 | 2 | - | - |
 
 **Recent Trend:**
 
@@ -192,6 +193,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.7, from research] Whether the vendored `mediaremote-adapter` wrapper's `MediaController` exposes sending a like/love command at all is undocumented in any research pass — Phase 49 must spike it directly (worst case: patch the wrapper's own command table, contained to `NowPlayingMonitor.swift`).
 - [v1.7, from research] The Automation (Apple Events/TCC) permission prompt has a documented reliability bug (can silently fail to appear; target app can vanish from System Settings → Automation after idle) — Phase 49 must reproduce or rule this out and Phase 50 needs a distinct "couldn't verify"/recovery UI state for it, not just denied/granted.
 - [v1.7, from research] Apple Music's `current track` AppleScript reference is documented-broken for streamed (not-yet-in-library) tracks — Phase 49 must spike against a library track, a streaming-only track, and both play/pause states before Phase 50 builds the star button around it.
+- [Phase 43 regression gate, pre-existing, unrelated] `DragApproachGeometryTests.testOffsetIsIdenticalOnNonZeroOriginCard` (Phase 34) fails deterministically (not flaky — reproduces identically every run) due to floating-point catastrophic cancellation when subtracting two large near-equal `CGFloat`s (`150.66666666666674` vs `...69`). Confirmed unrelated to Phase 43 — `computeQuickActionButtonFrames` was never touched by this phase. Fix (when picked up): use `XCTAssertEqual(..., accuracy: 0.01)` like the file's other geometry tests already do, instead of exact equality.
 
 ### Quick Tasks Completed
 
