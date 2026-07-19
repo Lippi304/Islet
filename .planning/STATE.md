@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: Completed 45-01-PLAN.md
-last_updated: "2026-07-19T15:25:54.838Z"
+stopped_at: Completed 45-02-PLAN.md
+last_updated: "2026-07-19T15:32:00.000Z"
 last_activity: 2026-07-19
 progress:
   total_phases: 19
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 39
-  completed_plans: 38
-  percent: 79
+  completed_plans: 39
+  percent: 82
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 45 — view-switcher-morph-fix
+**Current focus:** Phase 45 — view-switcher-morph-fix (complete) — next: Phase 46
 
 ## Current Position
 
-Phase: 45 (view-switcher-morph-fix) — EXECUTING
-Plan: 2 of 2
-Status: Ready to execute
+Phase: 45 (view-switcher-morph-fix) — COMPLETE
+Plan: 2 of 2 (both complete)
+Status: Phase complete, ready for Phase 46
 Last activity: 2026-07-19
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -115,6 +115,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | Phase 43 P01 | 10min | 2 tasks | 3 files |
 | Phase 44 P01 | 10min | 2 tasks | 3 files |
 | Phase 45 P01 | 10min | 2 tasks | 2 files |
+| Phase 45 P02 | <1min | 1 task | 0 files |
 
 ## Accumulated Context
 
@@ -157,6 +158,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 43, 43-02]: On-device UAT of DRAG-01's fix took 4 rounds to close two regressions no build/unit-test gate could see: (1) the island got permanently stuck expanded after discarding a drag, because the auto-collapse grace-timer only fires from `.mouseMoved`-driven hover-exit, which never occurs during an active `.leftMouseDragged` session; (2) even after that was fixed, resolving the Quick Action picker (Drop/AirDrop/Mail/discard) still flashed the underlying Home/Now-Playing/Tray content for the ~0.4s grace window. Fixed by adding a dedicated `.dismissed` InteractionEvent (expanded→collapsed, immediate, no grace defer) to the pure `nextState` reducer plus a shared `dismissExpandedImmediately()` helper used by all 4 picker-resolution paths. User confirmed "Perfekt klappt" after round 4. See `43-02-SUMMARY.md`.
 - [Phase 44-01]: Reused NotchPillView.traySize/trayContentHeight/switcherRowHeight at all 3 Quick Action picker geometry sites (panel reservation, contentSize branch, blobShape call) instead of inventing new numbers; deleted the orphaned quickActionPickerContentHeight constant
 - [Phase 45-01]: tabWidth/tabHeight consolidation shipped as the SWITCH-01/02 structural fix; trayFullView's shelfItems/shelfVisible override dropped in favor of the unified call site's uniform arguments (no-op, shelfStripVisible is a hardcoded false constant); SWITCH-01/SWITCH-02 left Pending in REQUIREMENTS.md until 45-02's on-device 12-pairwise verification confirms the morph fix
+- [Phase 45-02]: On-device 12-pairwise-transition sweep (all 12 tab pairs, both directions), interrupted mid-morph tap retarget check (D-01), and populated-Home sanity check all confirmed glitch-free by the user ("approved") — SWITCH-01/SWITCH-02 marked Complete in REQUIREMENTS.md, closing Phase 45. Per this project's own Phase 29/36/38/39 precedent, this on-device checkpoint directly covers the phase's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed.
 
 ### Roadmap Evolution
 
@@ -266,13 +268,14 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T15:25:54.829Z
-Stopped at: Completed 45-01-PLAN.md
-Resume file: .planning/phases/45-view-switcher-morph-fix/45-02-PLAN.md
+Last session: 2026-07-19T15:32:00.000Z
+Stopped at: Completed 45-02-PLAN.md (Phase 45 complete)
+Resume file: None
 
 ## Operator Next Steps
 
-- **v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19.** 8 phases (43-50), 15/15 requirements mapped, 100% coverage. Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48), then Favorite/Like split spike-first (49) then implementation (50). Start with `/gsd-discuss-phase 43`.
+- **Phase 45 (View Switcher Morph Fix) is now fully complete.** Both plans (45-01 structural fix, 45-02 on-device 12-pairwise verification) done; SWITCH-01/SWITCH-02 shipped. 45-02's own on-device checkpoint directly covered Phase 45's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed (per this project's Phase 29/36/38/39 precedent). Start `/gsd-discuss-phase 46` (Calendar Quick-Add Improvements) next.
+- **v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19.** 8 phases (43-50), 15/15 requirements mapped, 100% coverage. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, next) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48), then Favorite/Like split spike-first (49) then implementation (50).
 - **v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19.** All 8 phases (35-42) archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 dropped (Phase 37 abandoned). PROJECT.md fully updated, including backfilled Validated write-ups for Phases 38-41 whose own runs had skipped that step. v1.5 (Home Focus & Widget Redesign) remains open in parallel — only Phase 33's on-device UAT (Task 4) is outstanding before it can formally close too; run `/gsd-verify-work 33` once that's done, then `/gsd:complete-milestone v1.5`.
 
 - Phase 40 (Update-Available HUD & Sparkle Integration) is now fully complete. This session's on-device checkpoint (40-03) root-caused the badge-tap bug carried over from the prior session: tapping the collapsed-pill badge passed the click straight through the app window because `NotchWindowController`'s click-through `hotZone` didn't reliably cover the badge overlay's actual position. Rather than patch that geometry, the update-available indicator was redesigned to a small red dot on the menu-bar status item icon — always fully clickable by construction, sidestepping the whole click-through-zone class of bug. `UpdateAvailableState.swift` and the pill badge overlay were deleted; see `40-03-SUMMARY.md` for the full record, including which of the original 40-UI-SPEC.md decisions (D-05/D-06/D-07) this supersedes. Release archive launch (embedded Sparkle.framework under Hardened Runtime) confirmed crash-free on-device. Only Phase 42 (Dual-Activity Display) remains for v1.6 — start `/gsd-discuss-phase 42` next.

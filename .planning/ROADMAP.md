@@ -119,7 +119,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 - [x] **Phase 43: Drag Detection Hardening** - Quick Action picker auto-expand only fires on a genuine inbound file drag, never a plain click/hover (completed 2026-07-19)
 - [x] **Phase 44: Tray & Quick Action Width Alignment** - Tray widens to fit every file icon; the drag-preview picker matches that width exactly (completed 2026-07-19)
-- [ ] **Phase 45: View Switcher Morph Fix** - Tab switches morph continuously with no disappear/rebuild flicker or behind-buttons glitch
+- [x] **Phase 45: View Switcher Morph Fix** - Tab switches morph continuously with no disappear/rebuild flicker or behind-buttons glitch (completed 2026-07-19)
 - [ ] **Phase 46: Calendar Quick-Add Improvements** - Date+time picker with smart defaults, unclipped add button, roomier event rows
 - [ ] **Phase 47: Audio Output Switcher — Pure Seam + Monitor** - Device value type + event-driven CoreAudio monitor, proven in isolation before any UI is built
 - [ ] **Phase 48: Audio Output Switcher — UI Wiring** - Speaker-icon panel: live device list, tap-to-select, real volume slider
@@ -177,7 +177,7 @@ Plans:
 
 **v1.6:** 8/8 phases complete (100%) — see `.planning/milestones/v1.6-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-19; 11/12 requirements delivered (HUD-07 dropped, Phase 37 abandoned).
 
-**v1.7:** 0/8 phases complete (0%) — roadmap created 2026-07-19. Phases 43-50, 15/15 v1.7 requirements mapped. Phase order: the 4 independent, no-research-dependency bugfixes first (Drag Detection → Tray/Picker Width Alignment → View Switcher Morph → Calendar Quick-Add), then the Now Playing work split per research's risk-isolation recommendation — Audio Output Switcher (public CoreAudio API, pure-seam-then-UI-wiring, no external unknowns) before Favorite/Like (spike-then-implementation, this milestone's highest-risk item: Spotify OAuth+quota reality, Apple Music AppleScript reliability, Automation/TCC permission bug), mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent.
+**v1.7:** 3/8 phases complete (38%) — roadmap created 2026-07-19. Phases 43-50, 15/15 v1.7 requirements mapped. Phase 43 (Drag Detection Hardening) completed 2026-07-19. Phase 44 (Tray & Quick Action Width Alignment) completed 2026-07-19. Phase 45 (View Switcher Morph Fix, SWITCH-01/02) completed 2026-07-19 — 45-02's on-device 12-pairwise-transition sweep confirmed both requirements shipped. Phase order: the 4 independent, no-research-dependency bugfixes first (Drag Detection → Tray/Picker Width Alignment → View Switcher Morph → Calendar Quick-Add), then the Now Playing work split per research's risk-isolation recommendation — Audio Output Switcher (public CoreAudio API, pure-seam-then-UI-wiring, no external unknowns) before Favorite/Like (spike-then-implementation, this milestone's highest-risk item: Spotify OAuth+quota reality, Apple Music AppleScript reliability, Automation/TCC permission bug), mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -639,13 +639,15 @@ Plans:
 
 ### Phase 45: View Switcher Morph Fix
 
+**STATUS: COMPLETE 2026-07-19.** Plan 45-01 consolidated the 6 per-case switcher-row `blobShape` calls into one shared `tabContentView` call site (`tabWidth`/`tabHeight` computed properties), giving every tab case one continuous view identity for `matchedGeometryEffect` to morph across. Plan 45-02's on-device 12-pairwise-transition sweep confirmed the fix on real hardware: all 12 pairwise tab transitions (both directions) morph continuously with no flicker, no large→small z-order glitch behind the switcher buttons, an interrupted mid-morph tap retargets smoothly (D-01), and the populated/actively-playing Home sub-state is equally glitch-free. SWITCH-01/SWITCH-02 both shipped.
+
 **Goal**: Switching between the Home/Tray/Calendar/Weather views morphs the island continuously to the new view's size via the existing `matchedGeometryEffect` spring, eliminating both the disappear/rebuild flicker and the large→small render-behind-buttons glitch.
 **Depends on**: Nothing (independent bugfix, no research dependency)
 **Requirements**: SWITCH-01, SWITCH-02
 **Success Criteria** (what must be TRUE):
-  1. Switching views (Home/Tray/Calendar/Weather, any direction) shows one continuous spring morph directly to the new view's size — the island never visibly disappears or "rebuilds" mid-transition.
-  2. A large→small transition (e.g., Calendar → Tray) no longer shows the island rendering behind/underneath the switcher pill buttons during the morph.
-  3. All 12 pairwise view-to-view transitions are verified glitch-free on-device (or a representative sample covering every size-direction combination).
+  1. Switching views (Home/Tray/Calendar/Weather, any direction) shows one continuous spring morph directly to the new view's size — the island never visibly disappears or "rebuilds" mid-transition. ✅ Confirmed on-device 45-02.
+  2. A large→small transition (e.g., Calendar → Tray) no longer shows the island rendering behind/underneath the switcher pill buttons during the morph. ✅ Confirmed on-device 45-02.
+  3. All 12 pairwise view-to-view transitions are verified glitch-free on-device (or a representative sample covering every size-direction combination). ✅ All 12, both directions, walked per D-03 (locked, stricter than sampling) — 45-02.
 **Plans**: 2 plans
 
 Plans:
@@ -655,7 +657,7 @@ Plans:
 
 **Wave 2** *(blocked on 45-01)*
 
-- [ ] 45-02-PLAN.md — On-device 12-pairwise-transition sweep + interrupted-tap retarget checkpoint
+- [x] 45-02-PLAN.md — On-device 12-pairwise-transition sweep + interrupted-tap retarget checkpoint
 **UI hint**: yes
 
 ### Phase 46: Calendar Quick-Add Improvements

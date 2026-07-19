@@ -47,8 +47,8 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 
 ### View Switcher
 
-- [ ] **SWITCH-01**: Switching between Home/Tray/Calendar/Weather tabs animates the island continuously (single spring morph via the existing `matchedGeometryEffect`) directly to the new tab's size — no intermediate disappear/rebuild flicker
-- [ ] **SWITCH-02**: The visual glitch where the island briefly renders behind the switcher pill buttons during a large→small transition (e.g. Calendar → Tray) is eliminated
+- [x] **SWITCH-01**: Switching between Home/Tray/Calendar/Weather tabs animates the island continuously (single spring morph via the existing `matchedGeometryEffect`) directly to the new tab's size — no intermediate disappear/rebuild flicker
+- [x] **SWITCH-02**: The visual glitch where the island briefly renders behind the switcher pill buttons during a large→small transition (e.g. Calendar → Tray) is eliminated
 
 ### Calendar Quick-Add
 
@@ -127,8 +127,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DRAG-01 | Phase 43 | Complete |
 | TRAY-06 | Phase 44 | Complete |
 | DRAG-02 | Phase 44 | Complete |
-| SWITCH-01 | Phase 45 | Pending |
-| SWITCH-02 | Phase 45 | Pending |
+| SWITCH-01 | Phase 45 | Complete |
+| SWITCH-02 | Phase 45 | Complete |
 | CALVIEW-05 | Phase 46 | Pending |
 | CALVIEW-06 | Phase 46 | Pending |
 | CALVIEW-07 | Phase 46 | Pending |
