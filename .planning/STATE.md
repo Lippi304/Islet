@@ -4,7 +4,7 @@ milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
 stopped_at: Phase 46 UI-SPEC approved
-last_updated: "2026-07-19T20:32:00.403Z"
+last_updated: "2026-07-19T20:37:47.724Z"
 last_activity: 2026-07-19
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 46 (calendar-quick-add-improvements) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-19
 
@@ -117,6 +117,7 @@ Progress (v1.7): [░░░░░░░░░░] 0% (0/8 phases — roadmap cre
 | Phase 45 P01 | 10min | 2 tasks | 2 files |
 | Phase 45 P02 | <1min | 1 task | 0 files |
 | Phase 46 P01 | 12min | 2 tasks | 4 files |
+| Phase 46 P02 | 9min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -162,6 +163,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 45-02]: On-device 12-pairwise-transition sweep (all 12 tab pairs, both directions), interrupted mid-morph tap retarget check (D-01), and populated-Home sanity check all confirmed glitch-free by the user ("approved") — SWITCH-01/SWITCH-02 marked Complete in REQUIREMENTS.md, closing Phase 45. Per this project's own Phase 29/36/38/39 precedent, this on-device checkpoint directly covers the phase's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed.
 - [Phase 46-01] isProgrammaticEndUpdate suppression flag distinguishes startRow's auto-follow write to endTime from a genuine user edit, so endRow's onChange doesn't misflip endManuallyEdited after one Start change
 - [Phase 46-01] onQuickAdd widened at its single controller call site (Rule 3 blocking fix) to compile against the new 4-arg signature; new Date/Date? args intentionally discarded there, real wiring deferred to Plan 46-02 Task 1
+- [Phase 46-02]: Plan 46-02 executed exactly as written (no deviations); handleQuickAdd now forwards real picked Start/End/Due dates to CalendarService, Add trigger moved to left edge, day-list row padding bumped, calendarWidth/calendarContentHeight now 472/220
 
 ### Roadmap Evolution
 
@@ -271,7 +273,7 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T20:30:41.580Z
+Last session: 2026-07-19T20:36:27.130Z
 Stopped at: Phase 46 UI-SPEC approved
 Resume file: None
 

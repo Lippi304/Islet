@@ -679,7 +679,7 @@ Plans:
 
 **Wave 2** *(blocked on 46-01)*
 
-- [ ] 46-02-PLAN.md — NotchWindowController wiring (real dates to CalendarService) + "+ Add" left-edge placement (D-06) + row padding + calendarWidth/calendarContentHeight (D-08/D-09/D-10)
+- [x] 46-02-PLAN.md — NotchWindowController wiring (real dates to CalendarService) + "+ Add" left-edge placement (D-06) + row padding + calendarWidth/calendarContentHeight (D-08/D-09/D-10)
 
 **Wave 3** *(blocked on 46-02)*
 
