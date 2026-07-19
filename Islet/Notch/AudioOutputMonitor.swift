@@ -80,6 +80,79 @@ final class AudioOutputMonitor {
         running = false
     }
 
+    // Pitfall 4: resolves a stable UID to a LIVE AudioDeviceID, used immediately before every
+    // CoreAudio call that needs one below — never a cached/stale ID.
+    private func resolveDeviceID(uid: String) -> AudioDeviceID? {
+        var cfUID = uid as CFString
+        var deviceID = AudioDeviceID(0)
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyTranslateUIDToDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+
+        let status = withUnsafeMutablePointer(to: &cfUID) { uidPointer -> OSStatus in
+            withUnsafeMutablePointer(to: &deviceID) { deviceIDPointer -> OSStatus in
+                var translation = AudioValueTranslation(
+                    mInputData: UnsafeMutableRawPointer(uidPointer),
+                    mInputDataSize: UInt32(MemoryLayout<CFString>.size),
+                    mOutputData: UnsafeMutableRawPointer(deviceIDPointer),
+                    mOutputDataSize: UInt32(MemoryLayout<AudioDeviceID>.size))
+                var translationSize = UInt32(MemoryLayout<AudioValueTranslation>.size)
+                return AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &translationSize, &translation)
+            }
+        }
+        guard status == noErr, deviceID != kAudioObjectUnknown else { return nil }
+        return deviceID
+    }
+
+    // Re-resolves the target UID immediately before the write (Pitfall 4), then confirms the
+    // switch actually stuck via a delayed re-read (Pitfall 8 — a documented AirPods-handoff bug
+    // can silently revert the write with no error returned) rather than trusting the write
+    // call's return status alone.
+    func setDefaultOutput(_ device: AudioOutputDevice, completion: @escaping (Bool) -> Void) {
+        guard let targetDeviceID = resolveDeviceID(uid: device.uid) else {
+            completion(false)
+            return
+        }
+
+        var deviceID = targetDeviceID
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        guard AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, UInt32(MemoryLayout<AudioDeviceID>.size), &deviceID) == noErr
+        else {
+            completion(false)
+            return
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self else { completion(false); return }
+            completion(self.defaultOutputDeviceID() == targetDeviceID)
+        }
+    }
+
+    // Pitfall 7: never claims volume support without an AudioObjectHasProperty guard — tries the
+    // master VirtualMainVolume property first, then falls back to the per-channel property some
+    // devices (esp. Bluetooth) expose instead.
+    func hasVolumeControl(deviceUID: String) -> Bool {
+        guard let deviceID = resolveDeviceID(uid: deviceUID) else { return false }
+
+        var masterAddr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwareServiceDeviceProperty_VirtualMainVolume,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain)
+        if AudioObjectHasProperty(deviceID, &masterAddr) {
+            return true
+        }
+
+        var channelAddr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: 1)
+        return AudioObjectHasProperty(deviceID, &channelAddr)
+    }
+
     // Re-implemented from VolumeReader.swift:14-24's exact literal pattern — that function is
     // `private` to its own file, so it is NOT imported or modified here (Anti-Pattern 3).
     private func defaultOutputDeviceID() -> AudioDeviceID? {
