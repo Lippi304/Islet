@@ -1187,6 +1187,7 @@ final class NotchWindowController {
         // already-discarded pending drop) — no release-time item-building fallback is reintroduced
         // here (34-RESEARCH.md Open Question 2).
         let point = NSEvent.mouseLocation
+        var didDiscardWithoutButtonHit = false
         if pendingDrop != nil {
             if let hit = quickActionButtonFrames.firstIndex(where: { $0.contains(point) }) {
                 switch hit {
@@ -1201,12 +1202,25 @@ final class NotchWindowController {
                     discardPendingDrop()
                     renderPresentation()
                 }
+                didDiscardWithoutButtonHit = true
             }
             presentationState.hoveredQuickActionButtonIndex = nil
         }
         // Pitfall 3 — pointerInZone/lastPointerLocation/syncClickThrough() go stale during ANY
         // OS drag session; re-sync unconditionally, mirroring endShelfItemDrag()'s own final line.
         handlePointer(at: NSEvent.mouseLocation)
+        // 43-02 bugfix, round 3 — same class of bug as recheckDragAcceptRegion's exit branch:
+        // the release point here is typically STILL inside expandedZone (the picker card the
+        // pointer just released in), so the handlePointer(at:) resync above finds `inside` true
+        // and, since it's also the FIRST time pointerInZone gets set at all this gesture, reads
+        // as an enter (not an exit) — no edge fires the other way, no collapse gets scheduled,
+        // island stuck at `.expanded` forever. Force the grace-collapse directly, and do it AFTER
+        // the resync above so it can't be immediately cancelled by handleHoverEnter() running
+        // inside that same resync.
+        if didDiscardWithoutButtonHit {
+            pointerInZone = false
+            handleHoverExit()
+        }
     }
 
     // MARK: - Phase 34 / TRAY-02/03/04 — Quick Action Destination Picker handlers
