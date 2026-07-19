@@ -646,7 +646,16 @@ Plans:
   1. Switching views (Home/Tray/Calendar/Weather, any direction) shows one continuous spring morph directly to the new view's size — the island never visibly disappears or "rebuilds" mid-transition.
   2. A large→small transition (e.g., Calendar → Tray) no longer shows the island rendering behind/underneath the switcher pill buttons during the morph.
   3. All 12 pairwise view-to-view transitions are verified glitch-free on-device (or a representative sample covering every size-direction combination).
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 45-01-PLAN.md — Consolidate presentationSwitch's 6 per-case blobShape calls into one shared tabContentView call site (tabWidth/tabHeight computed props + regression test)
+
+**Wave 2** *(blocked on 45-01)*
+
+- [ ] 45-02-PLAN.md — On-device 12-pairwise-transition sweep + interrupted-tap retarget checkpoint
 **UI hint**: yes
 
 ### Phase 46: Calendar Quick-Add Improvements
