@@ -1212,7 +1212,16 @@ final class NotchWindowController {
         }
         pointerInZone = false
         updateVisibility()
-        syncClickThrough()
+        // 43-REVIEW.md WR-01 — resync against the REAL cursor position rather than trusting the
+        // force-reset above: 2 of the 4 callers (handleDragApproachEnd's own trailing call, and
+        // recheckDragAcceptRegion's exit branch, which is only safe because geometryInside was
+        // already false there) happened to get this for free, but finishQuickActionSharing() is
+        // reached from AirDrop/Mail's ASYNC system-sharesheet completion — arbitrarily later, off
+        // any synchronous call stack that would otherwise resync it. Without this, a cursor still
+        // resting on the collapsed pill when that callback fires would silently stop accepting
+        // clicks until the next real mouse-move. handlePointer(at:) both derives the correct
+        // pointerInZone edge and calls syncClickThrough() itself, making a separate call redundant.
+        handlePointer(at: NSEvent.mouseLocation)
     }
 
     // TRAY-03 — "Drop": stage the pending item(s) into the shelf exactly as the old
