@@ -1467,6 +1467,16 @@ struct NotchPillView: View {
                   shelfItems: [], shelfVisible: false, showSwitcher: false) {
             quickActionButtonRow()
                 .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches every other full-view
+                // Phase 44 UAT gap-closure (round 1) — quickActionButtonRow() had zero horizontal
+                // padding, so its `.frame(maxWidth: .infinity)` chips filled the card edge-to-edge.
+                // blobShape's content closure gets the FULL baseWidth with no inset of its own
+                // (see blobShape's `content().frame(width: baseWidth, ...)`), so the Drop/Mail chips
+                // rendered flush against NotchShape's curved edges and visibly poked past the curve
+                // — the file's own documented "24pt wall-inset" convention (see traySize/
+                // calendarWidth comment above) was missing here. This did not surface at the old
+                // 420pt-wide box because the chips still filled edge-to-edge either way; the wider
+                // 650pt box (Plan 44-01) just made the resulting overflow easier to see.
+                .padding(.horizontal, 24)
         }
     }
 
