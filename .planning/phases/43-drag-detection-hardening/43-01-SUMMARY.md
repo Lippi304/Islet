@@ -88,3 +88,7 @@ None - no external service configuration required.
 - Debug build (`xcodebuild build`) and test-target build (`xcodebuild build-for-testing`) both green.
 - Ready for plan 43-02 (on-device UAT checkpoint) to verify the 3 D-04 scenarios described in this plan's `<verification>` section on real hardware: ordinary click no longer force-expands, non-file drag no longer force-expands, genuine file drag still auto-expands reliably with no added latency.
 - A full Cmd-U pass confirming all 14 `DragApproachGeometryTests` methods (10 existing + 4 new) go green is a recommended, non-blocking manual step before or during 43-02.
+
+## Self-Check: PASSED
+
+All created/modified files found on disk; both task commits (00f340a, d8eeeb6) verified in git log.
