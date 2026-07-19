@@ -225,6 +225,7 @@ Plans:
 **Wave 1**
 
 - [x] 16-01-PLAN.md — ActivityCoordinator protocol (D-02) + DeviceCoordinator extraction with DeviceCoordinatorTests.swift covering Pitfalls 1-8
+
 **Wave 2** *(blocked on 16-01)*
 
 - [x] 16-02-PLAN.md — Wire NotchWindowController to DeviceCoordinator (D-01), delete extracted fields/methods, create + execute 16-HUMAN-UAT.md's D-03 on-device Bluetooth checklist
@@ -235,9 +236,11 @@ Plans:
 **Depends on**: Nothing (first phase of this milestone)
 **Requirements**: SHELF-08
 **Success Criteria** (what must be TRUE):
+
   1. `ShelfItem` (id, originalURL, localURL, filename, addedAt) and `ShelfLogic` (append/remove/clear/dedupe) exist as pure value types/functions, fully covered by unit tests, with no dependency on AppKit or `NSItemProvider`.
   2. The model has no persistence path whatsoever — no Codable-to-disk, no UserDefaults, no Keychain — so a cleared or relaunched shelf is provably empty by construction (SHELF-08's core contract).
   3. The shelf is designed as its own independent `@Published` axis, never a case inside `IslandResolver`/`TransientQueue` — confirmed by the model's shape alone, before any view exists.
+
 **Plans**: 1 plan
 
 Plans:
@@ -251,11 +254,13 @@ Plans:
 **Depends on**: Phase 19
 **Requirements**: SHELF-03, SHELF-04, SHELF-05, SHELF-07, SHELF-09
 **Success Criteria** (what must be TRUE):
+
   1. When the shelf has items and the island is expanded, a horizontally-scrolling strip appears below whatever else is showing (Now Playing, idle glance, etc.), showing each item's file-type icon, with unbounded capacity.
   2. Each shelf item has its own small trash icon; clicking it removes just that one item from the strip.
   3. A single "delete all" trash icon at the strip's far right clears every item at once.
   4. Clicking a shelf item (not its trash icon) opens the file in its default application.
   5. The shelf strip is hidden while a Charging or Device wings splash is actively showing, and reappears once the splash dismisses.
+
 **Plans**: 3 plans
 
 Plans:
@@ -270,6 +275,7 @@ Plans:
 **Wave 3** *(blocked on 20-02, gap closure)*
 
 - [x] 20-03-PLAN.md — Closed CR-01 click-through regression: scoped syncClickThrough() hit-test to visible blob height (static panel, no resize), extracted resyncShelfViewState(animated:) helper (WR-01/WR-02)
+
 **UI hint**: yes
 
 ### Phase 21: Drag-Out
@@ -278,9 +284,11 @@ Plans:
 **Depends on**: Phase 20
 **Requirements**: SHELF-06
 **Success Criteria** (what must be TRUE):
+
   1. User can drag a shelf item out of the strip onto the Finder desktop (or another app) and the real file lands there.
   2. Dragging out a shelf item whose backing file has since vanished fails gracefully (pruned or a no-op drag) rather than crashing.
   3. The expanded island's hover/grace-collapse behavior does not get stuck open after a drag-out gesture completes.
+
 **Plans**: 1 plan
 
 Plans:
@@ -296,10 +304,12 @@ Plans:
 **Depends on**: Phase 21
 **Requirements**: SHELF-01, SHELF-02
 **Success Criteria** (what must be TRUE):
+
   1. Dragging one or more files, or a folder, onto the collapsed island pill auto-expands it and each item lands in the shelf strip.
   2. While a file is being dragged over the pill before release, the drop target shows visible "hot"/targeted feedback.
   3. Dragging a file (in or out) no longer freezes the hover/collapse state machine — the island still collapses normally afterward.
   4. The click-through panel correctly receives drag events without breaking normal click-through behavior for ordinary (non-drag) pointer movement.
+
 **Plans**: 3 plans
 
 Plans:
@@ -323,11 +333,13 @@ Plans:
 **Depends on**: Phase 21 (last shipped v1.3 phase) — Phase 22 is superseded, not resumed. Hard prerequisite for Phase 24.
 **Requirements**: ARCH-01
 **Success Criteria** (what must be TRUE):
+
   1. The island still positions on the built-in notch, morphs collapsed↔expanded on hover/click, and grace-collapses after ~0.4s — identical to today, verified on-device.
   2. The island still hides in true fullscreen across all 3 trigger methods (green-button, menu bar, fullscreen video) and click-through still works with no dead-zone regressions.
   3. The island still stays visible above all windows across all Spaces and correctly repositions through external-display/clamshell changes.
   4. No `NSDraggingDestination` conformance or drag-stub overrides remain in `NotchPanel.swift`.
   5. `IslandResolver.swift`, `DeviceCoordinator.swift`, and `Islet/Shelf/` show zero diff — the rewrite touched only window-shell code.
+
 **Plans**: 4 plans
 
 Plans:
@@ -352,10 +364,12 @@ Plans:
 **Depends on**: Phase 23 — hard dependency; retrying drag-in before shell parity closes would repeat Phase 22's exact failure mode.
 **Requirements**: SHELF-01, SHELF-02
 **Success Criteria** (what must be TRUE):
+
   1. Dragging one or more files, or a folder, onto the collapsed island pill auto-expands it and each item lands in the shelf strip.
   2. While a file is being dragged over the pill before release, the drop target shows visible "hot"/targeted feedback.
   3. Drag-in works reliably across repeated on-device trials — closing the Phase 22 regression rather than repeating it.
   4. Ordinary (non-drag) hover/click/click-through behavior is unaffected by the new `DragApproachDetector`.
+
 **Plans**: 3 plans
 
 Plans:
@@ -377,16 +391,19 @@ Plans:
 **Depends on**: None — independent of the shell work (Phases 23-24); touches `NotchPillView` rendering only, not the window shell.
 **Requirements**: VISUAL-01, VISUAL-02
 **Success Criteria** (what must be TRUE):
+
   1. The collapsed pill, expanded island, and activity wings all render one shared vertical alpha-gradient material — opaque/solid black nearest the physical notch, increasingly transparent toward the bottom edge — replacing the current flat fill.
   2. The expand/collapse animation uses a fluid, deliberately-paced spring with a subtle bounce-in on open (matching the iPhone Dynamic Island's characteristic feel), with no dropped frames and no jarring overshoot beyond the intended subtle in-bounce.
   3. The material and animation changes apply only to the shared shell chrome — existing activity content views (Now Playing, Charging, idle glance) render unchanged inside the new chrome.
   4. The material composites without visual artifacts mid-morph (collapse↔expand), verified on-device in the real never-focused panel.
+
 **Plans**: 1 plan
 
 Plans:
 **Wave 1**
 
 - [x] 25-01-PLAN.md — Shared gradient material (VISUAL-01, D-01/D-02/D-08) + spring retune (VISUAL-02, D-05/D-06/D-07) + on-device UAT checkpoint
+
 **UI hint**: yes
 
 ### Phase 26: Onboarding Flow
@@ -395,10 +412,12 @@ Plans:
 **Depends on**: None — independent of the shell work; touches `AppDelegate`'s first-launch sequencing and Settings.
 **Requirements**: ONBOARD-01, ONBOARD-02, ONBOARD-03
 **Success Criteria** (what must be TRUE):
+
   1. First launch shows a carousel — hero screen → trial/license-key/buy choice → permissions pre-explanation → done — replacing the existing `isFirstLaunch` → `openSettings()` branch.
   2. The permissions screen shows a one-line reason per permission (Bluetooth, Calendar, Location/WeatherKit), and its Continue/Grant action triggers the real system permission prompt for each, in sequence.
   3. The onboarding flow shows exactly once (persisted flag) and is skippable per-step (each permission row, individually) — no whole-flow exit before the Done screen (D-09, locked).
   4. No gesture/feature tutorial screen appears anywhere in the flow.
+
 **Plans**: 4 plans
 
 Plans:
@@ -414,6 +433,7 @@ Plans:
 **Wave 3** *(blocked on 26-02, 26-03)*
 
 - [x] 26-04-PLAN.md — Step/permission/settings/finish handlers + on-device UAT checkpoint
+
 **UI hint**: yes
 
 ### Phase 27: Settings Sidebar Redesign
@@ -422,10 +442,12 @@ Plans:
 **Depends on**: None — independent of the shell work; naturally sequenced after Phase 25 (theming controls need the gradient material to exist) and Phase 26's permission/license state, though not a hard blocker.
 **Requirements**: SETTINGS-01, VISUAL-03
 **Success Criteria** (what must be TRUE):
+
   1. Settings opens as a `NavigationSplitView` with sidebar sections General, Workspace (Shelf), System (Theming), and About/License.
   2. Every existing toggle (activity toggles, launch-at-login, song-change toast, fullscreen-hide, etc.) and the accent-color picker are present and functional in their new section.
   3. License and login-item state stays correctly synced when switching between sidebar sections — no stale state on section switch.
   4. The System (Theming) section lets the user customize the shell's material/surface style and per-element accent colors.
+
 **Plans**: 4 plans
 **UI hint**: yes
 
@@ -449,10 +471,12 @@ Plans:
 **Depends on**: None — independent of the shell work; soft-pairs with Phase 27's view-switcher slot but not a hard blocker.
 **Requirements**: CALVIEW-01, CALVIEW-02, CALVIEW-03, CALVIEW-04
 **Success Criteria** (what must be TRUE):
+
   1. A third view (alongside Home and Tray) shows a month grid and the selected day's event list.
   2. Selecting a day with no events shows an explicit empty state, not a blank area.
   3. The user can quick-add either a calendar event or a reminder (their choice per entry) without leaving the island.
   4. The full calendar view and the existing Home-glance "next event" feature both read through one shared EventKit service layer — no duplicated date/event logic.
+
 **Plans**: 4 plans
 **UI hint**: yes
 
@@ -476,15 +500,18 @@ Plans:
 **Depends on**: Nothing — fully independent of the other v1.5 phases (touches only `NotchShape`/`blobShape()` rendering, same "pure rendering-value change" shape as Phase 25).
 **Requirements**: SHAPE-01
 **Success Criteria** (what must be TRUE):
+
   1. Every expanded presentation (Home, Tray, Calendar, Weather, Charging/Device wings) shows the new outward-flaring top edge instead of today's flush vertical edge.
   2. The collapsed/idle pill renders pixel-identical to today — no shape, size, or position regression.
   3. The flare animates smoothly as part of the existing collapse↔expand spring morph, with no visual glitches, artifacts, or dropped frames.
+
 **Plans**: 1 plan
 
 Plans:
 **Wave 1**
 
 - [x] 29-01-PLAN.md — NotchShape topFlareWidth property + blobShape()/wingsShape() wiring + on-device UAT (panel-frame clipping check, contingency fix)
+
 **UI hint**: yes
 
 ### Phase 30: Home Music-Only
@@ -493,10 +520,12 @@ Plans:
 **Depends on**: Nothing — independent of the other v1.5 phases (touches `IslandResolver`'s Home fallback, a new `NowPlayingState.lastKnownTrack` sticky field, and `NotchPillView`'s Home branch only).
 **Requirements**: HOME-01, HOME-02, HOME-03
 **Success Criteria** (what must be TRUE):
+
   1. While something is playing, the Home view shows live Now-Playing transport controls (play/pause/next/prev), unchanged from today.
   2. When paused/stopped, the Home view shows the last-played track's cover art and title, with the same transport controls as the live state (REVISED 2026-07-14: controls stay visible, not hidden — see 30-CONTEXT.md).
   3. When nothing has been played this session, the Home view shows an explicit empty state instead of any glance content.
   4. The time/weather/calendar idle glance no longer appears anywhere on Home, in any of the three sub-states.
+
 **Plans**: 4 plans (3 planned + 1 gap-closure)
 **UI hint**: yes
 
@@ -523,9 +552,11 @@ Plans:
 **Depends on**: Nothing directly, but must land before Phase 32 (Tray Widening) — widening against the still-additive shelf logic would mean touching `visibleContentZone()` twice.
 **Requirements**: TRAY-01
 **Success Criteria** (what must be TRUE):
+
   1. Adding a file to the shelf no longer reveals any shelf-strip UI while viewing Home, Calendar, or Weather.
   2. Switching to the Tray tab still shows the full shelf content exactly as before (icons, per-item/delete-all trash, click-to-open).
   3. Click-through hit-testing correctly excludes any residual shelf-strip band on non-Tray views — no CR-01-style phantom click-swallowing regression, verified via the on-device hover→expand→move-down trace.
+
 **Plans**: 1/1 plans complete
 **UI hint**: yes
 
@@ -540,10 +571,12 @@ Plans:
 **Depends on**: Phase 31 — widening must land after shelf-strip visibility is consolidated to Tray-only, so `visibleContentZone()` is touched once, not twice.
 **Requirements**: TRAY-05
 **Success Criteria** (what must be TRUE):
+
   1. The Tray view renders visibly wider with larger per-file icons/tiles than today's layout.
   2. More files are visible side-by-side without scrolling compared to the previous layout.
   3. Existing Tray interactions (trash, delete-all, click-to-open, drag-out) continue to work unchanged in the new layout.
   4. Click-through hit-testing matches the new wider geometry exactly — re-verified via the on-device hover→expand→move-down trace, closing off the CR-01/CR-02 failure class.
+
 **Plans**: 1 plan
 **UI hint**: yes
 
@@ -558,10 +591,12 @@ Plans:
 **Depends on**: Nothing — fully independent of the other v1.5 phases (Weather has its own resolver case and switcher tab).
 **Requirements**: WEATHER-01, WEATHER-02
 **Success Criteria** (what must be TRUE):
+
   1. The Weather view always shows at least the Medium layout: location, condition icon, current temperature, high/low, and an hourly forecast row.
   2. A Settings control (Medium/Large) switches Weather to the Large style, adding a daily forecast list with range bars, below the Medium content.
   3. Switching styles live-updates the Weather view without requiring a relaunch.
   4. Weather still degrades silently (no crash, sensible fallback) on permission denial, matching the existing pattern.
+
 **Plans**: 2 plans (33-02 revised — supersedes the original daily-chip-row scope after on-device checkpoint rejection)
 **UI hint**: yes
 
@@ -580,11 +615,13 @@ Plans:
 **Depends on**: Phase 31 — the picker's "Drop" destination routes into the now Tray-only shelf and switches the active view to Tray.
 **Requirements**: TRAY-02, TRAY-03, TRAY-04
 **Success Criteria** (what must be TRUE):
+
   1. Dropping a file on the island from any view shows a 3-option Quick Action picker: Drop, AirDrop, Mail.
   2. Choosing "Drop" stages the file into Tray exactly as before and switches the active view to Tray.
   3. Choosing "AirDrop" opens the system AirDrop share sheet for the dropped file.
   4. Choosing "Mail" composes a new email in Mail.app with the file attached (documented limitation: non-Mail.app default clients don't receive the attachment).
   5. Invoking AirDrop/Mail does not break the panel's non-activating/click-through guarantees — re-verified via the on-device hover→expand→move-down trace.
+
 **Plans**: 2 plans
 
 Plans:
@@ -595,8 +632,8 @@ Plans:
 **Wave 2** *(blocked on 34-01)*
 
 - [x] 34-02-PLAN.md — REVISED (UAT drag-target redesign): moves pendingDrop population to the dragEntered edge (D-10), fixes the drag-out-before-release session-copy leak (D-13b/Pitfall 6), live per-button drag-hover highlight (D-11) + release-on-target routing (D-12/D-13) replacing the click-based Button(action:) wiring, geometry three-site rule at the new 117pt height + consolidated on-device UAT checkpoint (D-08 spike re-run, CR-01 trace, drag-in/out/re-entry trace, D-04/D-05 transient-interrupt-resume, Drop/AirDrop/Mail real hand-off) — supersedes the original click-based controller wiring, which shipped but was rejected on-device
-**UI hint**: yes
 
+**UI hint**: yes
 
 ## v1.6 Liquid Glass & System HUD Suite — SHIPPED 2026-07-19
 
@@ -610,10 +647,13 @@ Phases 35-42 full detail (goals, success criteria, plans, on-device UAT history)
 **Depends on**: Nothing (independent bugfix, no research dependency)
 **Requirements**: DRAG-01
 **Success Criteria** (what must be TRUE):
+
   1. Clicking the collapsed island (an ordinary click, no external drag in progress) never opens the Quick Action picker.
   2. Hovering the collapsed or expanded island with no active external file drag never opens the Quick Action picker.
   3. Dragging a real file from Finder toward the island still reliably auto-expands it and shows the picker, exactly as before — the correct-trigger path is unaffected by the false-trigger fix.
+
 **Plans**: 2 plans
+
 - [x] 43-01-PLAN.md — Add genuine-file-drag gate (isGenuineFileDrag) + wire into recheckDragAcceptRegion/handleDragApproachEnd
 - [x] 43-02-PLAN.md — On-device verification of the 3 D-04 scenarios
 
@@ -623,9 +663,11 @@ Phases 35-42 full detail (goals, success criteria, plans, on-device UAT history)
 **Depends on**: Nothing (independent bugfix, no research dependency)
 **Requirements**: TRAY-06, DRAG-02
 **Success Criteria** (what must be TRUE):
+
   1. At typical file counts, every file icon in the Tray view fits without visual squeezing or overlap; individual file icon/button sizes are unchanged from today.
   2. The Quick Action picker shown during an in-progress drag renders at the exact same width as the real (widened) Tray view — no visible size mismatch between the drag-preview and landed states.
   3. Click-through hit-testing remains correct at the new width — re-verified via the on-device hover→expand→move-down trace, closing off the CR-01/CR-02 failure class.
+
 **Plans**: 2 plans
 
 Plans:
@@ -645,9 +687,11 @@ Plans:
 **Depends on**: Nothing (independent bugfix, no research dependency)
 **Requirements**: SWITCH-01, SWITCH-02
 **Success Criteria** (what must be TRUE):
+
   1. Switching views (Home/Tray/Calendar/Weather, any direction) shows one continuous spring morph directly to the new view's size — the island never visibly disappears or "rebuilds" mid-transition. ✅ Confirmed on-device 45-02.
   2. A large→small transition (e.g., Calendar → Tray) no longer shows the island rendering behind/underneath the switcher pill buttons during the morph. ✅ Confirmed on-device 45-02.
   3. All 12 pairwise view-to-view transitions are verified glitch-free on-device (or a representative sample covering every size-direction combination). ✅ All 12, both directions, walked per D-03 (locked, stricter than sampling) — 45-02.
+
 **Plans**: 2 plans
 
 Plans:
@@ -658,6 +702,7 @@ Plans:
 **Wave 2** *(blocked on 45-01)*
 
 - [x] 45-02-PLAN.md — On-device 12-pairwise-transition sweep + interrupted-tap retarget checkpoint
+
 **UI hint**: yes
 
 ### Phase 46: Calendar Quick-Add Improvements
@@ -666,9 +711,11 @@ Plans:
 **Depends on**: Nothing (independent bugfix, no research dependency)
 **Requirements**: CALVIEW-05, CALVIEW-06, CALVIEW-07
 **Success Criteria** (what must be TRUE):
+
   1. Quick-add shows a date+time picker — Events get a start/end time range, Reminders get a single time — defaulting to the tapped calendar day and the next full hour (if that day is today) or 00:00 (otherwise).
   2. The add-event button sits on the left, next to the day-list divider, fully visible with no clipping — replacing its previous clipped right-edge position.
   3. Calendar event rows in the day list show visibly more padding/margin than today, and the island grows a few pt wider and gains extra height to accommodate the roomier rows without cramping.
+
 **Plans**: 3 plans
 **UI hint**: yes
 
@@ -691,10 +738,12 @@ Plans:
 **Depends on**: Nothing (independent of the bugfix phases and of Favorite/Like; no external API unknowns)
 **Requirements**: None formally scoped to this phase — infrastructure phase preceding Phase 48's OUTPUT-01..04, mirroring this project's own pure-seam-first precedent (Phase 15/16/19, Phase 22-01/24-01/38-01/39-01 spikes)
 **Success Criteria** (what must be TRUE):
+
   1. `AudioOutputPresentation`'s device value type and sort/reorder logic are pure, unit-tested Foundation-only code with zero AppKit/SwiftUI dependency.
   2. `AudioOutputMonitor` enumerates real system audio-output devices, keyed by the stable `kAudioDevicePropertyDeviceUID` (never the session-ephemeral `AudioDeviceID`), and reflects live connect/disconnect/default-output changes via `AudioObjectAddPropertyListener`.
   3. Every CoreAudio callback-driven state update is confirmed to hop to the main thread before touching `@Published` state (mirrors `BluetoothMonitor`'s already-solved pattern).
   4. Per-device volume-property support (`kAudioDevicePropertyVolumeScalar`) is verified against the dev machine's actual Bluetooth headset, not just built-in speakers, so Phase 48 can wire a slider to it with confidence.
+
 **Plans**: 3 plans
 
 Plans:
@@ -716,16 +765,27 @@ Plans:
 **Depends on**: Phase 47 — hard dependency; the panel wires against the pure seam and monitor built there.
 **Requirements**: OUTPUT-01, OUTPUT-02, OUTPUT-03, OUTPUT-04
 **Success Criteria** (what must be TRUE):
+
   1. Tapping the speaker icon reveals a panel with a thick draggable volume slider that controls the current audio output's real system volume in real time.
   2. The panel shows a vertical list of all available system audio outputs, with the current output visually highlighted and shown on top, others listed below.
   3. Tapping a non-current output in the list makes it the active system audio output and it animates to the top of the list (tap-to-select, not drag-to-reorder).
   4. The output list stays correct — no duplicate or stale entries — when a device connects or disconnects while the panel is open (e.g. AirPods reconnect), keyed by device UID not `AudioDeviceID`.
+
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 48-01-PLAN.md — Data layer & AudioOutputMonitor wiring (VolumeReader absolute-set, IslandPresentationState fields, monitor lifecycle)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 48-02-PLAN.md — NotchPillView UI (speaker button, draggable OutputVolumeSlider, device list panel, tabHeight height bump)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 48-03-PLAN.md — Controller handlers, geometry three-site rule, on-device verification checkpoint
+
 **UI hint**: yes
 
 ### Phase 49: Favorite/Like — Spike
@@ -734,10 +794,12 @@ Plans:
 **Depends on**: Nothing — shares no code path with the Audio Output Switcher work (Phases 47-48), so this spike can proceed independently and in parallel-safe order.
 **Requirements**: None formally scoped to this phase — spike phase preceding Phase 50's FAV-01..03, mirroring Phase 22-01/24-01/38-01/39-01 precedent
 **Success Criteria** (what must be TRUE):
+
   1. A real round-trip test confirms (or disproves) whether the vendored `mediaremote-adapter` wrapper can send a like/love command, and whether the streamed payload ever reports a favorite read-state.
   2. Apple Music's `current track`/`loved` AppleScript behavior is confirmed on this project's own dev hardware across library, streaming-only, and play/pause states — not assumed transferable from forum reports.
   3. A real Spotify OAuth PKCE round-trip plus a real `PUT` save-track call is exercised, and current quota-mode/Extended-Access criteria are confirmed directly on the Spotify Developer Dashboard.
   4. The Automation (Apple Events/TCC) permission-prompt reliability bug is reproduced or ruled out on this hardware, and a documented go/no-go scope decision (ship Spotify OAuth / bring-your-own-Client-ID / Apple-Music-only for this milestone) is recorded.
+
 **Plans**: TBD
 
 ### Phase 50: Favorite/Like — Implementation
@@ -746,7 +808,9 @@ Plans:
 **Depends on**: Phase 49 — hard dependency; the concrete write path (and whether Spotify ships at all) is only known once the spike concludes.
 **Requirements**: FAV-01, FAV-02, FAV-03
 **Success Criteria** (what must be TRUE):
+
   1. A star button, positioned left of the transport controls in the expanded Now Playing view, toggles the current track's favorite/liked status and writes back to Apple Music (AppleScript `loved`) and/or Spotify (OAuth Web API), per Phase 49's confirmed scope.
   2. Spotify write-back (if shipped) works only for accounts explicitly authorized through Islet's own OAuth flow, with the small-quota limitation documented (Settings/About), not silently discovered by the user.
   3. If a like/favorite write fails (e.g. a streaming-only track Apple Music can't yet love, or an expired/unauthenticated Spotify session), the star button visibly reflects the failure rather than silently appearing to succeed.
+
 **Plans**: TBD
