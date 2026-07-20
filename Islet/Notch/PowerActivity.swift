@@ -28,12 +28,22 @@ enum ChargingActivity: Equatable {
 }
 
 // TOTAL pure mapping. nil == "no splash" (no readable battery → graceful no-op).
+//
+// 36-01 on-device UAT round 3 — root cause confirmed via real hardware trace: macOS's
+// "Optimized Battery Charging" (battery health management) can hold `kIOPSIsChargingKey`
+// false for the ENTIRE time a Mac sits on AC below 100%, not just a brief connect-negotiation
+// beat (that was round 2's — wrong — hypothesis, see the removed 0.6s settle re-poll). Apple's
+// own menu-bar battery icon shows this same "connected, not actively drawing charge current"
+// state with no bolt overlay, so the raw IOKit flag is a poor proxy for what the user means by
+// "charging". Product decision from that trace: show "Charging" whenever plugged into AC and
+// not yet topped off, keyed off `isCharged` (kIOPSIsChargedKey — "is the battery full") rather
+// than the flaky `isCharging` (kIOPSIsChargingKey — "is current actively flowing right now").
 func powerActivity(from r: PowerReading) -> ChargingActivity? {
     guard r.isPresent else { return nil }
     let p = min(max(r.percent, 0), 100)
     if r.isOnAC {
-        if r.isCharging { return .charging(percent: p) }
-        return .full(percent: p)
+        if r.isCharged { return .full(percent: p) }
+        return .charging(percent: p)
     }
     return .onBattery(percent: p)
 }

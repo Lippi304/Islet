@@ -21,6 +21,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: .charging(.charging(percent: 47)),
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: true)
         XCTAssertEqual(r, .charging(.charging(percent: 47)))
     }
@@ -30,8 +31,46 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)),
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: false)
         XCTAssertEqual(r, .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)))
+    }
+
+    // Phase 20 / SHELF-09 regression coverage: the shelf strip NotchPillView composes into
+    // expandedIsland/mediaExpanded/mediaUnavailable (D-02) is structurally ABSENT during a
+    // Charging or Device splash, with ZERO new production code in IslandResolver.swift — a
+    // standing transient always outranks the isExpanded branches (D-04), so the shelf-composing
+    // branches are simply never reached while a transient is active. Proves RESEARCH.md's
+    // "falls out for free" claim.
+    func testShelfComposingBranchesUnreachableDuringTransient() {
+        let charging = resolve(activeTransient: .charging(.charging(percent: 50)),
+                                nowPlaying: .playing(title: "Song", artist: "Artist"),
+                                nowPlayingHealthy: true,
+                                hasPlayedSinceLaunch: true,
+                                isExpanded: true)
+        XCTAssertEqual(charging, .charging(.charging(percent: 50)))
+
+        let device = resolve(activeTransient: .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)),
+                              nowPlaying: .none,
+                              nowPlayingHealthy: true,
+                              hasPlayedSinceLaunch: true,
+                              isExpanded: true)
+        XCTAssertEqual(device, .device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)))
+    }
+
+    // Phase 26 / ONBOARD-01/T-26-02: D-09's hardest precedence case -- a forced onboarding
+    // session outranks EVERY other input, even a standing Charging transient over an
+    // expanded, healthy, actively-playing island. onboardingStep is checked as the literal
+    // first statement of resolve(...), before `switch activeTransient` is even reached, so no
+    // combination of the other four parameters can ever bypass it.
+    func testOnboardingOutranksEverything() {
+        let r = resolve(activeTransient: .charging(.charging(percent: 47)),
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        onboardingStep: .permissions)
+        XCTAssertEqual(r, .onboarding(.permissions))
     }
 
     func testNoTransientWhilePlayingReturnsToWings() {
@@ -40,6 +79,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: nil,
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: false)
         XCTAssertEqual(r, .nowPlayingWings(.playing(title: "Song", artist: "Artist")))
     }
@@ -49,6 +89,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: false)
         XCTAssertEqual(r, .idle)
     }
@@ -61,6 +102,7 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: false,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: true)
         XCTAssertEqual(r, .nowPlayingExpanded(.none, healthy: false))
     }
@@ -76,13 +118,99 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertFalse(nowPlayingHealthGate(enabled: true, isHealthy: false))
     }
 
-    func testExpandedHealthyNoMediaIsExpandedIdle() {
-        // D-12: expanded, healthy API, nothing playing → the expanded idle (date/time) view.
+    // MARK: nowPlayingLaunchGate(...) / hasPlayedSinceLaunch — Phase 17 NOW-04 regression coverage
+
+    func testNowPlayingLaunchGateForcesNoneWhenNotYetPlayed() {
+        // D-01: a track that hasn't actually played since launch must be forced to .none for
+        // the ambient gate, regardless of its real (paused) presentation.
+        XCTAssertEqual(nowPlayingLaunchGate(hasPlayedSinceLaunch: false,
+                                            nowPlaying: .paused(title: "Song", artist: "Artist")),
+                       .none)
+        // Once lifted, the real presentation passes through unchanged.
+        XCTAssertEqual(nowPlayingLaunchGate(hasPlayedSinceLaunch: true,
+                                            nowPlaying: .paused(title: "Song", artist: "Artist")),
+                       .paused(title: "Song", artist: "Artist"))
+    }
+
+    func testGatedPausedNotExpandedIsIdle() {
+        // D-01: gated (never played this session) + paused + not expanded → idle, no ambient glance.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .paused(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: false)
+        XCTAssertEqual(r, .idle)
+    }
+
+    func testGatedPausedExpandedStillShowsRealState() {
+        // D-03: gated but manually expanded → the expanded branch is untouched by the gate,
+        // the real paused state (title/artist/controls) still shows.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .paused(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true)
+        XCTAssertEqual(r, .nowPlayingExpanded(.paused(title: "Song", artist: "Artist"), healthy: true))
+    }
+
+    func testGateLiftedPausedNotExpandedShowsWings() {
+        // D-02: once the gate has been lifted, ambient paused shows normally — no re-arm.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .paused(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .nowPlayingWings(.paused(title: "Song", artist: "Artist")))
+    }
+
+    // MARK: songChangeToastGate(...) — Phase 18 NOW-05/NOW-06 coverage
+
+    func testSongChangeToastGateSuppressedByChargingTransient() {
+        // D-02: a charging transient suppresses the toast entirely, no queueing.
+        XCTAssertFalse(songChangeToastGate(activeTransient: charging, isExpanded: false, toastEnabled: true))
+    }
+
+    func testSongChangeToastGateSuppressedByDeviceTransient() {
+        // D-02: a device transient suppresses the toast too.
+        XCTAssertFalse(songChangeToastGate(activeTransient: device, isExpanded: false, toastEnabled: true))
+    }
+
+    func testSongChangeToastGateSuppressedWhenExpanded() {
+        // D-04: a manually-expanded island suppresses the toast (the expanded card already
+        // shows the live title/artist).
+        XCTAssertFalse(songChangeToastGate(activeTransient: nil, isExpanded: true, toastEnabled: true))
+    }
+
+    func testSongChangeToastGateSuppressedWhenToggleOff() {
+        // NOW-06: the toggle being off suppresses new toasts.
+        XCTAssertFalse(songChangeToastGate(activeTransient: nil, isExpanded: false, toastEnabled: false))
+    }
+
+    func testSongChangeToastGateAllowsAmbientEnabled() {
+        // The only condition under which a toast may show: no transient, not expanded, toggle on.
+        XCTAssertTrue(songChangeToastGate(activeTransient: nil, isExpanded: false, toastEnabled: true))
+    }
+
+    func testExpandedHealthyNoMediaHasPlayedShowsLastPlayed() {
+        // Phase 30 / HOME-02: expanded, healthy API, nothing playing now but something played
+        // this session → the last-played state.
         let r = resolve(activeTransient: nil,
                         nowPlaying: .none,
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: true)
-        XCTAssertEqual(r, .expandedIdle)
+        XCTAssertEqual(r, .homeLastPlayed)
+    }
+
+    func testExpandedHealthyNoMediaNeverPlayedShowsEmpty() {
+        // Phase 30 / HOME-03: expanded, healthy API, nothing has played this session → the
+        // explicit empty state.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true)
+        XCTAssertEqual(r, .homeEmpty)
     }
 
     func testExpandedHealthyPlayingShowsMediaControls() {
@@ -90,8 +218,237 @@ final class IslandResolverTests: XCTestCase {
         let r = resolve(activeTransient: nil,
                         nowPlaying: .playing(title: "Song", artist: "Artist"),
                         nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
                         isExpanded: true)
         XCTAssertEqual(r, .nowPlayingExpanded(.playing(title: "Song", artist: "Artist"), healthy: true))
+    }
+
+    // MARK: resolve(...) — Phase 28 / CALVIEW-01 selectedView precedence
+
+    func testCalendarSelectedExpandedReturnsCalendarExpanded() {
+        // No active transient, no now-playing, expanded + Calendar selected -> .calendarExpanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .calendar)
+        XCTAssertEqual(r, .calendarExpanded)
+    }
+
+    func testCalendarSelectionOutranksMedia() {
+        // 28-04 round 4 (precedence fix): an explicit Calendar selection now wins over
+        // Now-Playing even while expanded -- the switcher must never be hijacked by media.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .calendar)
+        XCTAssertEqual(r, .calendarExpanded)
+    }
+
+    func testWeatherSelectionOutranksMedia() {
+        // 28-04 round 4: same precedence fix, Weather side.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .weather)
+        XCTAssertEqual(r, .weatherExpanded)
+    }
+
+    func testWeatherSelectedExpandedReturnsWeatherExpanded() {
+        // No active transient, no now-playing, expanded + Weather selected -> .weatherExpanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .weather)
+        XCTAssertEqual(r, .weatherExpanded)
+    }
+
+    func testHomeSelectedWithMediaPlayingShowsNowPlayingExpanded() {
+        // 28-04 round 4 "smart Home": explicit Home selection + media playing -> Now-Playing
+        // still wins (unchanged behavior for Home specifically).
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .nowPlayingExpanded(.playing(title: "Song", artist: "Artist"), healthy: true))
+    }
+
+    func testHomeSelectedNoMediaHasPlayedShowsLastPlayed() {
+        // Phase 30 / HOME-02: explicit Home selection + nothing playing now but something
+        // played this session -> the last-played state.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeLastPlayed)
+    }
+
+    func testHomeSelectedNoMediaNeverPlayedShowsEmpty() {
+        // Phase 30 / HOME-03: explicit Home selection + nothing has played this session -> the
+        // explicit empty state.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testTransientOutranksCalendarSelection() {
+        // D-04: a standing transient always outranks the calendar selection.
+        let r = resolve(activeTransient: .charging(.charging(percent: 50)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .calendar)
+        XCTAssertEqual(r, .charging(.charging(percent: 50)))
+    }
+
+    func testTraySelectedExpandedReturnsTrayExpanded() {
+        // 28-04 round 5: Tray is now its OWN IslandPresentation case, at the same priority
+        // tier as Calendar/Weather -- no active transient, no now-playing, expanded + Tray
+        // selected -> .trayExpanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .tray)
+        XCTAssertEqual(r, .trayExpanded)
+    }
+
+    func testTraySelectionOutranksMedia() {
+        // 28-04 round 5: same precedence fix as Calendar/Weather -- an explicit Tray selection
+        // wins over Now-Playing even while expanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .tray)
+        XCTAssertEqual(r, .trayExpanded)
+    }
+
+    func testTransientOutranksTraySelection() {
+        // D-04: a standing transient always outranks the tray selection too.
+        let r = resolve(activeTransient: .charging(.charging(percent: 50)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .tray)
+        XCTAssertEqual(r, .charging(.charging(percent: 50)))
+    }
+
+    func testTraySelectedNotExpandedIsIdle() {
+        // Collapsed island ignores selectedView entirely -> .idle.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        selectedView: .tray)
+        XCTAssertEqual(r, .idle)
+    }
+
+    func testCalendarSelectedNotExpandedIsIdle() {
+        // Collapsed island ignores selectedView entirely -> .idle.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        selectedView: .calendar)
+        XCTAssertEqual(r, .idle)
+    }
+
+    func testOnboardingOutranksCalendarSelection() {
+        // D-09: forced onboarding still outranks everything, including selectedView.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .calendar,
+                        onboardingStep: .welcome)
+        XCTAssertEqual(r, .onboarding(.welcome))
+    }
+
+    // MARK: resolve(...) — Phase 34 / TRAY-02 quickActionPicker precedence
+
+    private let oneItemDrop = PendingDrop(items: [ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/tmp/a.txt"),
+                                                             localURL: URL(fileURLWithPath: "/tmp/a.txt"),
+                                                             filename: "a.txt", addedAt: Date())])
+
+    func testPendingDropExpandedReturnsQuickActionPicker() {
+        // TRAY-02: a pending drop takes over the picker even with no explicit tab selected
+        // (selectedView left at default .home).
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        pendingDrop: oneItemDrop)
+        XCTAssertEqual(r, .quickActionPicker(oneItemDrop))
+    }
+
+    func testPendingDropOutranksSelectedViewFullTakeover() {
+        // D-01: full-takeover semantics -- an explicit Weather selection does NOT survive a
+        // pending drop; the picker replaces whatever tab was showing regardless of which was
+        // active.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .weather,
+                        pendingDrop: oneItemDrop)
+        XCTAssertEqual(r, .quickActionPicker(oneItemDrop))
+    }
+
+    func testChargingTransientOutranksPendingDrop() {
+        // D-04: a standing transient always wins, even with a pending drop -- the EXISTING
+        // transient-check-runs-first ordering, no new precedence code required (mirrors
+        // testChargingOutranksDeviceAndMedia).
+        let r = resolve(activeTransient: .charging(.charging(percent: 50)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        pendingDrop: oneItemDrop)
+        XCTAssertEqual(r, .charging(.charging(percent: 50)))
+    }
+
+    func testPendingDropInertWhileNotExpanded() {
+        // pendingDrop is inert while not expanded -- the controller only sets it once
+        // auto-expand has already fired.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        pendingDrop: oneItemDrop)
+        XCTAssertEqual(r, .idle)
+    }
+
+    func testShowsSwitcherRowFalseForQuickActionPicker() {
+        // UI-SPEC §1 (locked decision): the switcher never shows while the picker is
+        // presented. Falls into the existing `default: return false` branch -- asserted
+        // explicitly so a future refactor can't silently flip it.
+        XCTAssertFalse(showsSwitcherRow(for: .quickActionPicker(oneItemDrop)))
     }
 
     // MARK: TransientQueue — D-03 bounded, de-duped, sequential coexistence
@@ -257,5 +614,220 @@ final class IslandResolverTests: XCTestCase {
         // The oldest survivors advance in FIFO order: d then e.
         _ = q.advance(); XCTAssertEqual(q.head, d)
         _ = q.advance(); XCTAssertEqual(q.head, e)
+    }
+
+    // MARK: Phase 38 / HUD-05 — Focus transient (collapsed-only, persistent, preemptible)
+
+    func testFocusWinsWhenCollapsed() {
+        // D-07: a Focus transient wins when the island is NOT expanded.
+        let r = resolve(activeTransient: .focus(.on),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .focus(.on))
+    }
+
+    func testFocusFallsThroughWhenExpanded() {
+        // D-07: a Focus transient does NOT win when the island IS expanded — it falls
+        // through to whatever Home/Tray/Calendar/Weather would resolve to as if no
+        // transient were active. Proven identical to what resolve(activeTransient: nil, ...)
+        // would return with the same other arguments (homeEmpty here: nothing playing,
+        // nothing played this session, Home selected).
+        let r = resolve(activeTransient: .focus(.on),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testActiveTransientIsPersistentFlags() {
+        // D-06: ActiveTransient.focus is marked persistent while every other case is not —
+        // the seam the controller uses to skip the uniform 3s auto-dismiss.
+        XCTAssertFalse(ActiveTransient.charging(.charging(percent: 50)).isPersistent)
+        XCTAssertFalse(ActiveTransient.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: nil)).isPersistent)
+        XCTAssertTrue(ActiveTransient.focus(.on).isPersistent)
+        // Phase 39 / HUD-03/HUD-04 (D-10): .osd is deliberately excluded, unlike Focus — it
+        // self-elapses via its own 1.5s timer.
+        XCTAssertFalse(ActiveTransient.osd(.volume(percent: 50, hardwareMuted: false)).isPersistent)
+    }
+
+    func testPreemptPushesFocusToFrontOfPending() {
+        // D-08: a Charging or Device transient immediately preempts an already-standing
+        // Focus head instead of queuing behind it — the displaced Focus is pushed to the
+        // FRONT of pending (not the back), so advance() promotes it right back once the
+        // preempting transient elapses.
+        var q = TransientQueue()
+        _ = q.enqueue(.focus(.on))
+        XCTAssertTrue(q.preempt(.charging(.charging(percent: 50))))
+        XCTAssertEqual(q.head, .charging(.charging(percent: 50)))
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, .focus(.on))
+    }
+
+    // MARK: Phase 39 / HUD-03/HUD-04 — OSD (Volume/Brightness) transient (collapsed-only,
+    // NOT persistent, same-category updateHead covers both D-09 scrub refresh and D-12
+    // cross-category instant replace)
+
+    func testOSDWinsWhenCollapsed() {
+        // D-11: an OSD transient wins when the island is NOT expanded.
+        let r = resolve(activeTransient: .osd(.volume(percent: 50, hardwareMuted: false)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .osd(.volume(percent: 50, hardwareMuted: false)))
+    }
+
+    func testOSDFallsThroughWhenExpanded() {
+        // D-11: an OSD transient does NOT win when the island IS expanded — it falls
+        // through to whatever Home/Tray/Calendar/Weather would resolve to as if no
+        // transient were active, mirroring testFocusFallsThroughWhenExpanded.
+        let r = resolve(activeTransient: .osd(.volume(percent: 50, hardwareMuted: false)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testOSDPreemptsStandingFocusHead() {
+        // D-13: pressing Volume/Brightness while a Focus HUD stands immediately preempts
+        // it (reusing TransientQueue.preempt() verbatim, unmodified — mirrors
+        // testPreemptPushesFocusToFrontOfPending with .osd(...) swapped in for .charging(...)).
+        var q = TransientQueue()
+        _ = q.enqueue(.focus(.on))
+        XCTAssertTrue(q.preempt(.osd(.volume(percent: 50, hardwareMuted: false))))
+        XCTAssertEqual(q.head, .osd(.volume(percent: 50, hardwareMuted: false)))
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, .focus(.on))
+    }
+
+    func testUpdateHeadReplacesOSDAcrossInnerCasesInstantly() {
+        // D-12: pressing Brightness while Volume shows instantly replaces it — the single
+        // (.osd, .osd) updateHead arm covers this regardless of which inner case each side
+        // holds (no direct Focus precedent — this is D-12's own mechanism).
+        var q = TransientQueue()
+        _ = q.enqueue(.osd(.volume(percent: 50, hardwareMuted: false)))
+        q.updateHead(.osd(.brightness(percent: 80)))
+        XCTAssertEqual(q.head, .osd(.brightness(percent: 80)))
+    }
+
+    // MARK: Phase 41 / HUD-08 — Calendar Countdown
+
+    func testCalendarCountdownOutranksAmbientMedia() {
+        // D-01: resolve(...) returns .calendarCountdown ahead of .nowPlayingWings when both a
+        // calendarCountdown and a .playing nowPlaying input are present, collapsed, no active
+        // transient (mirrors testDeviceOutranksAmbientMedia's shape).
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        calendarCountdown: countdown)
+        XCTAssertEqual(r, .calendarCountdown(countdown))
+    }
+
+    func testCalendarCountdownFallsThroughWhenExpanded() {
+        // D-01: resolve(...) never returns .calendarCountdown while isExpanded == true — falls
+        // through to whatever the expanded branch would resolve to as if calendarCountdown
+        // were nil (mirrors testFocusFallsThroughWhenExpanded's shape).
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home,
+                        calendarCountdown: countdown)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testChargingOutranksCalendarCountdownEvenCollapsed() {
+        // A standing .charging activeTransient outranks a present calendarCountdown even
+        // collapsed (mirrors testChargingOutranksDeviceAndMedia's shape).
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let r = resolve(activeTransient: .charging(.charging(percent: 47)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false,
+                        calendarCountdown: countdown)
+        XCTAssertEqual(r, .charging(.charging(percent: 47)))
+    }
+
+    // MARK: Phase 42 / DUAL-01 — Secondary Activity
+
+    func testResolveSecondaryReturnsNowPlayingWhenCountdownIsPrimaryAndMediaLive() {
+        // D-01/D-02: both Countdown and NowPlaying live, no transient, collapsed — primary is
+        // .calendarCountdown, so resolveSecondary surfaces the live media as the secondary bubble.
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let np = NowPlayingPresentation.playing(title: "Song", artist: "Artist")
+        let primary = resolve(activeTransient: nil,
+                               nowPlaying: np,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: false,
+                               calendarCountdown: countdown)
+        XCTAssertEqual(resolveSecondary(primary: primary, nowPlaying: np), .nowPlaying(np))
+    }
+
+    func testResolveSecondaryNilWhenOnlyCountdownLive() {
+        // D-04: single activity, no bubble — Countdown is primary but no media is playing.
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let primary = resolve(activeTransient: nil,
+                               nowPlaying: .none,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: false,
+                               calendarCountdown: countdown)
+        XCTAssertNil(resolveSecondary(primary: primary, nowPlaying: .none))
+    }
+
+    func testResolveSecondaryNilWhenOnlyNowPlayingLive() {
+        // D-04: single activity, no bubble — NowPlaying is primary (.nowPlayingWings), no
+        // countdown at all, so primary != .calendarCountdown.
+        let np = NowPlayingPresentation.playing(title: "Song", artist: "Artist")
+        let primary = resolve(activeTransient: nil,
+                               nowPlaying: np,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: false,
+                               calendarCountdown: nil)
+        XCTAssertNil(resolveSecondary(primary: primary, nowPlaying: np))
+    }
+
+    func testResolveSecondaryNilWhenTransientStanding() {
+        // D-10: a standing transient (.charging here) suppresses the secondary too, even with
+        // both Countdown and NowPlaying inputs live — falls out of primary's own shape
+        // (.charging), zero new activeTransient-checking logic in resolveSecondary itself.
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let np = NowPlayingPresentation.playing(title: "Song", artist: "Artist")
+        let primary = resolve(activeTransient: .charging(.charging(percent: 47)),
+                               nowPlaying: np,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: false,
+                               calendarCountdown: countdown)
+        XCTAssertNil(resolveSecondary(primary: primary, nowPlaying: np))
+    }
+
+    func testResolveSecondaryNilWhenExpanded() {
+        // isExpanded == true always yields secondary == nil — resolve() never returns
+        // .calendarCountdown from its isExpanded branch, so primary can't be .calendarCountdown.
+        let countdown = CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60))
+        let np = NowPlayingPresentation.playing(title: "Song", artist: "Artist")
+        let primary = resolve(activeTransient: nil,
+                               nowPlaying: np,
+                               nowPlayingHealthy: true,
+                               hasPlayedSinceLaunch: true,
+                               isExpanded: true,
+                               selectedView: .home,
+                               calendarCountdown: countdown)
+        XCTAssertNil(resolveSecondary(primary: primary, nowPlaying: np))
     }
 }

@@ -56,3 +56,64 @@ func nextRelevantEvent(events: [EventInput], now: Date) -> CalendarGlance? {
 
     return nil   // D-04: neither today nor tomorrow has a relevant event
 }
+
+// Phase 41 / HUD-08 (D-04) — the countdown's own event-selection seam, deliberately a NEW
+// sibling of nextRelevantEvent(events:now:) rather than a modification of it (Pitfall 2):
+// nextRelevantEvent is IN-PROGRESS-INCLUSIVE (`end > now`), which is correct for the
+// idle-glance "what's happening" summary but wrong for a countdown — counting down to an
+// event that already started makes no sense. nextUpcomingEvent is NOT-YET-STARTED-ONLY
+// (`start > now`), diverging on exactly that case. Foundation-only, total, never crashes on
+// an empty `events` array.
+func nextUpcomingEvent(events: [EventInput], now: Date, lookahead: TimeInterval = 3600) -> EventInput? {
+    events
+        .filter { $0.start > now && $0.start <= now.addingTimeInterval(lookahead) }
+        .sorted { $0.start < $1.start }
+        .first
+}
+
+// Phase 46 / CALVIEW-05 (D-...) — the quick-add popover's default-time seed. Total function,
+// Foundation-only, `now` always an explicit parameter (never Date()/Date.now inline), mirroring
+// nextRelevantEvent/nextUpcomingEvent's discipline exactly. If `selectedDay` is today, seeds to
+// the next full hour (minutes/seconds zeroed); otherwise seeds to 00:00 of `selectedDay`.
+func defaultQuickAddTime(selectedDay: Date, now: Date) -> Date {
+    let calendar = Calendar.current
+
+    guard calendar.isDateInToday(selectedDay) else {
+        return calendar.startOfDay(for: selectedDay)
+    }
+
+    let nextHour = calendar.date(byAdding: .hour, value: 1, to: now) ?? now
+    let components = calendar.dateComponents([.year, .month, .day, .hour], from: nextHour)
+    return calendar.date(from: components) ?? nextHour
+}
+
+// Phase 28 / CALVIEW-01 — the calendar grid's day-cell generator. Total function: never
+// crashes, returns `[]` if the Calendar API can't resolve the month (T-14-02 precedent).
+// Leading `nil` entries pad the grid so the 1st of the month lands in its correct weekday
+// column relative to `calendar.firstWeekday`.
+func daysInMonth(for date: Date, calendar: Calendar = .current) -> [Date?] {
+    guard let monthInterval = calendar.dateInterval(of: .month, for: date),
+          let dayRange = calendar.range(of: .day, in: .month, for: date) else {
+        return []
+    }
+
+    let monthStart = monthInterval.start
+    let firstWeekday = calendar.component(.weekday, from: monthStart)
+    let leadingEmptyCount = (firstWeekday - calendar.firstWeekday + 7) % 7
+
+    var days: [Date?] = Array(repeating: nil, count: leadingEmptyCount)
+    for dayOffset in 0..<dayRange.count {
+        guard let day = calendar.date(byAdding: .day, value: dayOffset, to: monthStart) else { continue }
+        days.append(day)
+    }
+    return days
+}
+
+// Phase 28 / CALVIEW-02 — the day-detail event filter Plan 03's calendarFullView reads
+// through. Identical contract to nextRelevantEvent: Foundation-only, total, never crashes on
+// an empty `events` array.
+func events(on day: Date, events: [EventInput], calendar: Calendar = .current) -> [EventInput] {
+    events
+        .filter { calendar.isDate($0.start, inSameDayAs: day) }
+        .sorted { $0.start < $1.start }
+}

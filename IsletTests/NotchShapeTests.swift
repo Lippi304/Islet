@@ -37,4 +37,18 @@ final class NotchShapeTests: XCTestCase {
         XCTAssertGreaterThan(cgBounds.width, 0, "The closed path needs a positive-width bounding box.")
         XCTAssertGreaterThan(cgBounds.height, 0, "The closed path needs a positive-height bounding box.")
     }
+
+    // SHAPE-01 (v1.5, Phase 29) — FINAL, user-confirmed design: no new geometry at all. The
+    // flare is simply a much larger `topCornerRadius` at the outer top corners of the covered
+    // presentations (blobShape()/wingsShape() call sites in NotchPillView.swift), while
+    // collapsedIsland/mediaWingsOrToast keep the small default. This test proves the larger
+    // radius still produces a valid, closed, non-empty path — no separate flare parameter or
+    // path branch is needed in NotchShape itself.
+    func testLargerTopCornerRadiusProducesAClosedNonEmptyPath() {
+        let path = NotchShape(topCornerRadius: 24, bottomCornerRadius: 32).path(in: CGRect(x: 0, y: 0, width: 360, height: 144))
+        let cgBounds = path.cgPath.boundingBox
+        XCTAssertFalse(path.cgPath.isEmpty, "Larger-radius pill path must be non-empty.")
+        XCTAssertGreaterThan(cgBounds.width, 0, "The closed path needs a positive-width bounding box.")
+        XCTAssertGreaterThan(cgBounds.height, 0, "The closed path needs a positive-height bounding box.")
+    }
 }
