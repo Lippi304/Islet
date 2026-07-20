@@ -55,4 +55,10 @@ final class NotchPanelTests: XCTestCase {
                        "The window itself is transparent; the pill draws the black.")
         XCTAssertFalse(panel.hasShadow, "No drop shadow around the notch.")
     }
+
+    func testPanelHasNoDraggingDestinationResidue() {
+        let panel = makePanel()
+        XCTAssertFalse(panel is NSDraggingDestination,
+                       "D-01: the Phase-22 drag scaffold must be fully removed from NotchPanel.")
+    }
 }

@@ -17,6 +17,33 @@ protocol CalendarService: AnyObject {
     /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
     ///   Settles `nil` on Calendar access denial (D-03) — never retries, never re-prompts.
     func fetchUpcoming(completion: @escaping (CalendarGlance?) -> Void)
+
+    /// Fetch all events in the calendar month containing `date`, for the full calendar view.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   Settles `[]` (never `nil`) on Calendar access denial — never retries, never re-prompts.
+    func fetchMonth(containing date: Date, completion: @escaping ([EventInput]) -> Void)
+
+    /// Phase 41 / HUD-08: fetch the raw upcoming-event list (same 2-day predicate window as
+    /// `fetchUpcoming`, all active calendars) for `CalendarCountdownMonitor` (Plan 02), which
+    /// needs the raw list to find the next not-yet-started event via
+    /// `nextUpcomingEvent(events:now:lookahead:)`, beyond just the immediate 1hr countdown
+    /// lookahead.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   Settles `[]` (never `nil`) on Calendar access denial (D-03) — never retries, never re-prompts.
+    func fetchUpcomingRaw(completion: @escaping ([EventInput]) -> Void)
+
+    /// Create a new Calendar event via the quick-add UI.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   D-06: no new permission request here — Calendar write access is already covered by
+    ///   `requestFullAccessToEvents()` elsewhere in this file. Settles `false` on any save error.
+    func createEvent(title: String, start: Date, end: Date, completion: @escaping (Bool) -> Void)
+
+    /// Create a new Reminder via the quick-add UI.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   D-04 (LOCKED): this is the ONLY call site in the codebase allowed to request Reminders
+    ///   access, requested lazily on first invocation — never at launch/onboarding. Settles
+    ///   `false` on denial or any save error, never retries/nags (mirrors LocationProvider.requestOnce).
+    func createReminder(title: String, dueDate: Date?, completion: @escaping (Bool) -> Void)
 }
 
 final class EventKitService: CalendarService {
@@ -37,19 +64,115 @@ final class EventKitService: CalendarService {
                                                       end: Date().addingTimeInterval(2 * 24 * 3600),
                                                       calendars: calendars)
             let events = store.events(matching: predicate)
-            let mapped = events.map { ek -> EventInput in
-                var red = 1.0, green = 1.0, blue = 1.0
-                if let rgb = ek.calendar.color.usingColorSpace(.deviceRGB) {
-                    red = Double(rgb.redComponent)
-                    green = Double(rgb.greenComponent)
-                    blue = Double(rgb.blueComponent)
-                }
-                // T-14-06: ek.title is UNTRUSTED — passed through as a plain String only.
-                return EventInput(title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
-                                  colorRed: red, colorGreen: green, colorBlue: blue)
-            }
+            let mapped = events.map { mapToEventInput($0) }
             let glance = nextRelevantEvent(events: mapped, now: Date())
             await MainActor.run { completion(glance) }
+        }
+    }
+
+    func fetchMonth(containing date: Date, completion: @escaping ([EventInput]) -> Void) {
+        Task {
+            let granted = (try? await store.requestFullAccessToEvents()) ?? false
+            guard granted else {
+                // D-03 (mirrored): access denied — settle [], no retry, no re-prompt.
+                await MainActor.run { completion([]) }
+                return
+            }
+
+            let calendar = Calendar.current
+            guard let interval = calendar.dateInterval(of: .month, for: date) else {
+                await MainActor.run { completion([]) }
+                return
+            }
+
+            // D-02: ALL active calendars, no per-calendar filter (same as fetchUpcoming).
+            let calendars = store.calendars(for: .event)
+            let predicate = store.predicateForEvents(withStart: interval.start, end: interval.end,
+                                                      calendars: calendars)
+            let events = store.events(matching: predicate)
+            let mapped = events.map { mapToEventInput($0) }
+            await MainActor.run { completion(mapped) }
+        }
+    }
+
+    func fetchUpcomingRaw(completion: @escaping ([EventInput]) -> Void) {
+        Task {
+            let granted = (try? await store.requestFullAccessToEvents()) ?? false
+            guard granted else {
+                // D-03: access denied — settle [], no retry, no re-prompt.
+                await MainActor.run { completion([]) }
+                return
+            }
+
+            // Mirrors fetchUpcoming's exact 2-day predicate/ALL-calendars shape (not
+            // fetchMonth's calendar-month-boundary predicate) — avoids missing a
+            // late-month event whose 1hr lookahead crosses into next month.
+            let calendars = store.calendars(for: .event)
+            let predicate = store.predicateForEvents(withStart: Date(),
+                                                      end: Date().addingTimeInterval(2 * 24 * 3600),
+                                                      calendars: calendars)
+            let events = store.events(matching: predicate)
+            let mapped = events.map { mapToEventInput($0) }
+            await MainActor.run { completion(mapped) }
+        }
+    }
+
+    // WR-04 fix (28-REVIEW.md) — factored out of fetchUpcoming/fetchMonth, which each
+    // hand-rolled an identical ~10-line EKEvent -> EventInput RGB-extraction block with the
+    // same 1.0/1.0/1.0 fallback. A future fix (e.g. a colorspace edge case) now applies to
+    // both call sites at once.
+    private func mapToEventInput(_ ek: EKEvent) -> EventInput {
+        var red = 1.0, green = 1.0, blue = 1.0
+        if let rgb = ek.calendar.color.usingColorSpace(.deviceRGB) {
+            red = Double(rgb.redComponent)
+            green = Double(rgb.greenComponent)
+            blue = Double(rgb.blueComponent)
+        }
+        // T-14-06: ek.title is UNTRUSTED — passed through as a plain String only.
+        return EventInput(title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
+                          colorRed: red, colorGreen: green, colorBlue: blue)
+    }
+
+    func createEvent(title: String, start: Date, end: Date, completion: @escaping (Bool) -> Void) {
+        // D-06: no new permission request needed — full write access to Events is already
+        // granted via requestFullAccessToEvents() (called from fetchUpcoming/fetchMonth).
+        let event = EKEvent(eventStore: store)
+        event.title = title // T-14-06: plain String, never interpolated.
+        event.startDate = start
+        event.endDate = end
+        event.calendar = store.defaultCalendarForNewEvents
+        do {
+            try store.save(event, span: .thisEvent)
+            completion(true)
+        } catch {
+            completion(false) // T-28-05: never crash on a thrown save error.
+        }
+    }
+
+    func createReminder(title: String, dueDate: Date?, completion: @escaping (Bool) -> Void) {
+        Task {
+            // D-04 (LOCKED): the ONLY call site in the codebase allowed to request Reminders
+            // access — fired lazily here, on first invocation, never at launch/onboarding.
+            let granted = (try? await store.requestFullAccessToReminders()) ?? false
+            guard granted else {
+                // Silent degrade, no retry/nag (mirrors LocationProvider.requestOnce's D-01 shape).
+                await MainActor.run { completion(false) }
+                return
+            }
+            let reminder = EKReminder(eventStore: store)
+            reminder.title = title // T-14-06: plain String, never interpolated.
+            reminder.calendar = store.defaultCalendarForNewReminders()
+            if let dueDate {
+                reminder.dueDateComponents = Calendar.current.dateComponents(
+                    [.year, .month, .day, .hour, .minute], from: dueDate)
+            }
+            do {
+                try store.save(reminder, commit: true)
+                await MainActor.run { completion(true) }
+            } catch {
+                // T-28-05: never crash on a thrown save error (also covers a nil default calendar).
+                await MainActor.run { completion(false) }
+            }
         }
     }
 }

@@ -28,6 +28,12 @@ final class NotchPanel: NSPanel {
         // island is collapsed and the pointer is out (Pitfall 3). The style mask is NEVER
         // toggled at runtime — only this single flag is.
         ignoresMouseEvents = true
+        // Gap-closure (30-04): every hover interaction up to this point (notch expand-on-hover)
+        // was driven by a manual global NSEvent monitor, never native window events — so this
+        // was never needed before. D-05's TransportButton.onHover is the first native SwiftUI
+        // `.onHover` in the app; without acceptsMouseMovedEvents the window never receives
+        // mouseMoved, so `.onHover` can never fire even while the window is click-through-off.
+        acceptsMouseMovedEvents = true
         level = .statusBar                // above normal windows; see A2 — Plan 03 tunes vs the Tahoe menu bar
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary] // ISL-02: all Spaces, above fullscreen-aux
     }

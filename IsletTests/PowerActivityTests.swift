@@ -23,12 +23,14 @@ final class PowerActivityTests: XCTestCase {
         XCTAssertEqual(powerActivity(from: r), .full(percent: 100))
     }
 
-    func testOnACNotChargingMapsToFull() {
-        // The "distinguish charging from plugged-but-full" criterion: on AC but NOT
-        // charging and NOT (yet) flagged charged still presents as .full — there is no
-        // charge in progress, so we never show the bolt.
-        let r = PowerReading(isPresent: true, isOnAC: true, isCharging: false, isCharged: false, percent: 100)
-        XCTAssertEqual(powerActivity(from: r), .full(percent: 100))
+    func testOnACNotChargedMapsToCharging() {
+        // 36-01 on-device UAT round 3 (confirmed via real hardware trace): macOS's Optimized
+        // Battery Charging can hold kIOPSIsChargingKey false for the entire time a Mac sits on
+        // AC below 100% — Apple's own battery icon shows this as "connected, no bolt" too. The
+        // classification now keys off isCharged (not the flaky isCharging), so on AC + not
+        // charged → .charging regardless of the raw isCharging flag.
+        let r = PowerReading(isPresent: true, isOnAC: true, isCharging: false, isCharged: false, percent: 96)
+        XCTAssertEqual(powerActivity(from: r), .charging(percent: 96))
     }
 
     func testOnBatteryMapsToOnBattery() {

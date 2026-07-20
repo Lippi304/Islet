@@ -1,11 +1,23 @@
 import SwiftUI
 import AppKit
+import Sparkle
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menu: NSMenu!
+    // Phase 40 / HUD-06 (redesign) — a small red dot on the menu-bar icon itself, shown when
+    // Sparkle finds an update. Replaces the earlier collapsed-pill badge overlay (D-05), which
+    // needed the pointer to land inside NotchWindowController's click-through hot-zone to be
+    // tappable at all — the status item's button is always fully clickable, so this sidesteps
+    // that whole class of bug instead of fixing it.
+    private var updateDotView: NSView!
     private var didHideSettingsAtLaunch = false
     private var licenseObserver: NSObjectProtocol?
+    // Phase 40 / HUD-06 — owns the Sparkle updater for the app's lifetime, parallel to
+    // notchController. `userDriverDelegate: nil` means Sparkle's own default
+    // SPUStandardUserDriver renders the standard alert (no custom SPUUserDriver, explicitly
+    // out of scope per REQUIREMENTS.md).
+    private var updaterController: SPUStandardUpdaterController!
     // Phase 1: owns the notch overlay panel. Retained for the app's lifetime so the
     // panel and its screen-change observer stay alive (a dropped controller would
     // tear down the overlay). Parallel to `statusItem`.
@@ -23,10 +35,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Debug session old-islet-instance-stays-open (2026-07-19): Xcode's Stop button is
+        // documented to not always reliably kill LSUIElement/background-agent apps (Apple
+        // Developer Forums thread 47777) — a stopped debug process can keep running
+        // invisibly with its menu-bar icon still live. Self-heal on every launch by force-
+        // terminating any other running Islet process first, so a fresh Cmd+R always
+        // converges to exactly one instance instead of requiring a manual quit.
+        let bundleID = Bundle.main.bundleIdentifier ?? ""
+        for other in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+        where other != .current {
+            other.forceTerminate()
+        }
+
         // TRIAL-01/D-10: must run before controller.start() so LicenseState.shared
         // already has a valid trial start date the first time updateVisibility()
         // runs inside start().
         let isFirstLaunch = TrialManager.shared.recordFirstLaunchIfNeeded()
+
+        // Phase 27 / VISUAL-03 / D-08: must run before controller.start() so the
+        // panel's first show already reads the migrated (not default) accent —
+        // same "before controller.start()" ordering constraint as the trial
+        // recording above.
+        ActivitySettings.migrateLegacyAccentIfNeeded()
 
         // Create the menu-bar status item. variableLength = sized to its content.
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -38,12 +68,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 accessibilityDescription: "Islet")
             image?.isTemplate = true        // template image = the key line
             button.image = image
+
+            // Phase 40 / HUD-06 (redesign) — fixed-size red dot, top-trailing corner of the
+            // icon, hidden until an update is found. A plain colored NSView (not baked into the
+            // template image) so it keeps its red color regardless of the auto-tinted icon.
+            let dot = NSView()
+            dot.wantsLayer = true
+            dot.layer?.backgroundColor = NSColor.systemRed.cgColor
+            dot.layer?.cornerRadius = 3
+            dot.isHidden = true
+            dot.translatesAutoresizingMaskIntoConstraints = false
+            button.addSubview(dot)
+            NSLayoutConstraint.activate([
+                dot.widthAnchor.constraint(equalToConstant: 6),
+                dot.heightAnchor.constraint(equalToConstant: 6),
+                dot.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -1),
+                dot.topAnchor.constraint(equalTo: button.topAnchor, constant: 1)
+            ])
+            updateDotView = dot
         }
 
         // The dropdown menu shown when the status item is clicked.
         menu = NSMenu()
         menu.addItem(withTitle: "Settings…",
                      action: #selector(openSettings), keyEquivalent: ",")
+        // Phase 40 / HUD-06 — sits between "Settings…" and the separator (40-UI-SPEC.md Menu
+        // Item Contract).
+        menu.addItem(withTitle: "Check for Updates…",
+                     action: #selector(checkForUpdates), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Islet",
                      action: #selector(quit), keyEquivalent: "q")
@@ -60,32 +112,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             forName: UserDefaults.didChangeNotification, object: nil, queue: .main
         ) { [weak self] _ in
             self?.applyMenuBarClickRouting(isLicensed: LicenseState.shared.isEntitled)
+            // Phase 40 / HUD-06 (D-11) — re-apply the auto-update-check toggle live, mirrors
+            // applyMenuBarClickRouting's own re-apply-on-change pattern above.
+            // Guarded by equality: Sparkle's setter itself writes back to UserDefaults
+            // (SUHost setBool:forUserDefaultsKey:), which re-posts didChangeNotification —
+            // an unconditional set here re-triggers this closure forever (crash-loop).
+            let desired = UserDefaults.standard.object(forKey: ActivitySettings.autoUpdateCheckKey) as? Bool ?? true
+            if self?.updaterController?.updater.automaticallyChecksForUpdates != desired {
+                self?.updaterController?.updater.automaticallyChecksForUpdates = desired
+            }
         }
 
         // Phase 1: build and show the notch overlay on the built-in notched display.
         // The controller resolves the correct screen, positions the panel on the
         // notch, and re-positions on every screen-configuration change.
         let controller = NotchWindowController()
-        controller.start()
+        controller.start(isFirstLaunch: isFirstLaunch)
         self.notchController = controller
+
+        // Phase 40 / HUD-06 — construct Sparkle after the notch controller.
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
+        // D-12: the `UserDefaults.standard.object(forKey:) as? Bool ?? true` shape mirrors
+        // NotchWindowController.activityEnabled(_:)'s pattern but with a `true` default,
+        // distinct from that method's focusKey-only `false` branch.
+        updaterController.updater.automaticallyChecksForUpdates = UserDefaults.standard.object(forKey: ActivitySettings.autoUpdateCheckKey) as? Bool ?? true
 
         // A menu-bar agent must NOT show its Settings window on launch — once
         // "Launch at login" is enabled it would otherwise pop up on every login.
         // The SwiftUI Window(id:) scene creates its window at launch, so hide it
         // right after launch. orderOut keeps the window object alive, so
         // "Settings…" can re-show it instantly via makeKeyAndOrderFront below.
-        if isFirstLaunch {
-            // D-02/D-03: on a genuinely fresh install, skip the hide entirely
-            // (Pitfall 2's recommended fix) and auto-open Settings once instead,
-            // regardless of the notch-target display state.
-            didHideSettingsAtLaunch = true
-            DispatchQueue.main.async { [weak self] in
-                self?.openSettings()
-            }
-        } else {
-            DispatchQueue.main.async { [weak self] in
-                self?.hideSettingsWindowOnLaunch()
-            }
+        // Phase 26 / D-08: onboarding now lives entirely inside the notch panel
+        // (NotchWindowController.start(isFirstLaunch:)), so Settings must never
+        // auto-open on any launch, first or not — unconditionally hide it.
+        DispatchQueue.main.async { [weak self] in
+            self?.hideSettingsWindowOnLaunch()
         }
 
         #if DEBUG
@@ -139,6 +200,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .makeKeyAndOrderFront(nil)
     }
 
+    // Phase 40 / HUD-06 — RESEARCH.md Pitfall 2 / 40-UI-SPEC.md Menu Item Contract: unlike
+    // openSettings(), no NSApp.activate(ignoringOtherApps:) here — this is an explicit
+    // user-initiated click, so Sparkle's own dialog activating/stealing focus on tap is
+    // expected and acceptable.
+    @objc private func checkForUpdates() {
+        updaterController.checkForUpdates(nil)
+    }
+
     @objc private func quit() {
         NSApp.terminate(nil)
     }
@@ -166,6 +235,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugForceLicensed), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Debug: Reset Trial",
                           action: #selector(debugResetTrial), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Like Current Track",
+                          action: #selector(debugSpikeLikeCurrentTrack), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Trigger Automation Prompt",
+                          action: #selector(debugSpikeTriggerAutomationPrompt), keyEquivalent: "")
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -189,5 +262,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // makes Reset Trial usable for on-device testing without quitting the app.
         TrialManager.shared.recordFirstLaunchIfNeeded()
     }
+
+    // Phase 49 spike hooks — see 49-01-SUMMARY.md for the on-device verdict.
+    // @MainActor required: NotchWindowController (and its spike methods) are @MainActor-
+    // isolated; menu-item actions run on main but this method itself isn't inferred
+    // @MainActor by default (not a protocol requirement like applicationDidFinishLaunching).
+    @MainActor @objc private func debugSpikeLikeCurrentTrack() {
+        notchController?.spikeLikeCurrentTrack()
+    }
+
+    @MainActor @objc private func debugSpikeTriggerAutomationPrompt() {
+        notchController?.spikeTriggerAutomationPrompt()
+    }
     #endif
+}
+
+// Phase 40 / HUD-06 (D-13, RESEARCH.md Pattern 2) — no updaterDidNotFindUpdate override: the
+// dot only needs to go visible on a genuine find, nothing needs to actively hide it again (a
+// successful install relaunches the app, resetting it to hidden on next launch).
+extension AppDelegate: SPUUpdaterDelegate {
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        updateDotView?.isHidden = false
+    }
 }

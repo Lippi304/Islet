@@ -35,6 +35,18 @@ final class InteractionStateTests: XCTestCase {
         XCTAssertEqual(nextState(.collapsed, .clicked), .expanded)
     }
 
+    func testCollapsedDragEnteredExpands() {
+        XCTAssertEqual(nextState(.collapsed, .dragEntered), .expanded)
+    }
+
+    func testHoveringDragEnteredExpands() {
+        XCTAssertEqual(nextState(.hovering, .dragEntered), .expanded)
+    }
+
+    func testExpandedDragEnteredIsIdempotent() {
+        XCTAssertEqual(nextState(.expanded, .dragEntered), .expanded)
+    }
+
     func testExpandedPointerExitDefersCollapse() {
         // D-03: leaving an expanded island does not instantly collapse it; grace applies.
         XCTAssertEqual(nextState(.expanded, .pointerExited), .expanded)
@@ -52,6 +64,19 @@ final class InteractionStateTests: XCTestCase {
     func testExpandedClickToggsShut() {
         // Clicking an expanded island toggles it shut.
         XCTAssertEqual(nextState(.expanded, .clicked), .collapsed)
+    }
+
+    func testExpandedDismissedCollapsesImmediately() {
+        // 43-02 round 4: resolving a Quick Action picker closes now, no grace defer.
+        XCTAssertEqual(nextState(.expanded, .dismissed), .collapsed)
+    }
+
+    func testCollapsedDismissedIsNoOp() {
+        XCTAssertEqual(nextState(.collapsed, .dismissed), .collapsed)
+    }
+
+    func testHoveringDismissedIsNoOp() {
+        XCTAssertEqual(nextState(.hovering, .dismissed), .hovering)
     }
 
     func testCollapsedGraceElapsedIsNoOp() {

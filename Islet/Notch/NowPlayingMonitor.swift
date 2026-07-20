@@ -44,6 +44,12 @@ protocol NowPlayingService: AnyObject {
     func nextTrack()
     func previousTrack()
     func runHealthCheck(then setHealthy: @escaping (Bool) -> Void)
+    #if DEBUG
+    // Phase 49 spike — throwaway hooks, removed/replaced once Phase 50 lands the real
+    // star-button feature. See 49-01-SUMMARY.md for the on-device verdict.
+    func spikeLikeCurrentTrack()
+    func spikeTriggerAutomationPrompt()
+    #endif
 }
 
 @MainActor
@@ -94,6 +100,29 @@ final class NowPlayingMonitor: NowPlayingService {
     func togglePlayPause() { controller.togglePlayPause() }
     func nextTrack()       { controller.nextTrack() }
     func previousTrack()   { controller.previousTrack() }
+
+    #if DEBUG
+    // Phase 49 spike hooks (T-49-02, T-49-04) — throwaway, NSLog-marked, removed/replaced
+    // once Phase 50 lands the real star-button feature. See 49-RESEARCH.md Code Examples.
+    func spikeLikeCurrentTrack() {
+        NSLog("SPIKE likeTrack() sending kMRLikeTrack")
+        controller.likeTrack()
+    }
+
+    func spikeTriggerAutomationPrompt() {
+        let script = NSAppleScript(source: "tell application \"Music\" to get name of current track")
+        var errorDict: NSDictionary?
+        let result = script?.executeAndReturnError(&errorDict)
+        if let errorDict {
+            let number = errorDict[NSAppleScript.errorNumber] as? Int
+            NSLog("SPIKE AppleScript error number=\(number ?? -1) dict=\(errorDict)")
+            // -1743 (errAEEventNotPermitted) = TCC denial/never-prompted (Pitfall 3)
+            // -1728 ("can't get X of Y")     = current-track bug (Pitfall 2), NOT a TCC issue
+        } else {
+            NSLog("SPIKE AppleScript succeeded: \(result?.stringValue ?? "nil")")
+        }
+    }
+    #endif
 
     // D-12 launch-time health check (Pattern 3 option a — see file header for the why).
     // "A callback arrived at all" → healthy; "no callback within the timeout" → unavailable.

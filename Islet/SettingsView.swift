@@ -27,34 +27,172 @@ struct SettingsView: View {
     // controller (Plan 04) reads the identical values.
     @AppStorage(ActivitySettings.chargingKey)   private var chargingEnabled = true
     @AppStorage(ActivitySettings.nowPlayingKey) private var nowPlayingEnabled = true
+    // Phase 18 / NOW-06 — default true, matching nowPlayingEnabled's default (no regression
+    // for existing users, fresh installs read ON).
+    @AppStorage(ActivitySettings.songChangeToastKey) private var songChangeToastEnabled = true
     @AppStorage(ActivitySettings.deviceKey)     private var deviceEnabled = true
-    @AppStorage(ActivitySettings.accentIndexKey) private var accentIndex = ActivitySettings.defaultAccentIndex
+    // Phase 41 / HUD-08 (D-03) — default ON, matches Charging/Device's opt-out convention;
+    // no permission popover needed (CalendarService's existing EventKit authorization,
+    // Phase 14/28, is reused as-is).
+    @AppStorage(ActivitySettings.calendarCountdownKey) private var calendarCountdownEnabled = true
+    // Phase 38 / HUD-05 (D-01) — the ONE activity toggle that defaults OFF (permission-gated,
+    // opt-in). @State drives the one-time explanation popover (D-02: shown only at the moment
+    // the toggle flips on, never at launch).
+    @AppStorage(ActivitySettings.focusKey) private var focusEnabled = false
+    @State private var showFocusPermissionExplanation = false
+    // Phase 39 / HUD-03/HUD-04 (D-05): identical shape to focusEnabled above — off by default,
+    // permission-gated. NOTE: per 39-03-SUMMARY.md's on-device spike finding
+    // (suppression-unreliable), OSDInterceptor is a PERMANENT .listenOnly-only detector that
+    // NEVER suppresses the native OSD regardless of this toggle's value — flipping it on
+    // currently has no visible effect on the system OSD. The toggle/popover UI is still built
+    // per the locked UI-SPEC contract (D-06/D-08) since Accessibility could become viable again
+    // in a future macOS/permission-tier change; see 39-06-SUMMARY.md for the full no-op note.
+    @AppStorage(ActivitySettings.osdSuppressionKey) private var osdSuppressionEnabled = false
+    @State private var showOSDPermissionExplanation = false
+    // Phase 40 / HUD-06 (D-11/D-12) — default true: the one deliberate exception among the
+    // Activities toggles (besides osdSuppression's off-default), since this gates no system
+    // permission, just a background network check.
+    @AppStorage(ActivitySettings.autoUpdateCheckKey) private var autoUpdateCheckEnabled = true
+    // Quick task 260709-glz — default true mirrors the controller's default (matches
+    // today's behavior for existing users, no regression).
+    @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
+    // Phase 33 / WEATHER-01/02 (D-03/D-04) — a String-backed enum selector, same
+    // @AppStorage-is-the-source-of-truth convention as the Activities toggles above; no
+    // .onChange handler needed (NotchPillView/NotchWindowController each read the same key
+    // independently). Mirrors materialStyle's fully-qualified-type-annotation convention below.
+    @AppStorage(ActivitySettings.weatherStyleKey) private var weatherStyle: ActivitySettings.WeatherStyle = .medium
+
+    // Phase 27 / VISUAL-03 (D-05/D-07) — the material-style preset and the 3
+    // independent per-element accent indices, replacing the single global
+    // accentIndexKey. SwiftUI's native `@AppStorage` overload for any
+    // `RawRepresentable where RawValue == String` reads/writes/falls back to
+    // the declared default automatically (T-27-06) — no manual Binding needed.
+    // Phase 35 / GLASS-01 (D-06): default flipped .gradient -> .liquidGlass — the
+    // second of the two independently-hardcoded default locations (the other is
+    // ActivitySettings.swift's IslandMaterialStyleKey.defaultValue, Plan 35-01).
+    @AppStorage(ActivitySettings.materialStyleKey) private var materialStyle: ActivitySettings.MaterialStyle = .liquidGlass
+    @AppStorage(ActivitySettings.nowPlayingAccentKey) private var nowPlayingAccentIndex = ActivitySettings.defaultAccentIndex
+    @AppStorage(ActivitySettings.chargingAccentKey) private var chargingAccentIndex = ActivitySettings.defaultAccentIndex
+    @AppStorage(ActivitySettings.deviceAccentKey) private var deviceAccentIndex = ActivitySettings.defaultAccentIndex
+
+    // Phase 27 / SETTINGS-01 — sidebar section identity (D-01–D-04, UI-SPEC §Sidebar
+    // Structure). Order and copy are locked: General, Workspace, System, About.
+    private enum SidebarSection: String, CaseIterable, Identifiable {
+        case general, workspace, system, about
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .general: return "General"
+            case .workspace: return "Workspace"
+            case .system: return "System"
+            case .about: return "About"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .general: return "gearshape"
+            case .workspace: return "tray"
+            case .system: return "paintbrush"
+            case .about: return "info.circle"
+            }
+        }
+    }
+    @State private var selection: SidebarSection? = .general
 
     var body: some View {
-        Form {
-            // D-01/D-02: the adaptive License section is the FIRST element in the
-            // Form, above Launch-at-login. Its body swaps on the current
-            // LicenseStatus — during an active trial it shows the days-remaining
-            // countdown (D-03/TRIAL-03) that REPLACES the old fixed end-date notice.
-            Section("License") {
-                switch licenseStatus {
-                case .trial(let days):
-                    Text(days == 1
-                         ? "1 day left in your trial."
-                         : "\(days) days left in your trial.")
-                        .foregroundStyle(.secondary)
-                    buyNowButton
-                    licenseEntry
-                case .trialExpired:
-                    Text("3-day trial period expired")
-                        .font(.headline)
-                    buyNowButton
-                    licenseEntry
-                case .licensed:
-                    Text("Licensed ✓")
+        NavigationSplitView {
+            // Plan 27-04 checkpoint fix: List(selection:) never registered a single click
+            // on-device across 3 attempts (Scene-hosted, AppKit-hosted, .sidebar list style +
+            // .contentShape) — confirmed via diagnostic instrumentation that `selection` never
+            // changed regardless. Falling back to plain Buttons (already proven to respond
+            // reliably in this same window, e.g. "Save Diagnostic Report…") bypasses whatever
+            // is wrong with List's row-selection routing on this setup entirely.
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(SidebarSection.allCases) { section in
+                    Button {
+                        selection = section
+                    } label: {
+                        Label(section.title, systemImage: section.icon)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(selection == section ? Color.accentColor.opacity(0.25) : .clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
+            }
+            .padding(8)
+            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
+        } detail: {
+            switch selection {
+            case .general:
+                generalSection
+            case .workspace:
+                workspaceSection
+            case .system:
+                systemSection
+            case .about:
+                aboutSection
+            case .none:
+                generalSection
+            }
+        }
+        // Re-read the system state on appear and whenever the window's app
+        // becomes active again — the user can flip the login item in System
+        // Settings behind the app's back, so the toggle must never desync
+        // (RESEARCH Pitfall 3). `appearsActive` is the macOS env value for
+        // "this window is the active app".
+        .onAppear {
+            launchAtLogin = LaunchAtLogin.isEnabled
+            licenseStatus = LicenseState.shared.status
+        }
+        .onChange(of: appearsActive) { _, active in
+            if active {
+                launchAtLogin = LaunchAtLogin.isEnabled
+                licenseStatus = LicenseState.shared.status
+            }
+        }
+        // Phase 35 / GLASS-01 (D-08/D-09) — a separate integration point from the
+        // island shell's `islandFill`: this file has no shader/distortion code at
+        // all. D-08 approved extending Liquid Glass to the Settings window (with
+        // Onboarding explicitly excluded); D-09 calls for the CALMER variant here —
+        // half the island shell's gradient alpha at every stop, a frost material,
+        // and a rim-light stroke, with NO distortion shader (readability risk on a
+        // text-heavy form). D-08's scope extension is specific to the Liquid Glass
+        // style, so this only applies when that style is selected (35-REVIEW.md
+        // CR-01) — Gradient/Solid Black keep the pre-Phase-35 default background.
+        .background {
+            if materialStyle == .liquidGlass {
+                ZStack {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(0.25), location: 0.0),
+                            .init(color: .black.opacity(0.15), location: 0.65),
+                            .init(color: .black.opacity(0.05), location: 1.0),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    Color.clear.background(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
                 }
             }
+        }
+        .frame(width: 520, height: 380)
+    }
 
+    // D-01 — General: 4 activity toggles + Launch-at-login + Fullscreen toggle +
+    // Diagnostics button — a deliberate catch-all section (27-CONTEXT.md D-01).
+    private var generalSection: some View {
+        Form {
             Toggle("Launch Islet at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, on in
                     do {
@@ -76,30 +214,82 @@ struct SettingsView: View {
                     }
                 }
 
-            // APP-03: three independent activity on/off toggles (D-06/D-07),
+            // APP-03: four independent activity on/off toggles (D-06/D-07),
             // pure on/off — no master switch, no per-activity duration (D-08).
             Section("Activities") {
                 Toggle("Charging", isOn: $chargingEnabled)
                 Toggle("Now Playing", isOn: $nowPlayingEnabled)
+                Toggle("Song-Change Toast", isOn: $songChangeToastEnabled)
                 Toggle("Devices", isOn: $deviceEnabled)
-
-                // D-12: a curated swatch palette (a fixed preset row, not a free
-                // color wheel) with a selected ring. Tapping persists the index
-                // via @AppStorage and
-                // (once Plan 04 wires it) live-applies the accent.
-                LabeledContent("Accent") {
-                    HStack(spacing: 10) {
-                        ForEach(ActivitySettings.palette.indices, id: \.self) { i in
-                            Circle()
-                                .fill(ActivitySettings.palette[i])
-                                .frame(width: 22, height: 22)
-                                .overlay(
-                                    Circle().strokeBorder(.primary, lineWidth: accentIndex == i ? 2 : 0)
-                                )
-                                .onTapGesture { accentIndex = i }
+                Toggle("Calendar Countdown", isOn: $calendarCountdownEnabled)
+                // Phase 38 / HUD-05 — D-02: the permission ask happens ONLY at this exact
+                // off-to-on flip, never at launch. D-04: declining the explanation leaves the
+                // toggle ON with the inert hint — the tap-to-retry gesture below is the ONLY way
+                // the explanation re-appears, never automatically.
+                Toggle("Focus Mode HUD", isOn: $focusEnabled)
+                    .onChange(of: focusEnabled) { _, on in
+                        if on && !FocusModeMonitor.isAuthorized {
+                            showFocusPermissionExplanation = true
                         }
                     }
+                    .popover(isPresented: $showFocusPermissionExplanation) {
+                        focusPermissionExplanationView
+                    }
+                if let hint = ActivitySettings.focusPermissionStatusHint(
+                    toggleOn: focusEnabled, granted: FocusModeMonitor.isAuthorized
+                ) {
+                    Text(hint)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .onTapGesture { showFocusPermissionExplanation = true }
                 }
+
+                // Phase 39 / HUD-03/HUD-04 — D-05/D-06/D-08: identical shape to the Focus Mode
+                // toggle above. Label is the exact locked string from 39-UI-SPEC.md — never
+                // "Volume/Brightness HUD" (that would incorrectly imply this toggle gates the
+                // HUD's own visibility, which it does not per D-06; the HUD keeps showing
+                // regardless of this toggle's value).
+                Toggle("Replace System Volume/Brightness OSD", isOn: $osdSuppressionEnabled)
+                    .onChange(of: osdSuppressionEnabled) { _, on in
+                        if on && !OSDInterceptor.isAccessibilityTrusted {
+                            showOSDPermissionExplanation = true
+                        }
+                    }
+                    .popover(isPresented: $showOSDPermissionExplanation) {
+                        osdPermissionExplanationView
+                    }
+                if let hint = ActivitySettings.osdPermissionStatusHint(
+                    toggleOn: osdSuppressionEnabled, granted: OSDInterceptor.isAccessibilityTrusted
+                ) {
+                    Text(hint)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .onTapGesture { showOSDPermissionExplanation = true }
+                }
+
+                // Phase 40 / HUD-06 (D-11) — automatic-check scheduling requires no macOS
+                // privacy grant, unlike Focus/OSD's permission-gated toggles above: no
+                // .onChange, no .popover, no status-hint Text (40-UI-SPEC.md Settings Toggle
+                // Contract).
+                Toggle("Automatically Check for Updates", isOn: $autoUpdateCheckEnabled)
+            }
+
+            // Quick task 260709-glz — a fullscreen-visibility preference, distinct from
+            // the activity on/off toggles above (not a live-activity source).
+            Section("Fullscreen") {
+                Toggle("Hide notch in fullscreen", isOn: $hideInFullscreen)
+            }
+
+            // Phase 33 / WEATHER-01/02 (D-03/D-04/D-05) — live-switches the Weather card between
+            // its Medium and Large layouts, no relaunch (NotchPillView's @AppStorage on the
+            // same key re-renders immediately). Mirrors systemSection's materialStyle segmented
+            // Picker exactly, using the bare WeatherStyle module-level alias for the tags.
+            Section("Weather") {
+                Picker("Weather Style", selection: $weatherStyle) {
+                    Text("Medium").tag(WeatherStyle.medium)
+                    Text("Large").tag(WeatherStyle.large)
+                }
+                .pickerStyle(.segmented)
             }
 
             // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
@@ -107,28 +297,170 @@ struct SettingsView: View {
             Section("Diagnostics") {
                 Button("Save Diagnostic Report…") { saveDiagnosticReport() }
             }
+        }
+        .padding(20)
+    }
+
+    // Phase 38 / HUD-05 — D-02/D-03/D-04's one-time explanation popover, shown at the moment
+    // the Focus Mode HUD toggle flips on while unauthorized. 38-01-SUMMARY.md's on-device spike
+    // locked detection to Path A (INFocusStatusCenter) — this builds ONLY that variant's copy
+    // from 38-UI-SPEC.md's Settings Permission Contract, not the Full Disk Access variant.
+    private var focusPermissionExplanationView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Allow Focus Status Access")
+                .font(.system(size: 15, weight: .semibold))
+            Text("Islet needs permission to detect when Focus or Do Not Disturb is on.")
+                .font(.system(size: 12))
+                .lineSpacing(12 * 0.4)
+            HStack {
+                Button("Not Now") {
+                    showFocusPermissionExplanation = false
+                }
+                Spacer()
+                Button("Continue") {
+                    FocusModeMonitor.requestAuthorization { granted in
+                        DispatchQueue.main.async {
+                            if granted {
+                                (NSApp.delegate as? AppDelegate)?.notchController?.focusPermissionGranted()
+                            }
+                            showFocusPermissionExplanation = false
+                        }
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
+    }
+
+    // Phase 39 / HUD-03/HUD-04 — D-08's one-time explanation popover, shown at the moment the
+    // OSD suppression toggle flips on while Accessibility is untrusted. This is the ONE
+    // genuinely new mechanism in this phase: Accessibility has no `requestAuthorization(
+    // completion:)`-style re-request API the way Focus's `INFocusStatusCenter` does, so the
+    // primary action deep-links to System Settings' Accessibility pane instead. This button's
+    // job ends at opening the pane — OSDInterceptor's own health-check timer (Plan 39-03) is
+    // the sole mechanism that later confirms a grant, not this view.
+    private var osdPermissionExplanationView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Replace System OSD")
+                .font(.system(size: 15, weight: .semibold))
+            Text("Islet needs Accessibility access to hide the native volume/brightness indicator. Islet only intercepts volume and brightness key presses — it never reads, modifies, or sends anything else on your Mac.")
+                .font(.system(size: 12))
+                .lineSpacing(12 * 0.4)
+            HStack {
+                // D-06: declining leaves the toggle ON — the HUD keeps showing (unsuppressed)
+                // regardless of this dismissal. Do NOT revert osdSuppressionEnabled here.
+                Button("Not Now") {
+                    showOSDPermissionExplanation = false
+                }
+                Spacer()
+                Button("Open System Settings") {
+                    NSWorkspace.shared.open(URL(string:
+                        "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+                    showOSDPermissionExplanation = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
+    }
+
+    // D-03 — Workspace: no shelf-specific settings exist today; a quiet centered
+    // placeholder literally satisfies the 4-section sidebar contract (UI-SPEC
+    // §Section Content Specs/Workspace). No Form/Section wrapper.
+    private var workspaceSection: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "tray")
+                .font(.system(size: 28))
+                .foregroundStyle(.secondary)
+            Text("Nothing to configure yet")
+                .font(.headline)
+            Text("The Shelf works automatically — no settings needed right now.")
+                .font(.subheadline)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // D-02 — About: the adaptive License block (all 3 states) + Version label,
+    // relocated verbatim — nothing else moves here.
+    private var aboutSection: some View {
+        Form {
+            // D-01/D-02: the adaptive License section swaps on the current
+            // LicenseStatus — during an active trial it shows the days-remaining
+            // countdown (D-03/TRIAL-03) that REPLACES the old fixed end-date notice.
+            Section("License") {
+                switch licenseStatus {
+                case .trial(let days):
+                    Text(days == 1
+                         ? "1 day left in your trial."
+                         : "\(days) days left in your trial.")
+                        .foregroundStyle(.secondary)
+                    buyNowButton
+                    licenseEntry
+                case .trialExpired:
+                    Text("3-day trial period expired")
+                        .font(.headline)
+                    buyNowButton
+                    licenseEntry
+                case .licensed:
+                    Text("Licensed ✓")
+                }
+            }
 
             LabeledContent("Version") {
                 Text(Self.versionString)   // D-09: version/build label
             }
-        }
-        // Re-read the system state on appear and whenever the window's app
-        // becomes active again — the user can flip the login item in System
-        // Settings behind the app's back, so the toggle must never desync
-        // (RESEARCH Pitfall 3). `appearsActive` is the macOS env value for
-        // "this window's app is the active app".
-        .onAppear {
-            launchAtLogin = LaunchAtLogin.isEnabled
-            licenseStatus = LicenseState.shared.status
-        }
-        .onChange(of: appearsActive) { _, active in
-            if active {
-                launchAtLogin = LaunchAtLogin.isEnabled
-                licenseStatus = LicenseState.shared.status
+
+            // EQ-01 Registry Safety — Skiper UI's free-tier license requires visible
+            // attribution since Islet holds no Pro license. Locked exact credit string,
+            // 36-UI-SPEC.md.
+            Section("Credits") {
+                Text("Equalizer bar animation inspired by Skiper UI (skiper25.com)")
             }
         }
         .padding(20)
-        .frame(width: 360)
+    }
+
+    // D-04/D-05/D-07 — System (Theming): material-style segmented picker + 3
+    // independent per-element accent swatch rows (UI-SPEC §System/Theming).
+    private var systemSection: some View {
+        Form {
+            Section("Appearance Style") {
+                Picker("Style", selection: $materialStyle) {
+                    Text("Gradient").tag(MaterialStyle.gradient)
+                    Text("Solid Black").tag(MaterialStyle.solidBlack)
+                    Text("Liquid Glass").tag(MaterialStyle.liquidGlass)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            Section("Accent Colors") {
+                LabeledContent("Now Playing") { swatchRow(selection: $nowPlayingAccentIndex) }
+                LabeledContent("Charging") { swatchRow(selection: $chargingAccentIndex) }
+                LabeledContent("Device") { swatchRow(selection: $deviceAccentIndex) }
+            }
+        }
+        .padding(20)
+    }
+
+    // D-07 — the existing curated swatch-circle picker (today's Appearance-tab
+    // Accent row), factored into a reusable row bound to any of the 3
+    // independent accent Bindings so each lively leaf element gets its own
+    // picker without a second color-picker component (UI-SPEC Don't-Hand-Roll).
+    @ViewBuilder private func swatchRow(selection: Binding<Int>) -> some View {
+        HStack(spacing: 10) {
+            ForEach(ActivitySettings.palette.indices, id: \.self) { i in
+                Circle()
+                    .fill(ActivitySettings.palette[i])
+                    .frame(width: 22, height: 22)
+                    .overlay(
+                        Circle().strokeBorder(.primary, lineWidth: selection.wrappedValue == i ? 2 : 0)
+                    )
+                    .onTapGesture { selection.wrappedValue = i }
+            }
+        }
     }
 
     // D-07: opens the purchase page in the default browser. The URL is a hardcoded
@@ -213,7 +545,9 @@ struct SettingsView: View {
             chargingEnabled: chargingEnabled,
             nowPlayingEnabled: nowPlayingEnabled,
             deviceEnabled: deviceEnabled,
-            accentIndex: accentIndex,
+            nowPlayingAccentIndex: nowPlayingAccentIndex,
+            chargingAccentIndex: chargingAccentIndex,
+            deviceAccentIndex: deviceAccentIndex,
             nowPlayingHealthy: (NSApp.delegate as? AppDelegate)?.notchController?.nowPlayingState.isHealthy
         )
 

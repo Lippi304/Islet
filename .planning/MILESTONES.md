@@ -1,5 +1,54 @@
 # Milestones
 
+## v1.6 Liquid Glass & System HUD Suite (Shipped: 2026-07-19)
+
+**Phases completed:** 8 phases (35-42), 43 plans, 191 phase commits, 185 files changed (+28.5k/-244 lines)
+
+**Key accomplishments:**
+
+- Replaced the shared background material across the collapsed pill, expanded island, and every activity wing with a shader-based "Liquid Glass" look — 4 rounds of on-device UAT remediation (opaque grey → uniformly bright → washed-out silvery → approved), then pivoted to SwiftUI's native `.glassEffect()` on macOS 26+ after a post-completion regression, keeping the custom Metal shader stack as the `<26` fallback.
+- Shipped 5 new/restyled collapsed-state system HUDs (Bluetooth/Charging Droppy-pill restyles, Focus Mode, Volume/Brightness, Update-available) plus a redesigned equalizer and a static rainbow-gradient onboarding signature heading.
+- Genuine native-OSD suppression for Volume/Brightness key presses, reversing an initial "unreliable" spike finding: `.cghidEventTap` (HID-level) works where `.cgSessionEventTap` (session-level) didn't — Islet now self-drives real system volume/brightness/mute with a per-type kill-switch fallback, confirmed zero transport-key regressions across all 4 media keys on real hardware.
+- Real Sparkle 2 auto-update integration; the update-available indicator was redesigned mid-phase from a collapsed-pill badge to a menu-bar status-item dot after on-device UAT root-caused its tap-dispatch bug to a click-through hot-zone gap — the same fragility class later independently re-found and fixed in the Dual-Activity Display phase.
+- A live-minute Calendar Countdown HUD with its own persistent timer, and a new dual-activity display concept (`IslandResolver.resolveSecondary()`) showing a secondary bubble alongside the main pill when two top-priority activities are live at once — its tap-to-expand interaction was redesigned live during on-device UAT to hover-reveal play/pause, by explicit user decision.
+- Phase 37 (Drop-Session Summary Chip) was fully implemented then abandoned after on-device UAT found its Tray-close trigger essentially never fires in real usage — all code reverted via `git revert`, HUD-07 dropped from scope rather than shipped as dead weight.
+
+**Known Gaps**
+
+- HUD-07 (Drop-Session Summary Chip) not shipped — see above; dropped from v1.6's requirement set by explicit user decision, not carried forward.
+
+---
+
+## v1.3 Notch Shelf (Shipped: 2026-07-11)
+
+**Phases completed:** 3 phases (19-21), 5 plans, 12 tasks
+
+**Key accomplishments:**
+
+- Pure Foundation-only ShelfItem/ShelfLogic/ShelfFileStore/ShelfCoordinator stack — real FileManager session-temp copy-in on add and delete-on-removal wired through a thin coordinator, zero persistence path, zero AppKit/SwiftUI/IslandResolver coupling.
+- Shelf strip renders inside the expanded island (file-type icons, per-item trash, delete-all trash) as a conditionally-taller extension of the existing blobShape, with a regression test proving SHELF-09's transient-outranks-expanded gating needed zero new resolver code.
+- `NotchWindowController` now owns a real `ShelfCoordinator`, routes tap/delete/clear-all through it with the D-04 missing-file guard, reserves the panel's window height for the shelf band unconditionally, and hand-seeds 3 real on-disk sample files in DEBUG builds.
+- Scoped `syncClickThrough()`'s hit-test to the actual visible blob rect (`visibleContentZone()`) instead of the full static panel, closing the invisible 56pt click-swallowing band under an empty shelf, and extracted a single `resyncShelfViewState(animated:)` helper so shelf delete/clear-all animate with the standard spring instead of snapping instantly.
+- Drag-out shipped: a shelf item can be dragged onto Finder or any other app via `.onDrag` + `NSItemProvider(contentsOf:)`, with a drag-pin keeping the island open for the gesture's duration and a UAT-discovered auto-prune for items whose backing file vanished externally.
+
+### Known Gaps
+
+- **SHELF-01, SHELF-02 (drag-in) — not shipped.** Phase 22 spiked successfully (AppKit drag delivery does reach a click-through `NSPanel`) but then hit a second, separate blocker on-device twice: dragging never reached `NotchPanel` at all (`draggingEntered` never fired) even after restoring the working spike's `draggingUpdated(_:)` handler — root cause never identified. Rather than continue debugging incrementally, the user chose to abandon the current `NotchPanel`/`NotchWindowController` architecture in favor of a broader redesign (see v1.4). SHELF-01/02 carry forward as requirements into v1.4; Phase 22's pure seams (22-02) remain merged and reusable, Phase 22's debugging worktree is preserved for reference (see STATE.md).
+
+---
+
+## v1.2 Now Playing Polish (Shipped: 2026-07-09)
+
+**Phases completed:** 2 phases, 3 plans, 9 tasks
+
+**Key accomplishments:**
+
+- hasPlayedSinceLaunch flag + nowPlayingLaunchGate pure helper gate the ambient Now Playing wings glance until a real Play is observed this Islet session — on-device verified and approved.
+- Pure, unit-tested Foundation-only detection/suppression seam for the song-change toast (TrackToast + songChangeToastContent + songChangeToastGate) plus the NOW-06 Settings toggle — no user-observable behavior ships yet, this locks the contracts Plan 02 wires against.
+- Wires Plan 01's pure seam end-to-end: handleNowPlaying detects a genuine song change, gates it through songChangeToastGate, drives an independent ~2s auto-dismiss timer, and NotchPillView renders it as the existing wings capsule growing a small fading text row underneath (title — artist), refined over 5 on-device feedback rounds to match a DynamicLake-style reference.
+
+---
+
 ## v1.1 Trial & Paid Release (Shipped: 2026-07-08)
 
 **Phases completed:** 4 phases, 11 plans
