@@ -800,7 +800,13 @@ Plans:
   3. A real Spotify OAuth PKCE round-trip plus a real `PUT` save-track call is exercised, and current quota-mode/Extended-Access criteria are confirmed directly on the Spotify Developer Dashboard.
   4. The Automation (Apple Events/TCC) permission-prompt reliability bug is reproduced or ruled out on this hardware, and a documented go/no-go scope decision (ship Spotify OAuth / bring-your-own-Client-ID / Apple-Music-only for this milestone) is recorded.
 
-**Plans**: TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 49-01-PLAN.md — Wave 1: com.apple.security.automation.apple-events entitlement + NSAppleEventsUsageDescription prerequisite, DEBUG-only likeTrack/TCC-trigger spike hooks, on-device SC#1+SC#4 verification
+- [ ] 49-02-PLAN.md — Wave 1: Apple Music `current track`/`loved` library/streaming/play-pause matrix (SC#2)
+- [ ] 49-03-PLAN.md — Wave 1: Spotify Developer app registration + PKCE + PUT /me/library round-trip, current quota-mode read (SC#3)
+- [ ] 49-04-PLAN.md — Wave 2: consolidated go/no-go scope decision (49-GO-NO-GO.md), depends on 49-01/49-02/49-03
 
 ### Phase 50: Favorite/Like — Implementation
 
