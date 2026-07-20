@@ -3008,6 +3008,18 @@ struct NotchPillView: View {
     // applies ONLY to the Capsule bar layers, never to `content()`'s text. Mirrors
     // `wingsShape<Content: View>`'s established "generic func + trailing @ViewBuilder content:"
     // convention rather than a generic View struct with a stored @ViewBuilder property.
+    // UAT gap closure (48-03 Task 3, on-device finding) — the fill's `.animation(value:
+    // fraction)` was copied from OSDLevelBar, whose fraction only changes on rare discrete
+    // key-press events (a spring there reads as a nice snap). Here `fraction` is instead
+    // updated on EVERY DragGesture.onChanged tick (many times/sec, see handleVolumeChange),
+    // so each tick retriggered a fresh 150ms spring chasing a moving target — visibly choppy
+    // instead of tracking the finger. Only one output row is ever active/draggable at a time
+    // (device.isDefault, same "single instance-level @State" reasoning as
+    // isSecondaryBubbleHovering above), so one instance-level bool is enough. While actively
+    // dragging, the fill snaps immediately (no animation) so it tracks 1:1; once the drag ends
+    // the spring is restored for any subsequent non-drag-driven fraction change.
+    @State private var isDraggingOutputVolume = false
+
     private func outputVolumeSlider<Content: View>(
         fraction: CGFloat,
         tint: Color,
@@ -3024,7 +3036,7 @@ struct NotchPillView: View {
                 Group {
                     Capsule().fill(Color.white.opacity(0.15))                       // empty track
                     Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled
-                        .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)
+                        .animation(isDraggingOutputVolume ? nil : .spring(response: 0.15, dampingFraction: 0.86), value: fraction)
                 }
                 .opacity(enabled ? 1 : 0.35)   // D-13: dims the BAR ONLY — never `content()`
 
@@ -3033,11 +3045,16 @@ struct NotchPillView: View {
             }
             .contentShape(Capsule())
             .gesture(
-                DragGesture(minimumDistance: 0).onChanged { value in
-                    guard enabled else { return }   // D-13: disabled → drag is a no-op
-                    let clamped = max(0, min(1, Float(value.location.x / geo.size.width)))
-                    onChange(clamped)
-                }
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        guard enabled else { return }   // D-13: disabled → drag is a no-op
+                        isDraggingOutputVolume = true
+                        let clamped = max(0, min(1, Float(value.location.x / geo.size.width)))
+                        onChange(clamped)
+                    }
+                    .onEnded { _ in
+                        isDraggingOutputVolume = false
+                    }
             )
         }
         .frame(height: Self.outputActiveRowHeight)
