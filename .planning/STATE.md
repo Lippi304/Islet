@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
-status: executing
-stopped_at: Phase 49 Plan 02 COMPLETE (49-02-SUMMARY.md). Phase 49 Plan 03 Task 2 checkpoint still pending (blocking on-device verification — Spotify app registration + real PKCE round-trip + dashboard quota-mode read).
-last_updated: "2026-07-20T16:10:00.366Z"
+status: paused
+stopped_at: Phase 49 PAUSED BY USER after Plans 01-02 (2/4). User decided not to continue pursuing the Favorite/Like feature spike, given early on-device results (SC#1 like-effect-not-observed; SC#2 Apple Music `loved` broken via AppleScript, error -10001, in all 4 states tested). Plan 03 (Spotify PKCE) left with only Task 1 committed (spotify-pkce-spike.sh) — Task 2's on-device checkpoint was never run. Plan 04 (consolidated go/no-go synthesis) was not started; no 49-GO-NO-GO.md exists. This is an explicit user scope decision, not a stall or failure — resume only if the user revisits the Favorite/Like feature.
+last_updated: "2026-07-20T16:11:28.000Z"
 last_activity: 2026-07-20
 progress:
   total_phases: 19
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 49 (favorite-like-spike) — Plan 01 COMPLETE (all 3 tasks done, on-device verdicts recorded: SC#1 = like-effect-not-observed, SC#4 = tcc-bug-ruled-out — see 49-01-SUMMARY.md). Plan 02 COMPLETE (single checkpoint task, on-device verdict recorded: SC#2 = matrix-shows-different-behavior — see 49-02-SUMMARY.md). Plan 03 still IN PROGRESS in parallel (wave-1, no interdependency with Plans 01/02): Task 1 committed (spotify-pkce-spike.sh); Task 2 is a blocking on-device checkpoint (Spotify app registration + real PKCE round-trip + dashboard quota-mode read). Plan 04 (consolidated go/no-go, depends on 01/02/03) not yet started. Phase 49 as a whole is NOT complete.
-Plan: 2 of 4 COMPLETE; 03 of 4 in progress (Task 1/2 done); 04 not started
-Status: Plan 02 complete — Phase 49 execution continues (Plans 03-04 remaining)
+Phase: 49 (favorite-like-spike) — PAUSED BY USER after Plans 01-02 (2/4). Plan 01 COMPLETE (on-device verdicts: SC#1 = like-effect-not-observed, SC#4 = tcc-bug-ruled-out — see 49-01-SUMMARY.md). Plan 02 COMPLETE (on-device verdict: SC#2 = matrix-shows-different-behavior, Apple Music `loved` broken via AppleScript in all 4 states tested — see 49-02-SUMMARY.md). Plan 03 (Spotify PKCE, SC#3) left incomplete: Task 1 committed (spotify-pkce-spike.sh), Task 2's on-device checkpoint never run — user decided not to continue after seeing 01/02's weak results. Plan 04 (consolidated go/no-go synthesis) not started; no 49-GO-NO-GO.md was produced. Phase 49 is intentionally left incomplete pending user's decision on whether/how to revisit the Favorite/Like feature — this is NOT a stall, blocker, or error state.
+Plan: 2 of 4 COMPLETE; 03 of 4 left incomplete (Task 1 only) by user decision; 04 not started
+Status: PAUSED — user chose not to continue the Favorite/Like spike after 01/02 results; awaiting user decision on resume/descope
 Last activity: 2026-07-20
 
 ### Phase 48 status note
