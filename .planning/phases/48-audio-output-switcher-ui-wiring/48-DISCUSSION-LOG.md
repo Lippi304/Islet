@@ -101,3 +101,59 @@
 None — discussion stayed within phase scope. Drag-to-promote (P3 accelerator) and persisted "recently used outputs" ordering remain deferred to v2+/backlog per prior research (`FEATURES.md`), not re-raised here.
 
 Reviewed but not folded (todo cross-reference): Calendar month-grid polish, Quick Action disabled-state controller gate, Island disappears during click-through — all unrelated to this phase's scope.
+
+---
+
+# Revision (2026-07-20) — row-as-volume-bar redesign
+
+> On-device UAT of Waves 1-2 (built exactly to the original design above) revealed the built
+> behavior didn't match the user's actual mental model — surfaced only once they saw the
+> running app. This is a design revision, not a bug fix. See `48-CONTEXT.md`'s Revision Note.
+
+**Areas discussed:** Inactive-row fill meaning, Active-device visual signal, No-volume-control row appearance
+
+## Inactive-row fill meaning
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Static/neutral fill (Recommended) | Inactive rows show a fixed look, no new per-device volume reads needed. | |
+| Real per-device volume | Each inactive row's fill reflects that device's actual volume — requires a new per-device volume READ in AudioOutputMonitor. | |
+| No fill until active | Inactive rows show plain text only; bar-fill only appears once a device becomes active. | (closest match) |
+
+**User's choice (free text, German):** "Na die aktuell ausgewählte zeigt ja die aktuelle Lautstärke an, die anderen werden ohne Lautstärke angezeigt. Wenn man eine andere Quelle andrückt wählt man diese automatisch aus und dann kann man die Lautstärke verschieben."
+**Notes:** Only the active row shows real, live volume as its fill. Inactive rows show no fill/volume indication at all. Tapping an inactive row auto-selects it, after which its row becomes the draggable one. No per-device volume reads added — confirms the "No fill until active" option, phrased in the user's own words. → CONTEXT.md D-10/D-11.
+
+---
+
+## Active-device visual signal
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Fill alone is enough (Recommended) | No checkmark needed — the filled bar + top position are signal enough. | (closest match) |
+| Checkmark stays in addition | Checkmark remains next to the name as an additional signal. | |
+
+**User's choice (free text, German):** "Na die ausgewählte/aktuelle Quelle ist im normalem hellen weiß und die nicht ausgewählten sind nur so leichter hell weiß dadurch werden die ja auch eher als sekundäre quellen gesehen."
+**Notes:** No checkmark. Active row's text is full-opacity white; inactive rows' text is dimmed/lighter white, reading as secondary. Replaces D-05 entirely. → CONTEXT.md D-12.
+
+---
+
+## No-volume-control row appearance
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Bar greyed out, not draggable (Recommended) | Row stays full white (still active), but its bar/fill is dimmed and non-interactive — matches old D-06's "visible but disabled" convention. | ✓ |
+| No fill, text only | Active row looks like an inactive row when it lacks volume control. | |
+
+**User's choice:** Bar greyed out, not draggable (Recommended)
+**Notes:** Reuses `OutputVolumeSlider`'s existing `enabled: Bool` → `opacity(0.35)` + gesture-no-op behavior directly, just scoped to the row instead of a standalone element. → CONTEXT.md D-13.
+
+---
+
+## Revision — Claude's Discretion (additions)
+
+- Row height/padding adjustment when a row gains the Capsule-bar background vs. staying a plain inactive row — not raised during discussion.
+- Exact spring/fade timing for a row transitioning into/out of its active-with-fill state — follow existing `.spring(response: 0.15, dampingFraction: 0.86)` convention, tune on-device.
+
+## Revision — Deferred Ideas
+
+None raised during the revision discussion.
