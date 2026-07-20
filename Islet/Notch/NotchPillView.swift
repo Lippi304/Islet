@@ -3046,6 +3046,25 @@ struct NotchPillView: View {
     // the spring is restored for any subsequent non-drag-driven fraction change.
     @State private var isDraggingOutputVolume = false
 
+    // Perf follow-up (48, drag-fluidity polish) — `fraction` (presentationState.
+    // outputCurrentVolumeFraction) only updates once handleVolumeChange's setSystemVolume
+    // round-trip (multiple synchronous CoreAudio HAL calls) returns, so the fill's redraw rate
+    // was capped by HAL latency even after the animation-retrigger fix above. `liveDragFraction`
+    // decouples what's RENDERED from what CoreAudio has confirmed: set synchronously from the
+    // raw gesture position on every onChanged tick (pure math, always fast), read in place of
+    // `fraction` while non-nil, cleared on onEnded so rendering falls back to the real
+    // CoreAudio-confirmed value (matters for devices that clamp/quantize, e.g. AirPods' coarse
+    // steps).
+    @State private var liveDragFraction: CGFloat? = nil
+    // Throttles the actual onChange(_:) → setSystemVolume CoreAudio write to ~60fps — the write
+    // itself still blocks the main thread with several HAL round-trips per call (unchanged,
+    // constraint: setSystemVolume's call sequence stays untouched), so gating how OFTEN it fires
+    // keeps gesture-event processing from backing up on a fast drag. The visual fill above no
+    // longer depends on this call completing, so throttling it is safe. onEnded always fires one
+    // final unthrottled call so the last drag position is never dropped.
+    @State private var lastOutputVolumeWriteTime: Date = .distantPast
+    private static let outputVolumeWriteInterval: TimeInterval = 1.0 / 60.0
+
     private func outputVolumeSlider<Content: View>(
         fraction: CGFloat,
         tint: Color,
@@ -3057,12 +3076,13 @@ struct NotchPillView: View {
         // GeometryReader.init(content:) stores its closure for later evaluation (escaping),
         // which cannot capture the non-escaping `content` parameter directly.
         let rowContent = content()
+        let effectiveFraction = liveDragFraction ?? fraction
         return GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Group {
                     Capsule().fill(Color.white.opacity(0.15))                       // empty track
-                    Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled
-                        .animation(isDraggingOutputVolume ? nil : .spring(response: 0.15, dampingFraction: 0.86), value: fraction)
+                    Capsule().fill(tint).frame(width: geo.size.width * effectiveFraction)    // filled
+                        .animation(isDraggingOutputVolume ? nil : .spring(response: 0.15, dampingFraction: 0.86), value: effectiveFraction)
                 }
                 .opacity(enabled ? 1 : 0.35)   // D-13: dims the BAR ONLY — never `content()`
 
@@ -3076,10 +3096,21 @@ struct NotchPillView: View {
                         guard enabled else { return }   // D-13: disabled → drag is a no-op
                         isDraggingOutputVolume = true
                         let clamped = max(0, min(1, Float(value.location.x / geo.size.width)))
-                        onChange(clamped)
+                        liveDragFraction = CGFloat(clamped)   // renders immediately, no HAL wait
+                        let now = Date()
+                        if now.timeIntervalSince(lastOutputVolumeWriteTime) >= Self.outputVolumeWriteInterval {
+                            lastOutputVolumeWriteTime = now
+                            onChange(clamped)
+                        }
                     }
-                    .onEnded { _ in
+                    .onEnded { value in
                         isDraggingOutputVolume = false
+                        if enabled {
+                            // Always apply the final position, even if the last tick was throttled.
+                            let clamped = max(0, min(1, Float(value.location.x / geo.size.width)))
+                            onChange(clamped)
+                        }
+                        liveDragFraction = nil
                     }
             )
         }
