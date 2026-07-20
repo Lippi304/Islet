@@ -104,7 +104,7 @@ struct NotchPillView: View {
         case .calendarExpanded: return Self.calendarContentHeight
         case .trayExpanded: return Self.trayContentHeight
         case .weatherExpanded: return weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight
-        default: return Self.homeContentHeight
+        default: return Self.homeContentHeight + (presentationState.outputPanelOpen ? Self.outputPanelExtraHeight : 0)
         }
     }
 
@@ -663,6 +663,15 @@ struct NotchPillView: View {
     // + transport row ~32 + bottom padding 12 ≈ 152), with a safety margin since exact SwiftUI
     // row heights aren't measurable from source alone.
     static let homeContentHeight: CGFloat = 170
+
+    // Phase 48 / OUTPUT-01/02/03 (CR-01 geometry three-site rule, Site 1) — the extra height
+    // `tabHeight`'s default case adds when the output panel is open. Reasoned first-pass
+    // estimate, NOT final (same "size once, tune on-device" convention as `homeContentHeight`
+    // itself): OutputVolumeSlider (12) + spacing (8) + up to ~3 device rows at ~24pt each (72)
+    // + inter-row spacing (4*2) + panel top spacing ≈ 140. Plan 48-03 mirrors this exact
+    // `presentationState.outputPanelOpen` read at Site 2 (`positionAndShow`) and Site 3
+    // (`visibleContentZone()`) — see 48-02-PLAN.md's threat model T-48-05.
+    static let outputPanelExtraHeight: CGFloat = 140
 
     // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
     // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
@@ -2883,6 +2892,9 @@ struct NotchPillView: View {
                 // switcher toggle. Symmetric tap: opens the panel below, re-tapping closes it.
                 TransportButton(systemName: "speaker.wave.2.fill", action: onToggleOutputPanel)
             }
+            if presentationState.outputPanelOpen {
+                outputPanel(devices: presentationState.outputDevices)
+            }
         }
         .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
         .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve (restored to its pre-260715-vsd value —
@@ -2932,6 +2944,46 @@ struct NotchPillView: View {
             .frame(width: 32, height: 32)
             .buttonStyle(.plain)
             .onHover { isHovering = $0 }
+        }
+    }
+
+    // Phase 48 / OUTPUT-01/02/03 — the output-switcher panel revealed below the control row
+    // when `presentationState.outputPanelOpen` is true (D-08 toggle). Volume slider on top,
+    // then the device list (already sorted default-first by `sortedAudioOutputDevices`).
+    private func outputPanel(devices: [AudioOutputDevice]) -> some View {
+        VStack(spacing: 8) {
+            OutputVolumeSlider(
+                fraction: presentationState.outputCurrentVolumeFraction,
+                tint: nowPlayingAccent,
+                enabled: presentationState.outputHasVolumeControl,
+                onChange: onVolumeChange
+            )
+            VStack(spacing: 4) {
+                ForEach(devices) { device in
+                    HStack(spacing: 6) {
+                        Text(device.name)
+                            .font(.system(size: 13, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 6)
+                        // D-05 — single-accent-signal: a checkmark next to the current device,
+                        // no full-row background highlight.
+                        if device.isDefault {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(nowPlayingAccent)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    // D-07 — the row's ENTIRE tap behavior; the panel must stay open.
+                    .onTapGesture { onSelectOutputDevice(device) }
+                }
+            }
+            // D-02/OUTPUT-03 — animates row-order changes so the newly-selected device visibly
+            // slides to the top purely as a result of `devices` changing; no separate
+            // reorder-animation code path needed beyond this modifier.
+            .animation(.spring(response: 0.15, dampingFraction: 0.86), value: devices)
         }
     }
 
@@ -3076,6 +3128,46 @@ private struct OSDLevelBar: View {
                     .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)   // D-16 retuned value
             }
         }
+    }
+}
+
+// Phase 48 / OUTPUT-01 (D-03/D-04/D-06) — the output panel's draggable volume slider. Copies
+// OSDLevelBar's exact Capsule/GeometryReader visual (D-03: reuse the visual style, not the
+// component itself — OSDLevelBar stays untouched, used only by the OSD wing), but thickened
+// (12pt, vs. OSDLevelBar's ~5pt wing usage) since this is a standalone control, not a thin
+// wing bar — a "for now" starting value, tune on-device, matching this codebase's own
+// established convention for first-pass UI constants (see `onboardingSize`'s doc comment).
+// No numeric/percentage text anywhere (D-04) — the live-updating fill IS the only readout,
+// and it must track the drag in real time per OUTPUT-01 ("real time"); D-04's "no live
+// numeric readout" governs the TEXT label only. When `enabled` is false (D-06), the whole
+// view dims and no gesture is attached — nothing to disable numerically, dimming +
+// non-interactivity is the entire disabled treatment.
+private struct OutputVolumeSlider: View {
+    let fraction: CGFloat
+    let tint: Color
+    let enabled: Bool
+    let onChange: (Float) -> Void
+
+    private static let barHeight: CGFloat = 12
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.15))                       // empty track
+                Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled
+                    .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)
+            }
+            .contentShape(Capsule())
+            .gesture(
+                DragGesture(minimumDistance: 0).onChanged { value in
+                    guard enabled else { return }   // D-06: disabled → dimmed + non-interactive
+                    let clamped = max(0, min(1, Float(value.location.x / geo.size.width)))
+                    onChange(clamped)
+                }
+            )
+        }
+        .frame(height: Self.barHeight)
+        .opacity(enabled ? 1 : 0.35)
     }
 }
 
