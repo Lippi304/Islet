@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: Completed 48-01-PLAN.md
-last_updated: "2026-07-19T23:56:10.176Z"
-last_activity: 2026-07-19
+stopped_at: Completed 48-02-PLAN.md
+last_updated: "2026-07-20T00:05:00.382Z"
+last_activity: 2026-07-20
 progress:
   total_phases: 19
   completed_phases: 15
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 48 (audio-output-switcher-ui-wiring) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-07-19
+Last activity: 2026-07-20
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -123,6 +123,7 @@ Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/4
 | Phase 47 P02 | 12min | 2 tasks | 1 files |
 | Phase 47 P03 | multi-session | 2 tasks | 3 files |
 | Phase 48 P01 | 15min | 3 tasks | 3 files |
+| Phase 48 P02 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 47-01]: AudioOutputDevice.id derives from uid (String), never AudioDeviceID (Pitfall 4 baked into the type); sortedAudioOutputDevices uses localizedStandardCompare (not raw ASCII <) for human-natural alphabetical ordering — plan executed exactly as written, no deviations
 - [Phase 47-02]: listenerBlock stored as nonisolated(unsafe) (not plain private var as literally stated) so nonisolated func stop() can read/clear it without a main-actor isolation compile error — mirrors BluetoothMonitor's nonisolated(unsafe) token fields, a mechanical Swift 6 concurrency requirement not a design change
 - [Phase 47-03]: On-device Cmd-U checkpoint surfaced a real bug — resolveDeviceID(uid:) used the deprecated AudioValueTranslation-wrapped-in-ioData pattern for kAudioHardwarePropertyTranslateUIDToDevice, causing HAL "wrong data size" errors, resolveDeviceID always returning nil, hasVolumeControl always false, and setDefaultOutput's confirm-after-set never succeeding; fixed to the qualifier-data calling convention (UID via inQualifierData/inQualifierDataSize, ioData holds only the AudioDeviceID output). Re-verified on-device: Pitfall 4 (UID stability across a Jabra Bluetooth disconnect/reconnect) and Pitfall 8 (confirmed-after-set switch to Elgato USB) both confirmed; hasVolumeControl recorded true for built-in/Bluetooth/USB, false for an external-monitor output. D-03's "2 distinct Bluetooth devices" scope accepted as single-device (only one BT output device available) — user-confirmed, documented limitation, Phase 48 should re-check if a second BT device becomes available.
+- [Phase 48-02]: OutputVolumeSlider's disabled state enforced via a guard clause inside DragGesture.onChanged rather than a conditional .gesture(_:) ternary — SwiftUI has no Optional<Gesture> overload
 
 ### Roadmap Evolution
 
@@ -281,8 +283,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-19T23:56:10.166Z
-Stopped at: Completed 48-01-PLAN.md
+Last session: 2026-07-20T00:05:00.373Z
+Stopped at: Completed 48-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

@@ -64,9 +64,9 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 
 ### Now Playing — Audio Output Switcher
 
-- [ ] **OUTPUT-01**: A speaker-icon button, positioned right of the transport controls in the expanded Now Playing view, reveals a panel with a volume slider (a thick draggable bar) controlling the current audio output's volume
-- [ ] **OUTPUT-02**: The panel also shows a vertical list of all available system audio outputs, with the current output visually highlighted and shown on top, others listed below
-- [ ] **OUTPUT-03**: Tapping a non-current output in the list makes it the active system audio output and it animates to the top of the list (tap-to-select, not drag-to-reorder)
+- [x] **OUTPUT-01**: A speaker-icon button, positioned right of the transport controls in the expanded Now Playing view, reveals a panel with a volume slider (a thick draggable bar) controlling the current audio output's volume
+- [x] **OUTPUT-02**: The panel also shows a vertical list of all available system audio outputs, with the current output visually highlighted and shown on top, others listed below
+- [x] **OUTPUT-03**: Tapping a non-current output in the list makes it the active system audio output and it animates to the top of the list (tap-to-select, not drag-to-reorder)
 - [ ] **OUTPUT-04**: The output list stays correct when a device connects or disconnects while the panel is open (e.g. AirPods reconnect) — no duplicate or stale entries, keyed by device UID not the ephemeral `AudioDeviceID`
 
 ## v2 Requirements
@@ -132,9 +132,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CALVIEW-05 | Phase 46 | Complete |
 | CALVIEW-06 | Phase 46 | Pending |
 | CALVIEW-07 | Phase 46 | Pending |
-| OUTPUT-01 | Phase 48 | Pending |
-| OUTPUT-02 | Phase 48 | Pending |
-| OUTPUT-03 | Phase 48 | Pending |
+| OUTPUT-01 | Phase 48 | Complete |
+| OUTPUT-02 | Phase 48 | Complete |
+| OUTPUT-03 | Phase 48 | Complete |
 | OUTPUT-04 | Phase 48 | Pending |
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |

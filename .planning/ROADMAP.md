@@ -780,7 +780,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 48-02-PLAN.md — NotchPillView UI (speaker button, draggable OutputVolumeSlider, device list panel, tabHeight height bump)
+- [x] 48-02-PLAN.md — NotchPillView UI (speaker button, draggable OutputVolumeSlider, device list panel, tabHeight height bump)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
