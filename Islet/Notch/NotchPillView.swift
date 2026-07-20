@@ -667,11 +667,19 @@ struct NotchPillView: View {
     // Phase 48 / OUTPUT-01/02/03 (CR-01 geometry three-site rule, Site 1) — the extra height
     // `tabHeight`'s default case adds when the output panel is open. Reasoned first-pass
     // estimate, NOT final (same "size once, tune on-device" convention as `homeContentHeight`
-    // itself): OutputVolumeSlider (12) + spacing (8) + up to ~3 device rows at ~24pt each (72)
-    // + inter-row spacing (4*2) + panel top spacing ≈ 140. Plan 48-03 mirrors this exact
+    // itself). Row-as-volume-bar redesign (D-10..D-13): active row (32) + up to ~3 rows total,
+    // so ~2 inactive rows at 28pt each (56) + inter-row spacing (4*2) + panel top/bottom fudge
+    // (~12) ≈ 140 — the row-based math reduces to approximately the same total the old
+    // standalone-slider-above-list layout needed. Plan 48-03 mirrors this exact
     // `presentationState.outputPanelOpen` read at Site 2 (`positionAndShow`) and Site 3
     // (`visibleContentZone()`) — see 48-02-PLAN.md's threat model T-48-05.
     static let outputPanelExtraHeight: CGFloat = 140
+
+    // Phase 48 / OUTPUT-01 (D-10..D-13, row-as-volume-bar redesign) — the active device row's
+    // full height (row IS the bar, not a separate slider element) and the plain-text inactive
+    // row's height. First-pass values, tune on-device.
+    static let outputActiveRowHeight: CGFloat = 32
+    static let outputInactiveRowHeight: CGFloat = 28
 
     // Phase 26 / ONBOARD-01 (26-UI-SPEC.md "Panel & Layout Contract") — a single fixed panel
     // size used for ALL 4 onboarding steps, no per-step resize (same "size once, never
@@ -2947,44 +2955,92 @@ struct NotchPillView: View {
         }
     }
 
-    // Phase 48 / OUTPUT-01/02/03 — the output-switcher panel revealed below the control row
-    // when `presentationState.outputPanelOpen` is true (D-08 toggle). Volume slider on top,
-    // then the device list (already sorted default-first by `sortedAudioOutputDevices`).
+    // Phase 48 / OUTPUT-01/02/03 (D-10..D-13, row-as-volume-bar redesign) — the output-switcher
+    // panel revealed below the control row when `presentationState.outputPanelOpen` is true
+    // (D-08 toggle). There is no separate slider element: the ACTIVE device's row IS the
+    // draggable volume bar (D-10), inactive rows are plain dimmed text with no fill (D-11), and
+    // full-white-vs-dimmed text opacity is the sole active-device signal (D-12) — no checkmark.
     private func outputPanel(devices: [AudioOutputDevice]) -> some View {
-        VStack(spacing: 8) {
-            OutputVolumeSlider(
-                fraction: presentationState.outputCurrentVolumeFraction,
-                tint: nowPlayingAccent,
-                enabled: presentationState.outputHasVolumeControl,
-                onChange: onVolumeChange
-            )
-            VStack(spacing: 4) {
-                ForEach(devices) { device in
+        VStack(spacing: 4) {
+            ForEach(devices) { device in
+                if device.isDefault {
+                    outputVolumeSlider(
+                        fraction: presentationState.outputCurrentVolumeFraction,
+                        tint: nowPlayingAccent,
+                        enabled: presentationState.outputHasVolumeControl,
+                        onChange: onVolumeChange
+                    ) {
+                        HStack(spacing: 6) {
+                            Text(device.name)
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)   // D-12: full white, ALWAYS (even when D-13 dims the bar)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Spacer(minLength: 6)
+                        }
+                    }
+                } else {
                     HStack(spacing: 6) {
                         Text(device.name)
                             .font(.system(size: 13, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.white.opacity(0.5))   // D-12: dimmed — the sole inactive signal
                             .lineLimit(1)
                             .truncationMode(.tail)
                         Spacer(minLength: 6)
-                        // D-05 — single-accent-signal: a checkmark next to the current device,
-                        // no full-row background highlight.
-                        if device.isDefault {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(nowPlayingAccent)
-                        }
                     }
+                    .padding(.horizontal, 10)
+                    .frame(height: Self.outputInactiveRowHeight)
                     .contentShape(Rectangle())
                     // D-07 — the row's ENTIRE tap behavior; the panel must stay open.
                     .onTapGesture { onSelectOutputDevice(device) }
                 }
             }
-            // D-02/OUTPUT-03 — animates row-order changes so the newly-selected device visibly
-            // slides to the top purely as a result of `devices` changing; no separate
-            // reorder-animation code path needed beyond this modifier.
-            .animation(.spring(response: 0.15, dampingFraction: 0.86), value: devices)
         }
+        // D-02/OUTPUT-03 — animates row-order changes so the newly-selected device visibly
+        // slides to the top purely as a result of `devices` changing; no separate
+        // reorder-animation code path needed beyond this modifier.
+        .animation(.spring(response: 0.15, dampingFraction: 0.86), value: devices)
+    }
+
+    // Phase 48 / OUTPUT-01 (D-10/D-13, row-as-volume-bar redesign) — wraps `content()` (the
+    // active row's own Text) in the same Capsule track/fill/DragGesture visual the old
+    // standalone `OutputVolumeSlider` used, but scoped so the `enabled`-false dimming (D-13)
+    // applies ONLY to the Capsule bar layers, never to `content()`'s text. Mirrors
+    // `wingsShape<Content: View>`'s established "generic func + trailing @ViewBuilder content:"
+    // convention rather than a generic View struct with a stored @ViewBuilder property.
+    private func outputVolumeSlider<Content: View>(
+        fraction: CGFloat,
+        tint: Color,
+        enabled: Bool,
+        onChange: @escaping (Float) -> Void,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        // `content()` evaluated here, outside GeometryReader's own @escaping content closure —
+        // GeometryReader.init(content:) stores its closure for later evaluation (escaping),
+        // which cannot capture the non-escaping `content` parameter directly.
+        let rowContent = content()
+        return GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Group {
+                    Capsule().fill(Color.white.opacity(0.15))                       // empty track
+                    Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled
+                        .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)
+                }
+                .opacity(enabled ? 1 : 0.35)   // D-13: dims the BAR ONLY — never `content()`
+
+                rowContent
+                    .padding(.horizontal, 10)
+            }
+            .contentShape(Capsule())
+            .gesture(
+                DragGesture(minimumDistance: 0).onChanged { value in
+                    guard enabled else { return }   // D-13: disabled → drag is a no-op
+                    let clamped = max(0, min(1, Float(value.location.x / geo.size.width)))
+                    onChange(clamped)
+                }
+            )
+        }
+        .frame(height: Self.outputActiveRowHeight)
     }
 
     // D-12 — the "Now Playing nicht verfügbar" health state (adapter blocked/dead). Same
@@ -3128,46 +3184,6 @@ private struct OSDLevelBar: View {
                     .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)   // D-16 retuned value
             }
         }
-    }
-}
-
-// Phase 48 / OUTPUT-01 (D-03/D-04/D-06) — the output panel's draggable volume slider. Copies
-// OSDLevelBar's exact Capsule/GeometryReader visual (D-03: reuse the visual style, not the
-// component itself — OSDLevelBar stays untouched, used only by the OSD wing), but thickened
-// (12pt, vs. OSDLevelBar's ~5pt wing usage) since this is a standalone control, not a thin
-// wing bar — a "for now" starting value, tune on-device, matching this codebase's own
-// established convention for first-pass UI constants (see `onboardingSize`'s doc comment).
-// No numeric/percentage text anywhere (D-04) — the live-updating fill IS the only readout,
-// and it must track the drag in real time per OUTPUT-01 ("real time"); D-04's "no live
-// numeric readout" governs the TEXT label only. When `enabled` is false (D-06), the whole
-// view dims and no gesture is attached — nothing to disable numerically, dimming +
-// non-interactivity is the entire disabled treatment.
-private struct OutputVolumeSlider: View {
-    let fraction: CGFloat
-    let tint: Color
-    let enabled: Bool
-    let onChange: (Float) -> Void
-
-    private static let barHeight: CGFloat = 12
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.15))                       // empty track
-                Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled
-                    .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)
-            }
-            .contentShape(Capsule())
-            .gesture(
-                DragGesture(minimumDistance: 0).onChanged { value in
-                    guard enabled else { return }   // D-06: disabled → dimmed + non-interactive
-                    let clamped = max(0, min(1, Float(value.location.x / geo.size.width)))
-                    onChange(clamped)
-                }
-            )
-        }
-        .frame(height: Self.barHeight)
-        .opacity(enabled ? 1 : 0.35)
     }
 }
 
