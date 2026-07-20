@@ -122,7 +122,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 45: View Switcher Morph Fix** - Tab switches morph continuously with no disappear/rebuild flicker or behind-buttons glitch (completed 2026-07-19)
 - [x] **Phase 46: Calendar Quick-Add Improvements** - Date+time picker with smart defaults, unclipped add button, roomier event rows (completed 2026-07-19)
 - [x] **Phase 47: Audio Output Switcher — Pure Seam + Monitor** - Device value type + event-driven CoreAudio monitor, proven in isolation before any UI is built (completed 2026-07-19)
-- [ ] **Phase 48: Audio Output Switcher — UI Wiring** - Speaker-icon panel: live device list, tap-to-select, real volume slider
+- [x] **Phase 48: Audio Output Switcher — UI Wiring** - Speaker-icon panel: live device list, tap-to-select, real volume slider (completed 2026-07-20)
 - [ ] **Phase 49: Favorite/Like — Spike** - Resolve Spotify quota, Apple Music reliability, and Automation-TCC unknowns; documented go/no-go scope decision
 - [ ] **Phase 50: Favorite/Like — Implementation** - Star button write-back to Apple Music/Spotify, scoped per Phase 49's findings
 
@@ -784,7 +784,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 48-03-PLAN.md — Controller handlers, geometry three-site rule, on-device verification checkpoint
+- [x] 48-03-PLAN.md — Controller handlers, geometry three-site rule, on-device verification checkpoint
 
 **UI hint**: yes
 
