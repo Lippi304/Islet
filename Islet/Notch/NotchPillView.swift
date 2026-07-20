@@ -2991,6 +2991,15 @@ struct NotchPillView: View {
                             Text(device.name)
                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.white)   // D-12: full white, ALWAYS (even when D-13 dims the bar)
+                                // Bugfix (48, active-row contrast): `tint` (nowPlayingAccent) can be
+                                // any of ActivitySettings.palette's 6 colors, including `.white` —
+                                // the app's own DEFAULT accent (defaultAccentIndex = 0). White text
+                                // on a white Capsule fill is otherwise invisible. A dark halo behind
+                                // the glyphs (stacked twice for a stronger, more outline-like edge
+                                // than a single soft shadow) guarantees contrast against any fill
+                                // color without touching D-12's white/opacity signal itself.
+                                .shadow(color: .black.opacity(0.5), radius: 1.5)
+                                .shadow(color: .black.opacity(0.5), radius: 1.5)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                             Spacer(minLength: 6)
