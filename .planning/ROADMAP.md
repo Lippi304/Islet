@@ -796,15 +796,15 @@ Plans:
 **Success Criteria** (what must be TRUE):
 
   1. A real round-trip test confirms (or disproves) whether the vendored `mediaremote-adapter` wrapper can send a like/love command, and whether the streamed payload ever reports a favorite read-state. ✅ Confirmed on-device 49-01 — `like-effect-not-observed`: `kMRLikeTrack` sends cleanly to both Music.app and Spotify.app but neither app's liked-state UI flips; the streamed payload confirmed (RESEARCH.md, code-verified) to have no favorite/rating read-state field either. Neither read nor write is viable via this path — Phase 50 needs a separate per-app path (AppleScript `loved` / Spotify `GET`/`PUT /me/library`).
-  2. Apple Music's `current track`/`loved` AppleScript behavior is confirmed on this project's own dev hardware across library, streaming-only, and play/pause states — not assumed transferable from forum reports.
+  2. Apple Music's `current track`/`loved` AppleScript behavior is confirmed on this project's own dev hardware across library, streaming-only, and play/pause states — not assumed transferable from forum reports. ✅ Confirmed on-device 49-02 — `matrix-shows-different-behavior`: `name of current track` succeeds in all 4 states (library/streaming x play/pause); `loved of current track` (get+set) fails uniformly in all 4 states with error `-10001` ("descriptor types don't match") — not RESEARCH.md's predicted `-1728` streaming-only case. The `loved` property is broken via AppleScript on this Music.app build regardless of library/streaming status.
   3. A real Spotify OAuth PKCE round-trip plus a real `PUT` save-track call is exercised, and current quota-mode/Extended-Access criteria are confirmed directly on the Spotify Developer Dashboard.
   4. The Automation (Apple Events/TCC) permission-prompt reliability bug is reproduced or ruled out on this hardware, and a documented go/no-go scope decision (ship Spotify OAuth / bring-your-own-Client-ID / Apple-Music-only for this milestone) is recorded. ✅ Confirmed on-device 49-01 — `tcc-bug-ruled-out`: permission dialog appeared on Islet's first-ever automation attempt against Music.app, granting it fixed the call (`SPIKE AppleScript succeeded: Beverly Hills`), no `-1743` recurrence observed. Idle-time relaunch variant not attempted this session (acceptable per D-06).
 
-**Plans:** 4 plans
+**Plans:** 2/4 plans executed
 
 Plans:
 - [x] 49-01-PLAN.md — Wave 1: com.apple.security.automation.apple-events entitlement + NSAppleEventsUsageDescription prerequisite, DEBUG-only likeTrack/TCC-trigger spike hooks, on-device SC#1+SC#4 verification
-- [ ] 49-02-PLAN.md — Wave 1: Apple Music `current track`/`loved` library/streaming/play-pause matrix (SC#2)
+- [x] 49-02-PLAN.md — Wave 1: Apple Music `current track`/`loved` library/streaming/play-pause matrix (SC#2)
 - [ ] 49-03-PLAN.md — Wave 1: Spotify Developer app registration + PKCE + PUT /me/library round-trip, current quota-mode read (SC#3)
 - [ ] 49-04-PLAN.md — Wave 2: consolidated go/no-go scope decision (49-GO-NO-GO.md), depends on 49-01/49-02/49-03
 

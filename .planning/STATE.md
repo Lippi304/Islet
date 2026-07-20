@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
-status: completed
-stopped_at: Phase 49 Plan 01 COMPLETE (49-01-SUMMARY.md). Phase 49 Plan 03 Task 2 checkpoint still pending (blocking on-device verification — Spotify app registration + real PKCE round-trip + dashboard quota-mode read).
-last_updated: "2026-07-20T14:59:34.438Z"
+status: executing
+stopped_at: Phase 49 Plan 02 COMPLETE (49-02-SUMMARY.md). Phase 49 Plan 03 Task 2 checkpoint still pending (blocking on-device verification — Spotify app registration + real PKCE round-trip + dashboard quota-mode read).
+last_updated: "2026-07-20T16:10:00.366Z"
 last_activity: 2026-07-20
 progress:
   total_phases: 19
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 49 (favorite-like-spike) — Plan 01 COMPLETE (all 3 tasks done, on-device verdicts recorded: SC#1 = like-effect-not-observed, SC#4 = tcc-bug-ruled-out — see 49-01-SUMMARY.md). Plan 03 still IN PROGRESS in parallel (wave-1, no interdependency with Plan 01): Task 1 committed (spotify-pkce-spike.sh); Task 2 is a blocking on-device checkpoint (Spotify app registration + real PKCE round-trip + dashboard quota-mode read). Plans 02 (Apple Music matrix, SC#2) and 04 (consolidated go/no-go, depends on 01/02/03) not yet started. Phase 49 as a whole is NOT complete.
-Plan: 01 of 4 COMPLETE; 03 of 4 in progress (Task 1/2 done); 02 and 04 not started
-Status: Plan 01 complete — Phase 49 execution continues (Plans 02-04 remaining)
+Phase: 49 (favorite-like-spike) — Plan 01 COMPLETE (all 3 tasks done, on-device verdicts recorded: SC#1 = like-effect-not-observed, SC#4 = tcc-bug-ruled-out — see 49-01-SUMMARY.md). Plan 02 COMPLETE (single checkpoint task, on-device verdict recorded: SC#2 = matrix-shows-different-behavior — see 49-02-SUMMARY.md). Plan 03 still IN PROGRESS in parallel (wave-1, no interdependency with Plans 01/02): Task 1 committed (spotify-pkce-spike.sh); Task 2 is a blocking on-device checkpoint (Spotify app registration + real PKCE round-trip + dashboard quota-mode read). Plan 04 (consolidated go/no-go, depends on 01/02/03) not yet started. Phase 49 as a whole is NOT complete.
+Plan: 2 of 4 COMPLETE; 03 of 4 in progress (Task 1/2 done); 04 not started
+Status: Plan 02 complete — Phase 49 execution continues (Plans 03-04 remaining)
 Last activity: 2026-07-20
 
 ### Phase 48 status note
@@ -131,6 +131,7 @@ Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/4
 | Phase 48 P02 | 15min | 2 tasks | 1 files |
 | Phase 48 P03 | multi-session | 3 tasks | 2 files |
 | Phase 49 P01 | 10min+checkpoint | 3 tasks | 6 files |
+| Phase 49 P02 | 1min | 1 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -188,6 +189,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 48]: [Phase 48-03]: Task 3 UAT round 2 (post animation-gating fix e657356) -- user replied plain 'approved', confirming drag is smooth and all 7 UAT steps pass. Phase 48 (Audio Output Switcher -- UI Wiring) is now on-device UAT-complete, all 4 ROADMAP Success Criteria confirmed against the row-as-volume-bar design.
 - [Phase 49-01]: Task 1 landed `com.apple.security.automation.apple-events` (Islet.entitlements) + `INFOPLIST_KEY_NSAppleEventsUsageDescription` (project.yml, German string, Phase-49-commented) — regenerated via xcodegen, Debug build green. Task 2 wired two DEBUG-only spike hooks (`spikeLikeCurrentTrack()`, `spikeTriggerAutomationPrompt()`) through NowPlayingMonitor -> NotchWindowController -> AppDelegate's existing debug menu, with two Rule-1 deviations from the plan's literal text: (1) NotchWindowController's forwarding methods are internal, not `private` as the plan stated — AppDelegate is a different type/file and cannot call a private method, so `private` would not compile; (2) the two new `@objc` debug-menu action methods needed an explicit `@MainActor` annotation — NotchWindowController (and its spike methods) are `@MainActor`-isolated, and unlike protocol-required `NSApplicationDelegate` methods, a plain `@objc private func` is not inferred `@MainActor` by default, so the original code failed to compile with "call to main actor-isolated instance method in a synchronous nonisolated context." Debug build green; Release build build-log-grepped and confirmed to exclude both spike symbols (0 matches). Task 3 (on-device checkpoint) resolved: **SC#1 = like-effect-not-observed** (kMRLikeTrack sends cleanly to both Music.app and Spotify.app, confirmed via console log, but neither app's liked-state UI visibly flips) and **SC#4 = tcc-bug-ruled-out** (permission dialog appeared on Islet's first-ever automation attempt, granting it fixed the call — `SPIKE AppleScript succeeded: Beverly Hills` — no `-1743` recurrence; idle-time relaunch variant not attempted this session, acceptable per D-06). RESEARCH.md's already-confirmed finding restated: the streamed MediaRemote payload has no favorite/rating read-state field either — combined with the write-side null result, Phase 50's star button needs a wholly separate per-app read/write path (Apple Music AppleScript `loved`, Spotify `GET`/`PUT /me/library`), not this MediaRemote command. Plan 49-01 is now COMPLETE (see `49-01-SUMMARY.md`); Plan 49-04 depends on this file's verdicts.
 - [Phase 49-03]: Task 1 landed `.planning/phases/49-favorite-like-spike/spotify-pkce-spike.sh` (executable, `bash -n` clean) copying RESEARCH.md's Code Examples section verbatim — S256-only PKCE `code_verifier`/`code_challenge` generation via `openssl`, hardcoded loopback `REDIRECT_URI` (`http://127.0.0.1:8888/callback`), `CLIENT_ID` left as the literal placeholder string (never a real value, per T-49-09), `/authorize` + `/api/token` exchange, and a real `PUT /me/library` save-track call with the track URI read via a second `read -p` prompt (never hardcoded). No deviations — plan executed exactly as written. Task 2 (on-device checkpoint, gate=blocking) is next — requires the human to register a real Spotify Developer app, substitute the real Client ID locally/uncommitted only, run the browser PKCE flow, and read the live quota-mode text from the Spotify Developer Dashboard; none of this is executor-automatable. SUMMARY.md deliberately not yet created (Plan 49-04 depends on its final verdicts).
+- [Phase 49-02]: SC#2 verdict: matrix-shows-different-behavior — loved of current track fails uniformly with -10001 in all 4 states (library/streaming x play/pause); name of current track succeeds in all 4 states. Deviates from RESEARCH.md's predicted -1728 streaming-only error. Phase 50 needs a documented Apple-Music-loved-broken fallback or an alternative read/write path, not just a streaming-only edge case. Plan 49-02 is now COMPLETE (see `49-02-SUMMARY.md`); Plan 49-04 depends on this file's verdict.
 
 ### Roadmap Evolution
 
@@ -297,9 +299,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-20T02:19:57.044Z
-Stopped at: Phase 49 Plan 01 COMPLETE (49-01-SUMMARY.md). Phase 49 Plan 03 Task 2 checkpoint still pending (blocking on-device verification — Spotify app registration + real PKCE round-trip + dashboard quota-mode read).
-Resume file: .planning/phases/49-favorite-like-spike/49-03-PLAN.md (Plan 02 and 04 not yet started)
+Last session: 2026-07-20T16:10:00.355Z
+Stopped at: Phase 49 Plan 02 COMPLETE (49-02-SUMMARY.md). Phase 49 Plan 03 Task 2 checkpoint still pending (blocking on-device verification — Spotify app registration + real PKCE round-trip + dashboard quota-mode read).
+Resume file: .planning/phases/49-favorite-like-spike/49-03-PLAN.md
 
 ## Operator Next Steps
 
