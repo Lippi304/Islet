@@ -762,6 +762,7 @@
 				INFOPLIST_FILE = "Islet/Info-Sparkle.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Islet;
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Islet fragt diese Berechtigung an, um den aktuellen Titel als Favorit zu markieren.";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
@@ -923,6 +924,7 @@
 				INFOPLIST_FILE = "Islet/Info-Sparkle.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Islet;
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Islet fragt diese Berechtigung an, um den aktuellen Titel als Favorit zu markieren.";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an.";
