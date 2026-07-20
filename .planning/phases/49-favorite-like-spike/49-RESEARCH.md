@@ -332,22 +332,25 @@ Requires Pitfall C's entitlement + Info.plist additions first, or this will fail
 
 **If this table is empty:** N/A — see entries above.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does `MRMediaRemoteSendCommand(kMRLikeTrack, nil)` actually update Music.app's/Spotify.app's own liked state, or does the receiving app ignore/partially-honor the private command?**
    - What we know: The command genuinely sends (code-verified, HIGH confidence); command IDs `0x6A`-`0x6D` are defined in the vendored `MediaRemote.h`.
    - What's unclear: Whether Music.app/Spotify.app's current builds actually act on it — no forum/doc evidence either way was found this session (a narrower, more specific search than this research's time budget allowed for).
    - Recommendation: This is squarely what Success Criterion #1's on-device test must answer — treat it as the spike's single most information-dense test.
+   - **Resolution:** Answered by Plan 49-01 Task 3's on-device checkpoint — the DEBUG `spikeLikeCurrentTrack()` hook and the human-verify verdict recorded in `49-01-SUMMARY.md`.
 
 2. **Is the Automation/TCC prompt-reliability bug (Success Criterion #4) reproducible within a realistic spike time window at all?**
    - What we know: The documented trigger is extended idle time (days/weeks) of the target app before Islet's first automation attempt; a reported `tccutil reset AppleEvents` workaround did NOT work for at least one affected developer.
    - What's unclear: Whether a shorter artificial trigger exists (e.g., force-quitting Music.app for a few hours, or a fresh reinstall of Islet.app to reset its own TCC state) that reliably reproduces the same failure mode faster.
    - Recommendation: Attempt the fastest available proxy (fresh Islet.app build + a Music.app that hasn't been foregrounded recently) first; if it doesn't reproduce, honestly record "not reproduced within spike window" rather than either forcing a multi-day wait or falsely claiming ruled-out.
+   - **Resolution:** Answered by Plan 49-01 Task 3's on-device checkpoint — the DEBUG `spikeTriggerAutomationPrompt()` hook and the TCC-bug verdict (reproduced / ruled-out / not-reproduced-this-session) recorded in `49-01-SUMMARY.md`.
 
 3. **Does Music.app's `loved` write actually round-trip correctly when `current track` itself is inaccessible (the `-1728` case) — is there a viable identifier-based fallback (persistent ID / library-playlist lookup) worth spiking now, or is it out of scope for this phase?**
    - What we know: PITFALLS.md Pitfall 2 suggests a title/artist-based library lookup as a fallback, explicitly flagged as fragile (duplicate titles, remasters).
    - What's unclear: Whether this fallback is worth spiking in Phase 49 at all, given D-05/D-06 scope this phase to confirming the failure mode, not necessarily building around it.
    - Recommendation: Out of scope for this phase per CONTEXT.md's boundary ("No UI is built this phase... spike produces no code changes"); defer the fallback-design question to Phase 50, informed by this phase's confirmed failure matrix.
+   - **Resolution:** Explicitly deferred to Phase 50 (out of scope for this spike) — no plan in this phase addresses the fallback-design question; Phase 50's planner should read this open question fresh alongside this phase's confirmed failure matrix.
 
 ## Environment Availability
 
