@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: Completed 48-02-PLAN.md (row-as-volume-bar re-execution)
-last_updated: "2026-07-20T01:00:46.689Z"
+stopped_at: 48-03-PLAN.md Tasks 1-2 re-verified (safe no-op), paused at Task 3 on-device UAT checkpoint
+last_updated: "2026-07-20T03:02:00.000Z"
 last_activity: 2026-07-20
 progress:
   total_phases: 19
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 48 (audio-output-switcher-ui-wiring) — EXECUTING
-Plan: 2 of 3
-Status: Ready to execute
+Plan: 3 of 3
+Status: Tasks 1-2 re-verified correct against current code (safe no-op, no commits needed); paused at Task 3 on-device UAT checkpoint
 Last activity: 2026-07-20
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -177,6 +177,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 48-02]: OutputVolumeSlider's disabled state enforced via a guard clause inside DragGesture.onChanged rather than a conditional .gesture(_:) ternary — SwiftUI has no Optional<Gesture> overload
 - [Phase 48]: [Phase 48-02] REVISION: original standalone-slider design (shipped in b9f247a/a58607e) replaced by row-as-volume-bar design per 48-CONTEXT.md D-10..D-13 -- active device's row IS the draggable volume bar, inactive rows plain dimmed text, full-white-vs-dimmed text opacity is the sole active-device signal (no checkmark)
 - [Phase 48]: [Phase 48-02] content() must be evaluated into a local let binding BEFORE entering GeometryReader{...}'s closure, not called inside it -- GeometryReader.init(content:) is @escaping and cannot capture a non-escaping @ViewBuilder parameter directly (mechanical Swift-compiler constraint found during Task 2's first build attempt)
+- [Phase 48-03]: Re-verified Tasks 1-2 (handlers + closure forwarding, geometry three-site rule Sites 2/3) against current code after 48-02's row-as-volume-bar re-execution landed -- all acceptance-criteria greps pass unchanged (handleToggleOutputPanel/handleSelectOutputDevice/handleVolumeChange, makeRootView forwarding, outputPanelExpandedFrame union, visibleContentZone's outputPanelOpen branch correctly nested inside the final else), Debug build green, zero commits needed (safe no-op per plan's own revision note). Task 3 (on-device UAT checkpoint) reached next -- previously blocked because 48-02's row-as-bar redesign hadn't been re-executed, now unblocked.
 
 ### Roadmap Evolution
 
