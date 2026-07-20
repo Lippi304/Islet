@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 49 (favorite-like-spike) — Plan 01 IN PROGRESS (Tasks 1-2 committed: Apple Events entitlement/Info.plist landed, DEBUG-only spike hooks wired; Task 3 is a blocking on-device checkpoint awaiting human verification)
-Plan: 1 of 1 (Tasks 1-2/3 complete)
-Status: Checkpoint pending — awaiting on-device verdict for ROADMAP Phase 49 Success Criteria #1 and #4
+Phase: 49 (favorite-like-spike) — Plans 01 and 03 both IN PROGRESS in parallel (both wave-1, no interdependency). Plan 01: Tasks 1-2 committed (Apple Events entitlement/Info.plist, DEBUG-only spike hooks); Task 3 is a blocking on-device checkpoint. Plan 03: Task 1 committed (spotify-pkce-spike.sh, placeholder-Client-ID PKCE/token-exchange/PUT harness); Task 2 is a blocking on-device checkpoint (Spotify app registration + real PKCE round-trip + dashboard quota-mode read).
+Plan: 1 of 1 (Plan 01 Tasks 1-2/3 complete) and 3 of 4 (Plan 03 Task 1/2 complete)
+Status: Checkpoint pending — awaiting on-device verdicts for ROADMAP Phase 49 Success Criteria #1 and #4 (Plan 01), and Success Criterion #3 (Plan 03)
 Last activity: 2026-07-20
 
 ### Phase 48 status note
@@ -186,6 +186,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 48-03]: Task 3 UAT round 1 -- 6/7 steps passed, 1 issue: volume-drag fill visibly choppy/stepped instead of tracking the finger. Root cause: `outputVolumeSlider`'s fill `.animation(value: fraction)` spring was copied verbatim from `OSDLevelBar` (correct there -- rare discrete key-press updates), but `fraction` here updates on every `DragGesture.onChanged` tick, so each tick retriggered a fresh 150ms spring chasing a moving target. Fixed by gating the animation off via an instance-level `isDraggingOutputVolume` bool (mirrors `isSecondaryBubbleHovering`'s "only one row/bubble active at a time" precedent) while a drag is in progress, restoring the spring once the drag ends. `OSDLevelBar` itself untouched. CoreAudio's synchronous per-tick `AudioObjectSetPropertyData` write was assessed as a plausible secondary contributor but NOT throttled -- the animation-retrigger mechanism alone fully explains the reported symptom, and throttling was deferred pending on-device re-confirmation to avoid over-fixing. Debug build green, commit e657356. Re-verification of UAT step 2 (plus re-confirmation of the other 6 steps) pending.
 - [Phase 48]: [Phase 48-03]: Task 3 UAT round 2 (post animation-gating fix e657356) -- user replied plain 'approved', confirming drag is smooth and all 7 UAT steps pass. Phase 48 (Audio Output Switcher -- UI Wiring) is now on-device UAT-complete, all 4 ROADMAP Success Criteria confirmed against the row-as-volume-bar design.
 - [Phase 49-01]: Task 1 landed `com.apple.security.automation.apple-events` (Islet.entitlements) + `INFOPLIST_KEY_NSAppleEventsUsageDescription` (project.yml, German string, Phase-49-commented) — regenerated via xcodegen, Debug build green. Task 2 wired two DEBUG-only spike hooks (`spikeLikeCurrentTrack()`, `spikeTriggerAutomationPrompt()`) through NowPlayingMonitor -> NotchWindowController -> AppDelegate's existing debug menu, with two Rule-1 deviations from the plan's literal text: (1) NotchWindowController's forwarding methods are internal, not `private` as the plan stated — AppDelegate is a different type/file and cannot call a private method, so `private` would not compile; (2) the two new `@objc` debug-menu action methods needed an explicit `@MainActor` annotation — NotchWindowController (and its spike methods) are `@MainActor`-isolated, and unlike protocol-required `NSApplicationDelegate` methods, a plain `@objc private func` is not inferred `@MainActor` by default, so the original code failed to compile with "call to main actor-isolated instance method in a synchronous nonisolated context." Debug build green; Release build build-log-grepped and confirmed to exclude both spike symbols (0 matches). Task 3 (on-device checkpoint, gate=blocking) is next — awaiting human verification of ROADMAP Phase 49 Success Criteria #1 (likeTrack effect) and #4 (TCC/Automation prompt repro-or-rule-out).
+- [Phase 49-03]: Task 1 landed `.planning/phases/49-favorite-like-spike/spotify-pkce-spike.sh` (executable, `bash -n` clean) copying RESEARCH.md's Code Examples section verbatim — S256-only PKCE `code_verifier`/`code_challenge` generation via `openssl`, hardcoded loopback `REDIRECT_URI` (`http://127.0.0.1:8888/callback`), `CLIENT_ID` left as the literal placeholder string (never a real value, per T-49-09), `/authorize` + `/api/token` exchange, and a real `PUT /me/library` save-track call with the track URI read via a second `read -p` prompt (never hardcoded). No deviations — plan executed exactly as written. Task 2 (on-device checkpoint, gate=blocking) is next — requires the human to register a real Spotify Developer app, substitute the real Client ID locally/uncommitted only, run the browser PKCE flow, and read the live quota-mode text from the Spotify Developer Dashboard; none of this is executor-automatable. SUMMARY.md deliberately not yet created (Plan 49-04 depends on its final verdicts).
 
 ### Roadmap Evolution
 
@@ -296,8 +297,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 ## Session Continuity
 
 Last session: 2026-07-20T02:19:57.044Z
-Stopped at: Phase 49 Plan 01, Task 3 checkpoint (blocking on-device verification — likeTrack effect + TCC/Automation prompt repro)
-Resume file: .planning/phases/49-favorite-like-spike/49-01-PLAN.md
+Stopped at: Phase 49 Plan 01 Task 3 checkpoint (blocking on-device verification — likeTrack effect + TCC/Automation prompt repro) AND Phase 49 Plan 03 Task 2 checkpoint (blocking on-device verification — Spotify app registration + real PKCE round-trip + dashboard quota-mode read), both pending in parallel
+Resume file: .planning/phases/49-favorite-like-spike/49-01-PLAN.md and .planning/phases/49-favorite-like-spike/49-03-PLAN.md
 
 ## Operator Next Steps
 
