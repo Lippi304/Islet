@@ -1620,6 +1620,40 @@ final class NotchWindowController {
         nowPlayingMonitor?.togglePlayPause()
     }
 
+    // Phase 48 / OUTPUT-01 (D-08) — mirrors handleSwitcherSelect's "mutate-inside-withAnimation,
+    // then syncClickThrough()" shape. `outputPanelOpen` is a sibling flag that never changes
+    // which `IslandPresentation` case is active, so no renderPresentation() call is needed here —
+    // only tabHeight's already-@Published-observed read reacts, and syncClickThrough() re-scopes
+    // the click-through zone (visibleContentZone()) to match immediately. Symmetric toggle: no
+    // separate open/close methods.
+    private func handleToggleOutputPanel() {
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            presentationState.outputPanelOpen.toggle()
+        }
+        syncClickThrough()
+    }
+
+    // Phase 48 / OUTPUT-03 (D-01, D-07, D-09) — setDefaultOutput (Phase 47) already scopes
+    // exclusively to kAudioHardwarePropertyDefaultOutputDevice, never the system-alert-sound
+    // device. Per D-09, the completion(false) branch (Pitfall 8's documented AirPods-handoff
+    // silent-revert) does nothing distinct — no toast, no shake — trusting
+    // AudioOutputMonitor's own onDevicesChanged re-delivery (Plan 48-01) as the sole source of
+    // truth the UI snaps back to. Per D-07, the panel deliberately stays open (nothing here
+    // ever force-closes outputPanelOpen) — only the list re-sorts once the monitor redelivers.
+    private func handleSelectOutputDevice(_ device: AudioOutputDevice) {
+        audioOutputMonitor?.setDefaultOutput(device) { _ in }
+    }
+
+    // Phase 48 / OUTPUT-01 (D-04) — the free function setSystemVolume(_:) (Plan 48-01) is the
+    // absolute-set counterpart to adjustSystemVolume(increase:), already re-clamping its input
+    // defensively. This is an optimistic UI update: AudioOutputMonitor's listener only fires on
+    // device add/remove/default-change, never on a bare volume-level change, so this handler is
+    // the only path that keeps outputCurrentVolumeFraction live during a drag.
+    private func handleVolumeChange(_ fraction: Float) {
+        guard let result = setSystemVolume(fraction) else { return }
+        presentationState.outputCurrentVolumeFraction = CGFloat(result.percent) / 100.0
+    }
+
     // Phase 28 / CALVIEW-01/02/04 — routes through the SAME `calendarService` property
     // refreshCalendar() already uses (never a second EventKitService instance, CALVIEW-04's
     // single-EKEventStore structural check).
@@ -2033,6 +2067,11 @@ final class NotchWindowController {
                       onTogglePlayPause: { [weak self] in self?.nowPlayingMonitor?.togglePlayPause() },
                       onNext: { [weak self] in self?.nowPlayingMonitor?.nextTrack() },
                       onPrevious: { [weak self] in self?.nowPlayingMonitor?.previousTrack() },
+                      // Phase 48 / OUTPUT-01/03 — forwards to the 3 handlers above, mirroring
+                      // onSwitcherSelect's forwarding shape.
+                      onToggleOutputPanel: { [weak self] in self?.handleToggleOutputPanel() },
+                      onSelectOutputDevice: { [weak self] device in self?.handleSelectOutputDevice(device) },
+                      onVolumeChange: { [weak self] value in self?.handleVolumeChange(value) },
                       onShelfItemTap: { [weak self] item in self?.handleShelfItemTap(item) },
                       onShelfItemDelete: { [weak self] id in self?.handleShelfItemDelete(id) },
                       onShelfClearAll: { [weak self] in self?.handleShelfClearAll() },
