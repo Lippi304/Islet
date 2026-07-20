@@ -123,8 +123,8 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 46: Calendar Quick-Add Improvements** - Date+time picker with smart defaults, unclipped add button, roomier event rows (completed 2026-07-19)
 - [x] **Phase 47: Audio Output Switcher — Pure Seam + Monitor** - Device value type + event-driven CoreAudio monitor, proven in isolation before any UI is built (completed 2026-07-19)
 - [x] **Phase 48: Audio Output Switcher — UI Wiring** - Speaker-icon panel: live device list, tap-to-select, real volume slider (completed 2026-07-20)
-- [ ] **Phase 49: Favorite/Like — Spike** - Resolve Spotify quota, Apple Music reliability, and Automation-TCC unknowns; documented go/no-go scope decision
-- [ ] **Phase 50: Favorite/Like — Implementation** - Star button write-back to Apple Music/Spotify, scoped per Phase 49's findings
+- [ ] **Phase 49: Favorite/Like — Spike** - PAUSED by user after Plans 01-02/4 (see Phase Details) — Apple Music/MediaRemote write paths found broken; Spotify (SC#3) untested; no go/no-go decision made
+- [ ] **Phase 50: Favorite/Like — Implementation** - BLOCKED — depends on Phase 49's go/no-go, which was never produced; its Apple Music write path (SC#1) is already known broken. Needs review before planning.
 
 ## Phase Details
 
@@ -790,6 +790,8 @@ Plans:
 
 ### Phase 49: Favorite/Like — Spike
 
+**⚠ PAUSED BY USER (2026-07-20) after Plans 01-02 of 4.** Early on-device results looked weak enough that the user chose not to continue: SC#1 (MediaRemote like command) has no visible effect in either app; SC#2 (Apple Music `loved` via AppleScript) fails with error `-10001` in all 4 tested states, not just the predicted streaming-only edge case. Plan 03 (Spotify PKCE, SC#3) and Plan 04 (go/no-go synthesis) were never executed — no `49-GO-NO-GO.md` exists. See `.planning/STATE.md` and `49-01-SUMMARY.md`/`49-02-SUMMARY.md` for full detail. Resume from Plan 03, or formally descope, before Phase 50 is planned.
+
 **Goal**: Resolve this milestone's three genuine, undocumented/policy-gated unknowns — Apple Music `current track`/`loved` reliability, Spotify OAuth/quota-mode reality, and the Automation (TCC) permission-prompt bug — on real hardware, producing a documented go/no-go scope decision before any Favorite/Like UI is planned in detail. Mirrors this project's own Phase 22/24 (drag-in) and Phase 38/39 (undocumented-API) spike-first precedent.
 **Depends on**: Nothing — shares no code path with the Audio Output Switcher work (Phases 47-48), so this spike can proceed independently and in parallel-safe order.
 **Requirements**: None formally scoped to this phase — spike phase preceding Phase 50's FAV-01..03, mirroring Phase 22-01/24-01/38-01/39-01 precedent
@@ -809,6 +811,8 @@ Plans:
 - [ ] 49-04-PLAN.md — Wave 2: consolidated go/no-go scope decision (49-GO-NO-GO.md), depends on 49-01/49-02/49-03
 
 ### Phase 50: Favorite/Like — Implementation
+
+**⚠ BLOCKED — needs review before planning.** Phase 49 (its hard dependency) was paused by the user with no go/no-go decision produced. Worse, Phase 49's own partial results already contradict this phase's SC#1: the Apple Music `loved` AppleScript write path named below was found broken (error `-10001`) in every tested state, not just a streaming-only edge case, and the Spotify OAuth path was never verified at all. Do not plan or execute this phase as currently scoped without first resuming/closing Phase 49 (Plan 03 + 04) or explicitly re-scoping this phase around what's actually known to work.
 
 **Goal**: A star button in the expanded Now Playing view lets the user favorite/like the current track, writing back to the source app's own library, scoped precisely to what Phase 49's spike confirmed is real (read/write, write-only, or Apple-Music-only).
 **Depends on**: Phase 49 — hard dependency; the concrete write path (and whether Spotify ships at all) is only known once the spike concludes.
