@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: 48-03-PLAN.md Tasks 1-2 re-verified (safe no-op), paused at Task 3 on-device UAT checkpoint
-last_updated: "2026-07-20T03:02:00.000Z"
+stopped_at: 48-03-PLAN.md Task 3 UAT round 1 found 1 issue (choppy volume-drag fill), fixed, paused at Task 3 UAT re-verification
+last_updated: "2026-07-20T03:30:00.000Z"
 last_activity: 2026-07-20
 progress:
   total_phases: 19
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 48 (audio-output-switcher-ui-wiring) — EXECUTING
 Plan: 3 of 3
-Status: Tasks 1-2 re-verified correct against current code (safe no-op, no commits needed); paused at Task 3 on-device UAT checkpoint
+Status: Tasks 1-2 re-verified correct against current code (safe no-op, no commits needed); Task 3 UAT round 1 (6/7 steps passed, 1 issue: choppy volume-drag fill) fixed via animation gating, re-verification pending
 Last activity: 2026-07-20
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
@@ -178,6 +178,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 48]: [Phase 48-02] REVISION: original standalone-slider design (shipped in b9f247a/a58607e) replaced by row-as-volume-bar design per 48-CONTEXT.md D-10..D-13 -- active device's row IS the draggable volume bar, inactive rows plain dimmed text, full-white-vs-dimmed text opacity is the sole active-device signal (no checkmark)
 - [Phase 48]: [Phase 48-02] content() must be evaluated into a local let binding BEFORE entering GeometryReader{...}'s closure, not called inside it -- GeometryReader.init(content:) is @escaping and cannot capture a non-escaping @ViewBuilder parameter directly (mechanical Swift-compiler constraint found during Task 2's first build attempt)
 - [Phase 48-03]: Re-verified Tasks 1-2 (handlers + closure forwarding, geometry three-site rule Sites 2/3) against current code after 48-02's row-as-volume-bar re-execution landed -- all acceptance-criteria greps pass unchanged (handleToggleOutputPanel/handleSelectOutputDevice/handleVolumeChange, makeRootView forwarding, outputPanelExpandedFrame union, visibleContentZone's outputPanelOpen branch correctly nested inside the final else), Debug build green, zero commits needed (safe no-op per plan's own revision note). Task 3 (on-device UAT checkpoint) reached next -- previously blocked because 48-02's row-as-bar redesign hadn't been re-executed, now unblocked.
+- [Phase 48-03]: Task 3 UAT round 1 -- 6/7 steps passed, 1 issue: volume-drag fill visibly choppy/stepped instead of tracking the finger. Root cause: `outputVolumeSlider`'s fill `.animation(value: fraction)` spring was copied verbatim from `OSDLevelBar` (correct there -- rare discrete key-press updates), but `fraction` here updates on every `DragGesture.onChanged` tick, so each tick retriggered a fresh 150ms spring chasing a moving target. Fixed by gating the animation off via an instance-level `isDraggingOutputVolume` bool (mirrors `isSecondaryBubbleHovering`'s "only one row/bubble active at a time" precedent) while a drag is in progress, restoring the spring once the drag ends. `OSDLevelBar` itself untouched. CoreAudio's synchronous per-tick `AudioObjectSetPropertyData` write was assessed as a plausible secondary contributor but NOT throttled -- the animation-retrigger mechanism alone fully explains the reported symptom, and throttling was deferred pending on-device re-confirmation to avoid over-fixing. Debug build green, commit e657356. Re-verification of UAT step 2 (plus re-confirmation of the other 6 steps) pending.
 
 ### Roadmap Evolution
 
