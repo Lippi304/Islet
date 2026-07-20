@@ -101,3 +101,7 @@ None — no external service configuration required.
 ---
 *Phase: 48-audio-output-switcher-ui-wiring*
 *Completed: 2026-07-20*
+
+## Self-Check: PASSED
+
+Modified file (`Islet/Notch/NotchPillView.swift`) and this SUMMARY.md both found on disk; both commit hashes (`1b13dd1`, `d68676d`) found in git log.

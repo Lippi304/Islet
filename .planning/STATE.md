@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
-stopped_at: Phase 48 context revised — row-as-volume-bar redesign
-last_updated: "2026-07-20T00:51:29.609Z"
-last_activity: 2026-07-20 -- Phase 48 execution started
+stopped_at: Completed 48-02-PLAN.md (row-as-volume-bar re-execution)
+last_updated: "2026-07-20T01:00:46.689Z"
+last_activity: 2026-07-20
 progress:
   total_phases: 19
   completed_phases: 15
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 48 (audio-output-switcher-ui-wiring) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 48
-Last activity: 2026-07-20 -- Phase 48 execution started
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-07-20
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -124,6 +124,7 @@ Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/4
 | Phase 47 P03 | multi-session | 2 tasks | 3 files |
 | Phase 48 P01 | 15min | 3 tasks | 3 files |
 | Phase 48 P02 | 15min | 2 tasks | 1 files |
+| Phase 48 P02 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -174,6 +175,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 47-02]: listenerBlock stored as nonisolated(unsafe) (not plain private var as literally stated) so nonisolated func stop() can read/clear it without a main-actor isolation compile error — mirrors BluetoothMonitor's nonisolated(unsafe) token fields, a mechanical Swift 6 concurrency requirement not a design change
 - [Phase 47-03]: On-device Cmd-U checkpoint surfaced a real bug — resolveDeviceID(uid:) used the deprecated AudioValueTranslation-wrapped-in-ioData pattern for kAudioHardwarePropertyTranslateUIDToDevice, causing HAL "wrong data size" errors, resolveDeviceID always returning nil, hasVolumeControl always false, and setDefaultOutput's confirm-after-set never succeeding; fixed to the qualifier-data calling convention (UID via inQualifierData/inQualifierDataSize, ioData holds only the AudioDeviceID output). Re-verified on-device: Pitfall 4 (UID stability across a Jabra Bluetooth disconnect/reconnect) and Pitfall 8 (confirmed-after-set switch to Elgato USB) both confirmed; hasVolumeControl recorded true for built-in/Bluetooth/USB, false for an external-monitor output. D-03's "2 distinct Bluetooth devices" scope accepted as single-device (only one BT output device available) — user-confirmed, documented limitation, Phase 48 should re-check if a second BT device becomes available.
 - [Phase 48-02]: OutputVolumeSlider's disabled state enforced via a guard clause inside DragGesture.onChanged rather than a conditional .gesture(_:) ternary — SwiftUI has no Optional<Gesture> overload
+- [Phase 48]: [Phase 48-02] REVISION: original standalone-slider design (shipped in b9f247a/a58607e) replaced by row-as-volume-bar design per 48-CONTEXT.md D-10..D-13 -- active device's row IS the draggable volume bar, inactive rows plain dimmed text, full-white-vs-dimmed text opacity is the sole active-device signal (no checkmark)
+- [Phase 48]: [Phase 48-02] content() must be evaluated into a local let binding BEFORE entering GeometryReader{...}'s closure, not called inside it -- GeometryReader.init(content:) is @escaping and cannot capture a non-escaping @ViewBuilder parameter directly (mechanical Swift-compiler constraint found during Task 2's first build attempt)
 
 ### Roadmap Evolution
 
@@ -217,7 +220,6 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.7, from research] Apple Music's `current track` AppleScript reference is documented-broken for streamed (not-yet-in-library) tracks — Phase 49 must spike against a library track, a streaming-only track, and both play/pause states before Phase 50 builds the star button around it.
 - [Phase 43 regression gate, pre-existing, unrelated] `DragApproachGeometryTests.testOffsetIsIdenticalOnNonZeroOriginCard` (Phase 34) fails deterministically (not flaky — reproduces identically every run) due to floating-point catastrophic cancellation when subtracting two large near-equal `CGFloat`s (`150.66666666666674` vs `...69`). Confirmed unrelated to Phase 43 — `computeQuickActionButtonFrames` was never touched by this phase. Fix (when picked up): use `XCTAssertEqual(..., accuracy: 0.01)` like the file's other geometry tests already do, instead of exact equality.
 - [Quick debug, 2026-07-19] Old Islet instance occasionally survives Xcode's Stop button (documented Apple Developer Forums limitation for LSUIElement/background-agent apps, thread 47777), producing a duplicate menu-bar icon needing manual quit. Fixed via a single-instance guard in `AppDelegate.applicationDidFinishLaunching` (force-terminates any other process sharing Islet's bundle ID as the first action on launch) — build-verified but **on-device Xcode stop/restart verification is pending**. User explicitly deferred a dedicated test pass, will confirm organically during upcoming phase work. Session: `.planning/debug/old-islet-instance-stays-open.md`.
-- Plan 48-03 blocked: dependency Plan 48-02's replanned Task 2 (row-as-volume-bar restructure of outputPanel(devices:) in NotchPillView.swift, per D-10..D-13) was never re-executed after the 2026-07-20 CONTEXT revision -- live code still has the OLD standalone-OutputVolumeSlider+checkmark design. Plan 48-03 Task 3's on-device checkpoint requires the row-as-bar UI to exist; it cannot be meaningfully verified until 48-02 is re-executed against its current PLAN.md content.
 
 ### Quick Tasks Completed
 
@@ -284,9 +286,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-20T00:28:16.577Z
-Stopped at: Phase 48 context revised — row-as-volume-bar redesign
-Resume file: .planning/phases/48-audio-output-switcher-ui-wiring/48-CONTEXT.md
+Last session: 2026-07-20T01:00:28.681Z
+Stopped at: Completed 48-02-PLAN.md (row-as-volume-bar re-execution)
+Resume file: .planning/phases/48-audio-output-switcher-ui-wiring/48-03-PLAN.md
 
 ## Operator Next Steps
 
