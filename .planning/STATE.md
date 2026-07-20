@@ -4,8 +4,8 @@ milestone: v1.7
 milestone_name: Interaction & Calendar Polish
 status: executing
 stopped_at: Phase 48 context revised — row-as-volume-bar redesign
-last_updated: "2026-07-20T00:45:22.523Z"
-last_activity: 2026-07-20 -- Phase 48 planning complete
+last_updated: "2026-07-20T00:51:29.609Z"
+last_activity: 2026-07-20 -- Phase 48 execution started
 progress:
   total_phases: 19
   completed_phases: 15
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 48 (audio-output-switcher-ui-wiring) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-20 -- Phase 48 planning complete
+Plan: 1 of 3
+Status: Executing Phase 48
+Last activity: 2026-07-20 -- Phase 48 execution started
 
 ### Phase 5 status note (resolved at v1.0 milestone close)
 
@@ -217,6 +217,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.7, from research] Apple Music's `current track` AppleScript reference is documented-broken for streamed (not-yet-in-library) tracks — Phase 49 must spike against a library track, a streaming-only track, and both play/pause states before Phase 50 builds the star button around it.
 - [Phase 43 regression gate, pre-existing, unrelated] `DragApproachGeometryTests.testOffsetIsIdenticalOnNonZeroOriginCard` (Phase 34) fails deterministically (not flaky — reproduces identically every run) due to floating-point catastrophic cancellation when subtracting two large near-equal `CGFloat`s (`150.66666666666674` vs `...69`). Confirmed unrelated to Phase 43 — `computeQuickActionButtonFrames` was never touched by this phase. Fix (when picked up): use `XCTAssertEqual(..., accuracy: 0.01)` like the file's other geometry tests already do, instead of exact equality.
 - [Quick debug, 2026-07-19] Old Islet instance occasionally survives Xcode's Stop button (documented Apple Developer Forums limitation for LSUIElement/background-agent apps, thread 47777), producing a duplicate menu-bar icon needing manual quit. Fixed via a single-instance guard in `AppDelegate.applicationDidFinishLaunching` (force-terminates any other process sharing Islet's bundle ID as the first action on launch) — build-verified but **on-device Xcode stop/restart verification is pending**. User explicitly deferred a dedicated test pass, will confirm organically during upcoming phase work. Session: `.planning/debug/old-islet-instance-stays-open.md`.
+- Plan 48-03 blocked: dependency Plan 48-02's replanned Task 2 (row-as-volume-bar restructure of outputPanel(devices:) in NotchPillView.swift, per D-10..D-13) was never re-executed after the 2026-07-20 CONTEXT revision -- live code still has the OLD standalone-OutputVolumeSlider+checkmark design. Plan 48-03 Task 3's on-device checkpoint requires the row-as-bar UI to exist; it cannot be meaningfully verified until 48-02 is re-executed against its current PLAN.md content.
 
 ### Quick Tasks Completed
 
