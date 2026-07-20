@@ -665,15 +665,32 @@ struct NotchPillView: View {
     static let homeContentHeight: CGFloat = 170
 
     // Phase 48 / OUTPUT-01/02/03 (CR-01 geometry three-site rule, Site 1) — the extra height
-    // `tabHeight`'s default case adds when the output panel is open. Reasoned first-pass
-    // estimate, NOT final (same "size once, tune on-device" convention as `homeContentHeight`
-    // itself). Row-as-volume-bar redesign (D-10..D-13): active row (32) + up to ~3 rows total,
-    // so ~2 inactive rows at 28pt each (56) + inter-row spacing (4*2) + panel top/bottom fudge
-    // (~12) ≈ 140 — the row-based math reduces to approximately the same total the old
-    // standalone-slider-above-list layout needed. Plan 48-03 mirrors this exact
+    // `tabHeight`'s default case adds when the output panel is open. Plan 48-02's original 140
+    // was a rough first-pass estimate (its own fudge math, not the real per-row layout) and left
+    // a large empty gap below the panel for the common 2-3 device case — on-device UAT after
+    // ship confirmed this. Retuned here using the EXACT layout math instead of a fudge factor:
+    // mediaContent's outer VStack(spacing: 6) adds one 6pt gap before the panel; outputPanel's
+    // own VStack(spacing: 4) holds N device rows (exactly one outputActiveRowHeight=32 row plus
+    // (N-1) outputInactiveRowHeight=28 rows, with (N-1) 4pt gaps between them) — i.e.
+    // `6 + 32 + (N-1) * 32`. N=2:70 N=3:102 N=4:134. Tuned as a single static reservation (no
+    // dynamic per-N sizing — see below) to the common 2-3 device case (102 + buffer), matching
+    // the "size once, tune on-device" convention `homeContentHeight` itself already established.
+    // NOT made dynamic on `presentationState.outputDevices.count`: traced whether
+    // `positionAndShow()` (Site 2) re-runs when the device list changes live while the panel is
+    // open (AudioOutputMonitor -> handleAudioOutputDevicesChanged, Plan 48-01/48-04) — it does
+    // NOT; that handler only writes `presentationState.outputDevices`/volume fields, it never
+    // calls `resolveAndPosition()`/`positionAndShow()`. Site 1 here is a reactive SwiftUI
+    // computed property (updates instantly), but Site 2's NSPanel window frame is a plain func
+    // result cached until the next unrelated positionAndShow() trigger — a per-N dynamic value
+    // would desync Site 1 from Site 2's actual window bounds the moment a device connects/
+    // disconnects while the panel is open (content sized for the NEW count, physical window
+    // still sized for the OLD count), reintroducing exactly the click-swallowing regression
+    // class CR-01 exists to prevent. A single static reservation avoids that risk entirely, at
+    // the cost of a taller-than-needed panel for N>=4 (rare in practice) or up to ~4-8pt
+    // remaining gap for N<=3 (accepted). Plan 48-03 mirrors this exact
     // `presentationState.outputPanelOpen` read at Site 2 (`positionAndShow`) and Site 3
     // (`visibleContentZone()`) — see 48-02-PLAN.md's threat model T-48-05.
-    static let outputPanelExtraHeight: CGFloat = 140
+    static let outputPanelExtraHeight: CGFloat = 120
 
     // Phase 48 / OUTPUT-01 (D-10..D-13, row-as-volume-bar redesign) — the active device row's
     // full height (row IS the bar, not a separate slider element) and the plain-text inactive
