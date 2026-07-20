@@ -2526,6 +2526,19 @@ final class NotchWindowController {
     }
     #endif
 
+    #if DEBUG
+    // Phase 49 spike hooks — forwarding to nowPlayingMonitor (private property, so
+    // AppDelegate must route through this same-class method). Throwaway, removed/replaced
+    // once Phase 50 lands the real star-button feature.
+    func spikeLikeCurrentTrack() {
+        nowPlayingMonitor?.spikeLikeCurrentTrack()
+    }
+
+    func spikeTriggerAutomationPrompt() {
+        nowPlayingMonitor?.spikeTriggerAutomationPrompt()
+    }
+    #endif
+
     deinit {
         // The screen-parameters observer lives on the DEFAULT center; the two fullscreen
         // observers live on NSWorkspace's OWN center — removing a workspace observer from the

@@ -235,6 +235,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugForceLicensed), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Debug: Reset Trial",
                           action: #selector(debugResetTrial), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Like Current Track",
+                          action: #selector(debugSpikeLikeCurrentTrack), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Trigger Automation Prompt",
+                          action: #selector(debugSpikeTriggerAutomationPrompt), keyEquivalent: "")
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -257,6 +261,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // "restarted" on the next actual app relaunch, not live. Re-recording here
         // makes Reset Trial usable for on-device testing without quitting the app.
         TrialManager.shared.recordFirstLaunchIfNeeded()
+    }
+
+    // Phase 49 spike hooks — see 49-01-SUMMARY.md for the on-device verdict.
+    // @MainActor required: NotchWindowController (and its spike methods) are @MainActor-
+    // isolated; menu-item actions run on main but this method itself isn't inferred
+    // @MainActor by default (not a protocol requirement like applicationDidFinishLaunching).
+    @MainActor @objc private func debugSpikeLikeCurrentTrack() {
+        notchController?.spikeLikeCurrentTrack()
+    }
+
+    @MainActor @objc private func debugSpikeTriggerAutomationPrompt() {
+        notchController?.spikeTriggerAutomationPrompt()
     }
     #endif
 }
