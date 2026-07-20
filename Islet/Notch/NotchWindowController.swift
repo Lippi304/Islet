@@ -1053,6 +1053,15 @@ final class NotchWindowController {
         let weatherExpandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
                                                        expandedSize: CGSize(width: expandedSize.width,
                                                                              height: NotchPillView.weatherLargeContentHeight + NotchPillView.switcherRowHeight))
+        // Phase 48 / OUTPUT-01 (CR-01 geometry three-site rule, Site 2) — mirrors
+        // weatherExpandedFrame's UNCONDITIONAL-reservation shape immediately above: included in
+        // the union regardless of outputPanelOpen's current value ("size once, up front"), same
+        // convention onboardingFrame/trayFrame already established. Must read the EXACT SAME
+        // homeContentHeight-plus-outputPanelExtraHeight sum Plan 48-02's tabHeight default-case
+        // ternary (Site 1) already computes.
+        let outputPanelExpandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
+                                                           expandedSize: CGSize(width: expandedSize.width,
+                                                                                 height: NotchPillView.homeContentHeight + NotchPillView.outputPanelExtraHeight + NotchPillView.switcherRowHeight))
         // Phase 44 / TRAY-06/DRAG-02 (D-03/D-04, geometry three-site rule) — the picker's width
         // still matches trayFrame's footprint (traySize.width), so it never renders NARROWER than
         // the real, already-widened Tray view the user compares it against. Height, however, no
@@ -1067,7 +1076,7 @@ final class NotchWindowController {
         // Phase 34 (UAT revision, Pattern 3) — the 3 destination buttons' live global frames,
         // computed once per positionAndShow() alongside quickActionPickerFrame itself.
         quickActionButtonFrames = computeQuickActionButtonFrames(card: quickActionPickerFrame)
-        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExpandedFrame).union(quickActionPickerFrame)
+        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExpandedFrame).union(outputPanelExpandedFrame).union(quickActionPickerFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
@@ -1440,8 +1449,23 @@ final class NotchWindowController {
             contentSize = CGSize(width: NotchPillView.calendarWidth,
                                  height: NotchPillView.switcherContentHeight + switcherHeight)
         } else {
-            contentSize = CGSize(width: expandedSize.width,
-                                 height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)
+            // Phase 48 / OUTPUT-01 (CR-01 geometry three-site rule, Site 3) — reaching this
+            // final `else` already means presentation is one of .nowPlayingExpanded/
+            // .homeLastPlayed/.homeEmpty (every other explicitly-cased presentation was already
+            // matched by an earlier branch above), so the output-panel sizing is nested INSIDE
+            // this else rather than a sibling `else if` before it — a transient presentation
+            // (e.g. .charging/.device, which can override presentationState.presentation per
+            // IslandResolver's D-04 "transient wins even over expanded" while outputPanelOpen is
+            // still true from before the transient started) never falls into this branch. Must
+            // read the EXACT SAME NotchPillView.homeContentHeight + NotchPillView.
+            // outputPanelExtraHeight sum Plan 48-02's tabHeight (Site 1) computes.
+            if presentationState.outputPanelOpen {
+                contentSize = CGSize(width: expandedSize.width,
+                                     height: NotchPillView.homeContentHeight + NotchPillView.outputPanelExtraHeight + switcherHeight)
+            } else {
+                contentSize = CGSize(width: expandedSize.width,
+                                     height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)
+            }
         }
         let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: contentSize)
         return visibleFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
