@@ -299,6 +299,15 @@ final class NotchWindowController {
 
     // The global pointer monitor + the pending grace-delay collapse (Pattern 1 / Pattern 3).
     private var mouseMonitor: Any?
+    // island-hover-exit-no-collapse fix — the GLOBAL monitor above only sees mouseMoved
+    // events NOT destined for our own windows. While expanded (ignoresMouseEvents == false)
+    // the panel's own statically-sized frame swallows those events LOCALLY instead, so
+    // handlePointer (and therefore pointerInZone/hover-exit) was never invoked while the
+    // pointer sat anywhere inside that frame — even after visibly leaving the rendered
+    // content. This local monitor mirrors the exact same handlePointer(at:) call for events
+    // landing on our own window, closing that blind spot without touching any of the
+    // (already-verified-correct) state machine/grace-timer/render logic.
+    private var localMouseMonitor: Any?
     private var graceWorkItem: DispatchWorkItem?
 
     // Phase 21 / SHELF-06 / D-03 — the shelf-item drag pin: while true, handleHoverExit's
@@ -486,6 +495,16 @@ final class NotchWindowController {
         // We watch ONLY .mouseMoved (no keyboard mask) to minimise the privacy surface.
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             self?.handlePointer(at: NSEvent.mouseLocation)
+        }
+        // island-hover-exit-no-collapse fix — complements the global monitor above: while the
+        // panel is interactive (ignoresMouseEvents == false, i.e. expanded), mouseMoved events
+        // over our own window are delivered LOCALLY and never reach the global monitor, so
+        // handlePointer was never called for them and hover-exit could never fire until an
+        // explicit click made the panel click-through again. Must return `event` unmodified so
+        // SwiftUI's own hover/click handling for the content underneath still receives it.
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved]) { [weak self] event in
+            self?.handlePointer(at: NSEvent.mouseLocation)
+            return event
         }
 
         // Phase 24 / SHELF-01 / SHELF-02 — arm the production DragApproachDetector monitors.
@@ -1080,8 +1099,18 @@ final class NotchWindowController {
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
-        // While expanded, the WHOLE expanded island (the panel union, padded) keeps it open so
-        // the pointer can reach the transport controls without tripping the grace-collapse.
+        // island-hover-exit-no-collapse fix — expandedZone is the STATIC union of every
+        // presentation's max footprint (up to ~650x454, e.g. Weather/Tray), pinned to the same
+        // top edge as every individual presentation's own (usually much smaller) visible rect.
+        // handlePointer's hover-exit tracking used to key off THIS broad union, so a user moving
+        // the pointer straight down/sideways away from a small presentation (e.g. nowPlaying's
+        // ~420x240) stayed "in zone" for up to ~200pt of invisible dead space below/around the
+        // rendered pill before hover-exit could ever fire — matching the reported "stays expanded
+        // for 5+ seconds outside the visible island" bug exactly. handlePointer now uses
+        // visibleContentZone() (the actual current-presentation rect) for that tracking instead;
+        // expandedZone itself is kept only for the drag-accept region below (isWithinDragAcceptRegion),
+        // which legitimately needs the broad reservation so a shelf drop still registers over the
+        // invisible-but-reserved shelf band.
         expandedZone = panelFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
         dragLandingMaxY = target.frame.maxY - dragLandingMargin
 
@@ -1336,10 +1365,16 @@ final class NotchWindowController {
         // which need it but receive no point parameter themselves.
         lastPointerLocation = point
 
-        // While expanded, the keep-open region is the full expanded island so the pointer can
-        // travel down to the transport controls without reading as a hot-zone exit (which would
-        // collapse the island after the grace delay). Collapsed/hovering use the small pill zone.
-        let activeZone = interaction.isExpanded ? (expandedZone ?? hotZone) : collapsedInteractiveZone()
+        // island-hover-exit-no-collapse fix — while expanded, the keep-open region used to be
+        // the full static panel union (expandedZone), which stays much larger than any single
+        // presentation's actual rendered content (see positionAndShow's expandedZone comment).
+        // Using visibleContentZone() (the CURRENT presentation's real visible rect, same one
+        // syncClickThrough() already uses for click-through) still lets the pointer travel
+        // anywhere over the transport controls / rendered content without tripping a hot-zone
+        // exit, but now correctly detects "exit" as soon as the pointer leaves what the user can
+        // actually SEE, instead of only after it leaves the much bigger invisible reservation.
+        // Collapsed/hovering still use the small pill zone, unchanged.
+        let activeZone = interaction.isExpanded ? (visibleContentZone() ?? hotZone) : collapsedInteractiveZone()
         guard let zone = activeZone else { return }
         let inside = zone.contains(point)
         // WR-01: the enter/exit edge is about the POINTER being in the zone, so track it
@@ -1349,9 +1384,15 @@ final class NotchWindowController {
         // while .hovering), letting the grace timer collapse the island under the pointer.
         if inside && !pointerInZone {
             pointerInZone = true
+            #if DEBUG
+            print("[hover] enter — phase=\(interaction.phase) expanded=\(interaction.isExpanded) point=\(point)")
+            #endif
             handleHoverEnter()          // cancels the pending grace collapse inside
         } else if !inside && pointerInZone {
             pointerInZone = false
+            #if DEBUG
+            print("[hover] exit — phase=\(interaction.phase) expanded=\(interaction.isExpanded) point=\(point)")
+            #endif
             handleHoverExit()
         }
 
@@ -1547,6 +1588,9 @@ final class NotchWindowController {
 
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            #if DEBUG
+            print("[hover] grace timer fired — isDraggingShelfItem=\(self.isDraggingShelfItem) isOnboardingActive=\(self.isOnboardingActive) phaseBefore=\(self.interaction.phase)")
+            #endif
             // Phase 21 / SHELF-06 / D-03 — defer the collapse while a shelf-item drag is in
             // flight; endShelfItemDrag() re-invokes handleHoverExit() once the drag ends.
             guard !self.isDraggingShelfItem else { return }
@@ -1562,14 +1606,23 @@ final class NotchWindowController {
                 // a dismiss-without-choosing: discard the pending file(s), no silent auto-stage.
                 if !self.interaction.isExpanded { self.discardPendingDrop() }
             }
+            #if DEBUG
+            print("[hover] grace collapse applied — phaseAfter=\(self.interaction.phase) presentation=\(self.presentationState.presentation) panelVisible=\(String(describing: self.panel?.isVisible)) panelFrame=\(String(describing: self.panel?.frame)) ignoresMouseEvents=\(String(describing: self.panel?.ignoresMouseEvents))")
+            #endif
             // Phase 10 / D-13: this is the natural-transition recheck the idle-state guard
             // depends on — the pointer has just left AND the grace-elapsed collapse has just
             // finished, so a previously-deferred pendingLockoutHide now applies here.
             self.updateVisibility()
             // Pitfall 3: restore click-through deterministically once collapsed + pointer out.
             self.syncClickThrough()
+            #if DEBUG
+            print("[hover] post-syncClickThrough — presentation=\(self.presentationState.presentation) panelVisible=\(String(describing: self.panel?.isVisible)) ignoresMouseEvents=\(String(describing: self.panel?.ignoresMouseEvents))")
+            #endif
         }
         graceWorkItem = work
+        #if DEBUG
+        print("[hover] scheduling grace collapse in \(graceDelay)s")
+        #endif
         DispatchQueue.main.asyncAfter(deadline: .now() + graceDelay, execute: work)
 
         // D-10: once the pointer leaves a STANDING charging splash, resume the ~3s
@@ -1632,6 +1685,9 @@ final class NotchWindowController {
         // (expand → interactive, toggle-shut while still in zone → still interactive until
         // exit, toggle-shut already out → pass-through).
         syncClickThrough()
+        #if DEBUG
+        print("[click] collapse applied — phaseAfter=\(interaction.phase) presentation=\(presentationState.presentation) panelVisible=\(String(describing: panel?.isVisible)) panelFrame=\(String(describing: panel?.frame)) ignoresMouseEvents=\(String(describing: panel?.ignoresMouseEvents))")
+        #endif
     }
 
     // Phase 42 / DUAL-01 (D-12, SUPERSEDED 2026-07-19 — live user decision during Plan 42-04
@@ -2550,6 +2606,7 @@ final class NotchWindowController {
         // Phase 6 / APP-03: the UserDefaults toggle/accent observer lives on the DEFAULT center.
         if let o = defaultsObserver { NotificationCenter.default.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
+        if let m = localMouseMonitor { NSEvent.removeMonitor(m) }
         // Phase 24 / SHELF-01 / SHELF-02 — tear down the production DragApproachDetector monitors.
         if let m = dragApproachMonitor { NSEvent.removeMonitor(m) }
         if let m = dragEndMonitor { NSEvent.removeMonitor(m) }
