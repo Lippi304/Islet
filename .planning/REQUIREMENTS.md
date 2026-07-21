@@ -158,6 +158,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
+| SETTINGS-02 | Phase 51 | Pending |
+| SETTINGS-03 | Phase 51 | Pending |
+| SWITCH-03 | Phase 52 | Pending |
+| SWITCH-04 | Phase 52 | Pending |
+| RESUME-01 | Phase 53 | Pending |
+| RESUME-02 | Phase 53 | Pending |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
@@ -170,6 +176,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Unmapped: 0
 - Phase 47 (Audio Output — Pure Seam + Monitor) and Phase 49 (Favorite/Like — Spike) carry no formal REQ-ID themselves — they're infrastructure/spike phases preceding Phase 48/50's user-facing requirements, mirroring this project's own Phase 15/16/19 and Phase 22-01/24-01/38-01/39-01 precedent.
 
+**Coverage (v1.8):**
+- v1.8 requirements: 6 total
+- Mapped to phases: 6 (100%)
+- Unmapped: 0
+
 v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is archived in `.planning/milestones/v1.6-REQUIREMENTS.md`.
 
 ---
@@ -179,3 +190,4 @@ v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is 
 *v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
 *v1.5 requirements defined 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
+*v1.8 (Settings Redesign & Island Navigation) roadmap created: 3 phases (51-53), 100% coverage (6/6). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track is supported by the existing NowPlayingMonitor/MediaRemote adapter transport) to verify early within its own phase. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed).*

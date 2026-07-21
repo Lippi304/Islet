@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-07-21T00:05:50.525Z"
 last_activity: 2026-07-21
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 51 (not started — roadmap created, ready for /gsd-discuss-phase 51)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-21 — Milestone v1.8 started
+Status: Roadmap created (3 phases, 51-53, 100% requirement coverage), awaiting phase discussion
+Last activity: 2026-07-21 — v1.8 roadmap created (Phases 51-53)
 
 ### Phase 48 status note
 
@@ -53,6 +53,8 @@ Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-
 Progress (v1.6): [██████████] 100% — SHIPPED 2026-07-19 (8/8 phases; Phase 37 abandoned/reverted, HUD-07 dropped; see `.planning/milestones/v1.6-ROADMAP.md`)
 
 Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/46/47 complete; Phase 48 next, then 49/50)
+
+Progress (v1.8): [░░░░░░░░░░] 0% (0/3 phases — roadmap created 2026-07-21, Phases 51-53 not yet started; left open in parallel with v1.4/v1.5/v1.7)
 
 ## Performance Metrics
 
@@ -203,6 +205,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - v1.5 (Home Focus & Widget Redesign) roadmap created 2026-07-13: Phase 29 (NotchShape Flare, SHAPE-01), Phase 30 (Home Music-Only, HOME-01/02/03), Phase 31 (Shelf Consolidation to Tray-Only, TRAY-01), Phase 32 (Tray Widening, TRAY-05), Phase 33 (Weather Widget Redesign, WEATHER-01/02), Phase 34 (Quick Action Destination Picker, TRAY-02/03/04) — 100% coverage (11/11). Phase numbering continues from Phase 28. REQUIREMENTS.md's initial "10 total" count corrected to 11 (the actual v1.5 requirement ID list has 11 entries).
 - v1.6 (Liquid Glass & System HUD Suite) roadmap created 2026-07-15: Phase 35 (Liquid Glass Material, GLASS-01), Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/02/EQ-01/ONBOARD-04), Phase 37 (Drop-Session Summary Chip, HUD-07), Phase 38 (Focus Mode HUD, HUD-05), Phase 39 (Volume & Brightness HUD, HUD-03/04), Phase 40 (Update-Available HUD & Sparkle Integration, HUD-06), Phase 41 (Calendar Countdown HUD, HUD-08), Phase 42 (Dual-Activity Display, DUAL-01) — 100% coverage (12/12). Phase numbering starts at 35 (not 34) to avoid colliding with v1.5's still-open, unarchived Phase 34. v1.5 remains open in parallel; both milestones' phases coexist on the live ROADMAP.md.
 - v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19: Phase 43 (Drag Detection Hardening, DRAG-01), Phase 44 (Tray & Quick Action Width Alignment, TRAY-06/DRAG-02), Phase 45 (View Switcher Morph Fix, SWITCH-01/02), Phase 46 (Calendar Quick-Add Improvements, CALVIEW-05/06/07), Phase 47 (Audio Output Switcher — Pure Seam + Monitor, no formal REQ-ID), Phase 48 (Audio Output Switcher — UI Wiring, OUTPUT-01/02/03/04), Phase 49 (Favorite/Like — Spike, no formal REQ-ID), Phase 50 (Favorite/Like — Implementation, FAV-01/02/03) — 100% coverage (15/15). Phase numbering continues from Phase 42 (v1.6's last phase). v1.4 and v1.5 both remain open in parallel; all three milestones' phases coexist on the live ROADMAP.md.
+- v1.8 (Settings Redesign & Island Navigation) roadmap created 2026-07-21: Phase 51 (Settings Reorganization & Scroll Fix, SETTINGS-02/03), Phase 52 (Top-Edge Switcher Layout & Placement Config, SWITCH-03/04), Phase 53 (Hover-to-Resume Idle Preview, RESUME-01/02) — 100% coverage (6/6). Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed) to avoid any collision with v1.4/v1.5/v1.7's still-open phases. Settings (51) and Switcher (52) restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher) independently of each other; Resume (53) is sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track works via the existing NowPlayingMonitor/MediaRemote transport, per PROJECT.md's v1.8 Key Context).
 
 ### Pending Todos
 
@@ -304,6 +307,7 @@ Resume file: .planning/phases/49-favorite-like-spike/49-03-PLAN.md
 
 ## Operator Next Steps
 
+- **v1.8 (Settings Redesign & Island Navigation) roadmap created 2026-07-21.** 3 phases (51-53), 6/6 requirements mapped, 100% coverage. Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53). Phase numbering continues from Phase 50 (v1.7's last reserved phase). Next: `/gsd-discuss-phase 51`. v1.4, v1.5, and v1.7 all remain open in parallel — see their own Operator Next Steps entries below for what's outstanding there.
 - **Phase 47 (Audio Output Switcher — Pure Seam + Monitor) is now fully complete.** All 3 plans (47-01 pure seam, 47-02 monitor, 47-03 on-device verification) done. 47-03's on-device checkpoint surfaced and fixed a real HAL "wrong data size" bug in `resolveDeviceID(uid:)` (qualifier-data pattern fix), then re-confirmed clean: Pitfall 4 (UID stability across a Bluetooth reconnect) and Pitfall 8 (confirmed-after-set switch) both hold on real hardware; `hasVolumeControl` recorded for 4 device types (built-in/Bluetooth/USB=true, external monitor=false) as Phase 48's authoritative slider input. Known scope limitation: D-03 asked for 2 distinct Bluetooth devices, only 1 was available — user-confirmed and accepted. See `47-03-SUMMARY.md`. Per this project's own Phase 29/36/38/39/45 precedent, 47-03's own on-device checkpoint directly covers Phase 47's ROADMAP success criteria, so a separate `/gsd:verify-work 47` pass is not needed. Start `/gsd-discuss-phase 48` (Audio Output Switcher — UI Wiring) next.
 - **Phase 47 Plan 01 (Audio Output Presentation seam) is now complete.** `AudioOutputDevice`, `isOutputCapableDevice(outputChannelCount:)` (D-01), and `sortedAudioOutputDevices(_:)` (D-02) are all implemented, unit-tested (9 tests), Foundation-only, Debug build + test-build both green. See `47-01-SUMMARY.md`. A manual Cmd-U pass to actually run the new tests is recommended (per this project's `xcodebuild test` headless-hang precedent) before Plan 47-02 begins consuming these functions. Next: execute Plan 47-02 (`AudioOutputMonitor` — event-driven CoreAudio glue).
 - **Phase 45 (View Switcher Morph Fix) is now fully complete.** Both plans (45-01 structural fix, 45-02 on-device 12-pairwise verification) done; SWITCH-01/SWITCH-02 shipped. 45-02's own on-device checkpoint directly covered Phase 45's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed (per this project's Phase 29/36/38/39 precedent). Start `/gsd-discuss-phase 46` (Calendar Quick-Add Improvements) next.
