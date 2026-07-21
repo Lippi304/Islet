@@ -218,6 +218,14 @@ struct NotchPillView: View {
     // build without a controller.
     var onSecondaryTap: () -> Void = {}
 
+    // Phase 53 / RESUME-02 — the hover-preview's dedicated resume-tap callback. NOT a reuse
+    // of `onClick` (which expands to Home, violating D-01) and NOT a literal passthrough of
+    // `onSecondaryTap` (semantically a distinct call site, per 53-RESEARCH.md Pitfall 4) —
+    // NotchWindowController wires this to handleResumeTap(), whose body calls
+    // togglePlayPause() and starts the D-03 inferred-failure timeout watch. Defaults to a
+    // no-op so #Previews still build without a controller.
+    var onResumeTap: () -> Void = {}
+
     // NOW-02 — the transport callbacks, plain closures mirroring `onClick`. The view stays
     // AppKit-free + focus-safe: a button tap only REPORTS the intent; NotchWindowController
     // (Plan 04) owns the closures and forwards them to NowPlayingMonitor.togglePlayPause()/
@@ -921,7 +929,7 @@ struct NotchPillView: View {
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
         case .osd(let activity): osdWings(for: activity)                    // Phase 39 / HUD-03/HUD-04: rank 4 transient (39-02)
         case .idle:
-            collapsedIsland                                                  // idle pill
+            idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }
     }
 
@@ -1062,6 +1070,23 @@ struct NotchPillView: View {
         // "for free" via the shared wingsShape(content:) helper. mediaExpanded adds
         // it ONLY to its top (non-button) HStack. This eliminates the ambiguity by
         // construction rather than relying on undocumented SwiftUI gesture priority.
+    }
+
+    // Phase 53 / RESUME-01 — VIEW-LOCAL branch off the existing `.idle` case (Claude's
+    // Discretion, 53-CONTEXT.md; see this plan's `<objective>` for the full rationale): NOT a
+    // new `IslandResolver`/`IslandPresentation` case, since `resolve(...)` has exactly one call
+    // site and threading a hover-flag parameter through it (plus new IslandResolverTests
+    // coverage) is a larger diff than this purely-presentational hover affordance warrants.
+    // `interaction.isHovering` is the EXISTING AppKit-driven hover signal (global `.mouseMoved`
+    // monitor against `collapsedInteractiveZone()`) — no new `@State` hover flag is needed.
+    @ViewBuilder
+    private var idleOrResumePreview: some View {
+        if interaction.isHovering, !interaction.isExpanded, nowPlaying.hasPlayedSinceLaunch,
+           let track = nowPlaying.lastKnownTrack {
+            resumePreviewWings(track)
+        } else {
+            collapsedIsland
+        }
     }
 
     // COLLAPSED — the existing black notch pill (D-08 idle-static). Keeps the
@@ -2409,6 +2434,42 @@ struct NotchPillView: View {
                 .padding(.trailing, 24)  // inset from the outer notch edge (user request)
         }
         .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+    }
+
+    // Phase 53 / RESUME-01/RESUME-02 — the idle hover-preview's own wings shape. Mirrors
+    // `mediaWingsOrToast`'s scaffold (shape/matchedGeometryEffect/islandFill/
+    // liquidGlassEffectLayer) rather than reusing that function directly — it also handles the
+    // toast row, which this preview never needs. Success path reuses `mediaWingsRow` VERBATIM
+    // (per 53-UI-SPEC.md's Reused Components table), constructing `.playing(...)` (not
+    // `.paused`) so `EqualizerBars(isPlaying:)` bounces per D-02. Failure path (D-03) replaces
+    // ONLY the equalizer slot with static failure text, album art stays visible. Tap goes to
+    // the dedicated `onResumeTap` closure (NOT `onClick`, which would expand to Home and
+    // violate D-01 — see 53-RESEARCH.md Pitfall 4/Anti-Pattern).
+    private func resumePreviewWings(_ track: LastPlayedTrack) -> some View {
+        let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)
+        return shape
+            .fill(islandFill)
+            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            .overlay(liquidGlassEffectLayer(shape: shape, size: Self.wingsSize, parameters: .expanded))
+            .overlay {
+                if nowPlaying.resumePreviewFailed {
+                    HStack(spacing: 0) {
+                        artThumbnail(track.artwork, side: Self.wingsSize.height - 8, corner: 6)
+                            .padding(.leading, 22)
+                        Spacer()
+                        Text("Wiedergabe nicht möglich")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .padding(.trailing, 24)
+                    }
+                    .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+                } else {
+                    mediaWingsRow(.playing(title: track.title, artist: track.artist), art: track.artwork)
+                }
+            }
+            .onTapGesture { onResumeTap() }
     }
 
     // Row 2 (round 3, new) — the fading "Title — Artist" line under the wings row. TEXT ONLY:
