@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Interaction & Calendar Polish
-status: paused
-stopped_at: Phase 49 PAUSED BY USER after Plans 01-02 (2/4). User decided not to continue pursuing the Favorite/Like feature spike, given early on-device results (SC#1 like-effect-not-observed; SC#2 Apple Music `loved` broken via AppleScript, error -10001, in all 4 states tested). Plan 03 (Spotify PKCE) left with only Task 1 committed (spotify-pkce-spike.sh) — Task 2's on-device checkpoint was never run. Plan 04 (consolidated go/no-go synthesis) was not started; no 49-GO-NO-GO.md exists. This is an explicit user scope decision, not a stall or failure — resume only if the user revisits the Favorite/Like feature.
-last_updated: "2026-07-20T16:11:28.000Z"
-last_activity: 2026-07-20
+milestone: v1.8
+milestone_name: Settings Redesign & Island Navigation
+status: planning
+last_updated: "2026-07-21T00:05:50.525Z"
+last_activity: 2026-07-21
 progress:
-  total_phases: 19
-  completed_phases: 15
-  total_plans: 39
-  completed_plans: 38
-  percent: 79
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 49 (favorite-like-spike) — PAUSED BY USER after Plans 01-02 (2/4). Plan 01 COMPLETE (on-device verdicts: SC#1 = like-effect-not-observed, SC#4 = tcc-bug-ruled-out — see 49-01-SUMMARY.md). Plan 02 COMPLETE (on-device verdict: SC#2 = matrix-shows-different-behavior, Apple Music `loved` broken via AppleScript in all 4 states tested — see 49-02-SUMMARY.md). Plan 03 (Spotify PKCE, SC#3) left incomplete: Task 1 committed (spotify-pkce-spike.sh), Task 2's on-device checkpoint never run — user decided not to continue after seeing 01/02's weak results. Plan 04 (consolidated go/no-go synthesis) not started; no 49-GO-NO-GO.md was produced. Phase 49 is intentionally left incomplete pending user's decision on whether/how to revisit the Favorite/Like feature — this is NOT a stall, blocker, or error state.
-Plan: 2 of 4 COMPLETE; 03 of 4 left incomplete (Task 1 only) by user decision; 04 not started
-Status: PAUSED — user chose not to continue the Favorite/Like spike after 01/02 results; awaiting user decision on resume/descope
-Last activity: 2026-07-20
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-21 — Milestone v1.8 started
 
 ### Phase 48 status note
 

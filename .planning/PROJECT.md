@@ -26,7 +26,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-v1.7 (Interaction & Calendar Polish) started 2026-07-19 — see "Current Milestone: v1.7" below. v1.4 (Architecture Redesign) and v1.5 (Home Focus & Widget Redesign) both remain open in parallel — v1.5 only needs Phase 33's on-device UAT to close. Other standing candidates for a future milestone: a countdown timer, gesture-based swipe navigation, Animation Speed presets (ARCH-P1), a Permissions Overview rollup (ARCH-P2), alternate app icon variants (still Out of Scope below until picked up).
+v1.8 (Settings Redesign & Island Navigation) started 2026-07-21 — see "Current Milestone: v1.8" below. v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel — v1.5 only needs Phase 33's on-device UAT to close, v1.7 is paused mid-milestone (Phase 49 Favorite/Like spike aborted after weak on-device results, Phase 50 undecided). Other standing candidates for a future milestone: a countdown timer, gesture-based swipe navigation, Animation Speed presets (ARCH-P1), a Permissions Overview rollup (ARCH-P2), alternate app icon variants (still Out of Scope below until picked up), and Phase 49/50's Favorite/Like feature decision.
 
 ## Milestone In Progress (Parallel): v1.5 (Home Focus & Widget Redesign)
 
@@ -71,9 +71,11 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 
 </details>
 
-## Current Milestone: v1.7 (Interaction & Calendar Polish)
+## Milestone In Progress (Parallel): v1.7 (Interaction & Calendar Polish)
 
 **Goal:** Fix a set of real-usage interaction and layout bugs surfaced since v1.4-v1.6 shipped — no new features, pure polish. Started 2026-07-19 while v1.4 and v1.5 both remain open in parallel (explicit user decision).
+
+**Status:** Paused, not shipped. 5/8 phases complete (43-47); Phase 48 (Audio Output Switcher — UI Wiring) is code-complete and on-device approved, awaiting formal verification/close. Phase 49 (Favorite/Like Spike) was explicitly paused by the user after Plans 01-02 showed weak results (SC#1 like-effect-not-observed; SC#2 Apple Music `loved` broken via AppleScript in all 4 states tested) — Plan 03 (Spotify PKCE) left incomplete, Plan 04 (go/no-go synthesis) never started. Phase 50 (Favorite/Like Implementation) is undecided pending a user call on whether/how to revisit the feature. Resume with `/gsd:verify-work 48` then a decision on Phase 49/50.
 
 **Target features:**
 - **Drag-detection hardening** — the `DragApproachDetector`/Quick Action picker auto-expand currently false-triggers on an ordinary click on the island, not just a real external file drag approaching it; must only fire on a genuine inbound file drag. The Quick Action picker (the during-drag view) should render at the exact same width as the real Tray view.
@@ -88,6 +90,20 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 **Key context:**
 - All 4 items are regressions/rough edges in already-shipped features (Phase 24/34 drag-in + Quick Action picker, Phase 28 calendar view + Phase 32 Tray widening, Phase 28's view switcher) — no new domain research needed, scoped directly from user report.
 - The view-switcher "disappear and rebuild" symptom suggests the tab-switch is doing a hard content swap rather than a continuous `matchedGeometryEffect` morph — worth investigating the switcher's presentation-state wiring at plan time.
+
+## Current Milestone: v1.8 (Settings Redesign & Island Navigation)
+
+**Goal:** Fix the crowded, non-scrollable Settings window and add two new interaction options for how the app is navigated — a compact top-edge switcher placement and a hover-to-resume affordance on the idle island. Started 2026-07-21 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision).
+
+**Target features:**
+- **Settings scroll fix + reorganization** — the Settings window's General tab currently overflows with no way to scroll to the cut-off content (Weather/Diagnostics sections below the fold are unreachable); fix the scrolling bug and split General's crowded content into new dedicated sidebar sections (e.g. Activities, Appearance, Fullscreen, Weather, Diagnostics) instead of one long list.
+- **Configurable switcher placement** — in addition to today's switcher-pill-below-the-expanded-island (the default), add an alternate compact layout: 4 small icons at the very top edge of the expanded island, 2 to the left of the camera/notch and 2 to the right. Default split is Home+Tray left, Calendar+Weather right, but which icon goes on which side is user-configurable in Settings, not fixed.
+- **Hover-to-resume on the idle island** — hovering the collapsed island when nothing is currently playing expands it the same way it does for an active Now Playing session (album art left, equalizer bars right), showing the last track played this app session; clicking it resumes that track if still possible. Reuses the hover-reveals-affordance / tap-toggles-playback interaction pattern already shipped for the Phase 42 dual-activity secondary bubble.
+
+**Key context:**
+- All 3 items are UI/UX polish and new interaction affordances on top of already-shipped subsystems (Settings sidebar from Phase 27, the view switcher from Phase 28/45, the secondary-bubble pattern from Phase 42) — no new external API or domain research expected.
+- "Last played this session" is scoped to not persist across app relaunch (explicit user decision) — nothing shown if nothing has played yet since Islet launched.
+- Resuming a past track depends on what MediaRemote/the adapter actually supports outside an active session — worth a quick technical check during phase planning rather than assumed.
 
 ## Requirements
 
@@ -389,4 +405,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-19 — Phase 45 (View Switcher Morph Fix, SWITCH-01/02) shipped: consolidating 6 independent switcher-row `blobShape` call sites into one shared `tabContentView` call site gave every tab case a continuous SwiftUI view identity, letting `matchedGeometryEffect` morph directly instead of tearing down and rebuilding — confirmed via a mandatory on-device 12-pairwise-transition sweep (45-02). Phase 44 (Tray & Quick Action Width Alignment, TRAY-06/DRAG-02) shipped after a 6-round on-device UAT that superseded the phase's original D-03/D-05 (picker matches Tray's full height) with D-09/D-10 (picker and Tray now share one shorter, content-hugging height, 117pt, tied by a single constant) — see `44-CONTEXT.md`. Two follow-up items deferred as todos: an "island briefly disappears" click-through anomaly, and a pre-existing (Phase 34) dormant gap where the Quick Action picker's disabled/dimmed visual state has no controller-side gate. v1.4 (Architecture Redesign) and v1.5 (Home Focus & Widget Redesign) both remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close; v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation. v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19, archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`.*
+*Last updated: 2026-07-21 — Milestone v1.8 (Settings Redesign & Island Navigation) started: Settings scroll/reorganization fix, a user-configurable top-edge switcher layout, and hover-to-resume on the idle island. v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phase 48 code-complete/on-device approved but awaiting formal verification. v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19, archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`.*
