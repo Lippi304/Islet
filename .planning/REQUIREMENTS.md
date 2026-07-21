@@ -158,8 +158,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
-| SETTINGS-02 | Phase 51 | Pending |
-| SETTINGS-03 | Phase 51 | Pending |
+| SETTINGS-02 | Phase 51 | Complete |
+| SETTINGS-03 | Phase 51 | Complete |
 | SWITCH-03 | Phase 52 | Pending |
 | SWITCH-04 | Phase 52 | Pending |
 | RESUME-01 | Phase 53 | Pending |
