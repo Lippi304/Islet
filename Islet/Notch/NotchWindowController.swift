@@ -299,7 +299,26 @@ final class NotchWindowController {
 
     // The global pointer monitor + the pending grace-delay collapse (Pattern 1 / Pattern 3).
     private var mouseMonitor: Any?
+    // island-hover-exit-no-collapse fix — the GLOBAL monitor above only sees mouseMoved
+    // events NOT destined for our own windows. While expanded (ignoresMouseEvents == false)
+    // the panel's own statically-sized frame swallows those events LOCALLY instead, so
+    // handlePointer (and therefore pointerInZone/hover-exit) was never invoked while the
+    // pointer sat anywhere inside that frame — even after visibly leaving the rendered
+    // content. This local monitor mirrors the exact same handlePointer(at:) call for events
+    // landing on our own window, closing that blind spot without touching any of the
+    // (already-verified-correct) state machine/grace-timer/render logic.
+    private var localMouseMonitor: Any?
     private var graceWorkItem: DispatchWorkItem?
+
+    // Phase 53 / RESUME-02 (D-03) — the inferred-resume-failure timeout watch, mirroring
+    // NowPlayingMonitor's D-12 runHealthCheck settled-flag pattern: `togglePlayPause()` has no
+    // completion signal, so "did resume succeed?" can only be inferred by racing the EXISTING
+    // persistent onTrackInfoReceived stream (via handleNowPlaying below) against a deadline.
+    // resumeWatchSettled starts true (no watch pending); handleResumeTap() flips it false and
+    // schedules resumeWatchWorkItem, settling either on a genuine fresh .playing snapshot
+    // (success) or the timeout firing first (failure).
+    private var resumeWatchWorkItem: DispatchWorkItem?
+    private var resumeWatchSettled = true
 
     // Phase 21 / SHELF-06 / D-03 — the shelf-item drag pin: while true, handleHoverExit's
     // graceWorkItem defers the collapse. Released via BOTH a best-effort early signal
@@ -390,6 +409,10 @@ final class NotchWindowController {
 
     // D-03 grace delay (within the 0.3–0.5s window). One place for Plan 05 to tune.
     private let graceDelay: TimeInterval = 0.4
+
+    // Phase 53 / RESUME-02 (A2) — within 53-RESEARCH.md's recommended 1.5-2.0s window; tunable
+    // during Plan 53-02's on-device UAT.
+    private let resumeWatchTimeout: TimeInterval = 1.75
 
     // The spring applied at every phase mutation (ISL-04 / D-07). Snappy with a slight
     // bounce. The two seeds live here so Plan 05 tunes the feel in ONE place; each mutation
@@ -486,6 +509,16 @@ final class NotchWindowController {
         // We watch ONLY .mouseMoved (no keyboard mask) to minimise the privacy surface.
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             self?.handlePointer(at: NSEvent.mouseLocation)
+        }
+        // island-hover-exit-no-collapse fix — complements the global monitor above: while the
+        // panel is interactive (ignoresMouseEvents == false, i.e. expanded), mouseMoved events
+        // over our own window are delivered LOCALLY and never reach the global monitor, so
+        // handlePointer was never called for them and hover-exit could never fire until an
+        // explicit click made the panel click-through again. Must return `event` unmodified so
+        // SwiftUI's own hover/click handling for the content underneath still receives it.
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved]) { [weak self] event in
+            self?.handlePointer(at: NSEvent.mouseLocation)
+            return event
         }
 
         // Phase 24 / SHELF-01 / SHELF-02 — arm the production DragApproachDetector monitors.
@@ -1080,8 +1113,18 @@ final class NotchWindowController {
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
-        // While expanded, the WHOLE expanded island (the panel union, padded) keeps it open so
-        // the pointer can reach the transport controls without tripping the grace-collapse.
+        // island-hover-exit-no-collapse fix — expandedZone is the STATIC union of every
+        // presentation's max footprint (up to ~650x454, e.g. Weather/Tray), pinned to the same
+        // top edge as every individual presentation's own (usually much smaller) visible rect.
+        // handlePointer's hover-exit tracking used to key off THIS broad union, so a user moving
+        // the pointer straight down/sideways away from a small presentation (e.g. nowPlaying's
+        // ~420x240) stayed "in zone" for up to ~200pt of invisible dead space below/around the
+        // rendered pill before hover-exit could ever fire — matching the reported "stays expanded
+        // for 5+ seconds outside the visible island" bug exactly. handlePointer now uses
+        // visibleContentZone() (the actual current-presentation rect) for that tracking instead;
+        // expandedZone itself is kept only for the drag-accept region below (isWithinDragAcceptRegion),
+        // which legitimately needs the broad reservation so a shelf drop still registers over the
+        // invisible-but-reserved shelf band.
         expandedZone = panelFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
         dragLandingMaxY = target.frame.maxY - dragLandingMargin
 
@@ -1336,10 +1379,16 @@ final class NotchWindowController {
         // which need it but receive no point parameter themselves.
         lastPointerLocation = point
 
-        // While expanded, the keep-open region is the full expanded island so the pointer can
-        // travel down to the transport controls without reading as a hot-zone exit (which would
-        // collapse the island after the grace delay). Collapsed/hovering use the small pill zone.
-        let activeZone = interaction.isExpanded ? (expandedZone ?? hotZone) : collapsedInteractiveZone()
+        // island-hover-exit-no-collapse fix — while expanded, the keep-open region used to be
+        // the full static panel union (expandedZone), which stays much larger than any single
+        // presentation's actual rendered content (see positionAndShow's expandedZone comment).
+        // Using visibleContentZone() (the CURRENT presentation's real visible rect, same one
+        // syncClickThrough() already uses for click-through) still lets the pointer travel
+        // anywhere over the transport controls / rendered content without tripping a hot-zone
+        // exit, but now correctly detects "exit" as soon as the pointer leaves what the user can
+        // actually SEE, instead of only after it leaves the much bigger invisible reservation.
+        // Collapsed/hovering still use the small pill zone, unchanged.
+        let activeZone = interaction.isExpanded ? (visibleContentZone() ?? hotZone) : collapsedInteractiveZone()
         guard let zone = activeZone else { return }
         let inside = zone.contains(point)
         // WR-01: the enter/exit edge is about the POINTER being in the zone, so track it
@@ -1349,9 +1398,15 @@ final class NotchWindowController {
         // while .hovering), letting the grace timer collapse the island under the pointer.
         if inside && !pointerInZone {
             pointerInZone = true
+            #if DEBUG
+            print("[hover] enter — phase=\(interaction.phase) expanded=\(interaction.isExpanded) point=\(point)")
+            #endif
             handleHoverEnter()          // cancels the pending grace collapse inside
         } else if !inside && pointerInZone {
             pointerInZone = false
+            #if DEBUG
+            print("[hover] exit — phase=\(interaction.phase) expanded=\(interaction.isExpanded) point=\(point)")
+            #endif
             handleHoverExit()
         }
 
@@ -1378,13 +1433,26 @@ final class NotchWindowController {
     // click-through zone from the rendered bubble — the exact CR-01/CR-02 failure class.
     private func collapsedInteractiveZone() -> CGRect? {
         guard let hotZone else { return nil }
-        guard presentationState.secondary != nil else { return hotZone }
-        let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
-        let bubbleFarEdge = collapsedFrame.midX + NotchPillView.secondaryBubbleCenterOffset
-            + NotchPillView.secondaryBubbleDiameter / 2 + hotZonePadding
-        guard bubbleFarEdge > hotZone.maxX else { return hotZone }
-        return CGRect(x: hotZone.minX, y: hotZone.minY,
-                      width: bubbleFarEdge - hotZone.minX, height: hotZone.height)
+        if presentationState.secondary != nil {
+            let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
+            let bubbleFarEdge = collapsedFrame.midX + NotchPillView.secondaryBubbleCenterOffset
+                + NotchPillView.secondaryBubbleDiameter / 2 + hotZonePadding
+            if bubbleFarEdge > hotZone.maxX {
+                return CGRect(x: hotZone.minX, y: hotZone.minY,
+                              width: bubbleFarEdge - hotZone.minX, height: hotZone.height)
+            }
+        }
+        // Phase 53 / RESUME-01 (53-RESEARCH.md Pitfall 1) — the idle hover-preview renders at
+        // NotchPillView.wingsSize.width (290pt), wider than the raw notch-cutout-sized hotZone.
+        // Gated on the SAME eligibility precondition idleOrResumePreview itself checks (never
+        // an unconditional widen, per the Anti-Pattern warning); symmetric so the widened zone
+        // stays centered on the existing hotZone.
+        if presentationState.presentation == .idle, nowPlayingState.hasPlayedSinceLaunch,
+           nowPlayingState.lastKnownTrack != nil, NotchPillView.wingsSize.width > hotZone.width {
+            let widen = (NotchPillView.wingsSize.width - hotZone.width) / 2
+            return hotZone.insetBy(dx: -widen, dy: 0)
+        }
+        return hotZone
     }
 
     // CR-01 — the actual VISIBLE-content rect, narrower than expandedZone (which is the
@@ -1399,7 +1467,11 @@ final class NotchWindowController {
         guard let hotZone else { return nil }
         let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
         let switcherRowShowing = showsSwitcherRow(for: presentationState.presentation)
-        let switcherHeight = switcherRowShowing ? NotchPillView.switcherRowHeight : 0
+        // Phase 52 / SWITCH-03 (D-06, T-52-02) — the pill row itself only renders in .pill
+        // layout (mirrors NotchPillView's showsPillRow); a corrupted/missing stored value falls
+        // back to .pill, matching the weatherStyleKey read one line below (T-52-02 mitigation).
+        let layout = ActivitySettings.SwitcherLayout(rawValue: UserDefaults.standard.string(forKey: ActivitySettings.switcherLayoutKey) ?? "") ?? .pill
+        let switcherHeight = (switcherRowShowing && layout == .pill) ? NotchPillView.switcherRowHeight : 0
         // Phase 26 / ONBOARD-01/02 — the onboarding card renders at its own taller fixed size
         // (onboardingSize vs. the 144pt expandedSize), independent of shelf state (onboarding's
         // shelf is always empty, D-06). Scoping this branch to ONLY the geometry
@@ -1497,6 +1569,10 @@ final class NotchWindowController {
         dismissWorkItem?.cancel()
         mediaDismissWorkItem?.cancel()
 
+        // Phase 53 / RESUME-02 (D-03) — a fresh hover entry never shows a stale failure text
+        // from an earlier resume attempt.
+        nowPlayingState.resumePreviewFailed = false
+
         // D-01: hover gives an affordance but NEVER expands — nextState turns .collapsed
         // into .hovering only. The spring drives the bounce/scale in NotchPillView.
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
@@ -1547,6 +1623,9 @@ final class NotchWindowController {
 
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            #if DEBUG
+            print("[hover] grace timer fired — isDraggingShelfItem=\(self.isDraggingShelfItem) isOnboardingActive=\(self.isOnboardingActive) phaseBefore=\(self.interaction.phase)")
+            #endif
             // Phase 21 / SHELF-06 / D-03 — defer the collapse while a shelf-item drag is in
             // flight; endShelfItemDrag() re-invokes handleHoverExit() once the drag ends.
             guard !self.isDraggingShelfItem else { return }
@@ -1562,14 +1641,23 @@ final class NotchWindowController {
                 // a dismiss-without-choosing: discard the pending file(s), no silent auto-stage.
                 if !self.interaction.isExpanded { self.discardPendingDrop() }
             }
+            #if DEBUG
+            print("[hover] grace collapse applied — phaseAfter=\(self.interaction.phase) presentation=\(self.presentationState.presentation) panelVisible=\(String(describing: self.panel?.isVisible)) panelFrame=\(String(describing: self.panel?.frame)) ignoresMouseEvents=\(String(describing: self.panel?.ignoresMouseEvents))")
+            #endif
             // Phase 10 / D-13: this is the natural-transition recheck the idle-state guard
             // depends on — the pointer has just left AND the grace-elapsed collapse has just
             // finished, so a previously-deferred pendingLockoutHide now applies here.
             self.updateVisibility()
             // Pitfall 3: restore click-through deterministically once collapsed + pointer out.
             self.syncClickThrough()
+            #if DEBUG
+            print("[hover] post-syncClickThrough — presentation=\(self.presentationState.presentation) panelVisible=\(String(describing: self.panel?.isVisible)) ignoresMouseEvents=\(String(describing: self.panel?.ignoresMouseEvents))")
+            #endif
         }
         graceWorkItem = work
+        #if DEBUG
+        print("[hover] scheduling grace collapse in \(graceDelay)s")
+        #endif
         DispatchQueue.main.asyncAfter(deadline: .now() + graceDelay, execute: work)
 
         // D-10: once the pointer leaves a STANDING charging splash, resume the ~3s
@@ -1632,6 +1720,9 @@ final class NotchWindowController {
         // (expand → interactive, toggle-shut while still in zone → still interactive until
         // exit, toggle-shut already out → pass-through).
         syncClickThrough()
+        #if DEBUG
+        print("[click] collapse applied — phaseAfter=\(interaction.phase) presentation=\(presentationState.presentation) panelVisible=\(String(describing: panel?.isVisible)) panelFrame=\(String(describing: panel?.frame)) ignoresMouseEvents=\(String(describing: panel?.ignoresMouseEvents))")
+        #endif
     }
 
     // Phase 42 / DUAL-01 (D-12, SUPERSEDED 2026-07-19 — live user decision during Plan 42-04
@@ -1642,6 +1733,29 @@ final class NotchWindowController {
     // calls (see `onTogglePlayPause` in `makeRootView`) — no expand, no view-switch.
     private func handleSecondaryTap() {
         nowPlayingMonitor?.togglePlayPause()
+    }
+
+    // Phase 53 / RESUME-02 — the hover-preview's dedicated resume-tap handler (D-01: stays the
+    // wings-preview shape, no expand). Mirrors handleSecondaryTap()'s body (same
+    // togglePlayPause() call) but additionally arms the D-03 inferred-failure timeout watch,
+    // since this fire-and-forget transport call has no completion signal (53-RESEARCH.md
+    // Pitfall 2). The watch is settled either by a genuine fresh .playing snapshot arriving via
+    // the EXISTING persistent onTrackInfoReceived stream (handleNowPlaying below) or by this
+    // timeout firing first — never both (mirrors NowPlayingMonitor.runHealthCheck's D-12
+    // settled-flag pattern).
+    private func handleResumeTap() {
+        nowPlayingMonitor?.togglePlayPause()
+        nowPlayingState.resumePreviewFailed = false
+        resumeWatchSettled = false
+        resumeWatchWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.resumeWatchSettled else { return }
+            self.resumeWatchSettled = true
+            self.nowPlayingState.resumePreviewFailed = true
+            self.handleHoverExit()
+        }
+        resumeWatchWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + resumeWatchTimeout, execute: work)
     }
 
     // Phase 48 / OUTPUT-01 (D-08) — mirrors handleSwitcherSelect's "mutate-inside-withAnimation,
@@ -2086,6 +2200,7 @@ final class NotchWindowController {
                       calendarViewState: calendarViewState,
                       onClick: { [weak self] in self?.handleClick() },
                       onSecondaryTap: { [weak self] in self?.handleSecondaryTap() },
+                      onResumeTap: { [weak self] in self?.handleResumeTap() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
                       // monitor — no re-spawn, no focus steal.
                       onTogglePlayPause: { [weak self] in self?.nowPlayingMonitor?.togglePlayPause() },
@@ -2283,7 +2398,16 @@ final class NotchWindowController {
         // AFTER the render call in this same invocation and would gate this very snapshot). No
         // `if !hasPlayedSinceLaunch` guard needed: reassigning true is idempotent, mirroring the
         // unconditional isHealthy assignment just above.
-        if case .playing = p { nowPlayingState.hasPlayedSinceLaunch = true }
+        if case .playing = p {
+            nowPlayingState.hasPlayedSinceLaunch = true
+            // Phase 53 / RESUME-02 (D-03) — a fresh .playing snapshot arriving while a resume
+            // watch is pending means the resume succeeded; settle it so the timeout closure's
+            // failure branch never fires afterward.
+            if !resumeWatchSettled {
+                resumeWatchSettled = true
+                resumeWatchWorkItem?.cancel()
+            }
+        }
 
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             nowPlayingState.presentation = p
@@ -2550,6 +2674,7 @@ final class NotchWindowController {
         // Phase 6 / APP-03: the UserDefaults toggle/accent observer lives on the DEFAULT center.
         if let o = defaultsObserver { NotificationCenter.default.removeObserver(o) }
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
+        if let m = localMouseMonitor { NSEvent.removeMonitor(m) }
         // Phase 24 / SHELF-01 / SHELF-02 — tear down the production DragApproachDetector monitors.
         if let m = dragApproachMonitor { NSEvent.removeMonitor(m) }
         if let m = dragEndMonitor { NSEvent.removeMonitor(m) }

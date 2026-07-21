@@ -11,6 +11,7 @@
 - 🚧 **v1.5 Home Focus & Widget Redesign** — Phases 29-34 (in progress, left open in parallel)
 - ✅ **v1.6 Liquid Glass & System HUD Suite** — Phases 35-42 (shipped 2026-07-19)
 - 🚧 **v1.7 Interaction & Calendar Polish** — Phases 43-50 (planned, left open in parallel)
+- ✅ **v1.8 Settings Redesign & Island Navigation** — Phases 51-53 (shipped 2026-07-21)
 
 ## Phases
 
@@ -126,6 +127,17 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 49: Favorite/Like — Spike** - PAUSED by user after Plans 01-02/4 (see Phase Details) — Apple Music/MediaRemote write paths found broken; Spotify (SC#3) untested; no go/no-go decision made
 - [ ] **Phase 50: Favorite/Like — Implementation** - BLOCKED — depends on Phase 49's go/no-go, which was never produced; its Apple Music write path (SC#1) is already known broken. Needs review before planning.
 
+<details>
+<summary>✅ v1.8 Settings Redesign & Island Navigation (Phases 51-53) — SHIPPED 2026-07-21</summary>
+
+- [x] Phase 51: Settings Reorganization & Scroll Fix (1/1 plans) — completed 2026-07-21
+- [x] Phase 52: Top-Edge Switcher Layout & Placement Config (4/4 plans) — completed 2026-07-21
+- [x] Phase 53: Hover-to-Resume Idle Preview (2/2 plans) — completed 2026-07-21
+
+Full phase details, goals, success criteria, and plan lists: `.planning/milestones/v1.8-ROADMAP.md`
+
+</details>
+
 ## Phase Details
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
@@ -178,6 +190,8 @@ Plans:
 **v1.6:** 8/8 phases complete (100%) — see `.planning/milestones/v1.6-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-19; 11/12 requirements delivered (HUD-07 dropped, Phase 37 abandoned).
 
 **v1.7:** 3/8 phases complete (38%) — roadmap created 2026-07-19. Phases 43-50, 15/15 v1.7 requirements mapped. Phase 43 (Drag Detection Hardening) completed 2026-07-19. Phase 44 (Tray & Quick Action Width Alignment) completed 2026-07-19. Phase 45 (View Switcher Morph Fix, SWITCH-01/02) completed 2026-07-19 — 45-02's on-device 12-pairwise-transition sweep confirmed both requirements shipped. Phase order: the 4 independent, no-research-dependency bugfixes first (Drag Detection → Tray/Picker Width Alignment → View Switcher Morph → Calendar Quick-Add), then the Now Playing work split per research's risk-isolation recommendation — Audio Output Switcher (public CoreAudio API, pure-seam-then-UI-wiring, no external unknowns) before Favorite/Like (spike-then-implementation, this milestone's highest-risk item: Spotify OAuth+quota reality, Apple Music AppleScript reliability, Automation/TCC permission bug), mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent.
+
+**v1.8:** 3/3 phases complete (100%) — roadmap created 2026-07-21. Phases 51-53, 6/6 v1.8 requirements mapped and shipped. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume was sequenced last since it carried this milestone's one open technical question (whether resuming a non-active track is achievable via the existing NowPlayingMonitor/MediaRemote adapter transport, per PROJECT.md's v1.8 Key Context), verified early within its own phase (53-01 spike: approved). Phase 53 completed 2026-07-21 after 53-02's on-device UAT approval, including a mid-UAT D-02 design supersession (static play glyph replaces animated equalizer bars in the idle-hover preview). v1.8 formally archived via `/gsd:complete-milestone` 2026-07-21 — see `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -824,3 +838,81 @@ Plans:
   3. If a like/favorite write fails (e.g. a streaming-only track Apple Music can't yet love, or an expired/unauthenticated Spotify session), the star button visibly reflects the failure rather than silently appearing to succeed.
 
 **Plans**: TBD
+
+
+## v1.8 Settings Redesign & Island Navigation — SHIPPED 2026-07-21
+
+### Phase 51: Settings Reorganization & Scroll Fix
+
+**Goal**: The Settings window's crowded General tab is split into focused sidebar sections and every section's content is fully reachable via scrolling — no content is cut off below the fold.
+**Depends on**: Nothing (restructures Phase 27's existing `NavigationSplitView` sidebar `SettingsView`, no new subsystem)
+**Requirements**: SETTINGS-02, SETTINGS-03
+**Success Criteria** (what must be TRUE):
+
+  1. User can scroll within any Settings section to reach all of its content — the previously-cut-off Weather and Diagnostics controls are fully reachable.
+  2. The Settings sidebar shows new dedicated sections (e.g. Activities, Appearance, Fullscreen, Weather, Diagnostics) in place of one long crowded General list.
+  3. Every control that existed in the old General tab is still present and functional in its new section — no setting is lost or duplicated during the split.
+  4. Switching between the new sidebar sections shows no stale state — each section reflects live values immediately on selection.
+
+**Plans**: 1 plan
+**UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [x] 51-01-PLAN.md — SidebarSection 7-case restructure (D-06) + 5 extracted sections (Activities/Appearance/Fullscreen/Weather/Diagnostics) + uniform ScrollView scroll-fix (SETTINGS-02) + on-device UAT
+
+### Phase 52: Top-Edge Switcher Layout & Placement Config
+
+**Goal**: Users can opt into an alternate compact top-edge switcher layout instead of today's pill-below-the-island, with user-configurable left/right icon placement.
+**Depends on**: Nothing (adds a new layout mode to Phase 28/45's existing switcher/tab system — `SelectedView`, `IslandPresentation`, `tabContentView`)
+**Requirements**: SWITCH-03, SWITCH-04
+**Success Criteria** (what must be TRUE):
+
+  1. In Settings, the user can switch between the default below-island pill switcher and an alternate top-edge 4-icon layout.
+  2. In the top-edge layout, 2 icons render to the left of the camera/notch cutout and 2 render to the right, both clear of the physical camera housing on real hardware.
+  3. The top-edge layout's default icon split is Home+Tray on the left, Calendar+Weather on the right.
+  4. The user can reassign which icons appear on the left vs. right side in Settings, and the island reflects the change immediately.
+  5. Both switcher layouts remain fully functional for switching tabs — the existing pill mode shows no regression.
+
+**Plans**: 4 plans
+**UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [x] 52-01-PLAN.md — Data/config contracts: SelectedView @AppStorage-compatible + orderedSlotIcons(...) + ActivitySettings SwitcherLayout/slot keys + NotchGeometry topEdgeCutoutGap(...)
+
+**Wave 2** *(blocked on 52-01)*
+
+- [x] 52-02-PLAN.md — NotchPillView: data-driven switcherRow reorder (D-03) + blobShape/totalHeight height-math three-site fix (D-06) + topEdgeSwitcherRow rendering (D-04/D-05)
+- [x] 52-03-PLAN.md — SettingsView: new "Switcher" sidebar section (D-02/D-07) + hasNotch-gated visibility (D-08)
+
+**Wave 3** *(blocked on 52-02, 52-03)*
+
+- [x] 52-04-PLAN.md — Full regression gate + on-device UAT (D-04/Pitfall 3 fit check, Pitfall 2 clearance check, all 5 success criteria)
+
+### Phase 53: Hover-to-Resume Idle Preview
+
+**Goal**: Hovering the collapsed island when nothing is playing previews the last track played this session, and clicking it resumes that track.
+**Depends on**: Nothing (extends the existing collapsed hover/Now-Playing wings visual — `NowPlayingMonitor`, `NotchPillView` wings — and reuses the Phase 42 secondary-bubble hover-reveals/tap-toggles interaction pattern)
+**Requirements**: RESUME-01, RESUME-02
+**Success Criteria** (what must be TRUE):
+
+  1. After at least one track has played this app session, hovering the collapsed island while nothing is currently playing expands it to show that track's album art (left) and a static play glyph (right) — same footprint/position as the active Now Playing view (REVISED during 53-02 on-device UAT: the glyph replaces animated equalizer bars, since bouncing bars while nothing plays implied live playback that wasn't happening; D-02 superseded).
+  2. Before anything has played this session, hovering the idle island shows no preview — today's unchanged behavior.
+  3. Clicking the hover-preview resumes playback of that last track whenever the underlying transport still supports it.
+  4. Whether resuming a non-active track is achievable via the existing `NowPlayingMonitor`/MediaRemote adapter transport is verified early in this phase (open technical question per PROJECT.md's v1.8 Key Context) rather than assumed — if resuming genuinely isn't possible for a given source, the click gives clear feedback instead of silently doing nothing.
+
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [x] 53-01-PLAN.md — Blocking on-device resume-feasibility spike + hover-preview render branch (view-local, Claude's Discretion) + controller wiring (handleResumeTap, inferred-failure timeout, collapsedInteractiveZone widening)
+
+**Wave 2** *(blocked on 53-01)*
+
+- [x] 53-02-PLAN.md — Full on-device UAT covering all 4 ROADMAP success criteria — approved (Debug + Release), including a mid-UAT D-02 supersession (static play glyph replaces bouncing equalizer bars)
+
+**UI hint**: yes

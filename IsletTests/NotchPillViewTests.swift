@@ -104,4 +104,103 @@ final class NotchPillViewTests: XCTestCase {
         XCTAssertEqual(weatherLargeView.tabWidth, 420)
         XCTAssertEqual(weatherLargeView.tabHeight, 410)
     }
+
+    // MARK: - Phase 52 / SWITCH-03/04 — orderedSlotIcons + SelectedView(rawValue:)
+
+    func testOrderedSlotIconsDefaultMatchesTodaysPillOrder() {
+        // SWITCH-04 default: Home+Tray left, Calendar+Weather right — byte-identical to
+        // today's switcherRow order.
+        XCTAssertEqual(
+            orderedSlotIcons(leftOuter: .home, leftInner: .tray, rightInner: .calendar, rightOuter: .weather),
+            [.home, .tray, .calendar, .weather]
+        )
+    }
+
+    func testOrderedSlotIconsAllowsDuplicateSlotAssignments() {
+        // Duplicates are allowed, no validation (Claude's Discretion).
+        XCTAssertEqual(
+            orderedSlotIcons(leftOuter: .weather, leftInner: .weather, rightInner: .home, rightOuter: .tray),
+            [.weather, .weather, .home, .tray]
+        )
+    }
+
+    func testSelectedViewRawValueRoundTripsAndCorruptedValueFallsBackToNil() {
+        XCTAssertEqual(SelectedView(rawValue: "home"), .home)
+        XCTAssertNil(SelectedView(rawValue: "corrupted"))
+    }
+
+    // MARK: - Phase 52 / SWITCH-03/04 Task 1 — data-driven switcherRow (orderedSlotViews)
+
+    private func makeSlotView(_ presentation: IslandPresentation = .homeEmpty) -> NotchPillView {
+        let state = NotchInteractionState()
+        state.phase = .expanded
+        return NotchPillView(interaction: state,
+                              nowPlaying: NowPlayingState(),
+                              presentationState: IslandPresentationState(presentation),
+                              outfit: BasicOutfitState(),
+                              shelfViewState: ShelfViewState(),
+                              onboardingState: OnboardingViewState(),
+                              viewSwitcherState: ViewSwitcherState(),
+                              calendarViewState: CalendarViewState())
+    }
+
+    func testOrderedSlotViewsDefaultsToTodaysPillOrder() {
+        // Fresh view, no UserDefaults overrides — must byte-match today's hardcoded
+        // switcherRow order (SWITCH-04 default, zero regression).
+        XCTAssertEqual(makeSlotView().orderedSlotViews, [.home, .tray, .calendar, .weather])
+    }
+
+    func testOrderedSlotViewsReflectsUserDefaultsOverride() {
+        let defaults = UserDefaults.standard
+        let keys = [ActivitySettings.switcherSlotLeftOuterKey,
+                    ActivitySettings.switcherSlotLeftInnerKey,
+                    ActivitySettings.switcherSlotRightInnerKey,
+                    ActivitySettings.switcherSlotRightOuterKey]
+        let originalValues = keys.map { defaults.string(forKey: $0) }
+        defer {
+            for (key, original) in zip(keys, originalValues) {
+                if let original {
+                    defaults.set(original, forKey: key)
+                } else {
+                    defaults.removeObject(forKey: key)
+                }
+            }
+        }
+
+        defaults.set(SelectedView.weather.rawValue, forKey: ActivitySettings.switcherSlotLeftOuterKey)
+        defaults.set(SelectedView.calendar.rawValue, forKey: ActivitySettings.switcherSlotLeftInnerKey)
+        defaults.set(SelectedView.tray.rawValue, forKey: ActivitySettings.switcherSlotRightInnerKey)
+        defaults.set(SelectedView.home.rawValue, forKey: ActivitySettings.switcherSlotRightOuterKey)
+
+        XCTAssertEqual(makeSlotView().orderedSlotViews, [.weather, .calendar, .tray, .home])
+    }
+
+    // MARK: - Phase 52 / SWITCH-03 Task 2 — totalHeight three-site height-math fix (D-06)
+
+    func testTotalHeightExcludesSwitcherRowHeightOnlyInTopEdgeLayout() {
+        let defaults = UserDefaults.standard
+        let key = ActivitySettings.switcherLayoutKey
+        let originalValue = defaults.string(forKey: key)
+        defer {
+            if let originalValue {
+                defaults.set(originalValue, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        // .homeEmpty / .calendarExpanded / .trayExpanded all show the switcher row in pill
+        // layout — top-edge layout must subtract exactly switcherRowHeight (44) from each,
+        // leaving the content-box height (baseHeight) untouched (D-06).
+        for presentation: IslandPresentation in [.homeEmpty, .calendarExpanded, .trayExpanded] {
+            defaults.set(ActivitySettings.SwitcherLayout.pill.rawValue, forKey: key)
+            let pillHeight = makeSlotView(presentation).totalHeight
+
+            defaults.set(ActivitySettings.SwitcherLayout.topEdge.rawValue, forKey: key)
+            let topEdgeHeight = makeSlotView(presentation).totalHeight
+
+            XCTAssertEqual(topEdgeHeight, pillHeight - NotchPillView.switcherRowHeight,
+                            "\(presentation)")
+        }
+    }
 }
