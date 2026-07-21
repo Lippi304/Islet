@@ -851,8 +851,13 @@ Plans:
   3. Every control that existed in the old General tab is still present and functional in its new section — no setting is lost or duplicated during the split.
   4. Switching between the new sidebar sections shows no stale state — each section reflects live values immediately on selection.
 
-**Plans**: TBD
+**Plans**: 1 plan
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 51-01-PLAN.md — SidebarSection 7-case restructure (D-06) + 5 extracted sections (Activities/Appearance/Fullscreen/Weather/Diagnostics) + uniform ScrollView scroll-fix (SETTINGS-02) + on-device UAT
 
 ### Phase 52: Top-Edge Switcher Layout & Placement Config
 
