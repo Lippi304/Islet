@@ -410,56 +410,60 @@ struct SettingsView: View {
     // placeholder literally satisfies the 4-section sidebar contract (UI-SPEC
     // §Section Content Specs/Workspace). No Form/Section wrapper.
     private var workspaceSection: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "tray")
-                .font(.system(size: 28))
-                .foregroundStyle(.secondary)
-            Text("Nothing to configure yet")
-                .font(.headline)
-            Text("The Shelf works automatically — no settings needed right now.")
-                .font(.subheadline)
+        ScrollView(.vertical) {
+            VStack(spacing: 8) {
+                Image(systemName: "tray")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.secondary)
+                Text("Nothing to configure yet")
+                    .font(.headline)
+                Text("The Shelf works automatically — no settings needed right now.")
+                    .font(.subheadline)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // D-02 — About: the adaptive License block (all 3 states) + Version label,
     // relocated verbatim — nothing else moves here.
     private var aboutSection: some View {
-        Form {
-            // D-01/D-02: the adaptive License section swaps on the current
-            // LicenseStatus — during an active trial it shows the days-remaining
-            // countdown (D-03/TRIAL-03) that REPLACES the old fixed end-date notice.
-            Section("License") {
-                switch licenseStatus {
-                case .trial(let days):
-                    Text(days == 1
-                         ? "1 day left in your trial."
-                         : "\(days) days left in your trial.")
-                        .foregroundStyle(.secondary)
-                    buyNowButton
-                    licenseEntry
-                case .trialExpired:
-                    Text("3-day trial period expired")
-                        .font(.headline)
-                    buyNowButton
-                    licenseEntry
-                case .licensed:
-                    Text("Licensed ✓")
+        ScrollView(.vertical) {
+            Form {
+                // D-01/D-02: the adaptive License section swaps on the current
+                // LicenseStatus — during an active trial it shows the days-remaining
+                // countdown (D-03/TRIAL-03) that REPLACES the old fixed end-date notice.
+                Section("License") {
+                    switch licenseStatus {
+                    case .trial(let days):
+                        Text(days == 1
+                             ? "1 day left in your trial."
+                             : "\(days) days left in your trial.")
+                            .foregroundStyle(.secondary)
+                        buyNowButton
+                        licenseEntry
+                    case .trialExpired:
+                        Text("3-day trial period expired")
+                            .font(.headline)
+                        buyNowButton
+                        licenseEntry
+                    case .licensed:
+                        Text("Licensed ✓")
+                    }
+                }
+
+                LabeledContent("Version") {
+                    Text(Self.versionString)   // D-09: version/build label
+                }
+
+                // EQ-01 Registry Safety — Skiper UI's free-tier license requires visible
+                // attribution since Islet holds no Pro license. Locked exact credit string,
+                // 36-UI-SPEC.md.
+                Section("Credits") {
+                    Text("Equalizer bar animation inspired by Skiper UI (skiper25.com)")
                 }
             }
-
-            LabeledContent("Version") {
-                Text(Self.versionString)   // D-09: version/build label
-            }
-
-            // EQ-01 Registry Safety — Skiper UI's free-tier license requires visible
-            // attribution since Islet holds no Pro license. Locked exact credit string,
-            // 36-UI-SPEC.md.
-            Section("Credits") {
-                Text("Equalizer bar animation inspired by Skiper UI (skiper25.com)")
-            }
+            .padding(20)
         }
-        .padding(20)
     }
 
     // D-01/D-04/D-05/D-07 — Appearance (renamed from System, Phase 51): material-style
