@@ -108,6 +108,24 @@ struct NotchPillView: View {
         }
     }
 
+    // Phase 52 / SWITCH-03 (D-06, RESEARCH.md Pitfall 1) — extracted from body's outer `.frame`
+    // height ternary, same "compute a value, don't branch the View" precedent as tabWidth/
+    // tabHeight above. Byte-identical branch structure to the ternary it replaces, except each
+    // `+ Self.switcherRowHeight` term is now ALSO gated on `switcherLayout == .pill`: the pill
+    // row itself never renders in top-edge mode (mirrors blobShape's showsPillRow), so this
+    // outer window-frame reservation must shrink in lockstep or NotchWindowController's
+    // visibleContentZone() click-through geometry disagrees with what's actually visible.
+    // internal (not private): NotchPillViewTests.swift asserts this directly, same testability
+    // precedent as tabWidth/tabHeight.
+    var totalHeight: CGFloat {
+        isTrayPresentation
+            ? Self.trayContentHeight + (switcherLayout == .pill ? Self.switcherRowHeight : 0)
+            : (isOnboardingPresentation
+                ? Self.onboardingSize.height
+                : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
+                    + (showsSwitcherRow && switcherLayout == .pill ? Self.switcherRowHeight : 0))
+    }
+
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model (weather +
     // calendar), mirroring nowPlaying/presentationState's ownership contract: the controller
     // (14-04) is the only writer, this view only RENDERS whatever is published. No default
@@ -917,7 +935,8 @@ struct NotchPillView: View {
     private var tabContentView: some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                   width: tabWidth, height: tabHeight, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfStripVisible, showSwitcher: true) {
+                  shelfVisible: shelfStripVisible, showSwitcher: true,
+                  switcherLayout: switcherLayout) {
             switch presentation {
             case .nowPlayingExpanded(let p, true):
                 mediaContent(p, art: nowPlaying.artwork)
@@ -1015,12 +1034,7 @@ struct NotchPillView: View {
         // below, or the wider/shorter Tray content clips or leaves a stale gap. Tray still
         // shows the switcher row (showsSwitcherRow), so + switcherRowHeight is unchanged.
         .frame(width: isTrayPresentation ? Self.traySize.width : (isCalendarPresentation ? Self.calendarWidth : (isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width)),
-               height: isTrayPresentation
-                   ? Self.trayContentHeight + Self.switcherRowHeight
-                   : (isOnboardingPresentation
-                       ? Self.onboardingSize.height
-                       : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
-                           + (showsSwitcherRow ? Self.switcherRowHeight : 0)),
+               height: totalHeight,
                alignment: .top)
         // Phase 32 / TRAY-05 gap-closure (on-device UAT round 1) — root cause of "notch renders
         // far left, hit-zone doesn't match": the AppKit panel/hosting view is now sized to the
@@ -2002,6 +2016,7 @@ struct NotchPillView: View {
                                            shelfItems: [ShelfItem],
                                            shelfVisible: Bool,
                                            showSwitcher: Bool = false,
+                                           switcherLayout: ActivitySettings.SwitcherLayout = .pill,
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = shelfVisible
         let baseWidth = width ?? Self.expandedSize.width
@@ -2012,8 +2027,14 @@ struct NotchPillView: View {
         // NowPlaying) passes a `height:` argument, so they all continue falling through the `??`
         // to switcherContentHeight exactly as before.
         let baseHeight = height ?? (showSwitcher ? Self.switcherContentHeight : Self.expandedSize.height)
+        // Phase 52 / SWITCH-03 (D-06, RESEARCH.md Pitfall 1) — `showSwitcher` alone conflates
+        // "reserve switcher-sized content height" (baseHeight, untouched above) with "show the
+        // pill row itself". showsPillRow splits that second half out: the pill row's own
+        // +switcherRowHeight box is added ONLY in pill layout, so top-edge mode's content area
+        // keeps baseHeight exactly as pill mode's does, per D-06.
+        let showsPillRow = showSwitcher && switcherLayout == .pill
         let totalHeight = baseHeight
-            + (showSwitcher ? Self.switcherRowHeight : 0)
+            + (showsPillRow ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
         let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
         return shape
@@ -2031,7 +2052,7 @@ struct NotchPillView: View {
                 VStack(spacing: 0) {
                     content()
                         .frame(width: baseWidth, height: baseHeight, alignment: alignment)
-                    if showSwitcher {
+                    if showsPillRow {
                         switcherRow
                     }
                     if hasShelf {

@@ -174,4 +174,33 @@ final class NotchPillViewTests: XCTestCase {
 
         XCTAssertEqual(makeSlotView().orderedSlotViews, [.weather, .calendar, .tray, .home])
     }
+
+    // MARK: - Phase 52 / SWITCH-03 Task 2 — totalHeight three-site height-math fix (D-06)
+
+    func testTotalHeightExcludesSwitcherRowHeightOnlyInTopEdgeLayout() {
+        let defaults = UserDefaults.standard
+        let key = ActivitySettings.switcherLayoutKey
+        let originalValue = defaults.string(forKey: key)
+        defer {
+            if let originalValue {
+                defaults.set(originalValue, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        // .homeEmpty / .calendarExpanded / .trayExpanded all show the switcher row in pill
+        // layout — top-edge layout must subtract exactly switcherRowHeight (44) from each,
+        // leaving the content-box height (baseHeight) untouched (D-06).
+        for presentation: IslandPresentation in [.homeEmpty, .calendarExpanded, .trayExpanded] {
+            defaults.set(ActivitySettings.SwitcherLayout.pill.rawValue, forKey: key)
+            let pillHeight = makeSlotView(presentation).totalHeight
+
+            defaults.set(ActivitySettings.SwitcherLayout.topEdge.rawValue, forKey: key)
+            let topEdgeHeight = makeSlotView(presentation).totalHeight
+
+            XCTAssertEqual(topEdgeHeight, pillHeight - NotchPillView.switcherRowHeight,
+                            "\(presentation)")
+        }
+    }
 }

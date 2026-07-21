@@ -1440,7 +1440,11 @@ final class NotchWindowController {
         guard let hotZone else { return nil }
         let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
         let switcherRowShowing = showsSwitcherRow(for: presentationState.presentation)
-        let switcherHeight = switcherRowShowing ? NotchPillView.switcherRowHeight : 0
+        // Phase 52 / SWITCH-03 (D-06, T-52-02) — the pill row itself only renders in .pill
+        // layout (mirrors NotchPillView's showsPillRow); a corrupted/missing stored value falls
+        // back to .pill, matching the weatherStyleKey read one line below (T-52-02 mitigation).
+        let layout = ActivitySettings.SwitcherLayout(rawValue: UserDefaults.standard.string(forKey: ActivitySettings.switcherLayoutKey) ?? "") ?? .pill
+        let switcherHeight = (switcherRowShowing && layout == .pill) ? NotchPillView.switcherRowHeight : 0
         // Phase 26 / ONBOARD-01/02 — the onboarding card renders at its own taller fixed size
         // (onboardingSize vs. the 144pt expandedSize), independent of shelf state (onboarding's
         // shelf is always empty, D-06). Scoping this branch to ONLY the geometry
