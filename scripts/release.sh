@@ -143,18 +143,79 @@ if [ "${DEVELOPER_ID}" != "__DEVELOPER_ID__" ] && [ "${NOTARY_PROFILE}" != "__NO
 fi
 
 # ----------------------------------------------------------------------------
-# Step 4: Build the .dmg with hdiutil.
+# Step 4: Build the .dmg with hdiutil — styled as a standard drag-to-install
+# window (app icon, an arrow, and an Applications-folder shortcut), matching
+# what every other macOS app's DMG looks like.
 # ----------------------------------------------------------------------------
 # hdiutil ships with macOS (no extra install needed — we deliberately avoid the
-# uninstalled `create-dmg`). We first stage the signed (and, once real
-# credentials exist, already-stapled) .app into a clean folder with `ditto`
-# (again, to keep the bundle's internal symlinks intact), then turn that
-# folder into a compressed (UDZO) read-only disk image. `-ov` overwrites
-# any existing image from a previous run.
-rm -rf "${DMG_DIR}" && mkdir -p "${DMG_DIR}"
+# uninstalled `create-dmg`). We stage the signed (and, once real credentials
+# exist, already-stapled) .app plus an /Applications symlink into a clean
+# folder with `ditto` (keeps the app bundle's internal symlinks intact), build
+# a temporary READ-WRITE image so Finder can position icons and set a
+# background picture, then convert that to the final compressed (UDZO)
+# read-only image users actually download.
+DMG_WINDOW_WIDTH=540   # must match scripts/generate-dmg-background.swift
+DMG_WINDOW_HEIGHT=380  # must match scripts/generate-dmg-background.swift
+APP_ICON_X=140         # must match scripts/generate-dmg-background.swift
+APPLICATIONS_ICON_X=400 # must match scripts/generate-dmg-background.swift
+ICON_Y=190             # must match scripts/generate-dmg-background.swift
+RW_DMG_PATH="build/${APP_NAME}-rw.dmg"
+
+rm -rf "${DMG_DIR}" && mkdir -p "${DMG_DIR}/.background"
 ditto "${APP_PATH}" "${DMG_DIR}/${APP_NAME}.app"
-hdiutil create -volname "${VOL_NAME}" \
-  -srcfolder "${DMG_DIR}" -ov -format UDZO "${DMG_PATH}"
+ln -s /Applications "${DMG_DIR}/Applications"
+swift "$(dirname "$0")/generate-dmg-background.swift" "${DMG_DIR}/.background/background.png"
+
+# `-fs HFS+` (not APFS) — Finder's classic icon-position/background-picture
+# AppleScript below is the well-established HFS+ idiom; -size is generous
+# padding over the actual content so hdiutil never fails on a too-tight image.
+rm -f "${RW_DMG_PATH}"
+hdiutil create -volname "${VOL_NAME}" -srcfolder "${DMG_DIR}" \
+  -fs HFS+ -format UDRW -size 100m "${RW_DMG_PATH}"
+
+MOUNT_OUTPUT=$(hdiutil attach -readwrite -noverify -noautoopen "${RW_DMG_PATH}")
+MOUNT_POINT=$(echo "${MOUNT_OUTPUT}" | grep -E '^/dev/' | grep '/Volumes/' | awk -F'\t' '{print $NF}' | tail -1)
+if [ -z "${MOUNT_POINT}" ]; then
+  echo "ERROR: could not determine DMG mount point from hdiutil attach output:" >&2
+  echo "${MOUNT_OUTPUT}" >&2
+  exit 1
+fi
+
+# Finder positions icons and sets the background picture via AppleScript —
+# the standard technique every hand-rolled (non-create-dmg) release script
+# uses; `osascript` is part of macOS, no extra tooling needed.
+osascript <<APPLESCRIPT
+tell application "Finder"
+  tell disk "${VOL_NAME}"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set the bounds of container window to {400, 100, 400 + ${DMG_WINDOW_WIDTH}, 100 + ${DMG_WINDOW_HEIGHT} + 40}
+    set viewOptions to the icon view options of container window
+    set arrangement of viewOptions to not arranged
+    set icon size of viewOptions to 96
+    set background picture of viewOptions to file ".background:background.png"
+    set position of item "${APP_NAME}.app" of container window to {${APP_ICON_X}, ${ICON_Y}}
+    set position of item "Applications" of container window to {${APPLICATIONS_ICON_X}, ${ICON_Y}}
+    close
+    open
+    -- Finder does not reliably persist the window bounds set above across
+    -- this close/reopen (a well-known quirk of this scripting technique) —
+    -- re-apply them now so the size that ships in the DMG is the one an end
+    -- user actually sees, not Finder's remembered/default window size.
+    set the bounds of container window to {400, 100, 400 + ${DMG_WINDOW_WIDTH}, 100 + ${DMG_WINDOW_HEIGHT} + 40}
+    update without registering applications
+    delay 1
+  end tell
+end tell
+APPLESCRIPT
+
+sync
+hdiutil detach "${MOUNT_POINT}" -quiet
+
+hdiutil convert "${RW_DMG_PATH}" -format UDZO -ov -o "${DMG_PATH}"
+rm -f "${RW_DMG_PATH}"
 
 # ----------------------------------------------------------------------------
 # Step 5: Sign the .dmg itself (only when a real Developer ID is set).

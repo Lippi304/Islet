@@ -37,7 +37,14 @@ What you should see:
 1. Xcode archives a Release build.
 2. The app is copied out and **ad-hoc signed** (you'll see a line like
    `-> No Developer ID set: AD-HOC signing for local dry-run (D-03).`).
-3. A disk image is created at `dist/Islet.dmg`.
+3. A disk image is created at `dist/Islet.dmg`, styled like a normal macOS
+   installer window: the Islet icon, an arrow, and an Applications-folder
+   shortcut to drag it into — built via `scripts/generate-dmg-background.swift`
+   (a plain AppKit-drawn background image, no extra tools) plus a Finder
+   AppleScript step in `scripts/release.sh` that positions the icons. If you
+   ever need to change the window size or icon positions, the 5 constants are
+   duplicated at the top of both files with a comment pointing at the other —
+   keep them in sync.
 4. A loud message tells you notarize/staple were **SKIPPED** because the
    placeholders aren't filled, and that the DMG is **NOT notarized**.
 
