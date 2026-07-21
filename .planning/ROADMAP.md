@@ -906,7 +906,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 53-01-PLAN.md — Blocking on-device resume-feasibility spike + hover-preview render branch (view-local, Claude's Discretion) + controller wiring (handleResumeTap, inferred-failure timeout, collapsedInteractiveZone widening)
+- [x] 53-01-PLAN.md — Blocking on-device resume-feasibility spike + hover-preview render branch (view-local, Claude's Discretion) + controller wiring (handleResumeTap, inferred-failure timeout, collapsedInteractiveZone widening)
 
 **Wave 2** *(blocked on 53-01)*
 
