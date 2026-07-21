@@ -878,7 +878,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 52-01-PLAN.md — Data/config contracts: SelectedView @AppStorage-compatible + orderedSlotIcons(...) + ActivitySettings SwitcherLayout/slot keys + NotchGeometry topEdgeCutoutGap(...)
+- [x] 52-01-PLAN.md — Data/config contracts: SelectedView @AppStorage-compatible + orderedSlotIcons(...) + ActivitySettings SwitcherLayout/slot keys + NotchGeometry topEdgeCutoutGap(...)
 
 **Wave 2** *(blocked on 52-01)*
 

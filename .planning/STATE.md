@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: executing
-stopped_at: Phase 52 UI-SPEC approved
-last_updated: "2026-07-21T14:05:27.547Z"
-last_activity: 2026-07-21 -- Phase 52 planning complete
+stopped_at: Completed 52-01-PLAN.md
+last_updated: "2026-07-21T14:54:25.350Z"
+last_activity: 2026-07-21
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 52 — top edge switcher layout & placement config
+**Current focus:** Phase 52 — top-edge-switcher-layout-placement-config
 
 ## Current Position
 
-Phase: 52
-Plan: Not started
+Phase: 52 (top-edge-switcher-layout-placement-config) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-21 -- Phase 52 planning complete
+Last activity: 2026-07-21
 
 ### Phase 48 status note
 
@@ -135,6 +135,7 @@ Progress (v1.8): [░░░░░░░░░░] 0% (0/3 phases — roadmap cre
 | Phase 48 P03 | multi-session | 3 tasks | 2 files |
 | Phase 49 P01 | 10min+checkpoint | 3 tasks | 6 files |
 | Phase 49 P02 | 1min | 1 tasks | 0 files |
+| Phase 52 P01 | 25min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -194,6 +195,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 49-03]: Task 1 landed `.planning/phases/49-favorite-like-spike/spotify-pkce-spike.sh` (executable, `bash -n` clean) copying RESEARCH.md's Code Examples section verbatim — S256-only PKCE `code_verifier`/`code_challenge` generation via `openssl`, hardcoded loopback `REDIRECT_URI` (`http://127.0.0.1:8888/callback`), `CLIENT_ID` left as the literal placeholder string (never a real value, per T-49-09), `/authorize` + `/api/token` exchange, and a real `PUT /me/library` save-track call with the track URI read via a second `read -p` prompt (never hardcoded). No deviations — plan executed exactly as written. Task 2 (on-device checkpoint, gate=blocking) is next — requires the human to register a real Spotify Developer app, substitute the real Client ID locally/uncommitted only, run the browser PKCE flow, and read the live quota-mode text from the Spotify Developer Dashboard; none of this is executor-automatable. SUMMARY.md deliberately not yet created (Plan 49-04 depends on its final verdicts).
 - [Phase 49-02]: SC#2 verdict: matrix-shows-different-behavior — loved of current track fails uniformly with -10001 in all 4 states (library/streaming x play/pause); name of current track succeeds in all 4 states. Deviates from RESEARCH.md's predicted -1728 streaming-only error. Phase 50 needs a documented Apple-Music-loved-broken fallback or an alternative read/write path, not just a streaming-only edge case. Plan 49-02 is now COMPLETE (see `49-02-SUMMARY.md`); Plan 49-04 depends on this file's verdict.
 - [Phase 51-01]: Task 1 landed the 7-case `SidebarSection` restructure (D-06 order Activities/Appearance/Fullscreen/Weather/Diagnostics/Workspace/About) — `activitiesSection`/`fullscreenSection`/`weatherSection`/`diagnosticsSection` extracted verbatim from the old monolithic `generalSection`, `systemSection` renamed to `appearanceSection` (D-01), all 5 wrapped in `ScrollView(.vertical)`, `generalSection`/`systemSection` deleted with zero dead references remaining (commit 4e36f2c). Task 2 wrapped `workspaceSection`/`aboutSection` in the same `ScrollView` pattern, preserving `workspaceSection`'s centering `.frame` on the inner VStack per the plan's explicit instruction — both Debug and Release builds green (commit 871c146). No deviations from the plan on either task. Task 3 (on-device UAT, `gate="blocking"`) is a checkpoint requiring an interactive human on-device walkthrough this executor cannot perform — reached and NOT auto-approved (`workflow.auto_advance` is `false`, no auto-chain active). Per the plan's own `<output>` spec ("Create SUMMARY.md when done") and the Phase 49-03 precedent (blocking checkpoint → SUMMARY.md deliberately deferred), `51-01-SUMMARY.md` was intentionally NOT created yet: Phase 51 has exactly 1 plan, so writing it now would make `roadmap.update-plan-progress`'s file-existence-based detection mark the entire phase Complete before UAT is approved. Resume by running the Task 3 checklist (11 steps, 51-01-PLAN.md) on-device; on "approved" (or a described failure), a continuation agent should finish the plan (SUMMARY.md, `state.advance-plan`, `roadmap.update-plan-progress`).
+- [Phase 52-01]: orderedSlotIcons(...) does no deduplication/validation — duplicate slot assignments are intentionally allowed, matching this codebase's no-Picker-validation convention
+- [Phase 52-01]: topEdgeCutoutGap(...) is a thin wrapper around notchSize(...).width, not a reimplementation, so the two never drift
 
 ### Roadmap Evolution
 
@@ -304,9 +307,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-21T13:07:11.291Z
-Stopped at: Phase 52 UI-SPEC approved
-Resume file: .planning/phases/52-top-edge-switcher-layout-placement-config/52-UI-SPEC.md
+Last session: 2026-07-21T14:54:25.345Z
+Stopped at: Completed 52-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

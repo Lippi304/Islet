@@ -103,3 +103,7 @@ All 3 contracts (`SelectedView`/`orderedSlotIcons`, `ActivitySettings.SwitcherLa
 ---
 *Phase: 52-top-edge-switcher-layout-placement-config*
 *Completed: 2026-07-21*
+
+## Self-Check: PASSED
+
+All 6 modified source/test files and the SUMMARY.md itself verified present on disk; all 4 commits (243647a, 365c8ef, d1e9ded, 73f6fff) verified present in git log.
