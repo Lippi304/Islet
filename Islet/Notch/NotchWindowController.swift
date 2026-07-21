@@ -336,6 +336,12 @@ final class NotchWindowController {
     // this same start() would otherwise fire eagerly (RESEARCH.md Pitfall 2).
     private(set) var onboardingStep: OnboardingStep?
     private var isOnboardingActive = false
+
+    // Phase 54 / D-07/D-08 — the interaction phase captured at the moment a mid-session
+    // onboarding REPLAY starts, so finishOnboardingReplay() can restore it exactly rather
+    // than forcing a .clicked transition. nil means no replay is currently in progress
+    // (also doubles as the branch signal the onOnboardingFinish closure uses).
+    private var replayPriorPhase: InteractionPhase?
     private let dragPinSafetyNetDuration: TimeInterval = 20.0
     private var dragReleaseMonitor: Any?
 
@@ -732,6 +738,15 @@ final class NotchWindowController {
     // requiring an undocumented toggle-off/on or app relaunch.
     func focusPermissionGranted() {
         handleSettingsChanged()
+    }
+
+    // Phase 54 / D-06 — the cross-window trigger Plan 03's Settings Permissions section calls
+    // for Bluetooth's "not yet asked" tap, mirroring focusPermissionGranted()'s exact
+    // cross-window-call shape. CoreBluetooth has no standalone requestAuthorization()-style
+    // call; the system prompt is a side effect of IOBluetoothDevice.register(forConnectNotifications:),
+    // which startBluetoothMonitor() already calls and which is itself idempotent.
+    func requestBluetoothPermission() {
+        startBluetoothMonitor()
     }
 
     // Phase 39 / HUD-03/HUD-04 (D-06) — idempotent start, mirrors startFocusModeMonitor()'s
@@ -1928,6 +1943,47 @@ final class NotchWindowController {
         startOutfitRefresh()
     }
 
+    // Phase 54 / D-07/D-08/D-12 — the narrow mid-session REPLAY entry point (Settings' Replay
+    // Onboarding button, wired in Plan 03). Reuses the existing carousel verbatim but never
+    // touches ActivitySettings.onboardingCompletedKey (D-08) and correctly restores whatever
+    // the island was showing before the replay started (finishOnboardingReplay(), below), since
+    // a forced .clicked transition would be wrong if the island was, say, already expanded.
+    func replayOnboarding() {
+        // T-54-04: idempotent — a stray double-tap while a replay (or real onboarding) is
+        // already in progress must not overwrite replayPriorPhase and lose the true original
+        // phase.
+        guard onboardingStep == nil else { return }
+        replayPriorPhase = interaction.phase
+        onboardingStep = .welcome
+        isOnboardingActive = true
+        onboardingState.isReplay = true
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            interaction.phase = .expanded
+            renderPresentation()
+        }
+        syncClickThrough()
+    }
+
+    // Phase 54 / D-07/D-08/D-12 — the replay exit path, reached either via the carousel's
+    // existing Done checkmark (onOnboardingFinish, branched below) or the new replay-only
+    // close button (onOnboardingCancel). Deliberately does NOT write
+    // ActivitySettings.onboardingCompletedKey (T-54-03/D-08) and does NOT call
+    // startBluetoothMonitor()/startOutfitRefresh() — both are pointless during replay since
+    // everything they'd start is already running.
+    private func finishOnboardingReplay() {
+        let restorePhase = replayPriorPhase ?? .collapsed
+        replayPriorPhase = nil
+        onboardingState.isReplay = false
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            isOnboardingActive = false
+            onboardingStep = nil
+            interaction.phase = restorePhase
+            renderPresentation()
+        }
+        updateVisibility()
+        syncClickThrough()
+    }
+
     // CHG-01 / CHG-02 — the live power event lands here (already on main; the monitor's
     // callback hopped). Maps the raw reading to a presentation via the PURE Plan-01 seam,
     // gates re-display to category transitions (Pitfall 4), and routes the splash through the
@@ -2219,7 +2275,11 @@ final class NotchWindowController {
                       onOnboardingBack: { [weak self] in self?.advanceOnboarding(.back) },
                       onOnboardingGrant: { [weak self] permission in self?.grantOnboardingPermission(permission) },
                       onOnboardingOpenSettings: { [weak self] in self?.openOnboardingSettings() },
-                      onOnboardingFinish: { [weak self] in self?.finishOnboarding() },
+                      onOnboardingFinish: { [weak self] in
+                          guard let self else { return }
+                          if self.replayPriorPhase != nil { self.finishOnboardingReplay() } else { self.finishOnboarding() }
+                      },
+                      onOnboardingCancel: { [weak self] in self?.finishOnboardingReplay() },
                       onSwitcherSelect: { [weak self] view in self?.handleSwitcherSelect(view) },
                       onCalendarMonthChange: { [weak self] delta in self?.handleCalendarMonthChange(delta) },
                       onCalendarDaySelect: { [weak self] day in self?.handleCalendarDaySelect(day) },
