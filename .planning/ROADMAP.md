@@ -901,5 +901,15 @@ Plans:
   3. Clicking the hover-preview resumes playback of that last track whenever the underlying transport still supports it.
   4. Whether resuming a non-active track is achievable via the existing `NowPlayingMonitor`/MediaRemote adapter transport is verified early in this phase (open technical question per PROJECT.md's v1.8 Key Context) rather than assumed — if resuming genuinely isn't possible for a given source, the click gives clear feedback instead of silently doing nothing.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 53-01-PLAN.md — Blocking on-device resume-feasibility spike + hover-preview render branch (view-local, Claude's Discretion) + controller wiring (handleResumeTap, inferred-failure timeout, collapsedInteractiveZone widening)
+
+**Wave 2** *(blocked on 53-01)*
+
+- [ ] 53-02-PLAN.md — Full on-device UAT covering all 4 ROADMAP success criteria
+
 **UI hint**: yes
