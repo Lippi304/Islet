@@ -180,13 +180,20 @@ if [ -z "${MOUNT_POINT}" ]; then
   echo "${MOUNT_OUTPUT}" >&2
   exit 1
 fi
+# NOT necessarily "${VOL_NAME}" — if a volume with that name is already
+# mounted (e.g. the user has a previously-downloaded Islet.dmg open in
+# Finder), macOS silently mounts this one as "${VOL_NAME} 1" instead. Using
+# the wrong (stale) disk name here makes Finder bind to that OTHER volume,
+# which doesn't have this run's freshly-generated .background folder and
+# fails with "(-10006)". Always derive the actual mounted name.
+MOUNTED_VOL_NAME=$(basename "${MOUNT_POINT}")
 
 # Finder positions icons and sets the background picture via AppleScript —
 # the standard technique every hand-rolled (non-create-dmg) release script
 # uses; `osascript` is part of macOS, no extra tooling needed.
 osascript <<APPLESCRIPT
 tell application "Finder"
-  tell disk "${VOL_NAME}"
+  tell disk "${MOUNTED_VOL_NAME}"
     open
     set current view of container window to icon view
     set toolbar visible of container window to false
