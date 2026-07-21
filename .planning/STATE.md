@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: executing
-stopped_at: Completed 52-01-PLAN.md
-last_updated: "2026-07-21T14:54:25.350Z"
+stopped_at: Completed 52-02-PLAN.md
+last_updated: "2026-07-21T15:07:48.939Z"
 last_activity: 2026-07-21
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 52 (top-edge-switcher-layout-placement-config) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-21
 
@@ -136,6 +136,7 @@ Progress (v1.8): [░░░░░░░░░░] 0% (0/3 phases — roadmap cre
 | Phase 49 P01 | 10min+checkpoint | 3 tasks | 6 files |
 | Phase 49 P02 | 1min | 1 tasks | 0 files |
 | Phase 52 P01 | 25min | 3 tasks | 6 files |
+| Phase 52 P02 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -197,6 +198,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 51-01]: Task 1 landed the 7-case `SidebarSection` restructure (D-06 order Activities/Appearance/Fullscreen/Weather/Diagnostics/Workspace/About) — `activitiesSection`/`fullscreenSection`/`weatherSection`/`diagnosticsSection` extracted verbatim from the old monolithic `generalSection`, `systemSection` renamed to `appearanceSection` (D-01), all 5 wrapped in `ScrollView(.vertical)`, `generalSection`/`systemSection` deleted with zero dead references remaining (commit 4e36f2c). Task 2 wrapped `workspaceSection`/`aboutSection` in the same `ScrollView` pattern, preserving `workspaceSection`'s centering `.frame` on the inner VStack per the plan's explicit instruction — both Debug and Release builds green (commit 871c146). No deviations from the plan on either task. Task 3 (on-device UAT, `gate="blocking"`) is a checkpoint requiring an interactive human on-device walkthrough this executor cannot perform — reached and NOT auto-approved (`workflow.auto_advance` is `false`, no auto-chain active). Per the plan's own `<output>` spec ("Create SUMMARY.md when done") and the Phase 49-03 precedent (blocking checkpoint → SUMMARY.md deliberately deferred), `51-01-SUMMARY.md` was intentionally NOT created yet: Phase 51 has exactly 1 plan, so writing it now would make `roadmap.update-plan-progress`'s file-existence-based detection mark the entire phase Complete before UAT is approved. Resume by running the Task 3 checklist (11 steps, 51-01-PLAN.md) on-device; on "approved" (or a described failure), a continuation agent should finish the plan (SUMMARY.md, `state.advance-plan`, `roadmap.update-plan-progress`).
 - [Phase 52-01]: orderedSlotIcons(...) does no deduplication/validation — duplicate slot assignments are intentionally allowed, matching this codebase's no-Picker-validation convention
 - [Phase 52-01]: topEdgeCutoutGap(...) is a thin wrapper around notchSize(...).width, not a reimplementation, so the two never drift
+- [Phase 52-02]: blobShape's showsPillRow = showSwitcher && switcherLayout == .pill splits 'reserve switcher-sized content height' (baseHeight, layout-independent) from 'show the pill row' (layout-dependent) — the three-site fix (blobShape, body's totalHeight, NotchWindowController.visibleContentZone()) all read the same switcherLayout signal independently, no shared plumbing
+- [Phase 52-02]: icon(for:) extracted once and reused verbatim by both switcherRow and topEdgeSwitcherRow (D-03) — exactly one place maps SelectedView to (systemName, action); topEdgeSwitcherRow computes its own hasNotch/cutout geometry independently (selectTargetScreen + topEdgeCutoutGap), mirroring NotchWindowController.currentBuiltin()'s existing pattern, no controller plumbing
 
 ### Roadmap Evolution
 
@@ -307,8 +310,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-21T14:54:25.345Z
-Stopped at: Completed 52-01-PLAN.md
+Last session: 2026-07-21T15:07:48.934Z
+Stopped at: Completed 52-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
