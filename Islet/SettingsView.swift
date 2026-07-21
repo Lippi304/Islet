@@ -75,32 +75,39 @@ struct SettingsView: View {
     @AppStorage(ActivitySettings.chargingAccentKey) private var chargingAccentIndex = ActivitySettings.defaultAccentIndex
     @AppStorage(ActivitySettings.deviceAccentKey) private var deviceAccentIndex = ActivitySettings.defaultAccentIndex
 
-    // Phase 27 / SETTINGS-01 — sidebar section identity (D-01–D-04, UI-SPEC §Sidebar
-    // Structure). Order and copy are locked: General, Workspace, System, About.
+    // Phase 51 / SETTINGS-02/SETTINGS-03 (D-01–D-06) — sidebar section identity.
+    // Order and copy are locked: Activities, Appearance, Fullscreen, Weather,
+    // Diagnostics, Workspace, About.
     private enum SidebarSection: String, CaseIterable, Identifiable {
-        case general, workspace, system, about
+        case activities, appearance, fullscreen, weather, diagnostics, workspace, about
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
-            case .general: return "General"
+            case .activities: return "Activities"
+            case .appearance: return "Appearance"
+            case .fullscreen: return "Fullscreen"
+            case .weather: return "Weather"
+            case .diagnostics: return "Diagnostics"
             case .workspace: return "Workspace"
-            case .system: return "System"
             case .about: return "About"
             }
         }
 
         var icon: String {
             switch self {
-            case .general: return "gearshape"
+            case .activities: return "bolt"
+            case .appearance: return "paintbrush"
+            case .fullscreen: return "arrow.up.left.and.arrow.down.right"
+            case .weather: return "cloud.sun"
+            case .diagnostics: return "stethoscope"
             case .workspace: return "tray"
-            case .system: return "paintbrush"
             case .about: return "info.circle"
             }
         }
     }
-    @State private var selection: SidebarSection? = .general
+    @State private var selection: SidebarSection? = .activities
 
     var body: some View {
         NavigationSplitView {
@@ -132,16 +139,22 @@ struct SettingsView: View {
             .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
         } detail: {
             switch selection {
-            case .general:
-                generalSection
+            case .activities:
+                activitiesSection
+            case .appearance:
+                appearanceSection
+            case .fullscreen:
+                fullscreenSection
+            case .weather:
+                weatherSection
+            case .diagnostics:
+                diagnosticsSection
             case .workspace:
                 workspaceSection
-            case .system:
-                systemSection
             case .about:
                 aboutSection
             case .none:
-                generalSection
+                activitiesSection
             }
         }
         // Re-read the system state on appear and whenever the window's app
@@ -189,116 +202,142 @@ struct SettingsView: View {
         .frame(width: 520, height: 380)
     }
 
-    // D-01 — General: 4 activity toggles + Launch-at-login + Fullscreen toggle +
-    // Diagnostics button — a deliberate catch-all section (27-CONTEXT.md D-01).
-    private var generalSection: some View {
-        Form {
-            Toggle("Launch Islet at login", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { _, on in
-                    do {
-                        let result = try LaunchAtLogin.set(on)
-                        if on && LaunchAtLogin.requiresApproval {
-                            // macOS needs the user to approve the login item:
-                            // keep the toggle ON (pending) to match the System
-                            // Settings deep-link we open, instead of snapping it
-                            // back OFF.
-                            launchAtLogin = true
-                            LaunchAtLogin.openLoginItemsSettings()
-                        } else {
-                            // Reflect the TRUE resulting system state.
-                            launchAtLogin = result
-                        }
-                    } catch {
-                        // Revert the UI to the real system state on failure.
-                        launchAtLogin = LaunchAtLogin.isEnabled
-                    }
-                }
-
-            // APP-03: four independent activity on/off toggles (D-06/D-07),
-            // pure on/off — no master switch, no per-activity duration (D-08).
-            Section("Activities") {
-                Toggle("Charging", isOn: $chargingEnabled)
-                Toggle("Now Playing", isOn: $nowPlayingEnabled)
-                Toggle("Song-Change Toast", isOn: $songChangeToastEnabled)
-                Toggle("Devices", isOn: $deviceEnabled)
-                Toggle("Calendar Countdown", isOn: $calendarCountdownEnabled)
-                // Phase 38 / HUD-05 — D-02: the permission ask happens ONLY at this exact
-                // off-to-on flip, never at launch. D-04: declining the explanation leaves the
-                // toggle ON with the inert hint — the tap-to-retry gesture below is the ONLY way
-                // the explanation re-appears, never automatically.
-                Toggle("Focus Mode HUD", isOn: $focusEnabled)
-                    .onChange(of: focusEnabled) { _, on in
-                        if on && !FocusModeMonitor.isAuthorized {
-                            showFocusPermissionExplanation = true
+    // Phase 51 / SETTINGS-03 (D-02) — Activities: Launch-at-login folded in alongside
+    // the 8 activity toggles. The tallest section (D-05) — wrapped in ScrollView so
+    // its last toggle ("Automatically Check for Updates") stays reachable within the
+    // fixed 520x380 window (SETTINGS-02 scroll fix).
+    private var activitiesSection: some View {
+        ScrollView(.vertical) {
+            Form {
+                Toggle("Launch Islet at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, on in
+                        do {
+                            let result = try LaunchAtLogin.set(on)
+                            if on && LaunchAtLogin.requiresApproval {
+                                // macOS needs the user to approve the login item:
+                                // keep the toggle ON (pending) to match the System
+                                // Settings deep-link we open, instead of snapping it
+                                // back OFF.
+                                launchAtLogin = true
+                                LaunchAtLogin.openLoginItemsSettings()
+                            } else {
+                                // Reflect the TRUE resulting system state.
+                                launchAtLogin = result
+                            }
+                        } catch {
+                            // Revert the UI to the real system state on failure.
+                            launchAtLogin = LaunchAtLogin.isEnabled
                         }
                     }
-                    .popover(isPresented: $showFocusPermissionExplanation) {
-                        focusPermissionExplanationView
-                    }
-                if let hint = ActivitySettings.focusPermissionStatusHint(
-                    toggleOn: focusEnabled, granted: FocusModeMonitor.isAuthorized
-                ) {
-                    Text(hint)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .onTapGesture { showFocusPermissionExplanation = true }
-                }
 
-                // Phase 39 / HUD-03/HUD-04 — D-05/D-06/D-08: identical shape to the Focus Mode
-                // toggle above. Label is the exact locked string from 39-UI-SPEC.md — never
-                // "Volume/Brightness HUD" (that would incorrectly imply this toggle gates the
-                // HUD's own visibility, which it does not per D-06; the HUD keeps showing
-                // regardless of this toggle's value).
-                Toggle("Replace System Volume/Brightness OSD", isOn: $osdSuppressionEnabled)
-                    .onChange(of: osdSuppressionEnabled) { _, on in
-                        if on && !OSDInterceptor.isAccessibilityTrusted {
-                            showOSDPermissionExplanation = true
+                // APP-03: four independent activity on/off toggles (D-06/D-07),
+                // pure on/off — no master switch, no per-activity duration (D-08).
+                Section("Activities") {
+                    Toggle("Charging", isOn: $chargingEnabled)
+                    Toggle("Now Playing", isOn: $nowPlayingEnabled)
+                    Toggle("Song-Change Toast", isOn: $songChangeToastEnabled)
+                    Toggle("Devices", isOn: $deviceEnabled)
+                    Toggle("Calendar Countdown", isOn: $calendarCountdownEnabled)
+                    // Phase 38 / HUD-05 — D-02: the permission ask happens ONLY at this exact
+                    // off-to-on flip, never at launch. D-04: declining the explanation leaves the
+                    // toggle ON with the inert hint — the tap-to-retry gesture below is the ONLY way
+                    // the explanation re-appears, never automatically.
+                    Toggle("Focus Mode HUD", isOn: $focusEnabled)
+                        .onChange(of: focusEnabled) { _, on in
+                            if on && !FocusModeMonitor.isAuthorized {
+                                showFocusPermissionExplanation = true
+                            }
                         }
+                        .popover(isPresented: $showFocusPermissionExplanation) {
+                            focusPermissionExplanationView
+                        }
+                    if let hint = ActivitySettings.focusPermissionStatusHint(
+                        toggleOn: focusEnabled, granted: FocusModeMonitor.isAuthorized
+                    ) {
+                        Text(hint)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .onTapGesture { showFocusPermissionExplanation = true }
                     }
-                    .popover(isPresented: $showOSDPermissionExplanation) {
-                        osdPermissionExplanationView
+
+                    // Phase 39 / HUD-03/HUD-04 — D-05/D-06/D-08: identical shape to the Focus Mode
+                    // toggle above. Label is the exact locked string from 39-UI-SPEC.md — never
+                    // "Volume/Brightness HUD" (that would incorrectly imply this toggle gates the
+                    // HUD's own visibility, which it does not per D-06; the HUD keeps showing
+                    // regardless of this toggle's value).
+                    Toggle("Replace System Volume/Brightness OSD", isOn: $osdSuppressionEnabled)
+                        .onChange(of: osdSuppressionEnabled) { _, on in
+                            if on && !OSDInterceptor.isAccessibilityTrusted {
+                                showOSDPermissionExplanation = true
+                            }
+                        }
+                        .popover(isPresented: $showOSDPermissionExplanation) {
+                            osdPermissionExplanationView
+                        }
+                    if let hint = ActivitySettings.osdPermissionStatusHint(
+                        toggleOn: osdSuppressionEnabled, granted: OSDInterceptor.isAccessibilityTrusted
+                    ) {
+                        Text(hint)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .onTapGesture { showOSDPermissionExplanation = true }
                     }
-                if let hint = ActivitySettings.osdPermissionStatusHint(
-                    toggleOn: osdSuppressionEnabled, granted: OSDInterceptor.isAccessibilityTrusted
-                ) {
-                    Text(hint)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .onTapGesture { showOSDPermissionExplanation = true }
+
+                    // Phase 40 / HUD-06 (D-11) — automatic-check scheduling requires no macOS
+                    // privacy grant, unlike Focus/OSD's permission-gated toggles above: no
+                    // .onChange, no .popover, no status-hint Text (40-UI-SPEC.md Settings Toggle
+                    // Contract).
+                    Toggle("Automatically Check for Updates", isOn: $autoUpdateCheckEnabled)
                 }
-
-                // Phase 40 / HUD-06 (D-11) — automatic-check scheduling requires no macOS
-                // privacy grant, unlike Focus/OSD's permission-gated toggles above: no
-                // .onChange, no .popover, no status-hint Text (40-UI-SPEC.md Settings Toggle
-                // Contract).
-                Toggle("Automatically Check for Updates", isOn: $autoUpdateCheckEnabled)
             }
-
-            // Quick task 260709-glz — a fullscreen-visibility preference, distinct from
-            // the activity on/off toggles above (not a live-activity source).
-            Section("Fullscreen") {
-                Toggle("Hide notch in fullscreen", isOn: $hideInFullscreen)
-            }
-
-            // Phase 33 / WEATHER-01/02 (D-03/D-04/D-05) — live-switches the Weather card between
-            // its Medium and Large layouts, no relaunch (NotchPillView's @AppStorage on the
-            // same key re-renders immediately). Mirrors systemSection's materialStyle segmented
-            // Picker exactly, using the bare WeatherStyle module-level alias for the tags.
-            Section("Weather") {
-                Picker("Weather Style", selection: $weatherStyle) {
-                    Text("Medium").tag(WeatherStyle.medium)
-                    Text("Large").tag(WeatherStyle.large)
-                }
-                .pickerStyle(.segmented)
-            }
-
-            // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
-            // reports — no new logging subsystem, nothing written unless clicked.
-            Section("Diagnostics") {
-                Button("Save Diagnostic Report…") { saveDiagnosticReport() }
-            }
+            .padding(20)
         }
-        .padding(20)
+    }
+
+    // Quick task 260709-glz — a fullscreen-visibility preference, its own dedicated
+    // sidebar section (D-06).
+    private var fullscreenSection: some View {
+        ScrollView(.vertical) {
+            Form {
+                Section("Fullscreen") {
+                    Toggle("Hide notch in fullscreen", isOn: $hideInFullscreen)
+                }
+            }
+            .padding(20)
+        }
+    }
+
+    // Phase 33 / WEATHER-01/02 (D-03/D-04/D-05) — live-switches the Weather card between
+    // its Medium and Large layouts, no relaunch (NotchPillView's @AppStorage on the
+    // same key re-renders immediately). Mirrors appearanceSection's materialStyle segmented
+    // Picker exactly, using the bare WeatherStyle module-level alias for the tags.
+    private var weatherSection: some View {
+        ScrollView(.vertical) {
+            Form {
+                Section("Weather") {
+                    Picker("Weather Style", selection: $weatherStyle) {
+                        Text("Medium").tag(WeatherStyle.medium)
+                        Text("Large").tag(WeatherStyle.large)
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .padding(20)
+        }
+    }
+
+    // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
+    // reports — no new logging subsystem, nothing written unless clicked. Its own
+    // dedicated sidebar section (D-03), not folded into About.
+    private var diagnosticsSection: some View {
+        ScrollView(.vertical) {
+            Form {
+                Section("Diagnostics") {
+                    Button("Save Diagnostic Report…") { saveDiagnosticReport() }
+                }
+            }
+            .padding(20)
+        }
     }
 
     // Phase 38 / HUD-05 — D-02/D-03/D-04's one-time explanation popover, shown at the moment
@@ -423,26 +462,28 @@ struct SettingsView: View {
         .padding(20)
     }
 
-    // D-04/D-05/D-07 — System (Theming): material-style segmented picker + 3
-    // independent per-element accent swatch rows (UI-SPEC §System/Theming).
-    private var systemSection: some View {
-        Form {
-            Section("Appearance Style") {
-                Picker("Style", selection: $materialStyle) {
-                    Text("Gradient").tag(MaterialStyle.gradient)
-                    Text("Solid Black").tag(MaterialStyle.solidBlack)
-                    Text("Liquid Glass").tag(MaterialStyle.liquidGlass)
+    // D-01/D-04/D-05/D-07 — Appearance (renamed from System, Phase 51): material-style
+    // segmented picker + 3 independent per-element accent swatch rows.
+    private var appearanceSection: some View {
+        ScrollView(.vertical) {
+            Form {
+                Section("Appearance Style") {
+                    Picker("Style", selection: $materialStyle) {
+                        Text("Gradient").tag(MaterialStyle.gradient)
+                        Text("Solid Black").tag(MaterialStyle.solidBlack)
+                        Text("Liquid Glass").tag(MaterialStyle.liquidGlass)
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
-            }
 
-            Section("Accent Colors") {
-                LabeledContent("Now Playing") { swatchRow(selection: $nowPlayingAccentIndex) }
-                LabeledContent("Charging") { swatchRow(selection: $chargingAccentIndex) }
-                LabeledContent("Device") { swatchRow(selection: $deviceAccentIndex) }
+                Section("Accent Colors") {
+                    LabeledContent("Now Playing") { swatchRow(selection: $nowPlayingAccentIndex) }
+                    LabeledContent("Charging") { swatchRow(selection: $chargingAccentIndex) }
+                    LabeledContent("Device") { swatchRow(selection: $deviceAccentIndex) }
+                }
             }
+            .padding(20)
         }
-        .padding(20)
     }
 
     // D-07 — the existing curated swatch-circle picker (today's Appearance-tab
