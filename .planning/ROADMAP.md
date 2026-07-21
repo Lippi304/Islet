@@ -922,13 +922,13 @@ Plans:
 **Goal:** Settings gains a "Permissions" rollup showing how many of the app's permissions are granted (X of Y), lets the user see the status of and re-request any denied/not-yet-granted permission individually, and offers a "Replay Onboarding" button in About.
 **Requirements**: ARCH-P2
 **Depends on:** Phase 53
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 54-01-PLAN.md — Pure PermissionStatus/PermissionKind model (TDD): 3-state mapping functions, D-13 combine rule, deep-link anchors, 5 live status reads
-- [ ] 54-02-PLAN.md — NotchWindowController replayOnboarding()/finishOnboardingReplay() (D-07/D-08) + NotchPillView D-12 replay-only close button + requestBluetoothPermission()
+- [x] 54-02-PLAN.md — NotchWindowController replayOnboarding()/finishOnboardingReplay() (D-07/D-08) + NotchPillView D-12 replay-only close button + requestBluetoothPermission()
 
 **Wave 2** *(blocked on 54-01, 54-02)*
 
