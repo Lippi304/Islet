@@ -1,10 +1,11 @@
 ---
 phase: 53
 slug: hover-to-resume-idle-preview
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-21
+reviewed_at: 2026-07-21
 ---
 
 # Phase 53 — UI Design Contract
@@ -144,11 +145,11 @@ Not applicable — no package registry, no shadcn, no third-party UI blocks. Nat
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: FLAG (non-blocking — 290pt/22pt wings geometry predates this phase, verbatim-reused, disclosed with justification)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved (2026-07-21) — 5 PASS, 1 non-blocking FLAG. See gsd-ui-checker notes for Dimension 5 rationale.
