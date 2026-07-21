@@ -872,8 +872,22 @@ Plans:
   4. The user can reassign which icons appear on the left vs. right side in Settings, and the island reflects the change immediately.
   5. Both switcher layouts remain fully functional for switching tabs — the existing pill mode shows no regression.
 
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 52-01-PLAN.md — Data/config contracts: SelectedView @AppStorage-compatible + orderedSlotIcons(...) + ActivitySettings SwitcherLayout/slot keys + NotchGeometry topEdgeCutoutGap(...)
+
+**Wave 2** *(blocked on 52-01)*
+
+- [ ] 52-02-PLAN.md — NotchPillView: data-driven switcherRow reorder (D-03) + blobShape/totalHeight height-math three-site fix (D-06) + topEdgeSwitcherRow rendering (D-04/D-05)
+- [ ] 52-03-PLAN.md — SettingsView: new "Switcher" sidebar section (D-02/D-07) + hasNotch-gated visibility (D-08)
+
+**Wave 3** *(blocked on 52-02, 52-03)*
+
+- [ ] 52-04-PLAN.md — Full regression gate + on-device UAT (D-04/Pitfall 3 fit check, Pitfall 2 clearance check, all 5 success criteria)
 
 ### Phase 53: Hover-to-Resume Idle Preview
 
