@@ -104,4 +104,28 @@ final class NotchPillViewTests: XCTestCase {
         XCTAssertEqual(weatherLargeView.tabWidth, 420)
         XCTAssertEqual(weatherLargeView.tabHeight, 410)
     }
+
+    // MARK: - Phase 52 / SWITCH-03/04 — orderedSlotIcons + SelectedView(rawValue:)
+
+    func testOrderedSlotIconsDefaultMatchesTodaysPillOrder() {
+        // SWITCH-04 default: Home+Tray left, Calendar+Weather right — byte-identical to
+        // today's switcherRow order.
+        XCTAssertEqual(
+            orderedSlotIcons(leftOuter: .home, leftInner: .tray, rightInner: .calendar, rightOuter: .weather),
+            [.home, .tray, .calendar, .weather]
+        )
+    }
+
+    func testOrderedSlotIconsAllowsDuplicateSlotAssignments() {
+        // Duplicates are allowed, no validation (Claude's Discretion).
+        XCTAssertEqual(
+            orderedSlotIcons(leftOuter: .weather, leftInner: .weather, rightInner: .home, rightOuter: .tray),
+            [.weather, .weather, .home, .tray]
+        )
+    }
+
+    func testSelectedViewRawValueRoundTripsAndCorruptedValueFallsBackToNil() {
+        XCTAssertEqual(SelectedView(rawValue: "home"), .home)
+        XCTAssertNil(SelectedView(rawValue: "corrupted"))
+    }
 }
