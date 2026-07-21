@@ -273,3 +273,31 @@ xcrun stapler staple "${DMG_PATH}"
 # Confirm Gatekeeper's verdict — expect: accepted, "Notarized Developer ID".
 spctl --assess -vvv --type install "${DMG_PATH}"
 echo "-> Notarized + stapled DMG ready: ${DMG_PATH}"
+
+# ----------------------------------------------------------------------------
+# Step 7: Regenerate docs/appcast.xml so Sparkle's "Check for Updates" has a
+# real entry for this release once you upload ${DMG_PATH} to the matching
+# GitHub Release (tag v<MARKETING_VERSION>) and push this file.
+# ----------------------------------------------------------------------------
+GITHUB_REPO="Lippi304/Islet"
+MARKETING_VERSION=$(grep -m1 'MARKETING_VERSION:' project.yml | sed -E 's/.*"([0-9.]+)".*/\1/')
+GENERATE_APPCAST=$(find "${HOME}/Library/Developer/Xcode/DerivedData" \
+  -path "*artifacts/sparkle/Sparkle/bin/generate_appcast" -print -quit 2>/dev/null || true)
+if [ -z "${GENERATE_APPCAST}" ]; then
+  echo "--------------------------------------------------------------"
+  echo "WARNING: Sparkle's generate_appcast tool was not found under DerivedData —"
+  echo "docs/appcast.xml was NOT updated. Build the project in Xcode at least once"
+  echo "(so SPM resolves the Sparkle package), then re-run this script."
+  echo "--------------------------------------------------------------"
+else
+  APPCAST_STAGING=$(mktemp -d)
+  cp "${DMG_PATH}" "${APPCAST_STAGING}/"
+  "${GENERATE_APPCAST}" \
+    --download-url-prefix "https://github.com/${GITHUB_REPO}/releases/download/v${MARKETING_VERSION}/" \
+    -o docs/appcast.xml \
+    "${APPCAST_STAGING}"
+  rm -rf "${APPCAST_STAGING}"
+  echo "-> Wrote docs/appcast.xml for v${MARKETING_VERSION} — commit and push this file,"
+  echo "   and upload ${DMG_PATH} to the v${MARKETING_VERSION} GitHub Release, for Sparkle"
+  echo "   updates to work (SUFeedURL points at this file via raw.githubusercontent.com)."
+fi
