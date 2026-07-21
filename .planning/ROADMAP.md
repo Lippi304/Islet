@@ -916,3 +916,13 @@ Plans:
 - [x] 53-02-PLAN.md — Full on-device UAT covering all 4 ROADMAP success criteria — approved (Debug + Release), including a mid-UAT D-02 supersession (static play glyph replaces bouncing equalizer bars)
 
 **UI hint**: yes
+
+### Phase 54: Permissions Overview & Onboarding Replay
+
+**Goal:** Settings gains a "Permissions" rollup showing how many of the app's permissions are granted (X of Y), lets the user see the status of and re-request any denied/not-yet-granted permission individually, and offers a "Replay Onboarding" button in About.
+**Requirements**: ARCH-P2
+**Depends on:** Phase 53
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 54 to break down)
