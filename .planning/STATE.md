@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
-status: executing
-stopped_at: "Phase 51 Plan 01 Task 3 checkpoint (on-device UAT, blocking) — Tasks 1-2 committed"
-last_updated: "2026-07-21T01:27:17.744Z"
-last_activity: 2026-07-21 -- Phase 51 Plan 01 Tasks 1-2 executed and committed; Task 3 checkpoint reached
+status: verifying
+stopped_at: Phase 51 UI-SPEC approved
+last_updated: "2026-07-21T02:16:58.820Z"
+last_activity: 2026-07-21
 progress:
   total_phases: 19
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 51 (settings-reorganization-scroll-fix) — EXECUTING
 Plan: 1 of 1
-Status: Plan 51-01 Tasks 1-2 complete and committed (4e36f2c, 871c146); Task 3 (on-device UAT, blocking checkpoint) awaiting user verification. SUMMARY.md intentionally NOT yet created — Phase 51 has exactly 1 plan, so writing it now would cause roadmap.update-plan-progress's file-existence-based detection to mark the whole phase Complete before UAT is approved. Resume with the Task 3 checklist below once the user runs the on-device walkthrough.
-Last activity: 2026-07-21 -- Phase 51 Plan 01 Tasks 1-2 (SidebarSection restructure + ScrollView wrapping) executed and committed; Debug+Release builds green; Task 3 checkpoint reached
+Status: Phase complete — ready for verification
+Last activity: 2026-07-21
 
 ### Phase 48 status note
 
