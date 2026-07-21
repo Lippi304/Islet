@@ -80,8 +80,8 @@ Fixes the crowded, non-scrollable Settings window and adds two new interaction o
 
 ### View Switcher
 
-- [ ] **SWITCH-03**: User can choose an alternate compact switcher layout in Settings — 4 small icons at the top edge of the expanded island (2 left of the camera notch, 2 right) instead of the default pill below the island
-- [ ] **SWITCH-04**: User can configure which icons appear on the left vs. right side of the top-edge layout (default: Home+Tray left, Calendar+Weather right)
+- [x] **SWITCH-03**: User can choose an alternate compact switcher layout in Settings — 4 small icons at the top edge of the expanded island (2 left of the camera notch, 2 right) instead of the default pill below the island
+- [x] **SWITCH-04**: User can configure which icons appear on the left vs. right side of the top-edge layout (default: Home+Tray left, Calendar+Weather right)
 
 ### Now Playing — Resume
 
@@ -160,8 +160,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-03 | Phase 50 | Pending |
 | SETTINGS-02 | Phase 51 | Complete |
 | SETTINGS-03 | Phase 51 | Complete |
-| SWITCH-03 | Phase 52 | Pending |
-| SWITCH-04 | Phase 52 | Pending |
+| SWITCH-03 | Phase 52 | Complete |
+| SWITCH-04 | Phase 52 | Complete |
 | RESUME-01 | Phase 53 | Pending |
 | RESUME-02 | Phase 53 | Pending |
 

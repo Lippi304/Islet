@@ -132,7 +132,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 **Milestone Goal:** Fix the crowded, non-scrollable Settings window and add two new interaction options for how the app is navigated — a compact top-edge switcher placement and a hover-to-resume affordance on the idle island. Started 2026-07-21 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision). Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed).
 
 - [x] **Phase 51: Settings Reorganization & Scroll Fix** - Fix the unreachable-below-the-fold scroll bug and split General into dedicated Activities/Appearance/Fullscreen/Weather/Diagnostics sidebar sections (completed 2026-07-21)
-- [ ] **Phase 52: Top-Edge Switcher Layout & Placement Config** - User-selectable alternate 4-icon top-edge switcher layout with configurable left/right icon placement
+- [x] **Phase 52: Top-Edge Switcher Layout & Placement Config** - User-selectable alternate 4-icon top-edge switcher layout with configurable left/right icon placement (completed 2026-07-21)
 - [ ] **Phase 53: Hover-to-Resume Idle Preview** - Hovering the idle island previews the last track played this session; clicking resumes it
 
 ## Phase Details
@@ -887,7 +887,7 @@ Plans:
 
 **Wave 3** *(blocked on 52-02, 52-03)*
 
-- [ ] 52-04-PLAN.md — Full regression gate + on-device UAT (D-04/Pitfall 3 fit check, Pitfall 2 clearance check, all 5 success criteria)
+- [x] 52-04-PLAN.md — Full regression gate + on-device UAT (D-04/Pitfall 3 fit check, Pitfall 2 clearance check, all 5 success criteria)
 
 ### Phase 53: Hover-to-Resume Idle Preview
 
