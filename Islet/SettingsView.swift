@@ -88,7 +88,11 @@ struct SettingsView: View {
     // Phase 51 / SETTINGS-02/SETTINGS-03 (D-01–D-06) — sidebar section identity.
     // Order and copy are locked: Activities, Appearance, Fullscreen, Weather,
     // Diagnostics, Workspace, About.
-    private enum SidebarSection: String, CaseIterable, Identifiable {
+    // Phase 52 / SWITCH-03/SWITCH-04 (D-08) — bumped private -> internal so
+    // IsletTests/SettingsViewTests.swift can reference it via @testable import Islet,
+    // mirroring this codebase's existing private-to-internal testability-bump precedent
+    // (NotchPillView.shelfStripVisible/tabWidth/tabHeight).
+    enum SidebarSection: String, CaseIterable, Identifiable {
         case activities, appearance, switcher, fullscreen, weather, diagnostics, workspace, about
 
         var id: String { rawValue }
@@ -118,8 +122,18 @@ struct SettingsView: View {
             case .about: return "info.circle"
             }
         }
+
+        // D-08 — on a display without a physical camera notch, the entire Switcher
+        // section is not reachable in the sidebar. Pure filter, unit-tested below.
+        static func visibleSections(hasNotch: Bool) -> [SidebarSection] {
+            hasNotch ? SidebarSection.allCases : SidebarSection.allCases.filter { $0 != .switcher }
+        }
     }
     @State private var selection: SidebarSection? = .activities
+    // D-08 — refreshed independently on appear/refocus via refreshNotchAvailability(),
+    // mirroring NotchPillView's own independent hasNotch read (Plan 52-02, RESEARCH.md
+    // Pattern 2) — no new controller plumbing.
+    @State private var hasNotchDisplay: Bool = false
 
     var body: some View {
         NavigationSplitView {
@@ -130,7 +144,7 @@ struct SettingsView: View {
             // reliably in this same window, e.g. "Save Diagnostic Report…") bypasses whatever
             // is wrong with List's row-selection routing on this setup entirely.
             VStack(alignment: .leading, spacing: 2) {
-                ForEach(SidebarSection.allCases) { section in
+                ForEach(SidebarSection.visibleSections(hasNotch: hasNotchDisplay)) { section in
                     Button {
                         selection = section
                     } label: {
@@ -183,11 +197,13 @@ struct SettingsView: View {
         .onAppear {
             launchAtLogin = LaunchAtLogin.isEnabled
             licenseStatus = LicenseState.shared.status
+            refreshNotchAvailability()
         }
         .onChange(of: appearsActive) { _, active in
             if active {
                 launchAtLogin = LaunchAtLogin.isEnabled
                 licenseStatus = LicenseState.shared.status
+                refreshNotchAvailability()
             }
         }
         // Phase 35 / GLASS-01 (D-08/D-09) — a separate integration point from the
@@ -668,6 +684,15 @@ struct SettingsView: View {
             guard response == .OK, let url = panel.url else { return }
             try? text.write(to: url, atomically: true, encoding: .utf8)
         }
+    }
+
+    // Phase 52 / SWITCH-03/SWITCH-04 (D-08, RESEARCH.md Pattern 2) — independently resolves
+    // the live built-in notched display, mirroring NotchPillView.topEdgeCutoutWidth's exact
+    // pattern (selectTargetScreen + ScreenDescriptor.hasNotch) rather than plumbing a signal
+    // through NotchWindowController. Falls back to false (Switcher section hidden) when no
+    // notched built-in screen is present.
+    private func refreshNotchAvailability() {
+        hasNotchDisplay = selectTargetScreen(from: NSScreen.screens.map { $0.descriptor })?.hasNotch ?? false
     }
 
     static var versionString: String {
