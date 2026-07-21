@@ -108,6 +108,24 @@ struct NotchPillView: View {
         }
     }
 
+    // Phase 52 / SWITCH-03 (D-06, RESEARCH.md Pitfall 1) — extracted from body's outer `.frame`
+    // height ternary, same "compute a value, don't branch the View" precedent as tabWidth/
+    // tabHeight above. Byte-identical branch structure to the ternary it replaces, except each
+    // `+ Self.switcherRowHeight` term is now ALSO gated on `switcherLayout == .pill`: the pill
+    // row itself never renders in top-edge mode (mirrors blobShape's showsPillRow), so this
+    // outer window-frame reservation must shrink in lockstep or NotchWindowController's
+    // visibleContentZone() click-through geometry disagrees with what's actually visible.
+    // internal (not private): NotchPillViewTests.swift asserts this directly, same testability
+    // precedent as tabWidth/tabHeight.
+    var totalHeight: CGFloat {
+        isTrayPresentation
+            ? Self.trayContentHeight + (switcherLayout == .pill ? Self.switcherRowHeight : 0)
+            : (isOnboardingPresentation
+                ? Self.onboardingSize.height
+                : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
+                    + (showsSwitcherRow && switcherLayout == .pill ? Self.switcherRowHeight : 0))
+    }
+
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model (weather +
     // calendar), mirroring nowPlaying/presentationState's ownership contract: the controller
     // (14-04) is the only writer, this view only RENDERS whatever is published. No default
@@ -122,6 +140,30 @@ struct NotchPillView: View {
     // the panel-geometry side of this same key, see NotchWindowController's positionAndShow/
     // visibleContentZone). Medium is always the safe floor default (D-04).
     @AppStorage(ActivitySettings.weatherStyleKey) private var weatherStyle: WeatherStyle = .medium
+
+    // Phase 52 / SWITCH-04 — the 4 top-edge/pill slot assignments, one independent @AppStorage
+    // key per slot (never a single encoded array). Default split: Home+Tray left, Calendar+
+    // Weather right — byte-identical to today's hardcoded switcherRow order (D-03 zero
+    // regression). Mirrors weatherStyle's declaration style directly above.
+    @AppStorage(ActivitySettings.switcherSlotLeftOuterKey) private var slotLeftOuter: SelectedView = .home
+    @AppStorage(ActivitySettings.switcherSlotLeftInnerKey) private var slotLeftInner: SelectedView = .tray
+    @AppStorage(ActivitySettings.switcherSlotRightInnerKey) private var slotRightInner: SelectedView = .calendar
+    @AppStorage(ActivitySettings.switcherSlotRightOuterKey) private var slotRightOuter: SelectedView = .weather
+
+    // Phase 52 / SWITCH-03 (D-06) — the switcher layout mode: today's pill-below-the-island
+    // (default) or the alternate top-edge row. Corrupted/unknown stored values fall back to
+    // .pill, mirroring weatherStyle's `?? .medium`-equivalent @AppStorage default convention.
+    @AppStorage(ActivitySettings.switcherLayoutKey) private var switcherLayout: SwitcherLayout = .pill
+
+    // Phase 52 / SWITCH-03/04 (D-03) — the ONE shared left-to-right ordering both switcherRow
+    // (pill) and topEdgeSwitcherRow (top-edge) read; calls Plan 52-01's shared orderedSlotIcons(...)
+    // free function so there is exactly one place that turns 4 independent slot values into an
+    // ordered array. internal (not private): NotchPillViewTests.swift asserts this directly, same
+    // testability precedent as shelfStripVisible/tabWidth/tabHeight.
+    var orderedSlotViews: [SelectedView] {
+        orderedSlotIcons(leftOuter: slotLeftOuter, leftInner: slotLeftInner,
+                          rightInner: slotRightInner, rightOuter: slotRightOuter)
+    }
 
     // Phase 20 / SHELF-03 — the SEPARATE @Published shelf model, mirroring nowPlaying/
     // presentationState/outfit's existing ownership contract: the controller (Plan 20-02) always
@@ -175,6 +217,14 @@ struct NotchPillView: View {
     // `NotchWindowController.handleSecondaryTap()`). Defaults to a no-op so the DEBUG #Previews
     // build without a controller.
     var onSecondaryTap: () -> Void = {}
+
+    // Phase 53 / RESUME-02 — the hover-preview's dedicated resume-tap callback. NOT a reuse
+    // of `onClick` (which expands to Home, violating D-01) and NOT a literal passthrough of
+    // `onSecondaryTap` (semantically a distinct call site, per 53-RESEARCH.md Pitfall 4) —
+    // NotchWindowController wires this to handleResumeTap(), whose body calls
+    // togglePlayPause() and starts the D-03 inferred-failure timeout watch. Defaults to a
+    // no-op so #Previews still build without a controller.
+    var onResumeTap: () -> Void = {}
 
     // NOW-02 — the transport callbacks, plain closures mirroring `onClick`. The view stays
     // AppKit-free + focus-safe: a button tap only REPORTS the intent; NotchWindowController
@@ -879,7 +929,7 @@ struct NotchPillView: View {
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
         case .osd(let activity): osdWings(for: activity)                    // Phase 39 / HUD-03/HUD-04: rank 4 transient (39-02)
         case .idle:
-            collapsedIsland                                                  // idle pill
+            idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }
     }
 
@@ -893,7 +943,8 @@ struct NotchPillView: View {
     private var tabContentView: some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                   width: tabWidth, height: tabHeight, shelfItems: shelfViewState.items,
-                  shelfVisible: shelfStripVisible, showSwitcher: true) {
+                  shelfVisible: shelfStripVisible, showSwitcher: true,
+                  switcherLayout: switcherLayout) {
             switch presentation {
             case .nowPlayingExpanded(let p, true):
                 mediaContent(p, art: nowPlaying.artwork)
@@ -991,12 +1042,7 @@ struct NotchPillView: View {
         // below, or the wider/shorter Tray content clips or leaves a stale gap. Tray still
         // shows the switcher row (showsSwitcherRow), so + switcherRowHeight is unchanged.
         .frame(width: isTrayPresentation ? Self.traySize.width : (isCalendarPresentation ? Self.calendarWidth : (isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width)),
-               height: isTrayPresentation
-                   ? Self.trayContentHeight + Self.switcherRowHeight
-                   : (isOnboardingPresentation
-                       ? Self.onboardingSize.height
-                       : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
-                           + (showsSwitcherRow ? Self.switcherRowHeight : 0)),
+               height: totalHeight,
                alignment: .top)
         // Phase 32 / TRAY-05 gap-closure (on-device UAT round 1) — root cause of "notch renders
         // far left, hit-zone doesn't match": the AppKit panel/hosting view is now sized to the
@@ -1024,6 +1070,23 @@ struct NotchPillView: View {
         // "for free" via the shared wingsShape(content:) helper. mediaExpanded adds
         // it ONLY to its top (non-button) HStack. This eliminates the ambiguity by
         // construction rather than relying on undocumented SwiftUI gesture priority.
+    }
+
+    // Phase 53 / RESUME-01 — VIEW-LOCAL branch off the existing `.idle` case (Claude's
+    // Discretion, 53-CONTEXT.md; see this plan's `<objective>` for the full rationale): NOT a
+    // new `IslandResolver`/`IslandPresentation` case, since `resolve(...)` has exactly one call
+    // site and threading a hover-flag parameter through it (plus new IslandResolverTests
+    // coverage) is a larger diff than this purely-presentational hover affordance warrants.
+    // `interaction.isHovering` is the EXISTING AppKit-driven hover signal (global `.mouseMoved`
+    // monitor against `collapsedInteractiveZone()`) — no new `@State` hover flag is needed.
+    @ViewBuilder
+    private var idleOrResumePreview: some View {
+        if interaction.isHovering, !interaction.isExpanded, nowPlaying.hasPlayedSinceLaunch,
+           let track = nowPlaying.lastKnownTrack {
+            resumePreviewWings(track)
+        } else {
+            collapsedIsland
+        }
     }
 
     // COLLAPSED — the existing black notch pill (D-08 idle-static). Keeps the
@@ -1978,6 +2041,7 @@ struct NotchPillView: View {
                                            shelfItems: [ShelfItem],
                                            shelfVisible: Bool,
                                            showSwitcher: Bool = false,
+                                           switcherLayout: ActivitySettings.SwitcherLayout = .pill,
                                            @ViewBuilder content: () -> Content) -> some View {
         let hasShelf = shelfVisible
         let baseWidth = width ?? Self.expandedSize.width
@@ -1988,8 +2052,14 @@ struct NotchPillView: View {
         // NowPlaying) passes a `height:` argument, so they all continue falling through the `??`
         // to switcherContentHeight exactly as before.
         let baseHeight = height ?? (showSwitcher ? Self.switcherContentHeight : Self.expandedSize.height)
+        // Phase 52 / SWITCH-03 (D-06, RESEARCH.md Pitfall 1) — `showSwitcher` alone conflates
+        // "reserve switcher-sized content height" (baseHeight, untouched above) with "show the
+        // pill row itself". showsPillRow splits that second half out: the pill row's own
+        // +switcherRowHeight box is added ONLY in pill layout, so top-edge mode's content area
+        // keeps baseHeight exactly as pill mode's does, per D-06.
+        let showsPillRow = showSwitcher && switcherLayout == .pill
         let totalHeight = baseHeight
-            + (showSwitcher ? Self.switcherRowHeight : 0)
+            + (showsPillRow ? Self.switcherRowHeight : 0)
             + (hasShelf ? Self.shelfRowHeight : 0)
         let shape = NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
         return shape
@@ -2007,7 +2077,16 @@ struct NotchPillView: View {
                 VStack(spacing: 0) {
                     content()
                         .frame(width: baseWidth, height: baseHeight, alignment: alignment)
-                    if showSwitcher {
+                        // Phase 52 / SWITCH-03 (D-04/D-05) — content() already reserves the
+                        // cameraClearance band via its own `.padding(.top, Self.cameraClearance)`
+                        // convention, so the top-edge icons render inside that already-reserved
+                        // band with zero additional height reservation (D-06 preserved).
+                        .overlay(alignment: .top) {
+                            if showSwitcher && switcherLayout == .topEdge {
+                                topEdgeSwitcherRow
+                            }
+                        }
+                    if showsPillRow {
                         switcherRow
                     }
                     if hasShelf {
@@ -2031,6 +2110,18 @@ struct NotchPillView: View {
             .onTapGesture { onClick() }
     }
 
+    // Phase 52 / SWITCH-03/04 (D-03) — extracted once so switcherRow (pill) and
+    // topEdgeSwitcherRow (top-edge) share the exact same icon/action mapping — one shared
+    // source feeds both layouts. Byte-identical to the 4 pairs switcherRow used to hardcode.
+    private func icon(for view: SelectedView) -> (systemName: String, action: () -> Void) {
+        switch view {
+        case .home:     return ("house.fill",     { onSwitcherSelect(.home) })
+        case .tray:     return ("tray.fill",      { onSwitcherSelect(.tray) })
+        case .calendar: return ("calendar",       { onSwitcherSelect(.calendar) })
+        case .weather:  return ("cloud.sun.fill", { onSwitcherSelect(.weather) })
+        }
+    }
+
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Switcher pill") — the Home/Tray/Calendar/Weather
     // switcher, reusing `navCircleButton` verbatim (same circular nav-button visual language as
     // onboarding's Back/Next/Finish). `filled:` marks whichever icon matches
@@ -2038,22 +2129,67 @@ struct NotchPillView: View {
     // precedence re-deciding here (Pattern 3: the resolver stays the single arbiter).
     // 28-04 round 4 (user-confirmed scope expansion) — Weather appended as the 4th icon, after
     // Calendar (Home/Tray/Calendar/Weather order, existing three left untouched).
+    // Phase 52 / SWITCH-04 (D-03) — the hardcoded 4-button HStack is now a ForEach over
+    // orderedSlotViews (always exactly 4 elements — Phase 45 structural-identity rule: no
+    // conditional child count, no AnyView), so reassigning a slot reorders this row live.
     private var switcherRow: some View {
         HStack(spacing: 8) {
-            navCircleButton(systemName: "house.fill",
-                             filled: viewSwitcherState.selectedView == .home,
-                             action: { onSwitcherSelect(.home) })
-            navCircleButton(systemName: "tray.fill",
-                             filled: viewSwitcherState.selectedView == .tray,
-                             action: { onSwitcherSelect(.tray) })
-            navCircleButton(systemName: "calendar",
-                             filled: viewSwitcherState.selectedView == .calendar,
-                             action: { onSwitcherSelect(.calendar) })
-            navCircleButton(systemName: "cloud.sun.fill",
-                             filled: viewSwitcherState.selectedView == .weather,
-                             action: { onSwitcherSelect(.weather) })
+            ForEach(orderedSlotViews, id: \.self) { view in
+                let mapping = icon(for: view)
+                navCircleButton(systemName: mapping.systemName,
+                                 filled: viewSwitcherState.selectedView == view,
+                                 action: mapping.action)
+            }
         }
         .frame(height: Self.switcherRowHeight)
+    }
+
+    // Phase 52 / SWITCH-03 (D-04/D-05, RESEARCH.md Pattern 2) — independently resolves the live
+    // built-in notched screen (no controller plumbing, mirrors NotchWindowController.
+    // currentBuiltin()'s exact pattern) and returns the real camera-cutout width via Plan 52-01's
+    // pure NotchGeometry helper below — the correct center-spacer value, never
+    // auxLeftWidth + auxRightWidth (RESEARCH.md Pitfall 2). Falls back to 0 (never crashes) when
+    // no notched built-in screen is present.
+    private var topEdgeCutoutWidth: CGFloat {
+        guard let target = selectTargetScreen(from: NSScreen.screens.map { $0.descriptor }) else { return 0 }
+        return topEdgeCutoutGap(screenWidth: target.frame.width,
+                                safeAreaTop: target.safeAreaTop,
+                                auxLeftWidth: target.auxLeftWidth,
+                                auxRightWidth: target.auxRightWidth)
+    }
+
+    // Phase 52 / SWITCH-03 (D-04/D-05) — the alternate top-edge switcher layout: 4
+    // navCircleButtons flanking the camera/notch cutout, 2 left + 2 right, sharing
+    // orderedSlotViews/icon(for:) with switcherRow (D-03: one shared ordering source feeds
+    // both layouts) so `filled:` selection state falls out for free, identical predicate. Plain
+    // HStack(spacing: 0) + Color.clear spacer for the excluded center region — never
+    // `.offset`/`.position`, both empirically broken inside this codebase's shape/content stack
+    // (Phase 39 lesson, RESEARCH.md Anti-Patterns).
+    private var topEdgeSwitcherRow: some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 8) {
+                let leftOuter = icon(for: orderedSlotViews[0])
+                navCircleButton(systemName: leftOuter.systemName,
+                                 filled: viewSwitcherState.selectedView == orderedSlotViews[0],
+                                 action: leftOuter.action)
+                let leftInner = icon(for: orderedSlotViews[1])
+                navCircleButton(systemName: leftInner.systemName,
+                                 filled: viewSwitcherState.selectedView == orderedSlotViews[1],
+                                 action: leftInner.action)
+            }
+            Color.clear.frame(width: topEdgeCutoutWidth)
+            HStack(spacing: 8) {
+                let rightInner = icon(for: orderedSlotViews[2])
+                navCircleButton(systemName: rightInner.systemName,
+                                 filled: viewSwitcherState.selectedView == orderedSlotViews[2],
+                                 action: rightInner.action)
+                let rightOuter = icon(for: orderedSlotViews[3])
+                navCircleButton(systemName: rightOuter.systemName,
+                                 filled: viewSwitcherState.selectedView == orderedSlotViews[3],
+                                 action: rightOuter.action)
+            }
+        }
+        .frame(height: Self.cameraClearance)
     }
 
     // Phase 20 / SHELF-03/05 — the horizontally-scrolling shelf strip: per-item icon+caption+
@@ -2298,6 +2434,47 @@ struct NotchPillView: View {
                 .padding(.trailing, 24)  // inset from the outer notch edge (user request)
         }
         .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+    }
+
+    // Phase 53 / RESUME-01/RESUME-02 — the idle hover-preview's own wings shape. Mirrors
+    // `mediaWingsOrToast`'s scaffold (shape/matchedGeometryEffect/islandFill/
+    // liquidGlassEffectLayer) rather than reusing that function directly — it also handles the
+    // toast row, which this preview never needs. Success path shows a STATIC play glyph on the
+    // right (NOT `mediaWingsRow`/`EqualizerBars`) — D-02 originally called for bouncing bars
+    // identical to the live-playing glance, but on-device UAT (53-02) flagged that as
+    // confusing: nothing is actually playing yet, so animated bars read as a lie. Superseded
+    // D-02: static "play.fill" glyph signals "tap to resume" without implying live playback.
+    // Failure path (D-03) replaces ONLY that glyph slot with static failure text, album art
+    // stays visible. Tap goes to the dedicated `onResumeTap` closure (NOT `onClick`, which
+    // would expand to Home and violate D-01 — see 53-RESEARCH.md Pitfall 4/Anti-Pattern).
+    private func resumePreviewWings(_ track: LastPlayedTrack) -> some View {
+        let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)
+        return shape
+            .fill(islandFill)
+            .matchedGeometryEffect(id: "island", in: ns)
+            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            .overlay(liquidGlassEffectLayer(shape: shape, size: Self.wingsSize, parameters: .expanded))
+            .overlay {
+                HStack(spacing: 0) {
+                    artThumbnail(track.artwork, side: Self.wingsSize.height - 8, corner: 6)
+                        .padding(.leading, 22)
+                    Spacer()
+                    if nowPlaying.resumePreviewFailed {
+                        Text("Wiedergabe nicht möglich")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .padding(.trailing, 24)
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.trailing, 24)
+                    }
+                }
+                .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+            }
+            .onTapGesture { onResumeTap() }
     }
 
     // Row 2 (round 3, new) — the fading "Title — Artist" line under the wings row. TEXT ONLY:

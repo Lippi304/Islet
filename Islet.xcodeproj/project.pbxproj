@@ -114,6 +114,7 @@
 		EE11FF65BB39DEC103B88192 /* SignatureHeadingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4173E274B50586B1A4D8B026 /* SignatureHeadingTests.swift */; };
 		EECA01E637ADFB54CFAA54E3 /* LocationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605C8A3B6F9015948DC073F0 /* LocationServiceTests.swift */; };
 		F168E6273C7AF9808D244CCA /* ActivitySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C1DF53311CEDA936A0B43D /* ActivitySettings.swift */; };
+		F4E5D51C196553F5C39EE6E0 /* SettingsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99A514914B21E05DB962A52 /* SettingsViewTests.swift */; };
 		F553863EC9FBAB880ED80376 /* IslandResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A3063E01FF76A78398606DF /* IslandResolverTests.swift */; };
 		F6629BA3134FAACBF505CCF5 /* ShelfViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAD06AEB3294BABCAE1B7990 /* ShelfViewState.swift */; };
 		FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28316551B58651959797184D /* DeviceActivity.swift */; };
@@ -256,6 +257,7 @@
 		ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragApproachGeometryTests.swift; sourceTree = "<group>"; };
 		EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseState.swift; sourceTree = "<group>"; };
 		F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F99A514914B21E05DB962A52 /* SettingsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewTests.swift; sourceTree = "<group>"; };
 		FA62CE81F6539C4490617038 /* OnboardingViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewState.swift; sourceTree = "<group>"; };
 		FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayResolver.swift; sourceTree = "<group>"; };
 		FCB0C1FFC49C8A8CE3E74509 /* WeatherCategoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCategoryTests.swift; sourceTree = "<group>"; };
@@ -321,6 +323,7 @@
 				5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */,
 				5D869CDF80317230429414E1 /* PowerActivityTests.swift */,
 				8823B706C17870EC45D0A98C /* QuickActionSharingServiceTests.swift */,
+				F99A514914B21E05DB962A52 /* SettingsViewTests.swift */,
 				73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */,
 				858D32BF5C426DA996EF8187 /* ShelfFileStoreTests.swift */,
 				9CB460DC51BC6612D0A4A134 /* ShelfLogicTests.swift */,
@@ -725,6 +728,7 @@
 				093EB93DF4C26FB9D4D0E4C5 /* PolarLicenseServiceTests.swift in Sources */,
 				1F2B2E8221BC9084BB4A839D /* PowerActivityTests.swift in Sources */,
 				CE9AE70D3DEB53014569F64D /* QuickActionSharingServiceTests.swift in Sources */,
+				F4E5D51C196553F5C39EE6E0 /* SettingsViewTests.swift in Sources */,
 				D29EBA9C26F56C26B9E49CDE /* ShelfCoordinatorTests.swift in Sources */,
 				3958A1E6D1E4AAE3829D3F20 /* ShelfFileStoreTests.swift in Sources */,
 				75B9F62FA809ED170142A930 /* ShelfLogicTests.swift in Sources */,
@@ -755,7 +759,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Islet/Islet.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -776,7 +780,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lippi304.islet;
 				PRODUCT_NAME = Islet;
 				SDKROOT = macosx;
@@ -917,7 +921,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Islet/Islet.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -938,7 +942,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lippi304.islet;
 				PRODUCT_NAME = Islet;
 				SDKROOT = macosx;

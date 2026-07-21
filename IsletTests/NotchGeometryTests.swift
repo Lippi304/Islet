@@ -60,6 +60,27 @@ final class NotchGeometryTests: XCTestCase {
         XCTAssertNil(size)
     }
 
+    // MARK: topEdgeCutoutGap (Phase 52 / SWITCH-04, RESEARCH.md Pitfall 2)
+
+    func testTopEdgeCutoutGapMatchesNotchSizeWidthFormula() {
+        // Identical formula/inputs to testNotchSizeWidthFormulaAndHeight: 1512 - 612 - 612 + 4 = 292.
+        let gap = topEdgeCutoutGap(screenWidth: 1512,
+                                   safeAreaTop: 38,
+                                   auxLeftWidth: 612,
+                                   auxRightWidth: 612,
+                                   widthFudge: 4)
+        XCTAssertEqual(gap, 292, accuracy: 0.0001)
+    }
+
+    func testTopEdgeCutoutGapFallsBackToZeroWhenAuxMissing() {
+        // No-notch/degenerate fallback — never nil/crash.
+        let gap = topEdgeCutoutGap(screenWidth: 1512,
+                                   safeAreaTop: 38,
+                                   auxLeftWidth: nil,
+                                   auxRightWidth: 612)
+        XCTAssertEqual(gap, 0, accuracy: 0.0001)
+    }
+
     func testNotchSizeNilWhenComputedWidthExactlyZero() {
         // WR-03 boundary: width = 1512 - 754 - 762 + 4 = 0 is not positive → nil.
         let size = notchSize(screenWidth: 1512,

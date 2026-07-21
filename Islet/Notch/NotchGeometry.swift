@@ -57,6 +57,22 @@ func notchFrame(screenFrame: CGRect,
     return CGRect(x: x, y: y, width: size.width, height: size.height)
 }
 
+// Phase 52 / SWITCH-04 (RESEARCH.md Pitfall 2) — the real camera-cutout width the top-edge
+// switcher row must reserve as its center Color.clear spacer. Reuses notchSize(...)'s own
+// verified formula — NEVER auxLeftWidth + auxRightWidth (that sums the two strips beside the
+// notch, not the notch itself). Falls back to 0 (never nil/crash) on a missing-notch input.
+func topEdgeCutoutGap(screenWidth: CGFloat,
+                      safeAreaTop: CGFloat,
+                      auxLeftWidth: CGFloat?,
+                      auxRightWidth: CGFloat?,
+                      widthFudge: CGFloat = 4) -> CGFloat {
+    notchSize(screenWidth: screenWidth,
+             safeAreaTop: safeAreaTop,
+             auxLeftWidth: auxLeftWidth,
+             auxRightWidth: auxRightWidth,
+             widthFudge: widthFudge)?.width ?? 0
+}
+
 // Phase 15 architecture audit item 1 — the shared body of expandedNotchFrame/wingsFrame
 // (both centered on the collapsed pill's midX, pinned to the top edge / AppKit maxY).
 private func topPinnedFrame(collapsed: CGRect, size: CGSize) -> CGRect {

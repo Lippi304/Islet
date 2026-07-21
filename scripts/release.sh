@@ -82,6 +82,30 @@ else
   # framework needs the real Developer ID + secure timestamp explicitly —
   # otherwise notarization rejects the ad-hoc signature Xcode's archive step
   # applied to it.
+  #
+  # Sparkle.framework additionally bundles its OWN nested executable code
+  # (Autoupdate, Updater.app, two XPC services) that codesign does NOT sign
+  # just by signing the outer Sparkle.framework bundle — each is its own
+  # separate code-signing unit. Found the hard way: the first real (non-dry-run)
+  # notarization submission was rejected with "not signed with a valid Developer
+  # ID certificate" / "signature does not include a secure timestamp" for all 4
+  # of these nested binaries, even though Sparkle.framework itself signed fine.
+  # Sign every nested unit explicitly, deepest-first, before the framework itself.
+  SPARKLE_FRAMEWORK="${APP_PATH}/Contents/Frameworks/Sparkle.framework"
+  if [ -d "${SPARKLE_FRAMEWORK}" ]; then
+    SPARKLE_VERSIONED="${SPARKLE_FRAMEWORK}/Versions/B"
+    for nested in \
+      "${SPARKLE_VERSIONED}/Autoupdate" \
+      "${SPARKLE_VERSIONED}/Updater.app/Contents/MacOS/Updater" \
+      "${SPARKLE_VERSIONED}/Updater.app" \
+      "${SPARKLE_VERSIONED}/XPCServices/Downloader.xpc" \
+      "${SPARKLE_VERSIONED}/XPCServices/Installer.xpc"; do
+      if [ -e "${nested}" ]; then
+        codesign --force --options runtime --timestamp \
+          --sign "${DEVELOPER_ID}" "${nested}"
+      fi
+    done
+  fi
   if [ -d "${APP_PATH}/Contents/Frameworks" ]; then
     find "${APP_PATH}/Contents/Frameworks" -maxdepth 1 -name "*.framework" -print0 |
       while IFS= read -r -d '' framework; do

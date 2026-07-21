@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Interaction & Calendar Polish
-status: paused
-stopped_at: Phase 49 PAUSED BY USER after Plans 01-02 (2/4). User decided not to continue pursuing the Favorite/Like feature spike, given early on-device results (SC#1 like-effect-not-observed; SC#2 Apple Music `loved` broken via AppleScript, error -10001, in all 4 states tested). Plan 03 (Spotify PKCE) left with only Task 1 committed (spotify-pkce-spike.sh) — Task 2's on-device checkpoint was never run. Plan 04 (consolidated go/no-go synthesis) was not started; no 49-GO-NO-GO.md exists. This is an explicit user scope decision, not a stall or failure — resume only if the user revisits the Favorite/Like feature.
-last_updated: "2026-07-20T16:11:28.000Z"
-last_activity: 2026-07-20
+milestone: v1.8
+milestone_name: Settings Redesign & Island Navigation
+status: milestone_complete
+stopped_at: v1.8 milestone archived (Phases 51-53); v1.4/v1.5/v1.7 remain open in parallel
+last_updated: "2026-07-21T19:51:17.838Z"
+last_activity: 2026-07-21 — Milestone v1.8 completed and archived
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 39
-  completed_plans: 38
+  completed_plans: 62
   percent: 79
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 48 — audio-output-switcher-ui-wiring
+**Current focus:** v1.8 shipped; v1.4, v1.5, and v1.7 remain open in parallel (see their own Operator Next Steps entries below)
 
 ## Current Position
 
-Phase: 49 (favorite-like-spike) — PAUSED BY USER after Plans 01-02 (2/4). Plan 01 COMPLETE (on-device verdicts: SC#1 = like-effect-not-observed, SC#4 = tcc-bug-ruled-out — see 49-01-SUMMARY.md). Plan 02 COMPLETE (on-device verdict: SC#2 = matrix-shows-different-behavior, Apple Music `loved` broken via AppleScript in all 4 states tested — see 49-02-SUMMARY.md). Plan 03 (Spotify PKCE, SC#3) left incomplete: Task 1 committed (spotify-pkce-spike.sh), Task 2's on-device checkpoint never run — user decided not to continue after seeing 01/02's weak results. Plan 04 (consolidated go/no-go synthesis) not started; no 49-GO-NO-GO.md was produced. Phase 49 is intentionally left incomplete pending user's decision on whether/how to revisit the Favorite/Like feature — this is NOT a stall, blocker, or error state.
-Plan: 2 of 4 COMPLETE; 03 of 4 left incomplete (Task 1 only) by user decision; 04 not started
-Status: PAUSED — user chose not to continue the Favorite/Like spike after 01/02 results; awaiting user decision on resume/descope
-Last activity: 2026-07-20
+Phase: v1.8 archived (Phases 51-53) — no active phase selected
+Plan: —
+Status: v1.8 shipped; v1.4/v1.5/v1.7 still in progress
+Last activity: 2026-07-21 — Milestone v1.8 completed and archived
 
 ### Phase 48 status note
 
@@ -53,13 +53,15 @@ Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-
 
 Progress (v1.6): [██████████] 100% — SHIPPED 2026-07-19 (8/8 phases; Phase 37 abandoned/reverted, HUD-07 dropped; see `.planning/milestones/v1.6-ROADMAP.md`)
 
-Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/46/47 complete; Phase 48 next, then 49/50)
+Progress (v1.7): [███████░░░] 75% (6/8 phases — 43/44/45/46/47/48 complete; Phase 49 spike paused per user decision after weak SC#1/SC#2 results; Phase 50 needs reconsideration before planning)
+
+Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3/3 phases; see `.planning/milestones/v1.8-ROADMAP.md`)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 106
+- Total plans completed: 113
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -99,6 +101,9 @@ Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/4
 | 43 | 2 | - | - |
 | 44 | 2 | - | - |
 | 47 | 3 | - | - |
+| 51 | 1 | - | - |
+| 52 | 4 | - | - |
+| 53 | 2 | - | - |
 
 **Recent Trend:**
 
@@ -132,6 +137,12 @@ Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/4
 | Phase 48 P03 | multi-session | 3 tasks | 2 files |
 | Phase 49 P01 | 10min+checkpoint | 3 tasks | 6 files |
 | Phase 49 P02 | 1min | 1 tasks | 0 files |
+| Phase 52 P01 | 25min | 3 tasks | 6 files |
+| Phase 52 P02 | 20min | 3 tasks | 3 files |
+| Phase 52 P03 | 20min | 2 tasks | 3 files |
+| Phase 52 P04 | 15min | 2 tasks | 0 files |
+| Phase 53 P01 | multi-session (checkpoint) | 3 tasks | 3 files |
+| Phase 53 P02 | single session (checkpoint, 2 rounds) | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -190,6 +201,16 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 49-01]: Task 1 landed `com.apple.security.automation.apple-events` (Islet.entitlements) + `INFOPLIST_KEY_NSAppleEventsUsageDescription` (project.yml, German string, Phase-49-commented) — regenerated via xcodegen, Debug build green. Task 2 wired two DEBUG-only spike hooks (`spikeLikeCurrentTrack()`, `spikeTriggerAutomationPrompt()`) through NowPlayingMonitor -> NotchWindowController -> AppDelegate's existing debug menu, with two Rule-1 deviations from the plan's literal text: (1) NotchWindowController's forwarding methods are internal, not `private` as the plan stated — AppDelegate is a different type/file and cannot call a private method, so `private` would not compile; (2) the two new `@objc` debug-menu action methods needed an explicit `@MainActor` annotation — NotchWindowController (and its spike methods) are `@MainActor`-isolated, and unlike protocol-required `NSApplicationDelegate` methods, a plain `@objc private func` is not inferred `@MainActor` by default, so the original code failed to compile with "call to main actor-isolated instance method in a synchronous nonisolated context." Debug build green; Release build build-log-grepped and confirmed to exclude both spike symbols (0 matches). Task 3 (on-device checkpoint) resolved: **SC#1 = like-effect-not-observed** (kMRLikeTrack sends cleanly to both Music.app and Spotify.app, confirmed via console log, but neither app's liked-state UI visibly flips) and **SC#4 = tcc-bug-ruled-out** (permission dialog appeared on Islet's first-ever automation attempt, granting it fixed the call — `SPIKE AppleScript succeeded: Beverly Hills` — no `-1743` recurrence; idle-time relaunch variant not attempted this session, acceptable per D-06). RESEARCH.md's already-confirmed finding restated: the streamed MediaRemote payload has no favorite/rating read-state field either — combined with the write-side null result, Phase 50's star button needs a wholly separate per-app read/write path (Apple Music AppleScript `loved`, Spotify `GET`/`PUT /me/library`), not this MediaRemote command. Plan 49-01 is now COMPLETE (see `49-01-SUMMARY.md`); Plan 49-04 depends on this file's verdicts.
 - [Phase 49-03]: Task 1 landed `.planning/phases/49-favorite-like-spike/spotify-pkce-spike.sh` (executable, `bash -n` clean) copying RESEARCH.md's Code Examples section verbatim — S256-only PKCE `code_verifier`/`code_challenge` generation via `openssl`, hardcoded loopback `REDIRECT_URI` (`http://127.0.0.1:8888/callback`), `CLIENT_ID` left as the literal placeholder string (never a real value, per T-49-09), `/authorize` + `/api/token` exchange, and a real `PUT /me/library` save-track call with the track URI read via a second `read -p` prompt (never hardcoded). No deviations — plan executed exactly as written. Task 2 (on-device checkpoint, gate=blocking) is next — requires the human to register a real Spotify Developer app, substitute the real Client ID locally/uncommitted only, run the browser PKCE flow, and read the live quota-mode text from the Spotify Developer Dashboard; none of this is executor-automatable. SUMMARY.md deliberately not yet created (Plan 49-04 depends on its final verdicts).
 - [Phase 49-02]: SC#2 verdict: matrix-shows-different-behavior — loved of current track fails uniformly with -10001 in all 4 states (library/streaming x play/pause); name of current track succeeds in all 4 states. Deviates from RESEARCH.md's predicted -1728 streaming-only error. Phase 50 needs a documented Apple-Music-loved-broken fallback or an alternative read/write path, not just a streaming-only edge case. Plan 49-02 is now COMPLETE (see `49-02-SUMMARY.md`); Plan 49-04 depends on this file's verdict.
+- [Phase 51-01]: Task 1 landed the 7-case `SidebarSection` restructure (D-06 order Activities/Appearance/Fullscreen/Weather/Diagnostics/Workspace/About) — `activitiesSection`/`fullscreenSection`/`weatherSection`/`diagnosticsSection` extracted verbatim from the old monolithic `generalSection`, `systemSection` renamed to `appearanceSection` (D-01), all 5 wrapped in `ScrollView(.vertical)`, `generalSection`/`systemSection` deleted with zero dead references remaining (commit 4e36f2c). Task 2 wrapped `workspaceSection`/`aboutSection` in the same `ScrollView` pattern, preserving `workspaceSection`'s centering `.frame` on the inner VStack per the plan's explicit instruction — both Debug and Release builds green (commit 871c146). No deviations from the plan on either task. Task 3 (on-device UAT, `gate="blocking"`) is a checkpoint requiring an interactive human on-device walkthrough this executor cannot perform — reached and NOT auto-approved (`workflow.auto_advance` is `false`, no auto-chain active). Per the plan's own `<output>` spec ("Create SUMMARY.md when done") and the Phase 49-03 precedent (blocking checkpoint → SUMMARY.md deliberately deferred), `51-01-SUMMARY.md` was intentionally NOT created yet: Phase 51 has exactly 1 plan, so writing it now would make `roadmap.update-plan-progress`'s file-existence-based detection mark the entire phase Complete before UAT is approved. Resume by running the Task 3 checklist (11 steps, 51-01-PLAN.md) on-device; on "approved" (or a described failure), a continuation agent should finish the plan (SUMMARY.md, `state.advance-plan`, `roadmap.update-plan-progress`).
+- [Phase 52-01]: orderedSlotIcons(...) does no deduplication/validation — duplicate slot assignments are intentionally allowed, matching this codebase's no-Picker-validation convention
+- [Phase 52-01]: topEdgeCutoutGap(...) is a thin wrapper around notchSize(...).width, not a reimplementation, so the two never drift
+- [Phase 52-02]: blobShape's showsPillRow = showSwitcher && switcherLayout == .pill splits 'reserve switcher-sized content height' (baseHeight, layout-independent) from 'show the pill row' (layout-dependent) — the three-site fix (blobShape, body's totalHeight, NotchWindowController.visibleContentZone()) all read the same switcherLayout signal independently, no shared plumbing
+- [Phase 52-02]: icon(for:) extracted once and reused verbatim by both switcherRow and topEdgeSwitcherRow (D-03) — exactly one place maps SelectedView to (systemName, action); topEdgeSwitcherRow computes its own hasNotch/cutout geometry independently (selectTargetScreen + topEdgeCutoutGap), mirroring NotchWindowController.currentBuiltin()'s existing pattern, no controller plumbing
+- [Phase 52-03]: SWITCH-03/SWITCH-04 left Pending in REQUIREMENTS.md — mirrors Phase 45/52-02 precedent of deferring requirement completion until the phase's on-device UAT plan (52-04) confirms the feature works end-to-end on real hardware
+- [Phase 52]: [Phase 52-04]: On-device UAT approved ("Klappt alles wunderbar") — full 403-test regression suite green (only 2 pre-existing unrelated CalendarGlanceTests failures) plus Release build succeeded; SWITCH-03/SWITCH-04 confirmed on real notched hardware (D-04 36pt-in-42pt fit, Pitfall 2 cutout-gap clearance, D-03 live reorder propagation to both layouts) — Phase 52 shipped
+- [Phase 53]: [Phase 53-01]: Task 1 on-device spike verdict = approved — togglePlayPause() resumes a paused (not quit) session for both Spotify and Apple Music, matching the plan's default expectation; gives Task 3's D-03 inferred-failure timeout a real empirical basis. Hover-preview shipped as a view-local branch off .idle (Claude's Discretion, 53-CONTEXT.md), not a new IslandPresentation case — IslandResolver.swift/IslandResolverTests.swift confirmed untouched.
+- [Phase 53]: [Phase 53-01]: RESUME-01/RESUME-02 left Pending in REQUIREMENTS.md — mirrors the Phase 45/52-02/52-03 precedent of deferring requirement completion until the phase's own on-device UAT plan (53-02) confirms the shipped hover-preview/resume-tap behaves correctly end-to-end on real hardware (hit-testing across the full wings footprint, timeout-window feel), even though this plan's own Task 1 spike already de-risked the underlying transport-feasibility question.
+- [Phase 53]: [Phase 53]: [Phase 53-02]: On-device UAT approved (Debug + Release) — all 4 ROADMAP success criteria confirmed, closing RESUME-01/RESUME-02. Mid-UAT design fix: D-02 superseded (bouncing equalizer bars in the idle-hover preview replaced with a static play.fill glyph, since animated bars while nothing was playing read as misleading) — commit 581c94e. v1.8 milestone now 3/3 phases complete.
 
 ### Roadmap Evolution
 
@@ -204,6 +225,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - v1.5 (Home Focus & Widget Redesign) roadmap created 2026-07-13: Phase 29 (NotchShape Flare, SHAPE-01), Phase 30 (Home Music-Only, HOME-01/02/03), Phase 31 (Shelf Consolidation to Tray-Only, TRAY-01), Phase 32 (Tray Widening, TRAY-05), Phase 33 (Weather Widget Redesign, WEATHER-01/02), Phase 34 (Quick Action Destination Picker, TRAY-02/03/04) — 100% coverage (11/11). Phase numbering continues from Phase 28. REQUIREMENTS.md's initial "10 total" count corrected to 11 (the actual v1.5 requirement ID list has 11 entries).
 - v1.6 (Liquid Glass & System HUD Suite) roadmap created 2026-07-15: Phase 35 (Liquid Glass Material, GLASS-01), Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/02/EQ-01/ONBOARD-04), Phase 37 (Drop-Session Summary Chip, HUD-07), Phase 38 (Focus Mode HUD, HUD-05), Phase 39 (Volume & Brightness HUD, HUD-03/04), Phase 40 (Update-Available HUD & Sparkle Integration, HUD-06), Phase 41 (Calendar Countdown HUD, HUD-08), Phase 42 (Dual-Activity Display, DUAL-01) — 100% coverage (12/12). Phase numbering starts at 35 (not 34) to avoid colliding with v1.5's still-open, unarchived Phase 34. v1.5 remains open in parallel; both milestones' phases coexist on the live ROADMAP.md.
 - v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19: Phase 43 (Drag Detection Hardening, DRAG-01), Phase 44 (Tray & Quick Action Width Alignment, TRAY-06/DRAG-02), Phase 45 (View Switcher Morph Fix, SWITCH-01/02), Phase 46 (Calendar Quick-Add Improvements, CALVIEW-05/06/07), Phase 47 (Audio Output Switcher — Pure Seam + Monitor, no formal REQ-ID), Phase 48 (Audio Output Switcher — UI Wiring, OUTPUT-01/02/03/04), Phase 49 (Favorite/Like — Spike, no formal REQ-ID), Phase 50 (Favorite/Like — Implementation, FAV-01/02/03) — 100% coverage (15/15). Phase numbering continues from Phase 42 (v1.6's last phase). v1.4 and v1.5 both remain open in parallel; all three milestones' phases coexist on the live ROADMAP.md.
+- v1.8 (Settings Redesign & Island Navigation) roadmap created 2026-07-21: Phase 51 (Settings Reorganization & Scroll Fix, SETTINGS-02/03), Phase 52 (Top-Edge Switcher Layout & Placement Config, SWITCH-03/04), Phase 53 (Hover-to-Resume Idle Preview, RESUME-01/02) — 100% coverage (6/6). Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed) to avoid any collision with v1.4/v1.5/v1.7's still-open phases. Settings (51) and Switcher (52) restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher) independently of each other; Resume (53) is sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track works via the existing NowPlayingMonitor/MediaRemote transport, per PROJECT.md's v1.8 Key Context).
 
 ### Pending Todos
 
@@ -297,18 +319,32 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-05 (Phase 38) and HUD-06 (Phase 40) were still marked "Pending" despite both phases shipping and passing on-device UAT — updated to Complete. HUD-07 (Phase 37) was marked "Pending" but Phase 37 was abandoned/reverted after on-device UAT rejection — updated to "Dropped" (not counted toward shipped coverage). Root cause: phases 38-41's own completion runs skipped their REQUIREMENTS.md traceability update step.
 
+**v1.8 close (2026-07-21):** `gsd-sdk query audit-open` flagged 21 items; user chose "Acknowledge all" and proceed. None block v1.8's own scope (Phases 51-53, all shipped and on-device UAT'd):
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug_session | knowledge-base | unknown — untriaged, no further detail available; acknowledged rather than investigated (same as v1.6 close) |
+| debug_session | old-islet-instance-stays-open | awaiting_human_verify — hypothesis CONFIRMED (Xcode Stop button doesn't reliably terminate LSUIElement/background-agent apps), single-instance-guard fix already build-verified per STATE.md Blockers/Concerns; only the on-device Xcode stop/restart re-check remains, user explicitly deferred to organic confirmation during future work |
+| quick_task | 260705-l4i, 260705-mzj, 260708-nnu, 260708-nzj, 260708-ol8, 260708-u47, 260709-glz, 260709-gvy, 260714-3k6, 260715-vsd | missing (same recurring tool status-detection false positive as v1.2/v1.3/v1.6 close — all 10 have completed PLAN.md + SUMMARY.md on disk, logged Complete ✓ in the Quick Tasks Completed table above) |
+| todos | 2026-07-19-calendar-month-grid-polish, 2026-07-19-island-briefly-disappears-during-click-through, 2026-07-19-quick-action-disabled-state-has-no-controller-gate | pending — pre-existing UI polish/bug notes captured during v1.7 work, unrelated to v1.8 scope; revisit via `/gsd-quick` or a future phase as desired |
+| uat_gaps | Phase 21, Phase 27 | resolved, 0 pending scenarios — not real open work |
+| uat_gaps | Phase 28 | partial, 2 pending — pre-existing carry from v1.4 (see v1.4 close note above), unrelated to v1.8 scope |
+| verification_gaps | Phase 20, Phase 27, Phase 28 | human_needed — pre-existing/unrelated to v1.8 scope, carried from earlier milestones |
+
 ## Session Continuity
 
-Last session: 2026-07-20T16:10:00.355Z
-Stopped at: Phase 49 Plan 02 COMPLETE (49-02-SUMMARY.md). Phase 49 Plan 03 Task 2 checkpoint still pending (blocking on-device verification — Spotify app registration + real PKCE round-trip + dashboard quota-mode read).
-Resume file: .planning/phases/49-favorite-like-spike/49-03-PLAN.md
+Last session: 2026-07-21T19:36:55.752Z
+Stopped at: Completed 53-02-PLAN.md (Phase 53 complete, v1.8 milestone 3/3 phases)
+Resume file: None
 
 ## Operator Next Steps
 
-- **Phase 47 (Audio Output Switcher — Pure Seam + Monitor) is now fully complete.** All 3 plans (47-01 pure seam, 47-02 monitor, 47-03 on-device verification) done. 47-03's on-device checkpoint surfaced and fixed a real HAL "wrong data size" bug in `resolveDeviceID(uid:)` (qualifier-data pattern fix), then re-confirmed clean: Pitfall 4 (UID stability across a Bluetooth reconnect) and Pitfall 8 (confirmed-after-set switch) both hold on real hardware; `hasVolumeControl` recorded for 4 device types (built-in/Bluetooth/USB=true, external monitor=false) as Phase 48's authoritative slider input. Known scope limitation: D-03 asked for 2 distinct Bluetooth devices, only 1 was available — user-confirmed and accepted. See `47-03-SUMMARY.md`. Per this project's own Phase 29/36/38/39/45 precedent, 47-03's own on-device checkpoint directly covers Phase 47's ROADMAP success criteria, so a separate `/gsd:verify-work 47` pass is not needed. Start `/gsd-discuss-phase 48` (Audio Output Switcher — UI Wiring) next.
-- **Phase 47 Plan 01 (Audio Output Presentation seam) is now complete.** `AudioOutputDevice`, `isOutputCapableDevice(outputChannelCount:)` (D-01), and `sortedAudioOutputDevices(_:)` (D-02) are all implemented, unit-tested (9 tests), Foundation-only, Debug build + test-build both green. See `47-01-SUMMARY.md`. A manual Cmd-U pass to actually run the new tests is recommended (per this project's `xcodebuild test` headless-hang precedent) before Plan 47-02 begins consuming these functions. Next: execute Plan 47-02 (`AudioOutputMonitor` — event-driven CoreAudio glue).
-- **Phase 45 (View Switcher Morph Fix) is now fully complete.** Both plans (45-01 structural fix, 45-02 on-device 12-pairwise verification) done; SWITCH-01/SWITCH-02 shipped. 45-02's own on-device checkpoint directly covered Phase 45's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed (per this project's Phase 29/36/38/39 precedent). Start `/gsd-discuss-phase 46` (Calendar Quick-Add Improvements) next.
-- **v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19.** 8 phases (43-50), 15/15 requirements mapped, 100% coverage. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, next) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48), then Favorite/Like split spike-first (49) then implementation (50).
+- **v1.8 (Settings Redesign & Island Navigation) SHIPPED 2026-07-21.** All 3 phases (51-53) archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped. Start a fresh milestone for new work with `/gsd-new-milestone` — but note v1.4, v1.5, and v1.7 all remain open in parallel below; picking those back up does not require a new milestone.
+- **v1.7 (Interaction & Calendar Polish):** 6/8 phases complete (43/44/45/46/47/48), Phase 49 (Favorite/Like spike) paused after weak SC#1/SC#2 spike results per user decision; Phase 50 needs reconsideration before planning. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, still open) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47, done) then UI wiring (48, done), then Favorite/Like split spike-first (49, paused) then implementation (50, on hold).
+- **Phase 48 (Audio Output Switcher — UI Wiring) is fully complete.** All 3 plans done, on-device UAT approved ("approved" after the drag-animation-choppiness fix). OUTPUT-01..04 shipped.
+- **Phase 47 (Audio Output Switcher — Pure Seam + Monitor) is now fully complete.** All 3 plans (47-01 pure seam, 47-02 monitor, 47-03 on-device verification) done. 47-03's on-device checkpoint surfaced and fixed a real HAL "wrong data size" bug in `resolveDeviceID(uid:)` (qualifier-data pattern fix), then re-confirmed clean: Pitfall 4 (UID stability across a Bluetooth reconnect) and Pitfall 8 (confirmed-after-set switch) both hold on real hardware; `hasVolumeControl` recorded for 4 device types (built-in/Bluetooth/USB=true, external monitor=false) as Phase 48's authoritative slider input. Known scope limitation: D-03 asked for 2 distinct Bluetooth devices, only 1 was available — user-confirmed and accepted. See `47-03-SUMMARY.md`.
+- **Phase 47 Plan 01 (Audio Output Presentation seam) is now complete.** `AudioOutputDevice`, `isOutputCapableDevice(outputChannelCount:)` (D-01), and `sortedAudioOutputDevices(_:)` (D-02) are all implemented, unit-tested (9 tests), Foundation-only, Debug build + test-build both green. See `47-01-SUMMARY.md`.
+- **Phase 45 (View Switcher Morph Fix) is now fully complete.** Both plans (45-01 structural fix, 45-02 on-device 12-pairwise verification) done; SWITCH-01/SWITCH-02 shipped. 45-02's own on-device checkpoint directly covered Phase 45's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed (per this project's Phase 29/36/38/39 precedent).
 - **v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19.** All 8 phases (35-42) archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 dropped (Phase 37 abandoned). PROJECT.md fully updated, including backfilled Validated write-ups for Phases 38-41 whose own runs had skipped that step. v1.5 (Home Focus & Widget Redesign) remains open in parallel — only Phase 33's on-device UAT (Task 4) is outstanding before it can formally close too; run `/gsd-verify-work 33` once that's done, then `/gsd:complete-milestone v1.5`.
 
 - Phase 40 (Update-Available HUD & Sparkle Integration) is now fully complete. This session's on-device checkpoint (40-03) root-caused the badge-tap bug carried over from the prior session: tapping the collapsed-pill badge passed the click straight through the app window because `NotchWindowController`'s click-through `hotZone` didn't reliably cover the badge overlay's actual position. Rather than patch that geometry, the update-available indicator was redesigned to a small red dot on the menu-bar status item icon — always fully clickable by construction, sidestepping the whole click-through-zone class of bug. `UpdateAvailableState.swift` and the pill badge overlay were deleted; see `40-03-SUMMARY.md` for the full record, including which of the original 40-UI-SPEC.md decisions (D-05/D-06/D-07) this supersedes. Release archive launch (embedded Sparkle.framework under Hardened Runtime) confirmed crash-free on-device. Only Phase 42 (Dual-Activity Display) remains for v1.6 — start `/gsd-discuss-phase 42` next.

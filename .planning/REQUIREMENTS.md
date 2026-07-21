@@ -69,6 +69,8 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 - [x] **OUTPUT-03**: Tapping a non-current output in the list makes it the active system audio output and it animates to the top of the list (tap-to-select, not drag-to-reorder)
 - [x] **OUTPUT-04**: The output list stays correct when a device connects or disconnects while the panel is open (e.g. AirPods reconnect) — no duplicate or stale entries, keyed by device UID not the ephemeral `AudioDeviceID`
 
+> **v1.8 Requirements (Settings Redesign & Island Navigation) shipped 2026-07-21** — archived to `.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02).
+
 ## v2 Requirements
 
 Deferred to a future milestone, not in this roadmap.
@@ -152,10 +154,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Phase 47 (Audio Output — Pure Seam + Monitor) and Phase 49 (Favorite/Like — Spike) carry no formal REQ-ID themselves — they're infrastructure/spike phases preceding Phase 48/50's user-facing requirements, mirroring this project's own Phase 15/16/19 and Phase 22-01/24-01/38-01/39-01 precedent.
 
 v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is archived in `.planning/milestones/v1.6-REQUIREMENTS.md`.
+v1.8's traceability table (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02 — 6/6 shipped) is archived in `.planning/milestones/v1.8-REQUIREMENTS.md`.
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-19 — v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*
+*Last updated: 2026-07-21 — v1.8 (Settings Redesign & Island Navigation) SHIPPED: 6/6 requirements (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02) complete, archived to `.planning/milestones/v1.8-REQUIREMENTS.md`. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
+*v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*
 *v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
 *v1.5 requirements defined 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
+*v1.8 (Settings Redesign & Island Navigation) shipped and archived to `.planning/milestones/v1.8-REQUIREMENTS.md`/`.planning/milestones/v1.8-ROADMAP.md` — 3 phases (51-53), 6/6 requirements shipped, including a mid-UAT design fix (D-02 superseded: static play glyph replaces the bouncing equalizer bars in the idle-hover preview, since animated bars implied live playback when nothing was actually playing).*

@@ -42,6 +42,13 @@ final class NowPlayingState: ObservableObject {
     // capture. Plan 02 (NotchWindowController.swift) populates it; this plan only declares the
     // contract.
     @Published var lastKnownTrack: LastPlayedTrack? = nil
+    // Phase 53 / RESUME-02 — D-03's orthogonal failure flag. Set true by
+    // NotchWindowController's inferred-timeout watcher (handleResumeTap) when a resume tap
+    // produces no fresh .playing snapshot in time; read by NotchPillView.resumePreviewWings
+    // to swap the EqualizerBars slot for "Wiedergabe nicht möglich". Reset to false at the
+    // start of every resume attempt and on every fresh hover-entry so a stale failure never
+    // reappears on a later unrelated hover.
+    @Published var resumePreviewFailed: Bool = false
 }
 
 // Phase 30 / HOME-02 — the sticky last-played snapshot's data contract. Plain struct, no
