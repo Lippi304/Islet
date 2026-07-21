@@ -310,6 +310,16 @@ final class NotchWindowController {
     private var localMouseMonitor: Any?
     private var graceWorkItem: DispatchWorkItem?
 
+    // Phase 53 / RESUME-02 (D-03) — the inferred-resume-failure timeout watch, mirroring
+    // NowPlayingMonitor's D-12 runHealthCheck settled-flag pattern: `togglePlayPause()` has no
+    // completion signal, so "did resume succeed?" can only be inferred by racing the EXISTING
+    // persistent onTrackInfoReceived stream (via handleNowPlaying below) against a deadline.
+    // resumeWatchSettled starts true (no watch pending); handleResumeTap() flips it false and
+    // schedules resumeWatchWorkItem, settling either on a genuine fresh .playing snapshot
+    // (success) or the timeout firing first (failure).
+    private var resumeWatchWorkItem: DispatchWorkItem?
+    private var resumeWatchSettled = true
+
     // Phase 21 / SHELF-06 / D-03 — the shelf-item drag pin: while true, handleHoverExit's
     // graceWorkItem defers the collapse. Released via BOTH a best-effort early signal
     // (dragReleaseMonitor, a .leftMouseUp global monitor mirroring mouseMonitor's .mouseMoved
@@ -399,6 +409,10 @@ final class NotchWindowController {
 
     // D-03 grace delay (within the 0.3–0.5s window). One place for Plan 05 to tune.
     private let graceDelay: TimeInterval = 0.4
+
+    // Phase 53 / RESUME-02 (A2) — within 53-RESEARCH.md's recommended 1.5-2.0s window; tunable
+    // during Plan 53-02's on-device UAT.
+    private let resumeWatchTimeout: TimeInterval = 1.75
 
     // The spring applied at every phase mutation (ISL-04 / D-07). Snappy with a slight
     // bounce. The two seeds live here so Plan 05 tunes the feel in ONE place; each mutation
@@ -1419,13 +1433,26 @@ final class NotchWindowController {
     // click-through zone from the rendered bubble — the exact CR-01/CR-02 failure class.
     private func collapsedInteractiveZone() -> CGRect? {
         guard let hotZone else { return nil }
-        guard presentationState.secondary != nil else { return hotZone }
-        let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
-        let bubbleFarEdge = collapsedFrame.midX + NotchPillView.secondaryBubbleCenterOffset
-            + NotchPillView.secondaryBubbleDiameter / 2 + hotZonePadding
-        guard bubbleFarEdge > hotZone.maxX else { return hotZone }
-        return CGRect(x: hotZone.minX, y: hotZone.minY,
-                      width: bubbleFarEdge - hotZone.minX, height: hotZone.height)
+        if presentationState.secondary != nil {
+            let collapsedFrame = hotZone.insetBy(dx: hotZonePadding, dy: hotZonePadding)
+            let bubbleFarEdge = collapsedFrame.midX + NotchPillView.secondaryBubbleCenterOffset
+                + NotchPillView.secondaryBubbleDiameter / 2 + hotZonePadding
+            if bubbleFarEdge > hotZone.maxX {
+                return CGRect(x: hotZone.minX, y: hotZone.minY,
+                              width: bubbleFarEdge - hotZone.minX, height: hotZone.height)
+            }
+        }
+        // Phase 53 / RESUME-01 (53-RESEARCH.md Pitfall 1) — the idle hover-preview renders at
+        // NotchPillView.wingsSize.width (290pt), wider than the raw notch-cutout-sized hotZone.
+        // Gated on the SAME eligibility precondition idleOrResumePreview itself checks (never
+        // an unconditional widen, per the Anti-Pattern warning); symmetric so the widened zone
+        // stays centered on the existing hotZone.
+        if presentationState.presentation == .idle, nowPlayingState.hasPlayedSinceLaunch,
+           nowPlayingState.lastKnownTrack != nil, NotchPillView.wingsSize.width > hotZone.width {
+            let widen = (NotchPillView.wingsSize.width - hotZone.width) / 2
+            return hotZone.insetBy(dx: -widen, dy: 0)
+        }
+        return hotZone
     }
 
     // CR-01 — the actual VISIBLE-content rect, narrower than expandedZone (which is the
@@ -1541,6 +1568,10 @@ final class NotchWindowController {
         // chaining when nothing is pending).
         dismissWorkItem?.cancel()
         mediaDismissWorkItem?.cancel()
+
+        // Phase 53 / RESUME-02 (D-03) — a fresh hover entry never shows a stale failure text
+        // from an earlier resume attempt.
+        nowPlayingState.resumePreviewFailed = false
 
         // D-01: hover gives an affordance but NEVER expands — nextState turns .collapsed
         // into .hovering only. The spring drives the bounce/scale in NotchPillView.
@@ -1702,6 +1733,29 @@ final class NotchWindowController {
     // calls (see `onTogglePlayPause` in `makeRootView`) — no expand, no view-switch.
     private func handleSecondaryTap() {
         nowPlayingMonitor?.togglePlayPause()
+    }
+
+    // Phase 53 / RESUME-02 — the hover-preview's dedicated resume-tap handler (D-01: stays the
+    // wings-preview shape, no expand). Mirrors handleSecondaryTap()'s body (same
+    // togglePlayPause() call) but additionally arms the D-03 inferred-failure timeout watch,
+    // since this fire-and-forget transport call has no completion signal (53-RESEARCH.md
+    // Pitfall 2). The watch is settled either by a genuine fresh .playing snapshot arriving via
+    // the EXISTING persistent onTrackInfoReceived stream (handleNowPlaying below) or by this
+    // timeout firing first — never both (mirrors NowPlayingMonitor.runHealthCheck's D-12
+    // settled-flag pattern).
+    private func handleResumeTap() {
+        nowPlayingMonitor?.togglePlayPause()
+        nowPlayingState.resumePreviewFailed = false
+        resumeWatchSettled = false
+        resumeWatchWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.resumeWatchSettled else { return }
+            self.resumeWatchSettled = true
+            self.nowPlayingState.resumePreviewFailed = true
+            self.handleHoverExit()
+        }
+        resumeWatchWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + resumeWatchTimeout, execute: work)
     }
 
     // Phase 48 / OUTPUT-01 (D-08) — mirrors handleSwitcherSelect's "mutate-inside-withAnimation,
@@ -2146,6 +2200,7 @@ final class NotchWindowController {
                       calendarViewState: calendarViewState,
                       onClick: { [weak self] in self?.handleClick() },
                       onSecondaryTap: { [weak self] in self?.handleSecondaryTap() },
+                      onResumeTap: { [weak self] in self?.handleResumeTap() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
                       // monitor — no re-spawn, no focus steal.
                       onTogglePlayPause: { [weak self] in self?.nowPlayingMonitor?.togglePlayPause() },
@@ -2343,7 +2398,16 @@ final class NotchWindowController {
         // AFTER the render call in this same invocation and would gate this very snapshot). No
         // `if !hasPlayedSinceLaunch` guard needed: reassigning true is idempotent, mirroring the
         // unconditional isHealthy assignment just above.
-        if case .playing = p { nowPlayingState.hasPlayedSinceLaunch = true }
+        if case .playing = p {
+            nowPlayingState.hasPlayedSinceLaunch = true
+            // Phase 53 / RESUME-02 (D-03) — a fresh .playing snapshot arriving while a resume
+            // watch is pending means the resume succeeded; settle it so the timeout closure's
+            // failure branch never fires afterward.
+            if !resumeWatchSettled {
+                resumeWatchSettled = true
+                resumeWatchWorkItem?.cancel()
+            }
+        }
 
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             nowPlayingState.presentation = p
