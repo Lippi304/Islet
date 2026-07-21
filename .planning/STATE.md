@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: executing
-stopped_at: Phase 54 UI-SPEC approved
-last_updated: "2026-07-21T22:43:54.996Z"
-last_activity: 2026-07-21 -- Phase 54 planning complete
+stopped_at: Completed 54-01-PLAN.md
+last_updated: "2026-07-21T22:51:39.136Z"
+last_activity: 2026-07-21
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 7
-  percent: 70
+  completed_plans: 8
+  percent: 75
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** v1.8 shipped; v1.4, v1.5, and v1.7 remain open in parallel (see their own Operator Next Steps entries below)
+**Current focus:** Phase 54 — permissions-overview-onboarding-replay-settings-rollup-showi
 
 ## Current Position
 
-Phase: v1.8 archived (Phases 51-53) — no active phase selected
-Plan: —
+Phase: 54 (permissions-overview-onboarding-replay-settings-rollup-showi) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-21 -- Phase 54 planning complete
+Last activity: 2026-07-21
 
 ### Phase 48 status note
 
@@ -143,6 +143,7 @@ Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3
 | Phase 52 P04 | 15min | 2 tasks | 0 files |
 | Phase 53 P01 | multi-session (checkpoint) | 3 tasks | 3 files |
 | Phase 53 P02 | single session (checkpoint, 2 rounds) | 1 tasks | 1 files |
+| Phase 54 P01 | 15min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -211,6 +212,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 53]: [Phase 53-01]: Task 1 on-device spike verdict = approved — togglePlayPause() resumes a paused (not quit) session for both Spotify and Apple Music, matching the plan's default expectation; gives Task 3's D-03 inferred-failure timeout a real empirical basis. Hover-preview shipped as a view-local branch off .idle (Claude's Discretion, 53-CONTEXT.md), not a new IslandPresentation case — IslandResolver.swift/IslandResolverTests.swift confirmed untouched.
 - [Phase 53]: [Phase 53-01]: RESUME-01/RESUME-02 left Pending in REQUIREMENTS.md — mirrors the Phase 45/52-02/52-03 precedent of deferring requirement completion until the phase's own on-device UAT plan (53-02) confirms the shipped hover-preview/resume-tap behaves correctly end-to-end on real hardware (hit-testing across the full wings footprint, timeout-window feel), even though this plan's own Task 1 spike already de-risked the underlying transport-feasibility question.
 - [Phase 53]: [Phase 53]: [Phase 53-02]: On-device UAT approved (Debug + Release) — all 4 ROADMAP success criteria confirmed, closing RESUME-01/RESUME-02. Mid-UAT design fix: D-02 superseded (bouncing equalizer bars in the idle-hover preview replaced with a static play.fill glyph, since animated bars while nothing was playing read as misleading) — commit 581c94e. v1.8 milestone now 3/3 phases complete.
+- [Phase 54]: [Phase 54-01] EKAuthorizationStatus.writeOnly counts as granted (never denied) for the combined Calendar+Reminders row; combinedCalendarReminderStatus resolves worst-of-two (denied > notYetAsked > granted, D-13 locked). Plan executed exactly as written, no deviations.
 
 ### Roadmap Evolution
 
@@ -334,9 +336,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-21T22:09:02.033Z
-Stopped at: Phase 54 UI-SPEC approved
-Resume file: .planning/phases/54-permissions-overview-onboarding-replay-settings-rollup-showi/54-UI-SPEC.md
+Last session: 2026-07-21T22:51:39.129Z
+Stopped at: Completed 54-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
