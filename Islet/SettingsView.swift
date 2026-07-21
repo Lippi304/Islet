@@ -62,6 +62,16 @@ struct SettingsView: View {
     // independently). Mirrors materialStyle's fully-qualified-type-annotation convention below.
     @AppStorage(ActivitySettings.weatherStyleKey) private var weatherStyle: ActivitySettings.WeatherStyle = .medium
 
+    // Phase 52 / SWITCH-03/SWITCH-04 (D-02) — the Switcher section's layout picker + 4
+    // independent per-slot icon-placement pickers. Same keys/defaults as NotchPillView's
+    // own @AppStorage reads (Plan 52-02) — both files are independent readers of the same
+    // shared UserDefaults source, mirroring weatherStyle's existing dual-reader relationship.
+    @AppStorage(ActivitySettings.switcherLayoutKey) private var switcherLayout: ActivitySettings.SwitcherLayout = .pill
+    @AppStorage(ActivitySettings.switcherSlotLeftOuterKey) private var slotLeftOuter: SelectedView = .home
+    @AppStorage(ActivitySettings.switcherSlotLeftInnerKey) private var slotLeftInner: SelectedView = .tray
+    @AppStorage(ActivitySettings.switcherSlotRightInnerKey) private var slotRightInner: SelectedView = .calendar
+    @AppStorage(ActivitySettings.switcherSlotRightOuterKey) private var slotRightOuter: SelectedView = .weather
+
     // Phase 27 / VISUAL-03 (D-05/D-07) — the material-style preset and the 3
     // independent per-element accent indices, replacing the single global
     // accentIndexKey. SwiftUI's native `@AppStorage` overload for any
@@ -79,7 +89,7 @@ struct SettingsView: View {
     // Order and copy are locked: Activities, Appearance, Fullscreen, Weather,
     // Diagnostics, Workspace, About.
     private enum SidebarSection: String, CaseIterable, Identifiable {
-        case activities, appearance, fullscreen, weather, diagnostics, workspace, about
+        case activities, appearance, switcher, fullscreen, weather, diagnostics, workspace, about
 
         var id: String { rawValue }
 
@@ -87,6 +97,7 @@ struct SettingsView: View {
             switch self {
             case .activities: return "Activities"
             case .appearance: return "Appearance"
+            case .switcher: return "Switcher"
             case .fullscreen: return "Fullscreen"
             case .weather: return "Weather"
             case .diagnostics: return "Diagnostics"
@@ -99,6 +110,7 @@ struct SettingsView: View {
             switch self {
             case .activities: return "bolt"
             case .appearance: return "paintbrush"
+            case .switcher: return "square.grid.2x2"
             case .fullscreen: return "arrow.up.left.and.arrow.down.right"
             case .weather: return "cloud.sun"
             case .diagnostics: return "stethoscope"
@@ -147,6 +159,8 @@ struct SettingsView: View {
                 activitiesSection
             case .appearance:
                 appearanceSection
+            case .switcher:
+                switcherSection
             case .fullscreen:
                 fullscreenSection
             case .weather:
@@ -309,6 +323,48 @@ struct SettingsView: View {
             }
             .padding(20)
         }
+    }
+
+    // Phase 52 / SWITCH-03/SWITCH-04 (D-02/D-07) — the Switcher section: a Pill/Top-Edge
+    // layout picker plus 4 independent per-slot icon-placement dropdowns. Mirrors
+    // fullscreenSection's exact ScrollView(.vertical) { Form { ... }.padding(20) } shape.
+    private var switcherSection: some View {
+        ScrollView(.vertical) {
+            Form {
+                Section("Layout") {
+                    Picker("Layout", selection: $switcherLayout) {
+                        Text("Pill").tag(ActivitySettings.SwitcherLayout.pill)
+                        Text("Top Edge").tag(ActivitySettings.SwitcherLayout.topEdge)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+
+                // D-01: each of the 4 slots is fully independent — any icon can go in any
+                // slot, not a fixed-pair swap. No duplicate-assignment validation (matches
+                // this codebase's existing no-Picker-validation convention).
+                Section("Icon Placement") {
+                    Picker("Left Outer", selection: $slotLeftOuter) { slotOptions }
+                        .pickerStyle(.menu)
+                    Picker("Left Inner", selection: $slotLeftInner) { slotOptions }
+                        .pickerStyle(.menu)
+                    Picker("Right Inner", selection: $slotRightInner) { slotOptions }
+                        .pickerStyle(.menu)
+                    Picker("Right Outer", selection: $slotRightOuter) { slotOptions }
+                        .pickerStyle(.menu)
+                }
+            }
+            .padding(20)
+        }
+    }
+
+    // Shared option rows for all 4 slot dropdowns above — one place mapping SelectedView to
+    // its Label(name, systemImage:), reused verbatim by all 4 Pickers.
+    @ViewBuilder private var slotOptions: some View {
+        Label("Home", systemImage: "house.fill").tag(SelectedView.home)
+        Label("Tray", systemImage: "tray.fill").tag(SelectedView.tray)
+        Label("Calendar", systemImage: "calendar").tag(SelectedView.calendar)
+        Label("Weather", systemImage: "cloud.sun.fill").tag(SelectedView.weather)
     }
 
     // Phase 33 / WEATHER-01/02 (D-03/D-04/D-05) — live-switches the Weather card between
