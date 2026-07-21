@@ -58,7 +58,7 @@ completed: 2026-07-21
 
 ## Accomplishments
 - Confirmed the milestone's one open technical question on real hardware: `togglePlayPause()` can resume a session in both the paused and quit sub-cases for Spotify and Apple Music, matching the plan's default expectation (user reported "approved")
-- Shipped the hover-preview render branch (`idleOrResumePreview`/`resumePreviewWings`) reusing `mediaWingsRow` verbatim for the success path, with a dedicated `.playing(...)` construction so the equalizer bounces per D-02
+- Shipped the hover-preview render branch (`idleOrResumePreview`/`resumePreviewWings`) — success path shows album art + a static "play.fill" glyph (superseded D-02; see Deviations)
 - Shipped the resume-tap controller wiring: `handleResumeTap()` (togglePlayPause + D-03 inferred-failure timeout watch), settled by a genuine fresh `.playing` snapshot inside the existing `handleNowPlaying`, and `collapsedInteractiveZone()` widened conditionally to the preview's real rendered footprint
 
 ## Task Commits
@@ -83,7 +83,13 @@ _No TDD tasks in this plan; no plan-metadata commit separate from the final docs
 
 ## Deviations from Plan
 
-None — plan executed exactly as written. All acceptance-criteria greps and both Debug/Release builds passed on the first attempt for both Task 2 and Task 3.
+Tasks 2/3 executed exactly as written. During Plan 53-02's on-device UAT, the user flagged D-02
+(bouncing equalizer bars in the resume-preview, identical to the live-playing glance) as
+confusing: nothing is actually playing yet, so animated bars misrepresent playback state. D-02
+is superseded — the success-path preview now shows a static "play.fill" glyph instead of
+`EqualizerBars`/`mediaWingsRow` reuse. `NotchPillView.swift`'s `resumePreviewWings` was edited
+in place (no new commit yet at SUMMARY-write time; see 53-02-SUMMARY.md for the follow-up
+commit). Both Debug and Release builds re-verified green after the change.
 
 ## Issues Encountered
 

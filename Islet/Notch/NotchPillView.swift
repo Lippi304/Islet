@@ -2439,12 +2439,14 @@ struct NotchPillView: View {
     // Phase 53 / RESUME-01/RESUME-02 — the idle hover-preview's own wings shape. Mirrors
     // `mediaWingsOrToast`'s scaffold (shape/matchedGeometryEffect/islandFill/
     // liquidGlassEffectLayer) rather than reusing that function directly — it also handles the
-    // toast row, which this preview never needs. Success path reuses `mediaWingsRow` VERBATIM
-    // (per 53-UI-SPEC.md's Reused Components table), constructing `.playing(...)` (not
-    // `.paused`) so `EqualizerBars(isPlaying:)` bounces per D-02. Failure path (D-03) replaces
-    // ONLY the equalizer slot with static failure text, album art stays visible. Tap goes to
-    // the dedicated `onResumeTap` closure (NOT `onClick`, which would expand to Home and
-    // violate D-01 — see 53-RESEARCH.md Pitfall 4/Anti-Pattern).
+    // toast row, which this preview never needs. Success path shows a STATIC play glyph on the
+    // right (NOT `mediaWingsRow`/`EqualizerBars`) — D-02 originally called for bouncing bars
+    // identical to the live-playing glance, but on-device UAT (53-02) flagged that as
+    // confusing: nothing is actually playing yet, so animated bars read as a lie. Superseded
+    // D-02: static "play.fill" glyph signals "tap to resume" without implying live playback.
+    // Failure path (D-03) replaces ONLY that glyph slot with static failure text, album art
+    // stays visible. Tap goes to the dedicated `onResumeTap` closure (NOT `onClick`, which
+    // would expand to Home and violate D-01 — see 53-RESEARCH.md Pitfall 4/Anti-Pattern).
     private func resumePreviewWings(_ track: LastPlayedTrack) -> some View {
         let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)
         return shape
@@ -2453,21 +2455,24 @@ struct NotchPillView: View {
             .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             .overlay(liquidGlassEffectLayer(shape: shape, size: Self.wingsSize, parameters: .expanded))
             .overlay {
-                if nowPlaying.resumePreviewFailed {
-                    HStack(spacing: 0) {
-                        artThumbnail(track.artwork, side: Self.wingsSize.height - 8, corner: 6)
-                            .padding(.leading, 22)
-                        Spacer()
+                HStack(spacing: 0) {
+                    artThumbnail(track.artwork, side: Self.wingsSize.height - 8, corner: 6)
+                        .padding(.leading, 22)
+                    Spacer()
+                    if nowPlaying.resumePreviewFailed {
                         Text("Wiedergabe nicht möglich")
                             .font(.system(size: 11, weight: .medium, design: .rounded))
                             .foregroundStyle(.white)
                             .lineLimit(1)
                             .padding(.trailing, 24)
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.trailing, 24)
                     }
-                    .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
-                } else {
-                    mediaWingsRow(.playing(title: track.title, artist: track.artist), art: track.artwork)
                 }
+                .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
             }
             .onTapGesture { onResumeTap() }
     }

@@ -17,7 +17,7 @@ When the collapsed island is idle (nothing currently playing) but at least one t
 - **D-01:** Clicking the hover-preview resumes playback in place — calls `NowPlayingMonitor.togglePlayPause()` directly, the pill stays exactly as the wings-preview shape, no further expansion to the full Home transport view. Matches the Phase 42 secondary-bubble precedent exactly (tap toggles play/pause, nothing else).
 
 ### Preview visual motion
-- **D-02:** The equalizer bars in the hover preview animate identically to the live-playing state (same view, no new "frozen" visual state) — simplest to implement, no new rendering branch.
+- **D-02 (superseded 2026-07-21 during Plan 53-02 on-device UAT):** ~~The equalizer bars in the hover preview animate identically to the live-playing state (same view, no new "frozen" visual state) — simplest to implement, no new rendering branch.~~ On-device, bouncing bars while nothing plays read as misleading ("macht gar keinen Sinn das die bars sich dann im idle zustand bewegen"). Revised: the preview's right slot shows a static "play.fill" glyph instead, signaling "tap to resume" without implying live playback. D-03's failure-text still replaces the same slot on a failed resume.
 
 ### Resume-failure feedback
 - **D-03:** ROADMAP Success Criterion #4 already locks that a failed resume must give clear feedback, not silently do nothing. The shape of that feedback is a brief inline text message (e.g., "Can't resume") shown in place of the equalizer/controls, then the preview collapses — mirrors the existing "Now Playing nicht verfügbar" health-state text pattern from Phase 4/NOW-03, not a new visual language.
