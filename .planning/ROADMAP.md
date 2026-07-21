@@ -883,7 +883,7 @@ Plans:
 **Wave 2** *(blocked on 52-01)*
 
 - [x] 52-02-PLAN.md — NotchPillView: data-driven switcherRow reorder (D-03) + blobShape/totalHeight height-math three-site fix (D-06) + topEdgeSwitcherRow rendering (D-04/D-05)
-- [ ] 52-03-PLAN.md — SettingsView: new "Switcher" sidebar section (D-02/D-07) + hasNotch-gated visibility (D-08)
+- [x] 52-03-PLAN.md — SettingsView: new "Switcher" sidebar section (D-02/D-07) + hasNotch-gated visibility (D-08)
 
 **Wave 3** *(blocked on 52-02, 52-03)*
 

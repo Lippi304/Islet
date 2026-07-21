@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: executing
-stopped_at: Completed 52-02-PLAN.md
-last_updated: "2026-07-21T15:07:48.939Z"
+stopped_at: Completed 52-03-PLAN.md
+last_updated: "2026-07-21T15:14:50.937Z"
 last_activity: 2026-07-21
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 52 (top-edge-switcher-layout-placement-config) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-21
 
@@ -137,6 +137,7 @@ Progress (v1.8): [░░░░░░░░░░] 0% (0/3 phases — roadmap cre
 | Phase 49 P02 | 1min | 1 tasks | 0 files |
 | Phase 52 P01 | 25min | 3 tasks | 6 files |
 | Phase 52 P02 | 20min | 3 tasks | 3 files |
+| Phase 52 P03 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -200,6 +201,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 52-01]: topEdgeCutoutGap(...) is a thin wrapper around notchSize(...).width, not a reimplementation, so the two never drift
 - [Phase 52-02]: blobShape's showsPillRow = showSwitcher && switcherLayout == .pill splits 'reserve switcher-sized content height' (baseHeight, layout-independent) from 'show the pill row' (layout-dependent) — the three-site fix (blobShape, body's totalHeight, NotchWindowController.visibleContentZone()) all read the same switcherLayout signal independently, no shared plumbing
 - [Phase 52-02]: icon(for:) extracted once and reused verbatim by both switcherRow and topEdgeSwitcherRow (D-03) — exactly one place maps SelectedView to (systemName, action); topEdgeSwitcherRow computes its own hasNotch/cutout geometry independently (selectTargetScreen + topEdgeCutoutGap), mirroring NotchWindowController.currentBuiltin()'s existing pattern, no controller plumbing
+- [Phase 52-03]: SWITCH-03/SWITCH-04 left Pending in REQUIREMENTS.md — mirrors Phase 45/52-02 precedent of deferring requirement completion until the phase's on-device UAT plan (52-04) confirms the feature works end-to-end on real hardware
 
 ### Roadmap Evolution
 
@@ -310,8 +312,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-21T15:07:48.934Z
-Stopped at: Completed 52-02-PLAN.md
+Last session: 2026-07-21T15:14:50.931Z
+Stopped at: Completed 52-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
