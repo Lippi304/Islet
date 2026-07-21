@@ -11,7 +11,7 @@
 - 🚧 **v1.5 Home Focus & Widget Redesign** — Phases 29-34 (in progress, left open in parallel)
 - ✅ **v1.6 Liquid Glass & System HUD Suite** — Phases 35-42 (shipped 2026-07-19)
 - 🚧 **v1.7 Interaction & Calendar Polish** — Phases 43-50 (planned, left open in parallel)
-- 📋 **v1.8 Settings Redesign & Island Navigation** — Phases 51-53 (planned, left open in parallel)
+- ✅ **v1.8 Settings Redesign & Island Navigation** — Phases 51-53 (shipped 2026-07-21)
 
 ## Phases
 
@@ -127,13 +127,16 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 49: Favorite/Like — Spike** - PAUSED by user after Plans 01-02/4 (see Phase Details) — Apple Music/MediaRemote write paths found broken; Spotify (SC#3) untested; no go/no-go decision made
 - [ ] **Phase 50: Favorite/Like — Implementation** - BLOCKED — depends on Phase 49's go/no-go, which was never produced; its Apple Music write path (SC#1) is already known broken. Needs review before planning.
 
-### 📋 v1.8 Settings Redesign & Island Navigation (Planned)
+<details>
+<summary>✅ v1.8 Settings Redesign & Island Navigation (Phases 51-53) — SHIPPED 2026-07-21</summary>
 
-**Milestone Goal:** Fix the crowded, non-scrollable Settings window and add two new interaction options for how the app is navigated — a compact top-edge switcher placement and a hover-to-resume affordance on the idle island. Started 2026-07-21 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision). Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed).
+- [x] Phase 51: Settings Reorganization & Scroll Fix (1/1 plans) — completed 2026-07-21
+- [x] Phase 52: Top-Edge Switcher Layout & Placement Config (4/4 plans) — completed 2026-07-21
+- [x] Phase 53: Hover-to-Resume Idle Preview (2/2 plans) — completed 2026-07-21
 
-- [x] **Phase 51: Settings Reorganization & Scroll Fix** - Fix the unreachable-below-the-fold scroll bug and split General into dedicated Activities/Appearance/Fullscreen/Weather/Diagnostics sidebar sections (completed 2026-07-21)
-- [x] **Phase 52: Top-Edge Switcher Layout & Placement Config** - User-selectable alternate 4-icon top-edge switcher layout with configurable left/right icon placement (completed 2026-07-21)
-- [x] **Phase 53: Hover-to-Resume Idle Preview** - Hovering the idle island previews the last track played this session; clicking resumes it (completed 2026-07-21)
+Full phase details, goals, success criteria, and plan lists: `.planning/milestones/v1.8-ROADMAP.md`
+
+</details>
 
 ## Phase Details
 
@@ -188,7 +191,7 @@ Plans:
 
 **v1.7:** 3/8 phases complete (38%) — roadmap created 2026-07-19. Phases 43-50, 15/15 v1.7 requirements mapped. Phase 43 (Drag Detection Hardening) completed 2026-07-19. Phase 44 (Tray & Quick Action Width Alignment) completed 2026-07-19. Phase 45 (View Switcher Morph Fix, SWITCH-01/02) completed 2026-07-19 — 45-02's on-device 12-pairwise-transition sweep confirmed both requirements shipped. Phase order: the 4 independent, no-research-dependency bugfixes first (Drag Detection → Tray/Picker Width Alignment → View Switcher Morph → Calendar Quick-Add), then the Now Playing work split per research's risk-isolation recommendation — Audio Output Switcher (public CoreAudio API, pure-seam-then-UI-wiring, no external unknowns) before Favorite/Like (spike-then-implementation, this milestone's highest-risk item: Spotify OAuth+quota reality, Apple Music AppleScript reliability, Automation/TCC permission bug), mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent.
 
-**v1.8:** 3/3 phases complete (100%) — roadmap created 2026-07-21. Phases 51-53, 6/6 v1.8 requirements mapped and shipped. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume was sequenced last since it carried this milestone's one open technical question (whether resuming a non-active track is achievable via the existing NowPlayingMonitor/MediaRemote adapter transport, per PROJECT.md's v1.8 Key Context), verified early within its own phase (53-01 spike: approved). Phase 53 completed 2026-07-21 after 53-02's on-device UAT approval, including a mid-UAT D-02 design supersession (static play glyph replaces animated equalizer bars in the idle-hover preview). Formal `/gsd:complete-milestone` for v1.8 still pending.
+**v1.8:** 3/3 phases complete (100%) — roadmap created 2026-07-21. Phases 51-53, 6/6 v1.8 requirements mapped and shipped. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume was sequenced last since it carried this milestone's one open technical question (whether resuming a non-active track is achievable via the existing NowPlayingMonitor/MediaRemote adapter transport, per PROJECT.md's v1.8 Key Context), verified early within its own phase (53-01 spike: approved). Phase 53 completed 2026-07-21 after 53-02's on-device UAT approval, including a mid-UAT D-02 design supersession (static play glyph replaces animated equalizer bars in the idle-hover preview). v1.8 formally archived via `/gsd:complete-milestone` 2026-07-21 — see `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -837,7 +840,7 @@ Plans:
 **Plans**: TBD
 
 
-## v1.8 Settings Redesign & Island Navigation — PLANNED
+## v1.8 Settings Redesign & Island Navigation — SHIPPED 2026-07-21
 
 ### Phase 51: Settings Reorganization & Scroll Fix
 

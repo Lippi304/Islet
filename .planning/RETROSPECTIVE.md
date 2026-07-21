@@ -151,6 +151,40 @@
 
 ---
 
+## Milestone: v1.8 — Settings Redesign & Island Navigation
+
+**Shipped:** 2026-07-21
+**Phases:** 3 (51-53) | **Plans:** 7 | **Sessions:** 1 (single day, 2026-07-21)
+
+### What Was Built
+- `SettingsView` restructured into a 7-section `NavigationSplitView` sidebar with uniform `ScrollView` wrapping, fixing the Weather/Diagnostics scroll-cutoff bug, plus a window widen (520→600pt) for Appearance picker clipping (Phase 51, SETTINGS-02/03)
+- A user-selectable top-edge switcher layout — 4 icons flanking the camera cutout, independently configurable left/right per slot, fully hidden on non-notch displays (Phase 52, SWITCH-03/04)
+- A hover-to-resume idle-island preview reusing the live Now Playing wings' layout, click-to-resume via the existing `togglePlayPause()` transport with a D-03 inferred-timeout failure text (Phase 53, RESUME-01/02)
+- The milestone's one open technical question (can `togglePlayPause()` resume a stopped/quit session?) was verified empirically via an on-device spike early in Phase 53, before the rest of the phase was built on that assumption
+
+### What Worked
+- **Sequencing the one genuinely uncertain item (Phase 53's resume-feasibility question) as a blocking Task 1 spike before any dependent code was written** — mirrors this project's own established Phase 22/38/39/49 spike-first precedent, and again paid off: the spike's "paused resumes, quit doesn't" finding directly informed how Task 3's inferred-failure timeout was expected to behave, confirmed exactly right during 53-02's on-device UAT.
+- **Two independently-restructuring phases (51 Settings, 52 Switcher) with zero dependency between them** shipped cleanly in either order — no coordination overhead, no shared-file conflicts.
+- **Live on-device design correction mid-UAT (D-02 supersession)** — the user's real-time reaction to bouncing equalizer bars during idle ("macht gar keinen Sinn") was caught immediately rather than shipped and reported as a bug later; a same-session code fix (static play glyph), doc update (CONTEXT.md D-02 marked superseded), and rebuild closed the loop before the checkpoint was even re-presented.
+
+### What Was Inefficient
+- **`gsd-sdk query milestone.complete` has a real scoping bug**: instead of gathering accomplishments/phase-details only from phases 51-53 (this milestone's actual scope per ROADMAP.md's own "Phases 51-53" line), it swept in every phase from 14 through 53 — including phases belonging to three *other*, still-open parallel milestones (v1.4, v1.5, v1.7) — into the v1.8 archive files (`v1.8-ROADMAP.md`, `v1.8-REQUIREMENTS.md`) and into `MILESTONES.md`'s new v1.8 entry. It also wiped STATE.md's "Operator Next Steps" entries for those other open milestones and corrupted the `completed_plans` counter (62→38), assuming the entire project was between milestones when v1.4/v1.5/v1.7 were still mid-flight. Root cause is likely that the CLI scopes by "phases without an existing archive" rather than by the milestone's own declared phase range. Caught before any commit by diffing the tool's output against the live ROADMAP.md/REQUIREMENTS.md v1.8 sections and manually rebuilding the 3 archive/tracking files from the correct phase-51-53-only source content.
+- This is the first time this project runs `/gsd:complete-milestone` while *multiple other milestones remain simultaneously open* (v1.4, v1.5, v1.7, all left open in parallel per earlier explicit user decisions) — the tool has apparently only been exercised before on a single-open-milestone project state, so this class of bug went undetected through v1.0 through v1.6's closes.
+
+### Patterns Established
+- **Verify every `milestone.complete`/automated milestone-archival tool output against the milestone's actual declared phase range before committing**, specifically when other milestones are open in parallel — do not trust "phases: N" or an accomplishments list at face value; diff against ROADMAP.md's own milestone-to-phase-range mapping first.
+- **A live on-device design objection during a UAT checkpoint is a signal to pause and re-discuss, not to force an approve/fail answer** — matches this project's own established practice; the D-02 fix here was applied in the same turn rather than deferred to a follow-up phase.
+
+### Key Lessons
+1. When a project runs multiple milestones open in parallel (this project's own established pattern since v1.5), any milestone-close automation must be scoped to the milestone's own declared phase range, not "everything not yet archived" — flag this as a needed fix to `gsd-sdk milestone.complete` before the next parallel-milestone close (v1.4, v1.5, or v1.7, whichever closes next).
+2. Diff-check archival/tracking-file automation output against source-of-truth documents (ROADMAP.md, REQUIREMENTS.md) before committing, especially the first time a given automation path runs under a new project condition (here: multiple simultaneously-open milestones) it wasn't previously exercised under.
+
+### Cost Observations
+- Sessions: 1 (2026-07-21, same day as Phase 53's own execution)
+- Notable: the milestone-close tooling bug and its manual repair took longer than the milestone's actual 3-phase implementation work — a disproportionate tax relative to v1.8's own small scope (7 plans).
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -163,6 +197,7 @@
 | v1.2 | 1 | 2 (17-18) | Smallest milestone to date; on-device iteration used as the actual design process for Phase 18 |
 | v1.3 | 2 | 3 shipped of 4 planned (19-21; Phase 22 blocked/aborted) | First milestone to close "shipped with a known gap" — blocked drag-in requirement carried forward instead of the milestone staying open indefinitely |
 | v1.6 | several | 8 shipped of 8 planned (35-42; Phase 37 abandoned/reverted) | First milestone where a spike's own negative finding was later reversed by a gap-closure plan (Phase 39 OSD suppression); REQUIREMENTS.md/PROJECT.md sync-drift recurred across 4 consecutive phases (38-41), worst instance of that pattern yet |
+| v1.8 | 1 | 3 shipped of 3 planned (51-53) | First milestone closed while 3 *other* milestones (v1.4, v1.5, v1.7) remained simultaneously open — exposed a real scoping bug in `gsd-sdk milestone.complete` that swept unrelated open milestones' phases into the v1.8 archive; caught and manually corrected before commit |
 
 ### Cumulative Quality
 
@@ -174,6 +209,7 @@
 | v1.2 | 185+ (4 new `IslandResolverTests` + toast seam tests; exact count not re-tallied) | Not measured | none |
 | v1.3 | 261 (XCTest) | Not measured | none |
 | v1.6 | Not re-tallied this close (16,212 total Swift LOC at close) | Not measured | Sparkle 2 (SPM) |
+| v1.8 | 403 (XCTest, per Phase 52's on-device gate) | Not measured | none |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -181,4 +217,5 @@
 2. The retrospective-append step itself gets skipped under time pressure (v1.0.1 and v1.1 both shipped without a retrospective section, only backfilled retroactively at v1.2 close) — treat it as a required milestone-close step, not optional polish.
 3. When an on-device integration bug resists a plan's stated-assumption fix, diff against the last known-working reference implementation directly rather than reasoning further from the (possibly wrong) assumption — v1.3's Phase 22 spent two full UAT cycles reasoning from a disproven assumption before the user chose to abandon it for a broader architecture redesign.
 4. A negative spike finding deserves one targeted re-attempt with a more specific technique before being accepted as permanent — v1.3's Phase 22 (drag-in) never got this re-attempt and was abandoned, but v1.6's Phase 39 (OSD suppression) did and shipped a materially better feature as a result. The difference: Phase 39 had a concrete alternative technique to try (`.cghidEventTap`, sourced from a proven reference); Phase 22 didn't have an equivalent lead. Worth actively looking for one before abandoning a blocked integration point.
+5. Milestone-close automation (`gsd-sdk milestone.complete`) is not yet proven safe under this project's own established multi-milestone-parallel pattern — v1.8's close (the first close to happen while v1.4/v1.5/v1.7 were all still open) revealed it scopes accomplishments/archival content incorrectly, sweeping in unrelated open milestones' phases. Always diff its output against ROADMAP.md's/REQUIREMENTS.md's own milestone-to-phase mapping before committing, until the tool itself is fixed.
 5. The same fragility class can cause independent bugs in separate phases if the underlying gap isn't swept codebase-wide after the first fix — v1.6's click-through hot-zone bug hit Phase 40 (badge) and Phase 42 (wing-tier bubble) separately, months apart in phase-numbering terms but both within the same milestone.

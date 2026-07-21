@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: milestone_complete
-stopped_at: Milestone complete (Phase 53 was final phase)
-last_updated: 2026-07-21T19:40:36.442Z
-last_activity: 2026-07-21
+stopped_at: v1.8 milestone archived (Phases 51-53); v1.4/v1.5/v1.7 remain open in parallel
+last_updated: "2026-07-21T19:51:17.838Z"
+last_activity: 2026-07-21 — Milestone v1.8 completed and archived
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Milestone complete
+**Current focus:** v1.8 shipped; v1.4, v1.5, and v1.7 remain open in parallel (see their own Operator Next Steps entries below)
 
 ## Current Position
 
-Phase: 53
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-07-21
+Phase: v1.8 archived (Phases 51-53) — no active phase selected
+Plan: —
+Status: v1.8 shipped; v1.4/v1.5/v1.7 still in progress
+Last activity: 2026-07-21 — Milestone v1.8 completed and archived
 
 ### Phase 48 status note
 
@@ -53,9 +53,9 @@ Progress (v1.5): [██████░░░░] 67% (4/6 phases — Phases 29-
 
 Progress (v1.6): [██████████] 100% — SHIPPED 2026-07-19 (8/8 phases; Phase 37 abandoned/reverted, HUD-07 dropped; see `.planning/milestones/v1.6-ROADMAP.md`)
 
-Progress (v1.7): [██████░░░░] 63% (5/8 phases — 43/44/45/46/47 complete; Phase 48 next, then 49/50)
+Progress (v1.7): [███████░░░] 75% (6/8 phases — 43/44/45/46/47/48 complete; Phase 49 spike paused per user decision after weak SC#1/SC#2 results; Phase 50 needs reconsideration before planning)
 
-Progress (v1.8): [░░░░░░░░░░] 0% (0/3 phases — roadmap created 2026-07-21, Phases 51-53 not yet started; left open in parallel with v1.4/v1.5/v1.7)
+Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3/3 phases; see `.planning/milestones/v1.8-ROADMAP.md`)
 
 ## Performance Metrics
 
@@ -319,6 +319,18 @@ Additionally, v1.3's own scope closed with a known gap: **SHELF-01/02 (drag-in, 
 
 Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-05 (Phase 38) and HUD-06 (Phase 40) were still marked "Pending" despite both phases shipping and passing on-device UAT — updated to Complete. HUD-07 (Phase 37) was marked "Pending" but Phase 37 was abandoned/reverted after on-device UAT rejection — updated to "Dropped" (not counted toward shipped coverage). Root cause: phases 38-41's own completion runs skipped their REQUIREMENTS.md traceability update step.
 
+**v1.8 close (2026-07-21):** `gsd-sdk query audit-open` flagged 21 items; user chose "Acknowledge all" and proceed. None block v1.8's own scope (Phases 51-53, all shipped and on-device UAT'd):
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug_session | knowledge-base | unknown — untriaged, no further detail available; acknowledged rather than investigated (same as v1.6 close) |
+| debug_session | old-islet-instance-stays-open | awaiting_human_verify — hypothesis CONFIRMED (Xcode Stop button doesn't reliably terminate LSUIElement/background-agent apps), single-instance-guard fix already build-verified per STATE.md Blockers/Concerns; only the on-device Xcode stop/restart re-check remains, user explicitly deferred to organic confirmation during future work |
+| quick_task | 260705-l4i, 260705-mzj, 260708-nnu, 260708-nzj, 260708-ol8, 260708-u47, 260709-glz, 260709-gvy, 260714-3k6, 260715-vsd | missing (same recurring tool status-detection false positive as v1.2/v1.3/v1.6 close — all 10 have completed PLAN.md + SUMMARY.md on disk, logged Complete ✓ in the Quick Tasks Completed table above) |
+| todos | 2026-07-19-calendar-month-grid-polish, 2026-07-19-island-briefly-disappears-during-click-through, 2026-07-19-quick-action-disabled-state-has-no-controller-gate | pending — pre-existing UI polish/bug notes captured during v1.7 work, unrelated to v1.8 scope; revisit via `/gsd-quick` or a future phase as desired |
+| uat_gaps | Phase 21, Phase 27 | resolved, 0 pending scenarios — not real open work |
+| uat_gaps | Phase 28 | partial, 2 pending — pre-existing carry from v1.4 (see v1.4 close note above), unrelated to v1.8 scope |
+| verification_gaps | Phase 20, Phase 27, Phase 28 | human_needed — pre-existing/unrelated to v1.8 scope, carried from earlier milestones |
+
 ## Session Continuity
 
 Last session: 2026-07-21T19:36:55.752Z
@@ -327,11 +339,12 @@ Resume file: None
 
 ## Operator Next Steps
 
-- **v1.8 (Settings Redesign & Island Navigation) roadmap created 2026-07-21.** 3 phases (51-53), 6/6 requirements mapped, 100% coverage. Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53). Phase numbering continues from Phase 50 (v1.7's last reserved phase). Next: `/gsd-discuss-phase 51`. v1.4, v1.5, and v1.7 all remain open in parallel — see their own Operator Next Steps entries below for what's outstanding there.
-- **Phase 47 (Audio Output Switcher — Pure Seam + Monitor) is now fully complete.** All 3 plans (47-01 pure seam, 47-02 monitor, 47-03 on-device verification) done. 47-03's on-device checkpoint surfaced and fixed a real HAL "wrong data size" bug in `resolveDeviceID(uid:)` (qualifier-data pattern fix), then re-confirmed clean: Pitfall 4 (UID stability across a Bluetooth reconnect) and Pitfall 8 (confirmed-after-set switch) both hold on real hardware; `hasVolumeControl` recorded for 4 device types (built-in/Bluetooth/USB=true, external monitor=false) as Phase 48's authoritative slider input. Known scope limitation: D-03 asked for 2 distinct Bluetooth devices, only 1 was available — user-confirmed and accepted. See `47-03-SUMMARY.md`. Per this project's own Phase 29/36/38/39/45 precedent, 47-03's own on-device checkpoint directly covers Phase 47's ROADMAP success criteria, so a separate `/gsd:verify-work 47` pass is not needed. Start `/gsd-discuss-phase 48` (Audio Output Switcher — UI Wiring) next.
-- **Phase 47 Plan 01 (Audio Output Presentation seam) is now complete.** `AudioOutputDevice`, `isOutputCapableDevice(outputChannelCount:)` (D-01), and `sortedAudioOutputDevices(_:)` (D-02) are all implemented, unit-tested (9 tests), Foundation-only, Debug build + test-build both green. See `47-01-SUMMARY.md`. A manual Cmd-U pass to actually run the new tests is recommended (per this project's `xcodebuild test` headless-hang precedent) before Plan 47-02 begins consuming these functions. Next: execute Plan 47-02 (`AudioOutputMonitor` — event-driven CoreAudio glue).
-- **Phase 45 (View Switcher Morph Fix) is now fully complete.** Both plans (45-01 structural fix, 45-02 on-device 12-pairwise verification) done; SWITCH-01/SWITCH-02 shipped. 45-02's own on-device checkpoint directly covered Phase 45's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed (per this project's Phase 29/36/38/39 precedent). Start `/gsd-discuss-phase 46` (Calendar Quick-Add Improvements) next.
-- **v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19.** 8 phases (43-50), 15/15 requirements mapped, 100% coverage. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, next) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48), then Favorite/Like split spike-first (49) then implementation (50).
+- **v1.8 (Settings Redesign & Island Navigation) SHIPPED 2026-07-21.** All 3 phases (51-53) archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped. Start a fresh milestone for new work with `/gsd-new-milestone` — but note v1.4, v1.5, and v1.7 all remain open in parallel below; picking those back up does not require a new milestone.
+- **v1.7 (Interaction & Calendar Polish):** 6/8 phases complete (43/44/45/46/47/48), Phase 49 (Favorite/Like spike) paused after weak SC#1/SC#2 spike results per user decision; Phase 50 needs reconsideration before planning. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, still open) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47, done) then UI wiring (48, done), then Favorite/Like split spike-first (49, paused) then implementation (50, on hold).
+- **Phase 48 (Audio Output Switcher — UI Wiring) is fully complete.** All 3 plans done, on-device UAT approved ("approved" after the drag-animation-choppiness fix). OUTPUT-01..04 shipped.
+- **Phase 47 (Audio Output Switcher — Pure Seam + Monitor) is now fully complete.** All 3 plans (47-01 pure seam, 47-02 monitor, 47-03 on-device verification) done. 47-03's on-device checkpoint surfaced and fixed a real HAL "wrong data size" bug in `resolveDeviceID(uid:)` (qualifier-data pattern fix), then re-confirmed clean: Pitfall 4 (UID stability across a Bluetooth reconnect) and Pitfall 8 (confirmed-after-set switch) both hold on real hardware; `hasVolumeControl` recorded for 4 device types (built-in/Bluetooth/USB=true, external monitor=false) as Phase 48's authoritative slider input. Known scope limitation: D-03 asked for 2 distinct Bluetooth devices, only 1 was available — user-confirmed and accepted. See `47-03-SUMMARY.md`.
+- **Phase 47 Plan 01 (Audio Output Presentation seam) is now complete.** `AudioOutputDevice`, `isOutputCapableDevice(outputChannelCount:)` (D-01), and `sortedAudioOutputDevices(_:)` (D-02) are all implemented, unit-tested (9 tests), Foundation-only, Debug build + test-build both green. See `47-01-SUMMARY.md`.
+- **Phase 45 (View Switcher Morph Fix) is now fully complete.** Both plans (45-01 structural fix, 45-02 on-device 12-pairwise verification) done; SWITCH-01/SWITCH-02 shipped. 45-02's own on-device checkpoint directly covered Phase 45's ROADMAP success criteria, so a separate `/gsd:verify-work 45` pass is not needed (per this project's Phase 29/36/38/39 precedent).
 - **v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19.** All 8 phases (35-42) archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`. 11/12 requirements shipped; HUD-07 dropped (Phase 37 abandoned). PROJECT.md fully updated, including backfilled Validated write-ups for Phases 38-41 whose own runs had skipped that step. v1.5 (Home Focus & Widget Redesign) remains open in parallel — only Phase 33's on-device UAT (Task 4) is outstanding before it can formally close too; run `/gsd-verify-work 33` once that's done, then `/gsd:complete-milestone v1.5`.
 
 - Phase 40 (Update-Available HUD & Sparkle Integration) is now fully complete. This session's on-device checkpoint (40-03) root-caused the badge-tap bug carried over from the prior session: tapping the collapsed-pill badge passed the click straight through the app window because `NotchWindowController`'s click-through `hotZone` didn't reliably cover the badge overlay's actual position. Rather than patch that geometry, the update-available indicator was redesigned to a small red dot on the menu-bar status item icon — always fully clickable by construction, sidestepping the whole click-through-zone class of bug. `UpdateAvailableState.swift` and the pill badge overlay were deleted; see `40-03-SUMMARY.md` for the full record, including which of the original 40-UI-SPEC.md decisions (D-05/D-06/D-07) this supersedes. Release archive launch (embedded Sparkle.framework under Hardened Runtime) confirmed crash-free on-device. Only Phase 42 (Dual-Activity Display) remains for v1.6 — start `/gsd-discuss-phase 42` next.

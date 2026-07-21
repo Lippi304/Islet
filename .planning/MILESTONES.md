@@ -1,5 +1,20 @@
 # Milestones
 
+## v1.8 Settings Redesign & Island Navigation (Shipped: 2026-07-21)
+
+**Phases completed:** 3 phases (51-53), 7 plans, 17 tasks, 48 phase commits, 48 files changed (+6.3k/-229 lines)
+
+**Key accomplishments:**
+
+- `SettingsView.swift` split from a single crowded General tab into a 7-section `NavigationSplitView` sidebar (Activities/Appearance/Fullscreen/Weather/Diagnostics/Workspace/About) with uniform `ScrollView` wrapping — fixing the Weather/Diagnostics scroll-cutoff bug — plus an on-device UAT-driven window widen (520→600pt) for Appearance picker clipping.
+- New top-edge switcher layout: `SelectedView`/`ActivitySettings` gained a `SwitcherLayout` enum and 4 independent per-slot `@AppStorage` keys, `NotchPillView` renders 4 icons flanking the camera cutout using the real notch-cutout-gap formula, and a new Settings "Switcher" section wires it all together, fully hidden on displays without a physical notch.
+- Full 403-test XCTest suite + Release build confirmed green across all landed plans, and the user approved the complete on-device walkthrough on real notched hardware ("Klappt alles wunderbar"), closing SWITCH-03/SWITCH-04.
+- Idle-island hover-to-resume preview reusing the live Now Playing wings' layout (album art left, right slot for status) with click-to-resume via the existing `togglePlayPause()` transport call and a D-03 inferred-timeout failure text, gated behind an on-device-confirmed spike of the resume-of-a-stopped-session open question.
+- On-device UAT (Debug + Release) approved all 4 ROADMAP Phase 53 success criteria, closing RESUME-01/RESUME-02 — with one live design correction: the hover-preview's right slot ships a static play glyph instead of the originally-shipped bouncing equalizer bars, since animated bars while nothing was playing read as misleading (D-02 superseded).
+- The milestone's one open technical question — whether `NowPlayingMonitor`/MediaRemote can resume a non-active track — was verified empirically early in Phase 53 rather than assumed, de-risking the rest of the phase.
+
+---
+
 ## v1.6 Liquid Glass & System HUD Suite (Shipped: 2026-07-19)
 
 **Phases completed:** 8 phases (35-42), 43 plans, 191 phase commits, 185 files changed (+28.5k/-244 lines)

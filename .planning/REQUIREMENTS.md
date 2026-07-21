@@ -69,24 +69,7 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 - [x] **OUTPUT-03**: Tapping a non-current output in the list makes it the active system audio output and it animates to the top of the list (tap-to-select, not drag-to-reorder)
 - [x] **OUTPUT-04**: The output list stays correct when a device connects or disconnects while the panel is open (e.g. AirPods reconnect) — no duplicate or stale entries, keyed by device UID not the ephemeral `AudioDeviceID`
 
-## v1.8 Requirements — Settings Redesign & Island Navigation
-
-Fixes the crowded, non-scrollable Settings window and adds two new interaction options — a compact top-edge switcher placement and a hover-to-resume affordance on the idle island. Started 2026-07-21 while v1.4, v1.5, and v1.7 all remain open in parallel.
-
-### Settings
-
-- [ ] **SETTINGS-02**: User can scroll to see all settings content when it exceeds the window height (fixes the current bug where Weather/Diagnostics are cut off and unreachable)
-- [ ] **SETTINGS-03**: Settings' crowded General tab is split into new dedicated sidebar sections (e.g. Activities, Appearance, Fullscreen, Weather, Diagnostics) instead of one long list
-
-### View Switcher
-
-- [x] **SWITCH-03**: User can choose an alternate compact switcher layout in Settings — 4 small icons at the top edge of the expanded island (2 left of the camera notch, 2 right) instead of the default pill below the island
-- [x] **SWITCH-04**: User can configure which icons appear on the left vs. right side of the top-edge layout (default: Home+Tray left, Calendar+Weather right)
-
-### Now Playing — Resume
-
-- [x] **RESUME-01**: Hovering the collapsed island when nothing is playing expands it to preview the last track played this session (album art left, static play glyph right — superseded from the original equalizer-bars visual per on-device UAT, see Phase 53 note) — same footprint/position as the active Now Playing glance
-- [x] **RESUME-02**: Clicking the hover-preview resumes playback of that last track, if still possible
+> **v1.8 Requirements (Settings Redesign & Island Navigation) shipped 2026-07-21** — archived to `.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02).
 
 ## v2 Requirements
 
@@ -158,12 +141,6 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
-| SETTINGS-02 | Phase 51 | Complete |
-| SETTINGS-03 | Phase 51 | Complete |
-| SWITCH-03 | Phase 52 | Complete |
-| SWITCH-04 | Phase 52 | Complete |
-| RESUME-01 | Phase 53 | Complete |
-| RESUME-02 | Phase 53 | Complete |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
@@ -176,19 +153,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Unmapped: 0
 - Phase 47 (Audio Output — Pure Seam + Monitor) and Phase 49 (Favorite/Like — Spike) carry no formal REQ-ID themselves — they're infrastructure/spike phases preceding Phase 48/50's user-facing requirements, mirroring this project's own Phase 15/16/19 and Phase 22-01/24-01/38-01/39-01 precedent.
 
-**Coverage (v1.8):**
-- v1.8 requirements: 6 total
-- Mapped to phases: 6 (100%)
-- Unmapped: 0
-
 v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is archived in `.planning/milestones/v1.6-REQUIREMENTS.md`.
+v1.8's traceability table (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02 — 6/6 shipped) is archived in `.planning/milestones/v1.8-REQUIREMENTS.md`.
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-21 — v1.8 (Settings Redesign & Island Navigation) requirements defined: 6 requirements (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02), not yet mapped to phases. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
+*Last updated: 2026-07-21 — v1.8 (Settings Redesign & Island Navigation) SHIPPED: 6/6 requirements (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02) complete, archived to `.planning/milestones/v1.8-REQUIREMENTS.md`. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
 *v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*
 *v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
 *v1.5 requirements defined 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
-*v1.8 (Settings Redesign & Island Navigation) roadmap created: 3 phases (51-53), 100% coverage (6/6). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track is supported by the existing NowPlayingMonitor/MediaRemote adapter transport) to verify early within its own phase. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed).*
-*Phase 53 (Hover-to-Resume Idle Preview) completed 2026-07-21 — RESUME-01/RESUME-02 marked Complete after on-device UAT approval (both Debug and Release builds), including a mid-UAT design fix (D-02 superseded: static play glyph replaces the bouncing equalizer bars in the idle-hover preview, since animated bars implied live playback when nothing was actually playing). v1.8 milestone now 3/3 phases complete (100%).*
+*v1.8 (Settings Redesign & Island Navigation) shipped and archived to `.planning/milestones/v1.8-REQUIREMENTS.md`/`.planning/milestones/v1.8-ROADMAP.md` — 3 phases (51-53), 6/6 requirements shipped, including a mid-UAT design fix (D-02 superseded: static play glyph replaces the bouncing equalizer bars in the idle-hover preview, since animated bars implied live playback when nothing was actually playing).*
