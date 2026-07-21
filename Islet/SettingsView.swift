@@ -679,6 +679,15 @@ struct SettingsView: View {
                 Section("Credits") {
                     Text("Equalizer bar animation inspired by Skiper UI (skiper25.com)")
                 }
+
+                // Phase 54 / D-09 (locked): stays in About, NOT moved into the new
+                // Permissions section — even though onboarding's permissions step is the
+                // part most likely to be replayed.
+                Section("Onboarding") {
+                    Button("Replay Onboarding") {
+                        (NSApp.delegate as? AppDelegate)?.notchController?.replayOnboarding()
+                    }
+                }
             }
             .padding(20)
         }
