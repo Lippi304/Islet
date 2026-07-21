@@ -51,6 +51,22 @@ enum ActivitySettings {
     }
     static let weatherStyleKey = "weather.style"
 
+    // Phase 52 / SWITCH-03/04 — the view switcher's layout: today's pill-below-the-island
+    // (default) or the alternate compact top-edge row. Corrupted/unknown UserDefaults values
+    // parse to nil; every read site applies `?? .pill` (mirrors WeatherStyle's convention).
+    enum SwitcherLayout: String, CaseIterable {
+        case pill, topEdge
+    }
+    static let switcherLayoutKey = "switcher.layout"
+
+    // Phase 52 / SWITCH-04 — one independent @AppStorage key per top-edge slot (never a single
+    // encoded array), so each of the 4 positions (2 left of the camera cutout, 2 right) can be
+    // configured independently. Default split: Home+Tray left, Calendar+Weather right.
+    static let switcherSlotLeftOuterKey = "switcher.slot.leftOuter"
+    static let switcherSlotLeftInnerKey = "switcher.slot.leftInner"
+    static let switcherSlotRightInnerKey = "switcher.slot.rightInner"
+    static let switcherSlotRightOuterKey = "switcher.slot.rightOuter"
+
     // Phase 27 / VISUAL-03: the island's material look — a flat black fill
     // ("solidBlack") or the Phase 25 vertical gradient ("gradient"). Phase 35 /
     // GLASS-01 (D-05) adds a third case, "liquidGlass" — the distorted-shader
@@ -138,6 +154,9 @@ typealias MaterialStyle = ActivitySettings.MaterialStyle
 // Bare alias so read sites can say `WeatherStyle.medium`/`.large` instead of the
 // fully-qualified `ActivitySettings.WeatherStyle` (mirrors MaterialStyle above verbatim).
 typealias WeatherStyle = ActivitySettings.WeatherStyle
+// Bare alias so read sites can say `SwitcherLayout.pill`/`.topEdge` instead of the
+// fully-qualified `ActivitySettings.SwitcherLayout` (mirrors WeatherStyle above verbatim).
+typealias SwitcherLayout = ActivitySettings.SwitcherLayout
 
 // Phase 35 / GLASS-01 (D-06): defaultValue flipped .gradient -> .liquidGlass —
 // the EnvironmentKey fallback used before the controller wires the real

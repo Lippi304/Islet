@@ -95,4 +95,23 @@ final class ActivitySettingsTests: XCTestCase {
             "Active"
         )
     }
+
+    // MARK: Phase 52 / SWITCH-03/04 — SwitcherLayout + switcher keys
+
+    func testSwitcherLayoutParsesPillAndTopEdge() {
+        XCTAssertEqual(ActivitySettings.SwitcherLayout(rawValue: "pill"), .pill)
+        XCTAssertEqual(ActivitySettings.SwitcherLayout(rawValue: "topEdge"), .topEdge)
+    }
+
+    func testSwitcherLayoutParsesCorruptedValueToNil() {
+        XCTAssertNil(ActivitySettings.SwitcherLayout(rawValue: "corrupted"))
+    }
+
+    func testSwitcherKeyNames() {
+        XCTAssertEqual(ActivitySettings.switcherLayoutKey, "switcher.layout")
+        XCTAssertEqual(ActivitySettings.switcherSlotLeftOuterKey, "switcher.slot.leftOuter")
+        XCTAssertEqual(ActivitySettings.switcherSlotLeftInnerKey, "switcher.slot.leftInner")
+        XCTAssertEqual(ActivitySettings.switcherSlotRightInnerKey, "switcher.slot.rightInner")
+        XCTAssertEqual(ActivitySettings.switcherSlotRightOuterKey, "switcher.slot.rightOuter")
+    }
 }
