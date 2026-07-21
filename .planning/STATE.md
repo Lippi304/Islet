@@ -4,7 +4,7 @@ milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: executing
 stopped_at: Completed 54-01-PLAN.md
-last_updated: "2026-07-21T22:59:10.927Z"
+last_updated: "2026-07-21T23:11:14.240Z"
 last_activity: 2026-07-21
 progress:
   total_phases: 4
@@ -214,6 +214,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 53]: [Phase 53-01]: RESUME-01/RESUME-02 left Pending in REQUIREMENTS.md — mirrors the Phase 45/52-02/52-03 precedent of deferring requirement completion until the phase's own on-device UAT plan (53-02) confirms the shipped hover-preview/resume-tap behaves correctly end-to-end on real hardware (hit-testing across the full wings footprint, timeout-window feel), even though this plan's own Task 1 spike already de-risked the underlying transport-feasibility question.
 - [Phase 53]: [Phase 53]: [Phase 53-02]: On-device UAT approved (Debug + Release) — all 4 ROADMAP success criteria confirmed, closing RESUME-01/RESUME-02. Mid-UAT design fix: D-02 superseded (bouncing equalizer bars in the idle-hover preview replaced with a static play.fill glyph, since animated bars while nothing was playing read as misleading) — commit 581c94e. v1.8 milestone now 3/3 phases complete.
 - [Phase 54]: [Phase 54-01] EKAuthorizationStatus.writeOnly counts as granted (never denied) for the combined Calendar+Reminders row; combinedCalendarReminderStatus resolves worst-of-two (denied > notYetAsked > granted, D-13 locked). Plan executed exactly as written, no deviations.
+- [Phase 54]: [Phase 54, 54-03]: Tasks 1-2 (Permissions sidebar section wiring Plan 01's read layer + tap-to-act; Replay Onboarding button in About wiring Plan 02's replayOnboarding()) landed and build-verified (commits 3a1d14d, 0a548ed). Task 3 (on-device UAT, gate=blocking) is a checkpoint requiring interactive human verification this executor cannot perform -- reached and NOT auto-approved (workflow.auto_advance is false, no auto-chain active). Per the Phase 49-03/51-01 precedent, 54-03-SUMMARY.md was intentionally NOT created yet -- writing it now would let roadmap.update-plan-progress mark Phase 54 (3/3 plans, others complete) as fully shipped before UAT is approved. Resume by running the Task 3 checklist (10 steps, 54-03-PLAN.md) on-device; on 'approved' (or a described failure), a continuation agent should finish the plan (SUMMARY.md, state.advance-plan, roadmap.update-plan-progress).
 
 ### Roadmap Evolution
 
