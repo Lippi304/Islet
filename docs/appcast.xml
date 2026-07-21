@@ -8,7 +8,7 @@
             <sparkle:version>2</sparkle:version>
             <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/Lippi304/Islet/releases/download/v1.1/Islet.dmg" length="2537097" type="application/octet-stream" sparkle:edSignature="R9RYE7W6p2E8zgc/I9VwYs3rkURvVen3t02u+hOprLe9qXqErQ35mDmI6/lnolv9ORNQ1Ltc/FCNoZ1uH4t5BQ=="/>
+            <enclosure url="https://github.com/Lippi304/Islet/releases/download/v1.1/Islet.dmg" length="2537419" type="application/octet-stream" sparkle:edSignature="aJ8WktX3h0PrQ7bcnz7dP9oVDmBJ6o984MqXxbrtdqmSvq7NFRgqSN6qrYlYoD3Pm2m9UiWNPQ0cJxxKbdeWDg=="/>
         </item>
     </channel>
 </rss>
