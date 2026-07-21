@@ -85,8 +85,8 @@ Fixes the crowded, non-scrollable Settings window and adds two new interaction o
 
 ### Now Playing — Resume
 
-- [ ] **RESUME-01**: Hovering the collapsed island when nothing is playing expands it to preview the last track played this session (album art left, equalizer bars right) — same visual as the active Now Playing glance
-- [ ] **RESUME-02**: Clicking the hover-preview resumes playback of that last track, if still possible
+- [x] **RESUME-01**: Hovering the collapsed island when nothing is playing expands it to preview the last track played this session (album art left, static play glyph right — superseded from the original equalizer-bars visual per on-device UAT, see Phase 53 note) — same footprint/position as the active Now Playing glance
+- [x] **RESUME-02**: Clicking the hover-preview resumes playback of that last track, if still possible
 
 ## v2 Requirements
 
@@ -162,8 +162,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SETTINGS-03 | Phase 51 | Complete |
 | SWITCH-03 | Phase 52 | Complete |
 | SWITCH-04 | Phase 52 | Complete |
-| RESUME-01 | Phase 53 | Pending |
-| RESUME-02 | Phase 53 | Pending |
+| RESUME-01 | Phase 53 | Complete |
+| RESUME-02 | Phase 53 | Complete |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
@@ -191,3 +191,4 @@ v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is 
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
 *v1.5 requirements defined 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
 *v1.8 (Settings Redesign & Island Navigation) roadmap created: 3 phases (51-53), 100% coverage (6/6). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track is supported by the existing NowPlayingMonitor/MediaRemote adapter transport) to verify early within its own phase. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed).*
+*Phase 53 (Hover-to-Resume Idle Preview) completed 2026-07-21 — RESUME-01/RESUME-02 marked Complete after on-device UAT approval (both Debug and Release builds), including a mid-UAT design fix (D-02 superseded: static play glyph replaces the bouncing equalizer bars in the idle-hover preview, since animated bars implied live playback when nothing was actually playing). v1.8 milestone now 3/3 phases complete (100%).*

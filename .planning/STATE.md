@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
-status: executing
-stopped_at: Completed 53-01-PLAN.md
-last_updated: "2026-07-21T17:43:22.609Z"
+status: verifying
+stopped_at: Completed 53-02-PLAN.md (Phase 53 complete, v1.8 milestone 3/3 phases)
+last_updated: "2026-07-21T19:36:55.757Z"
 last_activity: 2026-07-21
 progress:
   total_phases: 19
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 53 (hover-to-resume-idle-preview) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-21
 
 ### Phase 48 status note
@@ -141,6 +141,7 @@ Progress (v1.8): [░░░░░░░░░░] 0% (0/3 phases — roadmap cre
 | Phase 52 P03 | 20min | 2 tasks | 3 files |
 | Phase 52 P04 | 15min | 2 tasks | 0 files |
 | Phase 53 P01 | multi-session (checkpoint) | 3 tasks | 3 files |
+| Phase 53 P02 | single session (checkpoint, 2 rounds) | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -208,6 +209,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 52]: [Phase 52-04]: On-device UAT approved ("Klappt alles wunderbar") — full 403-test regression suite green (only 2 pre-existing unrelated CalendarGlanceTests failures) plus Release build succeeded; SWITCH-03/SWITCH-04 confirmed on real notched hardware (D-04 36pt-in-42pt fit, Pitfall 2 cutout-gap clearance, D-03 live reorder propagation to both layouts) — Phase 52 shipped
 - [Phase 53]: [Phase 53-01]: Task 1 on-device spike verdict = approved — togglePlayPause() resumes a paused (not quit) session for both Spotify and Apple Music, matching the plan's default expectation; gives Task 3's D-03 inferred-failure timeout a real empirical basis. Hover-preview shipped as a view-local branch off .idle (Claude's Discretion, 53-CONTEXT.md), not a new IslandPresentation case — IslandResolver.swift/IslandResolverTests.swift confirmed untouched.
 - [Phase 53]: [Phase 53-01]: RESUME-01/RESUME-02 left Pending in REQUIREMENTS.md — mirrors the Phase 45/52-02/52-03 precedent of deferring requirement completion until the phase's own on-device UAT plan (53-02) confirms the shipped hover-preview/resume-tap behaves correctly end-to-end on real hardware (hit-testing across the full wings footprint, timeout-window feel), even though this plan's own Task 1 spike already de-risked the underlying transport-feasibility question.
+- [Phase 53]: [Phase 53]: [Phase 53-02]: On-device UAT approved (Debug + Release) — all 4 ROADMAP success criteria confirmed, closing RESUME-01/RESUME-02. Mid-UAT design fix: D-02 superseded (bouncing equalizer bars in the idle-hover preview replaced with a static play.fill glyph, since animated bars while nothing was playing read as misleading) — commit 581c94e. v1.8 milestone now 3/3 phases complete.
 
 ### Roadmap Evolution
 
@@ -318,8 +320,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-21T17:42:55.507Z
-Stopped at: Completed 53-01-PLAN.md
+Last session: 2026-07-21T19:36:55.752Z
+Stopped at: Completed 53-02-PLAN.md (Phase 53 complete, v1.8 milestone 3/3 phases)
 Resume file: None
 
 ## Operator Next Steps

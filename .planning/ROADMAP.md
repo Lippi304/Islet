@@ -133,7 +133,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 - [x] **Phase 51: Settings Reorganization & Scroll Fix** - Fix the unreachable-below-the-fold scroll bug and split General into dedicated Activities/Appearance/Fullscreen/Weather/Diagnostics sidebar sections (completed 2026-07-21)
 - [x] **Phase 52: Top-Edge Switcher Layout & Placement Config** - User-selectable alternate 4-icon top-edge switcher layout with configurable left/right icon placement (completed 2026-07-21)
-- [ ] **Phase 53: Hover-to-Resume Idle Preview** - Hovering the idle island previews the last track played this session; clicking resumes it
+- [x] **Phase 53: Hover-to-Resume Idle Preview** - Hovering the idle island previews the last track played this session; clicking resumes it (completed 2026-07-21)
 
 ## Phase Details
 
@@ -188,7 +188,7 @@ Plans:
 
 **v1.7:** 3/8 phases complete (38%) — roadmap created 2026-07-19. Phases 43-50, 15/15 v1.7 requirements mapped. Phase 43 (Drag Detection Hardening) completed 2026-07-19. Phase 44 (Tray & Quick Action Width Alignment) completed 2026-07-19. Phase 45 (View Switcher Morph Fix, SWITCH-01/02) completed 2026-07-19 — 45-02's on-device 12-pairwise-transition sweep confirmed both requirements shipped. Phase order: the 4 independent, no-research-dependency bugfixes first (Drag Detection → Tray/Picker Width Alignment → View Switcher Morph → Calendar Quick-Add), then the Now Playing work split per research's risk-isolation recommendation — Audio Output Switcher (public CoreAudio API, pure-seam-then-UI-wiring, no external unknowns) before Favorite/Like (spike-then-implementation, this milestone's highest-risk item: Spotify OAuth+quota reality, Apple Music AppleScript reliability, Automation/TCC permission bug), mirroring this project's own Phase 22/24 and Phase 38/39 spike-first precedent.
 
-**v1.8:** 0/3 phases complete (0%) — roadmap created 2026-07-21. Phases 51-53, 6/6 v1.8 requirements mapped. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume is sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track is achievable via the existing NowPlayingMonitor/MediaRemote adapter transport, per PROJECT.md's v1.8 Key Context), to be verified early within its own phase.
+**v1.8:** 3/3 phases complete (100%) — roadmap created 2026-07-21. Phases 51-53, 6/6 v1.8 requirements mapped and shipped. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume was sequenced last since it carried this milestone's one open technical question (whether resuming a non-active track is achievable via the existing NowPlayingMonitor/MediaRemote adapter transport, per PROJECT.md's v1.8 Key Context), verified early within its own phase (53-01 spike: approved). Phase 53 completed 2026-07-21 after 53-02's on-device UAT approval, including a mid-UAT D-02 design supersession (static play glyph replaces animated equalizer bars in the idle-hover preview). Formal `/gsd:complete-milestone` for v1.8 still pending.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -896,7 +896,7 @@ Plans:
 **Requirements**: RESUME-01, RESUME-02
 **Success Criteria** (what must be TRUE):
 
-  1. After at least one track has played this app session, hovering the collapsed island while nothing is currently playing expands it to show that track's album art (left) and equalizer bars (right) — the same visual as the active Now Playing view.
+  1. After at least one track has played this app session, hovering the collapsed island while nothing is currently playing expands it to show that track's album art (left) and a static play glyph (right) — same footprint/position as the active Now Playing view (REVISED during 53-02 on-device UAT: the glyph replaces animated equalizer bars, since bouncing bars while nothing plays implied live playback that wasn't happening; D-02 superseded).
   2. Before anything has played this session, hovering the idle island shows no preview — today's unchanged behavior.
   3. Clicking the hover-preview resumes playback of that last track whenever the underlying transport still supports it.
   4. Whether resuming a non-active track is achievable via the existing `NowPlayingMonitor`/MediaRemote adapter transport is verified early in this phase (open technical question per PROJECT.md's v1.8 Key Context) rather than assumed — if resuming genuinely isn't possible for a given source, the click gives clear feedback instead of silently doing nothing.
@@ -910,6 +910,6 @@ Plans:
 
 **Wave 2** *(blocked on 53-01)*
 
-- [ ] 53-02-PLAN.md — Full on-device UAT covering all 4 ROADMAP success criteria
+- [x] 53-02-PLAN.md — Full on-device UAT covering all 4 ROADMAP success criteria — approved (Debug + Release), including a mid-UAT D-02 supersession (static play glyph replaces bouncing equalizer bars)
 
 **UI hint**: yes
