@@ -74,7 +74,13 @@ if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ]; then
   # NOTE: no `--deep` — it is deprecated and mis-signs nested code once we embed
   # frameworks (MediaRemoteAdapter, Sparkle) in later phases. codesign signs the
   # app bundle correctly without it.
-  codesign --force --sign - "${APP_PATH}"
+  #
+  # `--entitlements` is REQUIRED here too (see the real-signing branch's comment
+  # below for why) — Xcode's own archive-time signature already carries the
+  # entitlements, but re-signing with `codesign` does not preserve them unless
+  # told to; without this flag the local dry-run app would silently be missing
+  # Location/WeatherKit/Calendar/Automation, masking the exact bug this fixes.
+  codesign --force --entitlements Islet/Islet.entitlements --sign - "${APP_PATH}"
 else
   echo "-> Signing with Developer ID + hardened runtime."
   # Sign nested frameworks first (inside-out). codesign does not recurse into
@@ -113,11 +119,31 @@ else
           --sign "${DEVELOPER_ID}" "${framework}"
       done
   fi
+  # `--entitlements` is REQUIRED here: codesign does NOT carry forward the
+  # entitlements Xcode's archive step already embedded just because we're
+  # re-signing the same bundle — omitting this flag silently produces an app
+  # with ZERO entitlements (confirmed via `codesign -d --entitlements -`: the
+  # pre-resign archive has com.apple.developer.weatherkit,
+  # com.apple.security.personal-information.location, etc.; the app this line
+  # used to produce, without this flag, had none at all). That's a silent
+  # failure, not a build error — WeatherKit/Location/Calendar/Automation all
+  # quietly stop working with no crash and no visible error, exactly the "Wetter
+  # nicht verfügbar" symptom a user reported after downloading v1.1.
   codesign --force --options runtime --timestamp \
+    --entitlements Islet/Islet.entitlements \
     --sign "${DEVELOPER_ID}" "${APP_PATH}"
 fi
 # Sanity-check the signature is well-formed before we package it.
 codesign --verify --verbose "${APP_PATH}"
+# Guard against ever repeating this exact silent-entitlements-loss bug: fail
+# loudly if the signed app doesn't actually carry the WeatherKit entitlement
+# (a stand-in check for "entitlements survived signing" — this key is a
+# canary because it's easy to grep for and always expected to be present).
+if ! codesign -d --entitlements - "${APP_PATH}" 2>/dev/null | grep -q "com.apple.developer.weatherkit"; then
+  echo "ERROR: signed app is missing entitlements (WeatherKit canary check failed)." >&2
+  echo "Location/WeatherKit/Calendar/Automation would silently stop working. Aborting." >&2
+  exit 1
+fi
 
 # ----------------------------------------------------------------------------
 # Step 3b: Notarize + staple the .app itself (only when both placeholders are
