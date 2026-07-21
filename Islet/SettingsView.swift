@@ -137,9 +137,9 @@ struct SettingsView: View {
             }
             .padding(8)
             // UAT fix (51-01): narrowed from min160/ideal180/max220 — "Diagnostics" (the
-            // longest sidebar label) still fits with room to spare at 150, and the detail
-            // pane needed the reclaimed width for appearanceSection's segmented picker,
-            // which was truncating "Liquid Glass" at the locked 520pt window width (D-05).
+            // longest sidebar label) still fits with room to spare at 150. Combined with
+            // the window widening to 600pt (D-05 revised), this gives appearanceSection's
+            // segmented picker comfortable margin after it clipped "Liquid Glass" at 520pt.
             .navigationSplitViewColumnWidth(min: 140, ideal: 150, max: 190)
         } detail: {
             switch selection {
@@ -203,13 +203,13 @@ struct SettingsView: View {
                 }
             }
         }
-        .frame(width: 520, height: 380)
+        .frame(width: 600, height: 380)
     }
 
     // Phase 51 / SETTINGS-03 (D-02) — Activities: Launch-at-login folded in alongside
     // the 8 activity toggles. The tallest section (D-05) — wrapped in ScrollView so
     // its last toggle ("Automatically Check for Updates") stays reachable within the
-    // fixed 520x380 window (SETTINGS-02 scroll fix).
+    // fixed 600x380 window (SETTINGS-02 scroll fix).
     private var activitiesSection: some View {
         ScrollView(.vertical) {
             Form {
