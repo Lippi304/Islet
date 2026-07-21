@@ -136,7 +136,11 @@ struct SettingsView: View {
                 Spacer()
             }
             .padding(8)
-            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
+            // UAT fix (51-01): narrowed from min160/ideal180/max220 — "Diagnostics" (the
+            // longest sidebar label) still fits with room to spare at 150, and the detail
+            // pane needed the reclaimed width for appearanceSection's segmented picker,
+            // which was truncating "Liquid Glass" at the locked 520pt window width (D-05).
+            .navigationSplitViewColumnWidth(min: 140, ideal: 150, max: 190)
         } detail: {
             switch selection {
             case .activities:
@@ -472,12 +476,17 @@ struct SettingsView: View {
         ScrollView(.vertical) {
             Form {
                 Section("Appearance Style") {
+                    // UAT fix (51-01): the row label ("Style") duplicated the section
+                    // header ("Appearance Style") and its reserved column width was what
+                    // pushed "Liquid Glass" past the window's right edge. Hiding it is a
+                    // pure space reclaim, not a functionality change.
                     Picker("Style", selection: $materialStyle) {
                         Text("Gradient").tag(MaterialStyle.gradient)
                         Text("Solid Black").tag(MaterialStyle.solidBlack)
                         Text("Liquid Glass").tag(MaterialStyle.liquidGlass)
                     }
                     .pickerStyle(.segmented)
+                    .labelsHidden()
                 }
 
                 Section("Accent Colors") {
