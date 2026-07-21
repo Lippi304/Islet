@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: executing
-stopped_at: Phase 54 context gathered
-last_updated: "2026-07-21T21:44:45.221Z"
-last_activity: 2026-07-21 — Milestone v1.8 completed and archived
+stopped_at: Phase 54 UI-SPEC approved
+last_updated: "2026-07-21T22:43:54.996Z"
+last_activity: 2026-07-21 -- Phase 54 planning complete
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 7
+  total_plans: 10
   completed_plans: 7
-  percent: 75
+  percent: 70
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: v1.8 archived (Phases 51-53) — no active phase selected
 Plan: —
-Status: v1.8 shipped; v1.4/v1.5/v1.7 still in progress
-Last activity: 2026-07-21 — Milestone v1.8 completed and archived
+Status: Ready to execute
+Last activity: 2026-07-21 -- Phase 54 planning complete
 
 ### Phase 48 status note
 
@@ -334,12 +334,13 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-21T21:44:45.213Z
-Stopped at: Phase 54 context gathered
-Resume file: .planning/phases/54-permissions-overview-onboarding-replay-settings-rollup-showi/54-CONTEXT.md
+Last session: 2026-07-21T22:09:02.033Z
+Stopped at: Phase 54 UI-SPEC approved
+Resume file: .planning/phases/54-permissions-overview-onboarding-replay-settings-rollup-showi/54-UI-SPEC.md
 
 ## Operator Next Steps
 
+- **Phase 54 decision-coverage gate overridden (2026-07-22).** `check.decision-coverage-plan` flagged D-01 through D-11 as not cited inside any plan's `must_haves.truths` block (only D-12/D-13 are). Manual review confirmed all 13 decisions ARE implemented and referenced in plan task bodies/acceptance criteria (grep-verified, and gsd-plan-checker's semantic review independently confirmed all 13 decisions correctly implemented) — user chose "Proceed anyway" since this is a must_haves-phrasing gap, not a missing feature. Re-surface at `/gsd:verify-work 54` if in doubt.
 - **v1.8 (Settings Redesign & Island Navigation) SHIPPED 2026-07-21.** All 3 phases (51-53) archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped. Start a fresh milestone for new work with `/gsd-new-milestone` — but note v1.4, v1.5, and v1.7 all remain open in parallel below; picking those back up does not require a new milestone.
 - **v1.7 (Interaction & Calendar Polish):** 6/8 phases complete (43/44/45/46/47/48), Phase 49 (Favorite/Like spike) paused after weak SC#1/SC#2 spike results per user decision; Phase 50 needs reconsideration before planning. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, still open) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47, done) then UI wiring (48, done), then Favorite/Like split spike-first (49, paused) then implementation (50, on hold).
 - **Phase 48 (Audio Output Switcher — UI Wiring) is fully complete.** All 3 plans done, on-device UAT approved ("approved" after the drag-animation-choppiness fix). OUTPUT-01..04 shipped.
