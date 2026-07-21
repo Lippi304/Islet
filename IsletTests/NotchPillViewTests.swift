@@ -128,4 +128,50 @@ final class NotchPillViewTests: XCTestCase {
         XCTAssertEqual(SelectedView(rawValue: "home"), .home)
         XCTAssertNil(SelectedView(rawValue: "corrupted"))
     }
+
+    // MARK: - Phase 52 / SWITCH-03/04 Task 1 — data-driven switcherRow (orderedSlotViews)
+
+    private func makeSlotView(_ presentation: IslandPresentation = .homeEmpty) -> NotchPillView {
+        let state = NotchInteractionState()
+        state.phase = .expanded
+        return NotchPillView(interaction: state,
+                              nowPlaying: NowPlayingState(),
+                              presentationState: IslandPresentationState(presentation),
+                              outfit: BasicOutfitState(),
+                              shelfViewState: ShelfViewState(),
+                              onboardingState: OnboardingViewState(),
+                              viewSwitcherState: ViewSwitcherState(),
+                              calendarViewState: CalendarViewState())
+    }
+
+    func testOrderedSlotViewsDefaultsToTodaysPillOrder() {
+        // Fresh view, no UserDefaults overrides — must byte-match today's hardcoded
+        // switcherRow order (SWITCH-04 default, zero regression).
+        XCTAssertEqual(makeSlotView().orderedSlotViews, [.home, .tray, .calendar, .weather])
+    }
+
+    func testOrderedSlotViewsReflectsUserDefaultsOverride() {
+        let defaults = UserDefaults.standard
+        let keys = [ActivitySettings.switcherSlotLeftOuterKey,
+                    ActivitySettings.switcherSlotLeftInnerKey,
+                    ActivitySettings.switcherSlotRightInnerKey,
+                    ActivitySettings.switcherSlotRightOuterKey]
+        let originalValues = keys.map { defaults.string(forKey: $0) }
+        defer {
+            for (key, original) in zip(keys, originalValues) {
+                if let original {
+                    defaults.set(original, forKey: key)
+                } else {
+                    defaults.removeObject(forKey: key)
+                }
+            }
+        }
+
+        defaults.set(SelectedView.weather.rawValue, forKey: ActivitySettings.switcherSlotLeftOuterKey)
+        defaults.set(SelectedView.calendar.rawValue, forKey: ActivitySettings.switcherSlotLeftInnerKey)
+        defaults.set(SelectedView.tray.rawValue, forKey: ActivitySettings.switcherSlotRightInnerKey)
+        defaults.set(SelectedView.home.rawValue, forKey: ActivitySettings.switcherSlotRightOuterKey)
+
+        XCTAssertEqual(makeSlotView().orderedSlotViews, [.weather, .calendar, .tray, .home])
+    }
 }

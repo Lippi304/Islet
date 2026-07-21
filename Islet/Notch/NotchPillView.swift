@@ -123,6 +123,30 @@ struct NotchPillView: View {
     // visibleContentZone). Medium is always the safe floor default (D-04).
     @AppStorage(ActivitySettings.weatherStyleKey) private var weatherStyle: WeatherStyle = .medium
 
+    // Phase 52 / SWITCH-04 — the 4 top-edge/pill slot assignments, one independent @AppStorage
+    // key per slot (never a single encoded array). Default split: Home+Tray left, Calendar+
+    // Weather right — byte-identical to today's hardcoded switcherRow order (D-03 zero
+    // regression). Mirrors weatherStyle's declaration style directly above.
+    @AppStorage(ActivitySettings.switcherSlotLeftOuterKey) private var slotLeftOuter: SelectedView = .home
+    @AppStorage(ActivitySettings.switcherSlotLeftInnerKey) private var slotLeftInner: SelectedView = .tray
+    @AppStorage(ActivitySettings.switcherSlotRightInnerKey) private var slotRightInner: SelectedView = .calendar
+    @AppStorage(ActivitySettings.switcherSlotRightOuterKey) private var slotRightOuter: SelectedView = .weather
+
+    // Phase 52 / SWITCH-03 (D-06) — the switcher layout mode: today's pill-below-the-island
+    // (default) or the alternate top-edge row. Corrupted/unknown stored values fall back to
+    // .pill, mirroring weatherStyle's `?? .medium`-equivalent @AppStorage default convention.
+    @AppStorage(ActivitySettings.switcherLayoutKey) private var switcherLayout: SwitcherLayout = .pill
+
+    // Phase 52 / SWITCH-03/04 (D-03) — the ONE shared left-to-right ordering both switcherRow
+    // (pill) and topEdgeSwitcherRow (top-edge) read; calls Plan 52-01's shared orderedSlotIcons(...)
+    // free function so there is exactly one place that turns 4 independent slot values into an
+    // ordered array. internal (not private): NotchPillViewTests.swift asserts this directly, same
+    // testability precedent as shelfStripVisible/tabWidth/tabHeight.
+    var orderedSlotViews: [SelectedView] {
+        orderedSlotIcons(leftOuter: slotLeftOuter, leftInner: slotLeftInner,
+                          rightInner: slotRightInner, rightOuter: slotRightOuter)
+    }
+
     // Phase 20 / SHELF-03 — the SEPARATE @Published shelf model, mirroring nowPlaying/
     // presentationState/outfit's existing ownership contract: the controller (Plan 20-02) always
     // owns and injects a real instance, never defaulted. This view only RENDERS whatever is
@@ -2031,6 +2055,18 @@ struct NotchPillView: View {
             .onTapGesture { onClick() }
     }
 
+    // Phase 52 / SWITCH-03/04 (D-03) — extracted once so switcherRow (pill) and
+    // topEdgeSwitcherRow (top-edge) share the exact same icon/action mapping — one shared
+    // source feeds both layouts. Byte-identical to the 4 pairs switcherRow used to hardcode.
+    private func icon(for view: SelectedView) -> (systemName: String, action: () -> Void) {
+        switch view {
+        case .home:     return ("house.fill",     { onSwitcherSelect(.home) })
+        case .tray:     return ("tray.fill",      { onSwitcherSelect(.tray) })
+        case .calendar: return ("calendar",       { onSwitcherSelect(.calendar) })
+        case .weather:  return ("cloud.sun.fill", { onSwitcherSelect(.weather) })
+        }
+    }
+
     // Phase 28 / CALVIEW-01 (28-UI-SPEC.md "Switcher pill") — the Home/Tray/Calendar/Weather
     // switcher, reusing `navCircleButton` verbatim (same circular nav-button visual language as
     // onboarding's Back/Next/Finish). `filled:` marks whichever icon matches
@@ -2038,20 +2074,17 @@ struct NotchPillView: View {
     // precedence re-deciding here (Pattern 3: the resolver stays the single arbiter).
     // 28-04 round 4 (user-confirmed scope expansion) — Weather appended as the 4th icon, after
     // Calendar (Home/Tray/Calendar/Weather order, existing three left untouched).
+    // Phase 52 / SWITCH-04 (D-03) — the hardcoded 4-button HStack is now a ForEach over
+    // orderedSlotViews (always exactly 4 elements — Phase 45 structural-identity rule: no
+    // conditional child count, no AnyView), so reassigning a slot reorders this row live.
     private var switcherRow: some View {
         HStack(spacing: 8) {
-            navCircleButton(systemName: "house.fill",
-                             filled: viewSwitcherState.selectedView == .home,
-                             action: { onSwitcherSelect(.home) })
-            navCircleButton(systemName: "tray.fill",
-                             filled: viewSwitcherState.selectedView == .tray,
-                             action: { onSwitcherSelect(.tray) })
-            navCircleButton(systemName: "calendar",
-                             filled: viewSwitcherState.selectedView == .calendar,
-                             action: { onSwitcherSelect(.calendar) })
-            navCircleButton(systemName: "cloud.sun.fill",
-                             filled: viewSwitcherState.selectedView == .weather,
-                             action: { onSwitcherSelect(.weather) })
+            ForEach(orderedSlotViews, id: \.self) { view in
+                let mapping = icon(for: view)
+                navCircleButton(systemName: mapping.systemName,
+                                 filled: viewSwitcherState.selectedView == view,
+                                 action: mapping.action)
+            }
         }
         .frame(height: Self.switcherRowHeight)
     }
