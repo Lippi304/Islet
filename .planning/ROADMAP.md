@@ -922,7 +922,7 @@ Plans:
 **Goal:** Settings gains a "Permissions" rollup showing how many of the app's permissions are granted (X of Y), lets the user see the status of and re-request any denied/not-yet-granted permission individually, and offers a "Replay Onboarding" button in About.
 **Requirements**: ARCH-P2
 **Depends on:** Phase 53
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -932,4 +932,4 @@ Plans:
 
 **Wave 2** *(blocked on 54-01, 54-02)*
 
-- [ ] 54-03-PLAN.md — SettingsView Permissions section (5-row list + summary, D-05/D-06 tap-to-act) + About's Replay Onboarding button + on-device UAT checkpoint
+- [x] 54-03-PLAN.md — SettingsView Permissions section (5-row list + summary, D-05/D-06 tap-to-act) + About's Replay Onboarding button + on-device UAT checkpoint
