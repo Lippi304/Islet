@@ -3,6 +3,7 @@ import CoreLocation
 import EventKit
 import CoreBluetooth
 import Intents
+import IOKit.hid
 
 // Phase 54 / ARCH-P2 — the pure permission-status seam Plan 03's SettingsView consumes.
 // Mirrors this codebase's established "pure seam + thin framework glue" split
@@ -88,4 +89,47 @@ func combinedCalendarReminderStatus(event: PermissionStatus, reminder: Permissio
     if event == .denied || reminder == .denied { return .denied }
     if event == .notYetAsked || reminder == .notYetAsked { return .notYetAsked }
     return .granted
+}
+
+// MARK: - Live status-read functions (thin framework glue, one-line calls into the
+// pure mappers above -- no new monitor classes, mirrors this codebase's "pure seam +
+// thin framework glue" split).
+
+func locationPermissionStatus() -> PermissionStatus {
+    mapCLAuthorization(CLLocationManager().authorizationStatus)
+}
+
+// Mirrors the confirmed-working read at NotchWindowController.swift:1896
+// (CBManager.authorization == .allowedAlways). Do NOT add a status property to
+// BluetoothMonitor -- this is a static framework-level read, independent of any
+// BluetoothMonitor instance.
+func bluetoothPermissionStatus() -> PermissionStatus {
+    mapCBManagerAuthorization(CBManager.authorization)
+}
+
+func focusPermissionStatus() -> PermissionStatus {
+    mapINFocusAuthorization(INFocusStatusCenter.default.authorizationStatus)
+}
+
+func calendarEventPermissionStatus() -> PermissionStatus {
+    mapEKAuthorization(EKEventStore.authorizationStatus(for: .event))
+}
+
+func reminderPermissionStatus() -> PermissionStatus {
+    mapEKAuthorization(EKEventStore.authorizationStatus(for: .reminder))
+}
+
+/// Best-effort Input Monitoring status (D-03/Pitfall 4): no official "request access" API
+/// exists for Input Monitoring on macOS. `OSDInterceptor`'s unconditional launch-time
+/// `.cghidEventTap` (not `DropInterceptTap`'s `.cgSessionEventTap`, which gates on
+/// Accessibility instead) is what actually triggers this TCC prompt in this app, so by the
+/// time a user opens Settings, this read is very likely already resolved to
+/// granted/denied -- a residual `.notYetAsked`/`.kIOHIDAccessTypeUnknown` read has no
+/// reliable in-app trigger. Plan 03's UI must NOT construct a new `CGEventTap` to nudge it.
+func inputMonitoringPermissionStatus() -> PermissionStatus {
+    switch IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) {
+    case kIOHIDAccessTypeGranted: return .granted
+    case kIOHIDAccessTypeDenied: return .denied
+    default: return .notYetAsked
+    }
 }
