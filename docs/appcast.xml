@@ -1,0 +1,14 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Islet</title>
+        <item>
+            <title>1.1</title>
+            <pubDate>Tue, 21 Jul 2026 22:40:34 +0200</pubDate>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Lippi304/Islet/releases/download/v1.1/Islet.dmg" length="2537097" type="application/octet-stream" sparkle:edSignature="R9RYE7W6p2E8zgc/I9VwYs3rkURvVen3t02u+hOprLe9qXqErQ35mDmI6/lnolv9ORNQ1Ltc/FCNoZ1uH4t5BQ=="/>
+        </item>
+    </channel>
+</rss>

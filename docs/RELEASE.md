@@ -161,19 +161,24 @@ see the warning below) generate a brand-new keypair there.
 > redownload. Regenerate the EdDSA keypair only if it is truly compromised, and never
 > alongside a signing-identity change.
 
-### The placeholder feed URL
+### The feed URL
 
-`project.yml`'s `INFOPLIST_KEY_SUFeedURL`-equivalent (actually merged via
-`Islet/Info-Sparkle.plist`, see below) is currently a placeholder:
+`project.yml`'s `SUFeedURL` (merged via `Islet/Info-Sparkle.plist`, see below) points
+directly at this repo, served for free via `raw.githubusercontent.com` — no separate
+hosting account needed (the original plan of a dedicated Vercel domain was descoped as
+unnecessary complexity for a hobby project):
 
 ```
-https://REPLACE-WITH-VERCEL-DOMAIN.example.com/appcast.xml
+https://raw.githubusercontent.com/Lippi304/Islet/main/docs/appcast.xml
 ```
 
-Before the **first real release** ships, replace this with the actual route on your
-Vercel domain that will serve the real `appcast.xml` (D-01/D-02: the appcast itself
-points at GitHub Releases for the actual `.dmg` binary — Vercel only hosts the small
-XML feed file). Then regenerate the Xcode project with `xcodegen generate`.
+`scripts/release.sh`'s Step 7 regenerates `docs/appcast.xml` automatically at the end
+of every release run (via Sparkle's `generate_appcast` tool, which also signs the new
+entry with the EdDSA private key from Keychain). After a release: **commit and push
+`docs/appcast.xml`**, and **upload the matching `dist/Islet.dmg` to that version's
+GitHub Release** (`gh release upload vX.Y dist/Islet.dmg`) — both must exist at the
+enclosure URL the appcast points at, or existing installs' "Check for Updates" will
+fail or 404.
 
 ### Versioning stays manual (D-04)
 
