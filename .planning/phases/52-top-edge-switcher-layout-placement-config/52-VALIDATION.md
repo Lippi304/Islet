@@ -2,8 +2,8 @@
 phase: 52
 slug: top-edge-switcher-layout-placement-config
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-07-21
 ---
 
@@ -38,14 +38,16 @@ created: 2026-07-21
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD-01 | TBD | 0 | SWITCH-03 | — / — | `tabHeight`/`tabWidth` in top-edge mode reserve `switcherContentHeight` for content but NOT `+switcherRowHeight` for the absent pill row | unit | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchPillViewTests` | ❌ W0 — extend `testTabWidthHeightMatchesKnownPerCaseValues`-style locked-values test | ⬜ pending |
-| TBD-02 | TBD | 0 | SWITCH-03 | — / — | `hasNotch` gates Settings `.switcher` section visibility (D-08) | unit | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchGeometryTests` | ❌ W0 — extract `visibleSidebarSections(hasNotch:)` pure function, mirroring `showsSwitcherRow(for:)` | ⬜ pending |
-| TBD-03 | TBD | 0 | SWITCH-04 | — / — | Default slot assignment is Home+Tray left, Calendar+Weather right | unit | New test asserting `@AppStorage` default values / default `orderedSlotIcons` array | ❌ W0 | ⬜ pending |
-| TBD-04 | TBD | 0 | SWITCH-04 | — / V5 (fallback decode) | Reassigning a slot updates both `switcherRow`'s pill order and top-edge row position from one shared state; `SelectedView(rawValue:)` falls back safely (`?? .home`) on corrupted stored value | unit | New test overriding `UserDefaults` slot keys (mirrors `weatherStyleKey` override-and-restore pattern), asserting `orderedSlotIcons` reflects override | ❌ W0 | ⬜ pending |
-| TBD-05 | TBD | 0 | SWITCH-04 | — / — | Cutout-gap width uses `notchSize(...).width`, not `auxLeftWidth + auxRightWidth` (Pitfall 2) | unit | If extracted as `topEdgeCutoutGap(descriptor:)`, directly testable with hand-built `ScreenDescriptor` values, mirroring `DisplayResolverTests.swift` | ❌ W0 | ⬜ pending |
-| TBD-06 | TBD | — | SWITCH-03 (SC#5) | — / — | Existing pill mode shows no regression | regression | `testShelfStripVisibleIsAlwaysFalse` + `testTabWidthHeightMatchesKnownPerCaseValues` (existing, `NotchPillViewTests.swift`) must still pass unmodified | ✅ existing | ⬜ pending |
-
-*Task IDs above are placeholders (`TBD-NN`) — the planner assigns real plan/task IDs; this map's rows must be re-keyed to match once PLAN.md files exist.*
+| 52-01-T1 | 52-01 | 1 | SWITCH-04 | — / — | `SelectedView` becomes `@AppStorage`-compatible; `orderedSlotIcons(...)` gives pill + top-edge row one shared ordering source (D-03) | unit (tdd) | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchPillViewTests` | ✅ task-scoped | ⬜ pending |
+| 52-01-T2 | 52-01 | 1 | SWITCH-04 | — / — | `ActivitySettings.SwitcherLayout` enum + 4 slot keys added | unit (tdd) | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchPillViewTests` | ✅ task-scoped | ⬜ pending |
+| 52-01-T3 | 52-01 | 1 | SWITCH-04 | — / — | `NotchGeometry.topEdgeCutoutGap(...)` uses `notchSize(...).width`, not `auxLeftWidth + auxRightWidth` (Pitfall 2) | unit (tdd) | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchGeometryTests` | ✅ task-scoped | ⬜ pending |
+| 52-02-T1 | 52-02 | 2 | SWITCH-04 | — / — | `switcherRow` reorders from shared `orderedSlotIcons` (D-03) | unit (tdd) | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchPillViewTests` | ✅ task-scoped | ⬜ pending |
+| 52-02-T2 | 52-02 | 2 | SWITCH-03 | — / — | `blobShape`/outer-frame/`visibleContentZone` three-site height-math fix: top-edge mode removes exactly the pill row's height, not the whole switcher content height (D-06, Pitfall 1) | unit (tdd) | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchPillViewTests` (extends `testTabWidthHeightMatchesKnownPerCaseValues`-style locked-values test) | ✅ task-scoped | ⬜ pending |
+| 52-02-T3 | 52-02 | 2 | SWITCH-03 | — / V5 (fallback decode) | `topEdgeSwitcherRow` renders 2+2 icons clear of camera cutout, reuses `navCircleButton` verbatim (D-04/D-05); `SelectedView(rawValue:)` falls back safely (`?? .home`) on corrupted stored value | unit (tdd) | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchPillViewTests` | ✅ task-scoped | ⬜ pending |
+| 52-03-T1 | 52-03 | 2 | SWITCH-04 | — / — | New "Switcher" Settings sidebar section: Pill/Top-Edge layout picker + 4 slot dropdowns, default Home+Tray left / Calendar+Weather right (D-01, D-02, D-07) | manual (Settings UI, no automated test per plan) | — | N/A | ⬜ pending |
+| 52-03-T2 | 52-03 | 2 | SWITCH-03 | — / — | `visibleSections(hasNotch:)` pure function hides `.switcher` section entirely on non-notch displays (D-08) | unit (tdd) | `xcodebuild test -scheme Islet -only-testing:IsletTests/NotchGeometryTests` (or new `SettingsViewTests.swift`) | ✅ task-scoped | ⬜ pending |
+| 52-04-T1 | 52-04 | 3 | SWITCH-03, SWITCH-04 (SC#5) | — / — | Full build + full test regression gate; existing pill-mode tests (`testShelfStripVisibleIsAlwaysFalse`, `testTabWidthHeightMatchesKnownPerCaseValues`) pass unmodified | regression | `xcodebuild test -scheme Islet` (or Cmd-U) | ✅ existing | ⬜ pending |
+| 52-04-T2 | 52-04 | 3 (blocking) | SWITCH-03 (SC#2), SWITCH-04 (SC#2/#3/#4) | — / — | On-device UAT: 36pt `navCircleButton` fits 42pt `cameraClearance` (D-04/Pitfall 3); cutout-gap clears real camera housing (Pitfall 2); reorder propagates live; all 5 ROADMAP success criteria walked through | manual (checkpoint:human-verify, gate=blocking) | — (see Manual-Only Verifications below) | N/A | ⬜ pending |
 
 ---
 
@@ -70,11 +72,11 @@ created: 2026-07-21
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 300s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 300s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-07-21 (gsd-plan-checker verification pass — no blockers)
