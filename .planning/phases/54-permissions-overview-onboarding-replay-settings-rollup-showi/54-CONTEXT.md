@@ -82,11 +82,20 @@ to review already-granted permissions and re-request ones they'd denied.
   literal wording) — it just sits ABOVE the always-visible per-row list, not as a
   collapsed/expandable gate to it.
 
+### Resolved during research follow-up (post-54-RESEARCH.md)
+- **D-12:** The onboarding carousel has NO cancel/close affordance today (force-quit is
+  the only exit). Replay mode adds a small X/close button that exits the replay WITHOUT
+  touching any persisted state (per D-08) — the original mandatory first-launch
+  onboarding flow is NOT given this button, only the replay path.
+- **D-13:** When Calendar and Reminders (the 2 underlying TCC entries combined into one
+  row per D-01) disagree in status, the row shows the WORST of the two: denied beats
+  not-yet-asked beats granted. Tapping the row when they disagree routes to the general
+  Calendar privacy pane (both sub-permissions are visible there) rather than trying to
+  pick one.
+
 ### Claude's Discretion
 - Exact SF Symbol/glyph choices for the 3 status states.
 - Whether a granted-permission row is tappable at all (no-op) or fully inert.
-- Exact deep-link URL constants per permission (research at planning time — do not
-  guess/hardcode without verifying against current macOS System Settings anchor names).
 - Best-effort Input Monitoring status-check technique (document the chosen approach's
   known limitations, since no official API exists).
 
