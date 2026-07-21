@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: executing
-stopped_at: Phase 51 UI-SPEC approved
-last_updated: "2026-07-21T01:24:18.378Z"
-last_activity: 2026-07-21 -- Phase 51 planning complete
+stopped_at: "Phase 51 Plan 01 Task 3 checkpoint (on-device UAT, blocking) — Tasks 1-2 committed"
+last_updated: "2026-07-21T01:27:17.744Z"
+last_activity: 2026-07-21 -- Phase 51 Plan 01 Tasks 1-2 executed and committed; Task 3 checkpoint reached
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 48 — audio-output-switcher-ui-wiring
+**Current focus:** Phase 51 — settings-reorganization-scroll-fix
 
 ## Current Position
 
-Phase: 51 (not started — roadmap created, ready for /gsd-discuss-phase 51)
-Plan: —
-Status: Ready to execute
-Last activity: 2026-07-21 -- Phase 51 planning complete
+Phase: 51 (settings-reorganization-scroll-fix) — EXECUTING
+Plan: 1 of 1
+Status: Plan 51-01 Tasks 1-2 complete and committed (4e36f2c, 871c146); Task 3 (on-device UAT, blocking checkpoint) awaiting user verification. SUMMARY.md intentionally NOT yet created — Phase 51 has exactly 1 plan, so writing it now would cause roadmap.update-plan-progress's file-existence-based detection to mark the whole phase Complete before UAT is approved. Resume with the Task 3 checklist below once the user runs the on-device walkthrough.
+Last activity: 2026-07-21 -- Phase 51 Plan 01 Tasks 1-2 (SidebarSection restructure + ScrollView wrapping) executed and committed; Debug+Release builds green; Task 3 checkpoint reached
 
 ### Phase 48 status note
 
@@ -192,6 +192,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 49-01]: Task 1 landed `com.apple.security.automation.apple-events` (Islet.entitlements) + `INFOPLIST_KEY_NSAppleEventsUsageDescription` (project.yml, German string, Phase-49-commented) — regenerated via xcodegen, Debug build green. Task 2 wired two DEBUG-only spike hooks (`spikeLikeCurrentTrack()`, `spikeTriggerAutomationPrompt()`) through NowPlayingMonitor -> NotchWindowController -> AppDelegate's existing debug menu, with two Rule-1 deviations from the plan's literal text: (1) NotchWindowController's forwarding methods are internal, not `private` as the plan stated — AppDelegate is a different type/file and cannot call a private method, so `private` would not compile; (2) the two new `@objc` debug-menu action methods needed an explicit `@MainActor` annotation — NotchWindowController (and its spike methods) are `@MainActor`-isolated, and unlike protocol-required `NSApplicationDelegate` methods, a plain `@objc private func` is not inferred `@MainActor` by default, so the original code failed to compile with "call to main actor-isolated instance method in a synchronous nonisolated context." Debug build green; Release build build-log-grepped and confirmed to exclude both spike symbols (0 matches). Task 3 (on-device checkpoint) resolved: **SC#1 = like-effect-not-observed** (kMRLikeTrack sends cleanly to both Music.app and Spotify.app, confirmed via console log, but neither app's liked-state UI visibly flips) and **SC#4 = tcc-bug-ruled-out** (permission dialog appeared on Islet's first-ever automation attempt, granting it fixed the call — `SPIKE AppleScript succeeded: Beverly Hills` — no `-1743` recurrence; idle-time relaunch variant not attempted this session, acceptable per D-06). RESEARCH.md's already-confirmed finding restated: the streamed MediaRemote payload has no favorite/rating read-state field either — combined with the write-side null result, Phase 50's star button needs a wholly separate per-app read/write path (Apple Music AppleScript `loved`, Spotify `GET`/`PUT /me/library`), not this MediaRemote command. Plan 49-01 is now COMPLETE (see `49-01-SUMMARY.md`); Plan 49-04 depends on this file's verdicts.
 - [Phase 49-03]: Task 1 landed `.planning/phases/49-favorite-like-spike/spotify-pkce-spike.sh` (executable, `bash -n` clean) copying RESEARCH.md's Code Examples section verbatim — S256-only PKCE `code_verifier`/`code_challenge` generation via `openssl`, hardcoded loopback `REDIRECT_URI` (`http://127.0.0.1:8888/callback`), `CLIENT_ID` left as the literal placeholder string (never a real value, per T-49-09), `/authorize` + `/api/token` exchange, and a real `PUT /me/library` save-track call with the track URI read via a second `read -p` prompt (never hardcoded). No deviations — plan executed exactly as written. Task 2 (on-device checkpoint, gate=blocking) is next — requires the human to register a real Spotify Developer app, substitute the real Client ID locally/uncommitted only, run the browser PKCE flow, and read the live quota-mode text from the Spotify Developer Dashboard; none of this is executor-automatable. SUMMARY.md deliberately not yet created (Plan 49-04 depends on its final verdicts).
 - [Phase 49-02]: SC#2 verdict: matrix-shows-different-behavior — loved of current track fails uniformly with -10001 in all 4 states (library/streaming x play/pause); name of current track succeeds in all 4 states. Deviates from RESEARCH.md's predicted -1728 streaming-only error. Phase 50 needs a documented Apple-Music-loved-broken fallback or an alternative read/write path, not just a streaming-only edge case. Plan 49-02 is now COMPLETE (see `49-02-SUMMARY.md`); Plan 49-04 depends on this file's verdict.
+- [Phase 51-01]: Task 1 landed the 7-case `SidebarSection` restructure (D-06 order Activities/Appearance/Fullscreen/Weather/Diagnostics/Workspace/About) — `activitiesSection`/`fullscreenSection`/`weatherSection`/`diagnosticsSection` extracted verbatim from the old monolithic `generalSection`, `systemSection` renamed to `appearanceSection` (D-01), all 5 wrapped in `ScrollView(.vertical)`, `generalSection`/`systemSection` deleted with zero dead references remaining (commit 4e36f2c). Task 2 wrapped `workspaceSection`/`aboutSection` in the same `ScrollView` pattern, preserving `workspaceSection`'s centering `.frame` on the inner VStack per the plan's explicit instruction — both Debug and Release builds green (commit 871c146). No deviations from the plan on either task. Task 3 (on-device UAT, `gate="blocking"`) is a checkpoint requiring an interactive human on-device walkthrough this executor cannot perform — reached and NOT auto-approved (`workflow.auto_advance` is `false`, no auto-chain active). Per the plan's own `<output>` spec ("Create SUMMARY.md when done") and the Phase 49-03 precedent (blocking checkpoint → SUMMARY.md deliberately deferred), `51-01-SUMMARY.md` was intentionally NOT created yet: Phase 51 has exactly 1 plan, so writing it now would make `roadmap.update-plan-progress`'s file-existence-based detection mark the entire phase Complete before UAT is approved. Resume by running the Task 3 checklist (11 steps, 51-01-PLAN.md) on-device; on "approved" (or a described failure), a continuation agent should finish the plan (SUMMARY.md, `state.advance-plan`, `roadmap.update-plan-progress`).
 
 ### Roadmap Evolution
 
