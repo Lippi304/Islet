@@ -2052,6 +2052,15 @@ struct NotchPillView: View {
                 VStack(spacing: 0) {
                     content()
                         .frame(width: baseWidth, height: baseHeight, alignment: alignment)
+                        // Phase 52 / SWITCH-03 (D-04/D-05) — content() already reserves the
+                        // cameraClearance band via its own `.padding(.top, Self.cameraClearance)`
+                        // convention, so the top-edge icons render inside that already-reserved
+                        // band with zero additional height reservation (D-06 preserved).
+                        .overlay(alignment: .top) {
+                            if showSwitcher && switcherLayout == .topEdge {
+                                topEdgeSwitcherRow
+                            }
+                        }
                     if showsPillRow {
                         switcherRow
                     }
@@ -2108,6 +2117,54 @@ struct NotchPillView: View {
             }
         }
         .frame(height: Self.switcherRowHeight)
+    }
+
+    // Phase 52 / SWITCH-03 (D-04/D-05, RESEARCH.md Pattern 2) — independently resolves the live
+    // built-in notched screen (no controller plumbing, mirrors NotchWindowController.
+    // currentBuiltin()'s exact pattern) and returns the real camera-cutout width via Plan 52-01's
+    // pure NotchGeometry helper below — the correct center-spacer value, never
+    // auxLeftWidth + auxRightWidth (RESEARCH.md Pitfall 2). Falls back to 0 (never crashes) when
+    // no notched built-in screen is present.
+    private var topEdgeCutoutWidth: CGFloat {
+        guard let target = selectTargetScreen(from: NSScreen.screens.map { $0.descriptor }) else { return 0 }
+        return topEdgeCutoutGap(screenWidth: target.frame.width,
+                                safeAreaTop: target.safeAreaTop,
+                                auxLeftWidth: target.auxLeftWidth,
+                                auxRightWidth: target.auxRightWidth)
+    }
+
+    // Phase 52 / SWITCH-03 (D-04/D-05) — the alternate top-edge switcher layout: 4
+    // navCircleButtons flanking the camera/notch cutout, 2 left + 2 right, sharing
+    // orderedSlotViews/icon(for:) with switcherRow (D-03: one shared ordering source feeds
+    // both layouts) so `filled:` selection state falls out for free, identical predicate. Plain
+    // HStack(spacing: 0) + Color.clear spacer for the excluded center region — never
+    // `.offset`/`.position`, both empirically broken inside this codebase's shape/content stack
+    // (Phase 39 lesson, RESEARCH.md Anti-Patterns).
+    private var topEdgeSwitcherRow: some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 8) {
+                let leftOuter = icon(for: orderedSlotViews[0])
+                navCircleButton(systemName: leftOuter.systemName,
+                                 filled: viewSwitcherState.selectedView == orderedSlotViews[0],
+                                 action: leftOuter.action)
+                let leftInner = icon(for: orderedSlotViews[1])
+                navCircleButton(systemName: leftInner.systemName,
+                                 filled: viewSwitcherState.selectedView == orderedSlotViews[1],
+                                 action: leftInner.action)
+            }
+            Color.clear.frame(width: topEdgeCutoutWidth)
+            HStack(spacing: 8) {
+                let rightInner = icon(for: orderedSlotViews[2])
+                navCircleButton(systemName: rightInner.systemName,
+                                 filled: viewSwitcherState.selectedView == orderedSlotViews[2],
+                                 action: rightInner.action)
+                let rightOuter = icon(for: orderedSlotViews[3])
+                navCircleButton(systemName: rightOuter.systemName,
+                                 filled: viewSwitcherState.selectedView == orderedSlotViews[3],
+                                 action: rightOuter.action)
+            }
+        }
+        .frame(height: Self.cameraClearance)
     }
 
     // Phase 20 / SHELF-03/05 — the horizontally-scrolling shelf strip: per-item icon+caption+
