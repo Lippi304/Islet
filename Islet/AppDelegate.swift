@@ -36,6 +36,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Cmd+0-9 directly while the top-level menu is tracking, independent of
     // whatever submenu state the user is in.
     private var clipboardHotkeyMonitor: Any?
+    // D-11/D-12/D-13: persisted (not in-session) one-time gate for the pasteboard-access
+    // explanation — matches ActivitySettings' domain.key UserDefaults-key naming
+    // convention, defined locally since this phase's scope is limited to AppDelegate.swift.
+    private static let clipboardAccessExplanationShownKey = "clipboard.pasteboardAccessExplanationShown"
 
     #if DEBUG
     // D-08/D-09: a SEPARATE status item for the 3 stub-flip testing actions, kept
@@ -46,7 +50,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var debugStatusItem: NSStatusItem!
     // Phase 57 spike hooks — see 57-02-SUMMARY.md for the on-device verdict.
     private var debugClipboardMonitor: ClipboardMonitor?
-    private var debugHasShownPasteboardAccessExplanation = false
     #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -279,8 +282,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugSpikeWriteConcealedTestItem), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Simulate Self-Capture Write",
                           action: #selector(debugSpikeSimulateSelfCaptureWrite), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Check Pasteboard Access Behavior",
-                          action: #selector(debugSpikeCheckPasteboardAccessBehavior), keyEquivalent: "")
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -379,23 +380,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSPasteboard.general.writeObjects([item])
         print("[Spike-ClipboardMonitor] wrote self-capture-marker test item to NSPasteboard.general — the running monitor must NOT print a captured line for this")
     }
-
-    @MainActor @objc private func debugSpikeCheckPasteboardAccessBehavior() {
-        guard !debugHasShownPasteboardAccessExplanation else {
-            print("[Spike-ClipboardMonitor] explanation already shown this session — one-time-gate holding")
-            return
-        }
-        debugHasShownPasteboardAccessExplanation = true
-        if ClipboardMonitor.needsAccessExplanation {
-            let alert = NSAlert()
-            alert.messageText = "Clipboard Access"
-            alert.informativeText = "Islet checks your clipboard to show recent copies. This is a one-time explanation (spike placeholder — Phase 58 will replace this with final copy)."
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
-        } else {
-            print("[Spike-ClipboardMonitor] accessBehavior already .always — no explanation needed")
-        }
-    }
     #endif
 }
 
@@ -413,6 +397,21 @@ extension AppDelegate: SPUUpdaterDelegate {
 // reliably before every display, including key-equivalent-triggered validation).
 extension AppDelegate: NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
+        // D-11/D-12/D-13: one-time pasteboard-access explanation, gated on a persisted
+        // UserDefaults flag (not an in-session Bool like Phase 57's DEBUG placeholder) so
+        // it fires on the very first menu open ever and never again after that. The flag
+        // is set BEFORE presenting the alert so an interrupted runModal() still can't
+        // reshow it — matches D-11's "shown on first menu open" intent.
+        if !UserDefaults.standard.bool(forKey: Self.clipboardAccessExplanationShownKey),
+           ClipboardMonitor.needsAccessExplanation {
+            UserDefaults.standard.set(true, forKey: Self.clipboardAccessExplanationShownKey)
+            let alert = NSAlert()
+            alert.messageText = "Clipboard Access"
+            alert.informativeText = "Islet reads your clipboard to build a history of recent copies. Items marked sensitive — like passwords from a password manager — are never captured."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
+
         // Identifier-prefix removal (never positional index math — the static
         // Settings/Check-for-Updates/Quit block's positions are fixed but this
         // section's item count varies 0-31).
