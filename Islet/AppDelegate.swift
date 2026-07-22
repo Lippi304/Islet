@@ -450,8 +450,16 @@ extension AppDelegate: NSMenuDelegate {
         }
         menu.insertItem(anchor, at: insertionIndex); insertionIndex += 1
 
-        // Plan 58-02 will insert "Delete All History" BEFORE this separator, between
-        // the anchor and the boundary — left as the section's trailing marker for now.
+        // CLIP-05/D-14: a top-level item next to the anchor (not nested inside its
+        // submenu) — the D-15-REVISED anchor+submenu shape only holds the dynamic rows,
+        // so "Delete All History" stays a plain, always-visible sibling of the anchor,
+        // disabled while the history is empty.
+        let deleteAll = NSMenuItem(title: "Delete All History", action: #selector(confirmDeleteAllHistory), keyEquivalent: "")
+        deleteAll.identifier = NSUserInterfaceItemIdentifier("clip.deleteAll")
+        deleteAll.target = self
+        deleteAll.isEnabled = !clipboardStore.items.isEmpty
+        menu.insertItem(deleteAll, at: insertionIndex); insertionIndex += 1
+
         let separator = NSMenuItem.separator()
         separator.identifier = NSUserInterfaceItemIdentifier("clip.separator")
         menu.insertItem(separator, at: insertionIndex)
@@ -482,6 +490,24 @@ extension AppDelegate: NSMenuDelegate {
             NSEvent.removeMonitor(monitor)
             clipboardHotkeyMonitor = nil
         }
+    }
+
+    // CLIP-05/T-58-05/T-58-06: destructive confirm — runModal() blocks until the user
+    // picks a button, and only an explicit "Delete" click (.alertFirstButtonReturn)
+    // proceeds; Cancel or dismissing the dialog any other way is a no-op.
+    @objc private func confirmDeleteAllHistory() {
+        let alert = NSAlert()
+        alert.messageText = "Delete all clipboard history?"
+        alert.informativeText = "This cannot be undone."
+        alert.addButton(withTitle: "Delete")
+        alert.buttons.first?.hasDestructiveAction = true
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        clipboardStore.clear()
+        // RESEARCH.md Pitfall 2: clear() is a pure in-memory reducer and never touches
+        // index.json.enc — without this on-disk empty-rewrite, the "deleted" history
+        // would still be readable on disk after a relaunch.
+        try? ClipboardFileStore.save([], root: ClipboardFileStore.storageRoot(), key: KeychainClipboardKeyStore().readOrCreateKey())
     }
 
     // Mouse path when the submenu is open — keyEquivalent here only fires while
