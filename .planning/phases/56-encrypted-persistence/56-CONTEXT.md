@@ -22,10 +22,11 @@
 ### Orphaned file cleanup on eviction
 - **D-06:** When `ClipboardStore.append` evicts the oldest item past the 30-item cap (D-01), or D-02's dedupe removes-and-reinserts an existing item, the evicted/removed item's on-disk image file is deleted immediately as part of the same save — not left for a later sweep. `ClipboardFileStore`'s save path must diff against what's currently on disk and remove files for items no longer present in the store. Rationale (user's explicit choice): keeps image disk usage bounded to ~30 items at all times, same "never leak beyond what's live" discipline as `ShelfFileStore.deleteSessionCopy` (`Islet/Shelf/ShelfFileStore.swift:49-56`). Text-only items have no on-disk file to clean up (JSON index entry is simply omitted on next save).
 
-### Carried forward from Phase 55 (not re-discussed)
-- **D-01:** Cap = 30 items, FIFO eviction (`ClipboardStore.swift:13,25`).
-- **D-02:** Re-copying existing content moves it to the top with a refreshed timestamp — never duplicates, never silently no-ops (`ClipboardStore.swift:18-26`).
-- **D-03:** No size cap or truncation on individual items — `ClipboardFileStore` encrypts/persists content of any size unconditionally. Already explicitly scoped to cover Phase 56 in the original Phase 55 discussion.
+### Carried forward from Phase 55 (not re-discussed) [informational]
+Already implemented in `ClipboardStore.swift` by Phase 55 — listed here for background only. Phase 56's plans correctly leave `ClipboardStore.swift` untouched; these are not decisions this phase needs to (re-)implement.
+- **D-01** [informational]: Cap = 30 items, FIFO eviction (`ClipboardStore.swift:13,25`).
+- **D-02** [informational]: Re-copying existing content moves it to the top with a refreshed timestamp — never duplicates, never silently no-ops (`ClipboardStore.swift:18-26`).
+- **D-03** [informational]: No size cap or truncation on individual items — `ClipboardFileStore` encrypts/persists content of any size unconditionally. Already explicitly scoped to cover Phase 56 in the original Phase 55 discussion.
 
 ### Claude's Discretion
 - Exact on-disk JSON index shape (field names, whether image file paths are stored as relative filenames vs. UUIDs) — as long as the round-trip contract holds (SC#1) and the delete-path validation mirrors `ShelfFileStore` (SC#3).
