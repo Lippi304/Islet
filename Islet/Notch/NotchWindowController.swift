@@ -1972,6 +1972,7 @@ final class NotchWindowController {
             interaction.phase = .expanded
             renderPresentation()
         }
+        updateVisibility()
         syncClickThrough()
     }
 
