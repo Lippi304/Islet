@@ -116,7 +116,7 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 
 **Goal:** Islet replaces the user's third-party CopyClip tool — clicking the menu-bar status icon shows a clipboard history of recent text and image copies, alongside the existing Settings/Check for Updates/Quit entries.
 
-**Status:** In progress. Phase 55 (data model/store) and Phase 56 (encrypted persistence) shipped 2026-07-22 — clipboard history now persists to disk AES-GCM-encrypted at rest, survives a full app relaunch, key stored device-only in Keychain. Phase 57 (Pasteboard Monitor spike) up next. Started 2026-07-22 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision, consistent with v1.5/v1.6/v1.7/v1.8 precedent).
+**Status:** In progress. Phase 55 (data model/store), Phase 56 (encrypted persistence), and Phase 57 (Pasteboard Monitor spike) shipped 2026-07-22 — clipboard history now persists to disk AES-GCM-encrypted at rest, survives a full app relaunch, key stored device-only in Keychain, and `ClipboardMonitor` is proven on real hardware (genuine-copy detection + text/image classification, concealed-type exclusion, self-capture guard, access-behavior one-time-gate — PRIV-01 satisfied). Phase 58 (Menu Wiring & UI Assembly) up next, unblocked. Started 2026-07-22 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision, consistent with v1.5/v1.6/v1.7/v1.8 precedent).
 
 **Target features:**
 - Menu-bar status-item dropdown gains a clipboard history section listing the last ~20-30 copied items (text and images), oldest entries automatically evicted once the cap is reached.
