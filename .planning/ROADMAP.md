@@ -143,7 +143,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 **Milestone Goal:** Islet replaces the user's third-party CopyClip tool — clicking the menu-bar status icon shows a clipboard history of recent text and image copies (encrypted at rest, sensitive-content excluded), alongside the existing Settings/Check for Updates/Quit entries. Menu-bar-only, explicitly not a new Island/notch view. Started 2026-07-22 while v1.4, v1.5, and v1.7 all remain open in parallel. Phase numbering continues from Phase 54 (v1.8's reserved phase).
 
-- [ ] **Phase 55: Clipboard Data Model + Store** - Pure ClipboardItem/ClipboardStore (append/evict-at-cap/clear), fully unit-tested, no AppKit/pasteboard dependency
+- [x] **Phase 55: Clipboard Data Model + Store** - Pure ClipboardItem/ClipboardStore (append/evict-at-cap/clear), fully unit-tested, no AppKit/pasteboard dependency (completed 2026-07-22)
 - [ ] **Phase 56: Encrypted Persistence** - ClipboardFileStore: Application Support JSON index + image files, CryptoKit AES-GCM encryption with Keychain-stored key, survives relaunch/reboot
 - [ ] **Phase 57: Pasteboard Monitor — Spike** - ClipboardMonitor: changeCount polling, concealed/transient-type filtering, self-capture guard — verified on real hardware
 - [ ] **Phase 58: Menu Wiring & UI Assembly** - AppDelegate NSMenuDelegate wiring: history list, click-to-restore, Cmd+0-9, Delete All History
@@ -967,7 +967,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 55-01-PLAN.md — ClipboardItem (associated-value Kind enum) + ClipboardStore (D-01 cap+FIFO evict, D-02 dedupe-and-move-to-top, clear), fully unit-tested
+- [x] 55-01-PLAN.md — ClipboardItem (associated-value Kind enum) + ClipboardStore (D-01 cap+FIFO evict, D-02 dedupe-and-move-to-top, clear), fully unit-tested
 
 ### Phase 56: Encrypted Persistence
 
