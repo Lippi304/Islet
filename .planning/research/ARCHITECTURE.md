@@ -1,290 +1,250 @@
-# Architecture Research: Favorite + Audio-Output Integration (v1.7 candidate scope)
+# Architecture Research
 
-**Domain:** Native macOS notch overlay app (Islet) — integrating a "favorite song" write-back and an audio-output switcher into the existing Now Playing expanded view.
-**Researched:** 2026-07-19
-**Confidence:** MEDIUM overall — HIGH for the integration points (grounded in direct codebase reads); MEDIUM/LOW for the two external-API questions (whether the vendored MediaRemote adapter can send a like/favorite command, and whether it reports read-state), both flagged as spike-required rather than assumed.
+**Domain:** macOS menu-bar clipboard history, integrating into an existing SwiftUI/AppKit notch app (Islet)
+**Researched:** 2026-07-22
+**Confidence:** HIGH (based on direct reading of Islet's own source — `AppDelegate.swift`, `Islet/Notch/*Monitor.swift`, `Islet/Notch/DragDropSupport.swift`, `Islet/Notch/NotchWindowController.swift`, `Islet/Shelf/ShelfFileStore.swift`, `Islet/Licensing/KeychainLicenseStore.swift`, `.planning/PROJECT.md` — not external/generic best practice)
 
-## Standard Architecture (as it exists today — the seam this work extends)
+## Standard Architecture
 
 ### System Overview
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│  SYSTEM GLUE (one fragile surface = one file)                         │
-│  NowPlayingMonitor (MediaRemoteAdapter)   VolumeReader (CoreAudio)    │
-│  BluetoothMonitor (IOBluetooth)           OSDInterceptor (CGEventTap) │
-├───────────────────────────────────────────────────────────────────────┤
-│  PURE PRESENTATION SEAMS (Foundation-only, unit-tested)               │
-│  NowPlayingPresentation.swift   OSDActivity.swift   DeviceCoordinator │
-├───────────────────────────────────────────────────────────────────────┤
-│  THE ONE ARBITER                                                       │
-│  IslandResolver.swift → resolve() → IslandPresentation (enum)         │
-│  TransientQueue (Charging > Device > Focus > OSD, ambient NowPlaying) │
-├───────────────────────────────────────────────────────────────────────┤
-│  CONTROLLER (AppKit)                                                   │
-│  NotchWindowController — owns monitors, calls resolve(), writes       │
-│  IslandPresentationState.presentation, sizes the NSPanel, click-through│
-├───────────────────────────────────────────────────────────────────────┤
-│  RENDER-ONLY VIEW (SwiftUI)                                            │
-│  NotchPillView.presentationSwitch → mediaExpanded(...) etc.           │
-└───────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  AppDelegate  (owns the status-bar world — NOT NotchWindowController) │
+├──────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────┐   ┌───────────────────┐   ┌───────────────────┐  │
+│  │  statusItem /   │   │  ClipboardMonitor │   │  notchController  │  │
+│  │  menu (existing)│◄──┤  (NEW — system    │   │  (existing,       │  │
+│  │  Settings/Check │   │  glue: Timer +    │   │  UNTOUCHED)        │  │
+│  │  for Updates/   │   │  NSPasteboard     │   └───────────────────┘  │
+│  │  Quit           │   │  .general poll)   │                          │
+│  └────────▲────────┘   └─────────┬─────────┘                          │
+│           │                      │ onChange(ClipboardItem)            │
+│           │              ┌───────▼─────────┐                          │
+│           │              │  ClipboardStore │  (NEW — pure reducer:    │
+│           │              │  (in-memory      │  add/evict/clear/cap)  │
+│           │              │  [ClipboardItem])│                          │
+│           │              └───────┬─────────┘                          │
+│           │                      │ persist/load                       │
+│           │              ┌───────▼─────────┐                          │
+│           └──────────────┤ ClipboardFileStore│ (NEW — real disk I/O: │
+│         menuWillOpen()   │ Application Support│ JSON + image blobs)  │
+│         rebuilds items   └───────────────────┘                        │
+├──────────────────────────────────────────────────────────────────────┤
+│  NotchWindowController / IslandResolver / TransientQueue              │
+│  — completely UNTOUCHED. Zero coupling in either direction.           │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-The whole codebase enforces one rule everywhere: **the view never decides, the resolver never touches AppKit, and every fragile system framework gets exactly one glue file.** Both new features slot into this without adding a new architectural layer.
+This is a **second, independent tree hanging off `AppDelegate`**, parallel to (not inside) the existing `notchController` tree. Islet already has exactly this shape once, informally: Phase 40's Sparkle `updaterController` and the update-dot `NSView` are owned and driven entirely by `AppDelegate`, never touching `NotchWindowController`/`IslandResolver`. Clipboard history is the second instance of that same "AppDelegate-owned side system" shape — not a new architectural category.
 
-### Component Responsibilities (existing, relevant to this milestone)
+### Component Responsibilities
 
-| Component | Responsibility | File |
-|-----------|-----------------|------|
-| `NowPlayingMonitor` / `NowPlayingService` | ONLY file touching `MediaRemoteAdapter`; streams track snapshots, exposes `togglePlayPause()`/`nextTrack()`/`previousTrack()` | `Islet/Notch/NowPlayingMonitor.swift` |
-| `VolumeReader` (free functions, no class) | Stateless CoreAudio reads/writes for the *default* device only — `readSystemVolume()`, `adjustSystemVolume()`, `toggleSystemMute()`, called on-demand by `OSDInterceptor`/key-press handling, never pushes updates itself | `Islet/Notch/VolumeReader.swift` |
-| `IslandResolver.resolve()` | Pure reducer, the ONE arbiter of what the island shows | `Islet/Notch/IslandResolver.swift` |
-| `IslandPresentationState` | `@Published` verdict + a couple of controller-computed **sibling** UI-state fields (`hoveredQuickActionButtonIndex`, `secondary`) that do NOT participate in the `IslandPresentation` enum itself | `Islet/Notch/IslandPresentationState.swift` |
-| `NotchWindowController` | Owns every monitor's lifecycle, calls `resolve()`, sizes the `NSPanel` via a union of every presentation's max frame ("geometry three-site rule" — see below), computes click-through hit zones | `Islet/Notch/NotchWindowController.swift` |
-| `NotchPillView.mediaExpanded(_:art:)` | Renders the Now Playing expanded card: art+title/artist+bars row, `ProgressBar`, then a fixed `HStack(spacing: 0)` control row with **two already-reserved 28×28 `Color.clear` slots** (left = "future Shuffle", right = "future Repeat") flanking the 3 real `TransportButton`s | `Islet/Notch/NotchPillView.swift:2731-2805` |
+| Component | Responsibility | Typical Implementation (mirrors) |
+|-----------|----------------|------------------------|
+| `ClipboardItem` | Pure value type: id, kind (text/image), content, timestamp | `ShelfItem`, `PowerReading` — Foundation-only struct, `Equatable`/`Codable` |
+| `ClipboardStore` | Pure in-memory reducer: append, evict-oldest-past-cap, clear-all, no I/O | `ShelfLogic` — pure, side-effect-free, unit-tested in isolation |
+| `ClipboardFileStore` | The ONE place that touches `FileManager`/disk for clipboard data | `ShelfFileStore` — "the ONE place that performs real FileManager I/O", kept a standalone enum, not a method on the pure reducer |
+| `ClipboardMonitor` | Thin system glue: `Timer`/`DispatchSourceTimer` polling `NSPasteboard.general.changeCount`, reading text/image content, filtering concealed/transient types, calling `onChange` | `PowerSourceMonitor`/`FocusModeMonitor`/`AudioOutputMonitor` — `@MainActor` class, `init(onChange:)`, idempotent `start()`, `nonisolated stop()` for deinit teardown |
+| `AppDelegate` (modified) | Owns `clipboardMonitor` and `ClipboardStore` alongside existing `statusItem`; becomes (or adopts a small helper conforming to) `NSMenuDelegate` to rebuild the clipboard section on `menuWillOpen`/`menuNeedsUpdate`; adds "Delete All History" action | Existing `AppDelegate` already owns `notchController`, `updaterController` as sibling stored properties — clipboard follows the same pattern |
 
-**Load-bearing existing fact:** `mediaExpanded`'s control row is `HStack(spacing: 0) { Color.clear(28×28) · ⏪ · ⏯ · ⏩ · Color.clear(28×28) }`. The left slot was explicitly reserved for a future "Shuffle" and the right for "Repeat"; the comment at the top of `mediaExpanded` (D-09) says outright: *"The Star/favorite is DROPPED entirely (no slot — D-09)."* That decision predates this milestone and should be explicitly reversed, not silently worked around — the left reserved slot is exactly where the star belongs by the milestone's own spec ("left of transport controls"), and the right reserved slot is exactly where the speaker icon belongs ("right of transport controls"). This is a near-zero-geometry win: **no new horizontal space, no new `blobShape` width math** — just two `Color.clear` frames becoming two real buttons of the identical 28×28 footprint `TransportButton`'s style already uses.
-
-## Recommended Integration
-
-### New/Modified Files
+## Recommended Project Structure
 
 ```
-Islet/Notch/
-├── NowPlayingMonitor.swift          # MODIFY: extend NowPlayingService protocol
-├── NowPlayingPresentation.swift     # MODIFY: add isFavorite to TrackSnapshot/NowPlayingPresentation (pure seam)
-├── AudioOutputMonitor.swift         # NEW: event-driven CoreAudio device-list glue (mirrors BluetoothMonitor's shape)
-├── AudioOutputPresentation.swift    # NEW: pure seam — AudioOutputDevice value type + sort/reorder logic (mirrors NowPlayingPresentation.swift's Pattern 1 discipline)
-├── NotchWindowController.swift      # MODIFY: start/stop AudioOutputMonitor, wire favorite toggle + output-panel state, extend geometry union + visibleContentZone()
-├── NotchPillView.swift              # MODIFY: mediaExpanded's two reserved slots become real buttons; new outputPanel(...) subview; new content-height constant
-IsletTests/
-├── AudioOutputPresentationTests.swift  # NEW: pure seam unit tests (device sort/reorder, default-device mapping)
+Islet/
+├── Clipboard/                      # NEW top-level folder, sibling to Notch/Shelf/Licensing
+│   ├── ClipboardItem.swift         # pure model (text/image, id, timestamp, kind)
+│   ├── ClipboardStore.swift        # pure reducer (add/evict/clear/cap) — Foundation only
+│   ├── ClipboardFileStore.swift    # real FileManager I/O (Application Support JSON + image blobs)
+│   └── ClipboardMonitor.swift      # THE ONE file that polls NSPasteboard.general
+├── AppDelegate.swift                # MODIFIED — owns clipboardMonitor + store, rebuilds menu
 ```
-
-Nothing here needs a new top-level folder — both features are extensions of the existing `Islet/Notch/` module, matching every prior HUD phase (39, 41, 42) that added exactly one new Monitor + one new pure seam file inside the same directory.
 
 ### Structure Rationale
 
-- **`Islet/Notch/`** stays the single home for anything driving the island's own state — the project has never split "Now Playing" and "system HUD" concerns into separate modules even though they're conceptually different (Phase 39 added `OSDActivity`/`VolumeReader`/`OSDInterceptor` right alongside `NowPlayingMonitor` without a new folder). No reason to deviate here.
-- **`AudioOutputMonitor.swift` is a NEW file, not an extension of `VolumeReader.swift`** — see Pattern 2 below for why.
-- **Favorite status is NOT a new file** — it is 2-3 lines added to the *existing* `NowPlayingMonitor`/`NowPlayingService` seam, because it is the same fragile bridge, same lifecycle, same "one file, one system surface" boundary. Splitting it into `FavoriteService.swift` would duplicate the MediaRemote plumbing for no isolation benefit (see Pattern 1).
+- **New top-level `Clipboard/` folder**, not nested under `Notch/`: this codebase's existing folder boundaries already track feature ownership, not layer (`Notch/` = notch-panel-owned subsystems, `Shelf/` = shelf-owned, `Licensing/` = license-owned). Clipboard is owned by `AppDelegate`/the status bar, never by `NotchWindowController` — putting `ClipboardMonitor.swift` inside `Islet/Notch/` alongside `PowerSourceMonitor.swift` would misrepresent who owns and starts it, even though the *class shape* mirrors those monitors closely.
+- **Four files, not fewer**: this is the same file count Phase 19 (Shelf) used for an equivalent-complexity feature (`ShelfItem` + `ShelfLogic` + `ShelfFileStore`, three files) plus one extra file because clipboard needs a genuinely separate system-polling glue class that Shelf never needed (Shelf has no live external data source — it's purely user-drag-initiated). Do not add a fifth file for menu-building; see Pattern 3 below.
 
 ## Architectural Patterns
 
-### Pattern 1: Favorite does NOT need its own isolated service — it extends `NowPlayingService`
+### Pattern 1: Monitor-as-isolation-seam, WITHOUT `IslandResolver` participation
 
-**What:** Add `func toggleFavorite()` (and a `isFavorite: Bool?` reported through the existing snapshot) to the *same* `NowPlayingService` protocol and `NowPlayingMonitor` class that already owns transport control.
+**What:** `ClipboardMonitor` mirrors the established Monitor convention exactly at the *class* level — one file touching the one fragile/external API (`NSPasteboard.general`), `@MainActor`, constructor-injected `onChange` closure, idempotent `start()`, `nonisolated stop()` for deinit — but does NOT feed `IslandResolver`, `TransientQueue`, or any `NotchWindowController` presentation state.
 
-**Why not a new isolated service (the question's premise doesn't hold up against the code):** The project's isolation rule ("isolate all now-playing code behind one Swift protocol/service") exists because MediaRemote is ONE fragile private bridge that can break as a unit — the isolation boundary is *the bridge*, not *the feature*. `togglePlayPause()`/`nextTrack()`/`previousTrack()` already live together in `NowPlayingMonitor` precisely because they all ride the same persistent adapter child's stdin (see `NowPlayingMonitor.swift:93-96`). A `MRMediaRemoteCommandLikeTrack`/`MRMediaRemoteCommandDislikeTrack` favorite toggle (confirmed to exist at the private-API level — see Sources) is just a 4th command on the exact same channel. Creating a second protocol/class for it would duplicate the child-process lifecycle, the health-check, and the `@MainActor` discipline `NowPlayingMonitor` already solved — a second isolation seam around the *same* risk is redundant isolation, not defense in depth.
+**When to use:** Whenever a feature needs to isolate a single risky/external macOS API behind a testable seam, regardless of whether that feature's output ever reaches the notch UI. The Monitor pattern in this codebase is about *API isolation*, not about *being an Island activity* — those are two separate axes that happen to have always coincided until now.
 
-**Concrete verified fact:** the private `MRMediaRemoteCommand` enum (theos/headers, `MediaRemote.h`) DOES include `MRMediaRemoteCommandLikeTrack`, `MRMediaRemoteCommandDislikeTrack`, `MRMediaRemoteCommandRateTrack`, and `MRMediaRemoteCommandBookmarkTrack` — so a "like" affordance is a real, existing private command, not something Islet would have to invent. **Unverified (spike-required):** whether the *vendored* Swift wrapper (`ejbills/mediaremote-adapter`'s `MediaController`) exposes sending this command at all — the project only confirmed `togglePlayPause`/`nextTrack`/`previousTrack`/`getTrackInfo` are wrapped; `like`/`favorite` was not found documented anywhere in the wrapper's public surface during this research pass. This is the same kind of unknown Phase 38 (Focus Mode Path A vs B) and Phase 39 (OSD suppression tap type) hit, and this project's own convention is to resolve it with a cheap on-device spike before committing to a plan, not to guess.
+**Is "no resolver participation" consistent with precedent?** Yes, with one caveat. It is consistent with the *isolation-seam* half of the pattern (every Monitor's job is "wrap one fragile system call, publish a callback, own start/stop lifecycle" — nothing in that contract requires the caller to be `NotchWindowController` or to funnel into `IslandResolver`). Precedent already shows partial versions of this: `AudioOutputMonitor` feeds a device-list UI, not an `IslandResolver` activity tier — its own header explicitly notes it is "DELIBERATELY independent" from other monitors' state. The caveat is ownership: every existing Monitor is constructed and started by `NotchWindowController` (`Islet/Notch/NotchWindowController.swift`), because every existing feature's consumer lives there. `ClipboardMonitor`'s consumer is `AppDelegate`, so `AppDelegate` must be the one that constructs it, calls `start()`, and tears it down on quit — a new *owner*, but not a new *shape*.
 
-**Fallback if the wrapper doesn't expose it:** `MediaController` is a thin Swift wrapper around a stdin/stdout JSON protocol talking to the perl-hosted MediaRemote bridge (see `mediaremote-adapter`'s own README) — worst case, the fix is adding one more command string to the wrapper's own command-dispatch table (a contained change, still inside the one `NowPlayingMonitor.swift` isolation boundary, never spreading into `NotchPillView`/`IslandResolver`).
+**Trade-offs:** Keeping the Monitor shape (rather than inventing something bespoke) buys immediate familiarity for a first-time-programmer codebase and a consistent testing story (fixture-injectable `onChange`), at the cost of `AppDelegate` picking up one more owned subsystem alongside `statusItem`/`updaterController` — acceptable; `AppDelegate` already owns 3 independent subsystems (notch controller, Sparkle updater, debug status item) with no shared coupling between them.
 
-**Also worth flagging:** liked-status needs to be *read*, not just written — the star's fill state must reflect whether the current track is already favorited. Confirm during the spike whether `getTrackInfo`/the streamed payload carries an `isFavorite`/`isLiked`/`isRated` field at all (this is the "does the platform even tell us" question, independent of whether we can toggle it). If MediaRemote exposes no read-side signal, the star can only be a write-only fire-and-forget action (tap → send the command → optimistically flip local UI state for the session) — a materially smaller, still-valuable feature. This distinction changes the plan's scope and must be resolved before implementation, not discovered mid-execution.
-
-**Example (grounded in the real file):**
+**Example (shape, not exact code):**
 ```swift
-// NowPlayingMonitor.swift — protocol grows by one method + one snapshot field,
-// the isolation boundary (this ONE file) does not move.
-protocol NowPlayingService: AnyObject {
-    func start()
-    nonisolated func stop()
-    func togglePlayPause()
-    func nextTrack()
-    func previousTrack()
-    func toggleFavorite()                      // NEW — same child, same stdin channel
-    func runHealthCheck(then setHealthy: @escaping (Bool) -> Void)
-}
-
-// TrackSnapshot (NowPlayingPresentation.swift, the PURE seam) grows one Optional field —
-// nil means "platform didn't report a rating state", matching every other Optional-field
-// precedent in this struct (durationMicros, elapsedTimeMicros, etc.):
-struct TrackSnapshot: Equatable {
-    // ...existing fields...
-    var isFavorite: Bool? = nil   // nil = unknown/unsupported, not "not favorited"
-}
-```
-
-### Pattern 2: Audio-output switching DOES need a new dedicated Monitor — it cannot extend `VolumeReader`
-
-**What:** A new `AudioOutputMonitor` (event-driven class, `@MainActor`, `start()`/`stop()` lifecycle) rather than adding functions to `VolumeReader.swift`.
-
-**Why `VolumeReader` is the wrong host:** `VolumeReader.swift`'s own header comment is explicit about its shape — "thin CoreAudio glue... **no equivalent stored state** — it is called directly inline" (confirmed live in `NotchWindowController.swift:241`). It is a bag of *stateless, pull-based* free functions: something else (a key-press) triggers a read, there is no persistent object, no listener registration, no `@Published`. Device switching needs the opposite shape:
-1. **A live, continuously-current device list** (built-in speakers, AirPods, USB DAC, etc.) that can change at any time — plugging in headphones, an AirPods disconnect — none of which is a "volume key was pressed" event `VolumeReader` is built around.
-2. **CoreAudio property *listeners*** (`AudioObjectAddPropertyListener` on `kAudioHardwarePropertyDevices` for add/remove, and `kAudioHardwarePropertyDefaultOutputDevice` for external changes, e.g. the user switches via the menu bar) — a genuinely event-driven registration/callback lifecycle, structurally identical to `BluetoothMonitor`'s `register(forConnectNotifications:)`/`register(forDisconnectNotification:)` pattern, not to `VolumeReader`'s "read on demand" pattern.
-3. **A live current-volume readout while the panel is open** (the milestone spec: "revealing a volume slider") — this DOES reuse `readSystemVolume()`/`adjustSystemVolume()` as-is (they already operate on whatever is the current default device, which is exactly right — no change needed there), but the device-list and default-device-changed concerns are new state `VolumeReader` was deliberately never given.
-
-Bolting listener registration and `@Published` device-list state onto `VolumeReader` would turn a "one fragile surface, one file, stateless" file into two different things wearing one name — the same shape mismatch the project already avoided once (`OSDActivity.swift`'s header explicitly separates the *pure mapping* from the *system glue*, and `BluetoothMonitor` vs `DeviceCoordinator` shows the same split for a live-list system: the raw event source is its own file, its own class, with its own lifecycle).
-
-**Public API, not private — no protocol-isolation needed, only file-isolation:** unlike MediaRemote, everything `AudioOutputMonitor` needs (`kAudioHardwarePropertyDevices`, `kAudioHardwarePropertyDefaultOutputDevice`, `AudioObjectSetPropertyData` to switch it, `AudioObjectAddPropertyListener`) is public, documented CoreAudio — the same public framework `VolumeReader` already uses for reads/writes. This means `AudioOutputMonitor` does NOT need a `NowPlayingService`-style protocol seam (no "Apple will break this" risk in the same class as the private MediaRemote bridge) — it only needs its own file per the project's general "one system surface, one file" convention (which `VolumeReader`, `BrightnessReader`, `BluetoothMonitor`, `FocusModeMonitor` all already follow regardless of public/private API status). A protocol IS still worth adding if/when unit tests need to fake device lists (mirrors `NowPlayingService`'s testability motivation more than its risk-isolation motivation) — an `AudioOutputProviding` protocol is a cheap, optional addition, not a hard requirement like it is for MediaRemote.
-
-**Example (mirrors `BluetoothMonitor`'s real shape):**
-```swift
-// AudioOutputMonitor.swift — NEW, event-driven, mirrors BluetoothMonitor.swift's shape
-// (register → callback → hand off pure values, no @Published/SwiftUI in this file).
 @MainActor
-final class AudioOutputMonitor: NSObject {
-    private let onDevicesChanged: ([AudioOutputDevice]) -> Void
-    // AudioObjectID-typed listener blocks/tokens stored here, mirroring
-    // BluetoothMonitor's connectToken/disconnectTokens dictionary.
+final class ClipboardMonitor {
+    private nonisolated(unsafe) var timer: DispatchSourceTimer?
+    private nonisolated(unsafe) var running = false
+    private var lastChangeCount = NSPasteboard.general.changeCount
+    private let onChange: (ClipboardItem) -> Void
+
+    init(onChange: @escaping (ClipboardItem) -> Void) { self.onChange = onChange }
 
     func start() {
-        // AudioObjectAddPropertyListenerBlock on kAudioHardwarePropertyDevices
-        // AND kAudioHardwarePropertyDefaultOutputDevice, both scoped to
-        // kAudioObjectPropertyScopeGlobal — fires onDevicesChanged(currentDevices())
-        // on either event.
+        guard !running else { return }
+        running = true
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now(), repeating: 0.4, leeway: .milliseconds(100)) // CopyClip-class responsiveness
+        t.setEventHandler { [weak self] in self?.poll() }
+        t.resume()
+        timer = t
     }
-    nonisolated func stop() { /* remove listeners */ }
 
-    func setDefaultOutput(_ device: AudioOutputDevice) {
-        // AudioObjectSetPropertyData(systemObject, kAudioHardwarePropertyDefaultOutputDevice, ...)
-        // — reuses defaultOutputDeviceID()'s exact property-address pattern from VolumeReader.swift,
-        // just targeting a different selector/write instead of a read.
+    private func poll() {
+        let pb = NSPasteboard.general
+        guard pb.changeCount != lastChangeCount else { return }
+        lastChangeCount = pb.changeCount
+        guard !pb.types.map(\.rawValue).contains(where: {
+            $0 == "org.nspasteboard.ConcealedType" || $0 == "org.nspasteboard.TransientType"
+        }) else { return }
+        // classify text vs image, build a ClipboardItem, call onChange
     }
-}
 
-// AudioOutputPresentation.swift — NEW pure seam, Foundation-only, mirrors
-// NowPlayingPresentation.swift's discipline exactly:
-struct AudioOutputDevice: Equatable, Identifiable {
-    let id: AudioDeviceID
-    let name: String
-    let isDefault: Bool
+    nonisolated func stop() { timer?.cancel(); timer = nil; running = false }
+    deinit { /* owner (AppDelegate) calls stop() explicitly, same discipline as every other Monitor */ }
 }
 ```
+No protocol seam (unlike `NowPlayingMonitor`'s `NowPlayingService` protocol) is needed here — the protocol treatment in this codebase is reserved for the one genuinely fragile *private* API (MediaRemote); `NSPasteboard` is a fully public, stable AppKit API, matching the plain-concrete-class shape of `PowerSourceMonitor`/`FocusModeMonitor`/`AudioOutputMonitor`, none of which have a protocol wrapper either.
 
-### Pattern 3: The output panel is local, controller-visible view state — NOT a new `IslandPresentation` resolver case
+### Pattern 2: Pure reducer + separate disk-I/O glue (mirrors Shelf, not Keychain)
 
-**What:** A boolean "is the output panel open" flag that toggles an inline reveal below the transport row, inside the *existing* `.nowPlayingExpanded` presentation.
+**What:** Split "what the data looks like and how it changes" (`ClipboardItem` + `ClipboardStore`, pure Foundation, zero `FileManager`/`NSPasteboard` imports) from "how it touches disk" (`ClipboardFileStore`, the only file with real I/O) — exactly Phase 19's `ShelfItem`/`ShelfLogic` vs `ShelfFileStore` split, not Phase 10's `KeychainLicenseStore` shape (which conflates storage + logic in one file, acceptable there because it stores exactly one scalar license blob, not a growing/evicting collection).
 
-**Why NOT a resolver case:** `IslandResolver.resolve()` exists to arbitrate **competing top-level activities** (Charging vs Device vs Focus vs OSD vs Now Playing vs Calendar). The output panel is not a competing activity — it's a disclosure state *within* the Now Playing card, exactly the same category as `hoveredQuickActionButtonIndex` (Phase 34) or the secondary-bubble hover/darken state (Phase 42), both of which are explicitly kept OFF the `IslandPresentation` enum and instead live as sibling fields. Making it a resolver case would force `resolve()` to know about it, would make Charging/Device transients incorrectly interrupt it (transients always win per `resolve()`'s `switch activeTransient` block — correct for that, wrong for "user has the output picker open," which should probably survive a brief charging blip the same way the switcher tab selection does), and would multiply `IslandPresentation`'s already-19-case switch for a piece of state that only matters inside one case.
+**When to use:** Any time the data is a *collection with lifecycle rules* (cap, eviction, ordering) rather than a single persisted value — clipboard history (a capped, evicting list) is structurally the shelf's twin, not the license store's.
 
-**Where it should actually live — NOT purely `@State` in the view, contra the question's own framing:** the question's example ("purely local view state, like the drag-hover highlight in the Quick Action picker") is a slight mis-description of the actual precedent — `hoveredQuickActionButtonIndex` is NOT plain SwiftUI `@State`; it is a controller-computed `@Published` field on `IslandPresentationState` (`IslandPresentationState.swift:24`), written by `NotchWindowController` and only ever *read* by the view. The real reason it must be controller-visible: **`visibleContentZone()` (the click-through hit-test geometry, AppKit-side) must also know whether the panel is open**, because opening it grows the visible blob height and the click-through region must grow with it (exactly the same reasoning that made `shelfStripVisible`/`showsSwitcherRow` controller-visible instead of view-local). Plain `@State` inside `NotchPillView` would be invisible to `NotchWindowController`, silently reproducing the CR-01 click-through bug class the project has already hit twice (Phase 20, Phase 40).
+**Trade-offs:** One more file than the license-store shape, but `ClipboardStore`'s eviction-at-cap logic becomes independently unit-testable with zero disk fixtures, mirroring how `ShelfLogic` is tested without ever touching `NSTemporaryDirectory()`.
 
-**Recommended shape:** a new small `@Published var outputPanelOpen: Bool = false` on `IslandPresentationState` (or a tiny sibling `ObservableObject`, mirroring `ViewSwitcherState`'s "one flag, one file" precedent if it's cleaner to keep Now-Playing-specific state out of the shared presentation object) — written by a closure the view calls on tap (`onToggleOutputPanel: () -> Void`, exactly mirroring the existing `onSwitcherSelect`/`onShelfItemTap` closure-forwarding convention already used throughout `NotchPillView`'s init), handled by a new `NotchWindowController.handleToggleOutputPanel()` which flips the flag and re-runs the same panel-resize path `handleSwitcherSelect` already triggers.
+### Pattern 3: No new "menu builder" type — extend `AppDelegate` as `NSMenuDelegate`
 
-**The output device *list drag-reorder* interaction (dragging a device to the top = switch active output), by contrast, IS purely local, ephemeral view state** — the drag-in-progress hover position doesn't need to survive outside the gesture and doesn't affect click-through geometry (the panel's already-open bounding box doesn't change size while reordering within it) — a plain `@State` `draggedDeviceID`/`dropTargetIndex` in the output-panel subview is correct and directly mirrors `TransportButton`'s own local `@State private var isHovering`.
+**What:** Rather than inventing a `ClipboardMenuBuilder` class, `AppDelegate` adopts `NSMenuDelegate` and implements `menuNeedsUpdate(_:)` (or `menuWillOpen(_:)`) to remove and re-insert the clipboard `NSMenuItem`s above the existing Settings…/Check for Updates…/Quit block every time the menu is about to open. Any genuinely pure logic (which items to show, label truncation, `⌘0`–`⌘9` assignment) is extracted as small top-level functions taking `[ClipboardItem]` and returning plain data (e.g. `(title: String, key: String)` tuples) — mirroring `DragDropSupport.swift`'s existing convention of pure top-level functions (`fileURLs(from:)`, `shouldAcceptDrop`) sitting right next to the AppKit code that consumes them, rather than a full separate type.
 
-**Trade-off:** this is one more controller round-trip than a pure-SwiftUI `@State` toggle would need, but it is the only shape that keeps `NotchWindowController` (the authority on click-through hit-testing) and the view in agreement — the exact invariant CR-01 was a regression of.
+**When to use:** When menu construction has some pure logic worth unit-testing (truncation, key assignment, ordering) but the actual `NSMenuItem`/`NSMenu` object graph is a thin, un-abstracted AppKit call site — matching how `AppDelegate.applicationDidFinishLaunching` already builds the existing static menu inline, and how Phase 40's debug menu (`setupDebugMenu()`) is a private `AppDelegate` method, not a separate builder class.
+
+**Trade-offs:** Keeps `AppDelegate.swift` growing (it is already the largest "glue" file in the app by role, not LOC), but avoids a one-off abstraction for a menu that is rebuilt in exactly one place. If `AppDelegate` becomes unwieldy, this is a candidate for a later "Claude's Discretion" extraction — not a Phase-1 concern.
 
 ## Data Flow
 
-### Favorite toggle flow
+### Capture Flow
 
 ```
-User taps ★ (left reserved slot, mediaExpanded)
+User copies (⌘C in any app, or a password manager writes ConcealedType)
     ↓
-NotchPillView calls onToggleFavorite() closure
+ClipboardMonitor's Timer tick reads NSPasteboard.general.changeCount
+    ↓ (only on a genuine delta — mirrors DragDropSupport's isGenuineFileDrag delta-gate discipline)
+ClipboardMonitor checks pb.types for org.nspasteboard.ConcealedType / TransientType → drop silently if present
     ↓
-NotchWindowController.handleToggleFavorite() → nowPlayingMonitor?.toggleFavorite()
+ClipboardMonitor builds a ClipboardItem (text or image), calls onChange(item)
     ↓
-NowPlayingMonitor sends MRMediaRemoteCommandLikeTrack over the SAME persistent
-adapter child's stdin togglePlayPause() already uses (no re-spawn)
+AppDelegate hands the item to ClipboardStore.add(item) — pure: appends, evicts oldest past the ~20-30 cap
     ↓
-(if the platform reports rating state) next onTrackInfoReceived snapshot carries
-isFavorite — flows through TrackSnapshot → NowPlayingPresentation (pure seam,
-unit-testable) → re-rendered star fill state
-    ↓
-(if the platform does NOT report rating state) star flips optimistically in
-local/controller state only, for this session — a write-only affordance
+AppDelegate calls ClipboardFileStore.save(items) — persists to Application Support (debounced/async off the poll path)
 ```
 
-### Audio output switch flow
+### Menu-Open / Click-Back Flow
 
 ```
-AudioOutputMonitor (event-driven, CoreAudio listeners)
-    ↓ onDevicesChanged([AudioOutputDevice])
-NotchWindowController stores the live list (mirrors deviceCoordinator's role,
-or a plain @Published on a new tiny AudioOutputViewState mirroring ViewSwitcherState)
+User clicks the status-bar icon
     ↓
-User taps speaker icon (right reserved slot) → onToggleOutputPanel()
+NSMenuDelegate.menuNeedsUpdate(_:) fires (AppDelegate)
     ↓
-NotchWindowController flips IslandPresentationState.outputPanelOpen = true,
-re-runs positionAndShow()'s frame math (panel already reserves the max height
-up front — "geometry three-site rule", see below — so this is instant, no live resize)
+AppDelegate reads ClipboardStore's current items, rebuilds the clipboard NSMenuItems above the static block
     ↓
-NotchPillView renders outputPanel(devices:) below the transport row: an
-OSDLevelBar-style volume slider (reuses readSystemVolume()/adjustSystemVolume()
-verbatim — same default device, no AudioOutputMonitor involvement) + a
-reorderable list of AudioOutputDevice
+User clicks a clip → its action sets NSPasteboard.general (setString/writeObjects), NOT auto-paste
     ↓
-User drags a device to the top (local view @State drag gesture, mirrors
-ShelfItemView's onDragStarted precedent)
-    ↓
-On drop-at-top: onSelectOutputDevice(device) closure → NotchWindowController
-→ audioOutputMonitor.setDefaultOutput(device) → CoreAudio kAudioHardwarePropertyDefaultOutputDevice set
-    ↓
-AudioOutputMonitor's own listener fires (its OWN write triggers the system
-notification loopback) → onDevicesChanged re-delivers the list with the new
-isDefault flag → list re-sorts to match (list order IS the "is default" signal,
-not a separate boolean the UI could drift out of sync with)
+IMPORTANT: this write bumps NSPasteboard.general.changeCount again — ClipboardMonitor's own
+click-back write must be excluded from re-capture (see Anti-Pattern 3), or the app will
+immediately re-add its own click-back write as a "new" clip.
 ```
 
-### The "geometry three-site rule" (this project's own established convention — name it, don't rediscover it)
+### Launch Flow
 
-Every prior taller-content addition (Tray/Phase 32, Weather/Phase 33, Quick Action Picker/Phase 34) required touching the SAME three places, and `NotchWindowController.swift`'s own comments literally call this pattern out at each site ("mirroring trayFrame/weatherExpandedFrame's precedent exactly"). The output panel reveal must touch all three or it WILL repeat a shipped-and-fixed bug class (Weather's round-3 UAT clip, CR-01's click-through gap):
+```
+applicationDidFinishLaunching (existing)
+    ↓
+ClipboardFileStore.load() → seeds ClipboardStore's in-memory list from Application Support (survives relaunch + reboot)
+    ↓
+ClipboardMonitor(onChange: ...).start() — begins polling from the CURRENT changeCount baseline,
+    seeded at init (NOT count 0), so nothing already on the pasteboard before launch is captured as new
+```
 
-1. **`NotchPillView.blobShape`'s `height:` argument** — `mediaExpanded` needs a new content-height constant when the panel is open (e.g. `homeContentHeightWithOutputPanel`), passed conditionally based on the new `outputPanelOpen` flag — mirrors `weatherMediumContentHeight`/`weatherLargeContentHeight`'s two-tier precedent exactly (same file, same technique, just a 2nd tier of `homeContentHeight` instead of a 2nd tier of the weather height).
-2. **`NotchWindowController`'s panel-frame union** (`positionAndShow`, ~line 984) — reserve the taller height **unconditionally up front**, same as every existing union member (`trayFrame`, `weatherExpandedFrame`, `quickActionPickerFrame`) — the panel is sized once to the max of everything so no live NSPanel resize ever races the SwiftUI spring morph. Check first whether `switcherContentHeight` (196pt) already exceeds `homeContentHeight` (170pt) plus the panel's real added content — if the panel is short enough to fit inside 196, this union member may need NO change at all (a real possibility worth checking before adding a new one, since `switcherContentHeight` already reserves generously for the tallest switcher-row case).
-3. **`visibleContentZone()`** — the click-through hit-test branch for `.nowPlayingExpanded` must grow its returned rect when `outputPanelOpen` is true, using the SAME boolean the view's `blobShape` call reads, or the panel will render but be unclickable/click-through-broken past its old bounds (exactly CR-01's original failure mode).
+## Storage Location — New Convention Needed
+
+Islet currently has exactly **two** storage precedents, and **neither fits** clipboard history:
+
+| Existing precedent | What it stores | Why it doesn't fit clipboard history |
+|---|---|---|
+| **Keychain** (`KeychainLicenseStore.swift`) | Trial start date, license validation cache — tiny scalar values, deliberately tamper-resistant | Wrong shape (Keychain is for small secrets/scalars, not a growing list of arbitrary text/image blobs) and wrong intent (Keychain's whole point here is surviving `defaults delete`/reinstall — clipboard history has no such tamper-resistance requirement) |
+| **`NSTemporaryDirectory()/IsletShelf/<uuid>/`** (`ShelfFileStore.swift`) | Session-only dropped files | Explicitly, deliberately non-persistent by design (PROJECT.md v1.9 goal calls out persistence across relaunch/reboot as "an explicit, deliberate difference" from the Shelf) — using temp storage would be actively wrong here |
+
+**No existing Application Support / cache directory usage exists anywhere in the codebase** (confirmed: zero hits for `applicationSupportDirectory` across `Islet/`). This is genuinely new territory, not a gap in research.
+
+**Recommendation:** `FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!.appendingPathComponent(Bundle.main.bundleIdentifier ?? "Islet").appendingPathComponent("ClipboardHistory", isDirectory: true)` — the standard Apple-sanctioned location for app-owned persistent data that isn't a system secret and isn't disposable, following the exact same "create the directory lazily, one dedicated subfolder" shape `ShelfFileStore` already uses for its temp root, just rooted at Application Support instead of `NSTemporaryDirectory()`. Store a small JSON index (array of `ClipboardItem` metadata + text content inline) plus per-item image blobs written to `<uuid>.png` files alongside it — mirroring `ShelfFileStore`'s per-item-UUID-subfolder pattern, adapted from "session temp copy of a dropped file" to "persisted copy of an image clip."
+
+## Scaling Considerations
+
+| Scale | Approach |
+|---|---|
+| ~20-30 items (the spec'd cap) | Flat JSON index + loose image files is trivially sufficient — no database needed |
+| If the cap were later raised to hundreds/thousands | Would be the trigger to reconsider (rewriting one JSON index file on every eviction stops being cheap) — explicitly NOT a v1.9 concern given the locked ~20-30 cap |
+| Image size growth (very large screenshots copied) | Not addressed by REQUIREMENTS.md — worth a phase-planning question (downscale/compress before persisting?) rather than assumed; out of scope for this architecture note |
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Giving Favorite its own protocol/service class "because it's private-API-adjacent too"
+### Anti-Pattern 1: Routing clipboard state through `IslandResolver`/`TransientQueue`
 
-**What people would do:** Create `FavoriteService.swift` with its own protocol, mirroring `NowPlayingService` 1:1, out of an instinct that "private API risk = new isolation boundary."
-**Why it's wrong:** It's the SAME bridge, same process, same risk surface as transport control, which already lives in `NowPlayingMonitor`. A second seam around the identical risk adds a second thing to keep in sync with zero added safety — if MediaRemote breaks, it breaks `NowPlayingMonitor` and `FavoriteService` on the exact same day, and now there are two files' health-check/lifecycle code to fix instead of one.
-**Do this instead:** One method + one field on the existing `NowPlayingService`/`NowPlayingMonitor`/`TrackSnapshot`, per Pattern 1.
+**What people might do:** Since every other Monitor's output eventually reaches `IslandResolver`, it would be tempting to add a `.clipboard` case "for consistency."
+**Why it's wrong:** The user has explicitly, already decided clipboard history is status-bar-menu-only, not an Island/notch view (locked in PROJECT.md — not to be re-litigated). Threading it through `IslandResolver` would violate that decision and needlessly couple two independent UI surfaces (status-bar `NSMenu` vs. the notch `NSPanel`) that this codebase has otherwise always kept cleanly separate.
+**Do this instead:** `ClipboardMonitor` → `ClipboardStore` → `AppDelegate`'s menu rebuild, full stop. Zero import of `IslandResolver.swift`, `TransientQueue.swift`, or `NotchWindowController.swift` anywhere in the clipboard code path.
 
-### Anti-Pattern 2: Making the output-device list part of `IslandPresentation`
+### Anti-Pattern 2: A single shared pasteboard-poller for both drag-detection and clipboard history
 
-**What people would do:** Add a `case audioOutputExpanded([AudioOutputDevice])` to `IslandPresentation`, treating it like Tray/Calendar/Weather's own dedicated resolver cases.
-**Why it's wrong:** Tray/Calendar/Weather are *whole-tab* destinations reached via the switcher row — genuinely competing top-level content. The output panel is a *disclosure within* Now Playing, never reachable except from there, and must NOT out-rank or get pre-empted by Charging/Device the way real resolver cases correctly do. Folding it into the resolver would also force `resolve()`'s already-large switch to know about audio hardware state, breaking the "resolver only arbitrates competing activities" invariant.
-**Do this instead:** Sibling `@Published` boolean on `IslandPresentationState` (or a tiny dedicated state object), per Pattern 3 — read by `mediaExpanded`'s own body, invisible to `resolve()`.
+**What people might do:** Notice both features "poll a pasteboard's `changeCount`" and try to unify them into one shared poller class to avoid "two pollers."
+**Why it's wrong:** They poll two *different* `NSPasteboard` instances that are unrelated at the API level. There is no `DragApproachDetector` class in this codebase (the question's premise names one, but it doesn't exist as a separate type) — the equivalent logic is inline in `NotchWindowController.swift`'s `handleDragApproachTick()`/`recheckDragAcceptRegion(currentChangeCount:)`, plus pure helpers in `Islet/Notch/DragDropSupport.swift` (`fileURLs(from:)`, `isGenuineFileDrag(...)`). That existing code reads `NSPasteboard(name: .drag)` — the OS's dedicated, ephemeral drag-session pasteboard — NOT `NSPasteboard.general` (the ordinary copy/paste clipboard clipboard history needs). These have independent `changeCount` sequences and independent trigger cadences: the drag-tick code only runs while a `.leftMouseDragged` global `NSEvent` monitor is actively firing (i.e., only during a live OS drag gesture), while the clipboard poller must run continuously in the background regardless of mouse activity (a `⌘C` in another app has no mouse-drag component at all). Unifying them would force a background-always-running timer to also drive drag detection (wasteful and architecturally backwards) or force drag-only ticking onto clipboard capture (would miss the vast majority of real copies). **There is no actual race, conflict, or duplicated work risk between the two today** — they don't touch the same object.
+**Do this instead:** Two independent, differently-triggered pollers, exactly as the question's premise assumed needed reconciling — but they don't. `ClipboardMonitor` gets its own `DispatchSourceTimer` (mirroring `FocusModeMonitor`'s shape, but at a much shorter interval — sub-second, matching CopyClip-class responsiveness — vs. Focus's deliberate 2.5s), fully independent of `NotchWindowController`'s drag-tick lifecycle. The one thing worth carrying over from the drag detection code is the *pattern*, not a shared instance: cache the last-seen `changeCount`, only do real work (read pasteboard contents, classify, persist) on an actual delta — the same discipline `isGenuineFileDrag`'s delta-gate already proves out in this codebase.
 
-### Anti-Pattern 3: Extending `VolumeReader.swift` with device-list functions "since it's already CoreAudio"
+### Anti-Pattern 3: Re-capturing the app's own click-to-copy-back write as a new history item
 
-**What people would do:** Add `listOutputDevices()`/`setDefaultOutputDevice()` as more free functions in `VolumeReader.swift`, since it already imports CoreAudio and has `defaultOutputDeviceID()`.
-**Why it's wrong:** `VolumeReader` is deliberately stateless and pull-based (no listeners, no lifecycle, called synchronously from `OSDInterceptor`'s key-press handler). Device enumeration + live add/remove/default-changed tracking is a fundamentally different, event-driven shape — cramming it in produces a file that's neither a clean "stateless reader" nor a clean "event-driven monitor," and it would be the first file in the project to mix those two shapes.
-**Do this instead:** New `AudioOutputMonitor.swift`, event-driven class, mirrors `BluetoothMonitor`'s shape — per Pattern 2. `VolumeReader`'s existing functions are reused UNCHANGED for the volume-slider part of the panel (they already operate correctly on "whatever the current default device is").
+**What people might do:** Naively poll `changeCount` and treat every delta as "the user copied something new," including the delta the app itself just caused by writing the clicked item back onto `NSPasteboard.general`.
+**Why it's wrong:** Would cause every click-back to immediately re-insert itself as a duplicate "most recent" entry, corrupting ordering and burning one eviction slot per click.
+**Do this instead:** When `AppDelegate` writes a clip back onto the pasteboard, update `ClipboardMonitor`'s cached `lastChangeCount` synchronously to the post-write value (a setter the monitor exposes, or simply re-reading `changeCount` immediately after the write) before the next poll tick — a small, deliberate seam, not a race condition to leave to chance.
 
 ## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| MediaRemote `MRMediaRemoteCommandLikeTrack`/`DislikeTrack` (private, via `mediaremote-adapter`) | Extend existing `NowPlayingMonitor`'s `MediaController` calls | Command's existence confirmed at the framework level (theos headers); whether the vendored Swift wrapper exposes sending it is UNVERIFIED — spike first (see Pattern 1) |
-| CoreAudio `kAudioHardwarePropertyDevices` / `kAudioHardwarePropertyDefaultOutputDevice` (public) | New `AudioObjectAddPropertyListener` registration in `AudioOutputMonitor` | Public, documented, same framework `VolumeReader` already links — low risk relative to MediaRemote, still gets its own file per the "one system surface, one file" convention |
 
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| `NowPlayingMonitor` ↔ `NotchWindowController` | Injected closures (`onSnapshot`, `onTerminated`), extend with the existing pattern — no new channel needed for favorite | Matches `togglePlayPause()`'s existing call shape exactly |
-| `AudioOutputMonitor` ↔ `NotchWindowController` | Injected closure (`onDevicesChanged`), mirrors `BluetoothMonitor`'s `{ [weak self] reading in ... }` init pattern | New monitor, started/stopped in `NotchWindowController.start()`/lifecycle alongside the others |
-| `NotchPillView.mediaExpanded` ↔ `NotchWindowController` | New closures: `onToggleFavorite`, `onToggleOutputPanel`, `onSelectOutputDevice`, `onVolumeChange` — forwarded exactly like `onPrevious`/`onTogglePlayPause`/`onNext` already are | No new communication mechanism, just 4 more entries in the same closure-forwarding convention |
-| `visibleContentZone()` ↔ `blobShape`'s `height:` | Both must read the SAME `outputPanelOpen` boolean | The exact invariant CR-01 broke once already — do not let the two branches be computed independently |
+| `ClipboardMonitor` ↔ `AppDelegate` | Constructor-injected `onChange: (ClipboardItem) -> Void` closure, called on main (mirrors every existing Monitor's `onChange` contract) | `AppDelegate`, not `NotchWindowController`, is the owner — the one real shape deviation from precedent |
+| `ClipboardStore` ↔ `ClipboardFileStore` | `ClipboardStore` is pure/in-memory; `AppDelegate` (or a small coordinator) explicitly calls `ClipboardFileStore.save(...)`/`.load()` around store mutations — mirrors how `ShelfCoordinator` sits between `ShelfLogic` and `ShelfFileStore` rather than either touching the other directly | Keep `ClipboardStore` unaware that persistence exists at all, same as `ShelfLogic` |
+| `AppDelegate` ↔ existing `statusItem`/`menu` | `NSMenuDelegate.menuNeedsUpdate(_:)` inserts/removes clipboard `NSMenuItem`s above the existing Settings…/Check for Updates…/Quit block on every open | The existing menu-construction code (the `menu.addItem(...)` calls in `applicationDidFinishLaunching`) is the one place genuinely touched/extended, not replaced |
+| `ClipboardMonitor`/`ClipboardStore`/`ClipboardFileStore` ↔ `NotchWindowController`/`IslandResolver`/`TransientQueue` | **None.** Zero imports, zero shared state, zero calls in either direction | Explicit, locked user decision — see Anti-Pattern 1 |
+| `ClipboardMonitor` ↔ `NotchWindowController`'s existing drag-tick polling code | **None — independent `NSPasteboard` instances, independent timers.** See Anti-Pattern 2 | Correcting a reasonable but incorrect premise: no shared-poller work is needed |
 
-## Suggested Build Order (mirrors this project's own risk-isolation precedent)
+## Build Order
 
-This project's established pattern (Phase 19→22 shelf: model → view → drag-out → risky drag-in isolated last; Phase 38→39: new resolver case proven with a safe activity type BEFORE the high-risk suppression mechanism) is: **prove the pure/safe seams first, isolate the one genuinely uncertain external-API question into its own small, spike-able step, and don't let it block the rest.**
+Mirrors this project's own repeated "pure seam(s) first, system glue second, assembly/UI last" sequencing — Phase 19→20→21 (Shelf: data model → view → drag-out), Phase 47→48 (Audio Output: pure seam → live glue+UI wiring), Phase 38's internal 01→05 ordering (spike the risky API path before building the full monitor), and Phase 4's `NowPlayingPresentation` (pure)-before-`NowPlayingMonitor` (glue)-before-view ordering.
 
-1. **Pure seams first, no system framework touched:** `AudioOutputPresentation.swift` (device value type + sort/reorder pure functions) and the `TrackSnapshot.isFavorite`/`NowPlayingPresentation` field addition — both unit-testable in milliseconds, zero on-device risk, matches every phase's Plan-01 precedent in this codebase.
-2. **The safe, public-API monitor:** `AudioOutputMonitor` (CoreAudio device enumeration + listeners + `setDefaultOutput`) — public framework, same risk tier as `VolumeReader`/`BrightnessReader`, no spike needed, just careful `AudioObjectPropertyAddress` plumbing (this project already has 2 working examples to copy from, `VolumeReader.swift` and `BrightnessReader.swift`).
-3. **UI wiring for the output panel + volume slider + reorder list**, using the two Anti-Pattern-avoiding integration points above (sibling `@Published` panel-open flag, local `@State` drag-reorder) — this is now pure SwiftUI/AppKit work with zero unresolved external-API risk, safe to build and fully on-device-UAT before step 4.
-4. **The reserved-slot buttons (star + speaker icons)** in `mediaExpanded` — trivial once step 3's closures exist; wire the speaker icon to toggle the already-proven output panel.
-5. **The one genuinely risky step, isolated last, exactly like Phase 22/38/39:** a small, throwaway on-device spike that (a) confirms whether `ejbills/mediaremote-adapter`'s `MediaController` can send `MRMediaRemoteCommandLikeTrack` at all (worst case: patch the wrapper's own command table, still contained to `NowPlayingMonitor.swift`), and (b) confirms whether the streamed payload ever reports a rating/favorite read-state. Only after this spike answers both questions should the star's real `NowPlayingMonitor.toggleFavorite()` + `TrackSnapshot.isFavorite` wiring be planned in detail — if the spike says "write-only, no read-state," scope the star down to an optimistic session-local toggle rather than a real bidirectional rating control, and say so explicitly rather than discovering it mid-plan.
+1. **`ClipboardItem` + `ClipboardStore`** — pure Foundation, zero AppKit/`NSPasteboard`/`FileManager` imports. Unit-test cap-eviction, ordering, clear-all exhaustively. Zero risk, no device/system dependency, can be fully verified before anything else exists — exactly Phase 19's `ShelfItem`/`ShelfLogic` role.
+2. **`ClipboardFileStore`** — real Application Support I/O (JSON index + image blobs), still fully unit-testable against an injectable root URL (learn from `ShelfFileStore`'s one gap: it hardcodes `NSTemporaryDirectory()` directly, making it harder to redirect in tests — worth injecting the root URL as a parameter here from the start so tests never touch the real `~/Library/Application Support/`). No live pasteboard involved yet.
+3. **`ClipboardMonitor`** — the one genuinely risky, on-device-only-verifiable seam: `NSPasteboard.general` polling cadence, concealed/transient-type exclusion, text-vs-image classification, the click-back re-capture guard (Anti-Pattern 3). Verify standalone via a console-log/manual on-device check (copy various content types, including from a password manager if available, confirm exclusion) BEFORE any menu UI exists — mirrors Phase 38's spike-the-API-path-first approach for `INFocusStatusCenter`, and Phase 22-01's "spike the risky mechanism before building the full feature around it" precedent.
+4. **`AppDelegate` menu wiring** — `NSMenuDelegate` dynamic rebuild, click-to-copy-back (with the changeCount guard from step 3), "Delete All History" action, `⌘0`–`⌘9` quick-select. Last, because it's pure assembly of the three already-proven pieces, and because menu rendering/shortcut behavior is itself only meaningfully verifiable on-device (matching this project's consistent "UI/wiring is the on-device-only step, done last" pattern).
 
-This ordering means a spike failure on step 5 (favorite) never blocks or contaminates the output-switcher work, which is the higher-confidence, more visually complex half of this milestone slice — the same isolation discipline that let Phase 22's failure stay contained instead of stalling Phases 19-21.
+This ordering isolates the one real integration risk (item 3: does `org.nspasteboard.ConcealedType`/`TransientType` filtering actually work against a real password manager, does image-vs-text classification handle real-world pasteboard content correctly) into its own phase, so a spike/iteration there — like Phase 22's drag-in isolation — cannot block or destabilize the already-proven pure model/persistence work from phases 1-2.
 
 ## Sources
 
-- Direct codebase reads (HIGH confidence): `Islet/Notch/NowPlayingMonitor.swift`, `NowPlayingPresentation.swift`, `IslandResolver.swift`, `IslandPresentationState.swift`, `VolumeReader.swift`, `OSDActivity.swift`, `NotchPillView.swift` (`mediaExpanded`, `blobShape`, constants block), `NotchWindowController.swift` (`positionAndShow`, `visibleContentZone`, `startNowPlayingMonitor`, `startBluetoothMonitor`), `BluetoothMonitor.swift`, `ViewSwitcherState.swift`, `.planning/PROJECT.md` (Key Decisions, Validated requirements through Phase 42).
-- [theos/headers MediaRemote.h](https://github.com/theos/headers/blob/master/MediaRemote/MediaRemote.h) — MEDIUM confidence, reverse-engineered/community-maintained header, not an Apple source, but the only available reference for the private `MRMediaRemoteCommand` enum; confirms `MRMediaRemoteCommandLikeTrack`/`DislikeTrack`/`RateTrack`/`BookmarkTrack` exist as command constants.
-- [ungive/mediaremote-adapter](https://github.com/ungive/mediaremote-adapter) and [ejbills/mediaremote-adapter](https://github.com/ejbills/mediaremote-adapter) — HIGH confidence on architecture (already the project's own dependency, per CLAUDE.md/STACK research); LOW confidence on whether the Swift wrapper's `MediaController` exposes sending a like/favorite command — not found documented in this research pass, flagged as the step-5 spike question.
-- Apple CoreAudio public documentation (`kAudioHardwarePropertyDevices`, `kAudioHardwarePropertyDefaultOutputDevice`, `AudioObjectAddPropertyListener`) — HIGH confidence, standard documented public API, same framework already in production use via `VolumeReader.swift`.
+- Direct source read: `Islet/AppDelegate.swift`, `Islet/Notch/PowerSourceMonitor.swift`, `Islet/Notch/FocusModeMonitor.swift`, `Islet/Notch/AudioOutputMonitor.swift`, `Islet/Notch/NowPlayingMonitor.swift`, `Islet/Notch/DragDropSupport.swift`, `Islet/Notch/NotchWindowController.swift`, `Islet/Shelf/ShelfFileStore.swift`, `Islet/Licensing/KeychainLicenseStore.swift`, `Islet/ActivitySettings.swift` — all HIGH confidence, verified by reading actual code, not summarized from memory
+- `.planning/PROJECT.md` — milestone goal, locked decisions (status-bar-only, persistence-across-reboot, concealed/transient exclusion), Key Decisions table (pure-seam-first precedent across Phases 15/19/22-01/24-01/38-01/39-01/47)
+- [NSPasteboard.org — Identifying and Handling Transient or Special Data on the Clipboard](https://nspasteboard.org/) — confirms `org.nspasteboard.TransientType` (never record/display) and `org.nspasteboard.ConcealedType` (sensitive, password-manager convention) semantics, MEDIUM-HIGH confidence (community-authored de facto standard, not an Apple API, but the exact convention PROJECT.md already names)
 
 ---
-*Architecture research for: Islet v1.7 candidate scope — Favorite write-back + Audio-output switcher integration*
-*Researched: 2026-07-19*
+*Architecture research for: macOS clipboard-history menu-bar feature integration into Islet*
+*Researched: 2026-07-22*

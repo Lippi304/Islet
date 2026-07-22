@@ -1,133 +1,112 @@
-# Stack Research — Now Playing: Favorite/Like + Audio Output Switcher
+# Stack Research — Clipboard History (v1.9)
 
-**Domain:** Native macOS notch-overlay utility (Islet) — stack additions for 2 new Now Playing expanded-view capabilities
-**Researched:** 2026-07-19
-**Confidence:** HIGH for CoreAudio device switching/volume, AppleScript Music `loved` property, and `ASWebAuthenticationSession` (official docs + multiple corroborating sources). MEDIUM for the exact Spotify Web API endpoint shapes — official docs fetched directly, but the Feb 2026 endpoint migration is very recent and worth re-verifying at plan/execute time.
+**Domain:** Native macOS menu-bar utility (Islet) — stack additions for a persistent clipboard-history dropdown
+**Researched:** 2026-07-22
+**Confidence:** HIGH for the polling/changeCount pattern, the `org.nspasteboard.*` conventions, and image capture (multiple independent, corroborating sources: Maccy, Hammerspoon, nspasteboard.org, Apple Forums — Apple's own docs pages are JS-rendered and couldn't be fetched directly, but the polling behavior has been unchanged and independently re-confirmed by every clipboard-manager project across a decade, with no announced notification API in any macOS release since). HIGH for the persistence recommendation (reasoned from the codebase's own existing patterns, not external sources). MEDIUM for the exact `NSMenu` dynamic-rebuild mechanics (community/blog corroboration, not an official Apple sample).
 
-This is **not** a greenfield stack doc — it covers only what's new for these 2 capabilities. Nothing here replaces or touches the existing validated stack (SwiftUI/AppKit shell, `mediaremote-adapter`/`NowPlayingMonitor`, `VolumeReader`/`BrightnessReader`/`OSDInterceptor` CoreAudio+DisplayServices integration from Phase 39). See `CLAUDE.md` for that baseline.
+This is **not** a greenfield stack doc — it covers only what's new for the clipboard-history capability. Nothing here touches the existing validated stack (SwiftUI/AppKit shell, the status-item/`NSMenu` from Phase 0/40, Sparkle, MediaRemote/IOKit/IOBluetooth/EventKit/WeatherKit monitors). See `CLAUDE.md`/`PROJECT.md` for that baseline.
 
 ## Recommended Stack
 
-### 1. "Liked/favorited" write-back to Spotify or Apple Music
+### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|------------------|
-| **Spotify Web API — `PUT /me/library` / `GET /me/library/contains`** | Current (post Feb-2026 migration) | Save/check a track in the user's Spotify "Liked Songs" | The **only** way to genuinely write to Spotify's library. Spotify's local AppleScript dictionary has never exposed a like/save command — a 2020 community feature request asking for exactly this was never fulfilled, and it's still absent. The old `PUT /me/tracks` / `GET /me/tracks/contains` are deprecated; sibling "contains" endpoints for other content types were already **removed outright** in the Feb 2026 API changes — build against the new URI-based endpoints, not the deprecated ID-based ones. Required scopes: `user-library-modify` (save), `user-library-read` (check current state). |
-| **`AuthenticationServices` — `ASWebAuthenticationSession`** | Ships with macOS (10.15+) | OAuth 2.0 Authorization Code + PKCE login flow for the Spotify Web API | Apple's purpose-built, system-managed browser-sheet API for exactly this. Shares cookies with the user's default browser for instant re-auth if already logged into Spotify; avoids the abuse-detection risk and reinvention of a hand-rolled `WKWebView` login form. No third-party OAuth library needed. |
-| **PKCE (no client secret)** | — | Spotify auth flow variant | Spotify's implicit grant flow is deprecated. PKCE needs only a public Client ID — critical for this project specifically because it's unsandboxed and direct-distributed (not App-Store-reviewed): a client secret baked into the shipped `.app` binary would be trivially extractable via `strings`/disassembly. PKCE avoids needing one at all. |
-| **`NSAppleScript`** (Foundation, ships with macOS) | — | (1) Set Apple Music's `loved` property on the current track; (2) read Spotify's `id of current track` (`spotify:track:XXXX`) to get the track ID without a Search-API round-trip | Both Spotify and Apple Music remain independently AppleScript-scriptable per-app automation surfaces, distinct from MediaRemote. No dependency — same "use the tiny native surface directly" precedent this project already applies to IOKit/IOBluetooth. Must run off the main thread (a call can block if the target app is unresponsive) and must handle `errAEEventNotPermitted` (-1743) if Automation permission was denied/revoked. |
+| **`NSPasteboard.general` + `changeCount` polling via `Timer`** | Ships with macOS (AppKit, stable since Mac OS X 10.0, unchanged through macOS 26) | Detect new copies | **There is no notification-based pasteboard API on macOS — not in AppKit, not in any private framework, and none has ever shipped.** Every clipboard manager (Maccy, Hammerspoon, Paste, CopyClip itself) polls `changeCount`, an integer that increments on every pasteboard write. This is corroborated independently across a decade of open-source clipboard managers and reaffirmed in the Hammerspoon source itself ("macOS doesn't offer any API for getting Pasteboard notifications, so this extension uses polling"). Islet already has a directly analogous precedent: `dragPasteboardChangeCount` in `NotchWindowController.swift` tracks `NSPasteboard(name: .drag).changeCount` the exact same way, just event-triggered instead of timer-polled. **Recommended interval: `Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true)`** (Maccy's default) — cheap enough that fast polling is a non-issue (comparing an `Int`, not reading pasteboard contents, on every tick), matching the existing `outfitRefreshTimer` pattern already in `NotchWindowController.swift`. |
+| **`org.nspasteboard.ConcealedType` / `TransientType` / `AutoGeneratedType`** | Convention, not an API — just `NSPasteboard.PasteboardType(rawValue: "org.nspasteboard.ConcealedType")` etc. | Skip capturing sensitive/transient/auto-generated copies | This is the de facto community convention (nspasteboard.org, unofficial but universally honored by 1Password, Bitwarden, and every serious clipboard manager including Maccy). No framework support needed — just check `pasteboard.types` for these 3 raw-string type identifiers **before** reading/storing content; if present, skip the whole item. Exact strings (verified against nspasteboard.org and Maccy's source): `org.nspasteboard.ConcealedType`, `org.nspasteboard.TransientType`, `org.nspasteboard.AutoGeneratedType`. |
+| **`NSPasteboard.PasteboardType.string` / `.tiff` / `.png`** | Ships with macOS | Read plain text and image content | Check `pasteboard.string(forType: .string)` first; if nil, fall back to reading image bytes via `pasteboard.data(forType: .tiff)` (most apps put images on the pasteboard as `public.tiff`) or `.png`, then construct `NSImage(data:)` for previewing. Order matters: check types in priority order (`.string` → `.tiff`/`.png`) rather than trying to read every type — a single copy can carry many representations simultaneously (e.g. RTF text also carries a `.string` fallback), and Islet only needs one canonical form per history entry. |
+| **`Codable` struct + `JSONEncoder`/`JSONDecoder`** | Foundation, ships with macOS | Persist the ~20-30-item history list itself | See "Persistence Approach" below — the correct-weight choice for this exact dataset shape and size. |
+| **`FileManager` + Application Support directory** | Foundation, ships with macOS | Store captured image bytes on disk, referenced by filename from the JSON | Mirrors `ShelfFileStore.swift`'s existing per-item-UUID-subfolder pattern almost exactly, with one deliberate change: root the folder under `FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)` (survives reboot) instead of `NSTemporaryDirectory()` (wiped on reboot/logout — that's precisely why the existing Shelf is session-only, and precisely why clipboard history must NOT reuse that root). |
+| **Plain `NSMenu`/`NSMenuItem` mutation** | Ships with macOS | Render the variable-length (0-30 item) history list in the existing status-item dropdown | No new API needed. `AppDelegate.swift`'s existing `menu` (a flat `NSMenu()` with `Settings…`/`Check for Updates…`/`Quit Islet`) already supports inserting/removing `NSMenuItem`s at runtime — this is completely ordinary AppKit; `NSMenu` doesn't care how its items came to exist. Rebuild the history section's items directly inside the same polling-timer callback that detects a new `changeCount` (simplest: on every detected pasteboard change, remove the old history items and re-insert the current list at a fixed index, e.g. above the existing separator) — this needs no `NSMenuDelegate` conformance at all, since content changes are already driven by the same timer tick. |
 
-**Integration point:** a new `NowPlayingLikeService` (or similar), isolated behind its own small protocol the same way `NowPlayingMonitor` isolates the MediaRemote bridge — the two write-back mechanisms (Spotify OAuth+REST vs. Apple Music AppleScript) are structurally unrelated, so branch on the current source inside this one seam rather than threading an if/else through the UI layer.
+### Supporting Libraries
 
-**Decision this needs (flag for discuss-phase):** the Spotify OAuth flow needs a one-time app registration on the Spotify Developer Dashboard (free) to get a Client ID, plus deciding the redirect-URI custom scheme (e.g. `com.<team>.islet://spotify-callback`) — this is a real external setup step, not just code, and should be called out explicitly at plan time (same category as the existing Apple Developer account / Polar.sh setup steps).
+None. This entire feature is achievable with AppKit + Foundation alone — **do not add a third-party clipboard-manager library, a database wrapper, or an ORM.** The dataset (20-30 small items) and platform (single-user, single-process, sandboxless menu-bar agent) are far below the threshold where any of those would earn their complexity.
 
-**Known caveat to design around:** `loved of current track` for Apple Music is confirmed **broken for tracks not yet in the user's local library** (Apple Music catalog/streaming-only tracks) — on the current macOS Tahoe 26.0.0 public release this throws an error rather than silently failing; it works fine for tracks already in the library. The star button must catch this and disable/hide itself (or show a subtle "add to library first" affordance) rather than assume success — this mirrors the project's existing "degrade silently on permission/capability gaps" convention (WeatherKit, EventKit, Focus Mode).
+### Development Tools
 
-### 2. Audio-output-device switcher + per-device volume
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|------------------|
-| **CoreAudio (Audio Hardware, C API) — `kAudioHardwarePropertyDevices`, `kAudioHardwarePropertyDefaultOutputDevice`** | Ships with macOS | Enumerate audio output devices; get/set the system's active output device | Same framework `VolumeReader.swift` already uses — this is a direct extension of existing code, not a new integration point. `kAudioHardwarePropertyDevices` lists every `AudioObjectID` on the system; filter to output-capable ones via channel count under scope `kAudioObjectPropertyScopeOutput` (a device with zero output channels, e.g. a mic-only input, is excluded). Writing `kAudioHardwarePropertyDefaultOutputDevice` is exactly what dragging a device to the top position should do. |
-| **AudioToolbox — `AudioHardwareServiceGetPropertyData`/`SetPropertyData` with `kAudioHardwareServiceDeviceProperty_VirtualMasterVolume`** | Ships with macOS | Get/set a specific output device's overall volume (the thick slider) | The "virtual master volume" property abstracts away per-channel volume control. Some output devices (notably some USB/Bluetooth ones) don't expose a literal master channel and only respond correctly through the `AudioHardwareService` entry points, not the plain `kAudioDevicePropertyVolumeScalar` + `AudioObjectSetPropertyData` pair used for the default device today — use the Service variant for this feature to avoid a device-specific edge case. |
-| **`AudioObjectAddPropertyListenerBlock`** on `kAudioHardwarePropertyDevices` + `kAudioHardwarePropertyDefaultOutputDevice` | Ships with macOS | Live-update the device list and the "current output" highlight when devices connect/disconnect, or the user changes output elsewhere (Control Center, System Settings) | Same event-driven pattern already used for IOKit power-source and Bluetooth notifications elsewhere in this app — no polling loop needed. |
-
-**Integration point:** extend the existing CoreAudio surface (`VolumeReader.swift`) rather than introducing a parallel audio module — the new device-enumeration/switching code and the existing single-device volume-read code both live in the same framework and can share the `AudioObjectID` plumbing.
-
-**Decision this needs (flag for discuss-phase):** the native "Sound Output" switcher (menu bar / Control Center) also flips `kAudioHardwarePropertyDefaultSystemOutputDevice` (system alert sounds) in lockstep with the main output device, unless the user has separately configured alert sounds to a different device. Recommendation: this feature should set only `kAudioHardwarePropertyDefaultOutputDevice` (matches "switch what I'm listening to," the actual feature intent) and leave the system-sound default alone, so it never silently overrides a user's separate alert-sound routing choice — confirm this matches user expectations before building.
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| None new | — | Uses the existing Xcode project and existing test-target pattern (pure logic in a standalone file/enum, unit-tested — mirrors `ShelfLogic`/`fileURLs(from:)`/`isGenuineFileDrag`), no new build settings or entitlements. Clipboard access itself needs no new entitlement or `Info.plist` key (unlike, e.g., Focus Mode's `NSFocusStatusUsageDescription` in Phase 38) — reading/writing `NSPasteboard.general` has always been unrestricted for any app. |
 
 ## Installation
 
-No new Swift Package Manager dependencies are required for either feature — everything above ships with the macOS SDK (`AuthenticationServices`, `Foundation`/`NSAppleScript`, `CoreAudio`, `AudioToolbox`). Only project configuration changes:
-
-```xml
-<!-- Info.plist additions -->
-<key>NSAppleEventsUsageDescription</key>
-<string>Islet needs permission to mark songs as liked in Spotify/Apple Music.</string>
-
-<key>CFBundleURLTypes</key>
-<array>
-  <dict>
-    <key>CFBundleURLSchemes</key>
-    <array><string>com.yourteam.islet</string></array>
-  </dict>
-</array>
-```
-
-```swift
-// Link (CoreAudio/AudioToolbox likely already linked for VolumeReader):
-import CoreAudio
-import AudioToolbox
-import AuthenticationServices
-```
-
 ```bash
-# External, one-time, not code:
-# Register a free app at https://developer.spotify.com/dashboard
-#  -> get Client ID (no secret needed for PKCE)
-#  -> add the custom-scheme redirect URI to the app's allow-listed Redirect URIs
+# Nothing to install — AppKit + Foundation only, already linked into every macOS target.
 ```
+
+## Persistence Approach — Rationale
+
+**Recommended: a single JSON array file (`Codable` struct list) under Application Support, with image bytes written as sibling PNG files referenced by filename.**
+
+Weighed against the alternatives explicitly asked about:
+
+- **Core Data** — wrong tool for this shape. Core Data earns its keep when you need relational queries, large datasets, or incremental fetching. A 20-30-item capped list needs none of that: load the whole thing into memory once at launch, re-save the whole thing on every mutation — trivially cheap at this size. Core Data would add a `.xcdatamodeld` file, persistent-container boilerplate, and a second I/O idiom (`NSManagedObjectContext`) alongside Foundation's plain `JSONEncoder` used nowhere else in the app — pure added surface area for a first-time programmer with zero payoff at this scale.
+- **SQLite (raw or via a wrapper)** — same problem, one level down: still requires either hand-rolling the C API or adding a dependency (e.g. GRDB/SQLite.swift) this project has otherwise avoided entirely (the codebase's only "database-like" store today is Keychain, for auth secrets, not bulk content). A capped 20-30-item list has no query pattern that benefits from SQL — every operation is "load all," "prepend one," or "evict oldest."
+- **JSON/plist file, images in Application Support referenced by filename (recommended)** — matches the size and access pattern exactly (whole-list load/save), needs zero new frameworks, and is a close structural cousin of `ShelfFileStore.swift`'s existing per-item-folder-on-disk pattern the user has already shipped and is comfortable with. The only material difference from Shelf is the root directory (Application Support, not `NSTemporaryDirectory()`) because this history must survive reboot, unlike the Shelf.
+- **Why not Keychain** (the other existing precedent, used for license/trial data): Keychain is designed for small secrets (tens of bytes to a few KB), not image blobs, and has stricter size/performance characteristics — right tool for a license key, wrong for up to 30 PNGs.
+- **Why Application Support, not Caches:** `NSCachesDirectory` is explicitly documented as purgeable by the OS at any time under disk pressure, with no warning to the app. The requirement says history must survive reboot; Caches doesn't guarantee that even within a single boot, let alone across one. Application Support is the correct directory for anything the app itself is responsible for keeping around.
+
+**Concrete shape:**
+```swift
+struct ClipboardHistoryItem: Codable, Identifiable {
+    let id: UUID
+    let timestamp: Date
+    let text: String?          // set for text copies
+    let imageFileName: String? // set for image copies; PNG lives alongside the JSON file
+}
+```
+One `history.json` (the array, oldest-eviction applied before every save) + a flat folder of `<uuid>.png` files for image entries, both under `Application Support/Islet/ClipboardHistory/`. Total on-disk footprint at the 20-30 item cap is trivial (a handful of small PNGs plus a tiny JSON file) — no compaction, indexing, or migration logic needed at this scale.
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|--------------------------|
-| Spotify Web API (`PUT /me/library`) via `ASWebAuthenticationSession` + PKCE | Spotify iOS/macOS "App Remote" SDK (`SpotifyiOS.framework`) | Never for this feature — App Remote is a real-time playback-control SDK (duplicates what MediaRemote already gives Islet) and has **no** library-save/like capability at all. Not a substitute, regardless of preference. |
-| AppleScript `loved` property for Apple Music | AXUIElement UI-scripting of Music's/Spotify's own heart/star button | Only as an absolute last resort. Fragile (breaks on any UI redesign), requires the broad system Accessibility permission (a much scarier prompt for users than per-app Automation), and silently no-ops if the target window isn't actually rendered/frontmost. Spotify has no such button reachable this way that maps to a real save anyway, since the underlying command doesn't exist. |
-| Direct CoreAudio HAL calls (extend `VolumeReader.swift`) | `SimplyCoreAudio` (rnine/SimplyCoreAudio) | Only if the project's dependency philosophy shifts — it's **archived/unmaintained since March 2024**, and the surface actually needed here (list devices, get/set default, get/set volume, listen for changes) is small enough that the project's existing precedent ("no third-party Bluetooth library, IOKit surface is tiny, use it directly") applies just as well here. |
-| `ASWebAuthenticationSession` for Spotify OAuth | Manual `WKWebView` login form | Never for a real OAuth provider login — reimplements what the system API does safely, is more likely to trip Spotify's automated bot/abuse detection, and loses the shared-cookie fast-login path. |
-| PKCE (Authorization Code + PKCE) | Client Credentials flow | Client Credentials only authenticates the *app*, not a *user* — it cannot write to a specific user's library under any circumstance. Not viable for this feature. |
+| `Timer`-based `changeCount` polling | `NSPasteboard` "watcher" via Combine/`NotificationCenter` | Never on macOS today — no such notification exists to observe. Don't spend time searching for one; it has never shipped. |
+| Plain JSON + files in Application Support | Core Data / SQLite | If a future milestone ever grows the cap into the hundreds/thousands with real search/filter needs (v1.9 explicitly defers search) — revisit then, not now. |
+| Direct `NSMenu`/`NSMenuItem` mutation on timer tick | `NSMenuDelegate.menuWillOpen(_:)` lazy rebuild | If the history list ever needs to reflect something that changes independent of the pasteboard-change timer (it doesn't here) — the delegate hook is the more "pull-model idiomatic" AppKit pattern but is strictly more code for the same outcome given the timer already fires on every relevant change. |
+| `.tiff`/`.png` pasteboard types for images | `NSPasteboard.readObjects(forClasses: [NSImage.self])` | This higher-level API is a legitimate simpler alternative for the read-back path (converts pasteboard bytes straight to `NSImage`) — a reasonable option, but the explicit type check (for the `.tiff`/`.png`-presence test used for content-type detection) is still needed regardless, so it doesn't remove any code, just changes which line does the final conversion. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
-|-------|-----|--------------|
-| `PUT /me/tracks` / `GET /me/tracks/contains` (Spotify) | Deprecated as of Spotify's February 2026 Web API changes; sibling "contains" endpoints for other content types were already removed outright — building against the old shape risks targeting something Spotify may remove next. | `PUT /me/library` / `GET /me/library/contains` (URI-based, unified across content types) |
-| Spotify Implicit Grant OAuth flow | Deprecated by Spotify in favor of Authorization Code + PKCE; not recommended for new apps. | Authorization Code with PKCE |
-| `SimplyCoreAudio` | Archived/read-only since March 2024 — no further fixes if a future macOS changes CoreAudio behavior. | Direct `AudioObjectGetPropertyData`/`SetPropertyData`/`AudioHardwareServiceSetPropertyData` calls, same style as the existing `VolumeReader.swift` |
-| `kAudioObjectPropertyElementMaster` | Deprecated since macOS 12.0 (renamed, not just relabeled) — using the old symbol emits a build warning today and risks removal in a future SDK. | `kAudioObjectPropertyElementMain` |
-| AXUIElement-driven UI automation of Spotify's/Music's heart/like button | Requires the broad Accessibility permission, breaks silently on any UI redesign, needs the target window on screen. | Spotify Web API (Spotify) / AppleScript `loved` property (Apple Music) |
-| Baking a Spotify Client Secret into the shipped binary | This is an unsandboxed, direct-distributed, notarized (not App-Store-reviewed) app — an embedded secret is trivially extractable, and Spotify's PKCE flow doesn't require one. | PKCE public-client flow (Client ID only) |
-| Assuming `loved of current track` always succeeds for Apple Music | Confirmed broken for tracks **not in the user's local library** on the current Tahoe 26.0.0 public release (throws rather than silently failing); works for library tracks. | Catch the error explicitly; disable/hide the star rather than assume success |
+|-------|-----|-------------|
+| Any third-party clipboard-manager library/pod/SPM package | No such widely-used library exists for this (clipboard managers are typically bespoke per-app, not built on a shared framework) — pulling one in would add an unaudited dependency for ~150 lines of straightforward AppKit code | Roll it directly, following `DragDropSupport.swift`'s existing "pure top-level functions, unit-testable" convention |
+| Core Data / SQLite for a 20-30 item cap | Over-engineered for a bounded, whole-list-load dataset (see Persistence Approach above) | `Codable` + `JSONEncoder`/`JSONDecoder` |
+| `NSCachesDirectory` for the image files | OS-purgeable at any time, doesn't satisfy the reboot-survival requirement | `FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)` |
+| Reading pasteboard contents on every timer tick regardless of `changeCount` | Wasteful (decodes an image every 0.5s even when nothing changed) — exactly the mistake the `changeCount` guard exists to prevent; Islet's own `dragPasteboardChangeCount` precedent already guards this correctly for drag detection | Compare `pasteboard.changeCount != lastSeenChangeCount` first; only read contents on a genuine delta |
+| Ignoring `org.nspasteboard.*` types "because it's just a convention, not enforced" | It's the industry-standard mechanism 1Password/Bitwarden/every password manager relies on to keep secrets out of clipboard history apps — skipping it risks Islet silently logging passwords | Check `pasteboard.types` for the 3 identifiers before ever reading/storing an item's content |
 
 ## Stack Patterns by Variant
 
-**If the current Now Playing source is Spotify:**
-- Use the Web API path end-to-end: AppleScript `id of current track` → parse the `spotify:track:XXXX` URI → `PUT /me/library` (scope `user-library-modify`) to like, `GET /me/library/contains` (scope `user-library-read`) to show the star's current filled/unfilled state whenever the expanded view opens.
-- Because Spotify's local scripting surface has no like/save command at all — the Web API is the only path.
+**If a copy carries both `.string` and `.tiff`/`.png` types simultaneously** (rare, but some apps do this):
+- Prefer text — it's almost always the more useful/reusable form.
 
-**If the current Now Playing source is Apple Music:**
-- Use `NSAppleScript` directly against the `Music` app (`tell application "Music" to set loved of current track to true`) — no OAuth, no network call, no Developer Dashboard registration needed.
-- Because Apple Music's local scripting surface already supports this natively; adding OAuth here would be pure over-engineering.
-- Guard for the library-membership caveat above; degrade to a disabled/hidden star, not a silent no-op or crash.
-
-**If the current source is neither Spotify nor Apple Music (outside the existing allowlist):**
-- Hide the favorite button entirely.
-- Because this mirrors the existing `NowPlayingMonitor` allowlist-gating pattern already established for NOW-01 — no new precedent needed.
+**If the pasteboard write comes from Islet's own "click history item to re-copy" action:**
+- That action's own write bumps `changeCount` — guard against re-capturing your own re-copy as a "new" history entry (simplest: skip capture if the content being written is byte-identical to the most-recent history item already at the top).
 
 ## Version Compatibility
 
 | Component | Compatible With | Notes |
 |-----------|------------------|-------|
-| `ASWebAuthenticationSession` | macOS 10.15+ | Solid on the project's 15.0+ floor and current Tahoe 26 dev hardware. |
-| `PUT /me/library` / `GET /me/library/contains` | Spotify Web API, current as of Feb 2026 | Very recently introduced — re-verify against Spotify's changelog at plan/execute time in case of further churn; treat the old `/me/tracks*` family as already-deprecated, not a safe fallback. |
-| Spotify OAuth redirect URI rules | Enforced for all apps since Nov 2025 | Custom URL schemes (`com.example://callback`) remain explicitly supported; plain (non-loopback) `http://` redirects are no longer accepted — must be HTTPS or a loopback address (`127.0.0.1`/`[::1]`); bare `localhost` is rejected. |
-| `NSAppleScript` "loved" property (Music) | Current through macOS Tahoe 26 | Confirmed working for library tracks; confirmed erroring for non-library (streaming-only) tracks as of the Tahoe 26.0.0 public release — build the guard, don't assume. |
-| `kAudioObjectPropertyElementMain` | macOS 12.0+ | Well within the project's 15.0+ floor; use this symbol, not the deprecated `...ElementMaster`. |
+| `NSPasteboard`/`changeCount`/`.tiff`/`.png`/`.string` | macOS 10.0+ through macOS 26 (Tahoe) | Zero deprecation risk — some of the oldest, most stable AppKit surface area in existence. |
+| `org.nspasteboard.*` type strings | N/A (plain string constants, no OS dependency) | Convention-only; works identically on every macOS version since it's just comparing raw pasteboard type identifiers. |
+| `FileManager.SearchPathDirectory.applicationSupportDirectory` | macOS 10.0+ | Same directory Islet could use for any future non-Keychain persistence need. |
+
+## Integration Points (existing codebase)
+
+- **`AppDelegate.swift`** — extend the existing flat `menu = NSMenu()` construction (currently `Settings…` / `Check for Updates…` / separator / `Quit Islet`) with a new history section. Natural placement: insert the (0-30) history items plus a "Delete All History" action and its own separator **above** the existing `Settings…` item, matching the CopyClip reference screenshot's layout (clips listed first, Preferences/Delete-All below). Each history `NSMenuItem` needs its own `target`/`action` (re-copy on click) — follow the existing `for item in menu.items { item.target = self }` loop, extended to re-run whenever the history section is rebuilt.
+- **New pasteboard-monitoring seam** — a dedicated `ClipboardHistoryMonitor` (or similar), matching the existing isolated-behind-one-class convention (`NowPlayingMonitor`, `BluetoothMonitor`, `FocusModeMonitor`) rather than embedding polling logic directly in `AppDelegate`. Owns the `Timer`, the `changeCount` baseline, the `org.nspasteboard.*` filter, and read/decode of text vs. image content; publishes the current item list for `AppDelegate` to render into `NSMenu`.
+- **`⌘0`-`⌘9` quick-select** (seen in the CopyClip reference) — trivial to add via each `NSMenuItem`'s `keyEquivalent` (`"1"`...`"9"`, `"0"`) plus `keyEquivalentModifierMask = .command`, no new API.
 
 ## Sources
 
-- Spotify for Developers — `developer.spotify.com/documentation/web-api/reference/save-tracks-user` (fetched directly; confirms deprecation + pointer to Save Items to Library). HIGH
-- Spotify for Developers — `developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide` (fetched directly; confirms exact new `PUT /me/library` / `GET /me/library/contains` shapes and scopes). HIGH
-- Spotify for Developers — `developer.spotify.com/documentation/web-api/concepts/redirect_uri` and the linked Feb 2025 security-requirements blog post (fetched directly; confirms custom schemes remain allowed, HTTP/loopback rules). HIGH
-- Spotify Community — "Feature Request: Add 'Like song' as a method to applescript" (confirms no native Spotify AppleScript like/save command exists). MEDIUM-HIGH (community thread, but consistent with the absence of any such command in Spotify's published AppleScript dictionary)
-- Chris Miller — "Get link to currently playing Spotify track via AppleScript" + multiple corroborating GitHub examples (`id of current track` → `spotify:track:...`). MEDIUM-HIGH (multiple independent sources agree)
-- Apple Developer Forums threads (669239, 798267) — confirm Music.app's `loved` property works for library tracks but errors for streaming-only tracks, including a report specific to Tahoe 26.0.0. MEDIUM-HIGH (developer forum reports, consistent across multiple threads/years)
-- Apple Developer Documentation — `kAudioHardwarePropertyDefaultOutputDevice`, `kAudioHardwarePropertyDefaultSystemOutputDevice`, `kAudioHardwarePropertyDevices` reference pages. HIGH
-- `kAudioHardwareServiceDeviceProperty_VirtualMasterVolume` Apple Developer Documentation + community CoreAudio Swift gists corroborating usage pattern. MEDIUM-HIGH
-- SDL/rtaudio/QEMU deprecation-warning threads — confirm `kAudioObjectPropertyElementMaster` → `kAudioObjectPropertyElementMain` rename in the macOS 12.0 SDK. HIGH (compiler deprecation attribute text quoted directly)
-- Apple Developer Documentation — `ASWebAuthenticationSession` reference + Kodeco/Andy Ibanez tutorials corroborating the custom-scheme redirect + `ASWebAuthenticationPresentationContextProviding` pattern. HIGH
-- GitHub — `rnine/SimplyCoreAudio` repository (confirms archived March 23, 2024 status directly in repo metadata). HIGH
+- [nspasteboard.org](https://nspasteboard.org/) — HIGH confidence, the canonical (if unofficial) source for the Concealed/Transient/AutoGenerated conventions and their exact type-identifier strings.
+- [Maccy/Maccy/Clipboard.swift (p0deje/Maccy)](https://github.com/p0deje/Maccy/blob/master/Maccy/Clipboard.swift) — HIGH confidence, a real, widely-used open-source macOS clipboard manager; confirms both the `changeCount`-polling `Timer` pattern and the exact `ignoredTypes` set matching the nspasteboard.org conventions.
+- Hammerspoon `hs.pasteboard` source/issue discussion — MEDIUM-HIGH confidence, independently corroborates "no pasteboard notification API exists on macOS."
+- Apple Developer Forums thread "NSPasteboard change event or KVO?" — MEDIUM confidence (community answer, not an Apple engineer, but consistent with every other source above).
+- Islet's own codebase: `Islet/Notch/NotchWindowController.swift` (existing `dragPasteboardChangeCount` polling precedent), `Islet/Notch/DragDropSupport.swift` (`isGenuineFileDrag`, pure-function/unit-testable convention), `Islet/Shelf/ShelfFileStore.swift` (per-item-UUID-folder-on-disk precedent), `Islet/AppDelegate.swift` (existing flat `NSMenu`/`NSStatusItem` construction) — HIGH confidence, read directly, establishes the conventions this feature should match rather than reinvent.
 
 ---
-*Stack research for: Islet — "liked song" write-back + audio-output-device switcher (Now Playing expanded view)*
-*Researched: 2026-07-19*
+*Stack research for: Islet v1.9 Clipboard History*
+*Researched: 2026-07-22*

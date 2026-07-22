@@ -1,148 +1,144 @@
 # Project Research Summary
 
-**Project:** Islet v1.7 — Interaction & Calendar Polish (Now Playing "favorite" write-back + audio-output switcher)
-**Domain:** Native macOS notch-overlay utility (Dynamic Island clone) — two new Now Playing expanded-view capabilities, extending an existing shipped app
-**Researched:** 2026-07-19
-**Confidence:** MEDIUM overall (HIGH on codebase integration and CoreAudio public APIs; MEDIUM on Spotify Web API endpoint shapes and AppleScript `loved`/Automation reliability; genuinely unverified until spiked on real hardware)
+**Project:** Islet v1.9 — Clipboard History
+**Domain:** Native macOS menu-bar utility (Islet) — status-item clipboard-history dropdown, replacing CopyClip
+**Researched:** 2026-07-22
+**Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-This research covers two candidate additions to Islet's Now Playing expanded view: a "favorite/like" write-back to Spotify/Apple Music, and a live audio-output-device switcher with per-device volume. Both slot cleanly into Islet's existing architecture — the two reserved-but-empty 28x28 slots flanking the transport-control row (explicitly held open by decision D-09) are exactly where the star and speaker icons belong, and both features extend already-proven patterns (`NowPlayingMonitor`'s single-bridge isolation for favorite; a new `AudioOutputMonitor` mirroring `BluetoothMonitor`'s event-driven shape for the output switcher) rather than requiring any new architectural layer.
+v1.9 adds a CopyClip-style clipboard history to Islet's existing status-bar menu: a capped (~20-30 item) MRU list of text/image copies, click-to-restore, Cmd+0-Cmd+9 quick-select, "Delete All History," and persistence across relaunch/reboot with sensitive-content exclusion. This is a well-trodden domain — macOS has had no clipboard-change notification API in 25+ years, so every clipboard manager (Maccy, Clipy, Flycut, CopyClip itself) polls `NSPasteboard.general.changeCount` on a `Timer`, and the `org.nspasteboard.*` type convention is the de facto (if unofficial) standard for excluding password-manager copies. None of this requires new dependencies: AppKit + Foundation + `CryptoKit` (already ships with the OS) covers the entire feature.
 
-The two features carry very different risk profiles. The **audio-output switcher is low-risk**: everything it needs (`kAudioHardwarePropertyDevices`, `kAudioHardwarePropertyDefaultOutputDevice`, `AudioObjectAddPropertyListener`) is public, documented CoreAudio, the same framework `VolumeReader.swift` already uses in production — the real work is disciplined engineering (key devices by stable `kAudioDevicePropertyDeviceUID` not the session-ephemeral `AudioDeviceID`, hop off CoreAudio's callback thread to main, guard `kAudioDevicePropertyVolumeScalar` per-device before wiring the slider, confirm a device-switch actually stuck by re-reading the property afterward). **The favorite/like feature is the single highest-risk item in the whole milestone.** Apple Music's AppleScript `loved` property is real but documented-broken for streaming (not-yet-in-library) tracks, and both platforms' Automation-permission (TCC) prompt has a known reliability bug. Spotify is worse: there is no AppleScript or MediaRemote command path to "like" a track at all — the only real mechanism is Spotify's Web API behind a full OAuth PKCE flow, and Spotify's 2025 policy change caps unapproved apps at 5 total allowlisted users (Development Mode), meaning a shared Islet Client ID likely cannot serve real paying customers without either an unlikely Extended Quota approval or a materially worse "bring your own Client ID" flow.
+The recommended approach slots cleanly into Islet's existing shape rather than inventing anything new: a fourth "Monitor" class (`ClipboardMonitor`, mirroring `PowerSourceMonitor`/`FocusModeMonitor`/`AudioOutputMonitor`) isolates the one fragile system call; a pure reducer + separate file-store (`ClipboardStore`/`ClipboardFileStore`, mirroring Phase 19's `ShelfLogic`/`ShelfFileStore` split) handles data and persistence; `AppDelegate` (not `NotchWindowController`) owns and wires it all into the existing `NSMenu`, since this feature is explicitly status-bar-only and must never touch `IslandResolver`/`TransientQueue`. Content is stored under `Application Support` (a genuinely new storage location for this codebase — Keychain and temp-dir precedents don't fit) as an encrypted (`CryptoKit.AES.GCM`, key in Keychain) JSON index plus per-item image files.
 
-The recommended approach: build the low-risk, public-API output switcher first and treat it as a near-pure extension of Phase 39's CoreAudio work; isolate the favorite/like feature's two genuine unknowns (Apple Music's `current track` reliability, Spotify's OAuth/quota-mode reality, and whether the vendored `mediaremote-adapter` wrapper even exposes a like-command send) into a dedicated spike phase before any UI is built around them — mirroring this project's own established precedent (Phase 22 drag-in spike, Phase 38/39 undocumented-API spikes). If the Spotify spike confirms the quota wall is real and unacceptable, be prepared to explicitly descope Spotify to Apple-Music-only for this milestone rather than discovering it mid-implementation.
+The key risks are all well-documented and cheap to prevent if built in from day one, not retrofitted: (1) a self-capture loop where click-to-restore's own pasteboard write gets re-ingested as a "new" duplicate entry; (2) full-resolution images living in the in-memory `@Published` array, causing SwiftUI jank and memory bloat; (3) treating the `org.nspasteboard.*` marker check as sufficient sensitive-content protection when Bitwarden's own browser extension (documented, open GitHub issues) proves it lets real plaintext secrets through — meaning at-rest encryption is required as defense-in-depth, not optional hardening; and (4) macOS 15.4+/26's new pasteboard-access privacy prompt, which is a runtime UX consideration, not an entitlement/signing issue (this app is non-sandboxed, so no entitlement work is needed for the core read/write access itself).
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new core stack — this extends the existing SwiftUI/AppKit/CoreAudio/mediaremote-adapter baseline. New additions are narrowly scoped and (aside from Spotify OAuth) require zero new dependencies — everything ships with the macOS SDK.
+No new dependencies. `NSPasteboard.general` + `changeCount` polling via `Timer`/`DispatchSourceTimer` (500ms, matching Maccy's proven default) is the only viable capture mechanism — no notification API exists or has ever shipped. `org.nspasteboard.ConcealedType`/`TransientType`/`AutoGeneratedType` string-type checks handle the opt-in sensitive-content convention. Persistence is a plain `Codable` JSON index (not Core Data/SQLite — massively over-engineered for a 20-30 item cap) with image bytes as sibling PNG files under `FileManager`'s Application Support directory, encrypted at rest via `CryptoKit.AES.GCM` with the key in Keychain. Menu rendering stays plain `NSMenu`/`NSMenuItem` mutation (optionally `NSHostingView`-wrapped SwiftUI rows for thumbnails), not a new `NSPanel`/popover.
 
-**Core additions:**
-- **Spotify Web API (`PUT /me/library` / `GET /me/library/contains`, post Feb-2026 migration)** — the only way to write to a Spotify user's Liked Songs; Spotify's AppleScript dictionary has never had a save/like command.
-- **`ASWebAuthenticationSession` + PKCE (no client secret)** — Apple's system-managed OAuth browser sheet; PKCE is mandatory since this is an unsandboxed, direct-distributed app where a baked-in client secret would be trivially extractable.
-- **`NSAppleScript`** (already-precedented pattern) — sets Apple Music's `loved` property and reads Spotify's `id of current track` for a track URI; must run off-main and handle `errAEEventNotPermitted` (-1743).
-- **CoreAudio (`AudioHardwareService*`/`AudioObject*` C API)** — device enumeration, default-output get/set, per-device volume via `kAudioHardwareServiceDeviceProperty_VirtualMasterVolume`, live updates via `AudioObjectAddPropertyListenerBlock` — direct extension of the existing `VolumeReader.swift` surface, same framework already linked.
-- **No third-party libraries** — `SimplyCoreAudio` was considered and rejected (archived/unmaintained since March 2024); the project's own "no dependency for a tiny native surface" precedent (IOKit, IOBluetooth) applies equally here.
+**Core technologies:**
+- `NSPasteboard.general` + `changeCount` polling (`Timer`, ~500ms) — the only pasteboard-change detection mechanism that exists on macOS; direct precedent in this codebase (`dragPasteboardChangeCount`/`isGenuineFileDrag`)
+- `Codable` + `JSONEncoder`/`JSONDecoder` + `FileManager`/Application Support — correct-weight persistence for a bounded, whole-list-load dataset; no DB needed at this scale
+- `CryptoKit.AES.GCM` + Keychain-stored key — first-party, zero-dependency at-rest encryption, mirroring Phase 10's Keychain-backed license persistence
+- Plain `NSMenu`/`NSMenuItem` mutation via `NSMenuDelegate` — extends the existing status-item menu; no new window/panel management needed at this list size
 
 ### Expected Features
 
-**Must have (table stakes):**
-- Like/favorite button reflects real per-app state on load (not a fake local-only heart)
-- Output panel shows the actual live system default output, highlighted, updating live as devices connect/disconnect or change elsewhere (System Settings, Control Center)
-- Volume slider genuinely controls system output volume in real time
-- Tapping a device in the output list immediately switches system audio — **tap-to-select, not drag-to-select** (zero precedent anywhere — macOS Control Center, iOS AirPlay picker, and SoundSource all use tap; drag-as-selection-trigger is an accidental-action risk)
+**Must have (table stakes, all confirmed by the user during milestone discussion):**
+- MRU recent-items list, ~20-30 item cap with FIFO eviction
+- Click-to-restore (copies to pasteboard, no auto-paste)
+- Single-line truncated text preview + image thumbnail support
+- Cmd+0-Cmd+9 quick-select on the first 10 rows
+- Persistence across relaunch **and reboot** (deliberately different from the session-only Shelf)
+- Sensitive-content exclusion via `org.nspasteboard.ConcealedType`/`TransientType`
+- "Delete All History" with a standard destructive-confirmation `NSAlert`
 
-**Should have (differentiators):**
-- Apple Music like/love write-back via AppleScript — closes a real parity gap with the cited competitor Droppy, low-medium complexity, no network dependency
-- Spotify like/save write-back via OAuth — a genuine differentiator since two named competitors (TheBoringNotch, Droppy) either have it broken or don't ship it at all, but materially higher complexity/risk
-- Drag-to-promote as an *optional accelerator* layered on top of tap-to-select (never a replacement)
+**Should have (competitive, but explicitly deferred by user for v1.9):**
+- Search/filter across history (Maccy's headline feature) — data model should retain full text now so v2 doesn't require a migration
+- Pin/favorite items to top — data model should keep stable per-item IDs now for the same reason
 
-**Defer (v2+):**
-- Persisted "recently used outputs" quick-toggle ordering — defer until the basic switcher is proven in daily use
-- Full custom Apple MusicKit REST integration — unnecessary complexity for a same-Mac, same-user write; plain AppleScript suffices
-- Fuzzy title/artist search to resolve Spotify track identity — false-positive risk (liking the wrong track); use the track URI directly instead
+**Defer (v2+, or not recommended at all):**
+- Per-item delete, per-app manual exclude list — cheap v2 follow-ups, don't build speculatively
+- Cross-device/iCloud sync — explicitly not recommended even for v2 given clipboard data's sensitivity and Islet's local-only positioning
 
 ### Architecture Approach
 
-Both features extend Islet's existing three-layer discipline (system glue -> pure presentation seam -> the one resolver) without adding a new layer. Favorite/like is 2-3 lines added to the *existing* `NowPlayingService`/`NowPlayingMonitor` protocol and `TrackSnapshot` (same fragile bridge, same isolation boundary — a second protocol would duplicate lifecycle code for zero added safety). The audio-output switcher needs a genuinely new file, `AudioOutputMonitor.swift`, because it needs a fundamentally different shape than the existing stateless, pull-based `VolumeReader` (a live device list + property listeners, mirroring `BluetoothMonitor`'s event-driven register/callback pattern) — but it does NOT need protocol isolation the way MediaRemote does, since CoreAudio is public, documented API. The output panel itself is local, controller-visible view state (a sibling `@Published` boolean on `IslandPresentationState`, not a new `IslandPresentation` resolver case) — it's a disclosure *within* Now Playing, not a competing top-level activity, and must stay visible to `NotchWindowController` for click-through hit-testing (the exact invariant the project's own CR-01 regression already broke once).
+Four new files under a new top-level `Clipboard/` folder (sibling to `Notch/`/`Shelf/`/`Licensing/`, owned by `AppDelegate`, not `NotchWindowController`): `ClipboardItem` (pure model), `ClipboardStore` (pure reducer: add/evict/clear), `ClipboardFileStore` (the one file touching disk — Application Support JSON + encrypted image blobs), `ClipboardMonitor` (the one file touching `NSPasteboard.general`, `@MainActor`, constructor-injected `onChange`, idempotent `start()`/`nonisolated stop()`). `AppDelegate` adopts `NSMenuDelegate` to rebuild the clipboard section of the existing menu on `menuNeedsUpdate`, rather than introducing a new menu-builder type. Zero coupling to `IslandResolver`/`TransientQueue`/`NotchWindowController` — this is explicitly a second, independent tree hanging off `AppDelegate`, matching the precedent Sparkle's `updaterController` already set.
 
 **Major components:**
-1. `NowPlayingMonitor`/`NowPlayingService` (MODIFY) — gains `toggleFavorite()` + `isFavorite: Bool?` on the same persistent adapter channel as transport control
-2. `AudioOutputMonitor` (NEW) — event-driven CoreAudio glue, mirrors `BluetoothMonitor`'s shape exactly
-3. `AudioOutputPresentation.swift` (NEW) — pure seam, `AudioOutputDevice` value type + sort/reorder logic, unit-testable
-4. `NotchWindowController` (MODIFY) — starts/stops the new monitor, wires the two reserved-slot buttons, extends the geometry-union + `visibleContentZone()` "three-site rule" already established for every prior taller-content addition (Tray, Weather, Quick Action Picker)
-5. `NotchPillView.mediaExpanded` (MODIFY) — the two already-reserved `Color.clear(28x28)` slots (D-09) become real star/speaker buttons; new `outputPanel(...)` subview
+1. `ClipboardMonitor` — polls `changeCount`, filters concealed/transient types, classifies text vs. image, guards against self-capture on restore
+2. `ClipboardStore` — pure in-memory reducer (append/evict-at-cap/clear), zero I/O, fully unit-testable
+3. `ClipboardFileStore` — the sole disk-I/O surface: encrypted JSON index + per-item image files under Application Support, with an injectable root URL (learn from `ShelfFileStore`'s hardcoded-path gap)
+4. `AppDelegate` (modified) — owns monitor + store, rebuilds `NSMenu` on open, wires click-to-restore/Cmd+0-9/Delete All History
 
 ### Critical Pitfalls
 
-1. **Spotify has no scripting/private-API path to "like" a track, and its 2025 policy caps unapproved apps at 5 users** — spike a real OAuth PKCE round-trip + a real `PUT` call FIRST, and explicitly check current quota-mode criteria before committing to a shared-Client-ID design; be ready to descope to Apple-Music-only.
-2. **Apple Music's `current track` AppleScript reference is documented-broken for streamed (not-yet-in-library) tracks** — don't build the star around `current track` untested; spike against a library track, a streaming-only track, and both play/pause states; wrap in try/catch with a distinct "couldn't verify" UI state.
-3. **The Automation (Apple Events/TCC) permission prompt has a real, documented reliability bug** — it can silently fail to appear and the target app can vanish from System Settings -> Automation after idle periods; detect this failure mode distinctly from "user denied" and provide a relaunch-target-app recovery path.
-4. **`AudioDeviceID` is session-ephemeral, not a stable identity** — key the device list/drag-order/persistence by `kAudioDevicePropertyDeviceUID`, never by `AudioDeviceID`, or Bluetooth reconnects will duplicate/desync entries (mirrors `BluetoothMonitor`'s existing `addressString`-keying discipline).
-5. **CoreAudio device/default-output listener callbacks fire off the main thread** — every callback body must explicitly hop via `DispatchQueue.main.async` before touching `@Published`/AppKit state, exactly like `BluetoothMonitor`'s already-solved pattern; this is a known, easy-to-reintroduce class of bug in this codebase.
+1. **Self-capture loop on click-to-restore** — the restore write bumps `changeCount` and gets re-ingested as a new duplicate entry unless explicitly guarded (marker pasteboard type or a synchronous "restoring" flag, per Maccy's proven pattern). Must be built in the same commit as click-to-restore, not a follow-up.
+2. **Over-aggressive polling / off-main-thread reads** — sub-100ms intervals or decoding full pasteboard content on every tick (not gated behind a cheap `changeCount` diff) causes real, measurable CPU/battery cost. Use 500ms + gate all real work behind the counter check, main-thread only.
+3. **Full-resolution images in the in-memory `@Published` array** — causes SwiftUI re-diffing over large payloads and multi-hundred-MB memory footprints. Store only a small thumbnail in memory; full-res bytes live on disk, read back only at restore time.
+4. **`org.nspasteboard.*` marker check is necessary but NOT sufficient** — Bitwarden's own browser extension (documented GitHub issues) copies plaintext secrets with no marker at all. The marker check must be paired with mandatory at-rest encryption as defense-in-depth; never present the marker filter to the user as "your passwords are safe."
+5. **Unencrypted persistence at rest** — any plain JSON/plist file is readable by any local process/backup with no OS-level gate. Encrypt with `CryptoKit.AES.GCM`, key in Keychain, from the very first shipped version (retrofitting means a migration for real users' already-captured secrets).
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+Based on research (the Architecture doc's own "Build Order" section is unusually explicit and should be followed directly), suggested phase structure:
 
-### Phase 1: Audio Output Switcher — Pure Seam + Monitor
-**Rationale:** Public-API-only, no external unknowns, same risk tier as the already-shipped `VolumeReader`/`BrightnessReader` — safe to build first and fully de-risk before touching the harder favorite/like feature.
-**Delivers:** `AudioOutputPresentation.swift` (device value type + sort/reorder pure functions, unit-tested) and `AudioOutputMonitor.swift` (event-driven CoreAudio glue: enumerate, listen, set-default, per-device volume-property guard).
-**Addresses:** Output panel table-stakes features (live device list, tap-to-select, real volume slider).
-**Avoids:** Pitfall 4 (UID vs AudioDeviceID keying), Pitfall 5 (off-main callback hop), and the volume-property-support pitfall (guard `kAudioDevicePropertyVolumeScalar` before wiring the slider; verify on the dev machine's actual Bluetooth headset, not just built-in speakers).
+### Phase 1: Clipboard data model + store
+**Rationale:** Zero risk, no device/system dependency — pure Foundation, fully unit-testable in isolation before anything else exists. Exactly mirrors Phase 19's `ShelfItem`/`ShelfLogic` role.
+**Delivers:** `ClipboardItem` (text/image, id, timestamp) + `ClipboardStore` (append, evict-at-cap, clear-all), with tests covering FIFO eviction and cap behavior.
+**Addresses:** MRU list, item-count cap — table-stakes features from FEATURES.md
+**Avoids:** N/A at this stage (no I/O, no pasteboard yet)
 
-### Phase 2: Audio Output Switcher — UI Wiring
-**Rationale:** Zero remaining unresolved external-API risk once Phase 1 lands — pure SwiftUI/AppKit work, safe to fully on-device-UAT before the favorite feature's spike phase even needs to conclude.
-**Delivers:** The speaker-icon reserved slot becomes a real button; `outputPanel(...)` subview (volume slider reusing `readSystemVolume()`/`adjustSystemVolume()` verbatim + reorderable device list); sibling `@Published outputPanelOpen` on `IslandPresentationState`; the geometry three-site rule (blobShape height, panel-frame union, `visibleContentZone()`) applied together, not independently.
-**Uses:** CoreAudio stack from STACK.md; architecture Pattern 3 (controller-visible disclosure state, not a resolver case).
-**Implements:** `IslandPresentationState` sibling-field pattern; click-through hit-zone extension.
+### Phase 2: Encrypted persistence (ClipboardFileStore)
+**Rationale:** Can be fully built and unit-tested against an injectable root URL before any live pasteboard is involved; establishes the encrypted-at-rest shape from day one rather than retrofitting.
+**Delivers:** Application Support JSON index + per-item image files, `CryptoKit.AES.GCM` encryption with Keychain-stored key, path-containment-validated delete (mirroring `ShelfFileStore`'s hardened delete pattern).
+**Uses:** `Codable`/`FileManager`/`CryptoKit`/Keychain from STACK.md
+**Implements:** `ClipboardFileStore` component from ARCHITECTURE.md
+**Avoids:** Pitfall 5 (unencrypted at rest), and lays groundwork to avoid Pitfall 3 (thumbnail-in-memory/full-image-on-disk split)
 
-### Phase 3: Favorite/Like — Spike (Apple Music + Spotify + Automation reliability)
-**Rationale:** This is the milestone's single highest-risk item — three independent unknowns (Apple Music `current track` reliability, Spotify OAuth/quota-mode reality, Automation-permission TCC bug, and whether the vendored `mediaremote-adapter` wrapper exposes a like-command send at all) must be resolved on real hardware before any UI is planned in detail, exactly mirroring this project's own Phase 22/38/39 precedent.
-**Delivers:** A documented go/no-go on Spotify scope (ship OAuth, ship bring-your-own-Client-ID, or descope to Apple-Music-only for this milestone); confirmed behavior of `current track` across library/streaming/play/pause states; confirmed Automation-prompt behavior after target-app idle time; confirmed whether the wrapper's `MediaController` can send a like command (patch its command table if not).
-**Avoids:** Pitfall 1 (Spotify quota wall), Pitfall 2 (Apple Music `current track` failure), Pitfall 3 (Automation TCC bug) — all three explicitly require on-device verification, not documentation-only research.
+### Phase 3: Pasteboard monitor (the risky, on-device-only seam)
+**Rationale:** The one genuinely new, only-verifiable-on-real-hardware subsystem — isolate it into its own phase/spike so it can't destabilize the already-proven pure model/persistence work, mirroring Phase 38's and Phase 22's "spike the risky mechanism first" precedent.
+**Delivers:** `ClipboardMonitor` — `changeCount` polling at 500ms, concealed/transient-type filtering, text/image classification, self-capture guard, `accessBehavior` check + one-time in-app explanation for macOS 26's pasteboard-privacy prompt.
+**Addresses:** Sensitive-content exclusion, pasteboard-monitoring seam from FEATURES.md
+**Avoids:** Pitfalls 1 (self-capture loop), 2 (over-aggressive polling), 4 (marker-check limits), 6 (pasteboard-access prompt confusion)
 
-### Phase 4: Favorite/Like — Implementation (scoped per Phase 3's findings)
-**Rationale:** Only plan the concrete write path once Phase 3 answers whether it's read/write, write-only, or Apple-Music-only.
-**Delivers:** `toggleFavorite()` + `isFavorite: Bool?` added to the existing `NowPlayingService`/`NowPlayingMonitor`/`TrackSnapshot` seam (favorite does NOT get its own isolated protocol — same bridge, same isolation boundary as transport control); the star reserved slot becomes a real button; Keychain-backed Spotify token storage (mirroring the existing `KeychainLicenseStore` pattern) if Spotify ships.
-**Implements:** Architecture Pattern 1 (extend `NowPlayingService`, don't duplicate it).
-**Avoids:** The optimistic-success UX pitfall — the star must show pending/failed/verified state, never claim success before a confirmed write, mirroring the project's existing license-validation "never silently claim success" precedent.
+### Phase 4: Menu wiring and UI assembly
+**Rationale:** Pure assembly of three already-proven pieces; menu/shortcut behavior is itself only meaningfully verifiable on-device, matching this project's consistent "UI/wiring done last" pattern.
+**Delivers:** `AppDelegate` as `NSMenuDelegate`, dynamic menu rebuild on open, click-to-restore wired to the self-capture guard, Cmd+0-9 key equivalents, "Delete All History" with `NSAlert` confirmation and real on-disk deletion.
+**Addresses:** Click-to-restore, Cmd+0-9 quick-select, Delete All History — remaining table-stakes features
+**Avoids:** Pitfall 3 (verify thumbnail rendering doesn't leak full-res data into the menu row)
 
 ### Phase Ordering Rationale
 
-- **Low-risk, public-API feature first:** the output switcher has zero external unknowns and directly reuses Phase 39's proven CoreAudio patterns — building it first banks a real shipped feature while the favorite/like spike proceeds independently.
-- **Spike isolated before implementation, not blended into it:** favorite/like's three genuine unknowns (Spotify quota, Apple Music `current track`, Automation TCC reliability) are exactly the class of surprise this project has hit before (Phase 22, 38, 39) — resolving them first prevents a mid-phase scope collapse.
-- **A spike failure on favorite/like never blocks or contaminates the output-switcher work** — the two features share no code path (per the architecture research's own build-order recommendation), so sequencing them in parallel-safe order (output switcher fully shippable regardless of the spike's outcome) is deliberate risk isolation.
+- Pure-seam-first, system-glue-second, assembly-last is this project's own established sequencing (Phase 19 to 20 to 21 Shelf, Phase 47 to 48 Audio Output, Phase 38 internal ordering) — following it here isn't a new pattern, it's continuity.
+- Encryption is placed in Phase 2, not bolted on later, specifically because Pitfall 5 and Pitfall 4 both independently conclude retrofitting at-rest encryption after a plaintext version ships means a real-user data migration — cheaper to build once, correctly, from the start.
+- The pasteboard monitor is isolated into its own phase (3) precisely because it's the one component that can only be verified on real hardware (macOS 26 privacy prompt, real password-manager exclusion testing) — isolating it means a spike/iteration there can't block the already-proven Phase 1-2 work.
 
 ### Research Flags
 
-Needs research (`/gsd:plan-phase --research-phase <N>`):
-- **Phase 3 (Favorite/Like spike):** Three independent undocumented/policy-gated unknowns (Spotify quota-mode reality, Apple Music `current track` reliability, Automation TCC prompt bug) — none resolvable from documentation alone, all require a real on-device round-trip.
-- **Phase 4 (Favorite/Like implementation):** Scope depends entirely on Phase 3's findings (read/write vs write-only vs Apple-Music-only) — cannot be planned in detail until the spike concludes.
+Phases likely needing deeper research during planning:
+- **Phase 3 (Pasteboard monitor):** The macOS 15.4/26 `NSPasteboard.accessBehavior` privacy-prompt behavior on a directly-notarized, non-sandboxed app isn't fully documented anywhere yet (PITFALLS.md flags this explicitly as recent/unverified) — plan for on-device verification, not just code review.
+- **Phase 2 (Persistence):** Image size/compression policy (downscale before persisting? what threshold?) isn't addressed in REQUIREMENTS.md per ARCHITECTURE.md's own "Scaling Considerations" note — worth a planning-time question before implementation.
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1 (Output switcher — pure seam + monitor):** Public, documented CoreAudio API; the project already has two working examples to copy from (`VolumeReader.swift`, `BrightnessReader.swift`) plus `BluetoothMonitor.swift`'s event-driven shape to mirror directly.
-- **Phase 2 (Output switcher — UI wiring):** Pure SwiftUI/AppKit work once Phase 1 lands; the "geometry three-site rule" is an already-named, already-repeated convention in this codebase (Tray, Weather, Quick Action Picker all followed it).
+- **Phase 1 (Data model/store):** Direct structural twin of the already-shipped Shelf pattern (Phase 19) — no open questions.
+- **Phase 4 (Menu wiring):** Plain `NSMenu`/`NSMenuDelegate` extension of code that already exists in `AppDelegate.swift` — well-documented AppKit surface area, MEDIUM confidence only on exact rebuild-timing mechanics but no blocking unknowns.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | HIGH for CoreAudio device switching/volume, AppleScript `loved` property, and `ASWebAuthenticationSession` (official docs, multiple corroborating sources); MEDIUM for exact Spotify Web API endpoint shapes (Feb 2026 migration is very recent, worth re-verifying at plan/execute time) |
-| Features | MEDIUM-HIGH | Favorite/like mechanics verified against Apple/Spotify developer docs and community reports; UI-pattern precedent (tap-vs-drag) verified against macOS/iOS system UI and SoundSource — no ambiguity there |
-| Architecture | MEDIUM | HIGH for the integration points (grounded in direct codebase reads: `NowPlayingMonitor`, `VolumeReader`, `IslandResolver`, `NotchPillView`); MEDIUM/LOW for two external-API questions (whether the vendored `mediaremote-adapter` wrapper can send a like command; whether it reports read-state) — both explicitly flagged spike-required |
-| Pitfalls | MEDIUM | Spotify Web API policy findings are HIGH-confidence/official; several CoreAudio/AppleScript specifics are MEDIUM (single-source or forum-corroborated, individually flagged); own-hardware behavior remains genuinely unverified until spiked |
+| Stack | HIGH | `changeCount` polling and `org.nspasteboard.*` conventions independently corroborated across a decade of open-source clipboard managers (Maccy, Hammerspoon) plus direct precedent already in this codebase; persistence recommendation reasoned from the codebase's own existing patterns. MEDIUM only on exact `NSMenu` dynamic-rebuild mechanics (community/blog corroboration, not an official Apple sample). |
+| Features | MEDIUM-HIGH | CopyClip/Maccy/Paste feature claims verified across multiple sources including GitHub issues and vendor sites; exact CopyClip internals inferred from its own UI conventions since it's closed-source. |
+| Architecture | HIGH | Based on direct reading of Islet's own source (`AppDelegate.swift`, existing Monitor classes, `ShelfFileStore.swift`, `KeychainLicenseStore.swift`) — not generic best practice, but this specific codebase's own established conventions. |
+| Pitfalls | MEDIUM-HIGH | Verified against Maccy's open-source implementation, the nspasteboard.org spec, and real Bitwarden GitHub issues. The macOS 15.4/26 pasteboard-access-prompt behavior on non-sandboxed apps is recent enough that it isn't fully documented yet — flagged as a gap, not treated as settled. |
 
-**Overall confidence:** MEDIUM — the audio-output switcher is high-confidence, low-risk, standard-pattern work; the favorite/like feature has three real, policy/platform-level unknowns that could change its scope after a spike, on the same order of magnitude as this project's prior Phase 38/39 undocumented-API surprises.
+**Overall confidence:** HIGH-MEDIUM
 
 ### Gaps to Address
 
-- **Whether `ejbills/mediaremote-adapter`'s `MediaController` wrapper exposes sending `MRMediaRemoteCommandLikeTrack` at all** — not found documented in any research pass; must be spiked (worst case: patch the wrapper's own command table, contained to `NowPlayingMonitor.swift`).
-- **Whether the streamed MediaRemote payload ever reports a rating/favorite read-state** — if not, the star can only be a write-only, optimistic session-local toggle rather than a real bidirectional control; this materially changes the feature's scope and must be resolved before implementation planning, not discovered mid-execution.
-- **Spotify's Extended Quota approval odds for a solo-developer paid hobby app** — the policy criteria may keep changing; confirm current state directly on the Developer Dashboard during the spike rather than trusting this research's snapshot.
-- **Apple Music's `current track` failure mode on the project's actual target OS build** — confirmed broken in forum reports as of Tahoe 26.0.0, but must be independently re-confirmed on this project's own dev hardware, not assumed transferable from community reports.
+- **macOS 26 pasteboard-access prompt behavior on a non-sandboxed, notarized app:** Not fully documented anywhere yet (this feature is new enough that community coverage lags). Handle via on-device verification during Phase 3, not assumed from research alone.
+- **Image size/compression policy for full-resolution screenshot copies:** Not specified in REQUIREMENTS.md. Flag during Phase 2 planning — decide on a downscale/compression threshold before implementation, not after observing disk/memory bloat.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct codebase reads: `Islet/Notch/NowPlayingMonitor.swift`, `NowPlayingPresentation.swift`, `IslandResolver.swift`, `IslandPresentationState.swift`, `VolumeReader.swift`, `BluetoothMonitor.swift`, `NotchPillView.swift`, `NotchWindowController.swift`, `.planning/PROJECT.md`
-- Spotify for Developers — official docs: Save Tracks/Save Items to Library reference, February 2026 migration guide, redirect URI/PKCE docs, Extended Access quota-mode criteria (developer.spotify.com)
-- Apple Developer Documentation — `ASWebAuthenticationSession`, `kAudioHardwarePropertyDevices`/`DefaultOutputDevice`/`DefaultSystemOutputDevice`, `AudioObjectAddPropertyListener`, `NSAppleEventsUsageDescription`
-- [theos/headers MediaRemote.h](https://github.com/theos/headers/blob/master/MediaRemote/MediaRemote.h) — confirms `MRMediaRemoteCommandLikeTrack`/`DislikeTrack` exist as private command constants (community-maintained header, not Apple source)
+- Islet's own codebase, read directly: `Islet/AppDelegate.swift`, `Islet/Notch/NotchWindowController.swift`, `Islet/Notch/DragDropSupport.swift`, `Islet/Notch/PowerSourceMonitor.swift`, `Islet/Notch/FocusModeMonitor.swift`, `Islet/Notch/AudioOutputMonitor.swift`, `Islet/Notch/NowPlayingMonitor.swift`, `Islet/Shelf/ShelfFileStore.swift`, `Islet/Licensing/KeychainLicenseStore.swift`, `.planning/PROJECT.md`
+- Maccy/Maccy/Clipboard.swift (p0deje/Maccy), https://github.com/p0deje/Maccy/blob/master/Maccy/Clipboard.swift — changeCount polling, self-copy marker type, ignoredTypes filtering, 500ms default interval
+- nspasteboard.org, https://nspasteboard.org/ — canonical (unofficial) source for Concealed/Transient/AutoGenerated type conventions
 
 ### Secondary (MEDIUM confidence)
-- Apple Developer Forums threads 669239, 798267, 792157, 763583, 693516 — Music.app `current track`/`loved` reliability, Automation-prompt TCC bug, AirPods-handoff default-output override, Bluetooth volume-property regression
-- Spotify Community threads — no native AppleScript like/save command exists (multiple corroborating reports)
-- `ungive/mediaremote-adapter` GitHub repo — documented 14-command table, no like/love/rate command found
-- [TheBoredTeam/boring.notch Issue #929](https://github.com/TheBoredTeam/boring.notch/issues/929) and [1of1Adam/Droppy README](https://github.com/1of1Adam/Droppy) — competitor like-button reliability/scope comparison
-- Rogue Amoeba SoundSource manual, Apple Support "Change sound output settings" — tap-to-select precedent confirmation
+- Bitwarden desktop#350 (https://github.com/bitwarden/desktop/issues/350), clients#326 (https://github.com/bitwarden/clients/issues/326), clients#17404 (https://github.com/bitwarden/clients/issues/17404) — documents marker-convention gap in a real, widely-used password manager
+- Michael Tsai — Pasteboard Privacy Preview in macOS 15.4 (https://mjtsai.com/blog/2025/05/12/pasteboard-privacy-preview-in-macos-15-4/), MacRumors (https://www.macrumors.com/2025/05/12/apple-mac-apps-clipboard-change/), 9to5Mac (https://9to5mac.com/2025/05/12/macos-16-clipboard-privacy-protection/) — `NSPasteboard.accessBehavior` privacy prompt
+- CopyClip 2 - App Store (https://apps.apple.com/us/app/copyclip-2-clipboard-manager/id1020812363?mt=12), OS X Daily CopyClip coverage (https://osxdaily.com/2023/08/28/free-clipboard-manager-for-mac-copyclip/) — item limits, quick-select shortcuts, pin behavior
+- Maccy 2.0 rewrite coverage — AlternativeTo (https://alternativeto.net/news/2024/9/macos-clipboard-manager-maccy-has-released-a-major-2-0-update-with-a-complete-rewrite), Maccy Issue #1097 (https://github.com/p0deje/Maccy/issues/1097) — NSMenu-at-scale failure modes, confirms irrelevant at this app's 20-30 item cap
 
 ### Tertiary (LOW confidence)
-- `com.spotify.client.PlaybackStateChanged` distributed-notification pattern (multiple independent open-source community references) — flagged for a local spike before relying on it as the track-identity source
-- `SimplyCoreAudio` repo metadata — confirms archived/unmaintained status, informational only (rejected as a dependency)
+- Hammerspoon `hs.pasteboard` source/issue discussion, Apple Developer Forums thread on pasteboard change events — community corroboration only, not official Apple documentation (Apple's own pasteboard docs pages are JS-rendered and couldn't be fetched directly during research)
 
 ---
-*Research completed: 2026-07-19*
+*Research completed: 2026-07-22*
 *Ready for roadmap: yes*

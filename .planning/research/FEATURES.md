@@ -1,131 +1,171 @@
-# Feature Research — Now Playing "Like" Button + Audio Output Switcher
+# Feature Research
 
-**Domain:** macOS notch/Dynamic-Island utility (Islet) — Now Playing expanded-view extensions
-**Researched:** 2026-07-19
-**Confidence:** MEDIUM-HIGH (favorite/like write-back mechanics verified against Apple/Spotify developer docs and community reports; UI-pattern precedent verified against macOS/iOS system UI and comparable third-party apps; no Context7 library docs apply here — this is platform/API and UX-pattern research, not a library-integration question)
+**Domain:** macOS menu-bar clipboard history manager (v1.9 addition to Islet, replacing CopyClip)
+**Researched:** 2026-07-22
+**Confidence:** MEDIUM-HIGH (CopyClip/Maccy/Paste feature claims verified across multiple sources incl. GitHub issues and vendor sites; exact CopyClip internals inferred from its own UI conventions since it's closed-source)
 
-> Supersedes nothing — this is new, narrowly-scoped research for 2 candidate capabilities (favorite/like button, audio-output switcher) extending Islet's existing Now Playing expanded view. Prior milestone research (v1.6 Liquid Glass & System HUD Suite, v1.5, etc.) is preserved in git history; this file reflects only the current research pass.
+> Supersedes the prior FEATURES.md content (Now Playing "like" button + audio output switcher, v1.7 candidate research, dated 2026-07-19) — that scope is a different, still-paused milestone; its content is preserved in git history, not here. This file is scoped entirely to v1.9 (Clipboard History).
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
+These map directly to what the user already confirmed during milestone discussion — none of this is optional for v1.9.
+
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Like button reflects **real** per-app state on load (filled star if the currently-playing track is already loved/saved) | A fake local-only heart that doesn't match the actual player is worse than no button — users will notice the mismatch within one session and stop trusting it | MEDIUM | Apple Music: AppleScript `loved of current track` is readable directly. Spotify: requires a `GET /v1/me/tracks/contains?ids=` Web API call — the read side has the exact same OAuth dependency as the write side (see below), no way around it. |
-| Output list shows the actual live system default output, highlighted/on top, and updates live if the user changes it elsewhere (System Settings, Control Center, unplugging AirPods) | This is exactly how macOS's own Control Center Sound module and SoundSource behave; anything less reads as broken | LOW-MEDIUM | Register a `kAudioHardwarePropertyDefaultOutputDevice` + `kAudioHardwarePropertyDevices` listener via `AudioObjectAddPropertyListenerBlock` — same event-driven pattern already used for `VolumeReader`/`BluetoothMonitor` in this codebase, not polling. |
-| Volume slider in the output panel actually controls system output volume (thick bar, live-drag), not a decorative element | The milestone spec explicitly describes a "thick volume-slider bar" alongside the device list — this is the same real-time expectation set by Phase 39's Volume HUD | LOW | Direct reuse of Phase 39's `AudioObjectSetPropertyData(kAudioDevicePropertyVolumeScalar)` self-drive code path. |
-| Tapping/selecting a different output device actually switches system audio immediately | Table stakes for *any* output picker — macOS Control Center, the iOS AirPlay picker, and SoundSource all do this on a single tap with no confirmation step | LOW-MEDIUM | `AudioObjectSetPropertyData(kAudioHardwarePropertyDefaultOutputDevice)`. |
+| Recent-items list, MRU order | Every clipboard manager (CopyClip, Maccy, Clipy, Flycut) shows newest copy first | LOW | Prepend on capture; no sort logic needed beyond insertion order |
+| Item count cap (~20-30) with FIFO eviction | CopyClip's free tier shows 20 in the menu; matches user's confirmed 20-30 cap | LOW | A bounded array/ring buffer — evict oldest past the cap, no pagination needed |
+| Click-to-restore (copy to pasteboard, no auto-paste) | Confirmed against user's CopyClip screenshot; this is CopyClip's actual behavior, not an assumption | LOW | Write item back to `NSPasteboard.general`; do NOT synthesize a Cmd+V keystroke into the frontmost app |
+| Text preview with single-line truncation + ellipsis | Every reviewed app (CopyClip, Maccy, Clipy) truncates long text to one line in the row | LOW | Standard `NSString`/SwiftUI `.lineLimit(1)` + `.truncationMode(.tail)`; no need for multi-line preview logic |
+| Image support (not just text) | User explicitly confirmed text + images; CopyClip 2 and Paste both support image clips | MEDIUM | Needs a thumbnail render path for the menu row — see storage note in Anti-Features |
+| ⌘0–⌘9 quick-select key equivalents | Directly visible in the user's CopyClip reference screenshot; long-standing CopyClip convention | LOW | `NSMenuItem.keyEquivalent` on the first 10 rows only — a cosmetic/muscle-memory feature for the exact app being replaced |
+| Persistence across relaunch + reboot | User explicitly confirmed this as deliberately different from the session-only Shelf | LOW-MEDIUM | Small on-disk store (see Anti-Features re: no DB needed at this scale); load on launch, save on each capture |
+| Sensitive-content exclusion via `org.nspasteboard.ConcealedType`/`TransientType` | Confirmed by user; also the de-facto standard convention respected by CopyQ, and referenced directly on nspasteboard.org | LOW | Check pasteboard types for these two UTIs before capturing; skip silently, no user-facing prompt needed |
+| "Delete All History" action | Confirmed by user; present in CopyClip ("Delete All History" menu item), Alfred ("Clear Clipboard History"), and effectively every competitor | LOW | See UX Conventions section below for confirmation-dialog norm |
+| Pasteboard-monitoring via `NSPasteboard.general.changeCount` polling | macOS has no native "clipboard changed" notification API — every reviewed app (Maccy, Clipy, Flycut) polls `changeCount`; project's own `DragApproachDetector` already does this pattern | LOW-MEDIUM | Reuse the existing polling pattern already in the codebase rather than inventing a new mechanism (see PROJECT.md Key Context) |
 
-### Differentiators (Competitive Advantage)
+### Differentiators (Competitive Advantage — mostly out of scope for v1.9)
+
+These set CopyClip/Maccy/Paste apart from a bare-bones history. The user has explicitly scoped search/filter OUT of v1.9; flagged here only for the "Future Requirements" backlog.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Apple Music "loved" write-back from the island | Droppy (the project's own cited competitor) explicitly ships this ("love tracks" in its own marketing copy) — matching it is parity, but doing it *reliably* (including a "track not yet in library" edge case, see Anti-Features note below) is where Islet can beat a $6.99 competitor | LOW-MEDIUM | `tell application "Music" to set loved of current track to true` via an AppleScript Apple Event — no OAuth, no network call, works instantly on the same Mac. Requires a new Automation permission (`NSAppleEventsUsageDescription` + first-use consent prompt) — same permission-surface pattern as Phase 38's Focus Mode `NSFocusStatusUsageDescription`/entitlement gotcha. Known rough edge: Apple's own AppleScript dictionary has documented bugs adding tracks that aren't already in the user's library (Apple Developer Forums thread 694200, "Add songs to Library in Music?") — a track streamed-but-not-yet-added may fail to accept `loved` silently; needs an on-device check, not just a code-path check. |
-| Spotify "liked songs" write-back from the island | Real differentiator *if* it works — TheBoringNotch's own like button is confirmed broken/non-functional in a live GitHub issue (#929, "invisible and doesn't work") as of this research, and Droppy's own marketing copy conspicuously does **not** claim a Spotify love/like capability (only "playback with album art, visualizer & media controls") despite explicitly claiming it for Apple Music. Getting this right where two real, named competitors visibly haven't is a genuine differentiator. | MEDIUM-HIGH | See "Spotify Like — the hard path" below. This is a materially bigger lift than the Apple Music version: no local write API exists at all. |
-| Drag-to-promote as an *optional accelerator* on top of tap-to-select in the output panel | A tactile "grab and drop AirPods to the top" gesture could feel delightful and matches the island's existing spring/`matchedGeometryEffect` animation language elsewhere in the app | MEDIUM | Only worth building *after* tap-to-select ships and works — see the dedicated recommendation below. Not a replacement for tap. |
+| Search/filter across history | Maccy's headline feature ("keyboard-first... instant text search"); CopyClip 2 also offers it | MEDIUM | **Explicitly deferred by user for v1.9.** Flag for v2: worth building the data model so full text is stored (not just a pre-truncated preview string) now, so search doesn't require a migration later |
+| Pin/favorite items to top | CopyClip 2 (⇧⌘P), Paste's "pinboards" both offer this | LOW-MEDIUM | **Not requested for v1.9.** Flag for v2 — cheap to add later (a boolean flag + stable sort) if the data model already keeps items as discrete records with stable IDs rather than a flat rolling log |
+| Categorized/typed history (separate text vs. image sections, or custom pinboards) | Paste's multi-pinboard model | MEDIUM-HIGH | Not requested; adds real UI complexity (tabs/sections) disproportionate to a 20-30 item cap. Not worth flagging for v2 unless the item cap itself grows substantially |
+| Cross-device sync (iCloud) | Paste 5.0's rebuilt sync engine, shared pinboards | HIGH | **Do not flag as a near-term v2 candidate.** Clipboard content is uniquely sensitive (passwords near-misses, personal data) — sync introduces E2E-encryption and multi-device conflict-resolution scope disproportionate to this app's local-utility positioning. Maccy's own philosophy (no cloud, no telemetry) is closer to Islet's existing local-only architecture |
+| Per-app exclude list (beyond the nspasteboard convention) | CopyClip lets users manually exclude specific source apps from capture | LOW-MEDIUM | Worth a v2 flag: the nspasteboard convention only covers apps that opt in (mostly password managers); a manual per-app blocklist is a reasonable, cheap follow-up for apps that don't mark sensitive data correctly |
+| Per-item delete (not just Delete All) | Common in Maccy/Clipy via right-click/context menu | LOW | User only confirmed "Delete All History." Worth a v2 flag since it's a small addition (single row-remove) once the base UI exists, but do not build it speculatively now — YAGNI until requested |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|------------------|-------------|
-| **Drag-to-reorder-IS-select** as the *only* way to change output (the milestone's literal wording: "dragging a non-current output to the top position switches the active output") | Feels novel/premium, mirrors the existing Now Playing dual-activity bubble's playful interaction language | No precedent found anywhere: macOS Control Center's own Sound module (the literal same "volume slider + device list, current highlighted" layout the milestone spec describes), the iOS Control Center AirPlay/Now-Playing device picker, and Rogue Amoeba's SoundSource (the established third-party Mac output-routing tool) are all **tap/click-to-select**, none use drag-to-reorder as the selection trigger. Conflating "reorder this list" with "cause a real system side effect" is also a classic accidental-action trap — a user reordering the list just to *read* it more easily (or a mis-drag) would silently change what device is playing audio. | Tap-to-select as the actual mechanism; animate the newly-selected device sliding to the top *as a visual consequence* of the tap (keeps the "reorder" polish from the original spec without making drag the trigger). See the dedicated recommendation below. |
-| Fuzzy title+artist search against the Spotify Web API to resolve "which Spotify track is this" for the like button | Seems like the obvious way to map MediaRemote's title/artist strings to a Spotify track ID | False-positive risk: liking the wrong track (wrong remix/live version/duplicate) is worse than no like button — a false-positive "like" silently corrupts the user's real Spotify library, exactly the kind of quiet data-corruption bug this class of app must avoid | Read the Spotify track URI directly off the Spotify desktop app's own `com.spotify.client.PlaybackStateChanged` distributed notification (a local trick referenced by several independent open-source Spotify menu-bar tools) instead of guessing via search — this gives an exact, unambiguous Spotify track ID with zero network round-trip on the read side. **Flagged MEDIUM confidence — verify with a local spike before relying on it (see Sources).** |
-| Full custom Apple Music **MusicKit REST API** integration (developer token + user token) for the like button | Looks like "the official/modern way" since it's Apple's newest music API | Unnecessary complexity for a same-Mac, same-user write — MusicKit requires registering a MusicKit identifier under the paid Apple Developer Program, minting developer/user tokens, and making network calls to Apple's servers just to flip a boolean on a track already playing locally in Music.app | Plain AppleScript Apple Event to the already-running local `Music.app` — zero network dependency, zero extra Apple Developer configuration beyond the one-time Automation permission prompt. |
+| SQLite/Core Data-backed history store | "Proper" persistence layers feel more robust; Maccy itself uses SQLite/SwiftData | At a 20-30 item cap this is pure over-engineering — no query performance problem exists to solve. Maccy's own GitHub issue #1097 shows the *real* pain point in these apps only appears at 30,000+ items (UI rendering all rows at once), which is irrelevant here | A capped in-memory array persisted as a small JSON/plist manifest + individual image files on disk. Simple, fast, trivially inspectable |
+| Full pasteboard-type coverage (RTF, RTFD, HTML, file URLs, custom UTIs) from day one | "What if someone copies a file / rich text?" | Every additional UTI is another capture path, preview renderer, and restore path to test and maintain; CopyClip's actual reference (and the user's confirmed scope) is plain text + images only | Capture only `public.utf8-plain-text` and image types (PNG/TIFF) for v1.9; anything else silently falls through (matches Flycut's own stated limitation: "isn't designed for copying images or tables" in its base form) |
+| A brand-new custom popover/panel UI for the dropdown | Feels more "modern" (Maccy 2.0, Paste both use custom windows) | The existing status-item menu (Settings…/Check for Updates/Quit from Phase 0) is already a plain NSMenu, and the user explicitly said this is additive to that menu, NOT a new Island/notch view. Building a parallel NSPanel here duplicates the app's existing menu-bar interaction model for no benefit at a 20-30 item cap | Extend the existing NSMenu with custom `NSMenuItem`s (an `NSHostingView` wrapping a small SwiftUI row for preview + thumbnail). See UI section below for the full tradeoff |
+| Cloud sync / shared history | Feels "modern," competitors (Paste) offer it | Massively expands scope: needs an account system, E2E encryption for what is inherently sensitive data, conflict resolution across devices — nothing the user asked for and inconsistent with Islet's local-only posture | Local-only persistence, matching Maccy's explicit "no cloud sync, no telemetry" positioning |
+| Building search/indexing infrastructure now "to be ready for v2" | Seems efficient to build once | Speculative work for an explicitly deferred feature; risks over-designing the data model around a feature that may change shape before v2 is actually planned | Just don't pre-truncate the underlying stored text (store the full string, only truncate at render time) — that alone is enough runway for v2 search without building the search feature itself now |
+| Unbounded/full-resolution image storage | "Don't lose quality" | Clipboard images (especially from screenshots) can be several MB each; even at a 20-30 item cap, unbounded full-res storage adds up and slows the menu (rendering large images in row previews) | Store a compressed/downscaled thumbnail for the menu row; if full-res restore-to-pasteboard is needed, keep the original once and only thumbnail for display — do not generate multiple derivative sizes speculatively |
 
 ## Feature Dependencies
 
 ```
-[Like button — Apple Music path]
-    └──requires──> [NowPlayingMonitor's existing player-allowlist identification]
-                       (must know "this is Apple Music, not Spotify" to route to AppleScript)
-    └──requires──> [New Automation permission: NSAppleEventsUsageDescription entitlement/Info.plist key]
+Pasteboard-monitoring seam (changeCount polling)
+    └──requires──> Sensitive-content check (org.nspasteboard types)
+                       └──feeds into──> Capture + capped history store
+                                            └──feeds into──> Menu row rendering (text truncation / image thumbnail)
+                                            └──feeds into──> Click-to-restore
+                                            └──feeds into──> ⌘0-⌘9 key equivalents (first 10 rows only)
+                                            └──feeds into──> Delete All History
 
-[Like button — Spotify path]
-    └──requires──> [Spotify Developer Dashboard app registration (client ID) — one-time setup, done ahead of code]
-    └──requires──> [OAuth Authorization Code + PKCE login flow, `user-library-modify` scope]
-    └──requires──> [Keychain-backed token storage + refresh — same pattern as the existing PolarLicenseService's Keychain use]
-    └──requires──> [Spotify desktop app's distributed-notification track URI (to avoid the fuzzy-search anti-feature)]
-
-[Output switcher panel]
-    └──requires──> [CoreAudio device enumeration: kAudioHardwarePropertyDevices]
-    └──requires──> [CoreAudio default-output set: kAudioHardwarePropertyDefaultOutputDevice]
-    └──enhances(reuses)──> [Phase 39's AudioObjectSetPropertyData volume self-drive code — same primitive, new call site]
-    └──enhances(reuses)──> [Phase 39's event-driven CoreAudio listener pattern (no polling), same shape as VolumeReader]
-
-[Drag-to-promote accelerator] ──enhances──> [Output switcher panel tap-to-select]
-    (must not replace it — see anti-feature above)
-
-[Like button (either path)] ──shares-UI-slot-with──> [Existing transport controls row]
-    (star sits LEFT of play/pause/next/prev; speaker icon sits RIGHT — both are new children of the same HStack,
-     no layout conflict, but widen the Now Playing expanded content and may need the same "island grows a few pt"
-     treatment already applied to this milestone's Calendar quick-add work)
+[Search (v2, deferred)] ──requires full stored text, not just preview──> Capture + capped history store
+[Pin/favorite (v2, deferred)] ──requires discrete item records with stable IDs──> Capture + capped history store
 ```
 
 ### Dependency Notes
 
-- **Both Like-button paths require `NowPlayingMonitor`'s existing player identification** (already distinguishes Spotify vs Apple Music for the allowlist) — extend it with a routing seam (e.g. a `LikeService` protocol with two concrete implementations) rather than branching inline, mirroring the project's own established "one-file swap if Apple/Spotify breaks it" isolation principle already used for `NowPlayingMonitor` itself.
-- **The output switcher is a near-pure extension of Phase 39's CoreAudio work**, not a new subsystem — the volume-set primitive, the event-driven listener pattern, and the Settings-toggle/kill-switch philosophy (self-drive with passthrough fallback) all transfer directly. The genuinely new code is device enumeration + the picker UI, not the audio plumbing.
-- **The Spotify like path is the single biggest complexity/risk driver of either feature** — it is the only piece of this candidate scope that introduces a brand-new external network dependency (Spotify's OAuth servers), a brand-new credential-registration step (Spotify Developer Dashboard), and a brand-new long-lived-secret storage concern (refresh tokens in Keychain), none of which the rest of the app currently has (MediaRemote/CoreAudio/EventKit/WeatherKit are all local-or-Apple-first-party).
+- **Everything depends on the pasteboard-monitoring seam existing first** — it's the one genuinely new subsystem (no existing code does this; `DragApproachDetector`'s polling pattern is the closest precedent, not a reusable implementation).
+- **Sensitive-content check must run inside the capture path, not as a post-filter** — items must never reach the history store to begin with (no "capture then hide" step, since that would still risk exposure in the persisted file).
+- **Search and Pin are the two deferred features that actually constrain today's data model.** Neither needs to be built now, but the history store should keep full text (not pre-truncated strings) and stable per-item identity (not just a flat rolling array with no IDs) so v2 doesn't require a data migration.
 
 ## MVP Definition
 
-### Launch With (v1 of this scope)
+### Launch With (v1.9)
 
-- [ ] Apple Music like/love write-back via AppleScript Apple Event — low-medium complexity, no network dependency, matches Droppy's own shipped scope, closes the parity gap with the cited competitor
-- [ ] Output switcher panel: volume slider (real CoreAudio control) + device list, current device highlighted on top, **tap-to-select** switches output — matches 100% of found precedent (macOS Control Center, iOS AirPlay/Now-Playing picker, SoundSource)
-- [ ] Like button hidden/disabled (not fake-active) when the playing app isn't Apple Music, until/unless Spotify support ships — avoids a broken or fake-local-only heart, the exact failure mode TheBoringNotch's users are currently filing bugs about
+- [ ] Pasteboard-monitoring polling seam (`changeCount`) — nothing else works without it
+- [ ] Sensitive-content exclusion (`org.nspasteboard.ConcealedType`/`TransientType`) — must be in the capture path from day one, not bolted on later
+- [ ] Capped history store (~20-30 items, FIFO eviction), text + image, full text retained (not pre-truncated)
+- [ ] Menu rows: single-line truncated text preview / image thumbnail, click-to-restore to pasteboard
+- [ ] ⌘0-⌘9 key equivalents on the first 10 rows
+- [ ] "Delete All History" menu action with a standard destructive-confirmation alert
+- [ ] Persistence across relaunch/reboot (simple JSON/plist manifest + image files, no database)
 
-### Add After Validation (v1.x)
+### Add After Validation (v1.x, if requested)
 
-- [ ] Spotify like/save write-back via OAuth PKCE + `user-library-modify`, sourcing the track URI from Spotify's own distributed notification (not fuzzy search) — ship once the Apple Music path and the OAuth/Keychain plumbing pattern (already precedented by `PolarLicenseService`) are both proven
-- [ ] Drag-to-promote as an *optional* accelerator layered on top of the already-shipped tap-to-select in the output panel
+- [ ] Per-item delete (single row removal) — small addition once the base list UI exists
+- [ ] Per-app manual exclude list — cheap follow-up to the nspasteboard convention
 
-### Future Consideration (v2+)
+### Future Consideration (v2+, explicitly deferred by user for v1.9)
 
-- [ ] Persisted "recently used outputs" ordering / quick-toggle between two known devices (a commonly requested BetterTouchTool-style workflow found in research) — defer until the basic switcher is proven in daily use
+- [ ] Search/filter across history — data model already supports it (full text retained); build the UI later
+- [ ] Pin/favorite items to top — data model already supports it (stable item IDs); build the sort/UI later
+- [ ] Categorized/typed history or multiple pinboards — only worth it if the item cap itself grows well past 20-30
+- [ ] Cross-device sync — deliberately not recommended even for v2 given the sensitivity of clipboard data and Islet's local-only positioning
+
+## UX Conventions: "Delete All History"
+
+Reviewed pattern across CopyClip, Alfred's "Clear Clipboard History," and general macOS HIG guidance on destructive actions:
+
+- **A single native confirmation alert (`NSAlert`), not a custom multi-step flow.** Destructive + irreversible data loss = confirm once, plainly: "Delete all clipboard history? This cannot be undone." with Cancel / Delete (destructive-styled) buttons.
+- **No "don't ask again" checkbox.** This is an infrequent, deliberate action — suppressing the confirmation isn't something these apps offer, and it isn't worth the extra state to track.
+- **The action itself stays a single menu item** ("Delete All History" in CopyClip's own dropdown, sitting below the item list) — no separate "history management" sub-window needed for v1.9's scope.
+
+## Menu-Bar Dropdown UI: NSMenu vs. Custom Popover/Panel
+
+This directly determines how the new history rows get added to Islet's existing status-item menu.
+
+**What the reviewed apps actually do:**
+- **CopyClip, Clipy, Flycut:** plain `NSMenu` with standard `NSMenuItem`s. The ⌘0-⌘9 key equivalents visible in the user's CopyClip screenshot are literally `NSMenuItem.keyEquivalent` — this is a strong signal CopyClip itself never left NSMenu.
+- **Maccy 1.x:** also plain `NSMenu` — and hit real friction at scale: crashes on repeated "Select," couldn't resize, didn't render over password fields, full-screen apps, or Spotlight. Maccy 2.0 (2024) did a full rewrite to SwiftUI + `NSPanel` specifically to fix these.
+- **Paste:** doesn't use a menu at all — it's a full custom floating window/launcher, because its feature set (multi-column pinboards, drag-and-drop, rich image grids, sync) genuinely needs arbitrary SwiftUI layout that NSMenu can't provide.
+
+**Tradeoff:**
+
+| | NSMenu (extend existing) | Custom NSPanel/popover |
+|---|---|---|
+| Effort | Low — reuses the status item's existing menu (Settings…/Quit already live there) | Medium-high — new window management, click-outside-dismiss, focus-safety, full-screen/Spotlight edge cases all need reimplementing |
+| System feel | Free — looks/behaves like every other menu-bar dropdown | Must be manually tuned to avoid feeling like "a floating app" |
+| Scrolling for long lists | Automatic scroll arrows once content exceeds screen height — a non-issue at a 20-30 item cap | Must build your own scroll view |
+| Known failure mode | AppKit `NSMenu` quirks emerge at *large* scale (Maccy's issues appeared with heavy interactive manipulation and eventually 30k+ item histories) — irrelevant at 20-30 items | None specific, but is strictly more code to own |
+| Row customization | Achievable via `NSHostingView`-wrapped SwiftUI content per `NSMenuItem` — sufficient for a preview + thumbnail row | Full arbitrary SwiftUI, needed only if search boxes, multi-column layouts, or drag-and-drop are required |
+
+**Recommendation:** Extend the existing status-item `NSMenu` with custom `NSMenuItem` rows (an `NSHostingView` wrapping a small SwiftUI view per row for text truncation + image thumbnail), rather than introducing a new `NSPanel`/popover. This matches the user's explicit "additive to the existing menu-bar status item, not a new Island view" decision, matches CopyClip's own approach (the app being replaced), and avoids the class of problems (Maccy 2.0's rewrite motivation) that only bite at scales far beyond this app's 20-30 item cap. Revisit only if v2 adds an inline search text field inside the dropdown — that's the one interaction NSMenu handles poorly and is the actual trigger that pushed Maccy to NSPanel.
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|----------------------|----------|
-| Apple Music like/love write-back | MEDIUM-HIGH | LOW-MEDIUM | P1 |
-| Output switcher (tap-to-select, volume slider, live device list) | HIGH | MEDIUM | P1 |
-| Spotify like/save write-back | HIGH (bigger differentiator than Apple Music, since two named competitors visibly don't have it working) | MEDIUM-HIGH | P2 |
-| Drag-to-promote accelerator in output panel | LOW-MEDIUM (delight, not function) | MEDIUM | P3 |
-
-**Priority key:**
-- P1: Ship this pass — low/medium cost, closes a real, verified competitive gap
-- P2: Ship once P1's plumbing patterns (OAuth/Keychain, AppleScript automation-permission UX) are proven
-- P3: Nice to have, layer on only after tap-to-select is shipped and working
+| Pasteboard-monitoring seam | HIGH | MEDIUM | P1 |
+| Sensitive-content exclusion | HIGH | LOW | P1 |
+| Capped history store (text+image, persistent) | HIGH | MEDIUM | P1 |
+| Click-to-restore | HIGH | LOW | P1 |
+| Text truncation / image thumbnail preview | HIGH | LOW | P1 |
+| ⌘0-⌘9 key equivalents | MEDIUM | LOW | P1 |
+| Delete All History (with confirm) | HIGH | LOW | P1 |
+| Per-item delete | MEDIUM | LOW | P2 |
+| Per-app manual exclude list | LOW-MEDIUM | LOW-MEDIUM | P2 |
+| Search/filter | HIGH (per competitor emphasis) | MEDIUM | P3 (explicitly deferred) |
+| Pin/favorite | MEDIUM | LOW-MEDIUM | P3 (explicitly deferred) |
+| Cross-device sync | LOW (not requested, conflicts with app positioning) | HIGH | Not recommended |
 
 ## Competitor Feature Analysis
 
-| Feature | TheBoringNotch | Droppy | Islet's Planned Approach |
-|---------|-----------------|--------|---------------------------|
-| Like/love button | Attempted, currently confirmed broken/invisible on Spotify per a live open GitHub issue (#929) — no confirmation it was ever a real write-back vs a UI stub | Apple Music "love tracks" explicitly shipped; Spotify explicitly scoped out (only playback/visualizer/album-art claimed) | Ship the same split deliberately and correctly: real AppleScript write-back for Apple Music now, real OAuth write-back for Spotify as a fast-follow — beating both named competitors by having a working Spotify path at all |
-| Audio output switching | Not found in research | Not found in research (Droppy's HUD suite covers volume/brightness/AirPods-connect, not output routing) | Genuinely novel among the notch-app category researched — closest real precedent is Rogue Amoeba's SoundSource (a separate, non-notch menu-bar utility), not another notch app |
-
-## Tap-vs-Drag Recommendation (explicit answer)
-
-**Recommendation: tap-to-select is the primary and only required mechanism.** Every precedent examined — macOS's own Control Center Sound module (the literal same "volume slider + device list, current highlighted" layout the milestone spec describes), the iOS Control Center AirPlay/Now-Playing device picker, and SoundSource (the established third-party Mac output-routing tool) — uses a single tap/click on the target device to switch to it. None use drag-to-reorder as the switching trigger. Using drag as the *sole* selection mechanism would be a genuinely novel interaction with no user-familiarity precedent, and it conflates two distinct actions (reordering a list for viewing vs. causing a real system side effect) — an accidental-action risk class this project has already been careful to avoid elsewhere (e.g. Phase 34's drag-target redesign added drag *precision* to an *intentional*, already-in-flight file drag; it did not repurpose drag as a stand-in for tap on an otherwise-static list).
-
-Ship tap-to-select as the real mechanism; if the "device visibly slides to the top" polish from the original spec is still wanted, animate that as the **visual result** of the tap (the same `matchedGeometryEffect`-driven language already used elsewhere in the app) rather than as something the user must manually drag to cause. A drag gesture can be added later, purely as an optional accelerator layered on top of a working tap path — never as a replacement for it.
+| Feature | CopyClip | Maccy | Paste | Islet v1.9 approach |
+|---------|----------|-------|-------|----------------------|
+| UI shell | Plain NSMenu | NSMenu (1.x) → NSPanel/SwiftUI (2.x) | Custom floating window | Extend existing NSMenu (see above) |
+| History cap | 20 shown / 80-9999 stored depending on tier | Configurable, effectively unbounded (with known perf issues past 30k) | Unlimited (iCloud-synced) | Fixed ~20-30, FIFO eviction |
+| Quick-select | ⌘1-9, ⌘0 | Keyboard-driven search+select | Keyboard shortcuts + pinboard switching | ⌘0-⌘9 on first 10 rows |
+| Search | Yes (CopyClip 2) | Yes, core feature | Yes | Deferred (v2 candidate) |
+| Pin/favorite | Yes (⇧⌘P) | No | Yes (pinboards) | Deferred (v2 candidate) |
+| Sync | No | No (explicitly, by design) | Yes (iCloud) | Not planned — inconsistent with local-only positioning |
+| Sensitive-content handling | Manual per-app exclude list | Respects nspasteboard convention | Unclear from sources | nspasteboard convention (table stakes); manual exclude list is a v2 flag |
+| Storage | Unknown (closed source) | SQLite/SwiftData (2.x) | Unknown, iCloud-backed | Simple JSON/plist + image files, no DB needed at this cap |
 
 ## Sources
 
-- [TheBoredTeam/boring.notch Issue #929 — "Like button for Spotify don't show up / doesn't work"](https://github.com/TheBoredTeam/boring.notch/issues/929) — MEDIUM (primary-source GitHub issue, confirms real reliability problems in a direct open-source competitor; does not confirm the original implementation's mechanism)
-- [1of1Adam/Droppy GitHub README](https://github.com/1of1Adam/Droppy) — MEDIUM-HIGH (project's own repeatedly-cited competitor; explicit "love tracks" claim for Apple Music, explicit absence of the same claim for Spotify)
-- [Apple Music API / MusicKit ratings endpoint (PUT /v1/me/ratings/songs/{id})](https://developer.apple.com/documentation/applemusicapi/) — HIGH (official Apple docs)
-- Apple Developer Forums thread 694200, "Add songs to Library in Music?" — MEDIUM (community report of a real AppleScript-add-to-library bug relevant to the "loved" edge case)
-- Spotify Community thread, "Applescript 'starred' property returns Error" — MEDIUM-HIGH (multiple corroborating reports that Spotify's AppleScript dictionary has no working local like/save capability)
-- [Spotify Web API — Save Tracks for Current User endpoint](https://developer.spotify.com/documentation/web-api/reference/) and [Authorization Code with PKCE Flow docs](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow) — HIGH (official Spotify docs; confirms `user-library-modify` scope and the OAuth PKCE flow needed)
-- `com.spotify.client.PlaybackStateChanged` distributed-notification pattern (multiple independent open-source references, e.g. `andrehaveman/spotify-node-applescript`, a public loretoparisi gist) — MEDIUM (WebSearch-corroborated across multiple independent community sources, not an official Spotify doc — the one claim in this research flagged for a local spike before relying on it)
-- [Apple Support — "Change the sound output settings on Mac"](https://support.apple.com/guide/mac-help/change-the-sound-output-settings-mchlp2256/mac) and [Control Center on Mac](https://support.apple.com/guide/mac-help/quickly-change-settings-mchl50f94f8f/mac) — HIGH (official Apple docs, confirms tap/click-to-select pattern in the system's own Sound module)
-- [Rogue Amoeba SoundSource manual — Menu Bar Controls](https://rogueamoeba.com/support/manuals/soundsource/?page=menubarcontrols) — HIGH (official product manual, confirms click-to-select + slider pattern in the closest real third-party precedent)
-- iMore / iPhoneLife coverage of the iOS Control Center AirPlay/Now-Playing picker — MEDIUM (secondary sources, consistent with each other and with Apple's own documented tap-to-select behavior)
-- `.planning/PROJECT.md` — Phase 39 (Volume & Brightness HUD, CoreAudio self-drive precedent), Phase 38 (Focus Mode Automation-permission precedent), Phase 12 (`PolarLicenseService` Keychain-token precedent) — HIGH (this project's own shipped, verified code)
+- [CopyClip 2 - Clipboard Manager - App Store](https://apps.apple.com/us/app/copyclip-2-clipboard-manager/id1020812363?mt=12) — item limits, ⌘1-9/⌘0 shortcuts, pin (⇧⌘P), per-app exclude, search
+- [An Excellent Free Clipboard Manager for Mac is CopyClip - OS X Daily](https://osxdaily.com/2023/08/28/free-clipboard-manager-for-mac-copyclip/) — free-tier history size (80 stored / 20 shown)
+- [Maccy (open source) — GitHub](https://github.com/p0deje/Maccy) — architecture, MIT license, privacy-first/no-cloud positioning
+- [Maccy 2.0 rewrite coverage — AlternativeTo](https://alternativeto.net/news/2024/9/macos-clipboard-manager-maccy-has-released-a-major-2-0-update-with-a-complete-rewrite) — NSMenu → SwiftUI/NSPanel rewrite, Core Data → SwiftData
+- [Maccy GitHub Issue #1097 — large history UI performance](https://github.com/p0deje/Maccy/issues/1097) — confirms perf bottleneck is UI rendering, not storage; only manifests at 30k+ items
+- [Paste app official blog — best clipboard manager 2026](https://pasteapp.io/blog/best-clipboard-manager-for-mac) / [Paste 5.0 shared pinboards, sync — AlternativeTo](https://alternativeto.net/news/2025/5/clipboard-manager-paste-5-0-adds-shared-pinboards-rebuilt-sync-engine-and-performance-gains) — pinboards, sync engine, shared pinboards
+- [NSPasteboard.org](https://nspasteboard.org/) and [NSPasteboard/NSPasteboard.org GitHub index](https://github.com/NSPasteboard/NSPasteboard.org/blob/main/index.md) — `org.nspasteboard.ConcealedType`/`TransientType`/`AutoGeneratedType` convention, authoritative source for the sensitive-content exclusion pattern
+- [Flycut (Clipboard manager) — softwar.io](https://flycut-clipboard-manager.softwar.io/) — plain-text/developer-focused scope, explicit non-support for images/tables in its base design
+- [Fleetings Pixels — how to build a Mac menu bar app with NSPopover](https://fleetingpixels.com/articles/2020/how-to-create-a-mac-menu-bar-app-with-nspopover/) and [Multi Blog — pushing the limits of NSStatusItem](https://multi.app/blog/pushing-the-limits-nsstatusitem) — NSMenu vs. NSPopover tradeoffs for menu-bar apps
+- Project context: `.planning/PROJECT.md` (Milestone In Progress: v1.9 Clipboard History) — confirmed scope, existing status-item menu, `DragApproachDetector` polling precedent
 
 ---
-*Feature research for: Now Playing "like" write-back + audio output switcher, Islet candidate v1.7+ scope*
-*Researched: 2026-07-19*
+*Feature research for: macOS menu-bar clipboard history (Islet v1.9)*
+*Researched: 2026-07-22*
