@@ -1,7 +1,6 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
-import CoreLocation
 import EventKit
 
 struct SettingsView: View {
@@ -519,14 +518,20 @@ struct SettingsView: View {
         case .notYetAsked:
             switch kind {
             case .location:
-                CLLocationManager().requestWhenInUseAuthorization()
+                (NSApp.delegate as? AppDelegate)?.notchController?.requestLocationPermission()
             case .calendarReminders:
                 Task { _ = try? await EKEventStore().requestFullAccessToEvents() }
                 Task { _ = try? await EKEventStore().requestFullAccessToReminders() }
             case .bluetooth:
                 (NSApp.delegate as? AppDelegate)?.notchController?.requestBluetoothPermission()
             case .focus:
-                FocusModeMonitor.requestAuthorization { _ in }
+                FocusModeMonitor.requestAuthorization { granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            (NSApp.delegate as? AppDelegate)?.notchController?.focusPermissionGranted()
+                        }
+                    }
+                }
             case .inputMonitoring:
                 break // Pitfall 4 — no reliable in-app trigger; refreshPermissionStatuses() below is the soft re-check.
             }

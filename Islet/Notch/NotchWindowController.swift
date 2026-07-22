@@ -745,8 +745,19 @@ final class NotchWindowController {
     // cross-window-call shape. CoreBluetooth has no standalone requestAuthorization()-style
     // call; the system prompt is a side effect of IOBluetoothDevice.register(forConnectNotifications:),
     // which startBluetoothMonitor() already calls and which is itself idempotent.
+    // Phase 54-04 (CR-01) — gated on the user's own Devices toggle, mirroring
+    // finishOnboarding()'s activityEnabled(ActivitySettings.deviceKey) gate, so the
+    // Permissions row can no longer silently override an explicit toggle-off.
     func requestBluetoothPermission() {
+        guard activityEnabled(ActivitySettings.deviceKey) else { return }
         startBluetoothMonitor()
+    }
+
+    // Phase 54-04 (CR-02) — the Settings Location row's real bridge, mirroring
+    // focusPermissionGranted()'s exact one-line delegate-to-existing-start-function shape.
+    // startLocationOnce() is idempotent/safe to call again per its own D-01 contract.
+    func requestLocationPermission() {
+        startLocationOnce()
     }
 
     // Phase 39 / HUD-03/HUD-04 (D-06) — idempotent start, mirrors startFocusModeMonitor()'s
