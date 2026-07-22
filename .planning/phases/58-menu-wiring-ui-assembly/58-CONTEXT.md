@@ -26,6 +26,7 @@ Wires the three already-proven pieces (Phase 55's `ClipboardStore`, Phase 56's `
 
 ### Section placement
 - **D-15:** The clipboard history section (rows + "Delete All History") sits ABOVE the existing Settings…/Check for Updates…/Quit block, separated by a standard `NSMenuItem.separator()` — matches the user's CopyClip reference screenshot exactly (list on top, actions below it). The existing three items keep their current relative order, just pushed below the new section.
+- **D-15 REVISED (2026-07-23, on-device UAT, Plan 58-01 Task 3):** Superseded live — the rows themselves no longer render inline at the top of the menu. They now live behind a single "Clipboard History" anchor `NSMenuItem` with a flyout `.submenu`, so more entries are visible at once without lengthening the top-level menu. D-15's placement (anchor sits above Settings…/Check for Updates…/Quit, same separator boundary) is otherwise unchanged. Because `NSMenuItem.keyEquivalent`s inside an unopened submenu don't fire, Cmd+0-9 (D-informational, ⌘0-⌘9 scope) is additionally served by a `menuWillOpen`/`menuDidClose`-scoped local `NSEvent` keyDown monitor so it still restores instantly on icon-click, before the submenu is ever opened — confirmed working on-device. See `58-01-SUMMARY.md` for the full record.
 
 ### Carried forward from research (not re-discussed) [informational]
 Already effectively decided by `.planning/research/FEATURES.md` — listed here for background only, not open questions for this discussion.
