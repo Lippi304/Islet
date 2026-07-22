@@ -916,3 +916,24 @@ Plans:
 - [x] 53-02-PLAN.md — Full on-device UAT covering all 4 ROADMAP success criteria — approved (Debug + Release), including a mid-UAT D-02 supersession (static play glyph replaces bouncing equalizer bars)
 
 **UI hint**: yes
+
+### Phase 54: Permissions Overview & Onboarding Replay
+
+**Goal:** Settings gains a "Permissions" rollup showing how many of the app's permissions are granted (X of Y), lets the user see the status of and re-request any denied/not-yet-granted permission individually, and offers a "Replay Onboarding" button in About.
+**Requirements**: ARCH-P2
+**Depends on:** Phase 53
+**Plans:** 3/3 plans complete + 1 gap-closure plan
+
+Plans:
+**Wave 1**
+
+- [x] 54-01-PLAN.md — Pure PermissionStatus/PermissionKind model (TDD): 3-state mapping functions, D-13 combine rule, deep-link anchors, 5 live status reads
+- [x] 54-02-PLAN.md — NotchWindowController replayOnboarding()/finishOnboardingReplay() (D-07/D-08) + NotchPillView D-12 replay-only close button + requestBluetoothPermission()
+
+**Wave 2** *(blocked on 54-01, 54-02)*
+
+- [x] 54-03-PLAN.md — SettingsView Permissions section (5-row list + summary, D-05/D-06 tap-to-act) + About's Replay Onboarding button + on-device UAT checkpoint
+
+**Gap closure** *(from 54-VERIFICATION.md, 8/11 must-haves)*
+
+- [ ] 54-04-PLAN.md — Fix Bluetooth/Location/Focus permission grant wiring (CR-01, CR-02, WR-01) + replayOnboarding() missing updateVisibility() (CR-03)

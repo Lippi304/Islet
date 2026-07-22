@@ -18,4 +18,16 @@ final class SettingsViewTests: XCTestCase {
         XCTAssertEqual(sections.count, SettingsView.SidebarSection.allCases.count - 1)
         XCTAssertFalse(sections.contains(.switcher))
     }
+
+    // Phase 54 / D-10 — unlike .switcher, .permissions must survive both filter states
+    // (it has no hasNotch dependency at all).
+    func testVisibleSectionsIncludesPermissionsWhenHasNotchIsTrue() {
+        let sections = SettingsView.SidebarSection.visibleSections(hasNotch: true)
+        XCTAssertTrue(sections.contains(.permissions))
+    }
+
+    func testVisibleSectionsIncludesPermissionsWhenHasNotchIsFalse() {
+        let sections = SettingsView.SidebarSection.visibleSections(hasNotch: false)
+        XCTAssertTrue(sections.contains(.permissions))
+    }
 }

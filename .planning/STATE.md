@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
-status: milestone_complete
-stopped_at: v1.8 milestone archived (Phases 51-53); v1.4/v1.5/v1.7 remain open in parallel
-last_updated: "2026-07-21T19:51:17.838Z"
-last_activity: 2026-07-21 — Milestone v1.8 completed and archived
+status: executing
+stopped_at: Completed 54-03-PLAN.md
+last_updated: "2026-07-22T00:45:28.884Z"
+last_activity: 2026-07-22 -- Phase 54 execution started
 progress:
-  total_phases: 19
-  completed_phases: 15
-  total_plans: 39
-  completed_plans: 62
-  percent: 79
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 11
+  completed_plans: 10
+  percent: 75
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** v1.8 shipped; v1.4, v1.5, and v1.7 remain open in parallel (see their own Operator Next Steps entries below)
+**Current focus:** Phase 54 — permissions-overview-onboarding-replay-settings-rollup-showi
 
 ## Current Position
 
-Phase: v1.8 archived (Phases 51-53) — no active phase selected
-Plan: —
-Status: v1.8 shipped; v1.4/v1.5/v1.7 still in progress
-Last activity: 2026-07-21 — Milestone v1.8 completed and archived
+Phase: 54 (permissions-overview-onboarding-replay-settings-rollup-showi) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 54
+Last activity: 2026-07-22 -- Phase 54 execution started
 
 ### Phase 48 status note
 
@@ -143,6 +143,9 @@ Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3
 | Phase 52 P04 | 15min | 2 tasks | 0 files |
 | Phase 53 P01 | multi-session (checkpoint) | 3 tasks | 3 files |
 | Phase 53 P02 | single session (checkpoint, 2 rounds) | 1 tasks | 1 files |
+| Phase 54 P01 | 15min | 2 tasks | 2 files |
+| Phase 54 P02 | 15min | 2 tasks | 3 files |
+| Phase 54 P03 | 20min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -211,6 +214,10 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 53]: [Phase 53-01]: Task 1 on-device spike verdict = approved — togglePlayPause() resumes a paused (not quit) session for both Spotify and Apple Music, matching the plan's default expectation; gives Task 3's D-03 inferred-failure timeout a real empirical basis. Hover-preview shipped as a view-local branch off .idle (Claude's Discretion, 53-CONTEXT.md), not a new IslandPresentation case — IslandResolver.swift/IslandResolverTests.swift confirmed untouched.
 - [Phase 53]: [Phase 53-01]: RESUME-01/RESUME-02 left Pending in REQUIREMENTS.md — mirrors the Phase 45/52-02/52-03 precedent of deferring requirement completion until the phase's own on-device UAT plan (53-02) confirms the shipped hover-preview/resume-tap behaves correctly end-to-end on real hardware (hit-testing across the full wings footprint, timeout-window feel), even though this plan's own Task 1 spike already de-risked the underlying transport-feasibility question.
 - [Phase 53]: [Phase 53]: [Phase 53-02]: On-device UAT approved (Debug + Release) — all 4 ROADMAP success criteria confirmed, closing RESUME-01/RESUME-02. Mid-UAT design fix: D-02 superseded (bouncing equalizer bars in the idle-hover preview replaced with a static play.fill glyph, since animated bars while nothing was playing read as misleading) — commit 581c94e. v1.8 milestone now 3/3 phases complete.
+- [Phase 54]: [Phase 54-01] EKAuthorizationStatus.writeOnly counts as granted (never denied) for the combined Calendar+Reminders row; combinedCalendarReminderStatus resolves worst-of-two (denied > notYetAsked > granted, D-13 locked). Plan executed exactly as written, no deviations.
+- [Phase 54]: [Phase 54, 54-03]: Tasks 1-2 (Permissions sidebar section wiring Plan 01's read layer + tap-to-act; Replay Onboarding button in About wiring Plan 02's replayOnboarding()) landed and build-verified (commits 3a1d14d, 0a548ed). Task 3 (on-device UAT, gate=blocking) is a checkpoint requiring interactive human verification this executor cannot perform -- reached and NOT auto-approved (workflow.auto_advance is false, no auto-chain active). Per the Phase 49-03/51-01 precedent, 54-03-SUMMARY.md was intentionally NOT created yet -- writing it now would let roadmap.update-plan-progress mark Phase 54 (3/3 plans, others complete) as fully shipped before UAT is approved. Resume by running the Task 3 checklist (10 steps, 54-03-PLAN.md) on-device; on 'approved' (or a described failure), a continuation agent should finish the plan (SUMMARY.md, state.advance-plan, roadmap.update-plan-progress).
+- [Phase 54]: [Phase 54]: [Phase 54-03]: On-device UAT approved — all 9 checklist steps confirmed (Permissions section rows/summary/deep-links, Replay Onboarding carousel Next-through-Done and mid-flow X close, state-restore, no first-launch regression). Phase 54 (Permissions Overview & Onboarding Replay, ARCH-P2) now 3/3 plans complete.
+- [Phase 54]: [Phase 54-04]: Tasks 1-2 (Bluetooth-toggle-gated grant CR-01, requestLocationPermission() bridge CR-02, SettingsView .location/.focus wiring WR-01, replayOnboarding() updateVisibility() fix CR-03) landed and build-verified (commits 2a190d8, 2e95789). Task 3 (on-device UAT, gate=blocking) is a checkpoint requiring interactive human verification this executor cannot perform -- reached and NOT auto-approved (workflow.auto_advance is false). Per the Phase 49-03/51-01/54-03 precedent, 54-04-SUMMARY.md was intentionally NOT created yet -- writing it now would let roadmap.update-plan-progress mark the plan/phase complete before UAT is approved. Resume by running the Task 3 checklist (7 steps, 54-04-PLAN.md) on-device; on 'approved' (or a described failure), a continuation agent should finish the plan (SUMMARY.md, state.advance-plan, roadmap.update-plan-progress).
 
 ### Roadmap Evolution
 
@@ -226,6 +233,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - v1.6 (Liquid Glass & System HUD Suite) roadmap created 2026-07-15: Phase 35 (Liquid Glass Material, GLASS-01), Phase 36 (Cosmetic Restyles & Signature Animation, HUD-01/02/EQ-01/ONBOARD-04), Phase 37 (Drop-Session Summary Chip, HUD-07), Phase 38 (Focus Mode HUD, HUD-05), Phase 39 (Volume & Brightness HUD, HUD-03/04), Phase 40 (Update-Available HUD & Sparkle Integration, HUD-06), Phase 41 (Calendar Countdown HUD, HUD-08), Phase 42 (Dual-Activity Display, DUAL-01) — 100% coverage (12/12). Phase numbering starts at 35 (not 34) to avoid colliding with v1.5's still-open, unarchived Phase 34. v1.5 remains open in parallel; both milestones' phases coexist on the live ROADMAP.md.
 - v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19: Phase 43 (Drag Detection Hardening, DRAG-01), Phase 44 (Tray & Quick Action Width Alignment, TRAY-06/DRAG-02), Phase 45 (View Switcher Morph Fix, SWITCH-01/02), Phase 46 (Calendar Quick-Add Improvements, CALVIEW-05/06/07), Phase 47 (Audio Output Switcher — Pure Seam + Monitor, no formal REQ-ID), Phase 48 (Audio Output Switcher — UI Wiring, OUTPUT-01/02/03/04), Phase 49 (Favorite/Like — Spike, no formal REQ-ID), Phase 50 (Favorite/Like — Implementation, FAV-01/02/03) — 100% coverage (15/15). Phase numbering continues from Phase 42 (v1.6's last phase). v1.4 and v1.5 both remain open in parallel; all three milestones' phases coexist on the live ROADMAP.md.
 - v1.8 (Settings Redesign & Island Navigation) roadmap created 2026-07-21: Phase 51 (Settings Reorganization & Scroll Fix, SETTINGS-02/03), Phase 52 (Top-Edge Switcher Layout & Placement Config, SWITCH-03/04), Phase 53 (Hover-to-Resume Idle Preview, RESUME-01/02) — 100% coverage (6/6). Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed) to avoid any collision with v1.4/v1.5/v1.7's still-open phases. Settings (51) and Switcher (52) restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher) independently of each other; Resume (53) is sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track works via the existing NowPlayingMonitor/MediaRemote transport, per PROJECT.md's v1.8 Key Context).
+- Phase 54 added 2026-07-21: Permissions Overview & Onboarding Replay (ARCH-P2) — promoted from the v2/backlog "carried from v1.4" requirements after v1.1's public release surfaced the need (user expected to be able to review granted permissions and re-request denied ones in Settings). Not yet part of any active milestone roadmap; phase numbering continues sequentially from Phase 53.
 
 ### Pending Todos
 
@@ -333,12 +341,14 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-21T19:36:55.752Z
-Stopped at: Completed 53-02-PLAN.md (Phase 53 complete, v1.8 milestone 3/3 phases)
+Last session: 2026-07-22T00:45:28.877Z
+Stopped at: Completed 54-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
+- **Phase 54 decision-coverage gate overridden (2026-07-22).** `check.decision-coverage-plan` flagged D-01 through D-11 as not cited inside any plan's `must_haves.truths` block (only D-12/D-13 are). Manual review confirmed all 13 decisions ARE implemented and referenced in plan task bodies/acceptance criteria (grep-verified, and gsd-plan-checker's semantic review independently confirmed all 13 decisions correctly implemented) — user chose "Proceed anyway" since this is a must_haves-phrasing gap, not a missing feature. Re-surface at `/gsd:verify-work 54` if in doubt.
+- **Phase 54 gap-closure plan (54-04-PLAN.md) created 2026-07-22** to close 54-VERIFICATION.md's 2 FAILED truths (gaps_found, 8/11). Re-running `check.decision-coverage-plan` against the phase directory (now including 54-04) re-surfaced the same D-01..D-11 override above — 54-04 doesn't touch any of those original-feature decisions, it only fixes CR-01 (Bluetooth grant bypassing the Devices toggle), CR-02 (Location grant not reaching `startLocationOnce()`), CR-03 (`replayOnboarding()` missing `updateVisibility()`), and WR-01 (Focus grant callback discarded). Passed plan-checker verification in iteration 2 (0 blockers, 0 warnings) with an added on-device checkpoint covering all 4 fixes at runtime. Next: `/gsd:execute-phase 54 --gaps-only`.
 - **v1.8 (Settings Redesign & Island Navigation) SHIPPED 2026-07-21.** All 3 phases (51-53) archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped. Start a fresh milestone for new work with `/gsd-new-milestone` — but note v1.4, v1.5, and v1.7 all remain open in parallel below; picking those back up does not require a new milestone.
 - **v1.7 (Interaction & Calendar Polish):** 6/8 phases complete (43/44/45/46/47/48), Phase 49 (Favorite/Like spike) paused after weak SC#1/SC#2 spike results per user decision; Phase 50 needs reconsideration before planning. Phase order: Drag Detection Hardening (43, done) → Tray & Quick Action Width Alignment (44, done) → View Switcher Morph Fix (45, done) → Calendar Quick-Add Improvements (46, still open) — the 4 independent bugfixes — then Audio Output Switcher split pure-seam-first (47, done) then UI wiring (48, done), then Favorite/Like split spike-first (49, paused) then implementation (50, on hold).
 - **Phase 48 (Audio Output Switcher — UI Wiring) is fully complete.** All 3 plans done, on-device UAT approved ("approved" after the drag-animation-choppiness fix). OUTPUT-01..04 shipped.
