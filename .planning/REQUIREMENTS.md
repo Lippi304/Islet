@@ -77,9 +77,9 @@ Adds a menu-bar clipboard history (text + images, ~20-30 item cap, persistent ac
 
 ### Clipboard History
 
-- [ ] **CLIP-01**: User sees a menu-bar dropdown listing the last ~20-30 copied text/image items, oldest automatically evicted past the cap
-- [ ] **CLIP-02**: Clicking an entry copies it back to the system clipboard (no auto-paste)
-- [ ] **CLIP-03**: The first 10 entries are directly selectable via ⌘0-⌘9
+- [x] **CLIP-01**: User sees a menu-bar dropdown listing the last ~20-30 copied text/image items, oldest automatically evicted past the cap
+- [x] **CLIP-02**: Clicking an entry copies it back to the system clipboard (no auto-paste)
+- [x] **CLIP-03**: The first 10 entries are directly selectable via ⌘0-⌘9
 - [x] **CLIP-04**: Clipboard history persists across app relaunch and system reboot
 - [ ] **CLIP-05**: "Delete All History" clears the entire history, with a confirmation dialog
 
@@ -158,9 +158,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
-| CLIP-01 | Phase 58 | Pending |
-| CLIP-02 | Phase 58 | Pending |
-| CLIP-03 | Phase 58 | Pending |
+| CLIP-01 | Phase 58 | Complete |
+| CLIP-02 | Phase 58 | Complete |
+| CLIP-03 | Phase 58 | Complete |
 | CLIP-04 | Phase 56 | Complete |
 | CLIP-05 | Phase 58 | Pending |
 | PRIV-01 | Phase 57 | Complete |

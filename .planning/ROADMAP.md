@@ -1032,7 +1032,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 58-01-PLAN.md — Production ClipboardStore/ClipboardMonitor wiring + NSMenuDelegate dynamic rebuild (rows, empty state, dual click paths, Cmd+0-9) + early on-device risk checkpoint (CLIP-01, CLIP-02, CLIP-03)
+- [x] 58-01-PLAN.md — Production ClipboardStore/ClipboardMonitor wiring + NSMenuDelegate dynamic rebuild (rows, empty state, dual click paths, Cmd+0-9) + early on-device risk checkpoint (CLIP-01, CLIP-02, CLIP-03)
 
 **Wave 2** *(blocked on 58-01)*
 
