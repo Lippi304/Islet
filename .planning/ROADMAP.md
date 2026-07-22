@@ -986,7 +986,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 56-01-PLAN.md — ClipboardFileStore (encrypted JSON-index + image-file persistence, D-04/D-06) + KeychainClipboardKeyStore (D-05), fully unit-tested
+- [x] 56-01-PLAN.md — ClipboardFileStore (encrypted JSON-index + image-file persistence, D-04/D-06) + KeychainClipboardKeyStore (D-05), fully unit-tested
 
 **Wave 2** *(blocked on 56-01)*
 
