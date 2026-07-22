@@ -4,8 +4,8 @@ milestone: v1.8
 milestone_name: Settings Redesign & Island Navigation
 status: executing
 stopped_at: Completed 54-03-PLAN.md
-last_updated: "2026-07-22T00:19:03.112Z"
-last_activity: 2026-07-22 -- Phase 54 planning complete
+last_updated: "2026-07-22T00:45:28.884Z"
+last_activity: 2026-07-22 -- Phase 54 execution started
 progress:
   total_phases: 4
   completed_phases: 3
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 54 (permissions-overview-onboarding-replay-settings-rollup-showi) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-22 -- Phase 54 planning complete
+Plan: 1 of 4
+Status: Executing Phase 54
+Last activity: 2026-07-22 -- Phase 54 execution started
 
 ### Phase 48 status note
 
@@ -217,6 +217,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 54]: [Phase 54-01] EKAuthorizationStatus.writeOnly counts as granted (never denied) for the combined Calendar+Reminders row; combinedCalendarReminderStatus resolves worst-of-two (denied > notYetAsked > granted, D-13 locked). Plan executed exactly as written, no deviations.
 - [Phase 54]: [Phase 54, 54-03]: Tasks 1-2 (Permissions sidebar section wiring Plan 01's read layer + tap-to-act; Replay Onboarding button in About wiring Plan 02's replayOnboarding()) landed and build-verified (commits 3a1d14d, 0a548ed). Task 3 (on-device UAT, gate=blocking) is a checkpoint requiring interactive human verification this executor cannot perform -- reached and NOT auto-approved (workflow.auto_advance is false, no auto-chain active). Per the Phase 49-03/51-01 precedent, 54-03-SUMMARY.md was intentionally NOT created yet -- writing it now would let roadmap.update-plan-progress mark Phase 54 (3/3 plans, others complete) as fully shipped before UAT is approved. Resume by running the Task 3 checklist (10 steps, 54-03-PLAN.md) on-device; on 'approved' (or a described failure), a continuation agent should finish the plan (SUMMARY.md, state.advance-plan, roadmap.update-plan-progress).
 - [Phase 54]: [Phase 54]: [Phase 54-03]: On-device UAT approved — all 9 checklist steps confirmed (Permissions section rows/summary/deep-links, Replay Onboarding carousel Next-through-Done and mid-flow X close, state-restore, no first-launch regression). Phase 54 (Permissions Overview & Onboarding Replay, ARCH-P2) now 3/3 plans complete.
+- [Phase 54]: [Phase 54-04]: Tasks 1-2 (Bluetooth-toggle-gated grant CR-01, requestLocationPermission() bridge CR-02, SettingsView .location/.focus wiring WR-01, replayOnboarding() updateVisibility() fix CR-03) landed and build-verified (commits 2a190d8, 2e95789). Task 3 (on-device UAT, gate=blocking) is a checkpoint requiring interactive human verification this executor cannot perform -- reached and NOT auto-approved (workflow.auto_advance is false). Per the Phase 49-03/51-01/54-03 precedent, 54-04-SUMMARY.md was intentionally NOT created yet -- writing it now would let roadmap.update-plan-progress mark the plan/phase complete before UAT is approved. Resume by running the Task 3 checklist (7 steps, 54-04-PLAN.md) on-device; on 'approved' (or a described failure), a continuation agent should finish the plan (SUMMARY.md, state.advance-plan, roadmap.update-plan-progress).
 
 ### Roadmap Evolution
 
@@ -340,7 +341,7 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-21T23:37:35.459Z
+Last session: 2026-07-22T00:45:28.877Z
 Stopped at: Completed 54-03-PLAN.md
 Resume file: None
 
