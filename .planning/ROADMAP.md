@@ -1027,5 +1027,14 @@ Plans:
   3. The first 10 entries are directly selectable via Cmd+0 through Cmd+9 key equivalents.
   4. "Delete All History" shows a standard destructive-confirmation dialog before clearing; once confirmed, the menu section is empty and the on-disk history is actually deleted, not just hidden.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 58-01-PLAN.md — Production ClipboardStore/ClipboardMonitor wiring + NSMenuDelegate dynamic rebuild (rows, empty state, dual click paths, Cmd+0-9) + early on-device risk checkpoint (CLIP-01, CLIP-02, CLIP-03)
+
+**Wave 2** *(blocked on 58-01)*
+
+- [ ] 58-02-PLAN.md — Delete All History (destructive confirm + real on-disk delete) + pasteboard-access explanation timing/copy + phase-gate on-device UAT (CLIP-05)
 **UI hint**: yes
