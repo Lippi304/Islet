@@ -116,7 +116,7 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 
 **Goal:** Islet replaces the user's third-party CopyClip tool — clicking the menu-bar status icon shows a clipboard history of recent text and image copies, alongside the existing Settings/Check for Updates/Quit entries.
 
-**Status:** Not started (defining requirements). Started 2026-07-22 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision, consistent with v1.5/v1.6/v1.7/v1.8 precedent).
+**Status:** In progress. Phase 55 (data model/store) and Phase 56 (encrypted persistence) shipped 2026-07-22 — clipboard history now persists to disk AES-GCM-encrypted at rest, survives a full app relaunch, key stored device-only in Keychain. Phase 57 (Pasteboard Monitor spike) up next. Started 2026-07-22 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision, consistent with v1.5/v1.6/v1.7/v1.8 precedent).
 
 **Target features:**
 - Menu-bar status-item dropdown gains a clipboard history section listing the last ~20-30 copied items (text and images), oldest entries automatically evicted once the cap is reached.
@@ -338,6 +338,11 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 - [x] Clicking the preview calls the existing `togglePlayPause()` transport directly, in place (no expansion to Home), with an inferred-failure timeout showing "Wiedergabe nicht möglich" when resume genuinely isn't possible — confirmed on-device that `togglePlayPause()` resumes a merely-paused session but not a fully-quit one, for both Spotify and Apple Music. (Phase 53 — RESUME-02)
 - **Superseded mid-UAT (D-02):** the preview's right slot was originally spec'd as bouncing `EqualizerBars` identical to the live-playing glance; on real hardware, animated bars while nothing was actually playing read as misleading, so it now shows a static `play.fill` glyph instead. Confirmed on-device (Debug + Release) after the fix. (Phase 53)
 
+**Encrypted Persistence (Phase 56 — CLIP-04, PRIV-02):**
+
+- [x] Clipboard history persists to disk encrypted at rest — `ClipboardFileStore` (AES-GCM/CryptoKit, JSON-index + separate image files under Application Support) with the key stored device-only in Keychain via `KeychainClipboardKeyStore`. On-device kill-and-restart proof: seeded 3 items, confirmed the on-disk index is unreadable ciphertext with no plaintext trace, fully killed and relaunched the process, all 3 items reloaded with matching IDs/content. (Phase 56)
+- Code review flagged one unresolved CRITICAL follow-up not required by this phase's own success criteria: `ClipboardFileStore`'s index/image writes aren't atomic, so a crash mid-write can silently truncate the index and the next save's orphan-sweep would then delete previously-saved images — worth fixing before Phase 57 wires in a live, higher-frequency writer. See `56-REVIEW.md`.
+
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped. -->
@@ -450,4 +455,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-22 — Milestone v1.9 (Clipboard History) started: a menu-bar clipboard history (text + images, persistent, sensitive-content excluded) to replace the user's third-party CopyClip tool. v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phases 43-48 shipped/code-complete and Phase 46's CALVIEW-06/07 still pending. v1.8 (Settings Redesign & Island Navigation) shipped 2026-07-21, archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.*
+*Last updated: 2026-07-22 — Phase 56 (Encrypted Persistence, CLIP-04/PRIV-02) shipped and on-device verified: clipboard history now persists AES-GCM-encrypted at rest, key device-only in Keychain, survives a real kill-and-restart. Phase 57 (Pasteboard Monitor spike) up next. v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phases 43-48 shipped/code-complete and Phase 46's CALVIEW-06/07 still pending. v1.8 (Settings Redesign & Island Navigation) shipped 2026-07-21, archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.*
