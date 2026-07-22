@@ -32,6 +32,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // while locked would otherwise make debug items unreachable exactly when a
     // developer most needs to flip the stub back to licensed). Absent from Release.
     private var debugStatusItem: NSStatusItem!
+    // Phase 57 spike hooks — see 57-02-SUMMARY.md for the on-device verdict.
+    private var debugClipboardMonitor: ClipboardMonitor?
+    private var debugHasShownPasteboardAccessExplanation = false
     #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -243,6 +246,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugSpikeSeedClipboardData), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Print Clipboard Reload Result",
                           action: #selector(debugSpikePrintClipboardReload), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Start Clipboard Monitor",
+                          action: #selector(debugSpikeStartClipboardMonitor), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Write Concealed Test Item",
+                          action: #selector(debugSpikeWriteConcealedTestItem), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Simulate Self-Capture Write",
+                          action: #selector(debugSpikeSimulateSelfCaptureWrite), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Check Pasteboard Access Behavior",
+                          action: #selector(debugSpikeCheckPasteboardAccessBehavior), keyEquivalent: "")
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -295,6 +306,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         print("[Spike-Clipboard] reloaded \(loaded.count) items:")
         for item in loaded {
             print("  - id=\(item.id) kind=\(item.kind) timestamp=\(item.timestamp)")
+        }
+    }
+
+    // Phase 57 spike hooks — see 57-02-SUMMARY.md for the on-device verdict.
+    @MainActor @objc private func debugSpikeStartClipboardMonitor() {
+        guard debugClipboardMonitor == nil else {
+            print("[Spike-ClipboardMonitor] already running")
+            return
+        }
+        debugClipboardMonitor = ClipboardMonitor(onChange: { item in
+            print("[Spike-ClipboardMonitor] captured kind=\(item.kind) timestamp=\(item.timestamp)")
+        })
+        debugClipboardMonitor?.start()
+        print("[Spike-ClipboardMonitor] monitor started")
+    }
+
+    @objc private func debugSpikeWriteConcealedTestItem() {
+        let item = NSPasteboardItem()
+        item.setString("fake-password-123", forType: .string)
+        item.setData(Data(), forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"))
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.writeObjects([item])
+        print("[Spike-ClipboardMonitor] wrote concealed test item to NSPasteboard.general — the running monitor must NOT print a captured line for this")
+    }
+
+    @objc private func debugSpikeSimulateSelfCaptureWrite() {
+        let item = NSPasteboardItem()
+        item.setString("simulated restored content", forType: .string)
+        item.setData(Data(), forType: ClipboardMonitor.restoreMarkerType)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.writeObjects([item])
+        print("[Spike-ClipboardMonitor] wrote self-capture-marker test item to NSPasteboard.general — the running monitor must NOT print a captured line for this")
+    }
+
+    @MainActor @objc private func debugSpikeCheckPasteboardAccessBehavior() {
+        guard !debugHasShownPasteboardAccessExplanation else {
+            print("[Spike-ClipboardMonitor] explanation already shown this session — one-time-gate holding")
+            return
+        }
+        debugHasShownPasteboardAccessExplanation = true
+        if ClipboardMonitor.needsAccessExplanation {
+            let alert = NSAlert()
+            alert.messageText = "Clipboard Access"
+            alert.informativeText = "Islet checks your clipboard to show recent copies. This is a one-time explanation (spike placeholder — Phase 58 will replace this with final copy)."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        } else {
+            print("[Spike-ClipboardMonitor] accessBehavior already .always — no explanation needed")
         }
     }
     #endif
