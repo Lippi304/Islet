@@ -29,6 +29,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // the #if DEBUG-only `debugClipboardMonitor` below; this is the real, always-on path.
     private var clipboardStore = ClipboardStore()
     private var clipboardMonitor: ClipboardMonitor?
+    // D-revised (2026-07-23, on-device UAT amendment): rows moved into a flyout
+    // submenu, but Cmd+0-9 must still restore instantly on icon-click without
+    // requiring the submenu to be hovered open first — NSMenuItem keyEquivalents
+    // nested in an unopened submenu never fire, so this local monitor intercepts
+    // Cmd+0-9 directly while the top-level menu is tracking, independent of
+    // whatever submenu state the user is in.
+    private var clipboardHotkeyMonitor: Any?
 
     #if DEBUG
     // D-08/D-09: a SEPARATE status item for the 3 stub-flip testing actions, kept
@@ -416,31 +423,70 @@ extension AppDelegate: NSMenuDelegate {
         // .reversed() renders newest-first (RESEARCH.md Pitfall 4).
         let items = Array(clipboardStore.items.reversed())
 
-        if items.isEmpty {
-            let empty = NSMenuItem(title: "No items yet", action: nil, keyEquivalent: "")
-            empty.isEnabled = false
-            empty.identifier = NSUserInterfaceItemIdentifier("clip.empty")
-            menu.insertItem(empty, at: insertionIndex); insertionIndex += 1
-        } else {
+        let anchor = NSMenuItem(title: items.isEmpty ? "No items yet" : "Clipboard History", action: nil, keyEquivalent: "")
+        anchor.identifier = NSUserInterfaceItemIdentifier("clip.anchor")
+        anchor.isEnabled = !items.isEmpty
+
+        if !items.isEmpty {
+            let submenu = NSMenu()
             for (index, item) in items.enumerated() {
                 let menuItem = NSMenuItem(title: "", action: #selector(restoreClipboardItem(_:)), keyEquivalent: index < 10 ? "\(index)" : "")
                 menuItem.target = self
                 menuItem.representedObject = item.id
-                menuItem.view = NSHostingView(rootView: ClipboardRowView(item: item, onSelect: { [weak self] in self?.restore(item) }))
-                menuItem.identifier = NSUserInterfaceItemIdentifier("clip.\(item.id)")
-                menu.insertItem(menuItem, at: insertionIndex); insertionIndex += 1
+                let rowFrame = NSRect(x: 0, y: 0, width: ClipboardRowView.rowWidth, height: 22)
+                let container = ClipboardRowContainerView(frame: rowFrame)
+                let rowView = ClipboardRowView(item: item, onSelect: { [weak self] in self?.restore(item) }, hoverState: container.hoverState)
+                let hostingView = NSHostingView(rootView: rowView)
+                // NSMenuItem.view is never auto layout-sized by NSMenu itself — without
+                // an explicit frame the hosting view stays at .zero and the row renders
+                // invisibly (item exists in menu.items but occupies no visible space).
+                hostingView.frame = rowFrame
+                hostingView.autoresizingMask = [.width, .height]
+                container.addSubview(hostingView)
+                menuItem.view = container
+                submenu.addItem(menuItem)
             }
+            anchor.submenu = submenu
         }
+        menu.insertItem(anchor, at: insertionIndex); insertionIndex += 1
 
         // Plan 58-02 will insert "Delete All History" BEFORE this separator, between
-        // the rows and the boundary — left as the section's trailing marker for now.
+        // the anchor and the boundary — left as the section's trailing marker for now.
         let separator = NSMenuItem.separator()
         separator.identifier = NSUserInterfaceItemIdentifier("clip.separator")
         menu.insertItem(separator, at: insertionIndex)
     }
 
-    // Cmd+0-9 keyboard path — kept independently working alongside ClipboardRowView's
-    // SwiftUI tap gesture (RESEARCH.md Pitfall 1: never rely on one to cover the other).
+    // Fires while the top-level status-item menu is tracking (open), independent
+    // of the flyout submenu's own open/closed state — see clipboardHotkeyMonitor's
+    // declaration comment for why this can't just be per-item keyEquivalents.
+    func menuWillOpen(_ menu: NSMenu) {
+        guard menu === self.menu else { return }
+        clipboardHotkeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+                  let chars = event.charactersIgnoringModifiers,
+                  chars.count == 1, let digit = Int(chars), (0...9).contains(digit)
+            else { return event }
+            let items = Array(self.clipboardStore.items.reversed())
+            guard digit < items.count else { return event }
+            self.restore(items[digit])
+            self.menu.cancelTracking()
+            return nil // consume — don't also let AppKit's own key-equivalent matching or a beep fire
+        }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        guard menu === self.menu else { return }
+        if let monitor = clipboardHotkeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            clipboardHotkeyMonitor = nil
+        }
+    }
+
+    // Mouse path when the submenu is open — keyEquivalent here only fires while
+    // AppKit's submenu is actually displayed (see menuWillOpen for the Cmd+0-9
+    // path that must work before the submenu is opened).
     @objc private func restoreClipboardItem(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? UUID,
               let item = clipboardStore.items.first(where: { $0.id == id })
@@ -467,14 +513,43 @@ extension AppDelegate: NSMenuDelegate {
     }
 }
 
+// D-revised (2026-07-23, on-device UAT amendment): SwiftUI's onHover misses
+// mouseExited reliably during NSMenu's tracking-mode run loop, leaving a row's
+// highlight stuck "on" after the pointer actually left. NSTrackingArea receives
+// enter/exit via the AppKit responder chain directly and doesn't have that gap.
+final class ClipboardHoverState: ObservableObject {
+    @Published var isHovering = false
+}
+
+final class ClipboardRowContainerView: NSView {
+    let hoverState = ClipboardHoverState()
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea { removeTrackingArea(trackingArea) }
+        let area = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) { hoverState.isHovering = true }
+    override func mouseExited(with event: NSEvent) { hoverState.isHovering = false }
+}
+
 // Phase 58 / D-10 — a single clipboard-history row hosted via NSHostingView inside an
 // NSMenuItem.view. Text rows single-line-truncate; image rows show a small inline
 // thumbnail (~16-20pt, matching row height) rather than a generic icon + label.
 struct ClipboardRowView: View {
+    // Fixed row width — NSMenuItem.view's NSHostingView has no auto layout
+    // driven by the menu, so both this view and the hostingView.frame set in
+    // menuNeedsUpdate must agree on a concrete width or the row renders at
+    // zero size (invisible, though technically present in the menu).
+    static let rowWidth: CGFloat = 260
+
     let item: ClipboardItem
     let onSelect: () -> Void
-
-    @State private var isHovering = false
+    @ObservedObject var hoverState: ClipboardHoverState
 
     var body: some View {
         HStack(spacing: 6) {
@@ -499,11 +574,10 @@ struct ClipboardRowView: View {
             Spacer()
         }
         .padding(.horizontal, 14)
-        .frame(height: 22)
+        .frame(width: ClipboardRowView.rowWidth, height: 22, alignment: .leading)
         .contentShape(Rectangle())
-        .background(isHovering ? Color.primary.opacity(0.08) : Color.clear)
+        .background(hoverState.isHovering ? Color.primary.opacity(0.08) : Color.clear)
         .onTapGesture { onSelect() }   // mouse-click path — NSMenuItem.action does not
                                         // reliably fire once .view is set (Pitfall 1)
-        .onHover { hovering in isHovering = hovering }
     }
 }
