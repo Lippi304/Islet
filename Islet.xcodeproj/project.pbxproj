@@ -94,6 +94,7 @@
 		A70C3AA9A41D656BAE1A8B78 /* NowPlayingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */; };
 		A8AF3A084971A06380D41ECC /* ShelfItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */; };
 		AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63FACDF43375E1DE88646B05 /* DragDropSupport.swift */; };
+		AB991A4C458C448D0F3FD6BC /* ClipboardMonitorManualSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DD31F95265B382E4B2E627 /* ClipboardMonitorManualSpike.swift */; };
 		AD54150D0BFD3C0A9F3DA852 /* ClipboardMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B60D6A7EA8A3B688244EBCB /* ClipboardMonitorTests.swift */; };
 		B2ADB08E18FABDBA8931EA42 /* FocusActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB884D12561F8F8110F1DB63 /* FocusActivity.swift */; };
 		B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */; };
@@ -212,6 +213,7 @@
 		5F13DD9E9F8F782EEAE48FC2 /* Islet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Islet.entitlements; sourceTree = "<group>"; };
 		5FD7011AF8E607471C7F73FB /* ViewSwitcherState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewSwitcherState.swift; sourceTree = "<group>"; };
 		605C8A3B6F9015948DC073F0 /* LocationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceTests.swift; sourceTree = "<group>"; };
+		63DD31F95265B382E4B2E627 /* ClipboardMonitorManualSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitorManualSpike.swift; sourceTree = "<group>"; };
 		63FACDF43375E1DE88646B05 /* DragDropSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupport.swift; sourceTree = "<group>"; };
 		645E44284FC3BC54024CD5F3 /* CalendarCountdownMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarCountdownMonitor.swift; sourceTree = "<group>"; };
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
@@ -319,6 +321,7 @@
 				903726B931FE524FE3691AA2 /* AudioOutputPresentationTests.swift */,
 				8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */,
 				031F804F644651F990FAFE69 /* ClipboardFileStoreTests.swift */,
+				63DD31F95265B382E4B2E627 /* ClipboardMonitorManualSpike.swift */,
 				9B60D6A7EA8A3B688244EBCB /* ClipboardMonitorTests.swift */,
 				F1460D18D7C0D64BFC9D310E /* ClipboardStoreTests.swift */,
 				AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */,
@@ -748,6 +751,7 @@
 				5D3091F521E6A6CCBF2EF35A /* AudioOutputPresentationTests.swift in Sources */,
 				B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */,
 				08D5313FCE75B017801E4432 /* ClipboardFileStoreTests.swift in Sources */,
+				AB991A4C458C448D0F3FD6BC /* ClipboardMonitorManualSpike.swift in Sources */,
 				AD54150D0BFD3C0A9F3DA852 /* ClipboardMonitorTests.swift in Sources */,
 				049E58591CD6431B0C849793 /* ClipboardStoreTests.swift in Sources */,
 				3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */,
