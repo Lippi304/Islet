@@ -26,6 +26,7 @@
 		21DD22351526B5DCB2A38A65 /* NotchPillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65127041FDE5365C865095B1 /* NotchPillView.swift */; };
 		2586E152318B70467587E51C /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */; };
 		2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C997928190396DADC0ADA29 /* NotchWindowController.swift */; };
+		2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */; };
 		2F75ED15F35CB39A20ED54AB /* ActivitySettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54DE6734ABC75FD146F9FCF /* ActivitySettingsTests.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
 		3107D1164676FB8B4347666E /* OSDActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A6AB4282775F1B6C66B02D6 /* OSDActivity.swift */; };
@@ -259,6 +260,7 @@
 		ECC50D5D14612F7A3B39F683 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		ECDB797EE481836D5DD878FD /* CalendarGlance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlance.swift; sourceTree = "<group>"; };
 		ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragApproachGeometryTests.swift; sourceTree = "<group>"; };
+		ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardItem.swift; sourceTree = "<group>"; };
 		EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseState.swift; sourceTree = "<group>"; };
 		F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F99A514914B21E05DB962A52 /* SettingsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewTests.swift; sourceTree = "<group>"; };
@@ -370,6 +372,14 @@
 			path = Calendar;
 			sourceTree = "<group>";
 		};
+		77FF1FD8E8B74FA84E26B6B6 /* Clipboard */ = {
+			isa = PBXGroup;
+			children = (
+				ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */,
+			);
+			path = Clipboard;
+			sourceTree = "<group>";
+		};
 		887CF6BBB34ACF144B73EC29 /* Islet */ = {
 			isa = PBXGroup;
 			children = (
@@ -384,6 +394,7 @@
 				C8506A56C467857A2306C9BE /* PermissionStatus.swift */,
 				99C074399453E7F8439A9CD2 /* SettingsView.swift */,
 				705C78455F48511C2AE9B331 /* Calendar */,
+				77FF1FD8E8B74FA84E26B6B6 /* Clipboard */,
 				3722669587CFCD9D7F6F173F /* Fonts */,
 				116E2C7AAD069A31898510D4 /* Licensing */,
 				65976AA4F5A5716CE1AFDD72 /* Location */,
@@ -646,6 +657,7 @@
 				9470F8F6CC68D789DC5A7D9C /* CalendarService.swift in Sources */,
 				5E2A0DEF48DA471FE9426F9A /* CalendarViewState.swift in Sources */,
 				62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */,
+				2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */,
 				FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */,
 				FFB8FF809780DAA08EC9B819 /* DeviceCoordinator.swift in Sources */,
 				A5CBE92E220E6C6C2FC10FF1 /* Diagnostics.swift in Sources */,
