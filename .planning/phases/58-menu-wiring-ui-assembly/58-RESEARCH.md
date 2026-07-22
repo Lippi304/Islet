@@ -386,17 +386,19 @@ Not applicable in the "library version" sense (no library). One relevant shift: 
 | A3 | Default `NSMenuItem.keyEquivalentModifierMask` is `.command`, so `keyEquivalent: "0"`..`"9"` alone yields ⌘0-⌘9 with no explicit mask needed | Phase Requirements (CLIP-03) | Low — [CITED: Apple's "Setting a Menu Item's Key Equivalent" documentation confirms the default mask includes NSCommandKeyMask]; if wrong, symptom is immediately visible on-device (wrong/no modifier triggers the item) and trivially fixed by setting `keyEquivalentModifierMask = .command` explicitly. |
 | A4 | The "trial-start notice" referenced in 58-CONTEXT.md's Reusable Assets section ("existing precedent for a one-time `NSAlert`-based explanation shown once per install") does not actually exist as an `NSAlert` in the current codebase — onboarding/permission explanations are implemented as SwiftUI popovers inside `SettingsView.swift` (e.g. lines 40, 566, 599) and the onboarding carousel lives entirely inside the notch panel (`AppDelegate.swift:148`), not as any `NSAlert`. The only `NSAlert` anywhere in the codebase is Phase 57's DEBUG placeholder (`AppDelegate.swift:365-369`). | User Constraints (D-12) | Low — D-12 itself is still directly actionable (Phase 57's own spike already proved an `NSAlert` works for this exact purpose, independent of whether a "trial-start notice" precedent exists elsewhere); this is a discrepancy in 58-CONTEXT.md's stated precedent, not a blocker. Flag for the planner to note D-12's justification rests on Phase 57's spike, not a "trial-start notice" that doesn't exist in `NSAlert` form. |
 
-## Open Questions
+## Open Questions (RESOLVED: pending on-device confirmation via 58-01 Task 3)
 
 1. **Does `NSMenuItem.action` fire reliably from `keyEquivalent` when `.view` is set, on this project's actual macOS 26 target?**
    - What we know: The general `NSMenuItem.view`-breaks-click-routing limitation is well-corroborated across independent sources (see Sources). Apple's own documentation doesn't explicitly address the keyEquivalent-specific case.
    - What's unclear: Whether ⌘0-⌘9 (CLIP-03) will "just work" via the standard `action`/`target` path once `.view` is set, or whether it also needs a workaround.
    - Recommendation: Verify this narrow question on-device as the very first checkpoint of this phase's execution (before building all 10 rows) — a 1-2 row spike is enough to confirm or refute A2 above, and the fix (if needed) is contained to how key events are captured, not a redesign.
+   - Resolution: Deferred by design to 58-01 Task 3 (blocking on-device checkpoint, sequenced specifically before Plan 58-02 proceeds) — this is the exact narrow risk that checkpoint exists to catch.
 
 2. **Exact row height/frame for `NSHostingView` inside `NSMenuItem` to match the surrounding native rows.**
    - What we know: Standard single-line `NSMenuItem`s are ~22pt tall (D-10 references this as the target). `NSHostingView` does not auto-size to fit SwiftUI content by default — an explicit frame (on either the SwiftUI content via `.frame(height:)` or the `NSMenuItem.view`'s own `frame` after construction) is needed.
    - What's unclear: The precise pixel-perfect frame width (menu width is typically driven by the widest item, including the fixed-width Settings/Check-for-Updates/Quit block) — this is a visual-polish detail, not a functional blocker.
    - Recommendation: Claude's Discretion per CONTEXT.md — build with a reasonable estimate (`.frame(height: 22)`, `.padding(.horizontal, 14)` to roughly match native menu-item insets) and refine on-device during this phase's UAT checkpoint, consistent with this project's own repeated pattern of iterating exact AppKit-adjacent pixel values on real hardware rather than research-predicting them.
+   - Resolution: Cosmetic, UAT-refined — also covered by 58-01 Task 3's same on-device checkpoint (and the phase-gate UAT in 58-02 Task 3), no separate gate needed.
 
 ## Environment Availability
 
