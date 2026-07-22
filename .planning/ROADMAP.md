@@ -962,7 +962,12 @@ Plans:
   3. Clearing the store removes every item in a single call — provably empty by construction.
   4. The store is designed as its own independent axis, never coupled to `IslandResolver`/`TransientQueue` or `NotchWindowController` — confirmed by the model's shape alone, before any monitor or menu exists.
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+**Wave 1**
+
+- [ ] 55-01-PLAN.md — ClipboardItem (associated-value Kind enum) + ClipboardStore (D-01 cap+FIFO evict, D-02 dedupe-and-move-to-top, clear), fully unit-tested
 
 ### Phase 56: Encrypted Persistence
 
