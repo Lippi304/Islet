@@ -27,6 +27,7 @@
 		21D3560AA4C7B91581AA5272 /* FullscreenDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */; };
 		21DD22351526B5DCB2A38A65 /* NotchPillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65127041FDE5365C865095B1 /* NotchPillView.swift */; };
 		2586E152318B70467587E51C /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */; };
+		28626D0246AAA3E67B6D0F4D /* ClipboardFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 330BE2F6665352789C4BF082 /* ClipboardFileStore.swift */; };
 		2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C997928190396DADC0ADA29 /* NotchWindowController.swift */; };
 		2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */; };
 		2E1BA5C63FB8581913C670E3 /* KeychainClipboardKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D851E7A6E0AC1DABE6AE8A /* KeychainClipboardKeyStore.swift */; };
@@ -182,6 +183,7 @@
 		2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingState.swift; sourceTree = "<group>"; };
 		30839BA1A62ECDA5057B779C /* KeychainLicenseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainLicenseStore.swift; sourceTree = "<group>"; };
 		31972FF1ED9E30425E37EE11 /* TrialLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLogic.swift; sourceTree = "<group>"; };
+		330BE2F6665352789C4BF082 /* ClipboardFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFileStore.swift; sourceTree = "<group>"; };
 		353BC5A79583E82567AEE07F /* ShelfFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfFileStore.swift; sourceTree = "<group>"; };
 		3AA8943FF6A71F7546A800BD /* PolarLicenseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseService.swift; sourceTree = "<group>"; };
 		406030D1395E35FB24681FE8 /* InteractionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionStateTests.swift; sourceTree = "<group>"; };
@@ -385,6 +387,7 @@
 		77FF1FD8E8B74FA84E26B6B6 /* Clipboard */ = {
 			isa = PBXGroup;
 			children = (
+				330BE2F6665352789C4BF082 /* ClipboardFileStore.swift */,
 				ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */,
 				787DB6CF8372E20FC8BA296F /* ClipboardStore.swift */,
 				56D851E7A6E0AC1DABE6AE8A /* KeychainClipboardKeyStore.swift */,
@@ -669,6 +672,7 @@
 				9470F8F6CC68D789DC5A7D9C /* CalendarService.swift in Sources */,
 				5E2A0DEF48DA471FE9426F9A /* CalendarViewState.swift in Sources */,
 				62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */,
+				28626D0246AAA3E67B6D0F4D /* ClipboardFileStore.swift in Sources */,
 				2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */,
 				71789AF4FFE1F8E9A52A4CA3 /* ClipboardStore.swift in Sources */,
 				FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */,
