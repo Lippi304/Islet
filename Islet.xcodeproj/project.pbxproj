@@ -28,6 +28,7 @@
 		2586E152318B70467587E51C /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */; };
 		2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C997928190396DADC0ADA29 /* NotchWindowController.swift */; };
 		2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */; };
+		2E1BA5C63FB8581913C670E3 /* KeychainClipboardKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D851E7A6E0AC1DABE6AE8A /* KeychainClipboardKeyStore.swift */; };
 		2F75ED15F35CB39A20ED54AB /* ActivitySettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54DE6734ABC75FD146F9FCF /* ActivitySettingsTests.swift */; };
 		2FAC3D6023B82B021A7B24AE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */; };
 		3107D1164676FB8B4347666E /* OSDActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A6AB4282775F1B6C66B02D6 /* OSDActivity.swift */; };
@@ -198,6 +199,7 @@
 		51C0A7B42CF6115383E65C78 /* ShelfViewStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfViewStateTests.swift; sourceTree = "<group>"; };
 		5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManagerTests.swift; sourceTree = "<group>"; };
 		5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseServiceTests.swift; sourceTree = "<group>"; };
+		56D851E7A6E0AC1DABE6AE8A /* KeychainClipboardKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainClipboardKeyStore.swift; sourceTree = "<group>"; };
 		58372E319659DF8AA32F403D /* ShelfLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfLogic.swift; sourceTree = "<group>"; };
 		5998347EF705695E4C020094 /* Info-Sparkle.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-Sparkle.plist"; sourceTree = "<group>"; };
 		5D869CDF80317230429414E1 /* PowerActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivityTests.swift; sourceTree = "<group>"; };
@@ -382,6 +384,7 @@
 			children = (
 				ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */,
 				787DB6CF8372E20FC8BA296F /* ClipboardStore.swift */,
+				56D851E7A6E0AC1DABE6AE8A /* KeychainClipboardKeyStore.swift */,
 			);
 			path = Clipboard;
 			sourceTree = "<group>";
@@ -678,6 +681,7 @@
 				1C34C1BD974D50396F6713F0 /* IslandPresentationState.swift in Sources */,
 				C0667FBB99D4EFB9F888FEE1 /* IslandResolver.swift in Sources */,
 				01168B5EC7AF98EE1ADA34D8 /* IsletApp.swift in Sources */,
+				2E1BA5C63FB8581913C670E3 /* KeychainClipboardKeyStore.swift in Sources */,
 				6760B75E8CA5DA979BB43486 /* KeychainLicenseStore.swift in Sources */,
 				1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */,
 				ED164A7ABBDBD0E4CBE73605 /* LicenseService.swift in Sources */,
