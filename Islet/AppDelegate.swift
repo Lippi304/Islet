@@ -400,3 +400,110 @@ extension AppDelegate: SPUUpdaterDelegate {
         updateDotView?.isHidden = false
     }
 }
+
+// Phase 58 / CLIP-01/02/03 — dynamic clipboard-history section, rebuilt from
+// `clipboardStore.items` every time the status-item menu opens (AppKit calls this
+// reliably before every display, including key-equivalent-triggered validation).
+extension AppDelegate: NSMenuDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        // Identifier-prefix removal (never positional index math — the static
+        // Settings/Check-for-Updates/Quit block's positions are fixed but this
+        // section's item count varies 0-31).
+        menu.items.removeAll { $0.identifier?.rawValue.hasPrefix("clip.") == true }
+
+        var insertionIndex = 0
+        // MRU-first: ClipboardStore.append pushes newest to the array's END, so
+        // .reversed() renders newest-first (RESEARCH.md Pitfall 4).
+        let items = Array(clipboardStore.items.reversed())
+
+        if items.isEmpty {
+            let empty = NSMenuItem(title: "No items yet", action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            empty.identifier = NSUserInterfaceItemIdentifier("clip.empty")
+            menu.insertItem(empty, at: insertionIndex); insertionIndex += 1
+        } else {
+            for (index, item) in items.enumerated() {
+                let menuItem = NSMenuItem(title: "", action: #selector(restoreClipboardItem(_:)), keyEquivalent: index < 10 ? "\(index)" : "")
+                menuItem.target = self
+                menuItem.representedObject = item.id
+                menuItem.view = NSHostingView(rootView: ClipboardRowView(item: item, onSelect: { [weak self] in self?.restore(item) }))
+                menuItem.identifier = NSUserInterfaceItemIdentifier("clip.\(item.id)")
+                menu.insertItem(menuItem, at: insertionIndex); insertionIndex += 1
+            }
+        }
+
+        // Plan 58-02 will insert "Delete All History" BEFORE this separator, between
+        // the rows and the boundary — left as the section's trailing marker for now.
+        let separator = NSMenuItem.separator()
+        separator.identifier = NSUserInterfaceItemIdentifier("clip.separator")
+        menu.insertItem(separator, at: insertionIndex)
+    }
+
+    // Cmd+0-9 keyboard path — kept independently working alongside ClipboardRowView's
+    // SwiftUI tap gesture (RESEARCH.md Pitfall 1: never rely on one to cover the other).
+    @objc private func restoreClipboardItem(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID,
+              let item = clipboardStore.items.first(where: { $0.id == id })
+        else { return }
+        restore(item)
+    }
+
+    // The only place that writes to the system pasteboard for this feature — never
+    // synthesizes a paste keystroke (CLIP-02 forbids auto-paste).
+    private func restore(_ item: ClipboardItem) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        let pbItem = NSPasteboardItem()
+        switch item.kind {
+        case .text(let text):
+            pbItem.setString(text, forType: .string)
+        case .image(let data):
+            pbItem.setData(data, forType: .tiff)
+        }
+        // Self-capture guard (T-58-04): tag this write so ClipboardMonitor's next poll
+        // tick skips re-ingesting it.
+        pbItem.setData(Data(), forType: ClipboardMonitor.restoreMarkerType)
+        pb.writeObjects([pbItem])
+    }
+}
+
+// Phase 58 / D-10 — a single clipboard-history row hosted via NSHostingView inside an
+// NSMenuItem.view. Text rows single-line-truncate; image rows show a small inline
+// thumbnail (~16-20pt, matching row height) rather than a generic icon + label.
+struct ClipboardRowView: View {
+    let item: ClipboardItem
+    let onSelect: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            switch item.kind {
+            case .text(let text):
+                Text(text)
+                    .font(.system(size: 13))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            case .image(let data):
+                // T-58-01: never force-unwrap — a corrupted/truncated decrypted image
+                // degrades to a missing thumbnail, never a crash (D-04 discipline).
+                if let nsImage = NSImage(data: data) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .frame(width: 18, height: 18)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                Text("Image")
+                    .font(.system(size: 13))
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 22)
+        .contentShape(Rectangle())
+        .background(isHovering ? Color.primary.opacity(0.08) : Color.clear)
+        .onTapGesture { onSelect() }   // mouse-click path — NSMenuItem.action does not
+                                        // reliably fire once .view is set (Pitfall 1)
+        .onHover { hovering in isHovering = hovering }
+    }
+}
