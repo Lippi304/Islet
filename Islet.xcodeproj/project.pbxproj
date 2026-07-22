@@ -104,6 +104,7 @@
 		C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */; };
 		C95DC909B5A2998B6558970E /* OSDActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9363716285E9774909D180F5 /* OSDActivityTests.swift */; };
 		CBFEA4D08C31BD0C3602E177 /* NotchInteractionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE98C0240E35D702BEA0DBA /* NotchInteractionState.swift */; };
+		CC892C5D7AB2B07DA486B6CA /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E66EB6AC760DEC7C38A28E /* ClipboardMonitor.swift */; };
 		CE9AE70D3DEB53014569F64D /* QuickActionSharingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8823B706C17870EC45D0A98C /* QuickActionSharingServiceTests.swift */; };
 		D29EBA9C26F56C26B9E49CDE /* ShelfCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */; };
 		D4C67684455C828A20F0AF6B /* AudioOutputMonitorManualSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA15A9291849B26F80AE0A3 /* AudioOutputMonitorManualSpike.swift */; };
@@ -223,6 +224,7 @@
 		74A9A9669B73F37C9B93F564 /* OSDInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSDInterceptor.swift; sourceTree = "<group>"; };
 		76ADF16C067A181F295BA4C5 /* PowerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivity.swift; sourceTree = "<group>"; };
 		77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityDecisionTests.swift; sourceTree = "<group>"; };
+		77E66EB6AC760DEC7C38A28E /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
 		787DB6CF8372E20FC8BA296F /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
 		7D373EEE76BE733AFEDD28FD /* CalendarViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewState.swift; sourceTree = "<group>"; };
 		8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlanceTests.swift; sourceTree = "<group>"; };
@@ -389,6 +391,7 @@
 			children = (
 				330BE2F6665352789C4BF082 /* ClipboardFileStore.swift */,
 				ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */,
+				77E66EB6AC760DEC7C38A28E /* ClipboardMonitor.swift */,
 				787DB6CF8372E20FC8BA296F /* ClipboardStore.swift */,
 				56D851E7A6E0AC1DABE6AE8A /* KeychainClipboardKeyStore.swift */,
 			);
@@ -674,6 +677,7 @@
 				62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */,
 				28626D0246AAA3E67B6D0F4D /* ClipboardFileStore.swift in Sources */,
 				2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */,
+				CC892C5D7AB2B07DA486B6CA /* ClipboardMonitor.swift in Sources */,
 				71789AF4FFE1F8E9A52A4CA3 /* ClipboardStore.swift in Sources */,
 				FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */,
 				FFB8FF809780DAA08EC9B819 /* DeviceCoordinator.swift in Sources */,
