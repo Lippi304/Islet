@@ -922,7 +922,7 @@ Plans:
 **Goal:** Settings gains a "Permissions" rollup showing how many of the app's permissions are granted (X of Y), lets the user see the status of and re-request any denied/not-yet-granted permission individually, and offers a "Replay Onboarding" button in About.
 **Requirements**: ARCH-P2
 **Depends on:** Phase 53
-**Plans:** 3/3 plans complete
+**Plans:** 3/3 plans complete + 1 gap-closure plan
 
 Plans:
 **Wave 1**
@@ -933,3 +933,7 @@ Plans:
 **Wave 2** *(blocked on 54-01, 54-02)*
 
 - [x] 54-03-PLAN.md — SettingsView Permissions section (5-row list + summary, D-05/D-06 tap-to-act) + About's Replay Onboarding button + on-device UAT checkpoint
+
+**Gap closure** *(from 54-VERIFICATION.md, 8/11 must-haves)*
+
+- [ ] 54-04-PLAN.md — Fix Bluetooth/Location/Focus permission grant wiring (CR-01, CR-02, WR-01) + replayOnboarding() missing updateVisibility() (CR-03)
