@@ -23,6 +23,11 @@ DEVELOPER_ID="6F5264EF72441E588C7A54CCEA26C40028B6AEDF"
 NOTARY_PROFILE="islet-notary"
 # <<< FILL THESE IN AT PHASE 6 <<<
 #
+# Apple Developer Team ID (matches project.yml's DEVELOPMENT_TEAM) — needed by
+# -exportArchive's ExportOptions.plist below so Xcode knows which team to pull
+# a Developer ID distribution profile from.
+TEAM_ID="R7AGU84UX7"
+#
 # SECURITY: NOTARY_PROFILE is just a NAME that points at credentials stored in
 # your macOS keychain (created once via `xcrun notarytool store-credentials`).
 # No Apple ID, password, or app-specific password ever appears in this file or
@@ -53,24 +58,18 @@ xcodebuild -scheme "${SCHEME}" -configuration Release \
   archive -archivePath "${ARCHIVE_PATH}"
 
 # ----------------------------------------------------------------------------
-# Step 2: Pull the built .app out of the archive.
-# ----------------------------------------------------------------------------
-# The finished .app lives inside the archive at Products/Applications. We copy
-# it out with `ditto` (NOT a recursive copy): ditto preserves the symlinks
-# inside an .app/.framework bundle, which a plain recursive copy would corrupt
-# and thereby break the code signature.
-ditto "${ARCHIVE_PATH}/Products/Applications/${APP_NAME}.app" "${APP_PATH}"
-
-# ----------------------------------------------------------------------------
-# Step 3: Sign the .app.
+# Step 2+3: Export + sign the .app for distribution.
 # ----------------------------------------------------------------------------
 # If DEVELOPER_ID is still the placeholder, we AD-HOC sign ("Sign to Run
 # Locally", identity "-") — fine for local testing but NOT Gatekeeper-valid
-# (D-03). Once a real Developer ID is set, we sign for distribution with the
-# Hardened Runtime (`--options runtime`) and a secure `--timestamp`; both are
-# MANDATORY for notarization to succeed later (Pitfall 4).
+# (D-03). We pull the .app straight out of the archive with `ditto` (NOT a
+# recursive copy — ditto preserves the symlinks inside an .app/.framework
+# bundle that a plain recursive copy would corrupt and thereby break the code
+# signature) and ad-hoc sign it directly; no distribution profile is needed
+# for a local dry run.
 if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ]; then
   echo "-> No Developer ID set: AD-HOC signing for local dry-run (D-03)."
+  ditto "${ARCHIVE_PATH}/Products/Applications/${APP_NAME}.app" "${APP_PATH}"
   # NOTE: no `--deep` — it is deprecated and mis-signs nested code once we embed
   # frameworks (MediaRemoteAdapter, Sparkle) in later phases. codesign signs the
   # app bundle correctly without it.
@@ -82,66 +81,84 @@ if [ "${DEVELOPER_ID}" = "__DEVELOPER_ID__" ]; then
   # Location/WeatherKit/Calendar/Automation, masking the exact bug this fixes.
   codesign --force --entitlements Islet/Islet.entitlements --sign - "${APP_PATH}"
 else
-  echo "-> Signing with Developer ID + hardened runtime."
-  # Sign nested frameworks first (inside-out). codesign does not recurse into
-  # embedded frameworks and --deep is deprecated/unreliable, so each embedded
-  # framework needs the real Developer ID + secure timestamp explicitly —
-  # otherwise notarization rejects the ad-hoc signature Xcode's archive step
-  # applied to it.
+  echo "-> Exporting for Developer ID distribution via xcodebuild -exportArchive."
+  # CRITICAL: do NOT pull the .app out of the archive with `ditto` and re-sign
+  # it by hand with plain `codesign` here. A raw `xcodebuild archive` picks
+  # whatever profile "Automatic" signing considers best for local iteration —
+  # in practice a "Mac Team Provisioning Profile" (Xcode's development-flavored
+  # automatic profile), NOT one valid for Developer ID (non-App-Store)
+  # distribution. `codesign --sign` re-signs the CODE but never touches/swaps
+  # the embedded `Contents/embedded.provisionprofile` resource file, so that
+  # wrong-flavored profile silently rides along untouched. For most
+  # entitlements this doesn't matter, but "managed capability" entitlements
+  # like WeatherKit and Communication Notifications ARE checked by AMFI
+  # against the embedded profile at every launch — and a profile that's the
+  # wrong type/signing-identity for it makes AMFI kill the process at spawn
+  # time with Error Domain=AppleMobileFileIntegrityError Code=-413 "No
+  # matching profile found", even though `codesign --verify` and
+  # `spctl --assess` both report the app as perfectly valid (confirmed the
+  # hard way shipping v1.2: static verification passed, notarization
+  # succeeded, but the app could not actually launch for any user).
   #
-  # Sparkle.framework additionally bundles its OWN nested executable code
-  # (Autoupdate, Updater.app, two XPC services) that codesign does NOT sign
-  # just by signing the outer Sparkle.framework bundle — each is its own
-  # separate code-signing unit. Found the hard way: the first real (non-dry-run)
-  # notarization submission was rejected with "not signed with a valid Developer
-  # ID certificate" / "signature does not include a secure timestamp" for all 4
-  # of these nested binaries, even though Sparkle.framework itself signed fine.
-  # Sign every nested unit explicitly, deepest-first, before the framework itself.
-  SPARKLE_FRAMEWORK="${APP_PATH}/Contents/Frameworks/Sparkle.framework"
-  if [ -d "${SPARKLE_FRAMEWORK}" ]; then
-    SPARKLE_VERSIONED="${SPARKLE_FRAMEWORK}/Versions/B"
-    for nested in \
-      "${SPARKLE_VERSIONED}/Autoupdate" \
-      "${SPARKLE_VERSIONED}/Updater.app/Contents/MacOS/Updater" \
-      "${SPARKLE_VERSIONED}/Updater.app" \
-      "${SPARKLE_VERSIONED}/XPCServices/Downloader.xpc" \
-      "${SPARKLE_VERSIONED}/XPCServices/Installer.xpc"; do
-      if [ -e "${nested}" ]; then
-        codesign --force --options runtime --timestamp \
-          --sign "${DEVELOPER_ID}" "${nested}"
-      fi
-    done
-  fi
-  if [ -d "${APP_PATH}/Contents/Frameworks" ]; then
-    find "${APP_PATH}/Contents/Frameworks" -maxdepth 1 -name "*.framework" -print0 |
-      while IFS= read -r -d '' framework; do
-        codesign --force --options runtime --timestamp \
-          --sign "${DEVELOPER_ID}" "${framework}"
-      done
-  fi
-  # `--entitlements` is REQUIRED here: codesign does NOT carry forward the
-  # entitlements Xcode's archive step already embedded just because we're
-  # re-signing the same bundle — omitting this flag silently produces an app
-  # with ZERO entitlements (confirmed via `codesign -d --entitlements -`: the
-  # pre-resign archive has com.apple.developer.weatherkit,
-  # com.apple.security.personal-information.location, etc.; the app this line
-  # used to produce, without this flag, had none at all). That's a silent
-  # failure, not a build error — WeatherKit/Location/Calendar/Automation all
-  # quietly stop working with no crash and no visible error, exactly the "Wetter
-  # nicht verfügbar" symptom a user reported after downloading v1.1.
-  codesign --force --options runtime --timestamp \
-    --entitlements Islet/Islet.entitlements \
-    --sign "${DEVELOPER_ID}" "${APP_PATH}"
+  # `xcodebuild -exportArchive` with `method: developer-id` is the officially
+  # correct distribution path: Xcode selects/generates a genuine
+  # "Mac Team Direct Provisioning Profile" (the Developer-ID/direct-
+  # distribution flavor) for this Team ID, embeds it correctly, and re-signs
+  # the whole bundle — including nested frameworks (MediaRemoteAdapter,
+  # Sparkle, and Sparkle's own nested Autoupdate/Updater.app/XPC services) —
+  # with the Developer ID certificate, Hardened Runtime, and a secure
+  # timestamp, all in one Apple-blessed step. This replaces the old hand-
+  # rolled "sign every nested Sparkle binary explicitly" codesign loop
+  # entirely; -exportArchive's own signing pipeline handles nested code
+  # correctly without the `--deep` mis-signing problems that loop worked
+  # around.
+  EXPORT_OPTIONS_PLIST="build/ExportOptions.plist"
+  cat > "${EXPORT_OPTIONS_PLIST}" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>developer-id</string>
+    <key>teamID</key>
+    <string>${TEAM_ID}</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+</dict>
+</plist>
+PLIST
+  rm -rf "${EXPORT_DIR}"
+  xcodebuild -exportArchive -archivePath "${ARCHIVE_PATH}" -exportPath "${EXPORT_DIR}" \
+    -exportOptionsPlist "${EXPORT_OPTIONS_PLIST}" -allowProvisioningUpdates
 fi
 # Sanity-check the signature is well-formed before we package it.
 codesign --verify --verbose "${APP_PATH}"
-# Guard against ever repeating this exact silent-entitlements-loss bug: fail
-# loudly if the signed app doesn't actually carry the WeatherKit entitlement
-# (a stand-in check for "entitlements survived signing" — this key is a
-# canary because it's easy to grep for and always expected to be present).
+# Guard against ever repeating the entitlements-loss bug that used to hide
+# this exact problem: fail loudly if the signed app doesn't actually carry
+# the WeatherKit entitlement (a stand-in check for "entitlements survived
+# signing" — this key is a canary because it's easy to grep for and always
+# expected to be present).
 if ! codesign -d --entitlements - "${APP_PATH}" 2>/dev/null | grep -q "com.apple.developer.weatherkit"; then
   echo "ERROR: signed app is missing entitlements (WeatherKit canary check failed)." >&2
   echo "Location/WeatherKit/Calendar/Automation would silently stop working. Aborting." >&2
+  exit 1
+fi
+# Guard against the AMFI/provisioning-profile mismatch that shipped in v1.2
+# (silent at the codesign/spctl level, fatal at actual launch time): launch
+# the freshly-signed .app for real and confirm the process survives briefly,
+# instead of trusting only static signature verification.
+echo "-> Launch-testing the signed app before packaging (catches AMFI profile mismatches static checks miss)..."
+"${APP_PATH}/Contents/MacOS/${APP_NAME}" &
+LAUNCH_TEST_PID=$!
+sleep 2
+if ps -p "${LAUNCH_TEST_PID}" > /dev/null 2>&1; then
+  echo "-> Launch test passed (pid ${LAUNCH_TEST_PID} stayed alive)."
+  kill "${LAUNCH_TEST_PID}" 2>/dev/null || true
+else
+  wait "${LAUNCH_TEST_PID}" 2>/dev/null
+  LAUNCH_TEST_EXIT=$?
+  echo "ERROR: signed app failed to launch (exit ${LAUNCH_TEST_EXIT}) — aborting before packaging/notarizing a broken build." >&2
+  echo "Check 'log show --last 2m --predicate process==\"amfid\"' for the AMFI denial reason." >&2
   exit 1
 fi
 
