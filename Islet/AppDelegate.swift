@@ -248,6 +248,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugSpikePrintClipboardReload), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Start Clipboard Monitor",
                           action: #selector(debugSpikeStartClipboardMonitor), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Stop Clipboard Monitor",
+                          action: #selector(debugSpikeStopClipboardMonitor), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Write Concealed Test Item",
                           action: #selector(debugSpikeWriteConcealedTestItem), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Simulate Self-Capture Write",
@@ -320,6 +322,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         })
         debugClipboardMonitor?.start()
         print("[Spike-ClipboardMonitor] monitor started")
+    }
+
+    // WR-01 fix: pairs with debugSpikeStartClipboardMonitor() so the class's documented
+    // "owner calls stop() on teardown" contract has an actual call site — the debug menu
+    // couldn't stop a running monitor before this.
+    @MainActor @objc private func debugSpikeStopClipboardMonitor() {
+        guard let monitor = debugClipboardMonitor else {
+            print("[Spike-ClipboardMonitor] not running")
+            return
+        }
+        monitor.stop()
+        debugClipboardMonitor = nil
+        print("[Spike-ClipboardMonitor] monitor stopped")
     }
 
     @objc private func debugSpikeWriteConcealedTestItem() {
