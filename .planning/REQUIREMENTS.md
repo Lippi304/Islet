@@ -71,6 +71,23 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 
 > **v1.8 Requirements (Settings Redesign & Island Navigation) shipped 2026-07-21** — archived to `.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02).
 
+## v1.9 Requirements — Clipboard History
+
+Adds a menu-bar clipboard history (text + images, ~20-30 item cap, persistent across relaunch/reboot, encrypted at rest, sensitive-content excluded) to Islet's existing status-item menu, replacing the user's third-party CopyClip tool. Menu-bar-only — explicitly not a new Island/notch view. Backed by dedicated research (`.planning/research/SUMMARY.md`).
+
+### Clipboard History
+
+- [ ] **CLIP-01**: User sees a menu-bar dropdown listing the last ~20-30 copied text/image items, oldest automatically evicted past the cap
+- [ ] **CLIP-02**: Clicking an entry copies it back to the system clipboard (no auto-paste)
+- [ ] **CLIP-03**: The first 10 entries are directly selectable via ⌘0-⌘9
+- [ ] **CLIP-04**: Clipboard history persists across app relaunch and system reboot
+- [ ] **CLIP-05**: "Delete All History" clears the entire history, with a confirmation dialog
+
+### Privacy & Security
+
+- [ ] **PRIV-01**: Copies marked sensitive/concealed (`org.nspasteboard.ConcealedType`/`TransientType`) are never captured
+- [ ] **PRIV-02**: The persisted history is encrypted at rest (CryptoKit AES-GCM, key in Keychain) — defense-in-depth beyond the ConcealedType marker check, since research found at least one major password manager (Bitwarden) doesn't reliably set it
+
 ## v2 Requirements
 
 Deferred to a future milestone, not in this roadmap.
@@ -158,7 +175,7 @@ v1.8's traceability table (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02 — 6/6 sh
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-21 — v1.8 (Settings Redesign & Island Navigation) SHIPPED: 6/6 requirements (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02) complete, archived to `.planning/milestones/v1.8-REQUIREMENTS.md`. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
+*Last updated: 2026-07-22 — v1.9 (Clipboard History) requirements defined: 7 requirements (CLIP-01..05, PRIV-01..02), not yet mapped to a roadmap. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
 *v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*
 *v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
