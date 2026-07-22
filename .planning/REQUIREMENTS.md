@@ -80,13 +80,13 @@ Adds a menu-bar clipboard history (text + images, ~20-30 item cap, persistent ac
 - [ ] **CLIP-01**: User sees a menu-bar dropdown listing the last ~20-30 copied text/image items, oldest automatically evicted past the cap
 - [ ] **CLIP-02**: Clicking an entry copies it back to the system clipboard (no auto-paste)
 - [ ] **CLIP-03**: The first 10 entries are directly selectable via ⌘0-⌘9
-- [ ] **CLIP-04**: Clipboard history persists across app relaunch and system reboot
+- [x] **CLIP-04**: Clipboard history persists across app relaunch and system reboot
 - [ ] **CLIP-05**: "Delete All History" clears the entire history, with a confirmation dialog
 
 ### Privacy & Security
 
 - [ ] **PRIV-01**: Copies marked sensitive/concealed (`org.nspasteboard.ConcealedType`/`TransientType`) are never captured
-- [ ] **PRIV-02**: The persisted history is encrypted at rest (CryptoKit AES-GCM, key in Keychain) — defense-in-depth beyond the ConcealedType marker check, since research found at least one major password manager (Bitwarden) doesn't reliably set it
+- [x] **PRIV-02**: The persisted history is encrypted at rest (CryptoKit AES-GCM, key in Keychain) — defense-in-depth beyond the ConcealedType marker check, since research found at least one major password manager (Bitwarden) doesn't reliably set it
 
 ## v2 Requirements
 
@@ -161,10 +161,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLIP-01 | Phase 58 | Pending |
 | CLIP-02 | Phase 58 | Pending |
 | CLIP-03 | Phase 58 | Pending |
-| CLIP-04 | Phase 56 | Pending |
+| CLIP-04 | Phase 56 | Complete |
 | CLIP-05 | Phase 58 | Pending |
 | PRIV-01 | Phase 57 | Pending |
-| PRIV-02 | Phase 56 | Pending |
+| PRIV-02 | Phase 56 | Complete |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
