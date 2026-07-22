@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Clipboard History
 status: planning
-last_updated: "2026-07-22T17:22:27.635Z"
+last_updated: "2026-07-22T18:10:00.000Z"
 last_activity: 2026-07-22
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 55 — Clipboard Data Model + Store (roadmap created, not yet planned)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-22 — Milestone v1.9 started
+Status: Roadmap created (Phases 55-58, 7/7 v1.9 requirements mapped) — ready for `/gsd:discuss-phase 55`
+Last activity: 2026-07-22 — v1.9 roadmap created
 
 ### Phase 48 status note
 
@@ -55,6 +55,8 @@ Progress (v1.6): [██████████] 100% — SHIPPED 2026-07-19 (8
 Progress (v1.7): [███████░░░] 75% (6/8 phases — 43/44/45/46/47/48 complete; Phase 49 spike paused per user decision after weak SC#1/SC#2 results; Phase 50 needs reconsideration before planning)
 
 Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3/3 phases; see `.planning/milestones/v1.8-ROADMAP.md`)
+
+Progress (v1.9): [░░░░░░░░░░] 0% (0/4 phases — roadmap created 2026-07-22, Phases 55-58; not yet planned)
 
 ## Performance Metrics
 
@@ -233,6 +235,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - v1.7 (Interaction & Calendar Polish) roadmap created 2026-07-19: Phase 43 (Drag Detection Hardening, DRAG-01), Phase 44 (Tray & Quick Action Width Alignment, TRAY-06/DRAG-02), Phase 45 (View Switcher Morph Fix, SWITCH-01/02), Phase 46 (Calendar Quick-Add Improvements, CALVIEW-05/06/07), Phase 47 (Audio Output Switcher — Pure Seam + Monitor, no formal REQ-ID), Phase 48 (Audio Output Switcher — UI Wiring, OUTPUT-01/02/03/04), Phase 49 (Favorite/Like — Spike, no formal REQ-ID), Phase 50 (Favorite/Like — Implementation, FAV-01/02/03) — 100% coverage (15/15). Phase numbering continues from Phase 42 (v1.6's last phase). v1.4 and v1.5 both remain open in parallel; all three milestones' phases coexist on the live ROADMAP.md.
 - v1.8 (Settings Redesign & Island Navigation) roadmap created 2026-07-21: Phase 51 (Settings Reorganization & Scroll Fix, SETTINGS-02/03), Phase 52 (Top-Edge Switcher Layout & Placement Config, SWITCH-03/04), Phase 53 (Hover-to-Resume Idle Preview, RESUME-01/02) — 100% coverage (6/6). Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed) to avoid any collision with v1.4/v1.5/v1.7's still-open phases. Settings (51) and Switcher (52) restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher) independently of each other; Resume (53) is sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track works via the existing NowPlayingMonitor/MediaRemote transport, per PROJECT.md's v1.8 Key Context).
 - Phase 54 added 2026-07-21: Permissions Overview & Onboarding Replay (ARCH-P2) — promoted from the v2/backlog "carried from v1.4" requirements after v1.1's public release surfaced the need (user expected to be able to review granted permissions and re-request denied ones in Settings). Not yet part of any active milestone roadmap; phase numbering continues sequentially from Phase 53.
+- v1.9 (Clipboard History) roadmap created 2026-07-22: Phase 55 (Clipboard Data Model + Store, no formal REQ-ID — infrastructure phase mirroring Phase 19/47/49 precedent), Phase 56 (Encrypted Persistence, CLIP-04/PRIV-02), Phase 57 (Pasteboard Monitor — Spike, PRIV-01), Phase 58 (Menu Wiring & UI Assembly, CLIP-01/02/03/05) — 100% coverage (7/7). Phase numbering continues from Phase 54 (v1.8's reserved phase) to avoid any collision with v1.4/v1.5/v1.7's still-open phases. Phase order follows research's own explicit "Build Order" recommendation and this project's established pure-seam-first/system-glue-second/assembly-last convention (Phase 19→20→21 Shelf, Phase 47→48 Audio Output): pure data model first (zero risk), then encrypted persistence (established from day one per Pitfalls 4/5, not retrofitted), then the one on-device-only pasteboard monitor spike (isolated so it can't destabilize the proven pure work), then menu wiring last (pure assembly, itself only meaningfully verifiable on-device).
 
 ### Pending Todos
 
@@ -346,6 +349,7 @@ Resume file: None
 
 ## Operator Next Steps
 
+- **v1.9 (Clipboard History) roadmap created 2026-07-22.** 4 phases (55-58), 7/7 requirements mapped (100% coverage), following research's explicit build-order recommendation. Left open in parallel with v1.4, v1.5, and v1.7 (explicit user decision, consistent with prior milestone precedent). Next: `/gsd:discuss-phase 55` before planning.
 - **Phase 54 decision-coverage gate overridden (2026-07-22).** `check.decision-coverage-plan` flagged D-01 through D-11 as not cited inside any plan's `must_haves.truths` block (only D-12/D-13 are). Manual review confirmed all 13 decisions ARE implemented and referenced in plan task bodies/acceptance criteria (grep-verified, and gsd-plan-checker's semantic review independently confirmed all 13 decisions correctly implemented) — user chose "Proceed anyway" since this is a must_haves-phrasing gap, not a missing feature. Re-surface at `/gsd:verify-work 54` if in doubt.
 - **Phase 54 gap-closure plan (54-04-PLAN.md) created 2026-07-22** to close 54-VERIFICATION.md's 2 FAILED truths (gaps_found, 8/11). Re-running `check.decision-coverage-plan` against the phase directory (now including 54-04) re-surfaced the same D-01..D-11 override above — 54-04 doesn't touch any of those original-feature decisions, it only fixes CR-01 (Bluetooth grant bypassing the Devices toggle), CR-02 (Location grant not reaching `startLocationOnce()`), CR-03 (`replayOnboarding()` missing `updateVisibility()`), and WR-01 (Focus grant callback discarded). Passed plan-checker verification in iteration 2 (0 blockers, 0 warnings) with an added on-device checkpoint covering all 4 fixes at runtime. Next: `/gsd:execute-phase 54 --gaps-only`.
 - **v1.8 (Settings Redesign & Island Navigation) SHIPPED 2026-07-21.** All 3 phases (51-53) archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped. Start a fresh milestone for new work with `/gsd-new-milestone` — but note v1.4, v1.5, and v1.7 all remain open in parallel below; picking those back up does not require a new milestone.

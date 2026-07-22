@@ -158,6 +158,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
+| CLIP-01 | Phase 58 | Pending |
+| CLIP-02 | Phase 58 | Pending |
+| CLIP-03 | Phase 58 | Pending |
+| CLIP-04 | Phase 56 | Pending |
+| CLIP-05 | Phase 58 | Pending |
+| PRIV-01 | Phase 57 | Pending |
+| PRIV-02 | Phase 56 | Pending |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
@@ -171,11 +178,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Phase 47 (Audio Output — Pure Seam + Monitor) and Phase 49 (Favorite/Like — Spike) carry no formal REQ-ID themselves — they're infrastructure/spike phases preceding Phase 48/50's user-facing requirements, mirroring this project's own Phase 15/16/19 and Phase 22-01/24-01/38-01/39-01 precedent.
 
 v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is archived in `.planning/milestones/v1.6-REQUIREMENTS.md`.
+
+**Coverage (v1.9):**
+- v1.9 requirements: 7 total
+- Mapped to phases: 7 (100%)
+- Unmapped: 0
+- Phase 55 (Clipboard Data Model + Store) carries no formal REQ-ID itself — infrastructure phase preceding Phase 56/57/58's user-facing requirements, mirroring this project's own Phase 19/47/49 pure-seam-first precedent.
 v1.8's traceability table (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02 — 6/6 shipped) is archived in `.planning/milestones/v1.8-REQUIREMENTS.md`.
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-22 — v1.9 (Clipboard History) requirements defined: 7 requirements (CLIP-01..05, PRIV-01..02), not yet mapped to a roadmap. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
+*Last updated: 2026-07-22 — v1.9 (Clipboard History) roadmap created: 4 phases (55-58), 100% coverage (7/7). Phase order: Clipboard Data Model + Store (55, no formal REQ-ID, infra) → Encrypted Persistence (56, CLIP-04/PRIV-02) → Pasteboard Monitor Spike (57, PRIV-01) → Menu Wiring & UI Assembly (58, CLIP-01/02/03/05), per research's explicit build-order recommendation and this project's own pure-seam-first/system-glue-second/assembly-last convention (Phase 19-21 Shelf, Phase 47-48 Audio Output). Phase numbering continues from Phase 54 (v1.8's reserved phase). v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
 *v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*
 *v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
