@@ -28,7 +28,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-v1.8 shipped 2026-07-21 (see Current State above). No new milestone started yet — v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel and are candidates to pick back up before starting fresh scope: v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused mid-milestone (Phase 49 Favorite/Like spike aborted after weak on-device results, Phase 50 undecided; Phase 46 Calendar Quick-Add Improvements also still open). Other standing candidates for a future milestone: a countdown timer, gesture-based swipe navigation, Animation Speed presets (ARCH-P1), a Permissions Overview rollup (ARCH-P2), alternate app icon variants (still Out of Scope below until picked up), and Phase 49/50's Favorite/Like feature decision.
+v1.9 (Clipboard History) started 2026-07-22 (see Milestone In Progress below) — v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel and are candidates to pick back up: v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused mid-milestone (Phase 49 Favorite/Like spike aborted after weak on-device results, Phase 50 undecided; Phase 46 Calendar Quick-Add Improvements also still open). Other standing candidates for a future milestone: a countdown timer, gesture-based swipe navigation, Animation Speed presets (ARCH-P1), alternate app icon variants (still Out of Scope below until picked up), and Phase 49/50's Favorite/Like feature decision.
 
 ## Milestone In Progress (Parallel): v1.5 (Home Focus & Widget Redesign)
 
@@ -111,6 +111,25 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 **Outcome:** 6/6 requirements shipped. The hover-preview's visual (RESUME-01) was superseded mid-UAT (D-02): the originally-planned bouncing equalizer bars were replaced with a static play glyph after on-device testing found animated bars misleading while nothing was playing. See Requirements → Validated below for the full per-phase breakdown and `.planning/milestones/v1.8-ROADMAP.md` for the archived roadmap.
 
 </details>
+
+## Milestone In Progress (Parallel): v1.9 (Clipboard History)
+
+**Goal:** Islet replaces the user's third-party CopyClip tool — clicking the menu-bar status icon shows a clipboard history of recent text and image copies, alongside the existing Settings/Check for Updates/Quit entries.
+
+**Status:** Not started (defining requirements). Started 2026-07-22 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision, consistent with v1.5/v1.6/v1.7/v1.8 precedent).
+
+**Target features:**
+- Menu-bar status-item dropdown gains a clipboard history section listing the last ~20-30 copied items (text and images), oldest entries automatically evicted once the cap is reached.
+- Clicking an entry copies it back onto the system pasteboard (no auto-paste into the frontmost app — matches CopyClip's own behavior, confirmed by the user against a CopyClip screenshot).
+- History persists across app relaunch and machine reboot (unlike the existing session-only file Shelf — an explicit, deliberate difference).
+- Copies marked sensitive by the source app (the `org.nspasteboard.ConcealedType`/`TransientType` convention password managers use) are never captured.
+- A "Delete All History" action clears the list from the menu.
+- No search/filter UI in v1.9 — explicitly deferred.
+
+**Key context:**
+- Reference: user's installed CopyClip app (screenshot captured during milestone discussion) — status-icon dropdown listing recent clips by preview text, `⌘0`-`⌘9` quick-select, "Delete All History" and "Preferences…" entries below the list.
+- This is additive to the existing menu-bar status item (Settings…/Check for Updates/Quit from Phase 0/40) — explicitly NOT a new Island/notch view or switcher tab (user confirmed during discussion).
+- Needs its own pasteboard-monitoring seam (likely polling `NSPasteboard.general.changeCount`, matching how `DragApproachDetector` already polls pasteboard state for drag detection) — no existing subsystem does this today.
 
 ## Requirements
 
@@ -431,4 +450,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-21 — Milestone v1.8 (Settings Redesign & Island Navigation) SHIPPED: Settings scroll/reorganization fix, a user-configurable top-edge switcher layout, and hover-to-resume on the idle island (6/6 requirements, archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`). v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phases 43-48 shipped/code-complete and Phase 46's CALVIEW-06/07 still pending. v1.6 (Liquid Glass & System HUD Suite) shipped 2026-07-19, archived to `.planning/milestones/v1.6-ROADMAP.md`/`.planning/milestones/v1.6-REQUIREMENTS.md`.*
+*Last updated: 2026-07-22 — Milestone v1.9 (Clipboard History) started: a menu-bar clipboard history (text + images, persistent, sensitive-content excluded) to replace the user's third-party CopyClip tool. v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phases 43-48 shipped/code-complete and Phase 46's CALVIEW-06/07 still pending. v1.8 (Settings Redesign & Island Navigation) shipped 2026-07-21, archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.*
