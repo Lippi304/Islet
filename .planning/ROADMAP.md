@@ -1004,7 +1004,16 @@ Plans:
   3. Writing a restored item back onto the pasteboard (click-to-restore's own write) is not re-ingested as a new duplicate entry — the self-capture guard is proven on-device, not just unit-tested.
   4. If macOS's pasteboard-access privacy prompt appears, it's handled gracefully with a one-time in-app explanation rather than a crash, silent failure, or repeated re-prompting.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 57-01-PLAN.md — ClipboardMonitor (changeCount-gated poll, concealed/transient/self-capture-marker filtering, classification, D-07 accessBehavior check) + pure-function unit tests + manual on-device spike scaffold
+
+**Wave 2** *(blocked on 57-01)*
+
+- [ ] 57-02-PLAN.md — DEBUG-only spike hooks (start monitor, D-08 concealed-test-item, self-capture-test, D-07 access-behavior explanation) + on-device checkpoint covering all 4 success criteria
 
 ### Phase 58: Menu Wiring & UI Assembly
 
