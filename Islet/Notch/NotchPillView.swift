@@ -265,6 +265,9 @@ struct NotchPillView: View {
     var onOnboardingGrant: (OnboardingPermission) -> Void = { _ in }
     var onOnboardingOpenSettings: () -> Void = {}
     var onOnboardingFinish: () -> Void = {}
+    // Phase 54 / D-12 — replay-only cancel; wired to replayCloseButton below, only ever
+    // rendered when onboardingState.isReplay is true.
+    var onOnboardingCancel: () -> Void = {}
 
     // Phase 28 / CALVIEW-01/02 — the switcher-pill and calendar-navigation callbacks, plain
     // closures mirroring the onboarding callbacks above: the view stays AppKit/EventKit-free,
@@ -1750,6 +1753,11 @@ struct NotchPillView: View {
                     .padding(.bottom, 20)
             }
         }
+        .overlay(alignment: .topTrailing) {
+            if onboardingState.isReplay {
+                replayCloseButton
+            }
+        }
     }
 
     @ViewBuilder
@@ -1968,6 +1976,23 @@ struct NotchPillView: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+    }
+
+    // Phase 54 / D-12 — replay-only close/X button, top-trailing of the carousel card, shown
+    // ONLY during a mid-session onboarding replay (never real first-launch onboarding). Visible
+    // across every step of a replay, not gated on step == .done — the carousel has no cancel
+    // affordance today and D-12 requires one throughout.
+    private var replayCloseButton: some View {
+        Button(action: onOnboardingCancel) {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.7))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 12)
+        .padding(.trailing, 12)
     }
 
     // The shared chip style (Grant, Enter License Key, Buy Islet) — reuses the existing

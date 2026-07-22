@@ -17,4 +17,9 @@ final class OnboardingViewState: ObservableObject {
     @Published var bluetoothGranted: Bool?
     @Published var calendarGranted: Bool?
     @Published var locationGranted: Bool?
+
+    // Phase 54 / D-07/D-08/D-12 — true only while a mid-session onboarding REPLAY (triggered
+    // from Settings) is active, never during real first-launch onboarding. NotchPillView reads
+    // this to conditionally show the replay-only close button.
+    @Published var isReplay: Bool = false
 }

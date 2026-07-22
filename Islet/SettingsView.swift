@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
+import EventKit
 
 struct SettingsView: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
@@ -93,7 +94,10 @@ struct SettingsView: View {
     // mirroring this codebase's existing private-to-internal testability-bump precedent
     // (NotchPillView.shelfStripVisible/tabWidth/tabHeight).
     enum SidebarSection: String, CaseIterable, Identifiable {
-        case activities, appearance, switcher, fullscreen, weather, diagnostics, workspace, about
+        // Phase 54 / D-10 — .permissions inserted between .weather and .diagnostics
+        // (UI-SPEC-locked order). Deliberately NOT added to visibleSections(hasNotch:)'s
+        // filter below — unlike .switcher, Permissions must appear on every display.
+        case activities, appearance, switcher, fullscreen, weather, permissions, diagnostics, workspace, about
 
         var id: String { rawValue }
 
@@ -104,6 +108,7 @@ struct SettingsView: View {
             case .switcher: return "Switcher"
             case .fullscreen: return "Fullscreen"
             case .weather: return "Weather"
+            case .permissions: return "Permissions"
             case .diagnostics: return "Diagnostics"
             case .workspace: return "Workspace"
             case .about: return "About"
@@ -117,6 +122,7 @@ struct SettingsView: View {
             case .switcher: return "square.grid.2x2"
             case .fullscreen: return "arrow.up.left.and.arrow.down.right"
             case .weather: return "cloud.sun"
+            case .permissions: return "hand.raised"
             case .diagnostics: return "stethoscope"
             case .workspace: return "tray"
             case .about: return "info.circle"
@@ -134,6 +140,15 @@ struct SettingsView: View {
     // mirroring NotchPillView's own independent hasNotch read (Plan 52-02, RESEARCH.md
     // Pattern 2) — no new controller plumbing.
     @State private var hasNotchDisplay: Bool = false
+
+    // Phase 54 / D-10/D-11 — one live status per permissions row, refreshed via
+    // refreshPermissionStatuses() from Plan 01's read layer. Initialized to .notYetAsked
+    // (the safe/neutral default) and immediately overwritten on the first appear/refocus.
+    @State private var locationStatus: PermissionStatus = .notYetAsked
+    @State private var calendarReminderStatus: PermissionStatus = .notYetAsked
+    @State private var bluetoothStatus: PermissionStatus = .notYetAsked
+    @State private var focusStatus: PermissionStatus = .notYetAsked
+    @State private var inputMonitoringStatus: PermissionStatus = .notYetAsked
 
     var body: some View {
         NavigationSplitView {
@@ -179,6 +194,8 @@ struct SettingsView: View {
                 fullscreenSection
             case .weather:
                 weatherSection
+            case .permissions:
+                permissionsSection
             case .diagnostics:
                 diagnosticsSection
             case .workspace:
@@ -198,12 +215,14 @@ struct SettingsView: View {
             launchAtLogin = LaunchAtLogin.isEnabled
             licenseStatus = LicenseState.shared.status
             refreshNotchAvailability()
+            refreshPermissionStatuses()
         }
         .onChange(of: appearsActive) { _, active in
             if active {
                 launchAtLogin = LaunchAtLogin.isEnabled
                 licenseStatus = LicenseState.shared.status
                 refreshNotchAvailability()
+                refreshPermissionStatuses()
             }
         }
         // Phase 35 / GLASS-01 (D-08/D-09) — a separate integration point from the
@@ -402,6 +421,134 @@ struct SettingsView: View {
         }
     }
 
+    // Phase 54 / ARCH-P2 (D-10/D-11) — Permissions: an always-visible 5-row list (never
+    // collapsed/expandable, D-11) with a live "X of 5 granted" summary above it. Mirrors
+    // diagnosticsSection's exact ScrollView(.vertical) { Form { Section(...) { ... } } }
+    // shape.
+    private var permissionsSection: some View {
+        ScrollView(.vertical) {
+            Form {
+                Section("Permissions") {
+                    Text("\(grantedPermissionCount) of 5 granted")
+                        .font(.system(size: 15, weight: .semibold))
+
+                    VStack(spacing: 8) {
+                        permissionRow(kind: .location, label: "Location", icon: "location.fill",
+                                      reason: "Power live weather in your glance",
+                                      status: locationStatus)
+                        permissionRow(kind: .calendarReminders, label: "Calendar", icon: "calendar",
+                                      reason: "Show your next event right in the island",
+                                      status: calendarReminderStatus)
+                        permissionRow(kind: .bluetooth, label: "Bluetooth", icon: "antenna.radiowaves.left.and.right",
+                                      reason: "Detect when your AirPods or headphones connect",
+                                      status: bluetoothStatus)
+                        permissionRow(kind: .focus, label: "Focus", icon: "moon.fill",
+                                      reason: "Detect when Focus or Do Not Disturb is on",
+                                      status: focusStatus)
+                        permissionRow(kind: .inputMonitoring, label: "Input Monitoring", icon: "keyboard",
+                                      reason: "Detect volume/brightness key presses to replace the system indicator",
+                                      status: inputMonitoringStatus)
+                    }
+                }
+            }
+            .padding(20)
+        }
+    }
+
+    private var grantedPermissionCount: Int {
+        [locationStatus, calendarReminderStatus, bluetoothStatus, focusStatus, inputMonitoringStatus]
+            .filter { $0 == .granted }
+            .count
+    }
+
+    // D-05/D-06/D-11 — the whole row is the tap target (mirrors the sidebar's own
+    // Button + .buttonStyle(.plain) precedent, not a List — List(selection:) is
+    // documented broken in this codebase, see SettingsView.swift:140-145). Granted
+    // rows are inert (.disabled).
+    private func permissionRow(kind: PermissionKind, label: String, icon: String,
+                                reason: String, status: PermissionStatus) -> some View {
+        Button {
+            handlePermissionTap(kind: kind, status: status)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(label)
+                        .font(.system(size: 13))
+                    Text(reason)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                statusView(for: status)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(status == .granted)
+    }
+
+    @ViewBuilder private func statusView(for status: PermissionStatus) -> some View {
+        switch status {
+        case .granted:
+            Label("Granted", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+        case .denied:
+            Label("Denied", systemImage: "xmark.circle.fill")
+                .foregroundStyle(.red)
+        case .notYetAsked:
+            Label("Not yet asked", systemImage: "questionmark.circle")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // D-05/D-06 — granted is inert (no-op); denied deep-links to the specific System
+    // Settings privacy pane (reuses the exact working prefix already proven at
+    // osdPermissionExplanationView, only the anchor suffix varies per PermissionKind);
+    // notYetAsked calls the real native request API for that kind (Input Monitoring has
+    // no reliable trigger, Pitfall 4 — the refresh below is its only "check again").
+    private func handlePermissionTap(kind: PermissionKind, status: PermissionStatus) {
+        switch status {
+        case .granted:
+            return
+        case .denied:
+            NSWorkspace.shared.open(URL(string:
+                "x-apple.systempreferences:com.apple.preference.security?\(kind.deepLinkAnchor)")!)
+        case .notYetAsked:
+            switch kind {
+            case .location:
+                (NSApp.delegate as? AppDelegate)?.notchController?.requestLocationPermission()
+            case .calendarReminders:
+                Task { _ = try? await EKEventStore().requestFullAccessToEvents() }
+                Task { _ = try? await EKEventStore().requestFullAccessToReminders() }
+            case .bluetooth:
+                (NSApp.delegate as? AppDelegate)?.notchController?.requestBluetoothPermission()
+            case .focus:
+                FocusModeMonitor.requestAuthorization { granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            (NSApp.delegate as? AppDelegate)?.notchController?.focusPermissionGranted()
+                        }
+                    }
+                }
+            case .inputMonitoring:
+                break // Pitfall 4 — no reliable in-app trigger; refreshPermissionStatuses() below is the soft re-check.
+            }
+        }
+        refreshPermissionStatuses()
+    }
+
+    private func refreshPermissionStatuses() {
+        locationStatus = locationPermissionStatus()
+        calendarReminderStatus = combinedCalendarReminderStatus(
+            event: calendarEventPermissionStatus(),
+            reminder: reminderPermissionStatus())
+        bluetoothStatus = bluetoothPermissionStatus()
+        focusStatus = focusPermissionStatus()
+        inputMonitoringStatus = inputMonitoringPermissionStatus()
+    }
+
     // Quick task 260708-u47: a point-in-time diagnostic SNAPSHOT for bug
     // reports — no new logging subsystem, nothing written unless clicked. Its own
     // dedicated sidebar section (D-03), not folded into About.
@@ -536,6 +683,15 @@ struct SettingsView: View {
                 // 36-UI-SPEC.md.
                 Section("Credits") {
                     Text("Equalizer bar animation inspired by Skiper UI (skiper25.com)")
+                }
+
+                // Phase 54 / D-09 (locked): stays in About, NOT moved into the new
+                // Permissions section — even though onboarding's permissions step is the
+                // part most likely to be replayed.
+                Section("Onboarding") {
+                    Button("Replay Onboarding") {
+                        (NSApp.delegate as? AppDelegate)?.notchController?.replayOnboarding()
+                    }
                 }
             }
             .padding(20)
