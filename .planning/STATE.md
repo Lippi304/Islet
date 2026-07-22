@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Clipboard History
 status: executing
-stopped_at: Phase 57 context gathered
-last_updated: "2026-07-22T21:15:04.097Z"
-last_activity: 2026-07-22 -- Phase 57 planning complete
+stopped_at: Completed 57-01-PLAN.md, ClipboardMonitor + tests + manual spike scaffold shipped
+last_updated: "2026-07-22T21:29:21.435Z"
+last_activity: 2026-07-22
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 57 — pasteboard monitor — spike
+**Current focus:** Phase 57 — pasteboard-monitor-spike
 
 ## Current Position
 
-Phase: 57
-Plan: Not started
+Phase: 57 (pasteboard-monitor-spike) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-22 -- Phase 57 planning complete
+Last activity: 2026-07-22
 
 ### Phase 48 status note
 
@@ -152,6 +152,7 @@ Progress (v1.9): [░░░░░░░░░░] 0% (0/4 phases — roadmap cre
 | Phase 55 P01 | 15min | 2 tasks | 3 files |
 | Phase 56 P01 | 20min | 2 tasks | 3 files |
 | Phase 56 P02 | 8min | 2 tasks | 1 files |
+| Phase 57 P01 | 15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -227,6 +228,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 55]: ClipboardItem/ClipboardStore shipped Foundation-only, zero AppKit/NSPasteboard/IslandResolver coupling; D-02 dedupe-move-to-top and D-01 cap=30/FIFO evict both proven for text and image Kind cases (TDD RED/GREEN)
 - [Phase 56]: [Phase 56-01]: ClipboardFileStore/KeychainClipboardKeyStore shipped — device-only AES-256 key (D-05), encrypted JSON index + per-image files with D-04 graceful degradation and D-06 orphan cleanup; deleteOrphanedImageFile hardened under storageRoot exactly mirroring ShelfFileStore's guard. Plan executed as written (one cosmetic variable-naming fix to match the plan's own literal grep, no behavior change). Manual Cmd-U test-execution confirmation still pending (headless xcodebuild test hangs in this repo, PROJECT.md-documented).
 - [Phase 56]: [Phase 56-02]: On-device UAT approved — full kill-and-relaunch of ClipboardFileStore against real Application Support storage reloads the same 3 seeded items (matching IDs/content), and index.json.enc confirmed unreadable ciphertext on real disk. CLIP-04/PRIV-02 marked complete, closing Phase 56 (Encrypted Persistence).
+- [Phase 57]: [57-01] Confirmed NSPasteboard.AccessBehavior real Swift case is .alwaysAllow (macOS 26.5 SDK header) not .always as PITFALLS.md speculated; needsAccessExplanation uses the real symbol
 
 ### Roadmap Evolution
 
@@ -351,9 +353,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-22T20:36:00.552Z
-Stopped at: Phase 57 context gathered
-Resume file: .planning/phases/57-pasteboard-monitor-spike/57-CONTEXT.md
+Last session: 2026-07-22T21:29:21.429Z
+Stopped at: Completed 57-01-PLAN.md, ClipboardMonitor + tests + manual spike scaffold shipped
+Resume file: None
 
 ## Operator Next Steps
 

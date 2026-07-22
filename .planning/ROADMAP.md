@@ -1009,7 +1009,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 57-01-PLAN.md — ClipboardMonitor (changeCount-gated poll, concealed/transient/self-capture-marker filtering, classification, D-07 accessBehavior check) + pure-function unit tests + manual on-device spike scaffold
+- [x] 57-01-PLAN.md — ClipboardMonitor (changeCount-gated poll, concealed/transient/self-capture-marker filtering, classification, D-07 accessBehavior check) + pure-function unit tests + manual on-device spike scaffold
 
 **Wave 2** *(blocked on 57-01)*
 
