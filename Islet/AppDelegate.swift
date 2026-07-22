@@ -239,6 +239,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugSpikeLikeCurrentTrack), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Trigger Automation Prompt",
                           action: #selector(debugSpikeTriggerAutomationPrompt), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Seed Clipboard Test Data",
+                          action: #selector(debugSpikeSeedClipboardData), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Print Clipboard Reload Result",
+                          action: #selector(debugSpikePrintClipboardReload), keyEquivalent: "")
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -273,6 +277,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor @objc private func debugSpikeTriggerAutomationPrompt() {
         notchController?.spikeTriggerAutomationPrompt()
+    }
+
+    // Phase 56 spike hooks — see 56-02-SUMMARY.md for the on-device verdict.
+    @objc private func debugSpikeSeedClipboardData() {
+        let items: [ClipboardItem] = [
+            ClipboardItem(id: UUID(), kind: .text("Spike seed item A"), timestamp: Date()),
+            ClipboardItem(id: UUID(), kind: .text("Spike seed item B"), timestamp: Date()),
+            ClipboardItem(id: UUID(), kind: .image(Data([0x01, 0x02, 0x03, 0x04])), timestamp: Date())
+        ]
+        try? ClipboardFileStore.save(items, root: ClipboardFileStore.storageRoot(), key: KeychainClipboardKeyStore().readOrCreateKey())
+        print("[Spike-Clipboard] seeded \(items.count) items to \(ClipboardFileStore.storageRoot().path)")
+    }
+
+    @objc private func debugSpikePrintClipboardReload() {
+        let loaded = ClipboardFileStore.load(root: ClipboardFileStore.storageRoot(), key: KeychainClipboardKeyStore().readOrCreateKey())
+        print("[Spike-Clipboard] reloaded \(loaded.count) items:")
+        for item in loaded {
+            print("  - id=\(item.id) kind=\(item.kind) timestamp=\(item.timestamp)")
+        }
     }
     #endif
 }
