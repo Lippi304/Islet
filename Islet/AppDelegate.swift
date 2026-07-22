@@ -25,6 +25,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // nowPlayingState.isHealthy via the standard `NSApp.delegate as? AppDelegate` idiom.
     var notchController: NotchWindowController?
 
+    // Phase 58 / CLIP-01/02/03 — production (non-DEBUG) clipboard wiring. Distinct from
+    // the #if DEBUG-only `debugClipboardMonitor` below; this is the real, always-on path.
+    private var clipboardStore = ClipboardStore()
+    private var clipboardMonitor: ClipboardMonitor?
+
     #if DEBUG
     // D-08/D-09: a SEPARATE status item for the 3 stub-flip testing actions, kept
     // apart from `statusItem` so the debug controls stay reachable even while the
@@ -104,6 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                      action: #selector(quit), keyEquivalent: "q")
         // Menu items send their actions to this delegate.
         for item in menu.items { item.target = self }
+        menu.delegate = self
         statusItem.menu = menu
         // D-05: route the initial click behavior to the live license state.
         applyMenuBarClickRouting(isLicensed: LicenseState.shared.isEntitled)
@@ -132,6 +138,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = NotchWindowController()
         controller.start(isFirstLaunch: isFirstLaunch)
         self.notchController = controller
+
+        // Phase 58 / CLIP-01/04 — seed in-memory history from the encrypted on-disk store
+        // BEFORE the menu can ever be opened, then start the real (non-DEBUG) monitor so
+        // every new genuine copy is captured and persisted for the app's whole lifetime.
+        let loadedClipboardItems = ClipboardFileStore.load(root: ClipboardFileStore.storageRoot(), key: KeychainClipboardKeyStore().readOrCreateKey())
+        for item in loadedClipboardItems { clipboardStore.append(item) }
+        clipboardMonitor = ClipboardMonitor(onChange: { [weak self] item in
+            guard let self else { return }
+            self.clipboardStore.append(item)
+            try? ClipboardFileStore.save(self.clipboardStore.items, root: ClipboardFileStore.storageRoot(), key: KeychainClipboardKeyStore().readOrCreateKey())
+        })
+        clipboardMonitor?.start()
 
         // Phase 40 / HUD-06 — construct Sparkle after the notch controller.
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
