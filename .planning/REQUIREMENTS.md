@@ -85,7 +85,7 @@ Adds a menu-bar clipboard history (text + images, ~20-30 item cap, persistent ac
 
 ### Privacy & Security
 
-- [ ] **PRIV-01**: Copies marked sensitive/concealed (`org.nspasteboard.ConcealedType`/`TransientType`) are never captured
+- [x] **PRIV-01**: Copies marked sensitive/concealed (`org.nspasteboard.ConcealedType`/`TransientType`) are never captured
 - [x] **PRIV-02**: The persisted history is encrypted at rest (CryptoKit AES-GCM, key in Keychain) — defense-in-depth beyond the ConcealedType marker check, since research found at least one major password manager (Bitwarden) doesn't reliably set it
 
 ## v2 Requirements
@@ -163,7 +163,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLIP-03 | Phase 58 | Pending |
 | CLIP-04 | Phase 56 | Complete |
 | CLIP-05 | Phase 58 | Pending |
-| PRIV-01 | Phase 57 | Pending |
+| PRIV-01 | Phase 57 | Complete |
 | PRIV-02 | Phase 56 | Complete |
 
 **Coverage (v1.5):**
