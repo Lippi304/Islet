@@ -981,7 +981,16 @@ Plans:
   3. Deleting an item's on-disk data validates the delete target lives under the clipboard's own Application Support storage root before removing anything — mirrors `ShelfFileStore`'s hardened delete pattern, no path-traversal/parent-directory deletion possible.
   4. A full kill-and-restart of the store against real persisted data reloads the same history from disk, satisfying CLIP-04's persistence contract at the store/filestore layer (the menu display itself lands in Phase 58).
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 56-01-PLAN.md — ClipboardFileStore (encrypted JSON-index + image-file persistence, D-04/D-06) + KeychainClipboardKeyStore (D-05), fully unit-tested
+
+**Wave 2** *(blocked on 56-01)*
+
+- [ ] 56-02-PLAN.md — DEBUG-only seed/reload spike hooks + on-device kill-and-restart checkpoint (SC#4)
 
 ### Phase 57: Pasteboard Monitor — Spike
 
