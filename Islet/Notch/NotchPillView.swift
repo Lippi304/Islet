@@ -2888,6 +2888,12 @@ struct NotchPillView: View {
         let leftWidth = iconLeadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = iconLeadingPad + iconWidth + cameraBlockWidth + textWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
+        // Code review WR-02 — same sanity checks osdWings carries for the identical math, so a
+        // future wingsShape/notch-width change trips a debug-build assert here too instead of
+        // silently clipping (exactly the failure mode this phase's checkpoint spent a round on).
+        assert(cameraBlockWidth > 0, "Caps Lock camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Caps Lock wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
         return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: iconLeadingPad)
@@ -2937,6 +2943,10 @@ struct NotchPillView: View {
         let leftWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth + pillWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
+        // Code review WR-02 — same sanity checks osdWings carries for the identical math.
+        assert(cameraBlockWidth > 0, "Update camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Update wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
         return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, onTap: onUpdateTap) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: leadingPad)

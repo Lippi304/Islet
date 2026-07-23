@@ -2443,13 +2443,18 @@ final class NotchWindowController {
         }
 
         // Phase 60 / CAPS-01 — Caps Lock. Mirrors the Focus toggle-on/off block exactly.
-        // Update HUD needs no block here — nothing to start/stop, its only gate is the guard
-        // inside handleUpdateAvailable(version:).
         if activityEnabled(ActivitySettings.capsLockKey) {
             startCapsLockMonitor()
         } else if capsLockMonitor != nil {
             capsLockMonitor?.stop(); capsLockMonitor = nil
             flushTransients(.capsLock)
+        }
+
+        // Phase 60 / UPDATE-01 (code review WR-01) — Update HUD has no monitor to start/stop, but
+        // a standing/queued transient must still be flushed on live toggle-off, or a queued copy
+        // can sit behind other transients and show up after the user already turned it off.
+        if !activityEnabled(ActivitySettings.updateHudKey) {
+            flushTransients(.updateAvailable)
         }
 
         // Phase 41 / HUD-08 — Calendar Countdown. Mirrors the Charging/Devices toggle-off
@@ -2906,7 +2911,7 @@ final class NotchWindowController {
 
         // Phase 60 / CAPS-01: tear down the global .flagsChanged monitor — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
-        if let capsLockMonitor { capsLockMonitor.stop() }
+        capsLockMonitor?.stop()
 
         // Phase 39 / HUD-03/HUD-04: tear down the OSD key-press event tap — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.

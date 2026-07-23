@@ -72,6 +72,11 @@ final class CapsLockMonitor {
 
     private func armHealthCheck() {
         guard healthCheckTimer == nil else { return }
+        // Code review WR-03 flagged this inner dispatch as a redundant hop — verified NOT
+        // redundant: Timer.scheduledTimer(withTimeInterval:repeats:)'s trailing closure type is
+        // `@Sendable`, so it is NOT inferred main-actor-isolated even though this method is;
+        // removing the hop reintroduces a compiler warning on the isAccessibilityTrusted/install()
+        // access below (confirmed by removing it and rebuilding). Kept, now documented.
         healthCheckTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.monitorToken == nil, Self.isAccessibilityTrusted else { return }
