@@ -157,7 +157,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 **Milestone Goal:** Add a suite of new Live Activities/HUDs inspired by Droppy and Ice, plus a Droppy-style Settings grid overview to manage them all — most new activities default OFF rather than opinionated-on. Started 2026-07-23 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision).
 
 - [x] **Phase 59: Settings-Redesign** - Droppy-style Live-Activity card grid replaces ad-hoc Activities settings; new-activity default-OFF convention locked in (completed 2026-07-23)
-- [ ] **Phase 60: Caps Lock HUD + Update-Activity Restyle** - Cheapest new-activity pairing, proves the Settings-grid card pattern
+- [x] **Phase 60: Caps Lock HUD + Update-Activity Restyle** - Cheapest new-activity pairing, proves the Settings-grid card pattern (completed 2026-07-23)
 - [ ] **Phase 61: Download-Progress** - First FSEvents-based watcher; live download presence + completion signal
 - [ ] **Phase 62: Timer/Pomodoro** - Countdown/Pomodoro HUD; generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode
 - [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike
@@ -1031,7 +1031,7 @@ Plans:
 
 **Wave 4** *(blocked on 60-02, 60-03, 60-04)*
 
-- [ ] 60-05-PLAN.md — Build/test gate + consolidated on-device UAT checkpoint (resolves RESEARCH.md Pitfall 3/4 open questions)
+- [x] 60-05-PLAN.md — Build/test gate + consolidated on-device UAT checkpoint (resolves RESEARCH.md Pitfall 3/4 open questions)
 
 ### Phase 61: Download-Progress
 
