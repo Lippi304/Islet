@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 60 UI-SPEC approved
-last_updated: "2026-07-23T17:46:29.587Z"
-last_activity: 2026-07-23 -- Phase 60 planning complete
+stopped_at: Completed 60-01-PLAN.md
+last_updated: "2026-07-23T17:56:58.440Z"
+last_activity: 2026-07-23
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 59 — settings-redesign
+**Current focus:** Phase 60 — caps-lock-hud-update-activity-restyle
 
 ## Current Position
 
-Phase: 59 (settings-redesign) — COMPLETE
-Plan: 2 of 2
+Phase: 60 (caps-lock-hud-update-activity-restyle) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-07-23 -- Phase 60 planning complete
+Last activity: 2026-07-23
 
 ### Phase 48 status note
 
@@ -161,6 +161,7 @@ Progress (v1.10): [█░░░░░░░░░] 11% (1/9 phases — Phase 59 
 | Phase 58 P01 | single session (checkpoint) | 3 tasks | 2 files |
 | Phase 58 P02 | single session (checkpoint) | 3 tasks | 1 files |
 | Phase 59 P01 | 15min | 3 tasks | 3 files |
+| Phase 60 P01 | 20min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -244,6 +245,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 58]: 58-02: On-device UAT approved first round — all 4 ROADMAP Phase 58 success criteria (CLIP-01/02/03/05) confirmed on real hardware, closing v1.9 (Clipboard History) at 4/4 phases
 - [Phase 59-01]: ActivityCardData carries no category field/enum — Plan 59-02's own card arrays already partition by category; no migration function added for the 8 new v1.10 activity keys since absent-key @AppStorage default is the only mechanism needed
 - [Phase 59-02]: Tasks 1-2 (8 new @AppStorage properties + 3 categorized card arrays; activitiesSection rebuilt as a single-ScrollView categorized 2-column card grid with categorySection(title:cards:) helper, Focus/OSD popovers relocated onto the System-HUDs categorySection call site) landed and build-verified (commits ba43bfa, aca7a13). Task 1 also required regenerating Islet.xcodeproj via xcodegen (Rule 3 blocking fix -- Plan 59-01's ActivityCard.swift was never added to the project's Sources build phase, causing a cannot-find-type build failure). Task 3 (on-device UAT, gate=blocking) is a checkpoint requiring interactive human verification this executor cannot perform -- reached and NOT auto-approved (workflow.auto_advance is false). Per the Phase 49-03/51-01/54-03/54-04 precedent, 59-02-SUMMARY.md was intentionally NOT created yet -- writing it now would let roadmap.update-plan-progress mark Phase 59 complete before UAT is approved. Resume by running the Task 3 checklist (12 steps, 59-02-PLAN.md) on-device; on 'approved' (or a described failure), a continuation agent should finish the plan (SUMMARY.md, state.advance-plan, roadmap.update-plan-progress).
+- [Phase 60]: [Phase 60-01]: defaultsToFalseKeys generalizes activityEnabled(_:) beyond focusKey-only, closing the Pitfall-1 default-ON gap for osdSuppressionKey and all 8 Phase-59 v1.10 keys, not just capsLockKey/updateHudKey; NotchPillView's .capsLock/.updateAvailable case renders EmptyView() as a placeholder -- real wing UI ships in a later Phase 60 plan
 
 ### Roadmap Evolution
 
@@ -382,9 +384,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T15:49:56.725Z
-Stopped at: Phase 60 UI-SPEC approved
-Resume file: .planning/phases/60-caps-lock-hud-update-activity-restyle/60-UI-SPEC.md
+Last session: 2026-07-23T17:56:58.435Z
+Stopped at: Completed 60-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

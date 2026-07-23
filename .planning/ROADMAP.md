@@ -1018,7 +1018,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 60-01-PLAN.md — Pure seams: CapsLockActivity.swift/UpdateActivity.swift + IslandResolver.swift rank-5/6 cases + ActivitySettings.swift updateHudKey/defaultsToFalseKeys (Pitfall 1 fix)
+- [x] 60-01-PLAN.md — Pure seams: CapsLockActivity.swift/UpdateActivity.swift + IslandResolver.swift rank-5/6 cases + ActivitySettings.swift updateHudKey/defaultsToFalseKeys (Pitfall 1 fix)
 
 **Wave 2** *(blocked on 60-01)*
 

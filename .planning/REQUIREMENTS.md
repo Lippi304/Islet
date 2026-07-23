@@ -84,11 +84,11 @@ Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plu
 
 ### Caps Lock
 
-- [ ] **CAPS-01**: Toggling Caps Lock briefly shows an on/off HUD in the collapsed island (same transient wings pattern as Charging), auto-dismissing after ~1-2s
+- [x] **CAPS-01**: Toggling Caps Lock briefly shows an on/off HUD in the collapsed island (same transient wings pattern as Charging), auto-dismissing after ~1-2s
 
 ### Update-Activity
 
-- [ ] **UPDATE-01**: The existing Sparkle update-available HUD is reskinned to the Droppy look (leading icon, "Update" label, trailing version pill) — trigger logic and Sparkle plumbing unchanged
+- [x] **UPDATE-01**: The existing Sparkle update-available HUD is reskinned to the Droppy look (leading icon, "Update" label, trailing version pill) — trigger logic and Sparkle plumbing unchanged
 
 ### Timer/Pomodoro
 
@@ -214,8 +214,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-03 | Phase 50 | Pending |
 | SETTINGS-04 | Phase 59 | Complete |
 | SETTINGS-05 | Phase 59 | Complete |
-| CAPS-01 | Phase 60 | Pending |
-| UPDATE-01 | Phase 60 | Pending |
+| CAPS-01 | Phase 60 | Complete |
+| UPDATE-01 | Phase 60 | Complete |
 | DL-01 | Phase 61 | Pending |
 | DL-02 | Phase 61 | Pending |
 | TIMER-01 | Phase 62 | Pending |
