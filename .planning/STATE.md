@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 59 UI-SPEC approved
-last_updated: "2026-07-23T14:20:44.481Z"
-last_activity: 2026-07-23 -- Phase 59 planning complete
+stopped_at: Completed 59-01-PLAN.md
+last_updated: "2026-07-23T14:37:52.099Z"
+last_activity: 2026-07-23
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** v1.10 Live Activities Suite — roadmap created, ready for phase discussion
+**Current focus:** Phase 59 — settings-redesign
 
 ## Current Position
 
-Phase: 59 (Settings-Redesign) — not started
-Plan: —
+Phase: 59 (settings-redesign) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-23 -- Phase 59 planning complete
+Last activity: 2026-07-23
 
 ### Phase 48 status note
 
@@ -160,6 +160,7 @@ Progress (v1.10): [░░░░░░░░░░] 0% (0/9 phases — roadmap cr
 | Phase 57 P02 | multi-session (checkpoint) | 2 tasks | 1 files |
 | Phase 58 P01 | single session (checkpoint) | 3 tasks | 2 files |
 | Phase 58 P02 | single session (checkpoint) | 3 tasks | 1 files |
+| Phase 59 P01 | 15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -241,6 +242,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 58]: 58-01: Task 3 on-device UAT found and fixed two bugs — NSHostingView rows inside NSMenuItem.view rendered at zero size until given an explicit frame (ClipboardRowView.rowWidth=260pt), and SwiftUI .onHover missed mouseExited during NSMenu tracking causing stuck row highlight, fixed via an NSTrackingArea-backed ClipboardRowContainerView/ClipboardHoverState pair
 - [Phase 58]: 58-02: Delete All History placed as a top-level NSMenuItem beside the Clipboard History anchor (not nested in its submenu) — re-derived after 58-01's D-15-REVISED flyout-submenu amendment, matching the option 58-01-SUMMARY.md itself flagged and 58-01's own placeholder code comment
 - [Phase 58]: 58-02: On-device UAT approved first round — all 4 ROADMAP Phase 58 success criteria (CLIP-01/02/03/05) confirmed on real hardware, closing v1.9 (Clipboard History) at 4/4 phases
+- [Phase 59-01]: ActivityCardData carries no category field/enum — Plan 59-02's own card arrays already partition by category; no migration function added for the 8 new v1.10 activity keys since absent-key @AppStorage default is the only mechanism needed
 
 ### Roadmap Evolution
 
@@ -379,9 +381,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T13:33:34.432Z
-Stopped at: Phase 59 UI-SPEC approved
-Resume file: .planning/phases/59-settings-redesign/59-UI-SPEC.md
+Last session: 2026-07-23T14:37:52.094Z
+Stopped at: Completed 59-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

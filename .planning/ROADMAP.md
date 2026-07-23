@@ -994,7 +994,7 @@ Phases 55-58 full detail (goals, success criteria, plans, on-device UAT history)
 Plans:
 **Wave 1**
 
-- [ ] 59-01-PLAN.md — ActivitySettings.swift +8 default-OFF keys, ActivityCard.swift (new reusable card component), IslandResolver.swift SC5 resolver-priority doc table
+- [x] 59-01-PLAN.md — ActivitySettings.swift +8 default-OFF keys, ActivityCard.swift (new reusable card component), IslandResolver.swift SC5 resolver-priority doc table
 
 **Wave 2** *(blocked on 59-01)*
 
