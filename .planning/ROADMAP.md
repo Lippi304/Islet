@@ -988,8 +988,17 @@ Phases 55-58 full detail (goals, success criteria, plans, on-device UAT history)
   4. An existing user upgrading from a pre-v1.10 build sees every already-shipped activity's current toggle state (mostly ON, Focus Mode OFF) preserved exactly as it was before the update — no silent flip, verified against a pre-seeded (upgrade-simulating) UserDefaults domain, not just a fresh install.
   5. A reviewed resolver-priority table exists covering all v1.10 activities' place in `IslandResolver`/`TransientQueue`, so later phases slot in without silently reordering existing precedence.
 
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 59-01-PLAN.md — ActivitySettings.swift +8 default-OFF keys, ActivityCard.swift (new reusable card component), IslandResolver.swift SC5 resolver-priority doc table
+
+**Wave 2** *(blocked on 59-01)*
+
+- [ ] 59-02-PLAN.md — SettingsView.swift activitiesSection rebuilt as the categorized 15-card grid + on-device UAT checkpoint
 
 ### Phase 60: Caps Lock HUD + Update-Activity Restyle
 
