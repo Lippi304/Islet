@@ -349,95 +349,79 @@ struct SettingsView: View {
         .frame(width: 600, height: 380)
     }
 
-    // Phase 51 / SETTINGS-03 (D-02) — Activities: Launch-at-login folded in alongside
-    // the 8 activity toggles. The tallest section (D-05) — wrapped in ScrollView so
-    // its last toggle ("Automatically Check for Updates") stays reachable within the
-    // fixed 600x380 window (SETTINGS-02 scroll fix).
+    // Phase 59 / SETTINGS-04/SETTINGS-05 (D-01–D-10) — Activities: replaces the old flat
+    // Form/Section toggle list with a categorized, 2-column card grid (15 cards across
+    // System-HUDs/Medien/Produktivität, D-01/D-03/D-07) plus a 2-toggle non-card block
+    // (D-05). Exactly ONE ScrollView wraps everything (Pitfall 3 / Phase 51 precedent) —
+    // never a second nested scroll region.
     private var activitiesSection: some View {
         ScrollView(.vertical) {
-            Form {
-                Toggle("Launch Islet at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, on in
-                        do {
-                            let result = try LaunchAtLogin.set(on)
-                            if on && LaunchAtLogin.requiresApproval {
-                                // macOS needs the user to approve the login item:
-                                // keep the toggle ON (pending) to match the System
-                                // Settings deep-link we open, instead of snapping it
-                                // back OFF.
-                                launchAtLogin = true
-                                LaunchAtLogin.openLoginItemsSettings()
-                            } else {
-                                // Reflect the TRUE resulting system state.
-                                launchAtLogin = result
-                            }
-                        } catch {
-                            // Revert the UI to the real system state on failure.
-                            launchAtLogin = LaunchAtLogin.isEnabled
-                        }
-                    }
-
-                // APP-03: four independent activity on/off toggles (D-06/D-07),
-                // pure on/off — no master switch, no per-activity duration (D-08).
-                Section("Activities") {
-                    Toggle("Charging", isOn: $chargingEnabled)
-                    Toggle("Now Playing", isOn: $nowPlayingEnabled)
-                    Toggle("Song-Change Toast", isOn: $songChangeToastEnabled)
-                    Toggle("Devices", isOn: $deviceEnabled)
-                    Toggle("Calendar Countdown", isOn: $calendarCountdownEnabled)
-                    // Phase 38 / HUD-05 — D-02: the permission ask happens ONLY at this exact
-                    // off-to-on flip, never at launch. D-04: declining the explanation leaves the
-                    // toggle ON with the inert hint — the tap-to-retry gesture below is the ONLY way
-                    // the explanation re-appears, never automatically.
-                    Toggle("Focus Mode HUD", isOn: $focusEnabled)
-                        .onChange(of: focusEnabled) { _, on in
-                            if on && !FocusModeMonitor.isAuthorized {
-                                showFocusPermissionExplanation = true
+            VStack(alignment: .leading, spacing: 20) {
+                // D-05: "Launch Islet at login" / "Automatically Check for Updates"
+                // stay plain toggles, never cards — they produce no island content.
+                Form {
+                    Toggle("Launch Islet at login", isOn: $launchAtLogin)
+                        .onChange(of: launchAtLogin) { _, on in
+                            do {
+                                let result = try LaunchAtLogin.set(on)
+                                if on && LaunchAtLogin.requiresApproval {
+                                    // macOS needs the user to approve the login item:
+                                    // keep the toggle ON (pending) to match the System
+                                    // Settings deep-link we open, instead of snapping it
+                                    // back OFF.
+                                    launchAtLogin = true
+                                    LaunchAtLogin.openLoginItemsSettings()
+                                } else {
+                                    // Reflect the TRUE resulting system state.
+                                    launchAtLogin = result
+                                }
+                            } catch {
+                                // Revert the UI to the real system state on failure.
+                                launchAtLogin = LaunchAtLogin.isEnabled
                             }
                         }
-                        .popover(isPresented: $showFocusPermissionExplanation) {
-                            focusPermissionExplanationView
-                        }
-                    if let hint = ActivitySettings.focusPermissionStatusHint(
-                        toggleOn: focusEnabled, granted: FocusModeMonitor.isAuthorized
-                    ) {
-                        Text(hint)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .onTapGesture { showFocusPermissionExplanation = true }
-                    }
-
-                    // Phase 39 / HUD-03/HUD-04 — D-05/D-06/D-08: identical shape to the Focus Mode
-                    // toggle above. Label is the exact locked string from 39-UI-SPEC.md — never
-                    // "Volume/Brightness HUD" (that would incorrectly imply this toggle gates the
-                    // HUD's own visibility, which it does not per D-06; the HUD keeps showing
-                    // regardless of this toggle's value).
-                    Toggle("Replace System Volume/Brightness OSD", isOn: $osdSuppressionEnabled)
-                        .onChange(of: osdSuppressionEnabled) { _, on in
-                            if on && !OSDInterceptor.isAccessibilityTrusted {
-                                showOSDPermissionExplanation = true
-                            }
-                        }
-                        .popover(isPresented: $showOSDPermissionExplanation) {
-                            osdPermissionExplanationView
-                        }
-                    if let hint = ActivitySettings.osdPermissionStatusHint(
-                        toggleOn: osdSuppressionEnabled, granted: OSDInterceptor.isAccessibilityTrusted
-                    ) {
-                        Text(hint)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .onTapGesture { showOSDPermissionExplanation = true }
-                    }
-
-                    // Phase 40 / HUD-06 (D-11) — automatic-check scheduling requires no macOS
-                    // privacy grant, unlike Focus/OSD's permission-gated toggles above: no
-                    // .onChange, no .popover, no status-hint Text (40-UI-SPEC.md Settings Toggle
-                    // Contract).
+                    // Phase 40 / HUD-06 (D-11) — automatic-check scheduling requires no
+                    // macOS privacy grant, unlike Focus/OSD below: no .onChange, no
+                    // .popover, no status-hint Text (40-UI-SPEC.md Settings Toggle Contract).
                     Toggle("Automatically Check for Updates", isOn: $autoUpdateCheckEnabled)
                 }
+
+                // D-01: System-HUDs, Medien, Produktivität, in this exact order.
+                categorySection(title: "System-HUDs", cards: systemHUDCards)
+                    // D-08/D-09/D-10: Focus Mode's / Volume & Brightness's existing
+                    // permission-explanation popovers, relocated (not redesigned) from
+                    // their old inline Toggle rows onto this card grid's own container —
+                    // exactly 2 popover attachments, no generic item-based popover router
+                    // (RESEARCH.md Pattern 3 / Anti-Patterns). Both cards live only in
+                    // this category, so attaching here (rather than per-ActivityCard call
+                    // site inside the shared ForEach) keeps categorySection generic.
+                    .popover(isPresented: $showFocusPermissionExplanation) {
+                        focusPermissionExplanationView
+                    }
+                    .popover(isPresented: $showOSDPermissionExplanation) {
+                        osdPermissionExplanationView
+                    }
+                categorySection(title: "Medien", cards: mediaCards)
+                categorySection(title: "Produktivität", cards: productivityCards)
             }
             .padding(20)
+        }
+    }
+
+    // D-02: fixed 2 columns, not adaptive — matches the fixed-width Settings window.
+    private let activityGridColumns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
+    // One category header + its own 2-column LazyVGrid of cards, reused for all 3
+    // categories (RESEARCH.md Pattern 2) — not wrapped in Form/Section (Form's row
+    // chrome fights the card design, RESEARCH.md Anti-Patterns).
+    private func categorySection(title: String, cards: [ActivityCardData]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.headline)
+            LazyVGrid(columns: activityGridColumns, spacing: 12) {
+                ForEach(cards) { card in
+                    ActivityCard(data: card)
+                }
+            }
         }
     }
 
