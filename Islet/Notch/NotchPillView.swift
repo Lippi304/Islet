@@ -937,8 +937,9 @@ struct NotchPillView: View {
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
         case .osd(let activity): osdWings(for: activity)                    // Phase 39 / HUD-03/HUD-04: rank 4 transient (39-02)
-        case .capsLock(let activity): capsLockWings(for: activity)          // Phase 60 / CAPS-01: rank 5 transient
-        case .updateAvailable(let activity): updateWings(for: activity)     // Phase 60 / UPDATE-01: rank 6 transient
+        case .downloadProgress: EmptyView()                                  // Phase 61 / DL-01/DL-02: rank 5 transient -- placeholder, real wing UI ships in a later Phase 61 plan (mirrors 60-01's capsLock/updateAvailable precedent)
+        case .capsLock(let activity): capsLockWings(for: activity)          // Phase 60 / CAPS-01: rank 6 transient
+        case .updateAvailable(let activity): updateWings(for: activity)     // Phase 60 / UPDATE-01: rank 7 transient
         case .idle:
             idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }

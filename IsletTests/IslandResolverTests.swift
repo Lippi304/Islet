@@ -652,6 +652,11 @@ final class IslandResolverTests: XCTestCase {
         // Phase 39 / HUD-03/HUD-04 (D-10): .osd is deliberately excluded, unlike Focus — it
         // self-elapses via its own 1.5s timer.
         XCTAssertFalse(ActiveTransient.osd(.volume(percent: 50, hardwareMuted: false)).isPersistent)
+        // Phase 61 / DL-01/DL-02 (D-02/D-13): sub-state-level split — .inProgress never
+        // self-elapses while a download is in flight, but .done DOES self-elapse (~3s),
+        // same as every other non-persistent case.
+        XCTAssertTrue(ActiveTransient.downloadProgress(.inProgress).isPersistent)
+        XCTAssertFalse(ActiveTransient.downloadProgress(.done(filename: "x.pdf")).isPersistent)
     }
 
     func testPreemptPushesFocusToFrontOfPending() {
@@ -714,6 +719,55 @@ final class IslandResolverTests: XCTestCase {
         _ = q.enqueue(.osd(.volume(percent: 50, hardwareMuted: false)))
         q.updateHead(.osd(.brightness(percent: 80)))
         XCTAssertEqual(q.head, .osd(.brightness(percent: 80)))
+    }
+
+    // MARK: Phase 61 / DL-01/DL-02 — Download Progress transient (collapsed-only, rank 5,
+    // preemptible, sub-state-persistent)
+
+    func testDownloadProgressCollapsedOnly() {
+        // D-03: a Download Progress transient wins when the island is NOT expanded.
+        let r = resolve(activeTransient: .downloadProgress(.inProgress),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .downloadProgress(.inProgress))
+    }
+
+    func testDownloadProgressFallsThroughWhenExpanded() {
+        // D-03: a Download Progress transient does NOT win when the island IS expanded — it
+        // falls through to whatever Home/Tray/Calendar/Weather would resolve to as if no
+        // transient were active, mirroring testOSDFallsThroughWhenExpanded.
+        let r = resolve(activeTransient: .downloadProgress(.inProgress),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testDownloadProgressPreemptsStandingFocusHead() {
+        // D-01: Download Progress immediately preempts an already-standing Focus head instead
+        // of queuing behind it, mirroring testOSDPreemptsStandingFocusHead with
+        // .downloadProgress(...) swapped in for .osd(...).
+        var q = TransientQueue()
+        _ = q.enqueue(.focus(.on))
+        XCTAssertTrue(q.preempt(.downloadProgress(.inProgress)))
+        XCTAssertEqual(q.head, .downloadProgress(.inProgress))
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, .focus(.on))
+    }
+
+    func testUpdateHeadReplacesDownloadProgressAcrossInnerCasesInstantly() {
+        // D-02/D-13: transitioning a never-self-elapsing .inProgress head directly to
+        // .done(filename:) once no other download remains in flight — the single
+        // (.downloadProgress, .downloadProgress) updateHead arm covers this regardless of
+        // which inner case each side holds, mirroring (.osd, .osd)'s mechanism.
+        var q = TransientQueue()
+        _ = q.enqueue(.downloadProgress(.inProgress))
+        q.updateHead(.downloadProgress(.done(filename: "invoice.pdf")))
+        XCTAssertEqual(q.head, .downloadProgress(.done(filename: "invoice.pdf")))
     }
 
     // MARK: Phase 60 / CAPS-01 — Caps Lock transient (collapsed-only, rank 5, preemptible)
