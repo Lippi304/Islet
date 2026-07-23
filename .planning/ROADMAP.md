@@ -1023,7 +1023,7 @@ Plans:
 **Wave 2** *(blocked on 60-01)*
 
 - [x] 60-03-PLAN.md — Settings UI: Update Available card (Pitfall 5) + Caps Lock Accessibility permission popover (Pitfall 2)
-- [ ] 60-04-PLAN.md — NotchPillView wing rendering: wingsShape(onTap:) + capsLockWings(for:)/updateWings(for:)/UpdateVersionPill
+- [x] 60-04-PLAN.md — NotchPillView wing rendering: wingsShape(onTap:) + capsLockWings(for:)/updateWings(for:)/UpdateVersionPill
 
 **Wave 3** *(blocked on 60-01, 60-04)*
 
