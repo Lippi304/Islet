@@ -19,6 +19,12 @@ final class CapsLockMonitor {
     // Same nonisolated(unsafe) treatment as monitorToken, for the same reason (stop() must
     // reach it from a nonisolated deinit).
     private nonisolated(unsafe) var healthCheckTimer: Timer?
+    // On-device report: the HUD kept re-appearing/never dismissing during normal typing —
+    // `.flagsChanged` fires on EVERY modifier key (Shift, Cmd, Option, Fn...), not just Caps
+    // Lock, so without this the callback re-fired (re-arming the dismiss timer or re-enqueuing
+    // the HUD) on unrelated keystrokes whenever they happened to report the same capsLock bit.
+    // Dedupe against the last reported state so onChange only fires on an ACTUAL transition.
+    private var lastCapsLockState: Bool?
     private let onChange: (Bool) -> Void
 
     init(onChange: @escaping (Bool) -> Void) { self.onChange = onChange }
@@ -50,8 +56,15 @@ final class CapsLockMonitor {
     }
 
     private func install() {
+        // Seed with the REAL current state (not nil) so the next unrelated flagsChanged event
+        // (e.g. Shift while typing) is correctly recognized as a non-transition and suppressed.
+        lastCapsLockState = NSEvent.modifierFlags.contains(.capsLock)
         monitorToken = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            self?.onChange(event.modifierFlags.contains(.capsLock))
+            guard let self else { return }
+            let isOn = event.modifierFlags.contains(.capsLock)
+            guard isOn != self.lastCapsLockState else { return }
+            self.lastCapsLockState = isOn
+            self.onChange(isOn)
         }
         healthCheckTimer?.invalidate()
         healthCheckTimer = nil
