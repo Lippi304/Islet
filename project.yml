@@ -95,12 +95,12 @@ targets:
         # German string to match the app's user-facing locale (cf. "Now Playing nicht verfügbar").
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Islet zeigt eine kurze Mitteilung in der Notch, wenn ein Bluetooth-Gerät wie deine AirPods verbunden oder getrennt wird."
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Islet zeigt das aktuelle Wetter in der Notch an, sobald du deinen Standort einmalig freigibst."
-        INFOPLIST_KEY_NSCalendarsUsageDescription: "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an."
-        INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Islet zeigt dein naechstes anstehendes Kalenderereignis in der Notch an."
+        INFOPLIST_KEY_NSCalendarsUsageDescription: "Islet zeigt dein nächstes anstehendes Kalenderereignis in der Notch an."
+        INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "Islet zeigt dein nächstes anstehendes Kalenderereignis in der Notch an."
         # Phase 28 / D-05 — both Reminders keys are required together (Pitfall 2): adding only
         # one silently breaks first-touch access.
-        INFOPLIST_KEY_NSRemindersUsageDescription: "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswaehlst."
-        INFOPLIST_KEY_NSRemindersFullAccessUsageDescription: "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswaehlst."
+        INFOPLIST_KEY_NSRemindersUsageDescription: "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswählst."
+        INFOPLIST_KEY_NSRemindersFullAccessUsageDescription: "Islet legt eine neue Erinnerung an, wenn du das im Kalender-Schnellzugriff auswählst."
         # Phase 24 / SHELF-01/02 (D-10) — defensive/inert-if-unused: Accessibility (not this key)
         # is what actually gates DropInterceptTap's CGEventTap creation (Assumption A6, confirmed
         # on-device), but some sources suggest an Accessibility-trusted app also gets Input
@@ -110,7 +110,7 @@ targets:
         # Phase 38 / HUD-05 (38-09 gap closure) — same class of gap as the Bluetooth key above:
         # INFocusStatusCenter.requestAuthorization/.authorizationStatus HARD CRASHES without this
         # key ("attempted to access privacy-sensitive data without a usage description").
-        INFOPLIST_KEY_NSFocusStatusUsageDescription: "Islet zeigt eine kurze Mitteilung in der Notch an, wenn du deinen Fokus- oder Nicht-stoeren-Status aenderst."
+        INFOPLIST_KEY_NSFocusStatusUsageDescription: "Islet zeigt eine kurze Mitteilung in der Notch an, wenn du deinen Fokus- oder Nicht-stören-Status änderst."
         # Phase 49 — Automation (Apple Events) usage key: required alongside the
         # com.apple.security.automation.apple-events entitlement (Islet.entitlements) before
         # Islet's own binary can send any AppleScript/Apple Event under Hardened Runtime.

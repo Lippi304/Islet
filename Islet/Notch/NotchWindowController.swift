@@ -560,8 +560,13 @@ final class NotchWindowController {
         // in Plan 38-06's SettingsView code, at the moment the toggle is switched on).
         if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized { startFocusModeMonitor() }
 
-        // Phase 41 / HUD-08 (D-03): default-ON toggle, no permission gate to check.
-        if activityEnabled(ActivitySettings.calendarCountdownKey) { startCalendarCountdownMonitor() }
+        // Phase 41 / HUD-08 (D-03): default-ON toggle. Bug fix (found via a clean-TCC-state
+        // relaunch test): startCalendarCountdownMonitor() -> CalendarCountdownMonitor ->
+        // CalendarService.fetchUpcomingRaw(_:) DOES call requestFullAccessToEvents() — the
+        // original "no permission gate to check" comment was wrong. Deferred while onboarding
+        // is active, same as startOutfitRefresh() below, so the system Calendar prompt never
+        // fires before the Permissions step explains it.
+        if activityEnabled(ActivitySettings.calendarCountdownKey) && !isOnboardingActive { startCalendarCountdownMonitor() }
 
         // Phase 39 / HUD-03/HUD-04 (D-06): UNCONDITIONAL start — mirrors startOutfitRefresh()'s
         // own unconditional-start precedent below. Unlike every toggle-gated monitor above, OSD
@@ -1938,8 +1943,8 @@ final class NotchWindowController {
 
     // ONBOARD-01/03 (D-08/D-09) — persists completion, collapses the island back to normal
     // idle, and starts whatever start(isFirstLaunch:) deferred while onboarding was active
-    // (startBluetoothMonitor()/startOutfitRefresh() are both idempotent, safe even if a
-    // permission was already granted mid-onboarding).
+    // (startBluetoothMonitor()/startOutfitRefresh()/startCalendarCountdownMonitor() are all
+    // idempotent, safe even if a permission was already granted mid-onboarding).
     private func finishOnboarding() {
         UserDefaults.standard.set(true, forKey: ActivitySettings.onboardingCompletedKey)
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
@@ -1951,6 +1956,7 @@ final class NotchWindowController {
         updateVisibility()
         syncClickThrough()
         if activityEnabled(ActivitySettings.deviceKey) { startBluetoothMonitor() }
+        if activityEnabled(ActivitySettings.calendarCountdownKey) { startCalendarCountdownMonitor() }
         startOutfitRefresh()
     }
 
