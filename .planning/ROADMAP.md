@@ -1060,7 +1060,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 61-04-PLAN.md — DownloadMonitor (FSEvents) + NotchWindowController wiring
+- [x] 61-04-PLAN.md — DownloadMonitor (FSEvents) + NotchWindowController wiring
 
 **Wave 4** *(blocked on Wave 3 completion)*
 

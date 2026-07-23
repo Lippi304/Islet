@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Completed 61-03-PLAN.md
-last_updated: "2026-07-23T23:06:27.386Z"
+stopped_at: Completed 61-04-PLAN.md
+last_updated: "2026-07-23T23:13:30.752Z"
 last_activity: 2026-07-23
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 61 (download-progress) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-07-23
 
@@ -169,6 +169,7 @@ Progress (v1.10): [█░░░░░░░░░] 11% (1/9 phases — Phase 59 
 | Phase 61 P01 | 12min | 2 tasks | 7 files |
 | Phase 61 P02 | 15min | 1 tasks tasks | 3 files files |
 | Phase 61 P03 | 8min | 1 tasks | 1 files |
+| Phase 61 P04 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -260,6 +261,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase ?]: [Phase 61-01] IslandResolver: downloadProgress lands at ActiveTransient/IslandPresentation rank 5 (collapsed-only, sub-state-persistent per D-02/D-13); capsLock/updateAvailable shift to rank 6/7 (comment-only, D-01); required a Rule-3 xcodegen regenerate and 2 exhaustive-switch completions (NotchWindowController.syncActivityModels, NotchPillView placeholder EmptyView() mirroring the 60-01 precedent)
 - [Phase 61-02]: DownloadCoordinator's activityPromoted() ships as a documented empty-body no-op (RESEARCH.md Open Question 1) -- a completing download's own done state is delivered via plain TransientQueue enqueue/advance mechanics, never a coordinator-side promoted re-check; reset() shipped in this plan (not deferred to 61-04) alongside the table it clears
 - [Phase ?]: [Phase 61-03] downloadWings(for:) wraps each switch-case's wingsShape(...) in AnyView (divergent per-state HStack content) -- presentationSwitch now renders real download-progress wing UI, replacing Plan 61-01's EmptyView() placeholder
+- [Phase ?]: [Phase 61-04]: MainActor.assumeIsolated (not DispatchQueue.main.async) bridges the FSEvents C callback into DownloadMonitor -- callback already runs on FSEventStreamSetDispatchQueue(.main), and eventPaths/eventFlags are only valid for the callback's own duration so async deferral would be unsafe; per-event dictionary extraction happens synchronously in the free-function callback before handoff
 
 ### Roadmap Evolution
 
@@ -398,8 +400,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T23:06:27.381Z
-Stopped at: Completed 61-03-PLAN.md
+Last session: 2026-07-23T23:13:30.746Z
+Stopped at: Completed 61-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
