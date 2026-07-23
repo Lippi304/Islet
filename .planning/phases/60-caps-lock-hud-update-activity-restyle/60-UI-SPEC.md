@@ -108,8 +108,8 @@ Reuses the exact permission bucket, mechanism, and UI pattern OSD already establ
 |----------|-------|
 | Width | `Self.wingsSize.width / 2` (145pt) — same right-width convention as Charging's `BatteryIndicator` slot |
 | Content | `"v\(item.displayVersionString)"` (D-04, locked — e.g. `"v1.11"`), sourced from `SUAppcastItem.displayVersionString` |
-| Visual language | Derived from `BatteryIndicator`'s styling, NOT its content (D-04) — compact rounded pill, no fill bar, no percentage: `RoundedRectangle(cornerRadius: 4)` fill `Color.white.opacity(0.15)`, stroke `Color.white.opacity(0.3)` width 1, fixed height 16pt, horizontal padding 6pt (auto-sizing width to content, no hardcoded width) |
-| Text style | `.system(size: 11, weight: .bold, design: .rounded)`, `.monospacedDigit()`, `Color.white` |
+| Visual language | Derived from `BatteryIndicator`'s styling, NOT its content (D-04) — compact rounded pill, no fill bar, no percentage: `RoundedRectangle(cornerRadius: 4)` fill `Color.white.opacity(0.15)`, stroke `Color.white.opacity(0.3)` width 1, fixed height 16pt, horizontal padding 8pt (auto-sizing width to content, no hardcoded width) |
+| Text style | `.system(size: 11, weight: .semibold, design: .rounded)`, `.monospacedDigit()`, `Color.white` |
 | Right padding from notch edge | 14px — reused verbatim |
 
 **Do not reuse `BatteryIndicator` itself as a component** — it has no equivalent "level"/fill concept for a version string; build `UpdateVersionPill` as its own small view that borrows only the visual weight (compact, rounded, legible small text), per RESEARCH.md's explicit Don't-Hand-Roll guidance.
@@ -142,10 +142,10 @@ This phase touches only the collapsed-pill wing geometry (fixed pixel constants,
 | Update right width | 145pt (`wingsSize.width / 2`) | Existing constant, compact-pill side |
 | Wing left/right edge padding | 12px / 14px | Reused verbatim from `wings(for:)` throughout |
 | Version pill height | 16pt (new) | New value, multiple-of-4 rounding to nearest existing convention (BatteryIndicator body is 13pt; 16pt gives slightly more room for "v1.11"-length text without a fill bar) |
-| Version pill horizontal padding | 6pt | New value |
+| Version pill horizontal padding | 8pt | Standard 8-point scale value (revised from an earlier 6pt draft — 8pt is on the codebase's 4/8/16/24/32/48/64 scale; width auto-sizes to content, so the extra 2pt only adds room and cannot cause "v1.11"-length text to clip) |
 | Permission popover frame | `.frame(width: 280)`, `.padding(16)` | Reused verbatim from `osdPermissionExplanationView` |
 
-Exceptions: version pill's 16pt height and 6pt padding are new values not reused from an existing constant — flag for on-device tuning if "v1.11"-length strings don't fit comfortably, per this project's established sizing-iteration convention (Phases 18/20/21/23/25/26/32/33/51/52 all tuned dimensions post-implementation).
+Exceptions: version pill's 16pt height is a new value not reused from an existing constant — flag for on-device tuning if "v1.11"-length strings don't fit comfortably, per this project's established sizing-iteration convention (Phases 18/20/21/23/25/26/32/33/51/52 all tuned dimensions post-implementation). Horizontal padding (8pt) is no longer an exception — it is a standard spacing-scale value.
 
 ---
 
@@ -155,13 +155,13 @@ Exceptions: version pill's 16pt height and 6pt padding are new values not reused
 |------|------|--------|-------------|-------|
 | Wing icon glyph size | 13px | semibold | n/a (SF Symbol) | Both wings' icons |
 | Wing label | 12px | semibold (`.rounded` design) | 1.2 | "Caps Lock On"/"Caps Lock Off", "Update" — identical spec to every existing wing label |
-| Version pill text | 11px | bold (`.rounded` design, monospacedDigit) | 1.2 | "v1.11" — slightly heavier weight than the wing label so the number reads at a glance, matching `BatteryIndicator`'s own bold-digit precedent |
+| Version pill text | 11px | semibold (`.rounded` design, monospacedDigit) | 1.2 | "v1.11" — same weight as the wing labels/icons, kept legible via size + monospacedDigit rather than a heavier weight token |
 | Permission popover heading | 15px | semibold | default (system) | "Caps Lock HUD" |
 | Permission popover body | 12px | regular | 1.4 (`lineSpacing(12*0.4)`) | Explanation paragraph |
 
 Font family: San Francisco system font throughout, no exceptions.
 
-**Declared weights: semibold + regular — 2, per contract** (the version pill's "bold" is a SwiftUI `.bold` weight token layered for glanceability on a single small numeric string, same exception class as `BatteryIndicator`'s own `.bold` percentage text — not a third distinct weight introduced into the wing/label system).
+**Declared weights: semibold + regular — 2, per contract.** The version pill text uses semibold (matching every wing icon/label in this phase), not a separate bold token — `BatteryIndicator`'s own `.bold` percentage text is a pre-existing, unrelated component and is not reused or extended here.
 
 ---
 
@@ -229,6 +229,7 @@ Not applicable — native Swift/SwiftUI project, no shadcn or any component-regi
 - **`capsLockPermissionExplanationView` is a NEW popover, not a shared/generalized one with OSD's** — same permission bucket (Accessibility), same visual shape, but its own instance with Caps-Lock-specific copy, mirroring how Focus and OSD each have their own popover today despite structural similarity.
 - **Update HUD's tap target is the highest-risk item in this phase visually** (Pitfall 4) — it is the first wing since Phase 40's abandoned badge to have a non-universal tap action. Add an explicit on-device tap-reliability check (repeated taps across the wing's rendered area, zero click-through) before marking UPDATE-01 visually complete — this is a verification gate, not a redesign trigger.
 - **`UpdateVersionPill` is a new, small, standalone view** — do not attempt to parameterize `BatteryIndicator` to also handle a version-string mode; the fill-bar/percentage concept doesn't map cleanly and forcing it in risks destabilizing the already-proven Charging/Device battery displays.
+- **Version pill padding is 8pt (revised from an earlier 6pt draft)** — since the pill auto-sizes width to content, this only adds ~4pt of total width versus 6pt; on-device check "v1.11"-length text still during implementation, but there is no reason for the wider padding to cause any clipping the narrower value wouldn't already have avoided.
 - Both wings' fixed-white (never theme-accent) color choice is deliberate (matches Focus's D-11) — if a reviewer expects Phase 59-style per-element accent theming here, that's a mismatch with this spec, not a bug in the implementation.
 - Icon choices (`capslock.fill`, `arrow.triangle.2.circlepath`) are locked by this spec, not left to further discretion — `capslock.fill` was already used in Phase 59's Settings card copy, so reusing it here keeps the card and the live wing visually consistent.
 
