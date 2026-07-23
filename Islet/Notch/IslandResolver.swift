@@ -55,6 +55,38 @@ struct CalendarCountdownActivity: Equatable {
     let eventStart: Date
 }
 
+// Phase 59 / SETTINGS-04/05 (SC5) — Resolver-Priority Reference Table
+//
+// Documents the CURRENT precedence tiers exactly as implemented today, plus a reserved,
+// rank-TBD slot for each of the 8 new v1.10 activities Phases 60-67 will build. This is a
+// comment-only reference — zero new IslandPresentation/ActiveTransient cases are added by
+// this phase. Ranks stay named comments (not raw ints), matching the enum cases' own
+// trailing-comment convention below — new v1.10 cases slot in between existing named
+// ranks in their own phase, never renumbered here.
+//
+// Tier 0 — onboarding forced-flow: `.onboarding` never pre-empted by anything else.
+//
+// Tier 1 — ActiveTransient queue (collapsed pill), ranked:
+//   charging > device > focus (collapsed-only) > osd (collapsed-only)
+//
+// Tier 2 — isExpanded branch, ranked:
+//   pendingDrop (quickActionPicker) > selectedView (calendarExpanded/weatherExpanded/
+//   trayExpanded) > nowPlayingExpanded > home fallback (homeLastPlayed/homeEmpty)
+//
+// Tier 3 — non-expanded ambient, ranked:
+//   calendarCountdown (always wins) > launch-gated nowPlayingWings > idle
+//
+// Reserved slots for the 8 new v1.10 activities (best-guess placement per
+// 59-RESEARCH.md's Open Question 1 — each flagged below, unconfirmed):
+//   - Caps Lock (Phase 60)          — likely ActiveTransient tier, same pattern as Charging — rank TBD — confirm in that activity's own phase discussion
+//   - Download Progress (Phase 61)  — likely ambient or short-lived transient, presence+completion signal — rank TBD — confirm in that activity's own phase discussion
+//   - Timer/Pomodoro (Phase 62)     — persistent transient, generalizes ActiveTransient.isPersistent beyond Focus — rank TBD — confirm in that activity's own phase discussion
+//   - Meeting HUD (Phase 63)        — persistent transient, depends on Phase 62's generalization — rank TBD — confirm in that activity's own phase discussion
+//   - Quick Notes (Phase 64)        — likely no IslandPresentation case at all (menu-bar-only UI, never touches the pill) — rank TBD — confirm in that activity's own phase discussion
+//   - Quick Actions bar (Phase 65)  — relationship unclear, possibly an always-visible strip rather than a presentation case — rank TBD — confirm in that activity's own phase discussion
+//   - Menübar Overflow (Phase 66)   — likely no IslandPresentation case (menu-bar-only UI) — rank TBD — confirm in that activity's own phase discussion
+//   - Coding Progress (Phase 67)    — likely ambient tier, same shape as Calendar Countdown — rank TBD — confirm in that activity's own phase discussion
+
 // What the island renders. The expanded media health (D-12) rides on the
 // nowPlayingExpanded case's `healthy:` flag, kept orthogonal to the .none vs playing
 // snapshot — see NowPlayingPresentation.swift's header for why D-11 ≠ D-12.
