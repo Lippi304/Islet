@@ -89,6 +89,7 @@
 		921F5385399CF08B36043288 /* PowerActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76ADF16C067A181F295BA4C5 /* PowerActivity.swift */; };
 		945E7037D8F44BB922D79D41 /* SignatureHeading.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9C66C68BBF764EDA77D7F4 /* SignatureHeading.swift */; };
 		9470F8F6CC68D789DC5A7D9C /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7E1D30A74E9D358BA634B1 /* CalendarService.swift */; };
+		9535B1BBF5C5ABA313893DA4 /* DownloadCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA7BE7710326D61BFCAE0858 /* DownloadCoordinator.swift */; };
 		988EA78CF8B7C8884036E157 /* OnboardingViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA62CE81F6539C4490617038 /* OnboardingViewState.swift */; };
 		98F28BB61930892735C9F48A /* TrialManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 734F24D3CCE5D48060447B10 /* TrialManager.swift */; };
 		9924445F8465340818CC6973 /* BatteryIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEFCAF742543C37096D4F714 /* BatteryIndicator.swift */; };
@@ -116,6 +117,7 @@
 		D29EBA9C26F56C26B9E49CDE /* ShelfCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */; };
 		D4C67684455C828A20F0AF6B /* AudioOutputMonitorManualSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA15A9291849B26F80AE0A3 /* AudioOutputMonitorManualSpike.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
+		D7F2FFB86450FE73193492BB /* DownloadCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF3780F57677A92A7657FF41 /* DownloadCoordinatorTests.swift */; };
 		DB506F16085ECD1612616899 /* EqualizerBarsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */; };
 		DE3C88D60447745B95BF4F52 /* OSDInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A9A9669B73F37C9B93F564 /* OSDInterceptor.swift */; };
 		E1D44F4C77B71284EC1D4C50 /* AudioOutputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB608FBDE6554EFA2A955E48 /* AudioOutputMonitor.swift */; };
@@ -262,6 +264,7 @@
 		AB608FBDE6554EFA2A955E48 /* AudioOutputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputMonitor.swift; sourceTree = "<group>"; };
 		AEB2764F70C53D7D72B4AC4A /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivityTests.swift; sourceTree = "<group>"; };
+		AF3780F57677A92A7657FF41 /* DownloadCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadCoordinatorTests.swift; sourceTree = "<group>"; };
 		B94FF8FB96D00B8442591E7B /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
 		BAA15A9291849B26F80AE0A3 /* AudioOutputMonitorManualSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputMonitorManualSpike.swift; sourceTree = "<group>"; };
 		BB884D12561F8F8110F1DB63 /* FocusActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusActivity.swift; sourceTree = "<group>"; };
@@ -283,6 +286,7 @@
 		E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingPresentationTests.swift; sourceTree = "<group>"; };
 		E72C119AE687341C28E9786C /* NSScreen+Notch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+Notch.swift"; sourceTree = "<group>"; };
 		E87941F5DC2AA7BA8674AB0C /* DeviceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCoordinator.swift; sourceTree = "<group>"; };
+		EA7BE7710326D61BFCAE0858 /* DownloadCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadCoordinator.swift; sourceTree = "<group>"; };
 		EAD06AEB3294BABCAE1B7990 /* ShelfViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfViewState.swift; sourceTree = "<group>"; };
 		ECC50D5D14612F7A3B39F683 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		ECDB797EE481836D5DD878FD /* CalendarGlance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlance.swift; sourceTree = "<group>"; };
@@ -341,6 +345,7 @@
 				A0EC5F0178A64AECEBD91C8C /* DiagnosticReportTests.swift */,
 				46BB1E7E03C2D400EF6EDBB5 /* DisplayResolverTests.swift */,
 				D783322BFD3B2A860BF8E120 /* DownloadActivityTests.swift */,
+				AF3780F57677A92A7657FF41 /* DownloadCoordinatorTests.swift */,
 				ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */,
 				1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */,
 				6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */,
@@ -501,6 +506,7 @@
 				E87941F5DC2AA7BA8674AB0C /* DeviceCoordinator.swift */,
 				FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */,
 				2636C7A97DDE803D917532AD /* DownloadActivity.swift */,
+				EA7BE7710326D61BFCAE0858 /* DownloadCoordinator.swift */,
 				63FACDF43375E1DE88646B05 /* DragDropSupport.swift */,
 				C75C7435C3C840FC929C873C /* DropInterceptTap.swift */,
 				BB884D12561F8F8110F1DB63 /* FocusActivity.swift */,
@@ -711,6 +717,7 @@
 				A5CBE92E220E6C6C2FC10FF1 /* Diagnostics.swift in Sources */,
 				C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */,
 				8E1D60A2E7300A0620A1E5FD /* DownloadActivity.swift in Sources */,
+				9535B1BBF5C5ABA313893DA4 /* DownloadCoordinator.swift in Sources */,
 				AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */,
 				73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */,
 				B2ADB08E18FABDBA8931EA42 /* FocusActivity.swift in Sources */,
@@ -782,6 +789,7 @@
 				83ACBA698B65021287F454A4 /* DiagnosticReportTests.swift in Sources */,
 				FD503D3A7D28F74B8D86C930 /* DisplayResolverTests.swift in Sources */,
 				52D451CE0495741C638844F9 /* DownloadActivityTests.swift in Sources */,
+				D7F2FFB86450FE73193492BB /* DownloadCoordinatorTests.swift in Sources */,
 				6B351B58889CA7C8B7C93511 /* DragApproachGeometryTests.swift in Sources */,
 				B8DE8D9FDE9ABC0AA193D43C /* DragDropSupportTests.swift in Sources */,
 				DB506F16085ECD1612616899 /* EqualizerBarsTests.swift in Sources */,
