@@ -204,6 +204,19 @@ final class NotchWindowController {
     // nonisolated deinit can call powerMonitor?.stop() (mirroring graceWorkItem teardown).
     private var powerMonitor: PowerSourceMonitor?
 
+    // Phase 60 / CAPS-01 (Plan 02) — the LIVE global Caps Lock modifier-key monitor.
+    // Constructed + started in start() ONLY when the Caps Lock toggle is on (mirrors
+    // focusModeMonitor's toggle-gated idempotent-start discipline); CapsLockMonitor.start()
+    // itself additionally no-ops when Accessibility isn't trusted. Held as a plain stored
+    // property so the nonisolated deinit can call its stop().
+    private var capsLockMonitor: CapsLockMonitor?
+
+    // Phase 60 / UPDATE-01 (Plan 02) — internal (not private): AppDelegate sets this
+    // cross-file right after constructing the controller, mirroring notchController's own
+    // cross-file access-level precedent. The Update wing's tap reaches Sparkle's real
+    // checkForUpdates() through this closure via triggerUpdateInstall().
+    var onUpdateInstallRequested: (() -> Void)?
+
     // Phase 4 / NOW-01/02/03 (Plan 04) — the LIVE MediaRemote bridge that drives
     // nowPlayingState. Constructed + started in start() (so the [weak self] callbacks bind a
     // fully-initialised self) and held as a plain stored property so the nonisolated deinit can
@@ -272,6 +285,10 @@ final class NotchWindowController {
     // Phase 39 / HUD-03/HUD-04 (D-10) — deliberately separate from the shared activityDuration
     // above, never consolidated: Volume/Brightness dismisses faster than Charging/Device/Focus.
     private let osdActivityDuration: TimeInterval = 1.5
+    // Phase 60 / CAPS-01 (Plan 02) — Caps Lock's own tuning knob, own named constant (not a
+    // reused alias of osdActivityDuration even though the value coincidentally matches — the
+    // "~1-2s" wording is Caps Lock's own requirement, not OSD's).
+    private let capsLockActivityDuration: TimeInterval = 1.5
 
     // Phase 10 / D-12 — the best-effort ONE-SHOT proactive expiry re-check, mirroring the exact
     // property + cancel-then-reschedule + deinit-cancel idiom already used 4x in this file
@@ -560,6 +577,13 @@ final class NotchWindowController {
         // in Plan 38-06's SettingsView code, at the moment the toggle is switched on).
         if activityEnabled(ActivitySettings.focusKey) && FocusModeMonitor.isAuthorized { startFocusModeMonitor() }
 
+        // Phase 60 / CAPS-01 (D-09): toggle-gated like Focus, but with no extra
+        // isAuthorized-equivalent condition — CapsLockMonitor.start() itself no-ops when
+        // Accessibility isn't trusted, so this launch gate only needs the Settings toggle.
+        // Update HUD needs NO monitor start (event-driven off Sparkle's existing callback) —
+        // only the guard inside handleUpdateAvailable(version:) itself.
+        if activityEnabled(ActivitySettings.capsLockKey) { startCapsLockMonitor() }
+
         // Phase 41 / HUD-08 (D-03): default-ON toggle. Bug fix (found via a clean-TCC-state
         // relaunch test): startCalendarCountdownMonitor() -> CalendarCountdownMonitor ->
         // CalendarService.fetchUpcomingRaw(_:) DOES call requestFullAccessToEvents() — the
@@ -722,6 +746,15 @@ final class NotchWindowController {
         guard focusModeMonitor == nil else { return }
         let monitor = FocusModeMonitor { [weak self] isFocused in self?.handleFocusChange(isFocused) }
         focusModeMonitor = monitor
+        monitor.start()
+    }
+
+    // Phase 60 / CAPS-01 (Plan 02) — idempotent start, mirrors startFocusModeMonitor()'s
+    // exact shape.
+    private func startCapsLockMonitor() {
+        guard capsLockMonitor == nil else { return }
+        let monitor = CapsLockMonitor { [weak self] isOn in self?.handleCapsLockChange(isOn) }
+        capsLockMonitor = monitor
         monitor.start()
     }
 
@@ -2092,6 +2125,52 @@ final class NotchWindowController {
         }
     }
 
+    // Phase 60 / CAPS-01 (Plan 02) — the live Caps Lock toggle lands here (already on main;
+    // the monitor's callback hopped). Unlike Focus, there is no "off = no-op" branch: D-03
+    // requires a HUD for both directions, so this always enqueues/preempts. Mirrors
+    // handleOSDKeyPress's preempt-if-focus-else-enqueue shape (Interfaces block,
+    // NotchWindowController.swift:2170-2195 excerpt) — never updateHead (no in-place scrub
+    // case for Caps Lock).
+    private func handleCapsLockChange(_ isOn: Bool) {
+        let activity = capsLockActivity(isOn: isOn)
+        let changed: Bool
+        if case .focus = transientQueue.head {
+            changed = transientQueue.preempt(.capsLock(activity))
+        } else {
+            changed = transientQueue.enqueue(.capsLock(activity))
+        }
+        if changed {
+            presentTransientChange()
+        }
+    }
+
+    // Phase 60 / UPDATE-01 (Plan 02) — Sparkle's didFindValidUpdate lands here via
+    // AppDelegate (already on main). Internal (not private): AppDelegate calls this
+    // cross-file, mirroring spikeLikeCurrentTrack()'s existing internal access level. Guards
+    // the Settings toggle first (SC4) — there is no monitor to gate this activity, so this
+    // guard is the ONLY enforcement point. Same preempt-if-focus-else-enqueue shape as
+    // handleCapsLockChange.
+    func handleUpdateAvailable(version: String) {
+        guard activityEnabled(ActivitySettings.updateHudKey) else { return }
+        let activity = UpdateActivity(version: version)
+        let changed: Bool
+        if case .focus = transientQueue.head {
+            changed = transientQueue.preempt(.updateAvailable(activity))
+        } else {
+            changed = transientQueue.enqueue(.updateAvailable(activity))
+        }
+        if changed {
+            presentTransientChange()
+        }
+    }
+
+    // Phase 60 / UPDATE-01 (Plan 02) — the Update wing's tap target (wired via onUpdateTap in
+    // makeRootView) reaches here, which forwards to AppDelegate's own real checkForUpdates()
+    // via the closure it set right after constructing this controller.
+    private func triggerUpdateInstall() {
+        onUpdateInstallRequested?()
+    }
+
     // Phase 41 / HUD-08 — the live Calendar Countdown change lands here (already on main; the
     // monitor's callback hopped). This is the ENTIRE function body: it never touches
     // transientQueue.enqueue/preempt, flushTransients, or scheduleActivityDismiss (Pitfall 5 —
@@ -2234,6 +2313,7 @@ final class NotchWindowController {
         // computation applies correctly to whatever category becomes the NEW head after
         // advance() too.
         let duration: TimeInterval = {
+            if case .capsLock = head { return capsLockActivityDuration }
             if case .osd = head { return osdActivityDuration }
             return activityDuration
         }()
@@ -2286,6 +2366,13 @@ final class NotchWindowController {
                       viewSwitcherState: viewSwitcherState,
                       calendarViewState: calendarViewState,
                       onClick: { [weak self] in self?.handleClick() },
+                      // Phase 60 / UPDATE-01 (Plan 02) — the Update wing's own tap override
+                      // (wingsShape's onTap, Plan 60-04) triggers Sparkle's install flow
+                      // instead of the universal expand-to-Home onClick. Positioned right after
+                      // onClick to match NotchPillView's declared property order (onClick,
+                      // onUpdateTap, onSecondaryTap, ...) — Swift call-site argument order must
+                      // match the initializer's parameter order.
+                      onUpdateTap: { [weak self] in self?.triggerUpdateInstall() },
                       onSecondaryTap: { [weak self] in self?.handleSecondaryTap() },
                       onResumeTap: { [weak self] in self?.handleResumeTap() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
@@ -2355,6 +2442,16 @@ final class NotchWindowController {
             flushTransients(.focus)
         }
 
+        // Phase 60 / CAPS-01 — Caps Lock. Mirrors the Focus toggle-on/off block exactly.
+        // Update HUD needs no block here — nothing to start/stop, its only gate is the guard
+        // inside handleUpdateAvailable(version:).
+        if activityEnabled(ActivitySettings.capsLockKey) {
+            startCapsLockMonitor()
+        } else if capsLockMonitor != nil {
+            capsLockMonitor?.stop(); capsLockMonitor = nil
+            flushTransients(.capsLock)
+        }
+
         // Phase 41 / HUD-08 — Calendar Countdown. Mirrors the Charging/Devices toggle-off
         // pattern exactly: stop the monitor, release it, clear the ambient state, re-render.
         // Bug fix: gated behind !isOnboardingActive, same reason as the Devices branch above —
@@ -2421,12 +2518,13 @@ final class NotchWindowController {
     // Device splash already stands). `oldHead` is captured BEFORE removeAll(where:) runs; the
     // dismiss-timer cancel/re-arm block below is now gated on `transientQueue.head != oldHead`, so
     // an untouched standing splash's already-running ~3s countdown is left exactly as it was.
-    private enum TransientCategory { case charging, device, focus, osd }
+    private enum TransientCategory { case charging, device, focus, osd, capsLock, updateAvailable }
     private func flushTransients(_ category: TransientCategory) {
         let oldHead = transientQueue.head
         let matches: (ActiveTransient) -> Bool = { t in
             switch (t, category) {
-            case (.charging, .charging), (.device, .device), (.focus, .focus), (.osd, .osd): return true
+            case (.charging, .charging), (.device, .device), (.focus, .focus), (.osd, .osd),
+                 (.capsLock, .capsLock), (.updateAvailable, .updateAvailable): return true
             default: return false
             }
         }
@@ -2441,6 +2539,11 @@ final class NotchWindowController {
         // (D-06), but the exhaustive switch must compile. No separate @Published model to clear
         // -- OSD's state lives entirely in the resolver's IslandPresentation (mirrors .focus).
         case .osd: break
+        // Phase 60 / CAPS-01 / UPDATE-01 (Plan 02) — no separate @Published model to clear for
+        // either, mirroring .focus/.osd's own "state lives entirely in the resolver's
+        // IslandPresentation" pattern.
+        case .capsLock: break
+        case .updateAvailable: break
         }
         guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
@@ -2800,6 +2903,10 @@ final class NotchWindowController {
         // Phase 41 / HUD-08: tear down the Calendar Countdown monitor — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
         calendarCountdownMonitor?.stop()
+
+        // Phase 60 / CAPS-01: tear down the global .flagsChanged monitor — mirrors
+        // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
+        if let capsLockMonitor { capsLockMonitor.stop() }
 
         // Phase 39 / HUD-03/HUD-04: tear down the OSD key-press event tap — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
