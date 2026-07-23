@@ -79,8 +79,8 @@ Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plu
 
 ### Settings
 
-- [ ] **SETTINGS-04**: The Activities-related Settings sections are replaced by one Droppy-style grid of cards — one card per Live Activity (existing + new), each showing a mini live-preview of that activity's pill, its title, a one-line description, and an on/off toggle
-- [ ] **SETTINGS-05**: Every new Live Activity introduced this milestone defaults OFF; every already-shipped activity's existing default (mostly ON, Focus Mode OFF) is preserved exactly as-is by the migration — no existing user's persisted toggle state silently flips
+- [x] **SETTINGS-04**: The Activities-related Settings sections are replaced by one Droppy-style grid of cards — one card per Live Activity (existing + new), each showing a mini live-preview of that activity's pill, its title, a one-line description, and an on/off toggle
+- [x] **SETTINGS-05**: Every new Live Activity introduced this milestone defaults OFF; every already-shipped activity's existing default (mostly ON, Focus Mode OFF) is preserved exactly as-is by the migration — no existing user's persisted toggle state silently flips
 
 ### Caps Lock
 
@@ -212,8 +212,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
-| SETTINGS-04 | Phase 59 | Pending |
-| SETTINGS-05 | Phase 59 | Pending |
+| SETTINGS-04 | Phase 59 | Complete |
+| SETTINGS-05 | Phase 59 | Complete |
 | CAPS-01 | Phase 60 | Pending |
 | UPDATE-01 | Phase 60 | Pending |
 | DL-01 | Phase 61 | Pending |

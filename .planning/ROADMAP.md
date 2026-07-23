@@ -156,7 +156,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 **Milestone Goal:** Add a suite of new Live Activities/HUDs inspired by Droppy and Ice, plus a Droppy-style Settings grid overview to manage them all — most new activities default OFF rather than opinionated-on. Started 2026-07-23 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision).
 
-- [ ] **Phase 59: Settings-Redesign** - Droppy-style Live-Activity card grid replaces ad-hoc Activities settings; new-activity default-OFF convention locked in
+- [x] **Phase 59: Settings-Redesign** - Droppy-style Live-Activity card grid replaces ad-hoc Activities settings; new-activity default-OFF convention locked in (completed 2026-07-23)
 - [ ] **Phase 60: Caps Lock HUD + Update-Activity Restyle** - Cheapest new-activity pairing, proves the Settings-grid card pattern
 - [ ] **Phase 61: Download-Progress** - First FSEvents-based watcher; live download presence + completion signal
 - [ ] **Phase 62: Timer/Pomodoro** - Countdown/Pomodoro HUD; generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode
@@ -998,7 +998,7 @@ Plans:
 
 **Wave 2** *(blocked on 59-01)*
 
-- [ ] 59-02-PLAN.md — SettingsView.swift activitiesSection rebuilt as the categorized 15-card grid + on-device UAT checkpoint
+- [x] 59-02-PLAN.md — SettingsView.swift activitiesSection rebuilt as the categorized 15-card grid + on-device UAT checkpoint
 
 ### Phase 60: Caps Lock HUD + Update-Activity Restyle
 
