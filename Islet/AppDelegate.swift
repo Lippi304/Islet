@@ -148,6 +148,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = NotchWindowController()
         controller.start(isFirstLaunch: isFirstLaunch)
         self.notchController = controller
+        // Phase 60 / UPDATE-01 (Plan 02) — the Update wing's tap reaches Sparkle's real
+        // checkForUpdates() through this closure.
+        controller.onUpdateInstallRequested = { [weak self] in self?.checkForUpdates() }
 
         // Phase 58 / CLIP-01/04 — seed in-memory history from the encrypted on-disk store
         // BEFORE the menu can ever be opened, then start the real (non-DEBUG) monitor so
@@ -270,6 +273,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugSpikeLikeCurrentTrack), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Trigger Automation Prompt",
                           action: #selector(debugSpikeTriggerAutomationPrompt), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Simulate Update Available",
+                          action: #selector(debugSpikeSimulateUpdateAvailable), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Seed Clipboard Test Data",
                           action: #selector(debugSpikeSeedClipboardData), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Print Clipboard Reload Result",
@@ -316,6 +321,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor @objc private func debugSpikeTriggerAutomationPrompt() {
         notchController?.spikeTriggerAutomationPrompt()
+    }
+
+    // Phase 60 / UPDATE-01 (Plan 02) — the only way to exercise the Update HUD on-device
+    // without a real newer Sparkle appcast version, needed by Plan 60-05's on-device
+    // checkpoint. Mirrors debugSpikeTriggerAutomationPrompt()'s exact @MainActor @objc private
+    // shape. #if DEBUG-scoped — absent from Release builds.
+    @MainActor @objc private func debugSpikeSimulateUpdateAvailable() {
+        notchController?.handleUpdateAvailable(version: "1.99")
     }
 
     // Phase 56 spike hooks — see 56-02-SUMMARY.md for the on-device verdict.
@@ -389,6 +402,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         updateDotView?.isHidden = false
+        // Phase 60 / UPDATE-01 (Plan 02, D-02) — additive second signal off the same callback;
+        // the menu-bar dot is not removed.
+        notchController?.handleUpdateAvailable(version: item.displayVersionString)
     }
 }
 
