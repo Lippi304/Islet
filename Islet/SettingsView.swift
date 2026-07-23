@@ -50,6 +50,10 @@ struct SettingsView: View {
     // in a future macOS/permission-tier change; see 39-06-SUMMARY.md for the full no-op note.
     @AppStorage(ActivitySettings.osdSuppressionKey) private var osdSuppressionEnabled = false
     @State private var showOSDPermissionExplanation = false
+    // Phase 60 / CAPS-01 — mirrors Focus/OSD's own explanation-popover shape exactly:
+    // Caps Lock detection needs Accessibility access too, same permission bucket as OSD,
+    // but gets its own standalone popover/copy (RESEARCH.md Pitfall 2 / UI-SPEC contract).
+    @State private var showCapsLockPermissionExplanation = false
     // Phase 40 / HUD-06 (D-11/D-12) — default true: the one deliberate exception among the
     // Activities toggles (besides osdSuppression's off-default), since this gates no system
     // permission, just a background network check.
@@ -195,7 +199,8 @@ struct SettingsView: View {
             ActivityCardData(id: "capsLock", title: "Caps Lock",
                               description: "Flashes an on/off indicator whenever Caps Lock is toggled.",
                               icon: "capslock.fill", iconColor: .secondary,
-                              isOn: $capsLockEnabled, isNew: true, onOptionsTap: nil),
+                              isOn: $capsLockEnabled, isNew: true,
+                              onOptionsTap: { showCapsLockPermissionExplanation = true }),
             ActivityCardData(id: "downloadProgress", title: "Download Progress",
                               description: "Shows a live indicator while a file downloads to your Mac.",
                               icon: "arrow.down.circle.fill", iconColor: .secondary,
@@ -405,6 +410,9 @@ struct SettingsView: View {
                     }
                     .popover(isPresented: $showOSDPermissionExplanation) {
                         osdPermissionExplanationView
+                    }
+                    .popover(isPresented: $showCapsLockPermissionExplanation) {
+                        capsLockPermissionExplanationView
                     }
                 categorySection(title: "Medien", cards: mediaCards)
                 categorySection(title: "Produktivität", cards: productivityCards)
@@ -704,6 +712,36 @@ struct SettingsView: View {
                     NSWorkspace.shared.open(URL(string:
                         "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
                     showOSDPermissionExplanation = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
+    }
+
+    // Phase 60 / CAPS-01 (T-60-09) — Caps Lock's own explanation popover, cloning
+    // osdPermissionExplanationView's exact structure/button shape (RESEARCH.md UI-SPEC:
+    // "own instance, never a shared generic popover" — Focus/OSD precedent). Detection
+    // needs Accessibility access the same way OSD suppression does, but Caps Lock has no
+    // health-check timer to confirm a grant later, so like OSD this button's job ends at
+    // opening the pane. D-06: declining leaves the toggle ON — never revert capsLockEnabled.
+    private var capsLockPermissionExplanationView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Caps Lock HUD")
+                .font(.system(size: 15, weight: .semibold))
+            Text("Islet needs Accessibility access to detect Caps Lock. Islet only observes modifier-key state changes — it never reads, modifies, or sends anything else on your Mac.")
+                .font(.system(size: 12))
+                .lineSpacing(12 * 0.4)
+            HStack {
+                Button("Not Now") {
+                    showCapsLockPermissionExplanation = false
+                }
+                Spacer()
+                Button("Open System Settings") {
+                    NSWorkspace.shared.open(URL(string:
+                        "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+                    showCapsLockPermissionExplanation = false
                 }
                 .keyboardShortcut(.defaultAction)
             }
