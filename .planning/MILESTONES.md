@@ -1,5 +1,20 @@
 # Milestones
 
+## v1.9 Clipboard History (Shipped: 2026-07-23)
+
+**Phases completed:** 4 phases (55-58), 7 plans, 17 tasks, 68 phase commits, 61 files changed (+8.9k/-630 lines)
+
+**Key accomplishments:**
+
+- Pure Foundation-only `ClipboardItem`/`ClipboardStore` (append/evict-at-cap FIFO/dedupe-move-to-top/clear), fully unit-tested, zero AppKit/`NSPasteboard` coupling.
+- `ClipboardFileStore` + `KeychainClipboardKeyStore`: `CryptoKit` AES-GCM encrypted JSON index + per-image files under Application Support, device-only Keychain key — on-device kill-and-restart confirmed identical reload, with unreadable ciphertext on real disk.
+- `ClipboardMonitor`: `changeCount`-gated pasteboard polling with concealed/transient-type filtering and a self-capture guard, verified on real hardware across text and image capture plus the one-time pasteboard-access explanation.
+- `AppDelegate` `NSMenuDelegate` wiring: clipboard history as a flyout submenu (D-15, revised live on-device for more visible entries), click-to-restore, Cmd+0-9 via a hybrid keyDown monitor, and "Delete All History" with a destructive confirmation dialog and real on-disk delete.
+- On-device UAT found and fixed two real bugs: zero-size `NSHostingView` rows inside `NSMenuItem.view` (fixed with an explicit frame) and a stuck hover highlight from SwiftUI's `.onHover` missing `mouseExited` during `NSMenu` tracking (fixed via an `NSTrackingArea`-backed container).
+- Full menu-bar clipboard history replaces the user's third-party CopyClip tool — all 7/7 requirements (CLIP-01..05, PRIV-01/02) shipped and confirmed on real hardware.
+
+---
+
 ## v1.8 Settings Redesign & Island Navigation (Shipped: 2026-07-21)
 
 **Phases completed:** 3 phases (51-53), 7 plans, 17 tasks, 48 phase commits, 48 files changed (+6.3k/-229 lines)

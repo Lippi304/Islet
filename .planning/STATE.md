@@ -361,6 +361,19 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 | uat_gaps | Phase 28 | partial, 2 pending — pre-existing carry from v1.4 (see v1.4 close note above), unrelated to v1.8 scope |
 | verification_gaps | Phase 20, Phase 27, Phase 28 | human_needed — pre-existing/unrelated to v1.8 scope, carried from earlier milestones |
 
+**v1.9 close (2026-07-23):** `gsd-sdk query audit-open` flagged 22 items; user chose "Acknowledge all" and proceed. None belong to v1.9's own scope (Phases 55-58, all shipped and on-device UAT'd):
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug_session | knowledge-base | unknown — untriaged, no further detail available; acknowledged rather than investigated (same as v1.6/v1.8 close) |
+| debug_session | old-islet-instance-stays-open | awaiting_human_verify — hypothesis CONFIRMED, fix already build-verified, on-device Xcode stop/restart re-check still deferred (same as v1.8 close) |
+| quick_task | 260705-l4i, 260705-mzj, 260708-nnu, 260708-nzj, 260708-ol8, 260708-u47, 260709-glz, 260709-gvy, 260714-3k6, 260715-vsd | missing (same recurring tool status-detection false positive as prior milestone closes — all 10 have completed PLAN.md + SUMMARY.md on disk) |
+| todos | 2026-07-19-calendar-month-grid-polish, 2026-07-19-island-briefly-disappears-during-click-through, 2026-07-19-quick-action-disabled-state-has-no-controller-gate | pending — pre-existing UI polish/bug notes, unrelated to v1.9 scope |
+| uat_gaps | Phase 21, Phase 27 | resolved, 0 pending scenarios — not real open work |
+| uat_gaps | Phase 28 | partial, 2 pending — pre-existing carry from v1.4, unrelated to v1.9 scope |
+| verification_gaps | Phase 20, Phase 27, Phase 28 | human_needed — pre-existing/unrelated to v1.9 scope, carried from earlier milestones |
+| verification_gaps | Phase 54 | gaps_found — Phase 54 (Permissions Overview & Onboarding Replay) is not part of any milestone yet; its own 54-04 on-device UAT checkpoint is still pending, unrelated to v1.9 |
+
 ## Session Continuity
 
 Last session: 2026-07-23T08:09:23.237Z
@@ -369,7 +382,7 @@ Resume file: None
 
 ## Operator Next Steps
 
-- **v1.9 (Clipboard History) roadmap created 2026-07-22.** 4 phases (55-58), 7/7 requirements mapped (100% coverage), following research's explicit build-order recommendation. Left open in parallel with v1.4, v1.5, and v1.7 (explicit user decision, consistent with prior milestone precedent). Next: `/gsd:discuss-phase 55` before planning.
+- **v1.9 (Clipboard History) SHIPPED 2026-07-23.** All 4 phases (55-58) archived to `.planning/milestones/v1.9-ROADMAP.md`/`.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped. v1.4, v1.5, and v1.7 all remain open in parallel — pick one back up, or start a fresh milestone with `/gsd-new-milestone`.
 - **Phase 54 decision-coverage gate overridden (2026-07-22).** `check.decision-coverage-plan` flagged D-01 through D-11 as not cited inside any plan's `must_haves.truths` block (only D-12/D-13 are). Manual review confirmed all 13 decisions ARE implemented and referenced in plan task bodies/acceptance criteria (grep-verified, and gsd-plan-checker's semantic review independently confirmed all 13 decisions correctly implemented) — user chose "Proceed anyway" since this is a must_haves-phrasing gap, not a missing feature. Re-surface at `/gsd:verify-work 54` if in doubt.
 - **Phase 54 gap-closure plan (54-04-PLAN.md) created 2026-07-22** to close 54-VERIFICATION.md's 2 FAILED truths (gaps_found, 8/11). Re-running `check.decision-coverage-plan` against the phase directory (now including 54-04) re-surfaced the same D-01..D-11 override above — 54-04 doesn't touch any of those original-feature decisions, it only fixes CR-01 (Bluetooth grant bypassing the Devices toggle), CR-02 (Location grant not reaching `startLocationOnce()`), CR-03 (`replayOnboarding()` missing `updateVisibility()`), and WR-01 (Focus grant callback discarded). Passed plan-checker verification in iteration 2 (0 blockers, 0 warnings) with an added on-device checkpoint covering all 4 fixes at runtime. Next: `/gsd:execute-phase 54 --gaps-only`.
 - **v1.8 (Settings Redesign & Island Navigation) SHIPPED 2026-07-21.** All 3 phases (51-53) archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`. 6/6 requirements shipped. Start a fresh milestone for new work with `/gsd-new-milestone` — but note v1.4, v1.5, and v1.7 all remain open in parallel below; picking those back up does not require a new milestone.

@@ -14,7 +14,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Current State
 
-**v1.9 Clipboard History shipped 2026-07-23** (Phases 55-58, see `.planning/milestones/v1.9-ROADMAP.md` once archived). 4 of 4 v1.9 requirements (CLIP-01/02/03/04/05, PRIV-01/02) shipped and on-device verified. Islet's menu-bar dropdown now has a "Clipboard History" flyout submenu (revised live during Phase 58's on-device UAT from the originally-planned inline list, D-15 REVISED) listing recent text/image copies most-recent-first, click-to-restore with no auto-paste, Cmd+0-9 instant restore via a hybrid keyDown monitor (works even before the submenu is opened), and a destructive-confirm "Delete All History" that really deletes on disk. History persists AES-GCM-encrypted at rest (Phase 56) and the underlying `ClipboardMonitor` correctly excludes password-manager concealed-type copies (Phase 57). Two real on-device-only bugs (invisible menu rows from a missing `NSHostingView` frame, stuck SwiftUI hover state) were found and fixed during Phase 58 UAT — neither was catchable by the build or unit tests.
+**v1.9 Clipboard History shipped 2026-07-23** (Phases 55-58, see `.planning/milestones/v1.9-ROADMAP.md`). 7 of 7 v1.9 requirements (CLIP-01/02/03/04/05, PRIV-01/02) shipped and on-device verified. Islet's menu-bar dropdown now has a "Clipboard History" flyout submenu (revised live during Phase 58's on-device UAT from the originally-planned inline list, D-15 REVISED) listing recent text/image copies most-recent-first, click-to-restore with no auto-paste, Cmd+0-9 instant restore via a hybrid keyDown monitor (works even before the submenu is opened), and a destructive-confirm "Delete All History" that really deletes on disk. History persists AES-GCM-encrypted at rest (Phase 56) and the underlying `ClipboardMonitor` correctly excludes password-manager concealed-type copies (Phase 57). Two real on-device-only bugs (invisible menu rows from a missing `NSHostingView` frame, stuck SwiftUI hover state) were found and fixed during Phase 58 UAT — neither was catchable by the build or unit tests.
 
 **v1.8 Settings Redesign & Island Navigation shipped 2026-07-21** (Phases 51-53, see `.planning/milestones/v1.8-ROADMAP.md`). 6 of 6 v1.8 requirements shipped and on-device verified. Settings is now a scrollable 7-section sidebar (Activities/Appearance/Fullscreen/Weather/Diagnostics/Workspace/About), fixing the Weather/Diagnostics scroll-cutoff bug. Users can opt into a compact top-edge switcher layout (4 icons flanking the camera cutout, user-configurable left/right placement) as an alternative to the default below-island pill. Hovering the idle island after a track has played this session now previews it (album art + a static play glyph, superseded from an originally-planned bouncing-equalizer visual after on-device UAT found animated bars misleading when nothing was actually playing) and clicking it resumes playback via the existing transport call, with clear feedback when resume genuinely isn't possible.
 
@@ -30,7 +30,7 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-v1.9 (Clipboard History) started 2026-07-22 (see Milestone In Progress below) — v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel and are candidates to pick back up: v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused mid-milestone (Phase 49 Favorite/Like spike aborted after weak on-device results, Phase 50 undecided; Phase 46 Calendar Quick-Add Improvements also still open). Other standing candidates for a future milestone: a countdown timer, gesture-based swipe navigation, Animation Speed presets (ARCH-P1), alternate app icon variants (still Out of Scope below until picked up), and Phase 49/50's Favorite/Like feature decision.
+v1.9 (Clipboard History) shipped 2026-07-23 — v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel and are candidates to pick back up: v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused mid-milestone (Phase 49 Favorite/Like spike aborted after weak on-device results, Phase 50 undecided; Phase 46 Calendar Quick-Add Improvements also still open). Other standing candidates for a future milestone: a countdown timer, gesture-based swipe navigation, Animation Speed presets (ARCH-P1), alternate app icon variants (still Out of Scope below until picked up), and Phase 49/50's Favorite/Like feature decision.
 
 ## Milestone In Progress (Parallel): v1.5 (Home Focus & Widget Redesign)
 
@@ -114,11 +114,10 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 
 </details>
 
-## Milestone In Progress (Parallel): v1.9 (Clipboard History)
+<details>
+<summary>v1.9 Clipboard History — original scope (shipped 2026-07-23)</summary>
 
 **Goal:** Islet replaces the user's third-party CopyClip tool — clicking the menu-bar status icon shows a clipboard history of recent text and image copies, alongside the existing Settings/Check for Updates/Quit entries.
-
-**Status:** Shipped 2026-07-23 — all 4 phases (55-58) complete, 4/4 requirements (CLIP-01/02/03/04/05, PRIV-01/02) on-device verified. Not yet formally archived to `.planning/milestones/v1.9-ROADMAP.md` (run `/gsd-complete-milestone` when ready). Phase 58 (Menu Wiring & UI Assembly) closed with a live on-device design amendment (D-15 REVISED — flyout submenu instead of inline list) and two on-device-only bugs found and fixed; see Requirements → Validated above for the full breakdown.
 
 **Target features:**
 - Menu-bar status-item dropdown gains a clipboard history section listing the last ~20-30 copied items (text and images), oldest entries automatically evicted once the cap is reached.
@@ -132,6 +131,10 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 - Reference: user's installed CopyClip app (screenshot captured during milestone discussion) — status-icon dropdown listing recent clips by preview text, `⌘0`-`⌘9` quick-select, "Delete All History" and "Preferences…" entries below the list.
 - This is additive to the existing menu-bar status item (Settings…/Check for Updates/Quit from Phase 0/40) — explicitly NOT a new Island/notch view or switcher tab (user confirmed during discussion).
 - Needs its own pasteboard-monitoring seam (likely polling `NSPasteboard.general.changeCount`, matching how `DragApproachDetector` already polls pasteboard state for drag detection) — no existing subsystem does this today.
+
+**Outcome:** 7/7 requirements shipped. Phase 58 (Menu Wiring & UI Assembly) closed with a live on-device design amendment (D-15 REVISED — flyout submenu instead of an inline list, for more visible entries at once) and two on-device-only bugs found and fixed (zero-size menu rows, stuck hover highlight). See Requirements → Validated above for the full per-phase breakdown and `.planning/milestones/v1.9-ROADMAP.md` for the archived roadmap.
+
+</details>
 
 ## Requirements
 
@@ -340,10 +343,19 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 - [x] Clicking the preview calls the existing `togglePlayPause()` transport directly, in place (no expansion to Home), with an inferred-failure timeout showing "Wiedergabe nicht möglich" when resume genuinely isn't possible — confirmed on-device that `togglePlayPause()` resumes a merely-paused session but not a fully-quit one, for both Spotify and Apple Music. (Phase 53 — RESUME-02)
 - **Superseded mid-UAT (D-02):** the preview's right slot was originally spec'd as bouncing `EqualizerBars` identical to the live-playing glance; on real hardware, animated bars while nothing was actually playing read as misleading, so it now shows a static `play.fill` glyph instead. Confirmed on-device (Debug + Release) after the fix. (Phase 53)
 
+**Clipboard Data Model + Store (Phase 55 — no formal REQ-ID, infrastructure phase):**
+
+- [x] `ClipboardItem` (associated-value `Kind` enum, text/image) and `ClipboardStore` (append/evict-at-cap FIFO/dedupe-move-to-top/clear) shipped as pure, Foundation-only value types/functions, fully unit-tested, with zero AppKit/`NSPasteboard`/`IslandResolver`/`TransientQueue` coupling — establishing the contract before any pasteboard-polling or disk-I/O code was touched (Phase 19/47/49 pure-seam-first precedent). (Phase 55)
+
 **Encrypted Persistence (Phase 56 — CLIP-04, PRIV-02):**
 
 - [x] Clipboard history persists to disk encrypted at rest — `ClipboardFileStore` (AES-GCM/CryptoKit, JSON-index + separate image files under Application Support) with the key stored device-only in Keychain via `KeychainClipboardKeyStore`. On-device kill-and-restart proof: seeded 3 items, confirmed the on-disk index is unreadable ciphertext with no plaintext trace, fully killed and relaunched the process, all 3 items reloaded with matching IDs/content. (Phase 56)
 - Code review flagged one unresolved CRITICAL follow-up not required by this phase's own success criteria: `ClipboardFileStore`'s index/image writes aren't atomic, so a crash mid-write can silently truncate the index and the next save's orphan-sweep would then delete previously-saved images — worth fixing before Phase 57 wires in a live, higher-frequency writer. See `56-REVIEW.md`.
+
+**Pasteboard Monitor — Spike (Phase 57 — PRIV-01):**
+
+- [x] `ClipboardMonitor` detects a genuine copy via a `changeCount` diff and correctly classifies it as text or image, verified on real hardware; content marked `org.nspasteboard.ConcealedType`/`TransientType` (the password-manager convention) is never captured, verified on-device against a real concealed-type source; a restored item's own pasteboard write is not re-ingested as a duplicate (self-capture guard); macOS's pasteboard-access privacy prompt, if it appears, is handled with a one-time in-app explanation rather than a crash or repeated re-prompt. (Phase 57 — PRIV-01)
+- Code review WR-01: added a "Stop Clipboard Monitor" debug action to fulfill the monitor's `stop()` teardown contract, which had no caller. (Phase 57)
 
 **Menu Wiring & UI Assembly (Phase 58 — CLIP-01, CLIP-02, CLIP-03, CLIP-05):**
 
@@ -446,6 +458,8 @@ _v1.7 (Interaction & Calendar Polish) — see "Milestone In Progress (Parallel):
 | Dual-activity secondary bubble's interaction redesigned live from tap-to-expand/no-hover (locked D-12/D-13) to hover-reveal play/pause | User's explicit on-device UAT round-3 decision, not scope drift — hovering darkens the bubble and reveals a play/pause glyph, tapping toggles playback directly via the existing `NowPlayingMonitor` | ✓ Phase 42 — see `42-04-SUMMARY.md`/`42-CONTEXT.md` supersession notes |
 | Hover-to-resume preview (Phase 53) shipped as a view-local branch off `.idle` in `NotchPillView`, not a new `IslandResolver` case | `IslandResolver.resolve()` has exactly one call site; threading a new hover-flag parameter through it plus new resolver-test coverage was a larger diff for a purely presentational affordance the phase's own discussion left to discretion | ✓ Phase 53 — `IslandResolver.swift`/`IslandResolverTests.swift` confirmed untouched |
 | Resume-preview's right-slot visual superseded from bouncing `EqualizerBars` (D-02) to a static `play.fill` glyph | On-device UAT (53-02) found animated bars while nothing was actually playing misrepresented playback state — user flagged it live ("macht gar keinen Sinn das die bars sich dann im idle zustand bewegen") | ✓ Phase 53 — both Debug and Release re-verified green after the fix |
+| v1.9 phase order 55→56→57→58 (data model → encrypted persistence → pasteboard-monitor spike → menu wiring) | Mirrors this project's own pure-seam-first/system-glue-second/assembly-last convention (Phase 19-21 Shelf, Phase 47-48 Audio Output); encryption established from day one rather than retrofitted, the one on-device-only spike isolated so it can't destabilize the proven pure work | ✓ v1.9 shipped 2026-07-23 — no rework needed across phase boundaries |
+| Clipboard history rows moved from an inline top-of-menu list to a flyout submenu behind a single "Clipboard History" anchor (D-15 REVISED) | User's live on-device request during Phase 58 UAT, to see more entries at once; Cmd+0-9 kept working instantly via a hybrid `menuWillOpen`/`menuDidClose`-scoped NSEvent keyDown monitor, since submenu key equivalents don't fire while the submenu is closed | ✓ Phase 58 — approved on-device, CLIP-03 unaffected |
 
 ## Evolution
 
@@ -465,4 +479,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-23 — Phase 58 (Menu Wiring & UI Assembly, CLIP-01/02/03/05) shipped and on-device verified, closing out v1.9 (Clipboard History) in full (Phases 55-58, 4/4 requirements). Not yet formally archived (run `/gsd-complete-milestone`). v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phases 43-48 shipped/code-complete and Phase 46's CALVIEW-06/07 still pending. v1.8 (Settings Redesign & Island Navigation) shipped 2026-07-21, archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.*
+*Last updated: 2026-07-23 — v1.9 (Clipboard History) shipped and archived to `.planning/milestones/v1.9-ROADMAP.md`/`.planning/milestones/v1.9-REQUIREMENTS.md` (Phases 55-58, 7/7 requirements). v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phases 43-48 shipped/code-complete and Phase 46's CALVIEW-06/07 still pending. v1.8 (Settings Redesign & Island Navigation) shipped 2026-07-21, archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.*

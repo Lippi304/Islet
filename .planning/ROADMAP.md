@@ -12,7 +12,7 @@
 - ✅ **v1.6 Liquid Glass & System HUD Suite** — Phases 35-42 (shipped 2026-07-19)
 - 🚧 **v1.7 Interaction & Calendar Polish** — Phases 43-50 (planned, left open in parallel)
 - ✅ **v1.8 Settings Redesign & Island Navigation** — Phases 51-53 (shipped 2026-07-21)
-- 🚧 **v1.9 Clipboard History** — Phases 55-58 (planned, left open in parallel)
+- ✅ **v1.9 Clipboard History** — Phases 55-58 (shipped 2026-07-23)
 
 ## Phases
 
@@ -139,14 +139,17 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 </details>
 
-### 🚧 v1.9 Clipboard History (Planned)
+<details>
+<summary>✅ v1.9 Clipboard History (Phases 55-58) — SHIPPED 2026-07-23</summary>
 
-**Milestone Goal:** Islet replaces the user's third-party CopyClip tool — clicking the menu-bar status icon shows a clipboard history of recent text and image copies (encrypted at rest, sensitive-content excluded), alongside the existing Settings/Check for Updates/Quit entries. Menu-bar-only, explicitly not a new Island/notch view. Started 2026-07-22 while v1.4, v1.5, and v1.7 all remain open in parallel. Phase numbering continues from Phase 54 (v1.8's reserved phase).
+- [x] Phase 55: Clipboard Data Model + Store (1/1 plans) — completed 2026-07-22
+- [x] Phase 56: Encrypted Persistence (2/2 plans) — completed 2026-07-22
+- [x] Phase 57: Pasteboard Monitor — Spike (2/2 plans) — completed 2026-07-22
+- [x] Phase 58: Menu Wiring & UI Assembly (2/2 plans) — completed 2026-07-23
 
-- [x] **Phase 55: Clipboard Data Model + Store** - Pure ClipboardItem/ClipboardStore (append/evict-at-cap/clear), fully unit-tested, no AppKit/pasteboard dependency (completed 2026-07-22)
-- [x] **Phase 56: Encrypted Persistence** - ClipboardFileStore: Application Support JSON index + image files, CryptoKit AES-GCM encryption with Keychain-stored key, survives relaunch/reboot (completed 2026-07-22)
-- [x] **Phase 57: Pasteboard Monitor — Spike** - ClipboardMonitor: changeCount polling, concealed/transient-type filtering, self-capture guard — verified on real hardware (completed 2026-07-22)
-- [x] **Phase 58: Menu Wiring & UI Assembly** - AppDelegate NSMenuDelegate wiring: history list, click-to-restore, Cmd+0-9, Delete All History (completed 2026-07-23)
+Full phase details, goals, success criteria, and plan lists: `.planning/milestones/v1.9-ROADMAP.md`
+
+</details>
 
 ## Phase Details
 
@@ -203,7 +206,7 @@ Plans:
 
 **v1.8:** 3/3 phases complete (100%) — roadmap created 2026-07-21. Phases 51-53, 6/6 v1.8 requirements mapped and shipped. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume was sequenced last since it carried this milestone's one open technical question (whether resuming a non-active track is achievable via the existing NowPlayingMonitor/MediaRemote adapter transport, per PROJECT.md's v1.8 Key Context), verified early within its own phase (53-01 spike: approved). Phase 53 completed 2026-07-21 after 53-02's on-device UAT approval, including a mid-UAT D-02 design supersession (static play glyph replaces animated equalizer bars in the idle-hover preview). v1.8 formally archived via `/gsd:complete-milestone` 2026-07-21 — see `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.
 
-**v1.9:** 0/4 phases complete (0%) — roadmap created 2026-07-22. Phases 55-58, 7/7 v1.9 requirements mapped. Phase numbering continues from Phase 54 (v1.8's reserved phase). Phase order follows research's explicit build-order recommendation: Clipboard Data Model + Store (55, pure/zero-risk) → Encrypted Persistence (56, establishes at-rest encryption from day one rather than retrofitting) → Pasteboard Monitor (57, the one on-device-only risky spike, isolated so it can't destabilize the already-proven pure work) → Menu Wiring & UI Assembly (58, pure assembly of three proven pieces) — mirrors this project's own pure-seam-first/system-glue-second/assembly-last convention (Phase 19→20→21 Shelf, Phase 47→48 Audio Output).
+**v1.9:** 4/4 phases complete (100%) — see `.planning/milestones/v1.9-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-23; 7/7 requirements delivered.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -950,91 +953,6 @@ Plans:
 
 - [ ] 54-04-PLAN.md — Fix Bluetooth/Location/Focus permission grant wiring (CR-01, CR-02, WR-01) + replayOnboarding() missing updateVisibility() (CR-03)
 
-### Phase 55: Clipboard Data Model + Store
+## v1.9 Clipboard History — SHIPPED 2026-07-23
 
-**Goal**: The clipboard's core data and lifecycle contracts exist as pure, Foundation-only, unit-tested logic — no AppKit, no `NSPasteboard` — establishing the append/evict-at-cap/clear contract before any fragile pasteboard-polling or disk-I/O code is touched. Mirrors this project's own established convention (`IslandResolver` before controller wiring, `ShelfItem`/`ShelfLogic` proven in isolation before Phase 20 wiring).
-**Depends on**: Nothing (first phase of this milestone; phase numbering continues from Phase 54)
-**Requirements**: None formally scoped to this phase — infrastructure phase preceding Phase 56/57/58's user-facing requirements, mirroring this project's own pure-seam-first precedent (Phase 19, Phase 47/49)
-**Success Criteria** (what must be TRUE):
-
-  1. `ClipboardItem` (id, kind text/image, content/preview, timestamp) and `ClipboardStore` (append/evict-at-cap/clear) exist as pure value types/functions, fully covered by unit tests, with no dependency on AppKit or `NSPasteboard`.
-  2. Appending an item beyond the ~20-30 item cap automatically evicts the oldest entry (FIFO), proven by unit test alone, with no partial-state possibility.
-  3. Clearing the store removes every item in a single call — provably empty by construction.
-  4. The store is designed as its own independent axis, never coupled to `IslandResolver`/`TransientQueue` or `NotchWindowController` — confirmed by the model's shape alone, before any monitor or menu exists.
-
-**Plans**: 1 plan
-
-Plans:
-**Wave 1**
-
-- [x] 55-01-PLAN.md — ClipboardItem (associated-value Kind enum) + ClipboardStore (D-01 cap+FIFO evict, D-02 dedupe-and-move-to-top, clear), fully unit-tested
-
-### Phase 56: Encrypted Persistence
-
-**Goal**: Clipboard history persists to disk — encrypted at rest from day one, not retrofitted later — and survives a full app relaunch, before any live pasteboard monitoring exists.
-**Depends on**: Phase 55
-**Requirements**: CLIP-04, PRIV-02
-**Success Criteria** (what must be TRUE):
-
-  1. Saving the store's contents via `ClipboardFileStore` and reloading against the same on-disk root (simulating an app relaunch) reproduces the same items in the same order — proven by a round-trip unit test against an injectable root URL.
-  2. The on-disk JSON index and image files are encrypted via `CryptoKit.AES.GCM` with the key stored in Keychain — inspecting the raw file on disk shows no readable plaintext clipboard content.
-  3. Deleting an item's on-disk data validates the delete target lives under the clipboard's own Application Support storage root before removing anything — mirrors `ShelfFileStore`'s hardened delete pattern, no path-traversal/parent-directory deletion possible.
-  4. A full kill-and-restart of the store against real persisted data reloads the same history from disk, satisfying CLIP-04's persistence contract at the store/filestore layer (the menu display itself lands in Phase 58).
-
-**Plans**: 2 plans
-
-Plans:
-**Wave 1**
-
-- [x] 56-01-PLAN.md — ClipboardFileStore (encrypted JSON-index + image-file persistence, D-04/D-06) + KeychainClipboardKeyStore (D-05), fully unit-tested
-
-**Wave 2** *(blocked on 56-01)*
-
-- [x] 56-02-PLAN.md — DEBUG-only seed/reload spike hooks + on-device kill-and-restart checkpoint (SC#4)
-
-### Phase 57: Pasteboard Monitor — Spike
-
-**Goal**: The one genuinely new, only-verifiable-on-real-hardware subsystem — live `NSPasteboard` polling, sensitive-content filtering, and the self-capture guard — is proven in isolation before it's wired into the menu, so it can't destabilize the already-proven pure model/persistence work. Mirrors this project's own Phase 22/38/47 spike-first precedent.
-**Depends on**: Phase 55 (feeds captured items into `ClipboardStore`); independent of Phase 56's on-disk format
-**Requirements**: PRIV-01
-**Success Criteria** (what must be TRUE):
-
-  1. `ClipboardMonitor` detects a genuine copy via a `changeCount` diff within ~500ms and correctly classifies it as text or image, verified on real hardware.
-  2. Copying content from an app that marks it `org.nspasteboard.ConcealedType` or `TransientType` (e.g. a password manager) is never captured into the store, verified on-device against a real concealed-type source.
-  3. Writing a restored item back onto the pasteboard (click-to-restore's own write) is not re-ingested as a new duplicate entry — the self-capture guard is proven on-device, not just unit-tested.
-  4. If macOS's pasteboard-access privacy prompt appears, it's handled gracefully with a one-time in-app explanation rather than a crash, silent failure, or repeated re-prompting.
-
-**Plans**: 2 plans
-
-Plans:
-**Wave 1**
-
-- [x] 57-01-PLAN.md — ClipboardMonitor (changeCount-gated poll, concealed/transient/self-capture-marker filtering, classification, D-07 accessBehavior check) + pure-function unit tests + manual on-device spike scaffold
-
-**Wave 2** *(blocked on 57-01)*
-
-- [x] 57-02-PLAN.md — DEBUG-only spike hooks (start monitor, D-08 concealed-test-item, self-capture-test, D-07 access-behavior explanation) + on-device checkpoint covering all 4 success criteria
-
-### Phase 58: Menu Wiring & UI Assembly
-
-**Goal**: The three already-proven pieces (store, persistence, monitor) are wired into Islet's existing status-item menu, delivering the full user-facing clipboard history feature end to end.
-**Depends on**: Phase 56, Phase 57 (assembles both; hard dependency on both landing first)
-**Requirements**: CLIP-01, CLIP-02, CLIP-03, CLIP-05
-**Success Criteria** (what must be TRUE):
-
-  1. Clicking the menu-bar status icon shows a clipboard history section listing the last ~20-30 copied text/image items (most recent first), alongside the existing Settings/Check for Updates/Quit entries, with oldest entries silently evicted past the cap.
-  2. Clicking any history entry copies it back onto the system pasteboard, with no auto-paste into the frontmost app.
-  3. The first 10 entries are directly selectable via Cmd+0 through Cmd+9 key equivalents.
-  4. "Delete All History" shows a standard destructive-confirmation dialog before clearing; once confirmed, the menu section is empty and the on-disk history is actually deleted, not just hidden.
-
-**Plans**: 2 plans
-
-Plans:
-**Wave 1**
-
-- [x] 58-01-PLAN.md — Production ClipboardStore/ClipboardMonitor wiring + NSMenuDelegate dynamic rebuild (rows, empty state, dual click paths, Cmd+0-9) + early on-device risk checkpoint (CLIP-01, CLIP-02, CLIP-03)
-
-**Wave 2** *(blocked on 58-01)*
-
-- [x] 58-02-PLAN.md — Delete All History (destructive confirm + real on-disk delete) + pasteboard-access explanation timing/copy + phase-gate on-device UAT (CLIP-05)
-**UI hint**: yes
+Phases 55-58 full detail (goals, success criteria, plans, on-device UAT history) archived to `.planning/milestones/v1.9-ROADMAP.md`. Requirements archived to `.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped (100%).
