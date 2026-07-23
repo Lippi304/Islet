@@ -1012,8 +1012,26 @@ Plans:
   3. The existing update-available HUD now shows the Droppy-style layout (leading icon, "Update" label, trailing version pill) in place of its current look — the underlying Sparkle trigger and tap-to-install behavior are unchanged.
   4. Both activities respect the Settings grid's on/off toggle from Phase 59.
 
-**Plans**: TBD
+**Plans**: 5 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 60-01-PLAN.md — Pure seams: CapsLockActivity.swift/UpdateActivity.swift + IslandResolver.swift rank-5/6 cases + ActivitySettings.swift updateHudKey/defaultsToFalseKeys (Pitfall 1 fix)
+
+**Wave 2** *(blocked on 60-01)*
+
+- [ ] 60-03-PLAN.md — Settings UI: Update Available card (Pitfall 5) + Caps Lock Accessibility permission popover (Pitfall 2)
+- [ ] 60-04-PLAN.md — NotchPillView wing rendering: wingsShape(onTap:) + capsLockWings(for:)/updateWings(for:)/UpdateVersionPill
+
+**Wave 3** *(blocked on 60-01, 60-04)*
+
+- [ ] 60-02-PLAN.md — CapsLockMonitor.swift (new) + NotchWindowController controller wiring + AppDelegate second Sparkle signal/DEBUG spike hook
+
+**Wave 4** *(blocked on 60-02, 60-03, 60-04)*
+
+- [ ] 60-05-PLAN.md — Build/test gate + consolidated on-device UAT checkpoint (resolves RESEARCH.md Pitfall 3/4 open questions)
 
 ### Phase 61: Download-Progress
 
