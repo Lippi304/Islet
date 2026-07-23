@@ -851,6 +851,7 @@ Plans:
 **Plans:** 2/4 plans executed
 
 Plans:
+
 - [x] 49-01-PLAN.md — Wave 1: com.apple.security.automation.apple-events entitlement + NSAppleEventsUsageDescription prerequisite, DEBUG-only likeTrack/TCC-trigger spike hooks, on-device SC#1+SC#4 verification
 - [x] 49-02-PLAN.md — Wave 1: Apple Music `current track`/`loved` library/streaming/play-pause matrix (SC#2)
 - [ ] 49-03-PLAN.md — Wave 1: Spotify Developer app registration + PKCE + PUT /me/library round-trip, current quota-mode read (SC#3)
@@ -870,7 +871,6 @@ Plans:
   3. If a like/favorite write fails (e.g. a streaming-only track Apple Music can't yet love, or an expired/unauthenticated Spotify session), the star button visibly reflects the failure rather than silently appearing to succeed.
 
 **Plans**: TBD
-
 
 ## v1.8 Settings Redesign & Island Navigation — SHIPPED 2026-07-21
 
@@ -973,6 +973,7 @@ Plans:
 ## v1.9 Clipboard History — SHIPPED 2026-07-23
 
 Phases 55-58 full detail (goals, success criteria, plans, on-device UAT history) archived to `.planning/milestones/v1.9-ROADMAP.md`. Requirements archived to `.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped (100%).
+
 ## v1.10 Live Activities Suite — PLANNED
 
 ### Phase 59: Settings-Redesign
@@ -1048,10 +1049,21 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 61-01-PLAN.md — Pure model (DownloadActivity/DownloadReading) + IslandResolver rank-5 wiring
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 61-02-PLAN.md — DownloadCoordinator: per-file stateful correlation (D-05/D-06/D-15)
 - [ ] 61-03-PLAN.md — NotchPillView downloadWings(for:) rendering
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 61-04-PLAN.md — DownloadMonitor (FSEvents) + NotchWindowController wiring
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 61-05-PLAN.md — Build/test gate + on-device UAT checkpoint
 
 **UI hint**: yes

@@ -316,17 +316,19 @@ extension ActiveTransient {
 | A3 | FSEvents rename-pair events are genuinely unordered/unlinked without extended data, and `kFSEventStreamCreateFlagUseExtendedData` reliably provides a matching FileID for both halves | Pattern 1, Pitfall 2 | If the FileID correlation doesn't work as expected in practice, final filenames could show the WRONG name in the done state (cosmetic, not crash-level) — worth an early on-device spike to confirm before full implementation |
 | A4 | The exact `@convention(c)` FSEventStreamCreate Swift callback boilerplate sketched in Pattern 1's code example is illustrative, not copy-paste-ready | Code Examples | If planner/executor copies it verbatim without adapting the `Unmanaged` bridging, it will not compile — flagged explicitly in the pattern's own "Note" |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does D-05's "older download still fires its own done state independently later" require a notification path OUTSIDE `TransientQueue.head`?**
    - What we know: `TransientQueue` only ever shows one `.downloadProgress` at a time (the head); `DeviceCoordinator`'s battery-poll pattern shows how a coordinator can defer/queue a side-effect (the poll) independent of what currently owns the head, then apply it later via `activityPromoted()`/direct `updateHead`/`enqueue` calls.
    - What's unclear: whether the older download's `.done` splash should ENQUEUE behind whatever is currently head (goes through `TransientQueue.pending`, so it may wait) or PREEMPT/replace whatever's showing the instant it happens (matching the urgency of a real "genuinely new file-watching subsystem" completion signal).
    - Recommendation: Plan should decide explicitly — the safest default matching D-05's literal wording ("fires independently later") is a plain `enqueue`, consistent with how every other transient (Device, Focus) already queues behind Charging without preempting; reserve `preempt` only for the Focus-displacement case that already exists.
+   - **RESOLVED: plain `enqueue` (the recommended default), never `preempt`.** Plan 61-02's `DownloadCoordinator.handle(_:now:)` `.renamed` branch implements exactly this: when another download is still in flight, the completing download's `.done` state goes through the `enqueue` closure only; `replaceHead` (the in-place same-category swap wired in Plan 61-04 to mirror `handleOSDKeyPress`) is used only when the completing download was the LAST one tracked, per D-05's literal wording.
 
 2. **What is the practical upper bound on concurrent tracked downloads (`inFlightDownloads` dict size)?**
    - What we know: `TransientQueue.maxDepth = 2` bounds the VISIBLE queue; the coordinator's side table is separate and currently unbounded in the sketch above.
    - What's unclear: whether an unbounded dict is an acceptable practical risk (a user would need dozens of simultaneous downloads for this to matter) or whether it should mirror `pendingDeviceBatteryPolls`' explicit cap.
    - Recommendation: Given D-15 (cancelled downloads silently drop their entry) and realistic Downloads-folder usage, an unbounded-but-self-cleaning dict (entries removed on both success and cancellation) is likely fine — flag for the planner to size a defensive cap only if on-device testing shows entries leaking.
+   - **RESOLVED: unbounded-but-self-cleaning, no explicit cap.** Plan 61-02's `DownloadCoordinator.inFlightDownloads` removes entries on both `.renamed` (success) and `.removed` (D-15 cancellation) — Plan 61-02's own threat model (T-61-04) accepts this disposition explicitly, noting the VISIBLE queue stays bounded regardless via `TransientQueue.maxDepth = 2` even if the backing dict were to grow.
 
 ## Environment Availability
 
