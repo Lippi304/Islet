@@ -54,6 +54,18 @@ struct SettingsView: View {
     // Activities toggles (besides osdSuppression's off-default), since this gates no system
     // permission, just a background network check.
     @AppStorage(ActivitySettings.autoUpdateCheckKey) private var autoUpdateCheckEnabled = true
+    // Phase 59 / SETTINGS-05 — 8 new v1.10 activity toggles, default OFF with NO exceptions
+    // (Pitfall 1): these gate not-yet-built activities (Phases 60-67) so, unlike every toggle
+    // above (5 of 7 default true), a fresh install and an upgrading user both read OFF
+    // identically until each activity's own phase ships and a user opts in.
+    @AppStorage(ActivitySettings.capsLockKey) private var capsLockEnabled = false
+    @AppStorage(ActivitySettings.downloadProgressKey) private var downloadProgressEnabled = false
+    @AppStorage(ActivitySettings.menuBarOverflowKey) private var menuBarOverflowEnabled = false
+    @AppStorage(ActivitySettings.timerKey) private var timerEnabled = false
+    @AppStorage(ActivitySettings.meetingHUDKey) private var meetingHUDEnabled = false
+    @AppStorage(ActivitySettings.quickNotesKey) private var quickNotesEnabled = false
+    @AppStorage(ActivitySettings.quickActionsKey) private var quickActionsEnabled = false
+    @AppStorage(ActivitySettings.codingProgressKey) private var codingProgressEnabled = false
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
     @AppStorage(ActivitySettings.hideInFullscreenKey) private var hideInFullscreen = true
@@ -149,6 +161,88 @@ struct SettingsView: View {
     @State private var bluetoothStatus: PermissionStatus = .notYetAsked
     @State private var focusStatus: PermissionStatus = .notYetAsked
     @State private var inputMonitoringStatus: PermissionStatus = .notYetAsked
+
+    // Phase 59 / SETTINGS-04 (D-01/D-03/D-07) — the 3 categorized card arrays feeding the
+    // Activities grid (Plan 59-02 Task 2). Bumped internal (not private), mirroring
+    // SidebarSection's existing private->internal testability-bump precedent above, so
+    // IsletTests/SettingsViewTests.swift can assert counts/ordering via @testable import Islet.
+    // Existing-first then new (D-03); icon/copy per 59-UI-SPEC.md's Copywriting Contract.
+    var systemHUDCards: [ActivityCardData] {
+        [
+            ActivityCardData(id: "charging", title: "Charging",
+                              description: "Shows a brief charging animation when you plug in.",
+                              icon: "bolt.fill", iconColor: ActivitySettings.accent(for: chargingAccentIndex),
+                              isOn: $chargingEnabled, isNew: false, onOptionsTap: nil),
+            ActivityCardData(id: "device", title: "Devices",
+                              description: "Flashes a connect/disconnect HUD for Bluetooth accessories like AirPods.",
+                              icon: "antenna.radiowaves.left.and.right", iconColor: .secondary,
+                              isOn: $deviceEnabled, isNew: false, onOptionsTap: nil),
+            ActivityCardData(id: "focus", title: "Focus Mode",
+                              description: "Shows a moon icon in the pill while a system Focus is active.",
+                              icon: "moon.fill", iconColor: .secondary,
+                              isOn: $focusEnabled, isNew: false,
+                              onOptionsTap: { showFocusPermissionExplanation = true }),
+            ActivityCardData(id: "osd", title: "Volume & Brightness",
+                              description: "Replaces macOS's own volume/brightness overlay with Islet's.",
+                              icon: "speaker.wave.3.fill", iconColor: .secondary,
+                              isOn: $osdSuppressionEnabled, isNew: false,
+                              onOptionsTap: { showOSDPermissionExplanation = true }),
+            ActivityCardData(id: "calendarCountdown", title: "Calendar Countdown",
+                              description: "Counts down to your next calendar event right in the notch.",
+                              icon: "calendar", iconColor: .secondary,
+                              isOn: $calendarCountdownEnabled, isNew: false, onOptionsTap: nil),
+            ActivityCardData(id: "capsLock", title: "Caps Lock",
+                              description: "Flashes an on/off indicator whenever Caps Lock is toggled.",
+                              icon: "capslock.fill", iconColor: .secondary,
+                              isOn: $capsLockEnabled, isNew: true, onOptionsTap: nil),
+            ActivityCardData(id: "downloadProgress", title: "Download Progress",
+                              description: "Shows a live indicator while a file downloads to your Mac.",
+                              icon: "arrow.down.circle.fill", iconColor: .secondary,
+                              isOn: $downloadProgressEnabled, isNew: true, onOptionsTap: nil),
+            ActivityCardData(id: "menuBarOverflow", title: "Menu Bar Overflow",
+                              description: "Hides overflow menu-bar icons behind a chevron, Ice-style.",
+                              icon: "menubar.rectangle", iconColor: .secondary,
+                              isOn: $menuBarOverflowEnabled, isNew: true, onOptionsTap: nil),
+        ]
+    }
+
+    var mediaCards: [ActivityCardData] {
+        [
+            ActivityCardData(id: "nowPlaying", title: "Now Playing",
+                              description: "Shows live playback with transport controls for the current track.",
+                              icon: "play.fill", iconColor: ActivitySettings.accent(for: nowPlayingAccentIndex),
+                              isOn: $nowPlayingEnabled, isNew: false, onOptionsTap: nil),
+            ActivityCardData(id: "songChangeToast", title: "Song-Change Toast",
+                              description: "Flashes the new track's title for a moment whenever the song changes.",
+                              icon: "text.bubble.fill", iconColor: .secondary,
+                              isOn: $songChangeToastEnabled, isNew: false, onOptionsTap: nil),
+        ]
+    }
+
+    var productivityCards: [ActivityCardData] {
+        [
+            ActivityCardData(id: "timer", title: "Timer",
+                              description: "Start a countdown or Pomodoro timer that lives in the notch.",
+                              icon: "timer", iconColor: .secondary,
+                              isOn: $timerEnabled, isNew: true, onOptionsTap: nil),
+            ActivityCardData(id: "meetingHUD", title: "Meeting HUD",
+                              description: "Shows a call timer and mic-mute control during Zoom/Teams calls.",
+                              icon: "video.fill", iconColor: .secondary,
+                              isOn: $meetingHUDEnabled, isNew: true, onOptionsTap: nil),
+            ActivityCardData(id: "quickNotes", title: "Quick Notes",
+                              description: "Capture a quick text note straight into your Obsidian vault.",
+                              icon: "note.text", iconColor: .secondary,
+                              isOn: $quickNotesEnabled, isNew: true, onOptionsTap: nil),
+            ActivityCardData(id: "quickActions", title: "Quick Actions",
+                              description: "A row of one-tap system actions — mute mic, lock screen, and more.",
+                              icon: "bolt.horizontal.fill", iconColor: .secondary,
+                              isOn: $quickActionsEnabled, isNew: true, onOptionsTap: nil),
+            ActivityCardData(id: "codingProgress", title: "Coding Progress",
+                              description: "Shows your Claude Code session's live todo progress.",
+                              icon: "checklist", iconColor: .secondary,
+                              isOn: $codingProgressEnabled, isNew: true, onOptionsTap: nil),
+        ]
+    }
 
     var body: some View {
         NavigationSplitView {
