@@ -2309,6 +2309,7 @@ struct NotchPillView: View {
     private func wingsShape<Content: View>(
         leftWidth: CGFloat = Self.wingsSize.width / 2,
         rightWidth: CGFloat = Self.wingsSize.width / 2,
+        onTap: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         let shape = NotchShape(topCornerRadius: 12, bottomCornerRadius: 6)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside a 6pt bottom radius without squeezing the wall to almost nothing
@@ -2351,7 +2352,10 @@ struct NotchPillView: View {
             .alignmentGuide(HorizontalAlignment.center) { _ in leftWidth }
             // Finding 15 (06-10): both remaining wing glances (wings(for:), deviceWings(for:))
             // share this one tap-to-toggle through the shared helper.
-            .onTapGesture { onClick() }
+            // Phase 60-04: `onTap` is an optional per-wing override — every existing call site
+            // omits it (nil) and keeps the universal `onClick()` expand-to-Home behavior; only
+            // `updateWings(for:)` passes a non-nil override to trigger Sparkle's install flow.
+            .onTapGesture { (onTap ?? onClick)() }
     }
 
     // CHG-01 / D-01 / D-03 / D-04 / D-05 — the WINGS / Alcove sideways layout: a flat, wide strip
