@@ -40,6 +40,20 @@ enum ActivitySettings {
     static let quickNotesKey = "activity.quickNotes"
     static let quickActionsKey = "activity.quickActions"
     static let codingProgressKey = "activity.codingProgress"
+    // Phase 60 / UPDATE-01: the 9th Phase-59-style key — gates THIS HUD's visibility, NOT
+    // Sparkle's background check (that's the pre-existing, distinct autoUpdateCheckKey below).
+    static let updateHudKey = "activity.updateHud"
+
+    // Phase 60 / CAPS-01/UPDATE-01 (RESEARCH.md Pitfall 1, SETTINGS-05): the SINGLE source
+    // of truth NotchWindowController.activityEnabled(_:) reads instead of its former
+    // one-key (focusKey-only) special case — every key in this set defaults to `false`
+    // (safe/off) when absent from UserDefaults; every key NOT in this set defaults to
+    // `true`. A future phase adding its own false-default activity key must add it here too
+    // (regression-locked by testDefaultsToFalseKeysCoversAllFalseDefaultActivities).
+    static let defaultsToFalseKeys: Set<String> = [
+        focusKey, osdSuppressionKey, capsLockKey, downloadProgressKey, menuBarOverflowKey,
+        timerKey, meetingHUDKey, quickNotesKey, quickActionsKey, codingProgressKey, updateHudKey,
+    ]
     // Phase 40 / HUD-06 (D-11) — gates Sparkle's automaticallyChecksForUpdates only; default
     // ON (D-12, wired in SettingsView.swift) since it gates no system permission, just a
     // background network check.

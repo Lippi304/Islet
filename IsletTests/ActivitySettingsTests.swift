@@ -151,4 +151,26 @@ final class ActivitySettingsTests: XCTestCase {
 
         XCTAssertEqual(chargingEnabled, false)
     }
+
+    // MARK: Phase 60 / CAPS-01/UPDATE-01 (RESEARCH.md Pitfall 1, SETTINGS-05)
+
+    func testUpdateHudKeyName() {
+        XCTAssertEqual(ActivitySettings.updateHudKey, "activity.updateHud")
+    }
+
+    func testDefaultsToFalseKeysCoversAllFalseDefaultActivities() {
+        XCTAssertEqual(ActivitySettings.defaultsToFalseKeys, Set([
+            ActivitySettings.focusKey,
+            ActivitySettings.osdSuppressionKey,
+            ActivitySettings.capsLockKey,
+            ActivitySettings.downloadProgressKey,
+            ActivitySettings.menuBarOverflowKey,
+            ActivitySettings.timerKey,
+            ActivitySettings.meetingHUDKey,
+            ActivitySettings.quickNotesKey,
+            ActivitySettings.quickActionsKey,
+            ActivitySettings.codingProgressKey,
+            ActivitySettings.updateHudKey,
+        ]))
+    }
 }

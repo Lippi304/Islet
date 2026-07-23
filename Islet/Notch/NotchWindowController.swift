@@ -663,15 +663,15 @@ final class NotchWindowController {
     // MARK: - Phase 6: toggle-gated monitor lifecycle (D-09 prefer stop, Pitfall 5 idempotent)
 
     // Read an activity toggle from UserDefaults. Defaults to TRUE (D-07 all default ON) when the
-    // key is absent — the SettingsView @AppStorage uses the same default, so a fresh install
-    // shows everything. EXCEPTION: Phase 38-08 (CR-01 gap closure) — ActivitySettings.focusKey
-    // defaults to FALSE, matching SettingsView.swift's `@AppStorage(ActivitySettings.focusKey)
-    // private var focusEnabled = false` (the one activity toggle documented in
-    // ActivitySettings.swift:19-22 to default OFF). Without this exception, a fresh/toggle-OFF
-    // install with prior INFocusStatusCenter authorization would silently auto-start Focus
-    // monitoring on relaunch.
+    // key is absent, EXCEPT for every key in ActivitySettings.defaultsToFalseKeys (Phase 60 /
+    // RESEARCH.md Pitfall 1 fix) — the single source of truth shared with every @AppStorage
+    // default declared in SettingsView.swift, so a fresh install shows everything EXCEPT the
+    // permission-gated/opt-in activities (Focus, OSD suppression, and the 9 v1.10 keys that
+    // default OFF). Previously only focusKey was special-cased here, silently defaulting every
+    // other false-default key (including capsLockKey/updateHudKey) to `true` before the user
+    // ever opened Settings.
     private func activityEnabled(_ key: String) -> Bool {
-        let defaultValue = (key == ActivitySettings.focusKey) ? false : true
+        let defaultValue = !ActivitySettings.defaultsToFalseKeys.contains(key)
         return UserDefaults.standard.object(forKey: key) as? Bool ?? defaultValue
     }
 
