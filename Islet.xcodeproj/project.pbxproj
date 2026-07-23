@@ -28,6 +28,7 @@
 		21DD22351526B5DCB2A38A65 /* NotchPillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65127041FDE5365C865095B1 /* NotchPillView.swift */; };
 		2586E152318B70467587E51C /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */; };
 		28626D0246AAA3E67B6D0F4D /* ClipboardFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 330BE2F6665352789C4BF082 /* ClipboardFileStore.swift */; };
+		28C2D5C7AD9401DC3E873B05 /* CapsLockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80361AFAC4FDAD549382CFE /* CapsLockMonitor.swift */; };
 		2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C997928190396DADC0ADA29 /* NotchWindowController.swift */; };
 		2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */; };
 		2E1BA5C63FB8581913C670E3 /* KeychainClipboardKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56D851E7A6E0AC1DABE6AE8A /* KeychainClipboardKeyStore.swift */; };
@@ -271,6 +272,7 @@
 		D2B811CCD53A0E77D86C48E5 /* WeatherCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCategory.swift; sourceTree = "<group>"; };
 		D2C09F7CB439DBC707F7E095 /* ShelfItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItem.swift; sourceTree = "<group>"; };
 		D5304DD9EE0040C6059114A1 /* BrightnessReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessReader.swift; sourceTree = "<group>"; };
+		D80361AFAC4FDAD549382CFE /* CapsLockMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockMonitor.swift; sourceTree = "<group>"; };
 		E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDetectorTests.swift; sourceTree = "<group>"; };
 		E3F2A9A634959D28CB05024E /* BluetoothMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothMonitor.swift; sourceTree = "<group>"; };
 		E47DF64E0B34AEF713CAB91D /* DancingScript-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DancingScript-Variable.ttf"; sourceTree = "<group>"; };
@@ -487,6 +489,7 @@
 				D5304DD9EE0040C6059114A1 /* BrightnessReader.swift */,
 				645E44284FC3BC54024CD5F3 /* CalendarCountdownMonitor.swift */,
 				67C811DA67737E6DE4C01AFD /* CapsLockActivity.swift */,
+				D80361AFAC4FDAD549382CFE /* CapsLockMonitor.swift */,
 				2151B8D097AF9D3098ED16D7 /* CGSSpace.swift */,
 				279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */,
 				28316551B58651959797184D /* DeviceActivity.swift */,
@@ -691,6 +694,7 @@
 				9470F8F6CC68D789DC5A7D9C /* CalendarService.swift in Sources */,
 				5E2A0DEF48DA471FE9426F9A /* CalendarViewState.swift in Sources */,
 				793DEFB8D5469EEF1650FC39 /* CapsLockActivity.swift in Sources */,
+				28C2D5C7AD9401DC3E873B05 /* CapsLockMonitor.swift in Sources */,
 				62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */,
 				28626D0246AAA3E67B6D0F4D /* ClipboardFileStore.swift in Sources */,
 				2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */,
