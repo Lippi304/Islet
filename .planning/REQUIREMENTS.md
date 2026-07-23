@@ -73,6 +73,67 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 
 > **v1.9 Requirements (Clipboard History) shipped 2026-07-23** — archived to `.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped.
 
+## v1.10 Requirements — Live Activities Suite
+
+Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plus a Droppy-style Settings grid overview to manage all Live Activities (existing + new) in one place. Scoped via a `superpowers:brainstorming` session followed by `.planning/research/` (STACK/FEATURES/ARCHITECTURE/PITFALLS/SUMMARY.md). Started 2026-07-23 while v1.4, v1.5, and v1.7 all remain open in parallel.
+
+### Settings
+
+- [ ] **SETTINGS-04**: The Activities-related Settings sections are replaced by one Droppy-style grid of cards — one card per Live Activity (existing + new), each showing a mini live-preview of that activity's pill, its title, a one-line description, and an on/off toggle
+- [ ] **SETTINGS-05**: Every new Live Activity introduced this milestone defaults OFF; every already-shipped activity's existing default (mostly ON, Focus Mode OFF) is preserved exactly as-is by the migration — no existing user's persisted toggle state silently flips
+
+### Caps Lock
+
+- [ ] **CAPS-01**: Toggling Caps Lock briefly shows an on/off HUD in the collapsed island (same transient wings pattern as Charging), auto-dismissing after ~1-2s
+
+### Update-Activity
+
+- [ ] **UPDATE-01**: The existing Sparkle update-available HUD is reskinned to the Droppy look (leading icon, "Update" label, trailing version pill) — trigger logic and Sparkle plumbing unchanged
+
+### Timer/Pomodoro
+
+- [ ] **TIMER-01**: User can start a countdown timer from the notch with a chosen duration; the collapsed island shows a live mm:ss countdown while running
+- [ ] **TIMER-02**: The expanded island offers pause/reset/add-time controls for a running timer
+- [ ] **TIMER-03**: When the timer completes, the island shows a completion HUD splash and the system plays a notification/sound
+- [ ] **TIMER-04**: A Pomodoro mode cycles work/break durations with a session counter, selectable as an alternative to a plain one-shot countdown
+
+### Quick Notes
+
+- [ ] **NOTES-01**: User can quickly capture a typed text note from the notch (menu-bar flyout, mirroring the existing Clipboard History submenu)
+- [ ] **NOTES-02**: Each captured note is appended, with a timestamp, to one fixed .md file inside a user-chosen Obsidian vault folder — the file is created if missing, never overwritten/corrupted, and the append works even while Obsidian.app is closed
+- [ ] **NOTES-03**: A local, unencrypted recent-notes list is shown in the same flyout, mirroring Clipboard History's most-recent-first list (decision: plaintext is fine since notes are destined for a plaintext vault file anyway — no AES-GCM parity with Clipboard History needed)
+
+### Quick Actions
+
+- [ ] **QACTION-01**: Settings lets the user enable/reorder a Quick Actions bar shown in the notch, choosing from a fixed catalog: mic mute/unmute, display sleep now, dark/light mode toggle, screen lock, Do Not Disturb toggle (best-effort), caffeinate/keep-awake toggle, empty Trash, launch app/open URL
+- [ ] **QACTION-02**: Tapping an enabled Quick Action performs it immediately without expanding the notch any further than the action bar itself
+- [ ] **QACTION-03**: The Do Not Disturb/Focus action is documented as best-effort (no stable public macOS API) — a failure is visible to the user, not silently swallowed
+
+### Download-Progress
+
+- [ ] **DL-01**: When a file starts downloading into ~/Downloads (browser temp-file convention), the notch shows a live "downloading" indicator
+- [ ] **DL-02**: When the temp file is renamed to its final filename (download complete), the indicator shows a brief "done" state then clears — no exact-percentage guarantee across all browsers (presence + completion signal only)
+
+### Meeting-HUD
+
+- [ ] **MEET-01**: While Zoom or Teams (native app) is running AND the microphone is active, the notch shows a call-timer HUD (elapsed mm:ss)
+- [ ] **MEET-02**: Tapping the Meeting-HUD's mute control toggles the system-wide microphone mute (not the in-app mute state) via a shared `MicMuteController`
+- [ ] **MEET-03**: Google Meet (browser-based) is explicitly not detected in v1.10 — documented as a known limitation, not silently missing
+
+### Coding-Progress
+
+- [ ] **CODE-01**: While a Claude Code CLI session with an active todo list is running (detected via a user-installed hook writing local status), the notch shows the todo completion fraction (e.g. "3/7")
+- [ ] **CODE-02**: When no todo list is active but a session is running, the notch falls back to a short current-status text instead of showing nothing
+- [ ] **CODE-03**: Islet ships (or generates via Settings) the hook script and documents the one-time setup step the user must perform in their own Claude Code config — an onboarding/documentation requirement, not just engineering
+- [ ] **CODE-04**: When the Claude Code session ends or goes stale (no update within a timeout), the Coding-Progress indicator clears rather than showing stale state indefinitely
+
+### Menübar-Overflow
+
+- [ ] **MENUBAR-01**: A chevron icon in the menu bar separates a "visible" and a "hidden" section of menu-bar icons, mirroring Ice's MVP mechanic
+- [ ] **MENUBAR-02**: The user can drag other apps' menu-bar icons across the chevron (standard macOS Cmd-drag) to assign them to the hidden section
+- [ ] **MENUBAR-03**: Clicking the chevron reveals/hides the hidden section's icons; hidden icons are genuinely absent from the visible menu-bar strip when hidden, not just repositioned off-screen while occupying visual space
+- [ ] **MENUBAR-04**: This feature requires a new Accessibility permission grant, requested with a clear one-time explanation — distinct from Islet's existing WeatherKit/EventKit/Bluetooth permission prompts
+
 ## v2 Requirements
 
 Deferred to a future milestone, not in this roadmap.
@@ -110,6 +171,14 @@ Deferred to a future milestone, not in this roadmap.
 | `SimplyCoreAudio` (or any third-party CoreAudio wrapper) for the audio-output switcher | Archived/unmaintained since March 2024; project's own "no dependency for a tiny native surface" precedent (IOKit, IOBluetooth) applies — public `AudioObject*`/`AudioHardwareService*` C API is a direct, small surface (v1.7 research: STACK.md) |
 | Full MusicKit REST integration for Apple Music favorite/like | Unnecessary complexity for a same-Mac, same-user write — plain `NSAppleScript` against the `loved` property suffices (v1.7 research: FEATURES.md) |
 | Fuzzy title/artist search to resolve Spotify track identity for favorite/like | False-positive risk (liking the wrong track); the track URI read directly from the current session is used instead (v1.7 research: PITFALLS.md) |
+| Full Obsidian Local REST API integration for Quick Notes | Requires the user to install/keep running a separate Obsidian community plugin — raises the bar past what "quick capture" should need; plain append to a user-chosen .md file is the lightweight pattern real Obsidian quick-capture tools already use (v1.10 research: FEATURES.md) |
+| True per-app in-call mute state for Meeting-HUD (Zoom/Teams internal mute) | No public API/AppleScript surface exists; would require fragile, app-version-specific Accessibility hacks — system-wide CoreAudio input mute is used instead (v1.10 research: FEATURES.md) |
+| Download pause/resume/cancel control | Not exposed to third-party apps by the OS without a browser extension — presence/completion only (v1.10 research: FEATURES.md) |
+| Full custom action-scripting sandbox for Quick Actions | Scope creep toward a mini Shortcuts.app; a fixed catalog of ~8 pre-built actions with enable/reorder is used instead (v1.10 research: FEATURES.md) |
+| Full Ice feature parity for Menübar-Overflow (always-hidden section, hover/scroll-to-reveal, auto-rehide timer, menu-bar tint/shape) | Menübar-Overflow is already the highest-risk feature in the milestone; MVP is one chevron, click-to-toggle only — everything else is a future-milestone candidate (v1.10 research: FEATURES.md) |
+| Google Meet call detection for Meeting-HUD | Meet runs in a browser tab; no filesystem/process signal identifies it without a browser extension (v1.10 research: FEATURES.md) |
+| AES-GCM at-rest encryption for Quick Notes (parity with Clipboard History) | Notes are destined for a plaintext Obsidian vault file anyway — local encryption of Islet's own copy was judged not worth the added complexity (explicit user decision) |
+| Focus Mode auto-enable during a Timer/Pomodoro work session | No public API exists (same gap as the Quick Actions DND toggle) — revisit only if Apple ships one (v1.10 research: FEATURES.md) |
 
 ## Traceability
 
