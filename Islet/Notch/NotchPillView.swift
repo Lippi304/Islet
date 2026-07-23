@@ -2970,27 +2970,28 @@ struct NotchPillView: View {
         }
     }
 
-    // Phase 61 / DL-01/DL-02 (D-09/D-10/D-11/D-12) — Download-Progress HUD: mirrors updateWings'
-    // icon+label-left / compact-element-right split (61-PATTERNS.md), substituting a ProgressView()
-    // for the version pill in-progress, and an empty right flank once done. No onTap override (D-11)
-    // — falls through to the universal onClick() expand-to-Home, same as capsLockWings. Margin
-    // starts at capsLockWings' 65 (the longer-text sibling) per 61-UI-SPEC.md — flagged as
-    // on-device-tunable, mirrors updateWings' own documented tuning history (55->30->25->15->30).
+    // Phase 61 gap closure (post-checkpoint on-device UAT feedback) — icon-only redesign. The
+    // original icon+label-left / compact-element-right layout (mirroring updateWings) rendered
+    // "Downloading…" + the real filename as visible Text, which on-device was reported far too
+    // wide for what should be a glanceable status. Rebuilt as icon-only on BOTH flanks (no text
+    // anywhere, filename no longer rendered — DL-01/DL-02 still track it internally, just not
+    // displayed), matching osdWings' icon+compact-element scale rather than capsLockWings' long
+    // text strings — so it reuses osdWings' own on-device-confirmed margin=55 and pad values
+    // instead of capsLockWings' 65. No onTap override (D-11) — falls through to the universal
+    // onClick() expand-to-Home, same as capsLockWings.
     private func downloadWings(for activity: DownloadActivity) -> some View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 65
+        let margin: CGFloat = 55
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
+        let leadingPad: CGFloat = 14
+        let iconWidth: CGFloat = 20
+        let trailingPad: CGFloat = 20
         switch activity {
         case .inProgress:
-            let leadingPad: CGFloat = 8
-            let iconWidth: CGFloat = 20
-            let iconLabelGap: CGFloat = 2
-            let labelWidth: CGFloat = 100   // "Downloading…"
             let spinnerWidth: CGFloat = 20
-            let trailingPad: CGFloat = 8
-            let leftWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth / 2
-            let totalWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth + spinnerWidth + trailingPad
+            let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
+            let totalWidth = leadingPad + iconWidth + cameraBlockWidth + spinnerWidth + trailingPad
             let rightWidth = totalWidth - leftWidth
             assert(cameraBlockWidth > 0, "Download camera block width (\(cameraBlockWidth)) must be positive")
             assert(rightWidth < 325 && leftWidth < 325,
@@ -3003,12 +3004,6 @@ struct NotchPillView: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.white)
                         .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
-                    Color.clear.frame(width: iconLabelGap)
-                    Text("Downloading…")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .frame(width: labelWidth, alignment: .leading)
                     Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                     ProgressView()
                         .controlSize(.small)
@@ -3017,14 +3012,11 @@ struct NotchPillView: View {
                     Color.clear.frame(width: trailingPad)
                 }
             })
-        case .done(let filename):
-            let leadingPad: CGFloat = 8
-            let iconWidth: CGFloat = 20
-            let iconLabelGap: CGFloat = 2
-            let labelWidth: CGFloat = 140   // real filename, middle-truncated
-            let trailingPad: CGFloat = 8
-            let leftWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth / 2
-            let totalWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth + trailingPad
+        case .done(_):
+            // User-confirmed on the checkpoint follow-up: done state is icon-only too, no
+            // filename text — consistent with the in-progress flank's icon-only redesign above.
+            let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
+            let totalWidth = leadingPad + iconWidth + cameraBlockWidth + trailingPad
             let rightWidth = totalWidth - leftWidth
             assert(cameraBlockWidth > 0, "Download camera block width (\(cameraBlockWidth)) must be positive")
             assert(rightWidth < 325 && leftWidth < 325,
@@ -3037,16 +3029,6 @@ struct NotchPillView: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.green)
                         .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
-                    Color.clear.frame(width: iconLabelGap)
-                    // T-61-06 — filename is untrusted (browser/attacker-influenceable); never
-                    // interpolated into a format/shell/path call, only ever passed to plain Text,
-                    // line-limited + middle-truncated inside a fixed frame (DeviceActivity.name precedent).
-                    Text(filename)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(width: labelWidth, alignment: .leading)
                     Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                     Color.clear.frame(width: trailingPad)
                 }
