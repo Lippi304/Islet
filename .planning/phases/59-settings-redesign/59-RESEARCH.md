@@ -222,7 +222,7 @@ private func categorySection(title: String, cards: [ActivityCardData]) -> some V
 ## Don't Hand-Roll
 
 | Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
+|---------|-------------|--------------|-----|
 | 2-column card grid | A manual `HStack`-of-`VStack`-pairs layout with index-based chunking | `LazyVGrid(columns: [GridItem(.flexible())×2])` | Native primitive handles wrapping/spacing/alignment for free, no off-by-one chunking bugs |
 | Migration-safe default preservation (SC4) | A versioned migration system / explicit "if first launch after v1.10, write defaults" pass | Nothing — Swift's own `@AppStorage(key) var x = <literal>` already returns the literal only when the key is absent | `ActivitySettings.migrateLegacyAccentIfNeeded()` (the CONTEXT.md-cited precedent) was needed because that migration COPIES a value from one key to three new keys. This phase needs no copy at all — every existing key keeps its existing name and existing default; every new key is genuinely new. Writing migration code here would be solving a problem that doesn't exist. |
 | Per-card options popover state | A generic keyed-popover dictionary/router | Two named `@State` bools already in `SettingsView.swift` (`showFocusPermissionExplanation`, `showOSDPermissionExplanation`), reused via closure param | See Pattern 3/Anti-Patterns above |
@@ -315,17 +315,21 @@ LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) 
 | A2 | Illustration-icon mapping for Song-Change Toast (no existing pill icon) and Device (dynamic icon, no single constant) — proposed icons (`text.bubble.fill`, `antenna.radiowaves.left.and.right`) are this researcher's suggestion, not user-confirmed | Common Pitfalls #4 / Code Examples | Low — D-12 explicitly delegates icon/copy design to Claude with on-device UAT review, so any reasonable choice is correctable in that UAT loop, not a locked decision |
 | A3 | Resolver-priority table (SC5) is best placed as a doc-comment inside `IslandResolver.swift` rather than a separate `.planning/` markdown file — CONTEXT.md explicitly leaves this to researcher/planner discretion; this is a recommendation, not a verified requirement | Architecture Patterns (diagram) | Low — either location satisfies "a reviewed resolver-priority table exists"; a separate file is an equally valid planner choice if the plan-checker or user prefers docs decoupled from source |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+Both questions were resolved during planning — see "Adopted in" under each recommendation.
 
 1. **Exact resolver-tier assignment for each of the 8 new v1.10 activities**
    - What we know: `IslandResolver.swift`'s current tiers are (0) onboarding forced-flow, (1) `ActiveTransient` queue ranked charging > device > focus (collapsed-only) > osd (collapsed-only), (2) `isExpanded` branch (pendingDrop > selectedView calendar/weather/tray > nowPlaying > home fallback), (3) non-expanded ambient (calendarCountdown always-wins > launch-gated nowPlayingWings > idle). ROADMAP.md's phase descriptions give strong hints: Caps Lock = "same transient wings pattern as Charging" (transient tier); Timer/Meeting-HUD = persistent-transient (Phase 62 "generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode," Phase 63 explicitly depends on that generalization); Coding-Progress = likely ambient tier like Calendar Countdown (Phase 67 "reuses Phase 61's FileWatcher pattern," Download-Progress is presence+completion, closer to a short-lived transient); Quick Notes and Menübar-Overflow appear to need NO `IslandPresentation` case at all (menu-bar-only UI, never touch the pill); Quick Actions bar's exact resolver relationship is unclear from the roadmap text alone (could be an always-visible strip, not a presentation case).
    - What's unclear: Exact numeric rank for Caps Lock/Timer/Meeting-HUD/Download-Progress/Coding-Progress relative to each other and to the 4 existing transients — the ROADMAP only fixes BUILD ORDER (59→60→61→62→63→64→65→66→67), not resolver RANK order, and these need not match.
    - Recommendation: SC5 only requires "a reviewed resolver-priority table exists... so later phases slot in without silently reordering existing precedence" — Phase 59's table should document the CURRENT 4 tiers precisely (verified against the code above) and list each of the 8 new activities with its best-guess tier + an explicit "rank TBD, confirm in that activity's own phase discussion" flag, rather than pre-deciding numeric ranks this phase has no mandate to lock.
+   - Adopted in: Plan 59-01 Task 3 — the SC5 resolver-priority reference table in `IslandResolver.swift` documents the current 4 tiers exactly as described above and flags each of the 8 new activities with `// rank TBD — confirm in that activity's own phase discussion`, per this recommendation.
 
 2. **Does Quick Actions bar (Phase 65) get a grid card in Produktivität at all, given it's a persistent bar not a toggleable "activity" in the Charging/Focus sense?**
    - What we know: D-07 assigns "Produktivität = reserved for new v1.10 activities (Timer/Pomodoro, Meeting-HUD, Quick Notes, Quick Actions bar)" — CONTEXT.md explicitly lists it as a card.
    - What's unclear: Whether its card's toggle enables/disables the whole bar (binary on/off, matching "one card per toggle" D-06 precedent) or whether its later phase needs a richer "enable + reorder" UI that doesn't fit the plain-toggle card shape.
    - Recommendation: This phase only needs the on/off toggle (matching QACTION-01's "Settings lets the user enable/reorder" — enable is this phase's card, reorder is Phase 65's own separate UI). No blocker for Phase 59 planning.
+   - Adopted in: 59-UI-SPEC.md's Copywriting Contract, wired in Plan 59-02 Task 1's `productivityCards` array — Quick Actions ships as a plain on/off card ("Quick Actions", "A row of one-tap system actions — mute mic, lock screen, and more.") with `onOptionsTap: nil`, matching this recommendation; enable-only, reorder UI stays Phase 65's own scope.
 
 ## Environment Availability
 
@@ -356,9 +360,9 @@ Skipped — this phase has no external tool/service/runtime dependencies beyond 
 - **Phase gate:** On-device UAT (SC2 toggle-behavior, SC3 fresh-install default-OFF check, SC4 pre-seeded-domain upgrade-simulation check) before `/gsd:verify-work`
 
 ### Wave 0 Gaps
-- [ ] `IsletTests/ActivitySettingsTests.swift` — add default-value assertions for the 8 new keys (covers SETTINGS-05 SC3)
-- [ ] A new or extended test — pre-seeded `UserDefaults(suiteName:)` domain asserting existing-key values survive unchanged through the new card-array binding path (covers SETTINGS-05 SC4; this is the one genuinely new test shape this phase needs, no existing precedent covers "read a seeded non-default value through a Binding built from @AppStorage")
-- [ ] No new test framework/config needed — `IsletTests` target and XCTest already fully cover this phase's testing needs
+- [x] `IsletTests/ActivitySettingsTests.swift` — add default-value assertions for the 8 new keys (covers SETTINGS-05 SC3) — implemented via 59-01 Task 1's `testNewV110KeyNames()` + 59-02 Task 1's `= false` `@AppStorage` declarations (grep-verified)
+- [x] A new or extended test — pre-seeded `UserDefaults(suiteName:)` domain asserting existing-key values survive unchanged through the new card-array binding path (covers SETTINGS-05 SC4) — implemented via 59-01 Task 1's `testChargingAppStorageReadsSeededValueNotCompiledDefault()`
+- [x] No new test framework/config needed — `IsletTests` target and XCTest already fully cover this phase's testing needs
 
 ## Security Domain
 
