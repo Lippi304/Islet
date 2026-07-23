@@ -2865,19 +2865,44 @@ struct NotchPillView: View {
     // Phase 60 / CAPS-01 (D-03) — Caps Lock HUD: icon + label always visible in BOTH states
     // (unlike a status dot, the two distinct text strings alone convey on/off). Keeps the
     // universal onClick() expand-to-Home tap — no onTap override.
+    // Post-checkpoint fix (on-device report: leading "C" of "Caps Lock On/Off" rendered under
+    // the camera housing) — the original `Spacer()` + static `wingsLabelWidth/2` layout is the
+    // SAME mechanism osdWings' comment history (rounds 5-14) documents as fundamentally unable
+    // to guarantee clearance: a flexible Spacer() gives no hard guarantee about where content
+    // lands relative to the REAL notch, and the static width was tuned for "Connected" (63.5pt),
+    // notably shorter than "Caps Lock Off" (13 chars). Rebuilt on osdWings' round-15+ proven
+    // mechanism instead: a sequential HStack with an EXPLICIT fixed-width camera-block spacer
+    // sized from the LIVE OS-reported notch width (`interaction.collapsedNotchSize`). Margin
+    // tuned on-device (measured rawNotchHalfWidth=89.5pt on the test machine): osdWings' own
+    // 55pt margin still clipped the wider "Caps Lock Off" string; 65pt is the on-device-confirmed
+    // minimum that both clears the camera and keeps the pill's width in line with other wings.
     private func capsLockWings(for activity: CapsLockActivity) -> some View {
-        wingsShape(leftWidth: Self.wingsSize.width / 2, rightWidth: Self.wingsLabelWidth / 2) {
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        let margin: CGFloat = 65
+        let notchHalfWidth = rawNotchHalfWidth + margin
+        let cameraBlockWidth = notchHalfWidth * 2
+        let iconLeadingPad: CGFloat = 12
+        let iconWidth: CGFloat = 20
+        let trailingPad: CGFloat = 12
+        let textWidth: CGFloat = 110
+        let leftWidth = iconLeadingPad + iconWidth + cameraBlockWidth / 2
+        let totalWidth = iconLeadingPad + iconWidth + cameraBlockWidth + textWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
             HStack(spacing: 0) {
+                Color.clear.frame(width: iconLeadingPad)
                 Image(systemName: "capslock.fill")
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)
-                    .padding(.leading, 12)
-                Spacer()
+                    .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                 Text(activity == .on ? "Caps Lock On" : "Caps Lock Off")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
-                    .padding(.trailing, 14)
+                    .lineLimit(1)
+                    .frame(width: textWidth, alignment: .leading)
+                Color.clear.frame(width: trailingPad)
             }
         }
     }
