@@ -2325,7 +2325,7 @@ final class NotchWindowController {
         }
 
         // Devices
-        if activityEnabled(ActivitySettings.deviceKey) {
+        if activityEnabled(ActivitySettings.deviceKey) && !isOnboardingActive {
             startBluetoothMonitor()
         } else if bluetoothMonitor != nil {
             bluetoothMonitor?.stop(); bluetoothMonitor = nil
@@ -2344,7 +2344,12 @@ final class NotchWindowController {
 
         // Phase 41 / HUD-08 — Calendar Countdown. Mirrors the Charging/Devices toggle-off
         // pattern exactly: stop the monitor, release it, clear the ambient state, re-render.
-        if activityEnabled(ActivitySettings.calendarCountdownKey) {
+        // Bug fix: gated behind !isOnboardingActive, same reason as the Devices branch above —
+        // this whole function is a general "re-apply live" reconciliation that fires on ANY
+        // UserDefaults write, and an incidental early write during boot (before the real fix,
+        // this raced ahead of the sequential start(isFirstLaunch:) gate on this same key) fired
+        // the system Calendar prompt before the onboarding Permissions step ever explained it.
+        if activityEnabled(ActivitySettings.calendarCountdownKey) && !isOnboardingActive {
             startCalendarCountdownMonitor()
         } else if calendarCountdownMonitor != nil {
             calendarCountdownMonitor?.stop()
