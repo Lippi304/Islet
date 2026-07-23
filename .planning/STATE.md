@@ -4,7 +4,7 @@ milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
 stopped_at: Completed 59-01-PLAN.md
-last_updated: "2026-07-23T14:37:52.099Z"
+last_updated: "2026-07-23T14:45:29.297Z"
 last_activity: 2026-07-23
 progress:
   total_phases: 19
@@ -243,6 +243,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 58]: 58-02: Delete All History placed as a top-level NSMenuItem beside the Clipboard History anchor (not nested in its submenu) — re-derived after 58-01's D-15-REVISED flyout-submenu amendment, matching the option 58-01-SUMMARY.md itself flagged and 58-01's own placeholder code comment
 - [Phase 58]: 58-02: On-device UAT approved first round — all 4 ROADMAP Phase 58 success criteria (CLIP-01/02/03/05) confirmed on real hardware, closing v1.9 (Clipboard History) at 4/4 phases
 - [Phase 59-01]: ActivityCardData carries no category field/enum — Plan 59-02's own card arrays already partition by category; no migration function added for the 8 new v1.10 activity keys since absent-key @AppStorage default is the only mechanism needed
+- [Phase 59-02]: Tasks 1-2 (8 new @AppStorage properties + 3 categorized card arrays; activitiesSection rebuilt as a single-ScrollView categorized 2-column card grid with categorySection(title:cards:) helper, Focus/OSD popovers relocated onto the System-HUDs categorySection call site) landed and build-verified (commits ba43bfa, aca7a13). Task 1 also required regenerating Islet.xcodeproj via xcodegen (Rule 3 blocking fix -- Plan 59-01's ActivityCard.swift was never added to the project's Sources build phase, causing a cannot-find-type build failure). Task 3 (on-device UAT, gate=blocking) is a checkpoint requiring interactive human verification this executor cannot perform -- reached and NOT auto-approved (workflow.auto_advance is false). Per the Phase 49-03/51-01/54-03/54-04 precedent, 59-02-SUMMARY.md was intentionally NOT created yet -- writing it now would let roadmap.update-plan-progress mark Phase 59 complete before UAT is approved. Resume by running the Task 3 checklist (12 steps, 59-02-PLAN.md) on-device; on 'approved' (or a described failure), a continuation agent should finish the plan (SUMMARY.md, state.advance-plan, roadmap.update-plan-progress).
 
 ### Roadmap Evolution
 
@@ -381,7 +382,7 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T14:37:52.094Z
+Last session: 2026-07-23T14:45:29.291Z
 Stopped at: Completed 59-01-PLAN.md
 Resume file: None
 
