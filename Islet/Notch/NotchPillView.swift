@@ -210,6 +210,12 @@ struct NotchPillView: View {
     // (and any unit construction) build without a controller.
     var onClick: () -> Void = {}
 
+    // Phase 60 / UPDATE-01 — the Update wing's per-wing tap override (wingsShape's `onTap`
+    // param), mirroring `onClick`'s exact declaration style. Triggers Sparkle's install flow
+    // instead of the universal expand-to-Home. Defaults to a no-op so DEBUG #Previews build
+    // without a controller.
+    var onUpdateTap: () -> Void = {}
+
     // Phase 42 / DUAL-01 (D-12, SUPERSEDED 2026-07-19 — live user decision during Plan 42-04
     // Task 3's on-device UAT) — the secondary bubble's tap callback, mirroring `onClick`'s
     // exact declaration style. Originally wired to expand to Now-Playing (D-12); now repurposed
@@ -931,13 +937,8 @@ struct NotchPillView: View {
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
         case .osd(let activity): osdWings(for: activity)                    // Phase 39 / HUD-03/HUD-04: rank 4 transient (39-02)
-        case .capsLock, .updateAvailable:
-            // Phase 60 / CAPS-01 / UPDATE-01 — rank 5/6 transient cases landed by 60-01 (the
-            // "define contracts first" wave, per 60-01-PLAN.md's own objective); real wing
-            // rendering ships in a later Phase 60 plan. Rule 3 blocking fix: this switch is
-            // exhaustive over IslandPresentation, so the 2 new cases must compile NOW even
-            // though their view is not built yet.
-            EmptyView()
+        case .capsLock(let activity): capsLockWings(for: activity)          // Phase 60 / CAPS-01: rank 5 transient
+        case .updateAvailable(let activity): updateWings(for: activity)     // Phase 60 / UPDATE-01: rank 6 transient
         case .idle:
             idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }
@@ -2861,6 +2862,49 @@ struct NotchPillView: View {
         }
     }
 
+    // Phase 60 / CAPS-01 (D-03) — Caps Lock HUD: icon + label always visible in BOTH states
+    // (unlike a status dot, the two distinct text strings alone convey on/off). Keeps the
+    // universal onClick() expand-to-Home tap — no onTap override.
+    private func capsLockWings(for activity: CapsLockActivity) -> some View {
+        wingsShape(leftWidth: Self.wingsSize.width / 2, rightWidth: Self.wingsLabelWidth / 2) {
+            HStack(spacing: 0) {
+                Image(systemName: "capslock.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white)
+                    .padding(.leading, 12)
+                Spacer()
+                Text(activity == .on ? "Caps Lock On" : "Caps Lock Off")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.trailing, 14)
+            }
+        }
+    }
+
+    // Phase 60 / UPDATE-01 (D-04) — Update HUD: icon+"Update" label on the left, a compact
+    // UpdateVersionPill on the right. The ONE wing call site passing a non-nil `onTap` override —
+    // taps trigger Sparkle's install flow (onUpdateTap) instead of the universal expand-to-Home.
+    private func updateWings(for activity: UpdateActivity) -> some View {
+        wingsShape(leftWidth: Self.wingsLabelWidth / 2, rightWidth: Self.wingsSize.width / 2, onTap: onUpdateTap) {
+            HStack(spacing: 0) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 13, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white)
+                    Text("Update")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+                .padding(.leading, 12)
+                Spacer()
+                UpdateVersionPill(version: activity.version)
+                    .padding(.trailing, 14)
+            }
+        }
+    }
+
     // RIGHT wing of the device glance: the battery indicator when the device reports a level
     // (DEV-01), a fixed-green status ring when connected with no reported battery, otherwise the
     // disconnected connection sign. Battery is rendered GREEN (with the indicator's amber/red
@@ -3471,6 +3515,24 @@ private struct OSDLevelBar: View {
                     .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)   // D-16 retuned value
             }
         }
+    }
+}
+
+// Phase 60 / UPDATE-01 — compact trailing pill for updateWings(for:), the version-only
+// equivalent of BatteryIndicator's trailing-pill role (D-04: not a BatteryIndicator
+// parameterization — no level/fill-bar concept applies to a version string).
+struct UpdateVersionPill: View {
+    let version: String
+
+    var body: some View {
+        Text("v\(version)")
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8)
+            .frame(height: 16)
+            .background(RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.15)))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.white.opacity(0.3), lineWidth: 1))
     }
 }
 
