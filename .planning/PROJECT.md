@@ -30,7 +30,30 @@ The notch becomes a beautiful, reliable "island" that shows now-playing media an
 
 ## Next Milestone Goals
 
-v1.9 (Clipboard History) shipped 2026-07-23 — v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel and are candidates to pick back up: v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused mid-milestone (Phase 49 Favorite/Like spike aborted after weak on-device results, Phase 50 undecided; Phase 46 Calendar Quick-Add Improvements also still open). Other standing candidates for a future milestone: a countdown timer, gesture-based swipe navigation, Animation Speed presets (ARCH-P1), alternate app icon variants (still Out of Scope below until picked up), and Phase 49/50's Favorite/Like feature decision.
+v1.9 (Clipboard History) shipped 2026-07-23 — v1.10 (Live Activities Suite) started the same day from a brainstorming session (see below). v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel and are candidates to pick back up: v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused mid-milestone (Phase 49 Favorite/Like spike aborted after weak on-device results, Phase 50 undecided; Phase 46 Calendar Quick-Add Improvements also still open). Other standing candidates for a future milestone: a countdown timer (folded into v1.10's Timer/Pomodoro activity), gesture-based swipe navigation, Animation Speed presets (ARCH-P1), alternate app icon variants (still Out of Scope below until picked up), and Phase 49/50's Favorite/Like feature decision.
+
+## Milestone In Progress (Parallel): v1.10 (Live Activities Suite)
+
+**Goal:** Add a suite of new Live Activities/HUDs inspired by Droppy and Ice, plus a Droppy-style Settings grid overview to manage them all — most new activities default OFF rather than opinionated-on.
+
+**Status:** Started 2026-07-23, from a brainstorming session, while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision).
+
+**Target features:**
+- **Settings-Redesign (foundation)** — Droppy-style grid overview of all Live Activities (mini pill preview + title + description + toggle), built generically for existing AND new activities. New activities default OFF.
+- **Caps Lock HUD** — ON/OFF indicator, same collapsed-HUD pattern as Bluetooth/Charging.
+- **Update-Activity restyle** — the existing Sparkle update HUD reskinned to the Droppy look.
+- **Download-Progress** — watches the Downloads folder (FSEvents), shows a progress bar in the notch.
+- **Timer/Pomodoro** — countdown/focus session startable from the notch, live in the collapsed pill.
+- **Meeting-HUD** — detects an active Zoom/Meet/Teams call, shows a call timer + mute toggle directly in the notch. Needs a short research/spike step (reliable call + mic-status detection), similar in kind to v1.6's Volume/Brightness OSD suppression research.
+- **Quick Notes + Obsidian export** — quick text capture in the notch (parallel to Clipboard History but for typed notes); simple append-with-timestamp into a fixed .md file in a user-chosen Obsidian vault folder, no vault read access needed.
+- **Quick Actions bar** — configurable buttons in the notch (e.g. mic mute, display sleep, dark mode, screen lock — final selection at phase-planning time).
+- **Menübar-Overflow (Ice-style MVP)** — a chevron icon in the menu bar reveals/hides a drag-in group of overflow menu-bar icons. Icons stay in the menu bar itself (do NOT move into the notch). One hide tier only — no "always-hidden"/hotkey tier, no menu-bar theming, no hotkeys (unlike full Ice).
+- **Coding-Progress** — shows live progress of a running Claude Code session in the notch. Mechanism: a Claude Code hook script writes status to a local file that Islet watches. Display combines todo-list progress (X of Y done) when Claude is running a todo list, falling back to the current status text otherwise. Claude Code only (not ChatGPT), session-local to this Mac. Needs a short research step (hook-event choice, file format/IPC).
+
+**Key context:**
+- Reference apps for this milestone: **Droppy** (HUD settings grid, Update-Activity look, Caps Lock indicator) and **Ice** (open-source menu-bar-icon-hiding tool, MIT-licensed — Menübar-Overflow reimplements its "hide behind a chevron" mechanic as an MVP, not its full feature set).
+- Proposed phase order is foundation-first, then ascending effort: Settings-Redesign → Caps Lock + Update restyle → Download-Progress → Timer/Pomodoro → Meeting-HUD → Quick Notes/Obsidian → Quick Actions bar → Menübar-Overflow → Coding-Progress. Not locked — confirmed loosely with the user during brainstorming, final order set at roadmap time.
+- All 9 features were scoped via a `superpowers:brainstorming` session (not `/gsd-discuss-milestone`) — mechanism/depth for the ambiguous items (Coding-Progress data source, Obsidian export depth, Menübar-Overflow scope) was already clarified with the user before this milestone was created; no need to re-ask those at requirements time unless something doesn't add up.
 
 ## Milestone In Progress (Parallel): v1.5 (Home Focus & Widget Redesign)
 
@@ -371,6 +394,7 @@ _Phase 29 (SHAPE-01, NotchShape flare) and Phase 30 (HOME-01/02/03, Home music-o
 
 _v1.5 (Home Focus & Widget Redesign) — see `.planning/ROADMAP.md`/`.planning/REQUIREMENTS.md` for the full 11-requirement traceability table (not yet archived — still open in parallel). Remaining: Phase 33 on-device UAT (WEATHER-01/02)._
 _v1.7 (Interaction & Calendar Polish) — see "Milestone In Progress (Parallel): v1.7" above. Phases 43-48 (Drag Detection Hardening, Tray & Quick Action Width Alignment, View Switcher Morph Fix, Calendar Quick-Add — partial (CALVIEW-05 shipped, 06/07 pending), Audio Output Switcher pure-seam + UI wiring) shipped/code-complete. Remaining: Phase 46's CALVIEW-06/07, then a decision on Phase 49/50 (Favorite/Like, paused)._
+_v1.10 (Live Activities Suite) — see "Milestone In Progress (Parallel): v1.10" above. Requirements being defined; `.planning/REQUIREMENTS.md`/`.planning/ROADMAP.md` follow in this same session._
 
 ### Out of Scope
 
@@ -479,4 +503,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-23 — v1.9 (Clipboard History) shipped and archived to `.planning/milestones/v1.9-ROADMAP.md`/`.planning/milestones/v1.9-REQUIREMENTS.md` (Phases 55-58, 7/7 requirements). v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phases 43-48 shipped/code-complete and Phase 46's CALVIEW-06/07 still pending. v1.8 (Settings Redesign & Island Navigation) shipped 2026-07-21, archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.*
+*Last updated: 2026-07-23 — v1.10 (Live Activities Suite) started from a brainstorming session: 9 new Live Activities/HUDs (Meeting, Download-Progress, Timer/Pomodoro, Quick Notes+Obsidian, Quick Actions bar, Menübar-Overflow, Caps Lock, Update restyle, Coding-Progress) plus a Droppy-style Settings grid overview, requirements/roadmap in progress. v1.9 (Clipboard History) shipped and archived to `.planning/milestones/v1.9-ROADMAP.md`/`.planning/milestones/v1.9-REQUIREMENTS.md` (Phases 55-58, 7/7 requirements). v1.4 (Architecture Redesign), v1.5 (Home Focus & Widget Redesign), and v1.7 (Interaction & Calendar Polish) all remain open in parallel (explicit user decision) — v1.5 only needs Phase 33's on-device UAT to close, v1.4 has 2 items in `28-HUMAN-UAT.md` pending final on-device re-confirmation, v1.7 is paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided) with Phases 43-48 shipped/code-complete and Phase 46's CALVIEW-06/07 still pending. v1.8 (Settings Redesign & Island Navigation) shipped 2026-07-21, archived to `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.*
