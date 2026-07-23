@@ -2910,22 +2910,51 @@ struct NotchPillView: View {
     // Phase 60 / UPDATE-01 (D-04) — Update HUD: icon+"Update" label on the left, a compact
     // UpdateVersionPill on the right. The ONE wing call site passing a non-nil `onTap` override —
     // taps trigger Sparkle's install flow (onUpdateTap) instead of the universal expand-to-Home.
+    // On-device report: the old Spacer()-based layout (same fragile mechanism capsLockWings had)
+    // left an oversized, unmeasured gap between the version pill and the camera; the first rebuild
+    // attempt (margin=65, 70pt content boxes, matching capsLockWings 1:1) was STILL reported too
+    // wide. Update's content (short "Update" label, compact version pill) is much closer in scale
+    // to osdWings' icon+bar than to Caps Lock's long text — tightened to osdWings' own proven
+    // margin=55 and font-metrics-based (not generously-padded) content widths, landing this wing's
+    // total width within ~1pt of osdWings' own on-device-confirmed-correct total.
     private func updateWings(for activity: UpdateActivity) -> some View {
-        wingsShape(leftWidth: Self.wingsLabelWidth / 2, rightWidth: Self.wingsSize.width / 2, onTap: onUpdateTap) {
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        // On-device tuning: 55 -> 30 -> 25 -> 15 (pill clipped at 15) -> back to 30, the last
+        // confirmed-clean value. User asked to widen back out for the pill specifically while
+        // leaving the "Update" label's own position untouched — since the label sits BEFORE the
+        // camera block, its position depends only on leadingPad/iconWidth/gap/labelWidth (kept at
+        // this round's tighter values), never on margin/cameraBlockWidth. Only the pill side
+        // (margin + pillWidth) needed reverting.
+        let margin: CGFloat = 30
+        let notchHalfWidth = rawNotchHalfWidth + margin
+        let cameraBlockWidth = notchHalfWidth * 2
+        let leadingPad: CGFloat = 8
+        let iconWidth: CGFloat = 20
+        let iconLabelGap: CGFloat = 2
+        let labelWidth: CGFloat = 38    // "Update" (6 chars) at 12pt semibold rounded
+        let pillWidth: CGFloat = 52     // UpdateVersionPill ("v1.99"-class content) at 11pt
+        let trailingPad: CGFloat = 8
+        let leftWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth / 2
+        let totalWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth + pillWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, onTap: onUpdateTap) {
             HStack(spacing: 0) {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 13, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white)
-                    Text("Update")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-                .padding(.leading, 12)
-                Spacer()
+                Color.clear.frame(width: leadingPad)
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 13, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white)
+                    .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                Color.clear.frame(width: iconLabelGap)
+                Text("Update")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .frame(width: labelWidth, alignment: .leading)
+                Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                 UpdateVersionPill(version: activity.version)
-                    .padding(.trailing, 14)
+                    .frame(width: pillWidth, height: Self.wingsSize.height, alignment: .leading)
+                Color.clear.frame(width: trailingPad)
             }
         }
     }
