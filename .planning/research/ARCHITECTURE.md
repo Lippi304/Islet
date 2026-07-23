@@ -1,250 +1,196 @@
-# Architecture Research
+# Architecture Research — v1.10 Live Activities Suite
 
-**Domain:** macOS menu-bar clipboard history, integrating into an existing SwiftUI/AppKit notch app (Islet)
-**Researched:** 2026-07-22
-**Confidence:** HIGH (based on direct reading of Islet's own source — `AppDelegate.swift`, `Islet/Notch/*Monitor.swift`, `Islet/Notch/DragDropSupport.swift`, `Islet/Notch/NotchWindowController.swift`, `Islet/Shelf/ShelfFileStore.swift`, `Islet/Licensing/KeychainLicenseStore.swift`, `.planning/PROJECT.md` — not external/generic best practice)
+**Domain:** Integration of 9 new Live Activities/HUDs + a Settings grid redesign into Islet's existing notch-overlay architecture
+**Researched:** 2026-07-23
+**Confidence:** HIGH (based on direct reading of the current codebase — `IslandResolver.swift`, `NotchWindowController.swift`, `ActivityCoordinator.swift`, `ActivitySettings.swift`, `SettingsView.swift`, `AppDelegate.swift`, and 4 representative Monitors: `CalendarCountdownMonitor`, `FocusModeMonitor`, `OSDActivity`, `ClipboardMonitor`)
 
-## Standard Architecture
+This is not greenfield research — it is a direct extension of a fixed, already-proven convention. Every recommendation below traces to an existing pattern already shipped in this codebase; nothing here proposes new architectural machinery beyond two small, load-bearing generalizations (see "Required Resolver Generalization" below).
 
-### System Overview
+## Standard Architecture (as it exists today)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  AppDelegate  (owns the status-bar world — NOT NotchWindowController) │
+│  System-surface Monitors (one per signal, Foundation+minimal-AppKit) │
+│  PowerSourceMonitor · BluetoothMonitor · NowPlayingMonitor ·         │
+│  FocusModeMonitor · CalendarCountdownMonitor · OSDInterceptor ·      │
+│  AudioOutputMonitor · ClipboardMonitor(owned by AppDelegate)         │
 ├──────────────────────────────────────────────────────────────────────┤
-│  ┌────────────────┐   ┌───────────────────┐   ┌───────────────────┐  │
-│  │  statusItem /   │   │  ClipboardMonitor │   │  notchController  │  │
-│  │  menu (existing)│◄──┤  (NEW — system    │   │  (existing,       │  │
-│  │  Settings/Check │   │  glue: Timer +    │   │  UNTOUCHED)        │  │
-│  │  for Updates/   │   │  NSPasteboard     │   └───────────────────┘  │
-│  │  Quit           │   │  .general poll)   │                          │
-│  └────────▲────────┘   └─────────┬─────────┘                          │
-│           │                      │ onChange(ClipboardItem)            │
-│           │              ┌───────▼─────────┐                          │
-│           │              │  ClipboardStore │  (NEW — pure reducer:    │
-│           │              │  (in-memory      │  add/evict/clear/cap)  │
-│           │              │  [ClipboardItem])│                          │
-│           │              └───────┬─────────┘                          │
-│           │                      │ persist/load                       │
-│           │              ┌───────▼─────────┐                          │
-│           └──────────────┤ ClipboardFileStore│ (NEW — real disk I/O: │
-│         menuWillOpen()   │ Application Support│ JSON + image blobs)  │
-│         rebuilds items   └───────────────────┘                        │
+│  NotchWindowController (owns all Monitors except Clipboard)          │
+│    - starts/stops Monitors per ActivitySettings toggle               │
+│    - feeds raw readings into pure mapping fns (deviceActivity(),     │
+│      osdVolumeActivity(), etc.) or a Coordinator (DeviceCoordinator) │
+│    - owns `transientQueue: TransientQueue` (mutable state)           │
+│    - calls `resolve(...)` / `resolveSecondary(...)` every re-render  │
 ├──────────────────────────────────────────────────────────────────────┤
-│  NotchWindowController / IslandResolver / TransientQueue              │
-│  — completely UNTOUCHED. Zero coupling in either direction.           │
+│  IslandResolver.swift — PURE, Foundation-only, unit-tested            │
+│    IslandPresentation (enum) ← resolve(activeTransient, nowPlaying,  │
+│      isExpanded, selectedView, calendarCountdown, pendingDrop, ...)  │
+│    ActiveTransient (enum: charging/device/focus/osd)                 │
+│    TransientQueue (struct: enqueue/preempt/advance/updateHead)       │
+│    resolveSecondary(primary:nowPlaying:) → dual-bubble               │
+├──────────────────────────────────────────────────────────────────────┤
+│  NotchPillView (SwiftUI) — switches on IslandPresentation, renders   │
+├──────────────────────────────────────────────────────────────────────┤
+│  Settings: NavigationSplitView sidebar, 7 sections, @AppStorage      │
+│  Menu bar: AppDelegate → NSMenu (Settings/Updates/Quit + Clipboard   │
+│    flyout submenu, rebuilt in menuNeedsUpdate)                       │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-This is a **second, independent tree hanging off `AppDelegate`**, parallel to (not inside) the existing `notchController` tree. Islet already has exactly this shape once, informally: Phase 40's Sparkle `updaterController` and the update-dot `NSView` are owned and driven entirely by `AppDelegate`, never touching `NotchWindowController`/`IslandResolver`. Clipboard history is the second instance of that same "AppDelegate-owned side system" shape — not a new architectural category.
+### The two resolver "tiers" that already exist — and when the codebase uses which
 
-### Component Responsibilities
+This distinction is the single most important thing to get right for the 9 new features, and it is not spelled out anywhere as a named rule — it has to be read out of the code:
 
-| Component | Responsibility | Typical Implementation (mirrors) |
-|-----------|----------------|------------------------|
-| `ClipboardItem` | Pure value type: id, kind (text/image), content, timestamp | `ShelfItem`, `PowerReading` — Foundation-only struct, `Equatable`/`Codable` |
-| `ClipboardStore` | Pure in-memory reducer: append, evict-oldest-past-cap, clear-all, no I/O | `ShelfLogic` — pure, side-effect-free, unit-tested in isolation |
-| `ClipboardFileStore` | The ONE place that touches `FileManager`/disk for clipboard data | `ShelfFileStore` — "the ONE place that performs real FileManager I/O", kept a standalone enum, not a method on the pure reducer |
-| `ClipboardMonitor` | Thin system glue: `Timer`/`DispatchSourceTimer` polling `NSPasteboard.general.changeCount`, reading text/image content, filtering concealed/transient types, calling `onChange` | `PowerSourceMonitor`/`FocusModeMonitor`/`AudioOutputMonitor` — `@MainActor` class, `init(onChange:)`, idempotent `start()`, `nonisolated stop()` for deinit teardown |
-| `AppDelegate` (modified) | Owns `clipboardMonitor` and `ClipboardStore` alongside existing `statusItem`; becomes (or adopts a small helper conforming to) `NSMenuDelegate` to rebuild the clipboard section on `menuWillOpen`/`menuNeedsUpdate`; adds "Delete All History" action | Existing `AppDelegate` already owns `notchController`, `updaterController` as sibling stored properties — clipboard follows the same pattern |
+**Tier A — `ActiveTransient` / `TransientQueue` (Charging, Device, Focus, OSD).**
+Used when an activity (1) arrives via a discrete event/reading, (2) needs de-dup or in-place refresh (`updateHead`) so a noisy source (rapid volume key presses, reconnect flaps) can't spam the collapsed slot, and/or (3) must be able to forcibly evict whatever is *currently standing* in the collapsed slot even if that thing never self-elapses. Point 3 is why `TransientQueue.preempt()` exists: Focus never auto-dismisses (`isPersistent == true`), so a later Charging/Device event must forcibly displace it rather than politely queue behind it forever. Every Tier-A case gets an explicit `case .xxx(let a) where !isExpanded: return .xxx(a)` line in `resolve()`'s `switch activeTransient` block, at a hand-chosen rank position.
 
-## Recommended Project Structure
+**Tier B — Ambient, resolved directly in `resolve()`'s ambient branch (Calendar Countdown).**
+Used when an activity is a live, continuously-recomputed derived fact fed into `resolve()` on every render (not something that "arrives" and needs FIFO handling). Because `resolve()` checks `switch activeTransient` *before* the ambient branch, Tier B activities get Charging/Device preemption **for free** — no `preempt()`, no `isPersistent` flag, no dismiss timer. When a Charging/Device splash clears, the ambient value simply gets re-read on the next render and reappears on its own. This is structurally simpler than Tier A and should be preferred whenever an activity doesn't need de-dup/rate-limiting.
 
-```
-Islet/
-├── Clipboard/                      # NEW top-level folder, sibling to Notch/Shelf/Licensing
-│   ├── ClipboardItem.swift         # pure model (text/image, id, timestamp, kind)
-│   ├── ClipboardStore.swift        # pure reducer (add/evict/clear/cap) — Foundation only
-│   ├── ClipboardFileStore.swift    # real FileManager I/O (Application Support JSON + image blobs)
-│   └── ClipboardMonitor.swift      # THE ONE file that polls NSPasteboard.general
-├── AppDelegate.swift                # MODIFIED — owns clipboardMonitor + store, rebuilds menu
-```
+Two of the milestone's collapsed-tier features (Meeting-HUD, Timer/Pomodoro) are session-length activities like Focus, not discrete self-elapsing announcements like Charging/Caps-Lock — they belong in Tier A. This has one real consequence flagged below.
 
-### Structure Rationale
+## Required Resolver Generalization (small, load-bearing, not optional)
 
-- **New top-level `Clipboard/` folder**, not nested under `Notch/`: this codebase's existing folder boundaries already track feature ownership, not layer (`Notch/` = notch-panel-owned subsystems, `Shelf/` = shelf-owned, `Licensing/` = license-owned). Clipboard is owned by `AppDelegate`/the status bar, never by `NotchWindowController` — putting `ClipboardMonitor.swift` inside `Islet/Notch/` alongside `PowerSourceMonitor.swift` would misrepresent who owns and starts it, even though the *class shape* mirrors those monitors closely.
-- **Four files, not fewer**: this is the same file count Phase 19 (Shelf) used for an equivalent-complexity feature (`ShelfItem` + `ShelfLogic` + `ShelfFileStore`, three files) plus one extra file because clipboard needs a genuinely separate system-polling glue class that Shelf never needed (Shelf has no live external data source — it's purely user-drag-initiated). Do not add a fifth file for menu-building; see Pattern 3 below.
+Today `TransientQueue.preempt()` and `ActiveTransient.isPersistent` are hardcoded to a single case:
 
-## Architectural Patterns
-
-### Pattern 1: Monitor-as-isolation-seam, WITHOUT `IslandResolver` participation
-
-**What:** `ClipboardMonitor` mirrors the established Monitor convention exactly at the *class* level — one file touching the one fragile/external API (`NSPasteboard.general`), `@MainActor`, constructor-injected `onChange` closure, idempotent `start()`, `nonisolated stop()` for deinit — but does NOT feed `IslandResolver`, `TransientQueue`, or any `NotchWindowController` presentation state.
-
-**When to use:** Whenever a feature needs to isolate a single risky/external macOS API behind a testable seam, regardless of whether that feature's output ever reaches the notch UI. The Monitor pattern in this codebase is about *API isolation*, not about *being an Island activity* — those are two separate axes that happen to have always coincided until now.
-
-**Is "no resolver participation" consistent with precedent?** Yes, with one caveat. It is consistent with the *isolation-seam* half of the pattern (every Monitor's job is "wrap one fragile system call, publish a callback, own start/stop lifecycle" — nothing in that contract requires the caller to be `NotchWindowController` or to funnel into `IslandResolver`). Precedent already shows partial versions of this: `AudioOutputMonitor` feeds a device-list UI, not an `IslandResolver` activity tier — its own header explicitly notes it is "DELIBERATELY independent" from other monitors' state. The caveat is ownership: every existing Monitor is constructed and started by `NotchWindowController` (`Islet/Notch/NotchWindowController.swift`), because every existing feature's consumer lives there. `ClipboardMonitor`'s consumer is `AppDelegate`, so `AppDelegate` must be the one that constructs it, calls `start()`, and tears it down on quit — a new *owner*, but not a new *shape*.
-
-**Trade-offs:** Keeping the Monitor shape (rather than inventing something bespoke) buys immediate familiarity for a first-time-programmer codebase and a consistent testing story (fixture-injectable `onChange`), at the cost of `AppDelegate` picking up one more owned subsystem alongside `statusItem`/`updaterController` — acceptable; `AppDelegate` already owns 3 independent subsystems (notch controller, Sparkle updater, debug status item) with no shared coupling between them.
-
-**Example (shape, not exact code):**
 ```swift
-@MainActor
-final class ClipboardMonitor {
-    private nonisolated(unsafe) var timer: DispatchSourceTimer?
-    private nonisolated(unsafe) var running = false
-    private var lastChangeCount = NSPasteboard.general.changeCount
-    private let onChange: (ClipboardItem) -> Void
-
-    init(onChange: @escaping (ClipboardItem) -> Void) { self.onChange = onChange }
-
-    func start() {
-        guard !running else { return }
-        running = true
-        let t = DispatchSource.makeTimerSource(queue: .main)
-        t.schedule(deadline: .now(), repeating: 0.4, leeway: .milliseconds(100)) // CopyClip-class responsiveness
-        t.setEventHandler { [weak self] in self?.poll() }
-        t.resume()
-        timer = t
+mutating func preempt(_ t: ActiveTransient) -> Bool {
+    guard case .focus = head else { return enqueue(t) }
+    ...
+}
+extension ActiveTransient {
+    var isPersistent: Bool {
+        if case .focus = self { return true }
+        return false
     }
-
-    private func poll() {
-        let pb = NSPasteboard.general
-        guard pb.changeCount != lastChangeCount else { return }
-        lastChangeCount = pb.changeCount
-        guard !pb.types.map(\.rawValue).contains(where: {
-            $0 == "org.nspasteboard.ConcealedType" || $0 == "org.nspasteboard.TransientType"
-        }) else { return }
-        // classify text vs image, build a ClipboardItem, call onChange
-    }
-
-    nonisolated func stop() { timer?.cancel(); timer = nil; running = false }
-    deinit { /* owner (AppDelegate) calls stop() explicitly, same discipline as every other Monitor */ }
 }
 ```
-No protocol seam (unlike `NowPlayingMonitor`'s `NowPlayingService` protocol) is needed here — the protocol treatment in this codebase is reserved for the one genuinely fragile *private* API (MediaRemote); `NSPasteboard` is a fully public, stable AppKit API, matching the plain-concrete-class shape of `PowerSourceMonitor`/`FocusModeMonitor`/`AudioOutputMonitor`, none of which have a protocol wrapper either.
 
-### Pattern 2: Pure reducer + separate disk-I/O glue (mirrors Shelf, not Keychain)
+Meeting-HUD and Timer/Pomodoro are both session-length (Focus-shaped, not Charging-shaped) — Focus's `preempt()`/`isPersistent` special-case must generalize from "is this `.focus`?" to "is `head.isPersistent`?" the moment the **second** persistent case is added. This is a small, mechanical, low-risk change (the `guard case .focus = head` line becomes `guard head?.isPersistent == true` and `isPersistent` gains one line per new case) — but it is real, load-bearing architecture work, not styling, and it should be attributed to whichever of Pomodoro/Meeting-HUD ships first (recommend Pomodoro, since it ships first in the proposed order and is simpler to validate the generalized path against before Meeting-HUD's call-detection uncertainty is layered on top). Flag this explicitly in that phase's plan — it is easy to miss because the current code "happens to work" with only one persistent case and gives no compiler signal that a second one needs the guard changed.
 
-**What:** Split "what the data looks like and how it changes" (`ClipboardItem` + `ClipboardStore`, pure Foundation, zero `FileManager`/`NSPasteboard` imports) from "how it touches disk" (`ClipboardFileStore`, the only file with real I/O) — exactly Phase 19's `ShelfItem`/`ShelfLogic` vs `ShelfFileStore` split, not Phase 10's `KeychainLicenseStore` shape (which conflates storage + logic in one file, acceptable there because it stores exactly one scalar license blob, not a growing/evicting collection).
+`TransientQueue.updateHead()`'s same-category switch also needs one new arm per self-updating new transient (Download-Progress's percent ticks, mirroring the existing `(.charging, .charging)` / `(.osd, .osd)` arms) — same shape, no design question.
 
-**When to use:** Any time the data is a *collection with lifecycle rules* (cap, eviction, ordering) rather than a single persisted value — clipboard history (a capped, evicting list) is structurally the shelf's twin, not the license store's.
+## Per-Feature Integration Points
 
-**Trade-offs:** One more file than the license-store shape, but `ClipboardStore`'s eviction-at-cap logic becomes independently unit-testable with zero disk fixtures, mirroring how `ShelfLogic` is tested without ever touching `NSTemporaryDirectory()`.
+| # | Feature | Resolver tier | New Monitor? | New IslandPresentation / ActiveTransient case | Notes |
+|---|---------|---------------|---------------|------------------------------------------------|-------|
+| 1 | Meeting-HUD | **Tier A**, `isPersistent = true` | Yes — call/mic-mute detection is unknown territory, needs its own spike (mirrors the Volume/Brightness OSD-suppression precedent from v1.6) | `ActiveTransient.meeting(MeetingActivity)` | First collapsed-only HUD with an **interactive control** (mute toggle) — every existing Tier-A HUD is display-only. This is genuinely new interaction-pattern territory in `NotchPillView`, not just a new case; flag as its own risk, separate from the detection-mechanism risk. |
+| 2 | Download-Progress | **Tier A**, self-elapsing (like Charging, not Focus) | Yes — `DispatchSource.makeFileSystemObjectSource` watching `~/Downloads` (grep confirms **zero** existing FSEvents/kqueue usage anywhere in the codebase — this is a genuinely new system-integration seam, not a variant of an existing one) | `ActiveTransient.download(DownloadActivity)` | Percent-refresh reuses the exact `updateHead` same-category-replace pattern Charging's % ticks already use. Needs research on distinguishing in-progress (`.download`/`.crdownload`) vs. completed files and computing % from size deltas. Rank position (where it sits relative to Charging/Device/Focus/OSD) is a product decision, not an architecture one — resolve() just needs one more explicit line. |
+| 3 | Timer/Pomodoro | **Tier A**, `isPersistent = true` | **No** — there is no external system signal to isolate; this is pure app-owned state (mirrors `ShelfLogic`/`TrialLogic`'s "pure Foundation-only logic type" convention, not the Monitor convention). A lightweight ticking source for UI refresh only, owned directly by the controller like the existing dismiss-timer, is enough. | `ActiveTransient.pomodoro(PomodoroActivity)` | This is the phase that should carry the `preempt()`/`isPersistent` generalization (see above). Needs a start/stop UI trigger point — natural options are the new Quick Actions bar or a small popover; not itself an architecture decision, just needs a concrete home picked at phase-planning time. |
+| 4 | Quick Notes + Obsidian export | **Expanded-view only** — new `SelectedView` case + dedicated `IslandPresentation` case, exactly mirroring the Tray precedent (28-04 round 5: Tray got its own resolver case rather than an additive strip) | **No** — text capture is user-typed, not a system signal | `IslandPresentation.quickNotesExpanded` | Data model parallels `ClipboardItem`/`ClipboardStore`/`ClipboardFileStore` (a `QuickNote` value + MRU store + simple file persistence) — but note PROJECT.md places this **in the notch** ("quick text capture in the notch"), unlike Clipboard History which was deliberately kept menu-bar-only in v1.9. **Concrete wrinkle:** `SelectedView` today has exactly 4 cases, and Phase 52's top-edge switcher layout hardcodes exactly 4 independently-configurable slot keys (`switcherSlotLeftOuterKey`/`LeftInner`/`RightInner`/`RightOuter`). Adding a 5th tab means either the top-edge switcher's 4-slot model needs to grow (real design/config work, not just a resolver change) or Quick Notes is deliberately reached some other way (e.g. from the pill switcher only, not the top-edge variant, or folded into an existing tab). Flag as a genuine integration point to resolve at phase-planning time, not purely mechanical. Obsidian export is a pure side effect (timestamped append to a fixed `.md` file at a user-chosen folder) — needs a security-scoped-bookmark pattern for folder access that doesn't exist anywhere in the codebase yet (`ShelfFileStore` writes to app-owned paths, not an arbitrary user-chosen folder); confirm the app's non-sandboxed status before assuming a plain `FileManager` append suffices. |
+| 5 | Quick Actions bar | **Outside the resolver entirely** | No | None | A plain SwiftUI row rendered unconditionally in relevant expanded/collapsed states (or a `showsQuickActionsBar(for:)` boolean helper, mirroring the existing `showsSwitcherRow(for:)` shared-predicate pattern, if it needs to vary by presentation). Each button is a fire-and-forget system call (mic mute, display sleep, dark mode, screen lock) — no state machine, no Monitor. Configurable button selection is a small `CaseIterable` enum + a handful of independent `@AppStorage` keys, mirroring the switcher's per-slot key convention exactly. |
+| 6 | Menübar-Overflow | **Outside the resolver entirely — not even in `NotchWindowController`'s domain** | Possibly a small new controller, but no `*Monitor` in the system-signal sense | None | Confirmed non-notch by the milestone brief. Lives in `AppDelegate`, the one place the codebase already has ownership-exception precedent (`ClipboardMonitor` is deliberately owned by `AppDelegate`, not the window controller — the doc comment on `ClipboardMonitor` calls this out explicitly as "the one deliberate ownership deviation"). Ice's actual "hide behind a chevron" mechanism (reordering/repositioning `NSStatusItem`s via a drag-in spacer item) is worth a short feasibility check before committing to an approach — it is the kind of private/undocumented-API-adjacent territory the project has flagged before (MediaRemote, Volume/Brightness OSD suppression). This is architecturally the most isolated of the 9 features and could be built without touching `NotchWindowController`/`IslandResolver` at all. |
+| 7 | Caps Lock HUD | **Tier A**, self-elapsing (OSD-shaped) | Yes — but the simplest of the new Monitors: caps lock toggles are observable via `NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged)`, which is **event-driven**, not polling, and the codebase already uses the sibling `NSEvent.addGlobalMonitorForEvents` API elsewhere (drag-approach detection in `NotchWindowController`) — no new permission/entitlement territory expected | `ActiveTransient.capsLock(CapsLockActivity)` | Structurally the closest of the 9 to an existing precedent (milestone brief: "same shape as Focus Mode" — though the self-elapsing-vs-persistent choice should mirror OSD, not Focus, since a caps-lock press is a discrete announcement, not an ongoing session). |
+| 8 | Update-Activity restyle | **No change** | No | None (existing case) | Confirmed zero new architecture — pure `NotchPillView` styling on an already-shipped case from Phase 40. |
+| 9 | Coding-Progress | **Tier B (ambient)**, recommended over Tier A | Yes — file-watching, same `DispatchSource.makeFileSystemObjectSource` technique as Download-Progress, reading a Claude-Code-hook-written status file | New param on `resolve(...)`, mirroring `calendarCountdown:` exactly (e.g. `codingProgress: CodingProgressActivity? = nil`), checked in the ambient branch | The milestone brief leaves the tier choice open ("collapsed-HUD-tier or ambient entry"). Recommend ambient: it is a continuously-updating status readout (todo X of Y) with no discrete "arrival" to de-dup and no urgency to preempt anything beyond what the ambient tier already gives for free — adding it as a 3rd Tier-A persistent participant (after Focus and Pomodoro/Meeting) would be unjustified complexity for no behavioral gain. Needs its own short research step per the milestone brief (hook-event choice, file format). |
 
-### Pattern 3: No new "menu builder" type — extend `AppDelegate` as `NSMenuDelegate`
+### Summary of the tier split
 
-**What:** Rather than inventing a `ClipboardMenuBuilder` class, `AppDelegate` adopts `NSMenuDelegate` and implements `menuNeedsUpdate(_:)` (or `menuWillOpen(_:)`) to remove and re-insert the clipboard `NSMenuItem`s above the existing Settings…/Check for Updates…/Quit block every time the menu is about to open. Any genuinely pure logic (which items to show, label truncation, `⌘0`–`⌘9` assignment) is extracted as small top-level functions taking `[ClipboardItem]` and returning plain data (e.g. `(title: String, key: String)` tuples) — mirroring `DragDropSupport.swift`'s existing convention of pure top-level functions (`fileURLs(from:)`, `shouldAcceptDrop`) sitting right next to the AppKit code that consumes them, rather than a full separate type.
+- **New Tier-A (TransientQueue) entries:** Caps Lock, Download-Progress, Meeting-HUD, Timer/Pomodoro — 4 new `ActiveTransient` cases, each one `resolve()` line + one `updateHead`/`isPersistent` consideration.
+- **New Tier-B (ambient) entry:** Coding-Progress — 1 new `resolve(...)` parameter, no queue involvement.
+- **New expanded-view-only entry:** Quick Notes — 1 new `SelectedView` case + 1 new `IslandPresentation` case, no collapsed-tier participation at all.
+- **Entirely outside the resolver:** Quick Actions bar, Menübar-Overflow, Update-Activity restyle.
 
-**When to use:** When menu construction has some pure logic worth unit-testing (truncation, key assignment, ordering) but the actual `NSMenuItem`/`NSMenu` object graph is a thin, un-abstracted AppKit call site — matching how `AppDelegate.applicationDidFinishLaunching` already builds the existing static menu inline, and how Phase 40's debug menu (`setupDebugMenu()`) is a private `AppDelegate` method, not a separate builder class.
+This is exactly proportional to the actual heterogeneity described in the milestone brief — nothing here invents a category the codebase doesn't already have a precedent for.
 
-**Trade-offs:** Keeps `AppDelegate.swift` growing (it is already the largest "glue" file in the app by role, not LOC), but avoids a one-off abstraction for a menu that is rebuilt in exactly one place. If `AppDelegate` becomes unwieldy, this is a candidate for a later "Claude's Discretion" extraction — not a Phase-1 concern.
+## Settings Grid Data Model
 
-## Data Flow
+### The question
 
-### Capture Flow
+Map ~15-20 heterogeneous activities (existing: Charging, Device, Now Playing, Song-Change Toast, Calendar Countdown, Focus, OSD Volume, OSD Brightness, Auto-Update-Check; new: Caps Lock, Download-Progress, Timer/Pomodoro, Meeting-HUD, Quick Notes, Quick Actions bar, Menübar-Overflow, Coding-Progress, Update-restyle) to one uniform "toggle-able card with a mini live preview" — without building a plugin system this project will never need (no third-party extensibility is planned or implied anywhere in the milestone).
 
-```
-User copies (⌘C in any app, or a password manager writes ConcealedType)
-    ↓
-ClipboardMonitor's Timer tick reads NSPasteboard.general.changeCount
-    ↓ (only on a genuine delta — mirrors DragDropSupport's isGenuineFileDrag delta-gate discipline)
-ClipboardMonitor checks pb.types for org.nspasteboard.ConcealedType / TransientType → drop silently if present
-    ↓
-ClipboardMonitor builds a ClipboardItem (text or image), calls onChange(item)
-    ↓
-AppDelegate hands the item to ClipboardStore.add(item) — pure: appends, evicts oldest past the ~20-30 cap
-    ↓
-AppDelegate calls ClipboardFileStore.save(items) — persists to Application Support (debounced/async off the poll path)
-```
+### Recommendation: a static array of a small value struct, not a protocol hierarchy
 
-### Menu-Open / Click-Back Flow
+```swift
+struct ActivityCardSpec: Identifiable {
+    let id: String                    // == the existing ActivitySettings @AppStorage key, e.g. ActivitySettings.chargingKey
+    let title: String
+    let description: String
+    let defaultOn: Bool
+    let preview: ActivityCardPreview
+}
 
-```
-User clicks the status-bar icon
-    ↓
-NSMenuDelegate.menuNeedsUpdate(_:) fires (AppDelegate)
-    ↓
-AppDelegate reads ClipboardStore's current items, rebuilds the clipboard NSMenuItems above the static block
-    ↓
-User clicks a clip → its action sets NSPasteboard.general (setString/writeObjects), NOT auto-paste
-    ↓
-IMPORTANT: this write bumps NSPasteboard.general.changeCount again — ClipboardMonitor's own
-click-back write must be excluded from re-capture (see Anti-Pattern 3), or the app will
-immediately re-add its own click-back write as a "new" clip.
-```
+enum ActivityCardPreview {
+    case presentation(IslandPresentation)   // feed a canned/fake value into the SAME NotchPillView render code, scaled down
+    case custom(() -> AnyView)              // escape hatch for features with no IslandPresentation case at all
+}
 
-### Launch Flow
-
-```
-applicationDidFinishLaunching (existing)
-    ↓
-ClipboardFileStore.load() → seeds ClipboardStore's in-memory list from Application Support (survives relaunch + reboot)
-    ↓
-ClipboardMonitor(onChange: ...).start() — begins polling from the CURRENT changeCount baseline,
-    seeded at init (NOT count 0), so nothing already on the pasteboard before launch is captured as new
+let activityCards: [ActivityCardSpec] = [
+    ActivityCardSpec(id: ActivitySettings.chargingKey, title: "Charging", description: "...",
+                      defaultOn: true, preview: .presentation(.charging(.sample))),
+    // ... one line per existing activity, unchanged behavior ...
+]
 ```
 
-## Storage Location — New Convention Needed
+Why this fits and a protocol/registry would not:
 
-Islet currently has exactly **two** storage precedents, and **neither fits** clipboard history:
+- **The list is fixed and small.** Every card that will ever exist is enumerable today by reading the milestone brief; nothing in this project loads activities dynamically, from a plugin folder, or from user-authored code. A `protocol ActivityDescriptor` with per-feature conforming types (`ChargingDescriptor`, `MeetingDescriptor`, ...) would add one file and one indirection layer per feature for zero behavioral gain over a literal array entry — this is exactly the "no new file for a value that could be one array literal" case the project's own YAGNI convention (visible throughout `ActivitySettings.swift`'s flat key-namespace style) already avoids elsewhere.
+- **The toggle half is already solved.** `ActivitySettings` already centralizes every `@AppStorage` key as a `static let` string constant; `ActivityCardSpec.id` just reuses that existing constant directly — no new toggle abstraction needed, no risk of a card's toggle drifting out of sync with the controller's own `activityEnabled(...)` reads (which already key off these same constants).
+- **The preview half reuses rendering code that already exists, rather than duplicating it.** Because `IslandPresentation` is already a single `Equatable` enum with one canonical SwiftUI render path (`NotchPillView`'s `switch presentation`), most cards' "live preview" is not a new view at all — it's the *same* view, fed a canned static case value, scaled down. Only the minority of genuinely non-resolver features (Quick Actions bar, Menübar-Overflow) need the `.custom(AnyView)` escape hatch, which is proportional to their genuine architectural difference, not an inconsistency to paper over.
+- **Heterogeneity (Tier A / Tier B / expanded-only / non-resolver) collapses to the same two facts a card needs:** an on/off key and a small view. The tier distinction matters for *how the activity itself is wired into the resolver*, not for *what the Settings card needs to render it* — so the card model does not need to know or care which tier a given activity belongs to. This is the right level of abstraction: don't let resolver-internal complexity leak into the Settings layer.
 
-| Existing precedent | What it stores | Why it doesn't fit clipboard history |
-|---|---|---|
-| **Keychain** (`KeychainLicenseStore.swift`) | Trial start date, license validation cache — tiny scalar values, deliberately tamper-resistant | Wrong shape (Keychain is for small secrets/scalars, not a growing list of arbitrary text/image blobs) and wrong intent (Keychain's whole point here is surviving `defaults delete`/reinstall — clipboard history has no such tamper-resistance requirement) |
-| **`NSTemporaryDirectory()/IsletShelf/<uuid>/`** (`ShelfFileStore.swift`) | Session-only dropped files | Explicitly, deliberately non-persistent by design (PROJECT.md v1.9 goal calls out persistence across relaunch/reboot as "an explicit, deliberate difference" from the Shelf) — using temp storage would be actively wrong here |
+**What NOT to build:** no `ActivityPlugin` protocol, no dynamic registration/discovery, no reflection over `IslandPresentation`'s cases, no generic "renderer registry." A flat array + a 2-case enum is the complete solution for a fixed, known, ~20-item list.
 
-**No existing Application Support / cache directory usage exists anywhere in the codebase** (confirmed: zero hits for `applicationSupportDirectory` across `Islet/`). This is genuinely new territory, not a gap in research.
+## Suggested Build Order
 
-**Recommendation:** `FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!.appendingPathComponent(Bundle.main.bundleIdentifier ?? "Islet").appendingPathComponent("ClipboardHistory", isDirectory: true)` — the standard Apple-sanctioned location for app-owned persistent data that isn't a system secret and isn't disposable, following the exact same "create the directory lazily, one dedicated subfolder" shape `ShelfFileStore` already uses for its temp root, just rooted at Application Support instead of `NSTemporaryDirectory()`. Store a small JSON index (array of `ClipboardItem` metadata + text content inline) plus per-item image blobs written to `<uuid>.png` files alongside it — mirroring `ShelfFileStore`'s per-item-UUID-subfolder pattern, adapted from "session temp copy of a dropped file" to "persisted copy of an image clip."
+The milestone brief's own proposed order (Settings-Redesign → Caps Lock + Update restyle → Download-Progress → Timer/Pomodoro → Meeting-HUD → Quick Notes/Obsidian → Quick Actions bar → Menübar-Overflow → Coding-Progress) holds up against the architecture, with one addition (which phase pays down the `preempt()` generalization) and one dependency flag (Quick Notes vs. the 4-slot switcher).
 
-## Scaling Considerations
+**Does Settings-Redesign genuinely need to go first?**
 
-| Scale | Approach |
-|---|---|
-| ~20-30 items (the spec'd cap) | Flat JSON index + loose image files is trivially sufficient — no database needed |
-| If the cap were later raised to hundreds/thousands | Would be the trigger to reconsider (rewriting one JSON index file on every eviction stops being cheap) — explicitly NOT a v1.9 concern given the locked ~20-30 cap |
-| Image size growth (very large screenshots copied) | Not addressed by REQUIREMENTS.md — worth a phase-planning question (downscale/compress before persisting?) rather than assumed; out of scope for this architecture note |
+Yes — not because of a hard technical blocking dependency (the `ActivityCardSpec` shape above is fully derivable from the *existing* ~9 activities alone, without needing any of the 9 new features built first to "discover" the abstraction), but because:
+
+1. The abstraction is already fully specified by what's in the codebase today — deferring it to "build alongside the first 1-2 features, then generalize" buys no real design insight, since the shape doesn't change once Quick Actions bar/Menübar-Overflow's `.custom` case is accounted for (which was obvious from reading the milestone brief, not from having built either feature).
+2. Building it alongside the first 1-2 features first, then generalizing, means retrofitting whatever ad-hoc Settings UI those first phases ship with — this project has already paid that exact cost once (v1.8's Settings redesign existed specifically to fix a Settings section that grew ad-hoc, one feature at a time, without a shared abstraction). Doing it "foundation-first" this time avoids repeating that.
+3. Practically, "foundation-first" does **not** mean pre-building cards for features that don't exist yet — each new feature's phase still adds its own one-line `ActivityCardSpec` entry (+ its own `@AppStorage` key, exactly like every past phase already added its own key to `ActivitySettings.swift`: `calendarCountdownKey` in Phase 41, `focusKey` in Phase 38, etc.). The grid ships in its own phase showing only the ~9 existing activities; every subsequent phase's "wire it into Settings" step becomes a trivial, low-risk addition to an already-proven array, rather than a new one-off section.
+
+**Recommended order, with the two architecture-driven refinements:**
+
+1. **Settings-Redesign (foundation)** — `ActivityCardSpec` array + `ActivityCardPreview` enum, ported against the ~9 existing activities only. No new Monitor, no resolver change.
+2. **Caps Lock HUD + Update-Activity restyle** — cheapest pairing: Caps Lock is the simplest new Monitor (event-driven `NSEvent` global monitor, direct precedent already in the codebase), Update-restyle is pure styling. Good low-risk phase to validate the new Settings-card-per-phase habit before harder features land.
+3. **Download-Progress** — first genuinely new system-integration seam (FSEvents-style watching), self-elapsing Tier-A, no persistence-generalization concern.
+4. **Timer/Pomodoro** — no Monitor at all (pure app state), but **this is the phase that should carry the `TransientQueue.preempt()`/`ActiveTransient.isPersistent` generalization** from a Focus-only special case to a general "any persistent transient" check, since Pomodoro is the second persistent-transient case and the simpler of the two remaining ones to validate the generalized path against (no unreliable-detection risk layered on top, unlike Meeting-HUD).
+5. **Meeting-HUD** — needs its own spike (call + mic-status detection, per the milestone brief) and reuses the now-generalized preempt path from step 4. Also introduces the first **interactive** control inside a collapsed-only HUD (the mute toggle) — flag this as a second, independent risk axis from the detection-mechanism risk, since no existing Tier-A HUD has ever needed a tappable control while collapsed.
+6. **Quick Notes + Obsidian export** — new expanded-view `SelectedView`/`IslandPresentation` case (Tray precedent) + a Clipboard-shaped data/file-store pair. **Resolve the 4-slot top-edge-switcher conflict at this phase's planning step**, before writing code — either the switcher's slot model grows past 4, or Quick Notes is deliberately reached a different way (pill switcher only, or folded into an existing tab). This is a real design decision, not something the architecture can silently absorb.
+7. **Quick Actions bar** — static row, zero resolver coupling, lowest remaining technical risk; sequenced after Quick Notes per the brief mainly because button selection needs a product decision, not because of any dependency.
+8. **Menübar-Overflow** — fully isolated from `NotchWindowController`/`IslandResolver`; could in principle be built in parallel with any of the above without conflict, but the `NSStatusItem` reordering mechanism (Ice's actual technique) deserves its own short feasibility check before committing to an approach, similar in kind to the Volume/Brightness OSD-suppression spike from v1.6.
+9. **Coding-Progress** — new file-watching Monitor (same technique as step 3's Download-Progress, so building it after Download-Progress means the FSEvents pattern is already proven once), ambient-tier resolver integration (no queue changes), plus its own short research step for the hook-event/file-format contract.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Routing clipboard state through `IslandResolver`/`TransientQueue`
+### Anti-Pattern 1: Giving every new HUD its own bespoke resolver branch shape
+**What people might do:** invent a slightly different resolve() integration style per feature (e.g. a special-cased `if capsLockActive { ... }` block outside the `switch activeTransient`/ambient-branch structure) because each feature "feels" a little different.
+**Why it's wrong:** the codebase already has exactly two well-understood, precedented tiers (Tier A transient, Tier B ambient) that cover every one of the 9 features cleanly (see table above). A third ad-hoc shape adds a maintenance burden and breaks the "one arbiter" property (`COORD-01`) the resolver was built to guarantee.
+**Do this instead:** classify each feature into Tier A or Tier B using the "does it need de-dup/rate-limiting or forced eviction of a non-self-elapsing occupant?" test, and follow that tier's existing code shape exactly.
 
-**What people might do:** Since every other Monitor's output eventually reaches `IslandResolver`, it would be tempting to add a `.clipboard` case "for consistency."
-**Why it's wrong:** The user has explicitly, already decided clipboard history is status-bar-menu-only, not an Island/notch view (locked in PROJECT.md — not to be re-litigated). Threading it through `IslandResolver` would violate that decision and needlessly couple two independent UI surfaces (status-bar `NSMenu` vs. the notch `NSPanel`) that this codebase has otherwise always kept cleanly separate.
-**Do this instead:** `ClipboardMonitor` → `ClipboardStore` → `AppDelegate`'s menu rebuild, full stop. Zero import of `IslandResolver.swift`, `TransientQueue.swift`, or `NotchWindowController.swift` anywhere in the clipboard code path.
+### Anti-Pattern 2: A Settings "plugin" abstraction
+**What people might do:** build a `protocol ActivityDescriptor`/registry so "any future activity" can self-register into the grid.
+**Why it's wrong:** there is no future extensibility requirement anywhere in this project (no third-party activities, no dynamic loading) — this is speculative generality for a fixed, small, enumerable list, and it would duplicate the toggle-key and rendering machinery that `ActivitySettings` and `NotchPillView` already own.
+**Do this instead:** the flat `[ActivityCardSpec]` array described above.
 
-### Anti-Pattern 2: A single shared pasteboard-poller for both drag-detection and clipboard history
+### Anti-Pattern 3: Treating every session-length HUD as Tier A by default
+**What people might do:** since Meeting-HUD and Timer/Pomodoro clearly need Tier A (isPersistent), reflexively also put Coding-Progress there "for consistency."
+**Why it's wrong:** Coding-Progress has no de-dup/rate-limiting need and no eviction concern the ambient tier doesn't already solve for free — adding a 3rd persistent-transient participant would be unjustified TransientQueue complexity (a 3-way `isPersistent` switch, more `preempt()` edge cases) for a feature that fits Tier B cleanly.
+**Do this instead:** apply the same tier test per-feature; don't let "these two ended up in Tier A" bias the third.
 
-**What people might do:** Notice both features "poll a pasteboard's `changeCount`" and try to unify them into one shared poller class to avoid "two pollers."
-**Why it's wrong:** They poll two *different* `NSPasteboard` instances that are unrelated at the API level. There is no `DragApproachDetector` class in this codebase (the question's premise names one, but it doesn't exist as a separate type) — the equivalent logic is inline in `NotchWindowController.swift`'s `handleDragApproachTick()`/`recheckDragAcceptRegion(currentChangeCount:)`, plus pure helpers in `Islet/Notch/DragDropSupport.swift` (`fileURLs(from:)`, `isGenuineFileDrag(...)`). That existing code reads `NSPasteboard(name: .drag)` — the OS's dedicated, ephemeral drag-session pasteboard — NOT `NSPasteboard.general` (the ordinary copy/paste clipboard clipboard history needs). These have independent `changeCount` sequences and independent trigger cadences: the drag-tick code only runs while a `.leftMouseDragged` global `NSEvent` monitor is actively firing (i.e., only during a live OS drag gesture), while the clipboard poller must run continuously in the background regardless of mouse activity (a `⌘C` in another app has no mouse-drag component at all). Unifying them would force a background-always-running timer to also drive drag detection (wasteful and architecturally backwards) or force drag-only ticking onto clipboard capture (would miss the vast majority of real copies). **There is no actual race, conflict, or duplicated work risk between the two today** — they don't touch the same object.
-**Do this instead:** Two independent, differently-triggered pollers, exactly as the question's premise assumed needed reconciling — but they don't. `ClipboardMonitor` gets its own `DispatchSourceTimer` (mirroring `FocusModeMonitor`'s shape, but at a much shorter interval — sub-second, matching CopyClip-class responsiveness — vs. Focus's deliberate 2.5s), fully independent of `NotchWindowController`'s drag-tick lifecycle. The one thing worth carrying over from the drag detection code is the *pattern*, not a shared instance: cache the last-seen `changeCount`, only do real work (read pasteboard contents, classify, persist) on an actual delta — the same discipline `isGenuineFileDrag`'s delta-gate already proves out in this codebase.
+## Integration Points Summary
 
-### Anti-Pattern 3: Re-capturing the app's own click-to-copy-back write as a new history item
-
-**What people might do:** Naively poll `changeCount` and treat every delta as "the user copied something new," including the delta the app itself just caused by writing the clicked item back onto `NSPasteboard.general`.
-**Why it's wrong:** Would cause every click-back to immediately re-insert itself as a duplicate "most recent" entry, corrupting ordering and burning one eviction slot per click.
-**Do this instead:** When `AppDelegate` writes a clip back onto the pasteboard, update `ClipboardMonitor`'s cached `lastChangeCount` synchronously to the post-write value (a setter the monitor exposes, or simply re-reading `changeCount` immediately after the write) before the next poll tick — a small, deliberate seam, not a race condition to leave to chance.
-
-## Integration Points
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `ClipboardMonitor` ↔ `AppDelegate` | Constructor-injected `onChange: (ClipboardItem) -> Void` closure, called on main (mirrors every existing Monitor's `onChange` contract) | `AppDelegate`, not `NotchWindowController`, is the owner — the one real shape deviation from precedent |
-| `ClipboardStore` ↔ `ClipboardFileStore` | `ClipboardStore` is pure/in-memory; `AppDelegate` (or a small coordinator) explicitly calls `ClipboardFileStore.save(...)`/`.load()` around store mutations — mirrors how `ShelfCoordinator` sits between `ShelfLogic` and `ShelfFileStore` rather than either touching the other directly | Keep `ClipboardStore` unaware that persistence exists at all, same as `ShelfLogic` |
-| `AppDelegate` ↔ existing `statusItem`/`menu` | `NSMenuDelegate.menuNeedsUpdate(_:)` inserts/removes clipboard `NSMenuItem`s above the existing Settings…/Check for Updates…/Quit block on every open | The existing menu-construction code (the `menu.addItem(...)` calls in `applicationDidFinishLaunching`) is the one place genuinely touched/extended, not replaced |
-| `ClipboardMonitor`/`ClipboardStore`/`ClipboardFileStore` ↔ `NotchWindowController`/`IslandResolver`/`TransientQueue` | **None.** Zero imports, zero shared state, zero calls in either direction | Explicit, locked user decision — see Anti-Pattern 1 |
-| `ClipboardMonitor` ↔ `NotchWindowController`'s existing drag-tick polling code | **None — independent `NSPasteboard` instances, independent timers.** See Anti-Pattern 2 | Correcting a reasonable but incorrect premise: no shared-poller work is needed |
-
-## Build Order
-
-Mirrors this project's own repeated "pure seam(s) first, system glue second, assembly/UI last" sequencing — Phase 19→20→21 (Shelf: data model → view → drag-out), Phase 47→48 (Audio Output: pure seam → live glue+UI wiring), Phase 38's internal 01→05 ordering (spike the risky API path before building the full monitor), and Phase 4's `NowPlayingPresentation` (pure)-before-`NowPlayingMonitor` (glue)-before-view ordering.
-
-1. **`ClipboardItem` + `ClipboardStore`** — pure Foundation, zero AppKit/`NSPasteboard`/`FileManager` imports. Unit-test cap-eviction, ordering, clear-all exhaustively. Zero risk, no device/system dependency, can be fully verified before anything else exists — exactly Phase 19's `ShelfItem`/`ShelfLogic` role.
-2. **`ClipboardFileStore`** — real Application Support I/O (JSON index + image blobs), still fully unit-testable against an injectable root URL (learn from `ShelfFileStore`'s one gap: it hardcodes `NSTemporaryDirectory()` directly, making it harder to redirect in tests — worth injecting the root URL as a parameter here from the start so tests never touch the real `~/Library/Application Support/`). No live pasteboard involved yet.
-3. **`ClipboardMonitor`** — the one genuinely risky, on-device-only-verifiable seam: `NSPasteboard.general` polling cadence, concealed/transient-type exclusion, text-vs-image classification, the click-back re-capture guard (Anti-Pattern 3). Verify standalone via a console-log/manual on-device check (copy various content types, including from a password manager if available, confirm exclusion) BEFORE any menu UI exists — mirrors Phase 38's spike-the-API-path-first approach for `INFocusStatusCenter`, and Phase 22-01's "spike the risky mechanism before building the full feature around it" precedent.
-4. **`AppDelegate` menu wiring** — `NSMenuDelegate` dynamic rebuild, click-to-copy-back (with the changeCount guard from step 3), "Delete All History" action, `⌘0`–`⌘9` quick-select. Last, because it's pure assembly of the three already-proven pieces, and because menu rendering/shortcut behavior is itself only meaningfully verifiable on-device (matching this project's consistent "UI/wiring is the on-device-only step, done last" pattern).
-
-This ordering isolates the one real integration risk (item 3: does `org.nspasteboard.ConcealedType`/`TransientType` filtering actually work against a real password manager, does image-vs-text classification handle real-world pasteboard content correctly) into its own phase, so a spike/iteration there — like Phase 22's drag-in isolation — cannot block or destabilize the already-proven pure model/persistence work from phases 1-2.
+| Boundary | Change required | Risk |
+|----------|------------------|------|
+| `IslandResolver.swift` (`resolve`, `ActiveTransient`, `TransientQueue`) | 4 new Tier-A cases + `preempt()`/`isPersistent` generalization + 1 new Tier-B parameter | Low-medium — mechanical per-case additions, one genuine generalization (flagged above) |
+| `NotchWindowController.swift` | 4 new `start*Monitor()` functions following the exact existing idempotent-guard shape; 1 new pure app-state ticker (Pomodoro, no Monitor); wiring for the interactive Meeting-HUD mute control (new territory) | Medium — mostly boilerplate-shaped, Meeting-HUD's interactive control is the one genuinely new UI-wiring pattern |
+| `ActivitySettings.swift` | ~9 new `@AppStorage` key constants, one per feature, following the exact existing convention | Low |
+| `SettingsView.swift` | Replaced by the new grid (`ActivityCardSpec` array + card view), built against existing activities first, then one array entry added per new-feature phase | Low once the foundation phase lands |
+| `AppDelegate.swift` | Menübar-Overflow logic added here (or a small sibling controller it owns), following the `ClipboardMonitor`-owned-by-AppDelegate ownership-exception precedent | Low architecturally, but the underlying `NSStatusItem` reordering mechanism needs its own feasibility spike |
+| `ViewSwitcherState.swift` (`SelectedView`, 4-slot top-edge switcher) | Potential 5th case for Quick Notes — conflicts with Phase 52's hardcoded 4-slot config keys | Needs a design decision before Quick Notes' phase starts coding |
+| New: Downloads-folder / Coding-Progress file watchers | First FSEvents-style (`DispatchSource.makeFileSystemObjectSource`) monitors in the codebase — confirmed zero prior usage | Medium — new system-integration seam, but a well-documented macOS API, not private/undocumented territory like MediaRemote or OSD suppression |
+| New: Meeting-HUD call/mic detection | Genuinely unknown mechanism | High — explicitly flagged by the milestone brief as needing its own spike, same class of risk as v1.6's Volume/Brightness OSD suppression research |
 
 ## Sources
 
-- Direct source read: `Islet/AppDelegate.swift`, `Islet/Notch/PowerSourceMonitor.swift`, `Islet/Notch/FocusModeMonitor.swift`, `Islet/Notch/AudioOutputMonitor.swift`, `Islet/Notch/NowPlayingMonitor.swift`, `Islet/Notch/DragDropSupport.swift`, `Islet/Notch/NotchWindowController.swift`, `Islet/Shelf/ShelfFileStore.swift`, `Islet/Licensing/KeychainLicenseStore.swift`, `Islet/ActivitySettings.swift` — all HIGH confidence, verified by reading actual code, not summarized from memory
-- `.planning/PROJECT.md` — milestone goal, locked decisions (status-bar-only, persistence-across-reboot, concealed/transient exclusion), Key Decisions table (pure-seam-first precedent across Phases 15/19/22-01/24-01/38-01/39-01/47)
-- [NSPasteboard.org — Identifying and Handling Transient or Special Data on the Clipboard](https://nspasteboard.org/) — confirms `org.nspasteboard.TransientType` (never record/display) and `org.nspasteboard.ConcealedType` (sensitive, password-manager convention) semantics, MEDIUM-HIGH confidence (community-authored de facto standard, not an Apple API, but the exact convention PROJECT.md already names)
+- Direct reading of the current Islet codebase (`/Users/lippi304/conductor/workspaces/notch/algiers/Islet/`): `Notch/IslandResolver.swift`, `Notch/ActivityCoordinator.swift`, `Notch/DeviceCoordinator.swift`, `Notch/NotchWindowController.swift`, `Notch/CalendarCountdownMonitor.swift`, `Notch/FocusModeMonitor.swift`, `Notch/OSDActivity.swift`, `Notch/ViewSwitcherState.swift`, `Clipboard/ClipboardMonitor.swift`, `ActivitySettings.swift`, `SettingsView.swift`, `AppDelegate.swift`.
+- `.planning/PROJECT.md` — milestone goal statement, requirement history, per-phase shipped-scope notes (v1.0 through v1.9), including the v1.10 target-feature list and proposed phase order.
+- Codebase-wide grep confirming no existing FSEvents/`makeFileSystemObjectSource` usage prior to this milestone (Download-Progress and Coding-Progress are both first-of-kind).
 
 ---
-*Architecture research for: macOS clipboard-history menu-bar feature integration into Islet*
-*Researched: 2026-07-22*
+*Architecture research for: Islet v1.10 Live Activities Suite*
+*Researched: 2026-07-23*

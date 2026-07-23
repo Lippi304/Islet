@@ -1,144 +1,190 @@
 # Project Research Summary
 
-**Project:** Islet v1.9 — Clipboard History
-**Domain:** Native macOS menu-bar utility (Islet) — status-item clipboard-history dropdown, replacing CopyClip
-**Researched:** 2026-07-22
+**Project:** Islet — macOS notch-overlay app
+**Domain:** Native macOS system-utility / Live-Activities overlay (Swift 5, SwiftUI+AppKit)
+**Milestone:** v1.10 "Live Activities Suite" — 9 new HUDs/activities + Settings-grid redesign
+**Researched:** 2026-07-23
 **Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-v1.9 adds a CopyClip-style clipboard history to Islet's existing status-bar menu: a capped (~20-30 item) MRU list of text/image copies, click-to-restore, Cmd+0-Cmd+9 quick-select, "Delete All History," and persistence across relaunch/reboot with sensitive-content exclusion. This is a well-trodden domain — macOS has had no clipboard-change notification API in 25+ years, so every clipboard manager (Maccy, Clipy, Flycut, CopyClip itself) polls `NSPasteboard.general.changeCount` on a `Timer`, and the `org.nspasteboard.*` type convention is the de facto (if unofficial) standard for excluding password-manager copies. None of this requires new dependencies: AppKit + Foundation + `CryptoKit` (already ships with the OS) covers the entire feature.
+v1.10 adds 9 heterogeneous Live Activities (Meeting-HUD, Download-Progress, Timer/Pomodoro, Quick Notes/Obsidian export, Quick Actions bar, Menübar-Overflow, Caps Lock HUD, Update-Activity restyle, Coding-Progress) plus a Settings-grid redesign to an already-mature, non-sandboxed notch app. This is not greenfield work: every recommendation traces directly to a pattern the codebase already proves out (`*Monitor` isolation, the `IslandResolver`/`TransientQueue` two-tier arbiter, `ActivitySettings`'s flat `@AppStorage` key convention, the HUD/wings transient-splash visual language). Zero new third-party dependencies are required — every feature is covered by a public Apple framework, an already-accepted private-API risk tier (CGS/SkyLight, matching the existing `CGSSpace.swift`), or a one-line shell-out to an Apple-shipped CLI.
 
-The recommended approach slots cleanly into Islet's existing shape rather than inventing anything new: a fourth "Monitor" class (`ClipboardMonitor`, mirroring `PowerSourceMonitor`/`FocusModeMonitor`/`AudioOutputMonitor`) isolates the one fragile system call; a pure reducer + separate file-store (`ClipboardStore`/`ClipboardFileStore`, mirroring Phase 19's `ShelfLogic`/`ShelfFileStore` split) handles data and persistence; `AppDelegate` (not `NotchWindowController`) owns and wires it all into the existing `NSMenu`, since this feature is explicitly status-bar-only and must never touch `IslandResolver`/`TransientQueue`. Content is stored under `Application Support` (a genuinely new storage location for this codebase — Keychain and temp-dir precedents don't fit) as an encrypted (`CryptoKit.AES.GCM`, key in Keychain) JSON index plus per-item image files.
+The recommended approach is "foundation first, ascending risk after": ship the Settings-grid redesign before any new feature (it's fully derivable from the 9 *existing* activities and prevents another ad-hoc-Settings regression like the one v1.8 already had to fix), then sequence the 9 features from cheapest/most-certain (Caps Lock, Update restyle, Timer) to hardest/least-precedented (Meeting-HUD, Menübar-Overflow, Coding-Progress). Two features carry real detection uncertainty and must NOT be planned like the other seven: Meeting-HUD (no public API for "is a call active" — heuristic-based, proxy signals only) and Menübar-Overflow (must reposition other processes' `NSStatusItem`s via an undocumented technique, requiring its own Accessibility-permission flow with no precedent in this codebase). Both are explicitly flagged for a pre-planning research/spike phase, mirroring the project's own successful precedent from v1.6's Volume/Brightness OSD-suppression spike.
 
-The key risks are all well-documented and cheap to prevent if built in from day one, not retrofitted: (1) a self-capture loop where click-to-restore's own pasteboard write gets re-ingested as a "new" duplicate entry; (2) full-resolution images living in the in-memory `@Published` array, causing SwiftUI jank and memory bloat; (3) treating the `org.nspasteboard.*` marker check as sufficient sensitive-content protection when Bitwarden's own browser extension (documented, open GitHub issues) proves it lets real plaintext secrets through — meaning at-rest encryption is required as defense-in-depth, not optional hardening; and (4) macOS 15.4+/26's new pasteboard-access privacy prompt, which is a runtime UX consideration, not an entitlement/signing issue (this app is non-sandboxed, so no entitlement work is needed for the core read/write access itself).
+The dominant risk is not any single feature but the *aggregate* pressure 9 new activities put on the existing `IslandResolver`/`TransientQueue` arbiter: it was hand-tuned for ~6 cases and a 2-deep queue, and blindly inserting new cases "wherever feels right" risks silently reordering precedence for already-shipped activities (the exact WR-1/WR-2 class of defect this project already hit once). This must be resolved with one explicit, reviewed priority table before/alongside the Settings-Redesign phase, not decided piecemeal per feature phase. A second cross-cutting risk is the Settings-grid migration itself silently flipping an existing user's currently-ON toggle if new-vs-existing default logic gets inverted — mitigate with an explicit per-key checklist and an upgrade-simulating regression test, not just a fresh-install check.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies. `NSPasteboard.general` + `changeCount` polling via `Timer`/`DispatchSourceTimer` (500ms, matching Maccy's proven default) is the only viable capture mechanism — no notification API exists or has ever shipped. `org.nspasteboard.ConcealedType`/`TransientType`/`AutoGeneratedType` string-type checks handle the opt-in sensitive-content convention. Persistence is a plain `Codable` JSON index (not Core Data/SQLite — massively over-engineered for a 20-30 item cap) with image bytes as sibling PNG files under `FileManager`'s Application Support directory, encrypted at rest via `CryptoKit.AES.GCM` with the key in Keychain. Menu rendering stays plain `NSMenu`/`NSMenuItem` mutation (optionally `NSHostingView`-wrapped SwiftUI rows for thumbnails), not a new `NSPanel`/popover.
+No new SPM dependencies. Every one of the 9 features maps to a public Apple framework (`UserNotifications`, `FSEvents`/`DispatchSourceFileSystemObject`, CoreAudio `kAudioDevicePropertyMute`/`...IsRunningSomewhere`, `NSWorkspace`, `NSAppleScript`/System Events, `NSEvent` global monitors, `UNUserNotificationCenter`), a `Process` shell-out to an Apple-shipped CLI (`pmset displaysleepnow`, `CGSession -suspend`), or the same private CGS/SkyLight tier the project already accepts for `CGSSpace.swift` (Menübar-Overflow, verified directly against Ice's open-source implementation). Follow the existing `Monitor`-per-feature pattern for every new system-surface integration, isolating fragile/private surface exactly like `NowPlayingMonitor` does for MediaRemote.
 
 **Core technologies:**
-- `NSPasteboard.general` + `changeCount` polling (`Timer`, ~500ms) — the only pasteboard-change detection mechanism that exists on macOS; direct precedent in this codebase (`dragPasteboardChangeCount`/`isGenuineFileDrag`)
-- `Codable` + `JSONEncoder`/`JSONDecoder` + `FileManager`/Application Support — correct-weight persistence for a bounded, whole-list-load dataset; no DB needed at this scale
-- `CryptoKit.AES.GCM` + Keychain-stored key — first-party, zero-dependency at-rest encryption, mirroring Phase 10's Keychain-backed license persistence
-- Plain `NSMenu`/`NSMenuItem` mutation via `NSMenuDelegate` — extends the existing status-item menu; no new window/panel management needed at this list size
+- CoreAudio `kAudioDevicePropertyMute` (input device) — system-wide mic mute; shared by Meeting-HUD and Quick Actions bar, identical technique to the existing volume-HUD call
+- `DispatchSourceFileSystemObject` / `FSEventStreamCreate` — file/folder watching for Download-Progress and Coding-Progress; first FSEvents-family usage in the codebase, right-sized per case (single file vs. directory)
+- Private CGS/SkyLight (`CGSMainConnectionID`, `CGSGetScreenRectForWindow`) + synthetic `CGEvent` drag — Menübar-Overflow's chevron mechanism, verified against Ice's actual source, same risk tier as existing `CGSSpace.swift`
+- Claude Code hooks (`PostToolUse` matcher `TodoWrite`, `Stop`, `SessionStart/End`) — Coding-Progress data source, official/stable API surface
+- `NSAppleScript` / System Events, `Process` shell-outs (`pmset`, `CGSession -suspend`) — Quick Actions bar's dark-mode/display-sleep/screen-lock actions
 
 ### Expected Features
 
-**Must have (table stakes, all confirmed by the user during milestone discussion):**
-- MRU recent-items list, ~20-30 item cap with FIFO eviction
-- Click-to-restore (copies to pasteboard, no auto-paste)
-- Single-line truncated text preview + image thumbnail support
-- Cmd+0-Cmd+9 quick-select on the first 10 rows
-- Persistence across relaunch **and reboot** (deliberately different from the session-only Shelf)
-- Sensitive-content exclusion via `org.nspasteboard.ConcealedType`/`TransientType`
-- "Delete All History" with a standard destructive-confirmation `NSAlert`
+**Must have (table stakes):**
+- Meeting-HUD: call presence (Zoom/Teams native apps only, not Meet) + running timer + system-wide mute toggle
+- Download-Progress: presence + completion signal in `~/Downloads` (not guaranteed exact %)
+- Timer/Pomodoro: start/pause/reset, visible countdown, completion alert
+- Quick Notes: reliable append-only capture to a user-chosen Obsidian vault file
+- Quick Actions bar: ~8 reliable default actions (mic mute, display sleep, dark mode, screen lock, caffeinate, empty trash, launch app/URL; DND/Focus best-effort only)
+- Menübar-Overflow: one chevron, click-to-toggle hide/show of other apps' icons
+- Caps Lock HUD: on/off flash, event-driven
+- Update-Activity: cosmetic reskin of existing Sparkle HUD
+- Coding-Progress: todo completion fraction from Claude Code hooks, requires documented user setup step
 
-**Should have (competitive, but explicitly deferred by user for v1.9):**
-- Search/filter across history (Maccy's headline feature) — data model should retain full text now so v2 doesn't require a migration
-- Pin/favorite items to top — data model should keep stable per-item IDs now for the same reason
+**Should have (differentiators, in-scope stretch):**
+- Quick Actions: drag-to-reorder configurable grid
+- Download-Progress: click-through to Finder, multi-download stacking
 
-**Defer (v2+, or not recommended at all):**
-- Per-item delete, per-app manual exclude list — cheap v2 follow-ups, don't build speculatively
-- Cross-device/iCloud sync — explicitly not recommended even for v2 given clipboard data's sensitivity and Islet's local-only positioning
+**Defer (v2+):**
+- Meeting-HUD true in-app mute reflection (no reliable technique exists)
+- Google Meet browser-tab detection (needs a browser extension, out of scope)
+- Menübar-Overflow always-hidden section, hover/scroll reveal, auto-rehide
+- Coding-Progress multi-session switcher
+- Full custom action-scripting for Quick Actions
 
 ### Architecture Approach
 
-Four new files under a new top-level `Clipboard/` folder (sibling to `Notch/`/`Shelf/`/`Licensing/`, owned by `AppDelegate`, not `NotchWindowController`): `ClipboardItem` (pure model), `ClipboardStore` (pure reducer: add/evict/clear), `ClipboardFileStore` (the one file touching disk — Application Support JSON + encrypted image blobs), `ClipboardMonitor` (the one file touching `NSPasteboard.general`, `@MainActor`, constructor-injected `onChange`, idempotent `start()`/`nonisolated stop()`). `AppDelegate` adopts `NSMenuDelegate` to rebuild the clipboard section of the existing menu on `menuNeedsUpdate`, rather than introducing a new menu-builder type. Zero coupling to `IslandResolver`/`TransientQueue`/`NotchWindowController` — this is explicitly a second, independent tree hanging off `AppDelegate`, matching the precedent Sparkle's `updaterController` already set.
+The codebase already has exactly two precedented resolver "tiers" that cover all 9 new features cleanly: **Tier A** (`ActiveTransient`/`TransientQueue` — discrete-arrival activities needing de-dup/forced-eviction, e.g. Caps Lock, Download-Progress, Meeting-HUD, Timer/Pomodoro) and **Tier B** (ambient, resolved directly in `resolve()`'s ambient branch, e.g. Coding-Progress — gets Charging/Device preemption for free). Three features (Quick Actions bar, Menübar-Overflow, Update-Activity restyle) sit entirely outside the resolver. One small, load-bearing generalization is required and must not be missed: `TransientQueue.preempt()`/`ActiveTransient.isPersistent` is currently hardcoded to a single `.focus` case and must generalize to "any persistent transient" the moment Timer/Pomodoro (the second persistent case) is added — attribute this work to whichever of Pomodoro/Meeting-HUD ships first.
 
 **Major components:**
-1. `ClipboardMonitor` — polls `changeCount`, filters concealed/transient types, classifies text vs. image, guards against self-capture on restore
-2. `ClipboardStore` — pure in-memory reducer (append/evict-at-cap/clear), zero I/O, fully unit-testable
-3. `ClipboardFileStore` — the sole disk-I/O surface: encrypted JSON index + per-item image files under Application Support, with an injectable root URL (learn from `ShelfFileStore`'s hardcoded-path gap)
-4. `AppDelegate` (modified) — owns monitor + store, rebuilds `NSMenu` on open, wires click-to-restore/Cmd+0-9/Delete All History
+1. `IslandResolver.swift` (pure, Foundation-only) — the single ranking authority; gains 4 new Tier-A cases + 1 new Tier-B parameter + the `preempt()` generalization
+2. New `*Monitor` files (`MeetingMonitor`, `DownloadMonitor`/`FileWatcher`, `CapsLockMonitor`, Coding-Progress file watcher) — one per fragile/system-integration seam, isolating risk exactly like `NowPlayingMonitor`
+3. `ActivityCardSpec` static array + `ActivityCardPreview` enum — replaces ad-hoc Settings sections with a flat, non-plugin data model feeding the same `NotchPillView` render path used for live HUDs
+4. Shared cross-feature helpers: one `MicMuteController` (Meeting-HUD + Quick Actions), one `FileWatcher` utility (Download-Progress + Coding-Progress)
 
 ### Critical Pitfalls
 
-1. **Self-capture loop on click-to-restore** — the restore write bumps `changeCount` and gets re-ingested as a new duplicate entry unless explicitly guarded (marker pasteboard type or a synchronous "restoring" flag, per Maccy's proven pattern). Must be built in the same commit as click-to-restore, not a follow-up.
-2. **Over-aggressive polling / off-main-thread reads** — sub-100ms intervals or decoding full pasteboard content on every tick (not gated behind a cheap `changeCount` diff) causes real, measurable CPU/battery cost. Use 500ms + gate all real work behind the counter check, main-thread only.
-3. **Full-resolution images in the in-memory `@Published` array** — causes SwiftUI re-diffing over large payloads and multi-hundred-MB memory footprints. Store only a small thumbnail in memory; full-res bytes live on disk, read back only at restore time.
-4. **`org.nspasteboard.*` marker check is necessary but NOT sufficient** — Bitwarden's own browser extension (documented GitHub issues) copies plaintext secrets with no marker at all. The marker check must be paired with mandatory at-rest encryption as defense-in-depth; never present the marker filter to the user as "your passwords are safe."
-5. **Unencrypted persistence at rest** — any plain JSON/plist file is readable by any local process/backup with no OS-level gate. Encrypt with `CryptoKit.AES.GCM`, key in Keychain, from the very first shipped version (retrofitting means a migration for real users' already-captured secrets).
+1. **Meeting-HUD call-detection heuristics silently break on Zoom/Teams UI updates** — no public API exists; isolate all app-specific string/window matching behind one `MeetingMonitor` file, treat as a dedicated spike with go/no-go gate before build, and explicitly separate "call detection" (hard, fragile) from "system mic mute" (tractable, CoreAudio).
+2. **Menübar-Overflow forgets Accessibility permission and other apps' anti-hiding behavior** — read Ice's actual source for its exact mechanism rather than reinventing; test permission-denied (must degrade visibly, never silently), display-sleep/wake, and Dock-relaunch cycles explicitly before shipping.
+3. **9 new competing signals crowd `IslandResolver`/`TransientQueue` without an explicit priority decision, silently reordering existing precedence** — produce one reviewed priority table for all new + existing activities before/alongside the Settings-Redesign phase; re-derive whether `maxDepth = 2` still holds with 6+ transient-shaped candidates.
+4. **Settings-grid migration flips an existing user's currently-ON toggle, or a new v1.10 key wrongly inherits the "default true" majority pattern** — every new key defaults `false` explicitly (matching the `focusKey` precedent); regression-test against a pre-seeded (upgrade-simulating) UserDefaults domain, not just fresh install.
+5. **FSEvents-based Download-Progress double-fires on browser temp-file/rename patterns** — this is genuinely new infrastructure (zero FSEvents precedent in the codebase today); match known temp-file suffixes (`.crdownload`/`.download`/`.part`), debounce, and correlate create+rename as one logical download.
 
 ## Implications for Roadmap
 
-Based on research (the Architecture doc's own "Build Order" section is unusually explicit and should be followed directly), suggested phase structure:
+Based on combined research, the milestone brief's own proposed order holds up well against the architecture and pitfalls research, with two explicit refinements folded in.
 
-### Phase 1: Clipboard data model + store
-**Rationale:** Zero risk, no device/system dependency — pure Foundation, fully unit-testable in isolation before anything else exists. Exactly mirrors Phase 19's `ShelfItem`/`ShelfLogic` role.
-**Delivers:** `ClipboardItem` (text/image, id, timestamp) + `ClipboardStore` (append, evict-at-cap, clear-all), with tests covering FIFO eviction and cap behavior.
-**Addresses:** MRU list, item-count cap — table-stakes features from FEATURES.md
-**Avoids:** N/A at this stage (no I/O, no pasteboard yet)
+### Phase 1: Settings-Redesign (foundation)
+**Rationale:** The `ActivityCardSpec` array abstraction is already fully derivable from the 9 *existing* activities alone — no new feature needs to be built first to "discover" the shape. Doing this first avoids repeating the exact ad-hoc-Settings-growth mistake v1.8 already had to fix.
+**Delivers:** Flat `ActivityCardSpec` array + `ActivityCardPreview` enum replacing `SettingsView.swift`'s grid, ported against the ~9 existing activities only; the explicit reviewed priority table for all future new activities' resolver precedence.
+**Addresses:** No FEATURES.md item directly — cross-cutting infrastructure.
+**Avoids:** Pitfall 3 (resolver crowding without a priority decision), Pitfall 4 (silent toggle-default regression on upgrade).
 
-### Phase 2: Encrypted persistence (ClipboardFileStore)
-**Rationale:** Can be fully built and unit-tested against an injectable root URL before any live pasteboard is involved; establishes the encrypted-at-rest shape from day one rather than retrofitting.
-**Delivers:** Application Support JSON index + per-item image files, `CryptoKit.AES.GCM` encryption with Keychain-stored key, path-containment-validated delete (mirroring `ShelfFileStore`'s hardened delete pattern).
-**Uses:** `Codable`/`FileManager`/`CryptoKit`/Keychain from STACK.md
-**Implements:** `ClipboardFileStore` component from ARCHITECTURE.md
-**Avoids:** Pitfall 5 (unencrypted at rest), and lays groundwork to avoid Pitfall 3 (thumbnail-in-memory/full-image-on-disk split)
+### Phase 2: Caps Lock HUD + Update-Activity restyle
+**Rationale:** Cheapest possible pairing — Caps Lock is the simplest new Monitor (direct `NSEvent.addGlobalMonitorForEvents` precedent already in the codebase), Update-restyle is pure styling with zero new subsystem. Validates the new "one Settings card per phase" habit before harder features land.
+**Delivers:** Event-driven Caps Lock on/off HUD (Tier A, self-elapsing/OSD-shaped); reskinned Sparkle update HUD.
+**Uses:** `NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged)` (event-driven, not polling — Pitfall 9).
+**Implements:** New Tier-A `ActiveTransient` case; no resolver change for Update restyle (existing case, view swap only).
 
-### Phase 3: Pasteboard monitor (the risky, on-device-only seam)
-**Rationale:** The one genuinely new, only-verifiable-on-real-hardware subsystem — isolate it into its own phase/spike so it can't destabilize the already-proven pure model/persistence work, mirroring Phase 38's and Phase 22's "spike the risky mechanism first" precedent.
-**Delivers:** `ClipboardMonitor` — `changeCount` polling at 500ms, concealed/transient-type filtering, text/image classification, self-capture guard, `accessBehavior` check + one-time in-app explanation for macOS 26's pasteboard-privacy prompt.
-**Addresses:** Sensitive-content exclusion, pasteboard-monitoring seam from FEATURES.md
-**Avoids:** Pitfalls 1 (self-capture loop), 2 (over-aggressive polling), 4 (marker-check limits), 6 (pasteboard-access prompt confusion)
+### Phase 3: Download-Progress
+**Rationale:** First genuinely new system-integration seam (FSEvents-style watching, zero prior precedent) but self-elapsing Tier-A with no persistence-generalization concern — a good place to prove the `FileWatcher` pattern once before Coding-Progress reuses it.
+**Delivers:** Live progress/activity signal for `~/Downloads`, completion detection via temp-file/rename correlation.
+**Addresses:** FEATURES.md Download-Progress (presence + completion, not guaranteed exact %).
+**Avoids:** Pitfall 5 (double-fire on browser temp-file patterns) — needs its own short spike even though not explicitly flagged in PROJECT.md.
 
-### Phase 4: Menu wiring and UI assembly
-**Rationale:** Pure assembly of three already-proven pieces; menu/shortcut behavior is itself only meaningfully verifiable on-device, matching this project's consistent "UI/wiring done last" pattern.
-**Delivers:** `AppDelegate` as `NSMenuDelegate`, dynamic menu rebuild on open, click-to-restore wired to the self-capture guard, Cmd+0-9 key equivalents, "Delete All History" with `NSAlert` confirmation and real on-disk deletion.
-**Addresses:** Click-to-restore, Cmd+0-9 quick-select, Delete All History — remaining table-stakes features
-**Avoids:** Pitfall 3 (verify thumbnail rendering doesn't leak full-res data into the menu row)
+### Phase 4: Timer/Pomodoro
+**Rationale:** No Monitor at all (pure app-owned state) but this is the phase that must carry the `TransientQueue.preempt()`/`ActiveTransient.isPersistent` generalization, since Pomodoro is the second persistent-transient case and the simpler of the two remaining ones to validate the generalized path against (no detection uncertainty layered on top).
+**Delivers:** Countdown/Pomodoro HUD reusing the existing HUD/wings transient-splash + Now Playing progress-bar visual language almost entirely.
+**Implements:** The resolver generalization flagged in Architecture research (load-bearing, not optional).
+
+### Phase 5: Meeting-HUD
+**Rationale:** Needs its own dedicated research/spike (call + mic-status detection) before planning, per the same discipline as v1.6's OSD-suppression spike; reuses the now-generalized preempt path from Phase 4.
+**Delivers:** Zoom/Teams-only call presence + timer + system-wide mute toggle (first interactive control inside a collapsed-only HUD — a second, independent risk axis from the detection mechanism).
+**Addresses:** FEATURES.md Meeting-HUD table stakes (native apps only, no Google Meet, system-wide mute only).
+**Avoids:** Pitfall 1 (fragile window-title/process heuristics) — isolate in one `MeetingMonitor` file.
+
+### Phase 6: Quick Notes + Obsidian export
+**Rationale:** Reuses the Clipboard History UI/persistence shell heavily, but must resolve a real design conflict first: `SelectedView` today has exactly 4 cases and Phase 52's top-edge switcher hardcodes exactly 4 slot keys — adding a 5th tab needs a decision before coding starts.
+**Delivers:** In-notch expanded-view capture UI + atomic append-with-timestamp to a user-chosen `.md` file.
+**Avoids:** Pitfall 7 (non-atomic append corrupting real Obsidian vault content) — use `FileHandle.seekToEndOfFile()`, never read-modify-write-whole-file.
+
+### Phase 7: Quick Actions bar
+**Rationale:** Static row, zero resolver coupling, lowest remaining technical risk; sequenced after Quick Notes mainly because final button selection needs a product decision, not a dependency.
+**Delivers:** Configurable ~8-action grid (mic mute, display sleep, dark mode, screen lock, caffeinate, empty trash, launch app/URL, DND best-effort).
+**Uses:** Shared `MicMuteController` with Meeting-HUD (Pitfall 8 — do not build the CoreAudio mute helper twice).
+**Avoids:** Pitfall 8 (assuming one AppleScript/Automation mechanism covers all 4+ actions — each has a genuinely different first-use TCC path).
+
+### Phase 8: Menübar-Overflow
+**Rationale:** Fully isolated from `NotchWindowController`/`IslandResolver` — could in principle be built in parallel with anything above — but the `NSStatusItem` reordering mechanism deserves its own feasibility spike before committing, given it's the highest-novelty feature in the milestone and requires a first-of-kind Accessibility permission flow.
+**Delivers:** One chevron, click-to-toggle hide/show of other apps' menu-bar icons (MVP subset of Ice's feature set only).
+**Avoids:** Pitfall 2 (undocumented technique + forgotten Accessibility permission + other apps fighting back) — read Ice's actual source before planning, not a general description of it.
+
+### Phase 9: Coding-Progress
+**Rationale:** Reuses the FSEvents/`DispatchSourceFileSystemObject` pattern already proven once in Phase 3, so building it last among the file-watching features means the watching mechanism is de-risked before this phase's own hook-contract research.
+**Delivers:** Ambient-tier (Tier B) todo-completion-fraction readout fed by a Claude Code hook script the user installs once.
+**Addresses:** FEATURES.md Coding-Progress (single most-recent session, documented external setup step required).
+**Avoids:** Pitfall 6 (stale/orphaned status file on unclean exit) — needs an explicit `lastUpdated` field + staleness timeout, decided in this phase's own flagged research step.
 
 ### Phase Ordering Rationale
 
-- Pure-seam-first, system-glue-second, assembly-last is this project's own established sequencing (Phase 19 to 20 to 21 Shelf, Phase 47 to 48 Audio Output, Phase 38 internal ordering) — following it here isn't a new pattern, it's continuity.
-- Encryption is placed in Phase 2, not bolted on later, specifically because Pitfall 5 and Pitfall 4 both independently conclude retrofitting at-rest encryption after a plaintext version ships means a real-user data migration — cheaper to build once, correctly, from the start.
-- The pasteboard monitor is isolated into its own phase (3) precisely because it's the one component that can only be verified on real hardware (macOS 26 privacy prompt, real password-manager exclusion testing) — isolating it means a spike/iteration there can't block the already-proven Phase 1-2 work.
+- Foundation-first (Settings-Redesign) avoids retrofitting an ad-hoc Settings UI onto the first 1-2 features, a mistake this project already paid for once in v1.8.
+- Ascending technical risk (Caps Lock/Update → Download-Progress → Timer → Meeting-HUD → Quick Notes → Quick Actions → Menübar-Overflow → Coding-Progress) means every hard-detection feature (Meeting-HUD, Menübar-Overflow) gets its dedicated spike/go-no-go gate after cheaper infrastructure (FileWatcher, the resolver generalization, shared MicMuteController) already exists and is proven.
+- Shared-infrastructure dependencies drive two orderings directly: Download-Progress before Coding-Progress (both need `FileWatcher`, prove it once), and Timer/Pomodoro before Meeting-HUD (both need the `preempt()`/`isPersistent` generalization, validate it on the simpler case first).
+- This ordering directly avoids Pitfall 3 (resolver crowding) by resolving the priority table up front, and Pitfall 4 (Settings migration regression) by locking the default-OFF convention in the foundation phase before any new key is added.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 3 (Pasteboard monitor):** The macOS 15.4/26 `NSPasteboard.accessBehavior` privacy-prompt behavior on a directly-notarized, non-sandboxed app isn't fully documented anywhere yet (PITFALLS.md flags this explicitly as recent/unverified) — plan for on-device verification, not just code review.
-- **Phase 2 (Persistence):** Image size/compression policy (downscale before persisting? what threshold?) isn't addressed in REQUIREMENTS.md per ARCHITECTURE.md's own "Scaling Considerations" note — worth a planning-time question before implementation.
+Phases likely needing deeper research/spike during planning:
+- **Phase 5 (Meeting-HUD):** no public API for call-state detection; heuristic-only, needs on-device validation against real Zoom/Teams before build (already flagged in PROJECT.md).
+- **Phase 8 (Menübar-Overflow):** undocumented `NSStatusItem` repositioning technique + first-of-kind Accessibility permission flow; needs a source-level read of Ice before planning.
+- **Phase 9 (Coding-Progress):** hook-event choice and file-format/staleness-timeout contract need to be settled before build (already flagged in PROJECT.md).
+- **Phase 3 (Download-Progress):** not explicitly flagged in PROJECT.md but PITFALLS.md recommends a short spike anyway — first FSEvents usage in the codebase, temp-file/rename correlation has real edge cases.
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1 (Data model/store):** Direct structural twin of the already-shipped Shelf pattern (Phase 19) — no open questions.
-- **Phase 4 (Menu wiring):** Plain `NSMenu`/`NSMenuDelegate` extension of code that already exists in `AppDelegate.swift` — well-documented AppKit surface area, MEDIUM confidence only on exact rebuild-timing mechanics but no blocking unknowns.
+- **Phase 1 (Settings-Redesign):** shape fully derivable from existing code, no unknowns.
+- **Phase 2 (Caps Lock + Update restyle):** direct precedent already in the codebase for both.
+- **Phase 4 (Timer/Pomodoro):** pure app state, near-total reuse of existing HUD chrome.
+- **Phase 6 (Quick Notes):** well-understood file-append mechanics; only the 4-slot switcher conflict needs a design decision, not research.
+- **Phase 7 (Quick Actions bar):** each action's mechanism is individually well-documented; the work is per-action TCC-prompt testing, not open research.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | `changeCount` polling and `org.nspasteboard.*` conventions independently corroborated across a decade of open-source clipboard managers (Maccy, Hammerspoon) plus direct precedent already in this codebase; persistence recommendation reasoned from the codebase's own existing patterns. MEDIUM only on exact `NSMenu` dynamic-rebuild mechanics (community/blog corroboration, not an official Apple sample). |
-| Features | MEDIUM-HIGH | CopyClip/Maccy/Paste feature claims verified across multiple sources including GitHub issues and vendor sites; exact CopyClip internals inferred from its own UI conventions since it's closed-source. |
-| Architecture | HIGH | Based on direct reading of Islet's own source (`AppDelegate.swift`, existing Monitor classes, `ShelfFileStore.swift`, `KeychainLicenseStore.swift`) — not generic best practice, but this specific codebase's own established conventions. |
-| Pitfalls | MEDIUM-HIGH | Verified against Maccy's open-source implementation, the nspasteboard.org spec, and real Bitwarden GitHub issues. The macOS 15.4/26 pasteboard-access-prompt behavior on non-sandboxed apps is recent enough that it isn't fully documented yet — flagged as a gap, not treated as settled. |
+| Stack | MEDIUM-HIGH | Ice's mechanism and Claude Code hooks verified against primary sources (actual source code / official docs); Meeting-HUD detection and `CGSession -suspend` are inherently best-effort/community-pattern, correctly flagged as such |
+| Features | MEDIUM-HIGH | Grounded in official Claude Code docs, Ice's README/community writeups, and Droppy's own marketing copy confirming Coding-Progress and Caps Lock as real shipped reference-app features; Meeting-HUD and Menübar-Overflow carry genuine implementation uncertainty, explicitly flagged for phase-specific research |
+| Architecture | HIGH | Based on direct reading of the current codebase (`IslandResolver.swift`, `NotchWindowController.swift`, `ActivitySettings.swift`, `SettingsView.swift`, `AppDelegate.swift`, representative Monitors) — not inferred, verified against real code |
+| Pitfalls | MEDIUM-HIGH | Grounded in direct reads of the same core files plus project history (`PROJECT.md`'s record of prior real on-device bugs); private-API claims about Ice's exact mechanism are LOW-MEDIUM until re-verified against Ice's live source during the Menübar-Overflow spike |
 
-**Overall confidence:** HIGH-MEDIUM
+**Overall confidence:** MEDIUM-HIGH
 
 ### Gaps to Address
 
-- **macOS 26 pasteboard-access prompt behavior on a non-sandboxed, notarized app:** Not fully documented anywhere yet (this feature is new enough that community coverage lags). Handle via on-device verification during Phase 3, not assumed from research alone.
-- **Image size/compression policy for full-resolution screenshot copies:** Not specified in REQUIREMENTS.md. Flag during Phase 2 planning — decide on a downscale/compression threshold before implementation, not after observing disk/memory bloat.
+- **Meeting-HUD call detection:** no confirmed working technique exists yet — the recommended heuristic (process-running + mic-active) is a documented community pattern, not a verified Islet-specific spike result. Must be validated on real hardware during Phase 5's dedicated research step before any build work.
+- **Menübar-Overflow's exact private mechanism:** Ice's precise technique is inferred from its public source files (`Bridging.swift`, `MenuBarItemManager.swift`) but not independently re-verified live during this research pass; re-confirm on-device (including Accessibility-permission-denied and sleep/wake/Dock-relaunch behavior) before committing to an implementation approach in Phase 8.
+- **`SelectedView`/top-edge-switcher 4-slot conflict (Quick Notes):** genuinely unresolved design question, not a technical unknown — must be decided at Phase 6's planning step (grow the switcher's slot model vs. reach Quick Notes some other way).
+- **`TransientQueue.maxDepth = 2`:** unexamined against 6+ new transient-shaped candidates; re-derive whether the bound still holds as part of Phase 1's priority-table work, rather than leaving it implicit.
+- **Google Meet support:** deliberately out of scope for v1.10 (no reliable native signal without a browser extension) — confirm this exclusion is explicitly documented in REQUIREMENTS.md so it isn't silently expected later.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Islet's own codebase, read directly: `Islet/AppDelegate.swift`, `Islet/Notch/NotchWindowController.swift`, `Islet/Notch/DragDropSupport.swift`, `Islet/Notch/PowerSourceMonitor.swift`, `Islet/Notch/FocusModeMonitor.swift`, `Islet/Notch/AudioOutputMonitor.swift`, `Islet/Notch/NowPlayingMonitor.swift`, `Islet/Shelf/ShelfFileStore.swift`, `Islet/Licensing/KeychainLicenseStore.swift`, `.planning/PROJECT.md`
-- Maccy/Maccy/Clipboard.swift (p0deje/Maccy), https://github.com/p0deje/Maccy/blob/master/Maccy/Clipboard.swift — changeCount polling, self-copy marker type, ignoredTypes filtering, 500ms default interval
-- nspasteboard.org, https://nspasteboard.org/ — canonical (unofficial) source for Concealed/Transient/AutoGenerated type conventions
+- Direct reads of the current Islet codebase: `IslandResolver.swift`, `NotchWindowController.swift`, `ActivitySettings.swift`, `SettingsView.swift`, `AppDelegate.swift`, `FocusModeMonitor.swift`, `ClipboardMonitor.swift`, `Islet.entitlements`, `project.pbxproj`
+- `.planning/PROJECT.md` — milestone goal, requirement history, per-phase shipped-scope notes v1.0–v1.9
+- `jordanbaird/Ice` GitHub repository (`Ice/MenuBar/MenuBarItems/MenuBarItemManager.swift`, `Ice/Bridging/Bridging.swift`) — MIT license, fetched directly
+- `code.claude.com/docs/en/hooks` and `code.claude.com/docs/en/agent-sdk/todo-tracking` — official Anthropic documentation, current as of research date
 
 ### Secondary (MEDIUM confidence)
-- Bitwarden desktop#350 (https://github.com/bitwarden/desktop/issues/350), clients#326 (https://github.com/bitwarden/clients/issues/326), clients#17404 (https://github.com/bitwarden/clients/issues/17404) — documents marker-convention gap in a real, widely-used password manager
-- Michael Tsai — Pasteboard Privacy Preview in macOS 15.4 (https://mjtsai.com/blog/2025/05/12/pasteboard-privacy-preview-in-macos-15-4/), MacRumors (https://www.macrumors.com/2025/05/12/apple-mac-apps-clipboard-change/), 9to5Mac (https://9to5mac.com/2025/05/12/macos-16-clipboard-privacy-protection/) — `NSPasteboard.accessBehavior` privacy prompt
-- CopyClip 2 - App Store (https://apps.apple.com/us/app/copyclip-2-clipboard-manager/id1020812363?mt=12), OS X Daily CopyClip coverage (https://osxdaily.com/2023/08/28/free-clipboard-manager-for-mac-copyclip/) — item limits, quick-select shortcuts, pin behavior
-- Maccy 2.0 rewrite coverage — AlternativeTo (https://alternativeto.net/news/2024/9/macos-clipboard-manager-maccy-has-released-a-major-2-0-update-with-a-complete-rewrite), Maccy Issue #1097 (https://github.com/p0deje/Maccy/issues/1097) — NSMenu-at-scale failure modes, confirms irrelevant at this app's 20-30 item cap
+- Apple Developer Forums thread confirming `kAudioDevicePropertyDeviceIsRunningSomewhere` reliability (built-in/wired mics only, not Bluetooth)
+- `gist.github.com/henrik/38a7a76a217552d8f4fc672535fe91c5` (Zoom mute-toggle AppleScript proof-of-concept)
+- OS X Daily / community confirmations that `CGSession -suspend` still works through Sonoma/Sequoia
+- Podfeet Podcasts and GitHub issue discussions corroborating Ice's chevron/Cmd-drag UX
+- `getdroppy.app` marketing copy confirming Coding-Progress and Caps Lock as real shipped reference-app features
+- `MeetingBar` (leits/MeetingBar) and `do-not-disturb-cli` (sindresorhus) corroborating process/audio-based detection as the ecosystem norm for both Meeting-HUD and DND/Focus toggling
 
 ### Tertiary (LOW confidence)
-- Hammerspoon `hs.pasteboard` source/issue discussion, Apple Developer Forums thread on pasteboard change events — community corroboration only, not official Apple documentation (Apple's own pasteboard docs pages are JS-rendered and couldn't be fetched directly during research)
+- General macOS platform knowledge on FSEvents temp-file/rename patterns and Apple Events per-target-app TCC authorization — training-data-based, not independently re-verified this pass; flagged for spike-time verification
+- Ice's exact underlying private-API mechanism for Menübar-Overflow — inferred from public source, not independently re-verified live; flagged for the Menübar-Overflow phase's own research step
 
 ---
-*Research completed: 2026-07-22*
+*Research completed: 2026-07-23*
 *Ready for roadmap: yes*

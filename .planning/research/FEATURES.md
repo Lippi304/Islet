@@ -1,171 +1,285 @@
 # Feature Research
 
-**Domain:** macOS menu-bar clipboard history manager (v1.9 addition to Islet, replacing CopyClip)
-**Researched:** 2026-07-22
-**Confidence:** MEDIUM-HIGH (CopyClip/Maccy/Paste feature claims verified across multiple sources incl. GitHub issues and vendor sites; exact CopyClip internals inferred from its own UI conventions since it's closed-source)
+**Domain:** macOS notch-overlay live-activities app — v1.10 "Live Activities Suite" (9 new HUDs/activities + Settings redesign)
+**Researched:** 2026-07-23
+**Confidence:** MEDIUM-HIGH (grounded in official Claude Code hooks docs, Ice's GitHub README/community writeups, Droppy's own marketing copy, and standard CoreAudio/AppleScript/FSEvents references; two features — Meeting-HUD and Menübar-Overflow — carry real implementation uncertainty flagged below for phase-specific deep research)
 
-> Supersedes the prior FEATURES.md content (Now Playing "like" button + audio output switcher, v1.7 candidate research, dated 2026-07-19) — that scope is a different, still-paused milestone; its content is preserved in git history, not here. This file is scoped entirely to v1.9 (Clipboard History).
+## Feature-by-Feature Behavior Notes
+
+### 1. Meeting-HUD (Zoom/Meet/Teams call timer + mute)
+
+**Expected behavior:** while a video call is active, the notch shows a call timer (elapsed mm:ss) and a one-tap mute toggle, similar in spirit to the already-shipped Now Playing activity.
+
+**The hard problem:** there is no unified public macOS API for "is a call currently active" across Zoom, Google Meet, and Teams. Zoom and Teams are native apps (bundle IDs `us.zoom.xos`, `com.microsoft.teams2`) whose *presence* is trivially detectable via `NSWorkspace.runningApplications`, but their *in-call* state is not exposed. Google Meet runs inside a browser tab — realistically undetectable without a browser extension, so it should not be promised at MVP. The standard community workaround (confirmed via search — this is how tools like MeetingBar and various "on-air" menu-bar apps behave) is to combine (a) target-app-running with (b) the microphone-in-use signal (`kAudioDevicePropertyDeviceIsRunningSomewhere` on the default input device, from CoreAudio's `AudioHardware.h`) as a corroborating heartbeat. Mic-alone is a false-positive magnet (fires for Voice Memos, dictation, etc.), so gating on "target app running AND mic active" is the pragmatic MVP signal.
+
+**Mute toggle:** cannot reliably reach into Zoom/Teams's own in-call mute state (no public API/AppleScript dictionary support for it). The realistic MVP is a **system-wide hardware mute** via `AudioObjectSetPropertyData` with `kAudioDevicePropertyMute` on the input device — mutes for every app simultaneously, which behaves correctly as long as the user is only in one call context at a time (true for almost all real usage).
+
+**Table stakes:** call presence detected + timer counts up + shows in the island via the existing priority arbiter.
+**Differentiator (defer):** mute reflecting the actual in-app mute state (not just system mic) — no known reliable technique; do not commit to this for v1.10.
+**Complexity:** HIGH — the only "detection" feature among the 9 with no clean API; proxy-signal based, will need on-device tuning to avoid false positives/negatives.
+**Dependency on existing Islet subsystems:** reuses `IslandResolver` priority arbitration and the "isolate risky integration behind one protocol" pattern already proven with `NowPlayingMonitor`/`BluetoothMonitor` — a new `MeetingMonitor` should follow the identical isolation discipline. Its mute action also overlaps with the Quick Actions bar's mic-mute action (same CoreAudio call) — build one shared `MicMuteController` used by both.
+**Confidence:** MEDIUM — detection strategy is a documented community pattern, not an Apple-sanctioned API; flag for phase-specific research before implementation, especially false-positive tuning.
+
+### 2. Download-Progress (Downloads-folder progress bar)
+
+**Expected behavior:** a file appearing/growing in `~/Downloads` shows a live progress indicator in the notch; completion (browser renames the temp file to its final name) collapses it into a brief "done" state.
+
+**The hard problem:** true percentage-complete requires knowing total expected bytes, which isn't reliably available at the filesystem layer for all browsers' partial-download conventions (Safari, Chrome `.crdownload`, Firefox `.part` all differ). The robust, low-risk approach: watch `~/Downloads` via a `DispatchSource`-based directory watcher (the modern idiomatic Swift approach over raw FSEvents C bindings) for temp-extension file creation, track its growing size for an "activity" pulse, and treat the **rename-to-final-filename event** as the completion signal (100%) rather than trying to compute a true percentage in all cases.
+
+**Table stakes:** notch shows *something is downloading* and clears/confirms on completion; never blocks or interferes with the actual download.
+**Differentiator:** click-through to reveal in Finder; multiple concurrent downloads shown as a small stacked list.
+**Anti-feature:** pause/resume/cancel control — not exposed to third-party apps by the OS without a browser extension; explicitly out of scope.
+**Complexity:** MEDIUM — folder watching itself is simple stdlib territory; the percentage-accuracy edge cases are the real cost, so scope MVP to presence + completion rather than exact %.
+**Dependency:** new `FolderWatcher` utility — build it generically enough to also serve Coding-Progress (#9), which needs the same "watch a path, react to changes" primitive. Reuses existing HUD/wings + `IslandResolver` for presentation.
+**Confidence:** MEDIUM-HIGH on the watching mechanism, LOW on percentage precision across all browsers — flag as a scoping decision for REQUIREMENTS.md (presence-only vs. best-effort %).
+
+### 3. Timer/Pomodoro (countdown/focus session)
+
+**Expected behavior:** user sets a duration, notch shows a live countdown (collapsed glance = mm:ss + shrinking ring/bar), expanded view offers pause/reset/add-time, and completion fires a HUD splash + system notification/sound. Pomodoro mode adds work/break cycling with a session counter.
+
+**Table stakes:** start/pause/reset, visible countdown, completion alert.
+**Differentiator:** Pomodoro work/break presets with session counting; auto-enabling macOS Focus Mode during a work session is a stretch — no public API for it (only AppleScript/Shortcuts-CLI workarounds, same reliability caveat as the DND action in Quick Actions bar), flag as v2.
+**Complexity:** LOW-MEDIUM — the simplest of the 9 features. Pure local state (a `Task`/`Timer`-driven countdown), zero external system integration required for the core loop.
+**Dependency:** the **heaviest reuse** of any new feature — directly reuses the existing HUD/wings transient-splash pattern (start/complete moments, same visual language as Charging) and the expanded-view live-progress pattern already shipped for Now Playing's progress bar (Phase 7, PBAR-01). Should be the cheapest of the 9 to build precisely because its chrome already exists end-to-end.
+**Confidence:** HIGH.
+
+### 4. Quick Notes + Obsidian export
+
+**Expected behavior:** a fast-entry capture UI (menu-bar flyout, mirroring the existing Clipboard History submenu), typed note gets appended — timestamped — to one fixed `.md` file inside a user-chosen Obsidian vault folder, selected once via a folder/file picker.
+
+**Table stakes:** append-only (never overwrites/corrupts the file), creates the file if it doesn't exist yet, works even if Obsidian.app itself is closed (it's just a plain text file — this is in fact how the real Obsidian ecosystem does lightweight external capture: Obsidian's own `obsidian://` URI scheme and community tools like Raycast's Obsidian extension favor plain file/URI writes over requiring the "Local REST API" community plugin).
+**Differentiator (defer):** "daily note" mode (append to `YYYY-MM-DD.md` instead of one fixed file), tag autocomplete pulled from the existing vault, Markdown formatting shortcuts.
+**Anti-feature:** building against Obsidian's Local REST API plugin as a hard dependency — raises the bar for users who just want folder-drop simplicity; plain file append is the standard lightweight pattern.
+**Complexity:** LOW-MEDIUM. The capture UI and history list should be near-identical to Clipboard History's existing flyout submenu and "recent items" treatment (possibly extending the same Cmd+0-9 quick-recall convention). The one genuinely new piece: append-to-external-file (`FileHandle.seekToEndOfFile()` + write) and a one-time folder/file picker whose selection is persisted (Islet is not App-Sandboxed given its existing private-API usage, so this is a plain stored path, not a security-scoped-bookmark dance).
+**Dependency:** STRONG reuse of the Clipboard History subsystem's UI shell and persistence-service pattern. Open question to resolve in REQUIREMENTS.md: does the local quick-notes history need the same at-rest encryption Clipboard History uses, or is that overkill for notes destined for a plaintext vault file anyway?
+**Confidence:** HIGH on the UX/reuse story, MEDIUM on Obsidian-specific conventions (no single canonical timestamp format — needs a UX decision, not a technical unknown).
+
+### 5. Quick Actions bar (configurable action buttons)
+
+**Expected behavior:** a small grid/row of tappable action buttons live in the notch, user-configurable (which actions, what order).
+
+**Sensible default action catalog** (cross-referenced against how existing macOS menu-bar utilities implement each):
+
+| Action | Trigger mechanism | Reliability |
+|---|---|---|
+| Mic mute/unmute | CoreAudio `AudioObjectSetPropertyData` with `kAudioDevicePropertyMute`, scope Input, on default input device | HIGH — documented HAL property, works for built-in/wired mics; Bluetooth mic mute has had version-specific quirks (worked around by also setting volume, per community fixes) |
+| Display sleep now | Shell out to `pmset displaysleepnow`, or `IOPMSleepSystem`/`CGDisplaySleep` at a lower level | HIGH — `pmset` shell-out is the simplest, no private API risk |
+| Dark/Light mode toggle | AppleScript via `osascript`/`NSAppleScript`: `tell application "System Events" to tell appearance preferences to set dark mode to not dark mode` | HIGH — documented, standard AppleScript dictionary hook |
+| Screen lock | Launch `CGSession -suspend` as a subprocess | HIGH — long-standing, widely used lightweight lock trick |
+| Do Not Disturb / Focus toggle | No stable public API. Two realistic paths: (a) `shortcuts run "<name>"` requiring the user to pre-create a matching Shortcuts.app shortcut — extra setup burden; (b) simulate the Option-click on the Control Center clock via Accessibility/CGEvent — brittle, breaks if the user has removed that menu item | LOW-MEDIUM — flag as "best effort," the one default action genuinely at risk; even the community `do-not-disturb-cli` npm tool relies on undocumented mechanisms, confirming there's no clean answer here |
+| Caffeinate / keep-awake toggle | Launch/kill a `caffeinate` subprocess | HIGH — trivial and reliable |
+| Empty Trash | `NSWorkspace` / `FileManager` trash API | HIGH |
+| Launch app or open URL | `NSWorkspace.open` | HIGH |
+
+**Differentiator:** user-configurable/reorderable action grid (drag to reorder — mirrors Droppy's "customize your shelf" philosophy), per-action custom icon/label, keyboard-shortcut binding.
+**Anti-feature:** a full custom scripting/AppleScript-editor action builder — scope creep; ship a fixed catalog (~8-10 actions) with enable/reorder toggles instead.
+**Complexity:** MEDIUM overall. Individually, each trigger is LOW complexity (mostly one-liner Process/AppleScript/CoreAudio calls); the actual MEDIUM cost is the configurable-grid chrome (layout, drag-reorder, persisted selection/order) — not the triggers themselves.
+**Dependency:** new UI component, but persistence should reuse the existing Settings `@AppStorage` pattern (matches how the 3 activity toggles + accent palette already persist). Shares the mic-mute primitive with Meeting-HUD (#1) — build once, use from both.
+**Confidence:** HIGH on 7 of 8 default actions, MEDIUM-LOW specifically on DND/Focus.
+
+### 6. Menübar-Overflow (Ice-style MVP)
+
+**Ice's actual UX flow** (verified against Ice's GitHub README and multiple independent writeups — jordanbaird/Ice, github.com/jordanbaird/Ice):
+
+- The menu bar is divided by chevron-shaped **separator items** into up to three sections: **visible** (right of the main chevron, always shown), **hidden** (between the main and a second, smaller chevron), and **always-hidden** (left of the small chevron — a second section only revealed via right-click → "Show the Always-Hidden Section").
+- Users move icons between sections using the **standard macOS Cmd-drag** gesture for repositioning menu-bar items — the same OS-native mechanism used to reorder any menu-bar icon manually. Ice doesn't invent a new drag system; it plants draggable chevron/separator items that define where the visible/hidden boundary sits, and other apps' icons get dragged across that boundary the normal way.
+- The chevron is itself a real menu-bar item and can be Cmd-dragged left/right to move the boundary.
+- **Clicking the (visible) chevron reveals/hides the hidden section** — items slide in/out. This click-to-toggle interaction is the specific behavior this milestone's "Ice-style MVP" targets.
+- Ice also supports hover-to-reveal, scroll/swipe-to-reveal, click-on-empty-menu-bar-area, and auto-rehide-after-delay — all configurable in Settings → General. These are explicitly **not** part of this milestone's scope (chevron-click only).
+
+**Complexity:** HIGH — the most technically novel feature of the 9. Unlike the other 8 (which wrap documented or semi-documented single-app APIs), this feature must reposition/hide **other processes' own UI elements** (their `NSStatusItem`s), which macOS does not expose a public API for. The general approach known-open-source menu-bar managers use (Ice, Bartender, Hidden Bar) is to insert their own status items at controlled positions and exploit the fact that `NSStatusItem`s maintain stable left-to-right ordering, then move the *boundary* item and toggle other items' effective visibility by shifting them off the visible menu-bar strip — a technique that (a) requires Accessibility permission, (b) has known per-macOS-version fragility, and (c) has documented incompatibilities with some aggressively-redrawing menu-bar apps. This is a materially higher-risk feature than the rest of the milestone.
+**Table stakes for the MVP:** one chevron, click toggles reveal/hide of everything behind it; other apps' icons remain their real icon (not re-skinned), genuinely absent from the visible strip when hidden.
+**Differentiator (explicitly deferred per milestone scope):** always-hidden second section, hover/scroll-to-reveal, auto-rehide timer, menu-bar tint/shape customization.
+**Dependency on existing Islet subsystems:** **none** — this is the one feature that doesn't touch the notch at all; it's a standalone menu-bar subsystem. It also requires a **new Accessibility permission request flow**, distinct from Islet's existing WeatherKit/EventKit/Bluetooth TCC prompts — no precedent to reuse.
+**Confidence:** MEDIUM-HIGH on Ice's user-facing UX (well corroborated across multiple independent sources), LOW-MEDIUM on the exact underlying implementation mechanism (Ice's precise private-API technique isn't published in one authoritative document — inferred from the known constraints of the problem and community discussion). **Recommend flagging this feature for its own dedicated phase-level research spike before implementation begins**, given it's both the highest-complexity and least-precedented feature in the milestone.
+
+### 7. Caps Lock ON/OFF indicator HUD
+
+**Expected behavior:** toggling Caps Lock briefly flashes a HUD splash (same transient wings/pill pattern as Charging) showing an on/off glyph, auto-dismissing after ~1-2s. macOS has no native Caps Lock OSD to suppress (unlike Volume/Brightness, which already required native-OSD-suppression work) — this is presentation-only, no interception problem.
+
+**Detection:** `NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged)`, checking `event.modifierFlags.contains(.capsLock)` — a fully public, simple, well-known API.
+**Table stakes:** distinguishing on-triggered vs off-triggered state (different icon) is effectively required for a sane MVP, not really a stretch differentiator.
+**Complexity:** LOW — alongside Timer, the simplest feature in the milestone.
+**Dependency:** pure reuse of the existing HUD/wings transient-splash pattern + `IslandResolver` priority slot; no new subsystem beyond the `NSEvent` monitor itself.
+**Confidence:** HIGH.
+
+### 8. Update-Activity restyle (cosmetic reskin)
+
+**Expected behavior:** the already-shipped Sparkle update-available HUD gets a new SwiftUI layout matching Droppy's look — leading icon, "Update" label, trailing rounded version-number pill/badge — with identical trigger logic.
+
+**Complexity:** LOW — explicitly a visual-only task; no new subsystem, no new permission, Sparkle plumbing untouched.
+**Dependency:** 100% reuse of existing update-detection code; only the `View` changes.
+**Confidence:** HIGH — no material unknowns, light research only as scoped.
+
+### 9. Coding-Progress (live Claude Code CLI session in the notch)
+
+**Expected behavior:** while a Claude Code CLI session is running, the notch shows todo-list completion fraction (e.g., "3/7"), falling back to a status text when no todo list exists yet.
+
+**How Claude Code actually exposes this** (verified against the official hooks reference, code.claude.com/docs/en/hooks): Claude Code supports lifecycle **hooks** — user-configured shell commands (in `.claude/settings.json` or `~/.claude/settings.json`) that fire on events like `PostToolUse`, `Stop`, `SessionStart`, `SessionEnd`, receiving a JSON payload on **stdin**. The `TodoWrite` tool — the mechanism Claude Code itself uses internally to track its task list — can be matched via `PostToolUse` with `matcher: "TodoWrite"`; the payload's `tool_input.todos` is an array of `{content, status, activeForm}` objects with `status` ∈ `{pending, in_progress, completed}` — exactly the fraction Islet needs. Fallback status text can come from the `Stop` hook's `last_assistant_message` field, or a generic "Claude is working…" from `SessionStart`/`UserPromptSubmit`.
+
+**Integration path:** ship a small hook script (bash/Python, distributed with Islet or generated by its Settings UI) that the user adds to their own Claude Code settings; on each matched hook event it writes the current todos JSON to a well-known local file (e.g. `~/Library/Application Support/Islet/coding-progress.json`), which Islet's monitor tails via the same folder-watcher primitive needed for Download-Progress (#2) — a genuine shared-infrastructure opportunity, build one `FileWatcher` utility, not two.
+
+**This is a confirmed real reference-app feature, not speculative:** Droppy's own marketing page explicitly advertises "an AI coding companion that surfaces activity from Claude Code, Cursor, and Codex directly in the notch."
+
+**Table stakes:** shows completion fraction while a session has an active todo list; clears/times out when the session goes idle or ends (`SessionEnd` can clear state).
+**Differentiator (defer):** per-project session identification (cwd shown), multi-session queue/switcher when more than one Claude Code session runs concurrently, live-streaming `last_assistant_message` as scrolling status text.
+**Complexity:** MEDIUM. The hook mechanism itself is simple and Anthropic-supported/stable; the real cost is (a) a **required user setup step** — installing the hook into their own Claude Code config, a genuine onboarding UX problem worth flagging separately in REQUIREMENTS.md, (b) the file-based IPC bridge between the hook's short-lived shell process and the always-running Islet app, and (c) deciding which session wins the notch slot when multiple Claude Code sessions run concurrently (recommend: most-recently-active, consistent with the existing priority-arbiter's "most relevant wins" philosophy).
+**Dependency:** shares the new `FileWatcher` utility with Download-Progress; reuses `IslandResolver` for priority slotting and the progress-bar visual language already shipped for Now Playing (PBAR-01).
+**Confidence:** MEDIUM-HIGH on the hooks mechanism (verified against official current docs), MEDIUM on end-to-end wiring since it's the only feature in this milestone that requires the user to perform an external configuration step outside Islet itself.
+
+---
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-These map directly to what the user already confirmed during milestone discussion — none of this is optional for v1.9.
-
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Recent-items list, MRU order | Every clipboard manager (CopyClip, Maccy, Clipy, Flycut) shows newest copy first | LOW | Prepend on capture; no sort logic needed beyond insertion order |
-| Item count cap (~20-30) with FIFO eviction | CopyClip's free tier shows 20 in the menu; matches user's confirmed 20-30 cap | LOW | A bounded array/ring buffer — evict oldest past the cap, no pagination needed |
-| Click-to-restore (copy to pasteboard, no auto-paste) | Confirmed against user's CopyClip screenshot; this is CopyClip's actual behavior, not an assumption | LOW | Write item back to `NSPasteboard.general`; do NOT synthesize a Cmd+V keystroke into the frontmost app |
-| Text preview with single-line truncation + ellipsis | Every reviewed app (CopyClip, Maccy, Clipy) truncates long text to one line in the row | LOW | Standard `NSString`/SwiftUI `.lineLimit(1)` + `.truncationMode(.tail)`; no need for multi-line preview logic |
-| Image support (not just text) | User explicitly confirmed text + images; CopyClip 2 and Paste both support image clips | MEDIUM | Needs a thumbnail render path for the menu row — see storage note in Anti-Features |
-| ⌘0–⌘9 quick-select key equivalents | Directly visible in the user's CopyClip reference screenshot; long-standing CopyClip convention | LOW | `NSMenuItem.keyEquivalent` on the first 10 rows only — a cosmetic/muscle-memory feature for the exact app being replaced |
-| Persistence across relaunch + reboot | User explicitly confirmed this as deliberately different from the session-only Shelf | LOW-MEDIUM | Small on-disk store (see Anti-Features re: no DB needed at this scale); load on launch, save on each capture |
-| Sensitive-content exclusion via `org.nspasteboard.ConcealedType`/`TransientType` | Confirmed by user; also the de-facto standard convention respected by CopyQ, and referenced directly on nspasteboard.org | LOW | Check pasteboard types for these two UTIs before capturing; skip silently, no user-facing prompt needed |
-| "Delete All History" action | Confirmed by user; present in CopyClip ("Delete All History" menu item), Alfred ("Clear Clipboard History"), and effectively every competitor | LOW | See UX Conventions section below for confirmation-dialog norm |
-| Pasteboard-monitoring via `NSPasteboard.general.changeCount` polling | macOS has no native "clipboard changed" notification API — every reviewed app (Maccy, Clipy, Flycut) polls `changeCount`; project's own `DragApproachDetector` already does this pattern | LOW-MEDIUM | Reuse the existing polling pattern already in the codebase rather than inventing a new mechanism (see PROJECT.md Key Context) |
+| Meeting-HUD: call presence + timer | Core promise of the feature name | HIGH | Zoom/Teams native apps only at MVP; Google Meet (browser) unsupported |
+| Download-Progress: activity + completion signal | Core promise of the feature name | MEDIUM | Presence/completion, not necessarily exact % |
+| Timer: countdown + completion alert | Table stakes for any timer feature | LOW-MEDIUM | Reuses existing HUD chrome almost entirely |
+| Quick Notes: reliable append-only capture | Data-loss risk if it ever overwrites | LOW-MEDIUM | Reuses Clipboard History UI/persistence pattern |
+| Quick Actions: the ~8 reliable default actions | "Quick actions" implies zero-setup usefulness | MEDIUM | DND/Focus is the one unreliable default, ship as best-effort |
+| Menübar-Overflow: chevron hide/show | This IS the feature, per Ice reference | HIGH | Requires new Accessibility permission flow |
+| Caps Lock: on/off flash | Simple, expected parity with Volume/Brightness HUD | LOW | No native OSD to suppress, unlike Volume/Brightness |
+| Update-Activity: visual match to Droppy | Explicitly scoped as cosmetic | LOW | No new subsystem |
+| Coding-Progress: completion fraction | Core promise, confirmed real in Droppy | MEDIUM | Requires one-time user hook setup |
 
-### Differentiators (Competitive Advantage — mostly out of scope for v1.9)
-
-These set CopyClip/Maccy/Paste apart from a bare-bones history. The user has explicitly scoped search/filter OUT of v1.9; flagged here only for the "Future Requirements" backlog.
+### Differentiators (Competitive Advantage)
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Search/filter across history | Maccy's headline feature ("keyboard-first... instant text search"); CopyClip 2 also offers it | MEDIUM | **Explicitly deferred by user for v1.9.** Flag for v2: worth building the data model so full text is stored (not just a pre-truncated preview string) now, so search doesn't require a migration later |
-| Pin/favorite items to top | CopyClip 2 (⇧⌘P), Paste's "pinboards" both offer this | LOW-MEDIUM | **Not requested for v1.9.** Flag for v2 — cheap to add later (a boolean flag + stable sort) if the data model already keeps items as discrete records with stable IDs rather than a flat rolling log |
-| Categorized/typed history (separate text vs. image sections, or custom pinboards) | Paste's multi-pinboard model | MEDIUM-HIGH | Not requested; adds real UI complexity (tabs/sections) disproportionate to a 20-30 item cap. Not worth flagging for v2 unless the item cap itself grows substantially |
-| Cross-device sync (iCloud) | Paste 5.0's rebuilt sync engine, shared pinboards | HIGH | **Do not flag as a near-term v2 candidate.** Clipboard content is uniquely sensitive (passwords near-misses, personal data) — sync introduces E2E-encryption and multi-device conflict-resolution scope disproportionate to this app's local-utility positioning. Maccy's own philosophy (no cloud, no telemetry) is closer to Islet's existing local-only architecture |
-| Per-app exclude list (beyond the nspasteboard convention) | CopyClip lets users manually exclude specific source apps from capture | LOW-MEDIUM | Worth a v2 flag: the nspasteboard convention only covers apps that opt in (mostly password managers); a manual per-app blocklist is a reasonable, cheap follow-up for apps that don't mark sensitive data correctly |
-| Per-item delete (not just Delete All) | Common in Maccy/Clipy via right-click/context menu | LOW | User only confirmed "Delete All History." Worth a v2 flag since it's a small addition (single row-remove) once the base UI exists, but do not build it speculatively now — YAGNI until requested |
+| Meeting-HUD: true in-app mute reflection | Feels "real" instead of a system-wide side effect | HIGH | No known reliable technique — do not commit for v1.10 |
+| Quick Actions: drag-to-reorder configurable grid | Matches Droppy's "customize your shelf" philosophy | MEDIUM | Persist via existing `@AppStorage` pattern |
+| Quick Notes: daily-note mode, tag autocomplete | Matches native Obsidian workflows more closely | MEDIUM | Explicitly out of this milestone's fixed-file scope |
+| Menübar-Overflow: always-hidden section, hover/scroll reveal, auto-rehide | Full Ice parity | HIGH | Explicitly deferred by milestone scope |
+| Coding-Progress: multi-session switcher, live status streaming | Useful for power users running parallel sessions | MEDIUM | Defer to v1.x |
+| Timer: Pomodoro presets + Focus Mode auto-enable | Matches dedicated Pomodoro apps | LOW (presets) / HIGH (Focus API) | Focus enable has no public API — same reliability issue as DND action |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|------------------|-------------|
-| SQLite/Core Data-backed history store | "Proper" persistence layers feel more robust; Maccy itself uses SQLite/SwiftData | At a 20-30 item cap this is pure over-engineering — no query performance problem exists to solve. Maccy's own GitHub issue #1097 shows the *real* pain point in these apps only appears at 30,000+ items (UI rendering all rows at once), which is irrelevant here | A capped in-memory array persisted as a small JSON/plist manifest + individual image files on disk. Simple, fast, trivially inspectable |
-| Full pasteboard-type coverage (RTF, RTFD, HTML, file URLs, custom UTIs) from day one | "What if someone copies a file / rich text?" | Every additional UTI is another capture path, preview renderer, and restore path to test and maintain; CopyClip's actual reference (and the user's confirmed scope) is plain text + images only | Capture only `public.utf8-plain-text` and image types (PNG/TIFF) for v1.9; anything else silently falls through (matches Flycut's own stated limitation: "isn't designed for copying images or tables" in its base form) |
-| A brand-new custom popover/panel UI for the dropdown | Feels more "modern" (Maccy 2.0, Paste both use custom windows) | The existing status-item menu (Settings…/Check for Updates/Quit from Phase 0) is already a plain NSMenu, and the user explicitly said this is additive to that menu, NOT a new Island/notch view. Building a parallel NSPanel here duplicates the app's existing menu-bar interaction model for no benefit at a 20-30 item cap | Extend the existing NSMenu with custom `NSMenuItem`s (an `NSHostingView` wrapping a small SwiftUI row for preview + thumbnail). See UI section below for the full tradeoff |
-| Cloud sync / shared history | Feels "modern," competitors (Paste) offer it | Massively expands scope: needs an account system, E2E encryption for what is inherently sensitive data, conflict resolution across devices — nothing the user asked for and inconsistent with Islet's local-only posture | Local-only persistence, matching Maccy's explicit "no cloud sync, no telemetry" positioning |
-| Building search/indexing infrastructure now "to be ready for v2" | Seems efficient to build once | Speculative work for an explicitly deferred feature; risks over-designing the data model around a feature that may change shape before v2 is actually planned | Just don't pre-truncate the underlying stored text (store the full string, only truncate at render time) — that alone is enough runway for v2 search without building the search feature itself now |
-| Unbounded/full-resolution image storage | "Don't lose quality" | Clipboard images (especially from screenshots) can be several MB each; even at a 20-30 item cap, unbounded full-res storage adds up and slows the menu (rendering large images in row previews) | Store a compressed/downscaled thumbnail for the menu row; if full-res restore-to-pasteboard is needed, keep the original once and only thumbnail for display — do not generate multiple derivative sizes speculatively |
+| Full Obsidian Local REST API integration | Feels "properly integrated" | Requires user to install/keep running a separate Obsidian community plugin — raises the bar past what "quick capture" should need | Plain append to a user-chosen `.md` file — the lightweight pattern real Obsidian quick-capture tools already use |
+| Per-app in-call mute control (Zoom/Teams internal state) | Feels more precise than a system-wide mute | No public API/AppleScript surface exists; would require fragile, app-version-specific Accessibility hacks | System-wide CoreAudio input mute — correct behavior for the overwhelmingly common single-call case |
+| Download pause/resume/cancel control | Feels like a "real" download manager | Not exposed to third-party apps by the OS without a browser extension | Show progress/completion only; leave control to the browser |
+| Full custom action-scripting sandbox for Quick Actions | Maximum flexibility | Scope creep — becomes a mini Shortcuts.app; huge surface for bugs and support burden | Fixed catalog of ~8-10 pre-built, well-tested actions with enable/reorder toggles |
+| Full Ice feature parity in one milestone (tint/shape, multiple hidden sections, all reveal triggers) | "Might as well build the whole thing" | Menübar-Overflow is already the highest-risk feature in the milestone; scope creep here directly threatens the whole milestone timeline | MVP = one chevron, click-to-toggle only; everything else is v1.x |
+| Promising Google Meet call detection at MVP | Meeting-HUD should "just work" for any video call | Meet runs in a browser tab; no filesystem/process signal identifies it without a browser extension | Scope Meeting-HUD to native Zoom/Teams apps only; document Meet as unsupported |
 
 ## Feature Dependencies
 
 ```
-Pasteboard-monitoring seam (changeCount polling)
-    └──requires──> Sensitive-content check (org.nspasteboard types)
-                       └──feeds into──> Capture + capped history store
-                                            └──feeds into──> Menu row rendering (text truncation / image thumbnail)
-                                            └──feeds into──> Click-to-restore
-                                            └──feeds into──> ⌘0-⌘9 key equivalents (first 10 rows only)
-                                            └──feeds into──> Delete All History
+[Meeting-HUD] ──shares──> [MicMuteController] <──shares── [Quick Actions bar: mic-mute action]
+[Meeting-HUD] ──reuses──> [IslandResolver priority arbiter] (existing)
+[Meeting-HUD] ──reuses pattern──> [NowPlayingMonitor/BluetoothMonitor isolation discipline] (existing)
 
-[Search (v2, deferred)] ──requires full stored text, not just preview──> Capture + capped history store
-[Pin/favorite (v2, deferred)] ──requires discrete item records with stable IDs──> Capture + capped history store
+[Download-Progress] ──shares infra──> [FileWatcher/FolderWatcher utility] <──shares infra── [Coding-Progress]
+
+[Quick Notes] ──reuses──> [Clipboard History: flyout submenu UI + persistence pattern] (existing)
+
+[Timer/Pomodoro] ──reuses heavily──> [HUD/wings transient pattern] (existing, same as Charging)
+[Timer/Pomodoro] ──reuses heavily──> [Now Playing expanded-view + progress-bar pattern] (existing, PBAR-01)
+
+[Caps Lock] ──reuses──> [HUD/wings transient pattern] (existing, same as Charging)
+
+[Update-Activity restyle] ──reuses──> [existing Sparkle update-detection + HUD view] (view swap only)
+
+[Coding-Progress] ──reuses──> [Now Playing progress-bar visual language] (existing, PBAR-01)
+[Coding-Progress] ──requires──> [User configures a Claude Code hook outside Islet] (external setup step, unique to this feature)
+
+[Menübar-Overflow] ──requires──> [New Accessibility permission flow] (no existing precedent)
+[Menübar-Overflow] ──independent of──> [notch/IslandResolver subsystem entirely] (operates on the menu bar, not the notch)
+
+[Quick Actions bar] ──requires──> [Settings @AppStorage persistence pattern] (existing, same as activity toggles/accent palette)
+
+[Timer/Pomodoro: Focus Mode auto-enable] ──conflicts with reliability of──> [Quick Actions: DND toggle] (both blocked by the same "no public Focus API" gap)
 ```
 
 ### Dependency Notes
 
-- **Everything depends on the pasteboard-monitoring seam existing first** — it's the one genuinely new subsystem (no existing code does this; `DragApproachDetector`'s polling pattern is the closest precedent, not a reusable implementation).
-- **Sensitive-content check must run inside the capture path, not as a post-filter** — items must never reach the history store to begin with (no "capture then hide" step, since that would still risk exposure in the persisted file).
-- **Search and Pin are the two deferred features that actually constrain today's data model.** Neither needs to be built now, but the history store should keep full text (not pre-truncated strings) and stable per-item identity (not just a flat rolling array with no IDs) so v2 doesn't require a data migration.
+- **Download-Progress and Coding-Progress should share one `FileWatcher` utility:** both need "watch a path, react to changes" — building it once (generic over file vs. directory) avoids two near-duplicate subsystems.
+- **Meeting-HUD and Quick Actions bar share `MicMuteController`:** both ultimately call the same CoreAudio `kAudioDevicePropertyMute` primitive on the input device — build once, invoke from both call sites, avoid divergent mute-state bugs.
+- **Menübar-Overflow has zero reuse from existing Islet subsystems** — it's the one feature that doesn't live in the notch at all, and it needs a permission flow (Accessibility) Islet has never requested before. Treat it as its own isolated phase with its own research spike, not something to bundle casually alongside the other 8.
+- **Timer/Pomodoro has the highest reuse ratio of the 9** — nearly all of its visual chrome already exists (transient HUD splash + expanded live-progress view), making it the cheapest to build despite being a "new feature."
+- **Coding-Progress is the only feature requiring action outside the app itself** (the user must add a hook to their own Claude Code settings) — this is a genuine onboarding/documentation requirement, not just an engineering task, and should get its own requirement line in REQUIREMENTS.md distinct from the build work.
+- **DND/Focus toggling (Quick Actions) and Focus-Mode auto-enable (Timer differentiator) share the same underlying gap:** macOS has no public API for either; both routes (Shortcuts CLI, Accessibility-simulated clock click) are best-effort. Don't let this become a blocking dependency for either feature — ship both with DND/Focus explicitly documented as "best effort."
 
 ## MVP Definition
 
-### Launch With (v1.9)
+### Launch With (v1.10)
 
-- [ ] Pasteboard-monitoring polling seam (`changeCount`) — nothing else works without it
-- [ ] Sensitive-content exclusion (`org.nspasteboard.ConcealedType`/`TransientType`) — must be in the capture path from day one, not bolted on later
-- [ ] Capped history store (~20-30 items, FIFO eviction), text + image, full text retained (not pre-truncated)
-- [ ] Menu rows: single-line truncated text preview / image thumbnail, click-to-restore to pasteboard
-- [ ] ⌘0-⌘9 key equivalents on the first 10 rows
-- [ ] "Delete All History" menu action with a standard destructive-confirmation alert
-- [ ] Persistence across relaunch/reboot (simple JSON/plist manifest + image files, no database)
+All 9 are milestone-scoped, but realistic build-order by risk (cheapest/most certain first):
 
-### Add After Validation (v1.x, if requested)
+- [ ] Caps Lock indicator — trivial, pure reuse of existing HUD pattern
+- [ ] Update-Activity restyle — trivial, view-only
+- [ ] Timer/Pomodoro (core countdown, no Focus-Mode auto-enable) — near-total reuse of existing chrome
+- [ ] Quick Notes + Obsidian export (fixed-file append only, no daily-note mode) — strong reuse of Clipboard History
+- [ ] Quick Actions bar (fixed 8-action catalog, DND best-effort) — medium cost, mostly config-UI work
+- [ ] Download-Progress (presence + completion signal, not guaranteed exact %)
+- [ ] Meeting-HUD (Zoom/Teams native apps only, system-wide mute only, no Google Meet)
+- [ ] Coding-Progress (single most-recent session, requires documented user hook setup)
+- [ ] Menübar-Overflow (one chevron, click-to-toggle only — recommend its own dedicated research/planning phase given its novelty)
 
-- [ ] Per-item delete (single row removal) — small addition once the base list UI exists
-- [ ] Per-app manual exclude list — cheap follow-up to the nspasteboard convention
+### Add After Validation (v1.x)
 
-### Future Consideration (v2+, explicitly deferred by user for v1.9)
+- [ ] Menübar-Overflow: always-hidden second section, hover/scroll reveal, auto-rehide timer — once the MVP chevron mechanism is proven stable across macOS versions
+- [ ] Meeting-HUD: true per-app in-call mute reflection — only if a reliable technique is found
+- [ ] Quick Notes: daily-note mode, tag autocomplete
+- [ ] Coding-Progress: multi-session switcher, live status streaming
+- [ ] Quick Actions: user-added custom actions
 
-- [ ] Search/filter across history — data model already supports it (full text retained); build the UI later
-- [ ] Pin/favorite items to top — data model already supports it (stable item IDs); build the sort/UI later
-- [ ] Categorized/typed history or multiple pinboards — only worth it if the item cap itself grows well past 20-30
-- [ ] Cross-device sync — deliberately not recommended even for v2 given the sensitivity of clipboard data and Islet's local-only positioning
+### Future Consideration (v2+)
 
-## UX Conventions: "Delete All History"
-
-Reviewed pattern across CopyClip, Alfred's "Clear Clipboard History," and general macOS HIG guidance on destructive actions:
-
-- **A single native confirmation alert (`NSAlert`), not a custom multi-step flow.** Destructive + irreversible data loss = confirm once, plainly: "Delete all clipboard history? This cannot be undone." with Cancel / Delete (destructive-styled) buttons.
-- **No "don't ask again" checkbox.** This is an infrequent, deliberate action — suppressing the confirmation isn't something these apps offer, and it isn't worth the extra state to track.
-- **The action itself stays a single menu item** ("Delete All History" in CopyClip's own dropdown, sitting below the item list) — no separate "history management" sub-window needed for v1.9's scope.
-
-## Menu-Bar Dropdown UI: NSMenu vs. Custom Popover/Panel
-
-This directly determines how the new history rows get added to Islet's existing status-item menu.
-
-**What the reviewed apps actually do:**
-- **CopyClip, Clipy, Flycut:** plain `NSMenu` with standard `NSMenuItem`s. The ⌘0-⌘9 key equivalents visible in the user's CopyClip screenshot are literally `NSMenuItem.keyEquivalent` — this is a strong signal CopyClip itself never left NSMenu.
-- **Maccy 1.x:** also plain `NSMenu` — and hit real friction at scale: crashes on repeated "Select," couldn't resize, didn't render over password fields, full-screen apps, or Spotlight. Maccy 2.0 (2024) did a full rewrite to SwiftUI + `NSPanel` specifically to fix these.
-- **Paste:** doesn't use a menu at all — it's a full custom floating window/launcher, because its feature set (multi-column pinboards, drag-and-drop, rich image grids, sync) genuinely needs arbitrary SwiftUI layout that NSMenu can't provide.
-
-**Tradeoff:**
-
-| | NSMenu (extend existing) | Custom NSPanel/popover |
-|---|---|---|
-| Effort | Low — reuses the status item's existing menu (Settings…/Quit already live there) | Medium-high — new window management, click-outside-dismiss, focus-safety, full-screen/Spotlight edge cases all need reimplementing |
-| System feel | Free — looks/behaves like every other menu-bar dropdown | Must be manually tuned to avoid feeling like "a floating app" |
-| Scrolling for long lists | Automatic scroll arrows once content exceeds screen height — a non-issue at a 20-30 item cap | Must build your own scroll view |
-| Known failure mode | AppKit `NSMenu` quirks emerge at *large* scale (Maccy's issues appeared with heavy interactive manipulation and eventually 30k+ item histories) — irrelevant at 20-30 items | None specific, but is strictly more code to own |
-| Row customization | Achievable via `NSHostingView`-wrapped SwiftUI content per `NSMenuItem` — sufficient for a preview + thumbnail row | Full arbitrary SwiftUI, needed only if search boxes, multi-column layouts, or drag-and-drop are required |
-
-**Recommendation:** Extend the existing status-item `NSMenu` with custom `NSMenuItem` rows (an `NSHostingView` wrapping a small SwiftUI view per row for text truncation + image thumbnail), rather than introducing a new `NSPanel`/popover. This matches the user's explicit "additive to the existing menu-bar status item, not a new Island view" decision, matches CopyClip's own approach (the app being replaced), and avoids the class of problems (Maccy 2.0's rewrite motivation) that only bite at scales far beyond this app's 20-30 item cap. Revisit only if v2 adds an inline search text field inside the dropdown — that's the one interaction NSMenu handles poorly and is the actual trigger that pushed Maccy to NSPanel.
+- [ ] Google Meet browser-tab call detection — needs a browser extension, out of native-app scope entirely
+- [ ] Menübar-Overflow: menu-bar tint/shape/border customization — full Ice feature parity, not core to Islet's identity
+- [ ] Timer: Focus Mode auto-enable — blocked on the same missing public API as DND toggle; revisit if Apple ever ships one
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|----------------------|----------|
-| Pasteboard-monitoring seam | HIGH | MEDIUM | P1 |
-| Sensitive-content exclusion | HIGH | LOW | P1 |
-| Capped history store (text+image, persistent) | HIGH | MEDIUM | P1 |
-| Click-to-restore | HIGH | LOW | P1 |
-| Text truncation / image thumbnail preview | HIGH | LOW | P1 |
-| ⌘0-⌘9 key equivalents | MEDIUM | LOW | P1 |
-| Delete All History (with confirm) | HIGH | LOW | P1 |
-| Per-item delete | MEDIUM | LOW | P2 |
-| Per-app manual exclude list | LOW-MEDIUM | LOW-MEDIUM | P2 |
-| Search/filter | HIGH (per competitor emphasis) | MEDIUM | P3 (explicitly deferred) |
-| Pin/favorite | MEDIUM | LOW-MEDIUM | P3 (explicitly deferred) |
-| Cross-device sync | LOW (not requested, conflicts with app positioning) | HIGH | Not recommended |
+|---------|------------|---------------------|----------|
+| Caps Lock indicator | MEDIUM | LOW | P1 |
+| Update-Activity restyle | LOW (cosmetic) | LOW | P1 |
+| Timer/Pomodoro | HIGH | LOW-MEDIUM | P1 |
+| Quick Notes + Obsidian export | HIGH | MEDIUM | P1 |
+| Quick Actions bar | HIGH | MEDIUM | P1 |
+| Download-Progress | MEDIUM | MEDIUM | P2 |
+| Meeting-HUD | HIGH | HIGH | P2 |
+| Coding-Progress | MEDIUM-HIGH (niche but core to this user's own dev workflow) | MEDIUM-HIGH | P2 |
+| Menübar-Overflow | MEDIUM | HIGH | P3 — recommend isolating as its own phase |
+
+**Priority key:**
+- P1: Cheapest, most-certain wins — build first, establishes confidence and shared infra (FileWatcher, MicMuteController) other features need
+- P2: Real value, real technical risk — schedule after P1 infra exists, budget time for detection-signal tuning
+- P3: Highest novelty/risk relative to value — treat as its own dedicated phase with a pre-implementation research spike, not bundled casually with the rest
 
 ## Competitor Feature Analysis
 
-| Feature | CopyClip | Maccy | Paste | Islet v1.9 approach |
-|---------|----------|-------|-------|----------------------|
-| UI shell | Plain NSMenu | NSMenu (1.x) → NSPanel/SwiftUI (2.x) | Custom floating window | Extend existing NSMenu (see above) |
-| History cap | 20 shown / 80-9999 stored depending on tier | Configurable, effectively unbounded (with known perf issues past 30k) | Unlimited (iCloud-synced) | Fixed ~20-30, FIFO eviction |
-| Quick-select | ⌘1-9, ⌘0 | Keyboard-driven search+select | Keyboard shortcuts + pinboard switching | ⌘0-⌘9 on first 10 rows |
-| Search | Yes (CopyClip 2) | Yes, core feature | Yes | Deferred (v2 candidate) |
-| Pin/favorite | Yes (⇧⌘P) | No | Yes (pinboards) | Deferred (v2 candidate) |
-| Sync | No | No (explicitly, by design) | Yes (iCloud) | Not planned — inconsistent with local-only positioning |
-| Sensitive-content handling | Manual per-app exclude list | Respects nspasteboard convention | Unclear from sources | nspasteboard convention (table stakes); manual exclude list is a v2 flag |
-| Storage | Unknown (closed source) | SQLite/SwiftData (2.x) | Unknown, iCloud-backed | Simple JSON/plist + image files, no DB needed at this cap |
+| Feature | Droppy (explicit reference) | Ice (explicit reference) | Our Approach |
+|---------|------------------------------|---------------------------|--------------|
+| Caps Lock indicator | Confirmed shipped: "visual confirmation in your notch when Caps Lock is active" | N/A | Match Droppy's transient-flash pattern, reuse existing HUD/wings chrome |
+| Update-Activity visual style | Built-in update notifications; general aesthetic is icon + label + pill-shaped metadata (per milestone brief's own description) | N/A | Reskin existing Sparkle HUD to icon + "Update" + version pill |
+| Coding-Progress | Confirmed shipped: "an AI coding companion that surfaces activity from Claude Code, Cursor, and Codex directly in the notch" | N/A | Scope to Claude Code only at v1.10 (not Cursor/Codex); hook-based, file-watched |
+| HUD philosophy | "Files, clipboard history, notifications, and HUDs" consolidated into one spot; hand-tuned spring-based motion consistency across all HUD types | N/A | Islet already has this consistency via `IslandResolver` + shared HUD/wings pattern — new features should slot into it, not invent new motion languages |
+| Menu-bar overflow hide/show | N/A | Confirmed: chevron-separated visible/hidden/always-hidden sections, Cmd-drag to move icons, click/hover/scroll to reveal, auto-rehide | MVP subset only: one chevron, click-to-toggle; defer always-hidden section and non-click reveal triggers |
 
 ## Sources
 
-- [CopyClip 2 - Clipboard Manager - App Store](https://apps.apple.com/us/app/copyclip-2-clipboard-manager/id1020812363?mt=12) — item limits, ⌘1-9/⌘0 shortcuts, pin (⇧⌘P), per-app exclude, search
-- [An Excellent Free Clipboard Manager for Mac is CopyClip - OS X Daily](https://osxdaily.com/2023/08/28/free-clipboard-manager-for-mac-copyclip/) — free-tier history size (80 stored / 20 shown)
-- [Maccy (open source) — GitHub](https://github.com/p0deje/Maccy) — architecture, MIT license, privacy-first/no-cloud positioning
-- [Maccy 2.0 rewrite coverage — AlternativeTo](https://alternativeto.net/news/2024/9/macos-clipboard-manager-maccy-has-released-a-major-2-0-update-with-a-complete-rewrite) — NSMenu → SwiftUI/NSPanel rewrite, Core Data → SwiftData
-- [Maccy GitHub Issue #1097 — large history UI performance](https://github.com/p0deje/Maccy/issues/1097) — confirms perf bottleneck is UI rendering, not storage; only manifests at 30k+ items
-- [Paste app official blog — best clipboard manager 2026](https://pasteapp.io/blog/best-clipboard-manager-for-mac) / [Paste 5.0 shared pinboards, sync — AlternativeTo](https://alternativeto.net/news/2025/5/clipboard-manager-paste-5-0-adds-shared-pinboards-rebuilt-sync-engine-and-performance-gains) — pinboards, sync engine, shared pinboards
-- [NSPasteboard.org](https://nspasteboard.org/) and [NSPasteboard/NSPasteboard.org GitHub index](https://github.com/NSPasteboard/NSPasteboard.org/blob/main/index.md) — `org.nspasteboard.ConcealedType`/`TransientType`/`AutoGeneratedType` convention, authoritative source for the sensitive-content exclusion pattern
-- [Flycut (Clipboard manager) — softwar.io](https://flycut-clipboard-manager.softwar.io/) — plain-text/developer-focused scope, explicit non-support for images/tables in its base design
-- [Fleetings Pixels — how to build a Mac menu bar app with NSPopover](https://fleetingpixels.com/articles/2020/how-to-create-a-mac-menu-bar-app-with-nspopover/) and [Multi Blog — pushing the limits of NSStatusItem](https://multi.app/blog/pushing-the-limits-nsstatusitem) — NSMenu vs. NSPopover tradeoffs for menu-bar apps
-- Project context: `.planning/PROJECT.md` (Milestone In Progress: v1.9 Clipboard History) — confirmed scope, existing status-item menu, `DragApproachDetector` polling precedent
+- [Ice/README.md at main · jordanbaird/Ice](https://github.com/jordanbaird/Ice/blob/main/README.md) — HIGH confidence, official repo README
+- [GitHub - jordanbaird/Ice: Powerful menu bar manager for macOS](https://github.com/jordanbaird/Ice) — HIGH confidence, official repo
+- [Ice is a Strong Contender to Replace Bartender App - Podfeet Podcasts](https://www.podfeet.com/blog/2024/06/ice-bartender-replacement/) — MEDIUM confidence, independent writeup corroborating chevron/Cmd-drag UX
+- [How to control which section apps are assigned to? · Issue #42 · jordanbaird/Ice](https://github.com/jordanbaird/Ice/issues/42) — MEDIUM confidence, community discussion of section mechanics
+- [Droppy — Your all-in-one Mac productivity companion](https://getdroppy.app/) — MEDIUM confidence, vendor marketing copy, but explicitly confirms Coding-Progress and Caps Lock as real shipped features (grounds the milestone's reference-app claims)
+- [Hooks reference - Claude Code Docs](https://code.claude.com/docs/en/hooks) — HIGH confidence, official Anthropic documentation (fetched directly, current)
+- [Todo Lists - Claude Code Docs](https://code.claude.com/docs/en/agent-sdk/todo-tracking) — HIGH confidence, official docs, confirms `TodoWrite` schema (`content`/`status`/`activeForm`)
+- [Detect when (internal or external) microphone is being used - Apple Developer Forums](https://developer.apple.com/forums/thread/741026) — MEDIUM confidence, official Apple forum discussion of `kAudioDevicePropertyDeviceIsRunningSomewhere`
+- [Silently mute the mic input via AppleScript – The Robservatory](https://robservatory.com/silently-mute-the-mic-input-via-applescript/) — MEDIUM confidence, corroborates CoreAudio mute approach
+- [do-not-disturb-cli - GitHub](https://github.com/sindresorhus/do-not-disturb-cli) — MEDIUM confidence, corroborates the lack of a clean public API for DND/Focus toggling
+- [MeetingBar - GitHub](https://github.com/leits/MeetingBar) — MEDIUM confidence, corroborates process/calendar-based call detection as the ecosystem norm, not a unified call-state API
+- [Watching for file changes on macOS – alexwlchan](https://alexwlchan.net/2026/watch-files-on-macos/) — MEDIUM confidence, corroborates `DispatchSource` as the modern idiomatic approach over raw FSEvents
+- [DispatchSource: Detecting changes in files and folders in Swift](https://swiftrocks.com/dispatchsource-detecting-changes-in-files-and-folders-in-swift) — MEDIUM confidence, implementation pattern reference
 
 ---
-*Feature research for: macOS menu-bar clipboard history (Islet v1.9)*
-*Researched: 2026-07-22*
+*Feature research for: macOS notch-overlay live-activities app, milestone v1.10 "Live Activities Suite"*
+*Researched: 2026-07-23*
