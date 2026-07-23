@@ -16,6 +16,9 @@ final class CapsLockMonitor {
     // (`Any?`, the type NSEvent.addGlobalMonitorForEvents itself returns), NOT
     // NSObjectProtocol?.
     private nonisolated(unsafe) var monitorToken: Any?
+    // Same nonisolated(unsafe) treatment as monitorToken, for the same reason (stop() must
+    // reach it from a nonisolated deinit).
+    private nonisolated(unsafe) var healthCheckTimer: Timer?
     private let onChange: (Bool) -> Void
 
     init(onChange: @escaping (Bool) -> Void) { self.onChange = onChange }
@@ -31,23 +34,44 @@ final class CapsLockMonitor {
     // re-request API; the user must grant it themselves in System Settings, mirrored by
     // OSDInterceptor's own discipline). Untrusted → silent no-op, not a crash — same
     // graceful-degrade shape as OSD suppression.
+    //
+    // Pitfall 3 (RESEARCH.md), resolved empirically in Plan 60-05's on-device checkpoint: a
+    // single AXIsProcessTrusted() check at toggle-time can still read false even when System
+    // Settings already shows the grant checked — the same mid-session-grant race
+    // OSDInterceptor.reconcileMode() exists to cover. Mirrors that precedent: if untrusted
+    // right now, arm a 5s health-check retry instead of giving up until the next relaunch.
     func start() {
-        guard monitorToken == nil, Self.isAccessibilityTrusted else { return }
+        guard monitorToken == nil else { return }
+        guard Self.isAccessibilityTrusted else {
+            armHealthCheck()
+            return
+        }
+        install()
+    }
+
+    private func install() {
         monitorToken = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.onChange(event.modifierFlags.contains(.capsLock))
         }
+        healthCheckTimer?.invalidate()
+        healthCheckTimer = nil
     }
 
-    // Pitfall 3 (RESEARCH.md, unresolved/flagged): it's unverified whether re-checking
-    // Self.isAccessibilityTrusted inside start() is enough to live-reconcile a mid-session
-    // Accessibility grant (like OSDInterceptor's proven reconcileMode() health-check), or
-    // whether an NSEvent global monitor genuinely needs a relaunch after the grant for event
-    // delivery to start. Not assumed either way here — flagged for Plan 60-05's on-device
-    // checkpoint to resolve empirically.
+    private func armHealthCheck() {
+        guard healthCheckTimer == nil else { return }
+        healthCheckTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.monitorToken == nil, Self.isAccessibilityTrusted else { return }
+                self.install()
+            }
+        }
+    }
 
     // nonisolated so the controller's nonisolated deinit can call it — mirrors
     // PowerSourceMonitor.stop()'s exact nonisolated-teardown shape.
     nonisolated func stop() {
+        healthCheckTimer?.invalidate()
+        healthCheckTimer = nil
         if let token = monitorToken {
             NSEvent.removeMonitor(token)
             monitorToken = nil
