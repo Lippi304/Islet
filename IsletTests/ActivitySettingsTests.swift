@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import Islet
 
@@ -113,5 +114,41 @@ final class ActivitySettingsTests: XCTestCase {
         XCTAssertEqual(ActivitySettings.switcherSlotLeftInnerKey, "switcher.slot.leftInner")
         XCTAssertEqual(ActivitySettings.switcherSlotRightInnerKey, "switcher.slot.rightInner")
         XCTAssertEqual(ActivitySettings.switcherSlotRightOuterKey, "switcher.slot.rightOuter")
+    }
+
+    // MARK: Phase 59 / SETTINGS-04/05
+
+    func testNewV110KeyNames() {
+        XCTAssertEqual(ActivitySettings.capsLockKey, "activity.capsLock")
+        XCTAssertEqual(ActivitySettings.downloadProgressKey, "activity.downloadProgress")
+        XCTAssertEqual(ActivitySettings.menuBarOverflowKey, "activity.menuBarOverflow")
+        XCTAssertEqual(ActivitySettings.timerKey, "activity.timer")
+        XCTAssertEqual(ActivitySettings.meetingHUDKey, "activity.meetingHUD")
+        XCTAssertEqual(ActivitySettings.quickNotesKey, "activity.quickNotes")
+        XCTAssertEqual(ActivitySettings.quickActionsKey, "activity.quickActions")
+        XCTAssertEqual(ActivitySettings.codingProgressKey, "activity.codingProgress")
+    }
+
+    func testExistingActivityKeyNamesUnchanged() {
+        XCTAssertEqual(ActivitySettings.chargingKey, "activity.charging")
+        XCTAssertEqual(ActivitySettings.nowPlayingKey, "activity.nowPlaying")
+        XCTAssertEqual(ActivitySettings.songChangeToastKey, "activity.songChangeToast")
+        XCTAssertEqual(ActivitySettings.deviceKey, "activity.device")
+        XCTAssertEqual(ActivitySettings.calendarCountdownKey, "activity.calendarCountdown")
+        XCTAssertEqual(ActivitySettings.focusKey, "activity.focus")
+        XCTAssertEqual(ActivitySettings.osdSuppressionKey, "activity.osdSuppression")
+    }
+
+    func testChargingAppStorageReadsSeededValueNotCompiledDefault() {
+        let defaults = UserDefaults(suiteName: "ActivitySettingsTests-\(UUID().uuidString)")!
+        // Simulate a pre-upgrade user who turned Charging off, BEFORE the wrapper is declared.
+        defaults.set(false, forKey: ActivitySettings.chargingKey)
+
+        // Mirrors the production `@AppStorage(ActivitySettings.chargingKey) private var
+        // chargingEnabled = true` declaration in SettingsView.swift — same key, same compiled
+        // `true` default literal, but backed by the isolated pre-seeded suite instead of .standard.
+        @AppStorage(ActivitySettings.chargingKey, store: defaults) var chargingEnabled = true
+
+        XCTAssertEqual(chargingEnabled, false)
     }
 }

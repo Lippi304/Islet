@@ -27,6 +27,19 @@ enum ActivitySettings {
     // visibility (D-06) — see NotchWindowController's unconditional `startOSDInterceptor()`
     // call, which does NOT read this key.
     static let osdSuppressionKey = "activity.osdSuppression"
+    // Phase 59 / SETTINGS-05: 8 new v1.10 activity keys, all consumed as `false`-default
+    // @AppStorage properties declared in SettingsView.swift (Plan 59-02) — the activities
+    // themselves ship in Phases 60-67. No migration function needed here (unlike
+    // migrateLegacyAccentIfNeeded below): these are brand-new keys, so an absent key simply
+    // falls through to each @AppStorage declaration's own compiled-in `false` default.
+    static let capsLockKey = "activity.capsLock"
+    static let downloadProgressKey = "activity.downloadProgress"
+    static let menuBarOverflowKey = "activity.menuBarOverflow"
+    static let timerKey = "activity.timer"
+    static let meetingHUDKey = "activity.meetingHUD"
+    static let quickNotesKey = "activity.quickNotes"
+    static let quickActionsKey = "activity.quickActions"
+    static let codingProgressKey = "activity.codingProgress"
     // Phase 40 / HUD-06 (D-11) — gates Sparkle's automaticallyChecksForUpdates only; default
     // ON (D-12, wired in SettingsView.swift) since it gates no system permission, just a
     // background network check.
