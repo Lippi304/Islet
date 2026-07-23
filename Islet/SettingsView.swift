@@ -59,6 +59,7 @@ struct SettingsView: View {
     // above (5 of 7 default true), a fresh install and an upgrading user both read OFF
     // identically until each activity's own phase ships and a user opts in.
     @AppStorage(ActivitySettings.capsLockKey) private var capsLockEnabled = false
+    @AppStorage(ActivitySettings.updateHudKey) private var updateHudEnabled = false
     @AppStorage(ActivitySettings.downloadProgressKey) private var downloadProgressEnabled = false
     @AppStorage(ActivitySettings.menuBarOverflowKey) private var menuBarOverflowEnabled = false
     @AppStorage(ActivitySettings.timerKey) private var timerEnabled = false
@@ -203,6 +204,10 @@ struct SettingsView: View {
                               description: "Hides overflow menu-bar icons behind a chevron, Ice-style.",
                               icon: "menubar.rectangle", iconColor: .secondary,
                               isOn: $menuBarOverflowEnabled, isNew: true, onOptionsTap: nil),
+            ActivityCardData(id: "update", title: "Update Available",
+                              description: "Shows a brief HUD in the notch when a new Islet version is available.",
+                              icon: "arrow.triangle.2.circlepath", iconColor: .secondary,
+                              isOn: $updateHudEnabled, isNew: true, onOptionsTap: nil),
         ]
     }
 
