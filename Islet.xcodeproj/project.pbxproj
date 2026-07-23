@@ -61,6 +61,7 @@
 		62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */; };
 		6760B75E8CA5DA979BB43486 /* KeychainLicenseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30839BA1A62ECDA5057B779C /* KeychainLicenseStore.swift */; };
 		6792F78DC530A9635F3D2FED /* Sparkle in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 121EF57B076562C03445F3D4 /* Sparkle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		67BA29BACB89BF0BDF942299 /* DownloadMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BCB23B35F0E96FD7A4617B /* DownloadMonitor.swift */; };
 		6834F012466C396EF5D7439B /* BrightnessReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5304DD9EE0040C6059114A1 /* BrightnessReader.swift */; };
 		68CE6D5F610C8C037058F697 /* WeatherCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B811CCD53A0E77D86C48E5 /* WeatherCategory.swift */; };
 		6B351B58889CA7C8B7C93511 /* DragApproachGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */; };
@@ -169,6 +170,7 @@
 
 /* Begin PBXFileReference section */
 		031F804F644651F990FAFE69 /* ClipboardFileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFileStoreTests.swift; sourceTree = "<group>"; };
+		06BCB23B35F0E96FD7A4617B /* DownloadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadMonitor.swift; sourceTree = "<group>"; };
 		09022AEB4178AE45BE2F65BE /* NowPlayingPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingPresentation.swift; sourceTree = "<group>"; };
 		0A6FA5F67CABA606F19ED731 /* DeviceCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCoordinatorTests.swift; sourceTree = "<group>"; };
 		0B227C92D09FB6EAB081E62E /* LicenseStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseStateTests.swift; sourceTree = "<group>"; };
@@ -507,6 +509,7 @@
 				FBCD3448A6E1D96014C31896 /* DisplayResolver.swift */,
 				2636C7A97DDE803D917532AD /* DownloadActivity.swift */,
 				EA7BE7710326D61BFCAE0858 /* DownloadCoordinator.swift */,
+				06BCB23B35F0E96FD7A4617B /* DownloadMonitor.swift */,
 				63FACDF43375E1DE88646B05 /* DragDropSupport.swift */,
 				C75C7435C3C840FC929C873C /* DropInterceptTap.swift */,
 				BB884D12561F8F8110F1DB63 /* FocusActivity.swift */,
@@ -718,6 +721,7 @@
 				C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */,
 				8E1D60A2E7300A0620A1E5FD /* DownloadActivity.swift in Sources */,
 				9535B1BBF5C5ABA313893DA4 /* DownloadCoordinator.swift in Sources */,
+				67BA29BACB89BF0BDF942299 /* DownloadMonitor.swift in Sources */,
 				AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */,
 				73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */,
 				B2ADB08E18FABDBA8931EA42 /* FocusActivity.swift in Sources */,
