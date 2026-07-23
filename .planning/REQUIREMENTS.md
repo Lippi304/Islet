@@ -212,6 +212,33 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
+| SETTINGS-04 | Phase 59 | Pending |
+| SETTINGS-05 | Phase 59 | Pending |
+| CAPS-01 | Phase 60 | Pending |
+| UPDATE-01 | Phase 60 | Pending |
+| DL-01 | Phase 61 | Pending |
+| DL-02 | Phase 61 | Pending |
+| TIMER-01 | Phase 62 | Pending |
+| TIMER-02 | Phase 62 | Pending |
+| TIMER-03 | Phase 62 | Pending |
+| TIMER-04 | Phase 62 | Pending |
+| MEET-01 | Phase 63 | Pending |
+| MEET-02 | Phase 63 | Pending |
+| MEET-03 | Phase 63 | Pending |
+| NOTES-01 | Phase 64 | Pending |
+| NOTES-02 | Phase 64 | Pending |
+| NOTES-03 | Phase 64 | Pending |
+| QACTION-01 | Phase 65 | Pending |
+| QACTION-02 | Phase 65 | Pending |
+| QACTION-03 | Phase 65 | Pending |
+| MENUBAR-01 | Phase 66 | Pending |
+| MENUBAR-02 | Phase 66 | Pending |
+| MENUBAR-03 | Phase 66 | Pending |
+| MENUBAR-04 | Phase 66 | Pending |
+| CODE-01 | Phase 67 | Pending |
+| CODE-02 | Phase 67 | Pending |
+| CODE-03 | Phase 67 | Pending |
+| CODE-04 | Phase 67 | Pending |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
@@ -223,6 +250,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Mapped to phases: 15 (100%)
 - Unmapped: 0
 - Phase 47 (Audio Output — Pure Seam + Monitor) and Phase 49 (Favorite/Like — Spike) carry no formal REQ-ID themselves — they're infrastructure/spike phases preceding Phase 48/50's user-facing requirements, mirroring this project's own Phase 15/16/19 and Phase 22-01/24-01/38-01/39-01 precedent.
+
+**Coverage (v1.10):**
+- v1.10 requirements: 27 total
+- Mapped to phases: 27 (100%)
+- Unmapped: 0
 
 v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is archived in `.planning/milestones/v1.6-REQUIREMENTS.md`.
 
@@ -238,3 +270,5 @@ v1.9's traceability table (CLIP-01..05, PRIV-01/02 — 7/7 shipped) is archived 
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*
 *v1.5 requirements defined 2026-07-13 — Roadmap created: 6 phases (29-34), 100% coverage (11/11). Phase order Flare → Home → Shelf Consolidation → Tray Widening → Weather → Quick Action Picker, per research recommendation and this project's pure-seams-first/risk-isolated-last convention (Phase 22→24 drag-in precedent). Corrected the "10 total" count from initial requirements definition — the actual v1.5 requirement list (HOME-01..03, TRAY-01..05, WEATHER-01..02, SHAPE-01) is 11 IDs.*
 *v1.8 (Settings Redesign & Island Navigation) shipped and archived to `.planning/milestones/v1.8-REQUIREMENTS.md`/`.planning/milestones/v1.8-ROADMAP.md` — 3 phases (51-53), 6/6 requirements shipped, including a mid-UAT design fix (D-02 superseded: static play glyph replaces the bouncing equalizer bars in the idle-hover preview, since animated bars implied live playback when nothing was actually playing).*
+
+*v1.10 (Live Activities Suite) roadmap created 2026-07-23: 9 phases (59-67), 100% coverage (27/27). Phase order: Settings-Redesign (59, foundation) → Caps Lock HUD + Update-Activity Restyle (60) → Download-Progress (61) → Timer/Pomodoro (62, generalizes `TransientQueue.preempt()`/`ActiveTransient.isPersistent` beyond the original Focus-Mode-only case) → Meeting-HUD (63, own detection spike, depends on 62's generalized persistent-transient path) → Quick Notes + Obsidian Export (64, resolves the 4-slot top-edge-switcher conflict in its own planning) → Quick Actions Bar (65, reuses Meeting-HUD's `MicMuteController`) → Menübar-Overflow (66, own feasibility spike, highest-novelty/zero-reuse feature) → Coding-Progress (67, reuses Phase 61's FileWatcher pattern) — per `.planning/research/SUMMARY.md`'s explicit foundation-first/ascending-risk build order. Phase numbering continues from Phase 58 (v1.9's last phase).*

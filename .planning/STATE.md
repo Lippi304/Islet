@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: planning
-last_updated: "2026-07-23T12:23:16.825Z"
+last_updated: "2026-07-23T12:45:00.000Z"
 last_activity: 2026-07-23
 progress:
-  total_phases: 0
+  total_phases: 9
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Milestone complete
+**Current focus:** v1.10 Live Activities Suite — roadmap created, ready for phase discussion
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 59 (Settings-Redesign) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-23 — Milestone v1.10 started
+Status: Roadmap created (Phases 59-67, 27/27 requirements mapped); awaiting `/gsd-discuss-phase 59`
+Last activity: 2026-07-23 — v1.10 ROADMAP.md/REQUIREMENTS.md/STATE.md created
 
 ### Phase 48 status note
 
@@ -57,6 +57,8 @@ Progress (v1.7): [███████░░░] 75% (6/8 phases — 43/44/45/4
 Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3/3 phases; see `.planning/milestones/v1.8-ROADMAP.md`)
 
 Progress (v1.9): [██████████] 100% — SHIPPED 2026-07-23 (4/4 phases — Phases 55/56/57/58 complete)
+
+Progress (v1.10): [░░░░░░░░░░] 0% (0/9 phases — roadmap created 2026-07-23; Phases 59-67, 27/27 requirements mapped; Phase 59 Settings-Redesign first)
 
 ## Performance Metrics
 
@@ -255,6 +257,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - v1.8 (Settings Redesign & Island Navigation) roadmap created 2026-07-21: Phase 51 (Settings Reorganization & Scroll Fix, SETTINGS-02/03), Phase 52 (Top-Edge Switcher Layout & Placement Config, SWITCH-03/04), Phase 53 (Hover-to-Resume Idle Preview, RESUME-01/02) — 100% coverage (6/6). Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed) to avoid any collision with v1.4/v1.5/v1.7's still-open phases. Settings (51) and Switcher (52) restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher) independently of each other; Resume (53) is sequenced last since it carries this milestone's one open technical question (whether resuming a non-active track works via the existing NowPlayingMonitor/MediaRemote transport, per PROJECT.md's v1.8 Key Context).
 - Phase 54 added 2026-07-21: Permissions Overview & Onboarding Replay (ARCH-P2) — promoted from the v2/backlog "carried from v1.4" requirements after v1.1's public release surfaced the need (user expected to be able to review granted permissions and re-request denied ones in Settings). Not yet part of any active milestone roadmap; phase numbering continues sequentially from Phase 53.
 - v1.9 (Clipboard History) roadmap created 2026-07-22: Phase 55 (Clipboard Data Model + Store, no formal REQ-ID — infrastructure phase mirroring Phase 19/47/49 precedent), Phase 56 (Encrypted Persistence, CLIP-04/PRIV-02), Phase 57 (Pasteboard Monitor — Spike, PRIV-01), Phase 58 (Menu Wiring & UI Assembly, CLIP-01/02/03/05) — 100% coverage (7/7). Phase numbering continues from Phase 54 (v1.8's reserved phase) to avoid any collision with v1.4/v1.5/v1.7's still-open phases. Phase order follows research's own explicit "Build Order" recommendation and this project's established pure-seam-first/system-glue-second/assembly-last convention (Phase 19→20→21 Shelf, Phase 47→48 Audio Output): pure data model first (zero risk), then encrypted persistence (established from day one per Pitfalls 4/5, not retrofitted), then the one on-device-only pasteboard monitor spike (isolated so it can't destabilize the proven pure work), then menu wiring last (pure assembly, itself only meaningfully verifiable on-device).
+- v1.10 (Live Activities Suite) roadmap created 2026-07-23: Phase 59 (Settings-Redesign, SETTINGS-04/05), Phase 60 (Caps Lock HUD + Update-Activity Restyle, CAPS-01/UPDATE-01), Phase 61 (Download-Progress, DL-01/02), Phase 62 (Timer/Pomodoro, TIMER-01..04), Phase 63 (Meeting-HUD, MEET-01..03), Phase 64 (Quick Notes + Obsidian Export, NOTES-01..03), Phase 65 (Quick Actions Bar, QACTION-01..03), Phase 66 (Menübar-Overflow, MENUBAR-01..04), Phase 67 (Coding-Progress, CODE-01..04) — 100% coverage (27/27). Phase numbering continues from Phase 58 (v1.9's last phase). Order follows research's explicit foundation-first/ascending-risk build order: Settings-grid foundation first (avoids retrofitting Settings onto the first feature, the exact mistake v1.8 already fixed once), then cheapest-pairing (Caps Lock + Update restyle) to prove the new card pattern, then Download-Progress (first FSEvents watcher, proven once before Coding-Progress reuses it), then Timer/Pomodoro (generalizes `TransientQueue.preempt()`/`ActiveTransient.isPersistent` beyond the Focus-Mode-only case on the simpler no-detection-risk case), then Meeting-HUD (reuses that generalized path, gated behind its own call-detection spike), then Quick Notes (resolves the 4-slot top-edge-switcher conflict in its own planning), then Quick Actions bar (reuses Meeting-HUD's `MicMuteController`), then Menübar-Overflow (isolated last among the notch-facing work as the milestone's highest-novelty, zero-reuse feature, own feasibility spike against Ice's actual source), then Coding-Progress (reuses Phase 61's FileWatcher pattern, own hook-contract research step).
 
 ### Pending Todos
 
@@ -375,12 +378,13 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T08:09:23.237Z
-Stopped at: Completed 58-02-PLAN.md
+Last session: 2026-07-23T12:45:00.000Z
+Stopped at: v1.10 ROADMAP.md/REQUIREMENTS.md/STATE.md created (Phases 59-67, 27/27 requirements mapped)
 Resume file: None
 
 ## Operator Next Steps
 
+- **v1.10 (Live Activities Suite) roadmap created 2026-07-23.** 9 phases (59-67) defined in `.planning/ROADMAP.md`, 27/27 requirements mapped (100% coverage) in `.planning/REQUIREMENTS.md`. Not yet planned/executed — start with `/gsd-discuss-phase 59` (Settings-Redesign, the foundation phase) once the roadmap draft is approved.
 - **v1.9 (Clipboard History) SHIPPED 2026-07-23.** All 4 phases (55-58) archived to `.planning/milestones/v1.9-ROADMAP.md`/`.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped. v1.4, v1.5, and v1.7 all remain open in parallel — pick one back up, or start a fresh milestone with `/gsd-new-milestone`.
 - **Phase 54 decision-coverage gate overridden (2026-07-22).** `check.decision-coverage-plan` flagged D-01 through D-11 as not cited inside any plan's `must_haves.truths` block (only D-12/D-13 are). Manual review confirmed all 13 decisions ARE implemented and referenced in plan task bodies/acceptance criteria (grep-verified, and gsd-plan-checker's semantic review independently confirmed all 13 decisions correctly implemented) — user chose "Proceed anyway" since this is a must_haves-phrasing gap, not a missing feature. Re-surface at `/gsd:verify-work 54` if in doubt.
 - **Phase 54 gap-closure plan (54-04-PLAN.md) created 2026-07-22** to close 54-VERIFICATION.md's 2 FAILED truths (gaps_found, 8/11). Re-running `check.decision-coverage-plan` against the phase directory (now including 54-04) re-surfaced the same D-01..D-11 override above — 54-04 doesn't touch any of those original-feature decisions, it only fixes CR-01 (Bluetooth grant bypassing the Devices toggle), CR-02 (Location grant not reaching `startLocationOnce()`), CR-03 (`replayOnboarding()` missing `updateVisibility()`), and WR-01 (Focus grant callback discarded). Passed plan-checker verification in iteration 2 (0 blockers, 0 warnings) with an added on-device checkpoint covering all 4 fixes at runtime. Next: `/gsd:execute-phase 54 --gaps-only`.

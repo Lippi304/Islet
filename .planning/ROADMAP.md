@@ -13,6 +13,7 @@
 - 🚧 **v1.7 Interaction & Calendar Polish** — Phases 43-50 (planned, left open in parallel)
 - ✅ **v1.8 Settings Redesign & Island Navigation** — Phases 51-53 (shipped 2026-07-21)
 - ✅ **v1.9 Clipboard History** — Phases 55-58 (shipped 2026-07-23)
+- 🚧 **v1.10 Live Activities Suite** — Phases 59-67 (in progress, started 2026-07-23, left open in parallel with v1.4/v1.5/v1.7)
 
 ## Phases
 
@@ -151,6 +152,20 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 </details>
 
+### 🚧 v1.10 Live Activities Suite (Planned)
+
+**Milestone Goal:** Add a suite of new Live Activities/HUDs inspired by Droppy and Ice, plus a Droppy-style Settings grid overview to manage them all — most new activities default OFF rather than opinionated-on. Started 2026-07-23 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision).
+
+- [ ] **Phase 59: Settings-Redesign** - Droppy-style Live-Activity card grid replaces ad-hoc Activities settings; new-activity default-OFF convention locked in
+- [ ] **Phase 60: Caps Lock HUD + Update-Activity Restyle** - Cheapest new-activity pairing, proves the Settings-grid card pattern
+- [ ] **Phase 61: Download-Progress** - First FSEvents-based watcher; live download presence + completion signal
+- [ ] **Phase 62: Timer/Pomodoro** - Countdown/Pomodoro HUD; generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode
+- [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike
+- [ ] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
+- [ ] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController`
+- [ ] **Phase 66: Menübar-Overflow (Ice-Style MVP)** - Chevron-hide for other apps' menu-bar icons, own feasibility spike first
+- [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern
+
 ## Phase Details
 
 ### Phase 14: Basic outfit: weather + calendar + date display with weather-driven animated background
@@ -207,6 +222,8 @@ Plans:
 **v1.8:** 3/3 phases complete (100%) — roadmap created 2026-07-21. Phases 51-53, 6/6 v1.8 requirements mapped and shipped. Phase numbering continues from Phase 50 (v1.7's last reserved phase, not yet executed). Phase order: Settings Reorganization & Scroll Fix (51) → Top-Edge Switcher Layout & Placement Config (52) → Hover-to-Resume Idle Preview (53) — Settings and Switcher independently restructure already-shipped subsystems (Phase 27 sidebar, Phase 28/45 switcher tab system) with no dependency between them; Resume was sequenced last since it carried this milestone's one open technical question (whether resuming a non-active track is achievable via the existing NowPlayingMonitor/MediaRemote adapter transport, per PROJECT.md's v1.8 Key Context), verified early within its own phase (53-01 spike: approved). Phase 53 completed 2026-07-21 after 53-02's on-device UAT approval, including a mid-UAT D-02 design supersession (static play glyph replaces animated equalizer bars in the idle-hover preview). v1.8 formally archived via `/gsd:complete-milestone` 2026-07-21 — see `.planning/milestones/v1.8-ROADMAP.md`/`.planning/milestones/v1.8-REQUIREMENTS.md`.
 
 **v1.9:** 4/4 phases complete (100%) — see `.planning/milestones/v1.9-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-23; 7/7 requirements delivered.
+
+**v1.10:** 0/9 phases complete (0%) — roadmap created 2026-07-23. Phases 59-67, 27/27 v1.10 requirements mapped (SETTINGS-04/05, CAPS-01, UPDATE-01, TIMER-01..04, NOTES-01..03, QACTION-01..03, DL-01/02, MEET-01..03, CODE-01..04, MENUBAR-01..04). Phase order: foundation (Settings-Redesign) first, then ascending technical risk per research — Caps Lock+Update restyle → Download-Progress → Timer/Pomodoro → Meeting-HUD → Quick Notes → Quick Actions bar → Menübar-Overflow → Coding-Progress. Phase numbering continues from Phase 58 (v1.9's last phase).
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -956,3 +973,143 @@ Plans:
 ## v1.9 Clipboard History — SHIPPED 2026-07-23
 
 Phases 55-58 full detail (goals, success criteria, plans, on-device UAT history) archived to `.planning/milestones/v1.9-ROADMAP.md`. Requirements archived to `.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped (100%).
+## v1.10 Live Activities Suite — PLANNED
+
+### Phase 59: Settings-Redesign
+
+**Goal:** The Activities-related Settings sections become one Droppy-style grid of Live-Activity cards (existing + new), and every new Live Activity introduced this milestone is force-defaulted OFF without disturbing any already-shipped activity's current toggle state.
+**Depends on:** Nothing (first phase of this milestone)
+**Requirements**: SETTINGS-04, SETTINGS-05
+**Success Criteria** (what must be TRUE):
+
+  1. Opening Settings' Activities section shows one grid of cards — one per Live Activity (existing + new) — each showing a mini live-preview of that activity's pill, its title, a one-line description, and an on/off toggle, replacing today's ad-hoc per-activity settings rows.
+  2. Toggling a card's switch on/off immediately enables/disables that activity, exactly like today's existing toggles.
+  3. Every brand-new Live Activity introduced this milestone (Caps Lock, Timer/Pomodoro, Meeting-HUD, Quick Notes, Quick Actions bar, Menübar-Overflow, Coding-Progress, Download-Progress) appears in the grid defaulted OFF on first launch after the update.
+  4. An existing user upgrading from a pre-v1.10 build sees every already-shipped activity's current toggle state (mostly ON, Focus Mode OFF) preserved exactly as it was before the update — no silent flip, verified against a pre-seeded (upgrade-simulating) UserDefaults domain, not just a fresh install.
+  5. A reviewed resolver-priority table exists covering all v1.10 activities' place in `IslandResolver`/`TransientQueue`, so later phases slot in without silently reordering existing precedence.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 60: Caps Lock HUD + Update-Activity Restyle
+
+**Goal:** Users get a lightweight Caps Lock on/off HUD matching the existing transient-wings pattern, and the existing Sparkle update-available HUD is reskinned to the same Droppy look — the cheapest possible pairing, proving the new Settings-grid card pattern before harder features land.
+**Depends on:** Phase 59 (needs the Settings-grid card model both features register against)
+**Requirements**: CAPS-01, UPDATE-01
+**Success Criteria** (what must be TRUE):
+
+  1. Toggling Caps Lock on shows a brief on-state HUD in the collapsed island; toggling it off shows a brief off-state HUD; both auto-dismiss after ~1-2s with no click needed.
+  2. The Caps Lock HUD is event-driven (fires immediately on every real toggle via `NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged)`, no polling lag) and appears as its own card in the Phase 59 Settings grid, default OFF.
+  3. The existing update-available HUD now shows the Droppy-style layout (leading icon, "Update" label, trailing version pill) in place of its current look — the underlying Sparkle trigger and tap-to-install behavior are unchanged.
+  4. Both activities respect the Settings grid's on/off toggle from Phase 59.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 61: Download-Progress
+
+**Goal:** Dropping a file into ~/Downloads shows a live "downloading" indicator in the notch that clears to a brief "done" state on completion — the milestone's first genuinely new file-watching subsystem (FSEvents), proven once here before Coding-Progress reuses the same pattern.
+**Depends on:** Phase 59 (Settings-grid card registration)
+**Requirements**: DL-01, DL-02
+**Success Criteria** (what must be TRUE):
+
+  1. Starting a real browser download into ~/Downloads shows a live "downloading" indicator in the collapsed island within a couple seconds of the download starting.
+  2. When the browser's temp file is renamed to its final filename (download complete), the indicator shows a brief "done" state, then clears on its own — no exact-percentage guarantee across all browsers, presence + completion signal only.
+  3. Two downloads in quick succession are each detected as one logical download apiece — matched temp-file suffixes (`.crdownload`/`.download`/`.part`) and debounced create+rename correlation avoid a double-fire on a single file's own temp-file sequence.
+  4. The feature appears in the Settings grid, default OFF, and produces no indicator at all when disabled.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 62: Timer/Pomodoro
+
+**Goal:** Users can start a countdown or Pomodoro session from the notch with live pause/reset/add-time controls and a completion splash — and `TransientQueue`/`ActiveTransient` gain the generalized "persistent transient" concept this and Meeting-HUD both need, validated here first on the simpler, no-detection-risk case.
+**Depends on:** Phase 59 (Settings grid)
+**Requirements**: TIMER-01, TIMER-02, TIMER-03, TIMER-04
+**Success Criteria** (what must be TRUE):
+
+  1. User can start a countdown timer from the notch with a chosen duration, and the collapsed island shows a live mm:ss countdown while it runs.
+  2. Expanding the island while a timer is running offers pause, reset, and add-time controls, all of which take effect immediately.
+  3. When the timer reaches zero, the island shows a completion HUD splash and the system plays a notification/sound, even if the user isn't looking at the screen.
+  4. User can start a Pomodoro session instead of a plain countdown — it cycles work/break durations automatically and shows a running session counter, selectable as an alternative to the one-shot countdown.
+  5. A running timer survives another activity (e.g. Charging) briefly interrupting the display and resumes showing its live countdown afterward — proving `TransientQueue.preempt()`/`ActiveTransient.isPersistent` now generalizes beyond the original Focus-Mode-only case (currently hardcoded to a single `.focus` case).
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 63: Meeting-HUD
+
+**Goal:** While a native Zoom or Teams call is active with the microphone on, the notch shows a call timer with a working system-mute toggle — the milestone's first feature with genuine call-detection uncertainty (no public API), spiked on real hardware before the full HUD is built, reusing the now-generalized persistent-transient path from Phase 62.
+**Depends on:** Phase 62 (needs the generalized `TransientQueue.preempt()`/`ActiveTransient.isPersistent` path proven first, on the simpler no-detection-risk case)
+**Requirements**: MEET-01, MEET-02, MEET-03
+**Success Criteria** (what must be TRUE):
+
+  1. An on-device spike confirms (or narrows) a reliable heuristic for "a Zoom/Teams call is active" — process-running + mic-active — isolated behind one `MeetingMonitor` file, with a documented go/no-go recorded before the full HUD is built, not assumed.
+  2. Joining a real Zoom or Teams call with an active microphone shows a call-timer HUD (elapsed mm:ss) in the notch.
+  3. Tapping the HUD's mute control toggles the system-wide microphone mute (via a shared `MicMuteController`, not the in-app mute) and the HUD's own icon reflects the current mute state.
+  4. Opening a Google Meet call in a browser does not show the Meeting-HUD — documented as a known limitation, not silently missing.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 64: Quick Notes + Obsidian Export
+
+**Goal:** Users can capture a typed note from a menu-bar flyout (mirroring Clipboard History) that's appended, timestamped, to one fixed .md file in a user-chosen Obsidian vault folder — resolving the real 4-slot top-edge-switcher conflict as part of this phase's own planning, not silently assumed away.
+**Depends on:** Phase 59 (Settings-grid card registration for the notes feature)
+**Requirements**: NOTES-01, NOTES-02, NOTES-03
+**Success Criteria** (what must be TRUE):
+
+  1. User can open a "Quick Notes" flyout from the menu-bar status icon (same pattern as the existing Clipboard History flyout) and type and submit a note.
+  2. Submitting a note appends it, with a timestamp, to one fixed .md file inside a user-chosen Obsidian vault folder — the file is created if missing, and repeated appends never overwrite or corrupt prior content (atomic `FileHandle.seekToEndOfFile()` append, never read-modify-write-whole-file), even with Obsidian.app closed.
+  3. The same flyout shows a local, unencrypted list of recent notes, most-recent-first, mirroring Clipboard History's list pattern (no AES-GCM parity needed — notes are destined for a plaintext vault file anyway).
+  4. The design conflict between `SelectedView`'s existing 4-case top-edge-switcher slot model (Phase 52) and Quick Notes' own UI surface is explicitly resolved — a documented decision (extra flyout-only surface vs. growing the switcher's slot model) exists before this phase's implementation plans are written, not discovered mid-build.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 65: Quick Actions Bar
+
+**Goal:** A configurable row of quick actions (mic mute, display sleep, dark mode, screen lock, DND best-effort, caffeinate, empty Trash, launch app/URL) is enabled and reordered in Settings and fires instantly from the notch without further expansion.
+**Depends on:** Phase 63 (reuses the `MicMuteController` Meeting-HUD already built — do not build the CoreAudio mute helper twice)
+**Requirements**: QACTION-01, QACTION-02, QACTION-03
+**Success Criteria** (what must be TRUE):
+
+  1. In Settings, user can enable and reorder a Quick Actions bar from the fixed catalog: mic mute/unmute, display sleep now, dark/light mode toggle, screen lock, Do Not Disturb toggle, caffeinate/keep-awake toggle, empty Trash, launch app/open URL.
+  2. Tapping any enabled action in the notch performs it immediately — no further expansion beyond the action bar itself, and no unrelated activity interrupts it.
+  3. The mic-mute action reuses the same `MicMuteController` Meeting-HUD already established — toggling it from either surface reflects the same live system mute state.
+  4. The Do Not Disturb/Focus action visibly shows a failure state when it can't reliably act (documented best-effort, no stable public macOS API) rather than silently doing nothing.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 66: Menübar-Overflow (Ice-Style MVP)
+
+**Goal:** A chevron icon in the menu bar lets the user Cmd-drag other apps' menu-bar icons into a genuinely hidden section and reveal/hide them with a click — the milestone's highest-novelty, zero-reuse feature, preceded by its own feasibility spike reading Ice's actual source before any production mechanism is committed.
+**Depends on:** Nothing structurally — fully isolated from `NotchWindowController`/`IslandResolver`; sequenced here per the milestone's ascending-risk order to keep this highest-novelty item isolated from the notch-facing work above.
+**Requirements**: MENUBAR-01, MENUBAR-02, MENUBAR-03, MENUBAR-04
+**Success Criteria** (what must be TRUE):
+
+  1. An on-device spike — reading Ice's actual open-source mechanism directly (`MenuBarItemManager.swift`/`Bridging.swift`), not a general description of it — confirms the private `NSStatusItem`-repositioning technique works on this project's own macOS/hardware, including the Accessibility-permission-denied, sleep/wake, and Dock-relaunch cases, before the production mechanism is built.
+  2. A chevron icon appears in the menu bar, visually separating a "visible" section from a "hidden" section of other apps' icons.
+  3. User can Cmd-drag another app's menu-bar icon across the chevron to move it into the hidden section.
+  4. Clicking the chevron reveals or hides the hidden section's icons — hidden icons are genuinely absent from the visible menu-bar strip (real screen space reclaimed), not just repositioned off-screen while still occupying visual space.
+  5. The feature requests a new Accessibility permission grant with a clear one-time explanation, distinct from Islet's existing WeatherKit/EventKit/Bluetooth prompts, and degrades visibly (not silently) if that permission is denied.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 67: Coding-Progress
+
+**Goal:** While a Claude Code CLI session with an active todo list is running, the notch shows the live completion fraction (falling back to a short status text otherwise), fed by a hook script the user installs once — reusing the `FileWatcher` pattern Download-Progress already proved, and settling the hook-event/file-format/staleness contract in this phase's own research step.
+**Depends on:** Phase 61 (reuses the `FileWatcher`/`DispatchSourceFileSystemObject` pattern proven there — build it once, prove it before this phase's own hook-contract research)
+**Requirements**: CODE-01, CODE-02, CODE-03, CODE-04
+**Success Criteria** (what must be TRUE):
+
+  1. This phase's own research step settles which Claude Code hook event(s) (`PostToolUse`/`TodoWrite`, `Stop`, `SessionStart`/`End`), file format, and staleness/timeout contract to use, before the watcher is built — not assumed.
+  2. While a Claude Code session with an active todo list is running (after the one-time hook setup), the notch shows the todo completion fraction (e.g. "3/7"), updating live as todos complete.
+  3. When a session is running but has no active todo list, the notch instead shows a short current-status text rather than showing nothing.
+  4. Settings documents (or generates) the one-time hook-install step the user must perform in their own Claude Code config — a real onboarding/documentation surface, not just working code.
+  5. When the session ends or goes stale (no update within the timeout), the indicator clears on its own via an explicit `lastUpdated` staleness check rather than showing stale state indefinitely.
+
+**Plans**: TBD
+**UI hint**: yes
