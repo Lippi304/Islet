@@ -171,6 +171,11 @@ final class NotchWindowController {
     // its bookkeeping simply sits idle when the Devices toggle is off, exactly as the old fields did.
     private var deviceCoordinator: DeviceCoordinator!
 
+    // Phase 61 / DL-01/DL-02 (Plan 04) — the stateful per-tempPath coordinator (Plan 02),
+    // constructed in start() alongside deviceCoordinator for the same [weak self]-binding
+    // reason and held the same implicitly-unwrapped, non-lazy way (T-16-03 precedent).
+    private var downloadCoordinator: DownloadCoordinator!
+
     // Phase 27 / VISUAL-03 — the last theme applied to the hosting view: 3 independent
     // per-element accent indices plus the material style. UserDefaults posts
     // didChangeNotification for EVERY defaults write (incl. unrelated keys / Launch-at-Login), so
@@ -210,6 +215,12 @@ final class NotchWindowController {
     // itself additionally no-ops when Accessibility isn't trusted. Held as a plain stored
     // property so the nonisolated deinit can call its stop().
     private var capsLockMonitor: CapsLockMonitor?
+
+    // Phase 61 / DL-01/DL-02 (Plan 04) — the LIVE FSEvents ~/Downloads monitor. Constructed +
+    // started in start() ONLY when the Download Progress toggle is on, mirrors
+    // capsLockMonitor's own toggle-gated idempotent-start discipline. Held as a plain stored
+    // property so the nonisolated deinit can call its stop().
+    private var downloadMonitor: DownloadMonitor?
 
     // Phase 60 / UPDATE-01 (Plan 02) — internal (not private): AppDelegate sets this
     // cross-file right after constructing the controller, mirroring notchController's own
@@ -496,6 +507,30 @@ final class NotchWindowController {
             batteryForAddress: { [weak self] addr in self?.bluetoothMonitor?.battery(forAddress: addr) }
         )
 
+        // Phase 61 / DL-01/DL-02 (Plan 04) — constructed here for the same reason as
+        // deviceCoordinator above. `enqueue` mirrors deviceCoordinator's own Focus-preempt-
+        // else-enqueue shape verbatim; `replaceHead` reproduces handleOSDKeyPress's in-place
+        // branch verbatim (updateHead + spring-animated re-render + a fresh scheduleActivityDismiss
+        // re-arm) so a completing download can replace a never-self-elapsing `.inProgress` head
+        // with a freshly-dismiss-timed `.done` splash.
+        downloadCoordinator = DownloadCoordinator(
+            queueHead: { [weak self] in self?.transientQueue.head },
+            enqueue: { [weak self] t in
+                guard let self else { return false }
+                if case .focus = self.transientQueue.head { return self.transientQueue.preempt(t) }
+                return self.transientQueue.enqueue(t)
+            },
+            replaceHead: { [weak self] t in
+                guard let self else { return }
+                self.transientQueue.updateHead(t)
+                withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                    self.renderPresentation()
+                }
+                self.scheduleActivityDismiss()
+            },
+            presentTransientChange: { [weak self] in self?.presentTransientChange() }
+        )
+
         updateVisibility()
 
         // ISL-06 / D-05: re-evaluate on EVERY screen-config change (plug/unplug, resolution,
@@ -583,6 +618,11 @@ final class NotchWindowController {
         // Update HUD needs NO monitor start (event-driven off Sparkle's existing callback) —
         // only the guard inside handleUpdateAvailable(version:) itself.
         if activityEnabled(ActivitySettings.capsLockKey) { startCapsLockMonitor() }
+
+        // Phase 61 / DL-01/DL-02 (Plan 04): toggle-gated like Caps Lock, no separate
+        // permission-authorized gate to check — FSEvents on the user's own ~/Downloads
+        // requires no special TCC permission.
+        if activityEnabled(ActivitySettings.downloadProgressKey) { startDownloadMonitor() }
 
         // Phase 41 / HUD-08 (D-03): default-ON toggle. Bug fix (found via a clean-TCC-state
         // relaunch test): startCalendarCountdownMonitor() -> CalendarCountdownMonitor ->
@@ -755,6 +795,15 @@ final class NotchWindowController {
         guard capsLockMonitor == nil else { return }
         let monitor = CapsLockMonitor { [weak self] isOn in self?.handleCapsLockChange(isOn) }
         capsLockMonitor = monitor
+        monitor.start()
+    }
+
+    // Phase 61 / DL-01/DL-02 (Plan 04) — idempotent start, mirrors startCapsLockMonitor()'s
+    // exact shape.
+    private func startDownloadMonitor() {
+        guard downloadMonitor == nil else { return }
+        let monitor = DownloadMonitor { [weak self] reading in self?.downloadCoordinator.handle(reading) }
+        downloadMonitor = monitor
         monitor.start()
     }
 
@@ -2451,6 +2500,18 @@ final class NotchWindowController {
             flushTransients(.capsLock)
         }
 
+        // Phase 61 / DL-01/DL-02 (Plan 04) — Download Progress. Mirrors the Caps Lock
+        // toggle-off pattern, PLUS an extra downloadCoordinator.reset() call (mirrors the
+        // Devices block's own extra deviceCoordinator.reset() call above) since Download has
+        // a real in-flight table to clear, unlike Caps Lock/Update.
+        if activityEnabled(ActivitySettings.downloadProgressKey) {
+            startDownloadMonitor()
+        } else if downloadMonitor != nil {
+            downloadMonitor?.stop(); downloadMonitor = nil
+            downloadCoordinator.reset()
+            flushTransients(.downloadProgress)
+        }
+
         // Phase 60 / UPDATE-01 (code review WR-01) — Update HUD has no monitor to start/stop, but
         // a standing/queued transient must still be flushed on live toggle-off, or a queued copy
         // can sit behind other transients and show up after the user already turned it off.
@@ -2524,13 +2585,14 @@ final class NotchWindowController {
     // Device splash already stands). `oldHead` is captured BEFORE removeAll(where:) runs; the
     // dismiss-timer cancel/re-arm block below is now gated on `transientQueue.head != oldHead`, so
     // an untouched standing splash's already-running ~3s countdown is left exactly as it was.
-    private enum TransientCategory { case charging, device, focus, osd, capsLock, updateAvailable }
+    private enum TransientCategory { case charging, device, focus, osd, capsLock, updateAvailable, downloadProgress }
     private func flushTransients(_ category: TransientCategory) {
         let oldHead = transientQueue.head
         let matches: (ActiveTransient) -> Bool = { t in
             switch (t, category) {
             case (.charging, .charging), (.device, .device), (.focus, .focus), (.osd, .osd),
-                 (.capsLock, .capsLock), (.updateAvailable, .updateAvailable): return true
+                 (.capsLock, .capsLock), (.updateAvailable, .updateAvailable),
+                 (.downloadProgress, .downloadProgress): return true
             default: return false
             }
         }
@@ -2550,6 +2612,12 @@ final class NotchWindowController {
         // IslandPresentation" pattern.
         case .capsLock: break
         case .updateAvailable: break
+        // Phase 61 / DL-01/DL-02 (Plan 04) — no separate @Published model to clear here; the
+        // in-flight table reset already happened directly in handleSettingsChanged's
+        // toggle-off branch above (mirrors how deviceLastShown's reset and
+        // pendingDeviceBatteryPolls' clear are two DIFFERENT calls at two different call
+        // sites for Device).
+        case .downloadProgress: break
         }
         guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
@@ -2913,6 +2981,10 @@ final class NotchWindowController {
         // Phase 60 / CAPS-01: tear down the global .flagsChanged monitor — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
         capsLockMonitor?.stop()
+
+        // Phase 61 / DL-01/DL-02: tear down the FSEvents stream — mirrors
+        // capsLockMonitor?.stop()'s owner-driven teardown discipline exactly.
+        downloadMonitor?.stop()
 
         // Phase 39 / HUD-03/HUD-04: tear down the OSD key-press event tap — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
