@@ -4,8 +4,8 @@ milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
 stopped_at: Phase 61 UI-SPEC approved
-last_updated: "2026-07-23T22:38:55.738Z"
-last_activity: 2026-07-23 -- Phase 61 planning complete
+last_updated: "2026-07-23T22:54:58.091Z"
+last_activity: 2026-07-23
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 61 — download progress
+**Current focus:** Phase 61 — download-progress
 
 ## Current Position
 
-Phase: 61
-Plan: Not started
+Phase: 61 (download-progress) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-07-23 -- Phase 61 planning complete
+Last activity: 2026-07-23
 
 ### Phase 48 status note
 
@@ -166,6 +166,7 @@ Progress (v1.10): [█░░░░░░░░░] 11% (1/9 phases — Phase 59 
 | Phase 60 P03 | 10min | 2 tasks | 1 files |
 | Phase 60 P04 | 12min | - tasks | - files |
 | Phase 60 P02 | 25min | 3 tasks | 3 files |
+| Phase 61 P01 | 12min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -253,6 +254,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 60]: [Phase 60-03]: capsLockPermissionExplanationView clones osdPermissionExplanationView's exact shape (own private var, no shared generic popover); Update Available card added to systemHUDCards, default OFF, no permission gate
 - [Phase ?]: [Phase 60-04]: wingsShape's onTap override built purely-additive with zero existing call-site edits; capsLockWings conveys state via text alone (no status dot, D-03); UpdateVersionPill built standalone, not a BatteryIndicator parameterization
 - [Phase ?]: [Phase 60-02]: CapsLockMonitor clones PowerSourceMonitor's lifecycle + OSDInterceptor.isAccessibilityTrusted's gate, never force-prompts; handleUpdateAvailable/handleCapsLockChange both preempt a standing .focus head, else enqueue, mirroring handleOSDKeyPress's shape; RESEARCH.md Pitfall 3 (live-reconcile vs relaunch-required) and Pitfall 4 (Update wing tap-target reliability) left unresolved for Plan 60-05's on-device checkpoint
+- [Phase ?]: [Phase 61-01] DownloadActivity.swift follows DeviceActivity.swift's Pattern-1 file convention (reading type + presentation enum + pure helpers all in one file), overriding 61-PATTERNS.md's narrower two-case-enum-only sketch
+- [Phase ?]: [Phase 61-01] IslandResolver: downloadProgress lands at ActiveTransient/IslandPresentation rank 5 (collapsed-only, sub-state-persistent per D-02/D-13); capsLock/updateAvailable shift to rank 6/7 (comment-only, D-01); required a Rule-3 xcodegen regenerate and 2 exhaustive-switch completions (NotchWindowController.syncActivityModels, NotchPillView placeholder EmptyView() mirroring the 60-01 precedent)
 
 ### Roadmap Evolution
 

@@ -1051,7 +1051,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 61-01-PLAN.md — Pure model (DownloadActivity/DownloadReading) + IslandResolver rank-5 wiring
+- [x] 61-01-PLAN.md — Pure model (DownloadActivity/DownloadReading) + IslandResolver rank-5 wiring
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

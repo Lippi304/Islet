@@ -111,8 +111,8 @@ Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plu
 
 ### Download-Progress
 
-- [ ] **DL-01**: When a file starts downloading into ~/Downloads (browser temp-file convention), the notch shows a live "downloading" indicator
-- [ ] **DL-02**: When the temp file is renamed to its final filename (download complete), the indicator shows a brief "done" state then clears — no exact-percentage guarantee across all browsers (presence + completion signal only)
+- [x] **DL-01**: When a file starts downloading into ~/Downloads (browser temp-file convention), the notch shows a live "downloading" indicator
+- [x] **DL-02**: When the temp file is renamed to its final filename (download complete), the indicator shows a brief "done" state then clears — no exact-percentage guarantee across all browsers (presence + completion signal only)
 
 ### Meeting-HUD
 
@@ -216,8 +216,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SETTINGS-05 | Phase 59 | Complete |
 | CAPS-01 | Phase 60 | Complete |
 | UPDATE-01 | Phase 60 | Complete |
-| DL-01 | Phase 61 | Pending |
-| DL-02 | Phase 61 | Pending |
+| DL-01 | Phase 61 | Complete |
+| DL-02 | Phase 61 | Complete |
 | TIMER-01 | Phase 62 | Pending |
 | TIMER-02 | Phase 62 | Pending |
 | TIMER-03 | Phase 62 | Pending |
