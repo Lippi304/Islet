@@ -726,7 +726,14 @@ final class NotchWindowController {
     }
 
     // Phase 41 / HUD-08 — idempotent start, mirrors startFocusModeMonitor()'s exact shape.
+    // Hardening: guards !isOnboardingActive HERE too, not just at both call sites (the
+    // sequential start() gate and handleSettingsChanged()'s reconciliation) — this is the
+    // last line of defense closest to the actual EventKit request, so a future caller (or a
+    // caller-side gate someone forgets to add) can never bypass it. Onboarding's own Grant
+    // button never calls this function directly (it calls refreshCalendar() instead), so this
+    // guard cannot block any legitimate onboarding interaction.
     private func startCalendarCountdownMonitor() {
+        guard !isOnboardingActive else { return }
         guard calendarCountdownMonitor == nil else { return }
         let monitor = CalendarCountdownMonitor(calendarService: calendarService) { [weak self] activity in
             self?.handleCalendarCountdownChange(activity)
@@ -834,7 +841,11 @@ final class NotchWindowController {
         }
     }
 
+    // Hardening: same last-line-of-defense guard as startCalendarCountdownMonitor() above —
+    // onboarding's own Grant buttons call startLocationOnce()/refreshCalendar() directly, never
+    // this function, so this guard cannot block any legitimate onboarding interaction.
     private func startOutfitRefresh() {
+        guard !isOnboardingActive else { return }
         guard outfitRefreshTimer == nil else { return }
         startLocationOnce()
         refreshCalendar()
