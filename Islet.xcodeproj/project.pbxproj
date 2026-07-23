@@ -71,11 +71,13 @@
 		7604855295CC6043B60954AF /* LicenseManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */; };
 		774A2C14E09EB8BE82006A9B /* ActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */; };
 		78E654D36EEE2891E43D8957 /* MediaRemoteAdapter in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D6A7AB5384DD081F88A00374 /* MediaRemoteAdapter */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		793DEFB8D5469EEF1650FC39 /* CapsLockActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67C811DA67737E6DE4C01AFD /* CapsLockActivity.swift */; };
 		7AA340F40DD4147735529CAD /* PermissionStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881BA44136BA76B0C21DEBA /* PermissionStatusTests.swift */; };
 		7BEE2DF28EF5A73EDB7BA551 /* OnboardingFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E50622410CCEEA5EC66C796 /* OnboardingFlowTests.swift */; };
 		7E4D99F7223419D03FC89C5C /* NowPlayingMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 483917501E43A12ECCFB85A2 /* NowPlayingMonitor.swift */; };
 		7F111C2193277EE973787E41 /* AudioOutputPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 233B903DFE51437E26FADD7B /* AudioOutputPresentation.swift */; };
 		83ACBA698B65021287F454A4 /* DiagnosticReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0EC5F0178A64AECEBD91C8C /* DiagnosticReportTests.swift */; };
+		84CD5B30439881CB77632BB7 /* UpdateActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198D3625C7DA1E0AC8178F1E /* UpdateActivity.swift */; };
 		85C8C46347EB08A657DB3CEE /* BluetoothMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F2A9A634959D28CB05024E /* BluetoothMonitor.swift */; };
 		873F50F44716655751E47E8B /* ShelfLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58372E319659DF8AA32F403D /* ShelfLogic.swift */; };
 		880123373A38864B1A861C2C /* WeatherServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73B4C1FB5F1134D07D697B9 /* WeatherServiceTests.swift */; };
@@ -171,6 +173,7 @@
 		11EDAEA183BDB83B0E678C41 /* TrialManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManagerTests.swift; sourceTree = "<group>"; };
 		143DD03B59EE64AE773112BD /* IsletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsletApp.swift; sourceTree = "<group>"; };
 		15C1DF53311CEDA936A0B43D /* ActivitySettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivitySettings.swift; sourceTree = "<group>"; };
+		198D3625C7DA1E0AC8178F1E /* UpdateActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateActivity.swift; sourceTree = "<group>"; };
 		1A6AB4282775F1B6C66B02D6 /* OSDActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSDActivity.swift; sourceTree = "<group>"; };
 		1A7E1D30A74E9D358BA634B1 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		1A83ABC25D7E5E22093B2C6F /* DragDropSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupportTests.swift; sourceTree = "<group>"; };
@@ -219,6 +222,7 @@
 		63FACDF43375E1DE88646B05 /* DragDropSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupport.swift; sourceTree = "<group>"; };
 		645E44284FC3BC54024CD5F3 /* CalendarCountdownMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarCountdownMonitor.swift; sourceTree = "<group>"; };
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
+		67C811DA67737E6DE4C01AFD /* CapsLockActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockActivity.swift; sourceTree = "<group>"; };
 		6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EqualizerBarsTests.swift; sourceTree = "<group>"; };
 		6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCoordinator.swift; sourceTree = "<group>"; };
 		70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItemView.swift; sourceTree = "<group>"; };
@@ -482,6 +486,7 @@
 				E3F2A9A634959D28CB05024E /* BluetoothMonitor.swift */,
 				D5304DD9EE0040C6059114A1 /* BrightnessReader.swift */,
 				645E44284FC3BC54024CD5F3 /* CalendarCountdownMonitor.swift */,
+				67C811DA67737E6DE4C01AFD /* CapsLockActivity.swift */,
 				2151B8D097AF9D3098ED16D7 /* CGSSpace.swift */,
 				279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */,
 				28316551B58651959797184D /* DeviceActivity.swift */,
@@ -516,6 +521,7 @@
 				BD8C607878B62D262514A41D /* QuickActionSharingService.swift */,
 				70AD74D7431224B9ACA6F237 /* ShelfItemView.swift */,
 				FE9C66C68BBF764EDA77D7F4 /* SignatureHeading.swift */,
+				198D3625C7DA1E0AC8178F1E /* UpdateActivity.swift */,
 				5FD7011AF8E607471C7F73FB /* ViewSwitcherState.swift */,
 				4CA20EFAA3BB87C9966C5BC9 /* VolumeReader.swift */,
 			);
@@ -684,6 +690,7 @@
 				56BC6DBE6E5F1E2B6F485BE0 /* CalendarGlance.swift in Sources */,
 				9470F8F6CC68D789DC5A7D9C /* CalendarService.swift in Sources */,
 				5E2A0DEF48DA471FE9426F9A /* CalendarViewState.swift in Sources */,
+				793DEFB8D5469EEF1650FC39 /* CapsLockActivity.swift in Sources */,
 				62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */,
 				28626D0246AAA3E67B6D0F4D /* ClipboardFileStore.swift in Sources */,
 				2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */,
@@ -739,6 +746,7 @@
 				945E7037D8F44BB922D79D41 /* SignatureHeading.swift in Sources */,
 				04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */,
 				98F28BB61930892735C9F48A /* TrialManager.swift in Sources */,
+				84CD5B30439881CB77632BB7 /* UpdateActivity.swift in Sources */,
 				19C104D4C4BCFDB492D88B16 /* ViewSwitcherState.swift in Sources */,
 				4328BB2EFCD60AD4247AEDF3 /* VolumeReader.swift in Sources */,
 				68CE6D5F610C8C037058F697 /* WeatherCategory.swift in Sources */,

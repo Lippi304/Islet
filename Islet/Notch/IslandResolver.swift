@@ -67,7 +67,8 @@ struct CalendarCountdownActivity: Equatable {
 // Tier 0 — onboarding forced-flow: `.onboarding` never pre-empted by anything else.
 //
 // Tier 1 — ActiveTransient queue (collapsed pill), ranked:
-//   charging > device > focus (collapsed-only) > osd (collapsed-only)
+//   charging > device > focus (collapsed-only) > osd (collapsed-only) >
+//   capsLock (collapsed-only, Phase 60) > updateAvailable (collapsed-only, Phase 60)
 //
 // Tier 2 — isExpanded branch, ranked:
 //   pendingDrop (quickActionPicker) > selectedView (calendarExpanded/weatherExpanded/
@@ -78,7 +79,8 @@ struct CalendarCountdownActivity: Equatable {
 //
 // Reserved slots for the 8 new v1.10 activities (best-guess placement per
 // 59-RESEARCH.md's Open Question 1 — each flagged below, unconfirmed):
-//   - Caps Lock (Phase 60)          — likely ActiveTransient tier, same pattern as Charging — rank TBD — confirm in that activity's own phase discussion
+//   - Caps Lock (Phase 60)          — LANDED (60-01): ActiveTransient tier, rank 5, collapsed-only (D-07)
+//   - Update-available (Phase 60)   — LANDED (60-01): ActiveTransient tier, rank 6, collapsed-only (D-07), NOT persistent
 //   - Download Progress (Phase 61)  — likely ambient or short-lived transient, presence+completion signal — rank TBD — confirm in that activity's own phase discussion
 //   - Timer/Pomodoro (Phase 62)     — persistent transient, generalizes ActiveTransient.isPersistent beyond Focus — rank TBD — confirm in that activity's own phase discussion
 //   - Meeting HUD (Phase 63)        — persistent transient, depends on Phase 62's generalization — rank TBD — confirm in that activity's own phase discussion
@@ -97,6 +99,8 @@ enum IslandPresentation: Equatable {
     case device(DeviceActivity)                            // D-02 rank 2 transient
     case focus(FocusActivity)                              // Phase 38 / HUD-05: rank 3 transient, collapsed-only (D-07)
     case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 4 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
+    case capsLock(CapsLockActivity)                        // Phase 60 / CAPS-01: rank 5 transient, collapsed-only (D-07)
+    case updateAvailable(UpdateActivity)                   // Phase 60 / UPDATE-01: rank 6 transient, collapsed-only (D-07), NOT persistent
     case nowPlayingWings(NowPlayingPresentation)           // D-02 rank 3 ambient (collapsed glance)
     case calendarCountdown(CalendarCountdownActivity)      // Phase 41 / HUD-08: ambient tier, D-01 always wins over nowPlayingWings
     case nowPlayingExpanded(NowPlayingPresentation, healthy: Bool) // D-12 expanded media / "nicht verfügbar"
@@ -115,6 +119,8 @@ enum ActiveTransient: Equatable {
     case device(DeviceActivity)
     case focus(FocusActivity)
     case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 4 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
+    case capsLock(CapsLockActivity)                        // Phase 60 / CAPS-01: rank 5 transient, collapsed-only (D-07)
+    case updateAvailable(UpdateActivity)                   // Phase 60 / UPDATE-01: rank 6 transient, collapsed-only (D-07), NOT persistent
 }
 
 // Phase 38 / HUD-05 (D-06) — the seam Plan 38-05's controller wiring reads to decide
@@ -166,6 +172,10 @@ func resolve(activeTransient: ActiveTransient?,
     case .focus: break                                    // expanded -- falls through to the isExpanded branch below, unmodified
     case .osd(let o) where !isExpanded: return .osd(o)    // Phase 39 / HUD-03/HUD-04 rank 4, collapsed-only (D-11)
     case .osd: break                                      // expanded -- falls through to the isExpanded branch below, unmodified
+    case .capsLock(let c) where !isExpanded: return .capsLock(c) // Phase 60 / CAPS-01 rank 5, collapsed-only (D-07)
+    case .capsLock: break                                 // expanded -- falls through to the isExpanded branch below, unmodified
+    case .updateAvailable(let u) where !isExpanded: return .updateAvailable(u) // Phase 60 / UPDATE-01 rank 6, collapsed-only (D-07)
+    case .updateAvailable: break                          // expanded -- falls through to the isExpanded branch below, unmodified
     case nil: break
     }
     if isExpanded {

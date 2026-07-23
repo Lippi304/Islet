@@ -931,6 +931,13 @@ struct NotchPillView: View {
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
         case .osd(let activity): osdWings(for: activity)                    // Phase 39 / HUD-03/HUD-04: rank 4 transient (39-02)
+        case .capsLock, .updateAvailable:
+            // Phase 60 / CAPS-01 / UPDATE-01 — rank 5/6 transient cases landed by 60-01 (the
+            // "define contracts first" wave, per 60-01-PLAN.md's own objective); real wing
+            // rendering ships in a later Phase 60 plan. Rule 3 blocking fix: this switch is
+            // exhaustive over IslandPresentation, so the 2 new cases must compile NOW even
+            // though their view is not built yet.
+            EmptyView()
         case .idle:
             idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }

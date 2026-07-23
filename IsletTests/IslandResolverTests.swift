@@ -716,6 +716,80 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(q.head, .osd(.brightness(percent: 80)))
     }
 
+    // MARK: Phase 60 / CAPS-01 — Caps Lock transient (collapsed-only, rank 5, preemptible)
+
+    func testCapsLockCollapsedOnly() {
+        // D-07: a Caps Lock transient wins when the island is NOT expanded.
+        let r = resolve(activeTransient: .capsLock(.on),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .capsLock(.on))
+    }
+
+    func testCapsLockFallsThroughWhenExpanded() {
+        // D-07: a Caps Lock transient does NOT win when the island IS expanded — it falls
+        // through to whatever Home/Tray/Calendar/Weather would resolve to as if no
+        // transient were active, mirroring testFocusFallsThroughWhenExpanded.
+        let r = resolve(activeTransient: .capsLock(.on),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testCapsLockPreemptsStandingFocusHead() {
+        // D-05: Caps Lock immediately preempts an already-standing Focus head instead of
+        // queuing behind it, mirroring testOSDPreemptsStandingFocusHead with .capsLock(...)
+        // swapped in for .osd(...).
+        var q = TransientQueue()
+        _ = q.enqueue(.focus(.on))
+        XCTAssertTrue(q.preempt(.capsLock(.on)))
+        XCTAssertEqual(q.head, .capsLock(.on))
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, .focus(.on))
+    }
+
+    // MARK: Phase 60 / UPDATE-01 — Update-available transient (collapsed-only, rank 6, preemptible)
+
+    func testUpdateAvailableCollapsedOnly() {
+        // D-07: an Update-available transient wins when the island is NOT expanded.
+        let r = resolve(activeTransient: .updateAvailable(UpdateActivity(version: "1.11")),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .updateAvailable(UpdateActivity(version: "1.11")))
+    }
+
+    func testUpdateAvailableFallsThroughWhenExpanded() {
+        // D-07: an Update-available transient does NOT win when the island IS expanded — it
+        // falls through to whatever Home/Tray/Calendar/Weather would resolve to as if no
+        // transient were active, mirroring testFocusFallsThroughWhenExpanded.
+        let r = resolve(activeTransient: .updateAvailable(UpdateActivity(version: "1.11")),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testUpdateAvailablePreemptsStandingFocusHead() {
+        // D-05: Update-available immediately preempts an already-standing Focus head instead
+        // of queuing behind it, mirroring testOSDPreemptsStandingFocusHead with
+        // .updateAvailable(...) swapped in for .osd(...).
+        var q = TransientQueue()
+        _ = q.enqueue(.focus(.on))
+        XCTAssertTrue(q.preempt(.updateAvailable(UpdateActivity(version: "1.11"))))
+        XCTAssertEqual(q.head, .updateAvailable(UpdateActivity(version: "1.11")))
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, .focus(.on))
+    }
+
     // MARK: Phase 41 / HUD-08 — Calendar Countdown
 
     func testCalendarCountdownOutranksAmbientMedia() {
