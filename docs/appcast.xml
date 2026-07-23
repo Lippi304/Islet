@@ -3,20 +3,12 @@
     <channel>
         <title>Islet</title>
         <item>
-            <title>1.2.1</title>
-            <pubDate>Wed, 22 Jul 2026 16:09:09 +0200</pubDate>
-            <sparkle:version>4</sparkle:version>
-            <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+            <title>2.0</title>
+            <pubDate>Thu, 23 Jul 2026 12:22:00 +0200</pubDate>
+            <sparkle:version>9</sparkle:version>
+            <sparkle:shortVersionString>2.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/Lippi304/Islet/releases/download/v1.2.1/Islet.dmg" length="2564485" type="application/octet-stream" sparkle:edSignature="F0N5ZfsxF1ZkJ8+1hhKpyoTUeh8tH0ImiSDCE6GBFDadI8orQyb2iIEJ5l5/NL79qrA/Y9GJhg+gTV/nRId4BA=="/>
-        </item>
-        <item>
-            <title>1.1</title>
-            <pubDate>Tue, 21 Jul 2026 22:40:34 +0200</pubDate>
-            <sparkle:version>2</sparkle:version>
-            <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/Lippi304/Islet/releases/download/v1.1/Islet.dmg" length="2562292" type="application/octet-stream" sparkle:edSignature="pcOo5hf6VBDvrQ/wTRHCmygaa0myU2lKW57zCJh+x44rpG/SQWXXRGMtc6+6f7txjDVgoXvNmxjh7G6hytI1Bw=="/>
+            <enclosure url="https://github.com/Lippi304/Islet/releases/download/v2.0/Islet.dmg" length="2643562" type="application/octet-stream" sparkle:edSignature="eiWP7M7nb9ScSXGc/1c2i5yiMVKbVUtCsmksB2VjxNqTP7DXQq7qF++hCEgk+AWNekleCWECi4BDFypzDoFpBg=="/>
         </item>
     </channel>
 </rss>
