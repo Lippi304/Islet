@@ -1045,7 +1045,15 @@ Plans:
   3. Two downloads in quick succession are each detected as one logical download apiece — matched temp-file suffixes (`.crdownload`/`.download`/`.part`) and debounced create+rename correlation avoid a double-fire on a single file's own temp-file sequence.
   4. The feature appears in the Settings grid, default OFF, and produces no indicator at all when disabled.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 61-01-PLAN.md — Pure model (DownloadActivity/DownloadReading) + IslandResolver rank-5 wiring
+- [ ] 61-02-PLAN.md — DownloadCoordinator: per-file stateful correlation (D-05/D-06/D-15)
+- [ ] 61-03-PLAN.md — NotchPillView downloadWings(for:) rendering
+- [ ] 61-04-PLAN.md — DownloadMonitor (FSEvents) + NotchWindowController wiring
+- [ ] 61-05-PLAN.md — Build/test gate + on-device UAT checkpoint
+
 **UI hint**: yes
 
 ### Phase 62: Timer/Pomodoro
