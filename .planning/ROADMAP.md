@@ -146,7 +146,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 55: Clipboard Data Model + Store** - Pure ClipboardItem/ClipboardStore (append/evict-at-cap/clear), fully unit-tested, no AppKit/pasteboard dependency (completed 2026-07-22)
 - [x] **Phase 56: Encrypted Persistence** - ClipboardFileStore: Application Support JSON index + image files, CryptoKit AES-GCM encryption with Keychain-stored key, survives relaunch/reboot (completed 2026-07-22)
 - [x] **Phase 57: Pasteboard Monitor — Spike** - ClipboardMonitor: changeCount polling, concealed/transient-type filtering, self-capture guard — verified on real hardware (completed 2026-07-22)
-- [ ] **Phase 58: Menu Wiring & UI Assembly** - AppDelegate NSMenuDelegate wiring: history list, click-to-restore, Cmd+0-9, Delete All History
+- [x] **Phase 58: Menu Wiring & UI Assembly** - AppDelegate NSMenuDelegate wiring: history list, click-to-restore, Cmd+0-9, Delete All History (completed 2026-07-23)
 
 ## Phase Details
 
@@ -1036,5 +1036,5 @@ Plans:
 
 **Wave 2** *(blocked on 58-01)*
 
-- [ ] 58-02-PLAN.md — Delete All History (destructive confirm + real on-disk delete) + pasteboard-access explanation timing/copy + phase-gate on-device UAT (CLIP-05)
+- [x] 58-02-PLAN.md — Delete All History (destructive confirm + real on-disk delete) + pasteboard-access explanation timing/copy + phase-gate on-device UAT (CLIP-05)
 **UI hint**: yes

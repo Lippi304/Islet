@@ -81,7 +81,7 @@ Adds a menu-bar clipboard history (text + images, ~20-30 item cap, persistent ac
 - [x] **CLIP-02**: Clicking an entry copies it back to the system clipboard (no auto-paste)
 - [x] **CLIP-03**: The first 10 entries are directly selectable via ⌘0-⌘9
 - [x] **CLIP-04**: Clipboard history persists across app relaunch and system reboot
-- [ ] **CLIP-05**: "Delete All History" clears the entire history, with a confirmation dialog
+- [x] **CLIP-05**: "Delete All History" clears the entire history, with a confirmation dialog
 
 ### Privacy & Security
 
@@ -162,7 +162,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLIP-02 | Phase 58 | Complete |
 | CLIP-03 | Phase 58 | Complete |
 | CLIP-04 | Phase 56 | Complete |
-| CLIP-05 | Phase 58 | Pending |
+| CLIP-05 | Phase 58 | Complete |
 | PRIV-01 | Phase 57 | Complete |
 | PRIV-02 | Phase 56 | Complete |
 

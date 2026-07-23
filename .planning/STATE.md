@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.9
 milestone_name: Clipboard History
-status: executing
-stopped_at: Completed 58-01-PLAN.md
-last_updated: "2026-07-22T23:41:12.180Z"
-last_activity: 2026-07-22
+status: verifying
+stopped_at: Completed 58-02-PLAN.md
+last_updated: "2026-07-23T08:09:23.245Z"
+last_activity: 2026-07-23
 progress:
   total_phases: 19
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 58 (menu-wiring-ui-assembly) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-07-22
+Status: Phase complete — ready for verification
+Last activity: 2026-07-23
 
 ### Phase 48 status note
 
@@ -57,7 +57,7 @@ Progress (v1.7): [███████░░░] 75% (6/8 phases — 43/44/45/4
 
 Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3/3 phases; see `.planning/milestones/v1.8-ROADMAP.md`)
 
-Progress (v1.9): [███████░░░] 75% (3/4 phases — Phases 55/56/57 complete; Phase 58 (Menu Wiring & UI Assembly) not yet planned)
+Progress (v1.9): [██████████] 100% — SHIPPED 2026-07-23 (4/4 phases — Phases 55/56/57/58 complete)
 
 ## Performance Metrics
 
@@ -156,6 +156,7 @@ Progress (v1.9): [███████░░░] 75% (3/4 phases — Phases 55/
 | Phase 57 P01 | 15min | 3 tasks | 3 files |
 | Phase 57 P02 | multi-session (checkpoint) | 2 tasks | 1 files |
 | Phase 58 P01 | single session (checkpoint) | 3 tasks | 2 files |
+| Phase 58 P02 | single session (checkpoint) | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -235,6 +236,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 57]: [57-02] Task 1 landed 4 DEBUG-only spike hooks wired to ClipboardMonitor via a throwaway console-print sink (89035cb). Task 2 on-device UAT approved across 2 rounds -- all 4 ROADMAP Phase 57 success criteria confirmed on real hardware: SC#1 text+image capture/classify, SC#2 concealed-type exclusion, SC#3 self-capture guard, SC#4 one-time-gate (this Mac's accessBehavior already .alwaysAllow, so the alert branch didn't fire, but the session-scoped gate flag itself proven correct on the second click). PRIV-01 satisfied at the monitor layer; Phase 57 (Pasteboard Monitor Spike) complete.
 - [Phase 58]: 58-01: D-15 REVISED on-device UAT — clipboard rows moved from inline top-of-menu list to a flyout submenu behind a single 'Clipboard History' anchor item, user-approved live to show more entries at once; Cmd+0-9 kept working instantly on icon-click via a hybrid menuWillOpen/menuDidClose-scoped NSEvent keyDown monitor, since submenu keyEquivalents don't fire while the submenu is closed
 - [Phase 58]: 58-01: Task 3 on-device UAT found and fixed two bugs — NSHostingView rows inside NSMenuItem.view rendered at zero size until given an explicit frame (ClipboardRowView.rowWidth=260pt), and SwiftUI .onHover missed mouseExited during NSMenu tracking causing stuck row highlight, fixed via an NSTrackingArea-backed ClipboardRowContainerView/ClipboardHoverState pair
+- [Phase 58]: 58-02: Delete All History placed as a top-level NSMenuItem beside the Clipboard History anchor (not nested in its submenu) — re-derived after 58-01's D-15-REVISED flyout-submenu amendment, matching the option 58-01-SUMMARY.md itself flagged and 58-01's own placeholder code comment
+- [Phase 58]: 58-02: On-device UAT approved first round — all 4 ROADMAP Phase 58 success criteria (CLIP-01/02/03/05) confirmed on real hardware, closing v1.9 (Clipboard History) at 4/4 phases
 
 ### Roadmap Evolution
 
@@ -359,8 +362,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-22T23:41:12.166Z
-Stopped at: Completed 58-01-PLAN.md
+Last session: 2026-07-23T08:09:23.237Z
+Stopped at: Completed 58-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
