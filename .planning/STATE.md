@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 61 UI-SPEC approved
-last_updated: "2026-07-23T22:54:58.091Z"
+stopped_at: Completed 61-02-PLAN.md
+last_updated: "2026-07-23T23:03:38.774Z"
 last_activity: 2026-07-23
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 61 (download-progress) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-07-23
 
@@ -167,6 +167,7 @@ Progress (v1.10): [█░░░░░░░░░] 11% (1/9 phases — Phase 59 
 | Phase 60 P04 | 12min | - tasks | - files |
 | Phase 60 P02 | 25min | 3 tasks | 3 files |
 | Phase 61 P01 | 12min | 2 tasks | 7 files |
+| Phase 61 P02 | 15min | 1 tasks tasks | 3 files files |
 
 ## Accumulated Context
 
@@ -256,6 +257,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase ?]: [Phase 60-02]: CapsLockMonitor clones PowerSourceMonitor's lifecycle + OSDInterceptor.isAccessibilityTrusted's gate, never force-prompts; handleUpdateAvailable/handleCapsLockChange both preempt a standing .focus head, else enqueue, mirroring handleOSDKeyPress's shape; RESEARCH.md Pitfall 3 (live-reconcile vs relaunch-required) and Pitfall 4 (Update wing tap-target reliability) left unresolved for Plan 60-05's on-device checkpoint
 - [Phase ?]: [Phase 61-01] DownloadActivity.swift follows DeviceActivity.swift's Pattern-1 file convention (reading type + presentation enum + pure helpers all in one file), overriding 61-PATTERNS.md's narrower two-case-enum-only sketch
 - [Phase ?]: [Phase 61-01] IslandResolver: downloadProgress lands at ActiveTransient/IslandPresentation rank 5 (collapsed-only, sub-state-persistent per D-02/D-13); capsLock/updateAvailable shift to rank 6/7 (comment-only, D-01); required a Rule-3 xcodegen regenerate and 2 exhaustive-switch completions (NotchWindowController.syncActivityModels, NotchPillView placeholder EmptyView() mirroring the 60-01 precedent)
+- [Phase 61-02]: DownloadCoordinator's activityPromoted() ships as a documented empty-body no-op (RESEARCH.md Open Question 1) -- a completing download's own done state is delivered via plain TransientQueue enqueue/advance mechanics, never a coordinator-side promoted re-check; reset() shipped in this plan (not deferred to 61-04) alongside the table it clears
 
 ### Roadmap Evolution
 
@@ -394,9 +396,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T21:47:07.651Z
-Stopped at: Phase 61 UI-SPEC approved
-Resume file: .planning/phases/61-download-progress/61-UI-SPEC.md
+Last session: 2026-07-23T23:03:38.768Z
+Stopped at: Completed 61-02-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

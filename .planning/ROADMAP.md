@@ -1055,7 +1055,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 61-02-PLAN.md — DownloadCoordinator: per-file stateful correlation (D-05/D-06/D-15)
+- [x] 61-02-PLAN.md — DownloadCoordinator: per-file stateful correlation (D-05/D-06/D-15)
 - [ ] 61-03-PLAN.md — NotchPillView downloadWings(for:) rendering
 
 **Wave 3** *(blocked on Wave 2 completion)*
