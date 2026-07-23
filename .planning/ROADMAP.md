@@ -1027,7 +1027,7 @@ Plans:
 
 **Wave 3** *(blocked on 60-01, 60-04)*
 
-- [ ] 60-02-PLAN.md — CapsLockMonitor.swift (new) + NotchWindowController controller wiring + AppDelegate second Sparkle signal/DEBUG spike hook
+- [x] 60-02-PLAN.md — CapsLockMonitor.swift (new) + NotchWindowController controller wiring + AppDelegate second Sparkle signal/DEBUG spike hook
 
 **Wave 4** *(blocked on 60-02, 60-03, 60-04)*
 

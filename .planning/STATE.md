@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Completed 60-03-PLAN.md
-last_updated: "2026-07-23T18:05:44.363Z"
+stopped_at: Completed 60-02-PLAN.md
+last_updated: "2026-07-23T18:15:33.916Z"
 last_activity: 2026-07-23
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 60 (caps-lock-hud-update-activity-restyle) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-07-23
 
@@ -164,6 +164,7 @@ Progress (v1.10): [█░░░░░░░░░] 11% (1/9 phases — Phase 59 
 | Phase 60 P01 | 20min | 3 tasks | 9 files |
 | Phase 60 P03 | 10min | 2 tasks | 1 files |
 | Phase 60 P04 | 12min | - tasks | - files |
+| Phase 60 P02 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -250,6 +251,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 60]: [Phase 60-01]: defaultsToFalseKeys generalizes activityEnabled(_:) beyond focusKey-only, closing the Pitfall-1 default-ON gap for osdSuppressionKey and all 8 Phase-59 v1.10 keys, not just capsLockKey/updateHudKey; NotchPillView's .capsLock/.updateAvailable case renders EmptyView() as a placeholder -- real wing UI ships in a later Phase 60 plan
 - [Phase 60]: [Phase 60-03]: capsLockPermissionExplanationView clones osdPermissionExplanationView's exact shape (own private var, no shared generic popover); Update Available card added to systemHUDCards, default OFF, no permission gate
 - [Phase ?]: [Phase 60-04]: wingsShape's onTap override built purely-additive with zero existing call-site edits; capsLockWings conveys state via text alone (no status dot, D-03); UpdateVersionPill built standalone, not a BatteryIndicator parameterization
+- [Phase ?]: [Phase 60-02]: CapsLockMonitor clones PowerSourceMonitor's lifecycle + OSDInterceptor.isAccessibilityTrusted's gate, never force-prompts; handleUpdateAvailable/handleCapsLockChange both preempt a standing .focus head, else enqueue, mirroring handleOSDKeyPress's shape; RESEARCH.md Pitfall 3 (live-reconcile vs relaunch-required) and Pitfall 4 (Update wing tap-target reliability) left unresolved for Plan 60-05's on-device checkpoint
 
 ### Roadmap Evolution
 
@@ -388,8 +390,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T18:05:40.692Z
-Stopped at: Completed 60-03-PLAN.md
+Last session: 2026-07-23T18:15:33.911Z
+Stopped at: Completed 60-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
