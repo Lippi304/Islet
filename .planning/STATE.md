@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: verifying
-stopped_at: Phase 60 context gathered
-last_updated: "2026-07-23T15:18:46.289Z"
-last_activity: 2026-07-23
+status: executing
+stopped_at: Phase 60 UI-SPEC approved
+last_updated: "2026-07-23T17:46:29.587Z"
+last_activity: 2026-07-23 -- Phase 60 planning complete
 progress:
   total_phases: 19
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 59 (settings-redesign) — COMPLETE
 Plan: 2 of 2
-Status: Phase complete — on-device UAT approved, ready for verification
-Last activity: 2026-07-23
+Status: Ready to execute
+Last activity: 2026-07-23 -- Phase 60 planning complete
 
 ### Phase 48 status note
 
@@ -382,9 +382,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T15:18:46.282Z
-Stopped at: Phase 60 context gathered
-Resume file: .planning/phases/60-caps-lock-hud-update-activity-restyle/60-CONTEXT.md
+Last session: 2026-07-23T15:49:56.725Z
+Stopped at: Phase 60 UI-SPEC approved
+Resume file: .planning/phases/60-caps-lock-hud-update-activity-restyle/60-UI-SPEC.md
 
 ## Operator Next Steps
 
