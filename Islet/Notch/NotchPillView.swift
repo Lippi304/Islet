@@ -290,6 +290,16 @@ struct NotchPillView: View {
     // NotchPillView compiling unmodified in the meantime.
     var onQuickAdd: (QuickAddKind, String, Date, Date?) -> Void = { _, _, _, _ in }
 
+    // Phase 62 / TIMER-01..04 (D-08) — the expanded-control-row callbacks, plain closures
+    // mirroring the shelf-item/onboarding callbacks above: the view stays state-free, only
+    // REPORTS intent. NotchWindowController (Plan 62-04) owns these and forwards them to
+    // TimerActivityState's pause/resume/reset/addMinute/stop. Defaulted to no-ops so the
+    // DEBUG #Previews build without a controller.
+    var onTimerPauseResume: () -> Void = {}
+    var onTimerReset: () -> Void = {}
+    var onTimerAddTime: () -> Void = {}
+    var onTimerStop: () -> Void = {}
+
     // Phase 34 / TRAY-02 (D-09 fallback) — AirDrop/Mail dim + disable only if Plan 02 Task 3's
     // on-device spike finds no working invocation path; default `true` per 34-RESEARCH.md's
     // HIGH-confidence finding that no fallback is needed. Drop is never disabled (TRAY-03
@@ -935,16 +945,20 @@ struct NotchPillView: View {
             tabContentView
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
+        // Phase 62 / TIMER-01..04 (62-03 Task 2, Pattern 4): the FIRST transient with its OWN
+        // dedicated expanded presentation — NOT grouped into tabContentView's switcher-row arm
+        // above, since .timerExpanded shows no switcher row (D-08's controls take exclusive
+        // priority).
+        case .timerExpanded(let activity): timerExpandedContent(for: activity)
         case .focus(let activity): focusWings(for: activity)                 // D-02 rank 3 transient (38-04)
         case .osd(let activity): osdWings(for: activity)                    // Phase 39 / HUD-03/HUD-04: rank 4 transient (39-02)
         case .downloadProgress(let activity): downloadWings(for: activity)  // Phase 61 / DL-01/DL-02: rank 5 transient (61-03)
         case .capsLock(let activity): capsLockWings(for: activity)          // Phase 60 / CAPS-01: rank 6 transient
         case .updateAvailable(let activity): updateWings(for: activity)     // Phase 60 / UPDATE-01: rank 7 transient
         // Phase 62 / TIMER-01/03 (62-03 Task 1): collapsed pill live countdown + completion
-        // splash, wired into presentationSwitch. .timerExpanded stays a stub here until Task 2
-        // gives it its own dedicated arm (Pattern 4, placed after .quickActionPicker below).
+        // splash. .timerExpanded is handled by its own dedicated arm above (Pattern 4, placed
+        // right after .quickActionPicker), not grouped here.
         case .timer(let activity): timerWings(for: activity)  // Phase 62 / TIMER-01/03: rank 8 transient (62-01)
-        case .timerExpanded: EmptyView()  // Plan 62-03 Task 2 replaces this with its own dedicated arm
         case .idle:
             idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }
@@ -1692,6 +1706,64 @@ struct NotchPillView: View {
                 // 420pt-wide box because the chips still filled edge-to-edge either way; the wider
                 // 650pt box (Plan 44-01) just made the resulting overflow easier to see.
                 .padding(.horizontal, 24)
+        }
+    }
+
+    // Phase 62 / TIMER-01..04 (D-08, Pattern 4) — the dedicated expanded controls: this is the
+    // FIRST transient with its own top-level presentationSwitch arm rather than a fallthrough
+    // to tabContentView's switcher-row group (no switcher row here, D-08's 4 buttons take
+    // exclusive priority). Same call shape as quickActionPickerView() above: one blobShape +
+    // content closure, no shelf. isPaused only distinguishes .paused — .running/.completed/
+    // .segmentDone all render the "Pause" glyph, though the resolver's own .timerExpanded
+    // contract (IslandResolver.swift) only ever hands this function .running/.paused.
+    private func timerExpandedContent(for activity: TimerActivity) -> some View {
+        let isPaused: Bool
+        if case .paused = activity { isPaused = true } else { isPaused = false }
+        return blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .center,
+                          width: Self.expandedSize.width, height: nil,
+                          shelfItems: [], shelfVisible: false, showSwitcher: false) {
+            VStack(spacing: 20) {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    let tick = timerTick(for: activity, at: context.date)
+                    VStack(spacing: 4) {
+                        if let label = timerPillLabel(for: tick.context) {
+                            HStack(spacing: 6) {
+                                if tick.context.phase == .work {
+                                    Circle().fill(Color.green)   // D-07 live-session dot — Work segment only
+                                        .frame(width: 6, height: 6)
+                                }
+                                Text(label)
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        Text(formatMMSS(tick.remaining))
+                            .font(.system(size: 15, weight: .bold, design: .rounded))   // mediaContent's title-size precedent
+                            .monospacedDigit()
+                            .foregroundStyle(.white)
+                    }
+                }
+                // D-08 — exactly 4 circular icon buttons: Pause/Resume is the ONE filled action
+                // (toggles glyph), Reset/Add-Time/Stop stay outlined per navCircleButton's own
+                // filled/outlined convention (never chipButton — D-08 excludes that style here).
+                HStack(spacing: 0) {
+                    navCircleButton(systemName: isPaused ? "play.fill" : "pause.fill", filled: true, action: onTimerPauseResume)
+                        .accessibilityLabel(isPaused ? "Resume" : "Pause")
+                    Spacer()
+                    navCircleButton(systemName: "arrow.counterclockwise", filled: false, action: onTimerReset)
+                        .accessibilityLabel("Reset")
+                    Spacer()
+                    navCircleButton(systemName: "plus", filled: false, action: onTimerAddTime)
+                        .accessibilityLabel("Add 1 Minute")
+                    Spacer()
+                    // Stop is deliberately NOT color-coded red (62-UI-SPEC.md Color section) —
+                    // distinguished from Reset/Add-Time by icon glyph only.
+                    navCircleButton(systemName: "stop.fill", filled: false, action: onTimerStop)
+                        .accessibilityLabel("Stop")
+                }
+            }
+            .padding(.top, Self.cameraClearance)
+            .padding(.horizontal, 24)
         }
     }
 
