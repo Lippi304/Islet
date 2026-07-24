@@ -1081,7 +1081,22 @@ Plans:
   4. User can start a Pomodoro session instead of a plain countdown — it cycles work/break durations automatically and shows a running session counter, selectable as an alternative to the one-shot countdown.
   5. A running timer survives another activity (e.g. Charging) briefly interrupting the display and resumes showing its live countdown afterward — proving `TransientQueue.preempt()`/`ActiveTransient.isPersistent` now generalizes beyond the original Focus-Mode-only case (currently hardcoded to a single `.focus` case).
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 62-01-PLAN.md — Pure seams: TimerActivity model (TDD) + IslandResolver.swift SC5 generalization (isPersistent/preempt(), .timer/.timerExpanded cases)
+
+**Wave 2** *(blocked on 62-01)*
+
+- [ ] 62-02-PLAN.md — TimerActivityState (pause/resume/reset/add-time/stop, TDD) + TimerMonitor (one-shot deadline scheduler)
+- [ ] 62-03-PLAN.md — NotchPillView: collapsed pill + completion splash, D-08 expanded controls, duration/mode picker + Home "Start Timer" entry
+
+**Wave 3** *(blocked on 62-02, 62-03)*
+
+- [ ] 62-04-PLAN.md — NotchWindowController wiring (construction, deadline-fire orchestration, SC5 call-site cleanup, geometry) + on-device UAT checkpoint
+
 **UI hint**: yes
 
 ### Phase 63: Meeting-HUD
