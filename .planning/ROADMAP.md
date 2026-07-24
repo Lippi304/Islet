@@ -1116,7 +1116,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 63-01-PLAN.md — Pure seams: MeetingActivity model (TDD) + MicMuteController (shared system-wide input-mute primitive, D-02/D-04)
+- [x] 63-01-PLAN.md — Pure seams: MeetingActivity model (TDD) + MicMuteController (shared system-wide input-mute primitive, D-02/D-04)
 
 **Wave 2** *(blocked on 63-01)*
 

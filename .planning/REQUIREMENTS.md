@@ -116,8 +116,8 @@ Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plu
 
 ### Meeting-HUD
 
-- [ ] **MEET-01**: While Zoom or Teams (native app) is running AND the microphone is active, the notch shows a call-timer HUD (elapsed mm:ss)
-- [ ] **MEET-02**: Tapping the Meeting-HUD's mute control toggles the system-wide microphone mute (not the in-app mute state) via a shared `MicMuteController`
+- [x] **MEET-01**: While Zoom or Teams (native app) is running AND the microphone is active, the notch shows a call-timer HUD (elapsed mm:ss)
+- [x] **MEET-02**: Tapping the Meeting-HUD's mute control toggles the system-wide microphone mute (not the in-app mute state) via a shared `MicMuteController`
 - [ ] **MEET-03**: Google Meet (browser-based) is explicitly not detected in v1.10 — documented as a known limitation, not silently missing
 
 ### Coding-Progress
@@ -222,8 +222,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TIMER-02 | Phase 62 | Complete |
 | TIMER-03 | Phase 62 | Complete |
 | TIMER-04 | Phase 62 | Complete |
-| MEET-01 | Phase 63 | Pending |
-| MEET-02 | Phase 63 | Pending |
+| MEET-01 | Phase 63 | Complete |
+| MEET-02 | Phase 63 | Complete |
 | MEET-03 | Phase 63 | Pending |
 | NOTES-01 | Phase 64 | Pending |
 | NOTES-02 | Phase 64 | Pending |
