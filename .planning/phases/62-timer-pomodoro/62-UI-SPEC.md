@@ -1,10 +1,11 @@
 ---
 phase: 62
 slug: timer-pomodoro
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-24
+reviewed_at: 2026-07-24
 ---
 
 # Phase 62 — UI Design Contract
@@ -24,6 +25,12 @@ created: 2026-07-24
 | Font | System font, `design: .rounded` variant on every label/body/heading text; countdown digits use `.monospacedDigit()` to prevent width jitter as the number changes |
 
 This phase adds **zero new visual primitives**. Every control below reuses an existing, on-device-proven pattern from `NotchPillView.swift` — do not invent a new button/chip/sheet style.
+
+**Primary visual anchor:**
+- Collapsed pill: the live `mm:ss` countdown text — it is the sole accent-color (`Color.white`, full opacity) content in the collapsed wing, everything else (wing icon) reads at lower visual weight via `.symbolRenderingMode(.hierarchical)`.
+- Expanded row: the filled Pause/Resume circle — the only **filled** `navCircleButton` in the row (white circle, black glyph), per the "exactly one filled action" accent convention already declared under Color/Accent below; Reset, Add-Time, and Stop stay outlined and read as secondary.
+
+**Accessibility:** All four expanded-row circular buttons are icon-only with no visible text caption. Each carries an explicit `.accessibilityLabel` matching its action: **"Pause"**/**"Resume"** (state-dependent, toggles with the glyph), **"Reset"**, **"Add 1 Minute"**, **"Stop"** — mirrors this codebase's existing convention of pairing icon-only `navCircleButton` instances with accessibility labels rather than relying on the SF Symbol name.
 
 ---
 
@@ -47,12 +54,12 @@ Exceptions: The collapsed-pill wing's camera-clearance **margin** value (the gap
 
 ## Typography
 
-Reuses the exact size/weight pairs already established across `NotchPillView.swift` — no new sizes introduced.
+Reuses the exact size/weight pairs already established across `NotchPillView.swift` — no new sizes introduced. Note: the generic wing-label text elsewhere in this file (e.g. "Caps Lock On", "Update") uses 12px — Timer intentionally standardizes on the 13px countdown-display precedent instead, since the countdown mm:ss text is this phase's dominant label element and locking both to one value keeps the phase within the 4-size typography budget.
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body / secondary copy | 11px | regular (400) | 1.5 (e.g. "Start something in Spotify or Music." pattern) |
-| Label / wing text | 12–13px | semibold (600) | 1.2 (e.g. "Caps Lock On", "Update" wing labels; countdown mm:ss uses 13px semibold + `.monospacedDigit()`) |
+| Label / wing text | 13px | semibold (600) | 1.2 (matches `countdownWings`' live mm:ss precedent — Phase 41/HUD-08, `NotchPillView.swift:2668`, `.font(.system(size: 13, weight: .semibold, design: .rounded))` + `.monospacedDigit()` — reused verbatim for both the Timer's countdown digits and its "Work · Cycle N" wing label text, collapsing what would otherwise be two separate sizes) |
 | Heading / sheet title, button captions | 16px | semibold (600) | 1.2 |
 | Display / large glyphs | 28px | n/a (icon, not text) | n/a (e.g. `homeEmptyContent`'s 28px `music.note`, reused for the completion splash's checkmark glyph) |
 
