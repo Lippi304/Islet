@@ -104,9 +104,17 @@ struct NotchPillView: View {
         case .calendarExpanded: return Self.calendarContentHeight
         case .trayExpanded: return Self.trayContentHeight
         case .weatherExpanded: return weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight
-        // Phase 62-04 UAT design revision (item 5) — its own bigger reserved box; see
-        // timerSetupContentHeight's own doc comment for why.
-        case .timerSetup: return Self.timerSetupContentHeight
+        // Phase 62-04 UAT round 3 fix (item A) — Countdown's box is now mode-aware/compact
+        // (was sharing Pomodoro's tall reservation, leaving a big empty gap below Countdown's
+        // single chip grid). Reuses calendarContentHeight (220) rather than a new constant —
+        // close enough to Countdown's own real content height (camera clearance + segmented +
+        // one chip grid + button row) and an already-proven-safe value. Site 2/3
+        // (NotchWindowController's positionAndShow/visibleContentZone) intentionally stay
+        // reserved at the taller timerSetupContentHeight unconditionally — they have no
+        // visibility into this view-local timerSetupMode, and over-reserving is the safe
+        // direction (mirrors OUTPUT-01's own accepted "static reservation, slightly taller
+        // than needed sometimes" trade-off) — Site 1 alone decides the actually-visible height.
+        case .timerSetup: return timerSetupMode == .countdown ? Self.calendarContentHeight : Self.timerSetupContentHeight
         default: return Self.homeContentHeight + (presentationState.outputPanelOpen ? Self.outputPanelExtraHeight : 0)
         }
     }
@@ -1798,16 +1806,20 @@ struct NotchPillView: View {
                 // D-08 — exactly 4 circular icon buttons: Pause/Resume is the ONE filled action
                 // (toggles glyph), Reset/Add-Time/Stop stay outlined per navCircleButton's own
                 // filled/outlined convention (never chipButton — D-08 excludes that style here).
-                HStack(spacing: 0) {
+                // Phase 62-04 UAT round 3 fix (item D) — was `HStack(spacing: 0) { button;
+                // Spacer(); button; ... }`, which stretches to fill the FULL content width,
+                // spreading the 4 buttons wide AND pinning the outer two flush against the
+                // padded edge (reported "too spread out / too close to the pill's outer edge"
+                // in BOTH round 1 and round 2). A fixed-spacing row has a natural width of
+                // just 4*36 + 3*20 = 204pt, centered by the parent VStack instead of stretched
+                // — buttons sit closer together AND naturally clear of the rounded corners.
+                HStack(spacing: 20) {
                     navCircleButton(systemName: isPaused ? "play.fill" : "pause.fill", filled: true, action: onTimerPauseResume)
                         .accessibilityLabel(isPaused ? "Resume" : "Pause")
-                    Spacer()
                     navCircleButton(systemName: "arrow.counterclockwise", filled: false, action: onTimerReset)
                         .accessibilityLabel("Reset")
-                    Spacer()
                     navCircleButton(systemName: "plus", filled: false, action: onTimerAddTime)
                         .accessibilityLabel("Add 1 Minute")
-                    Spacer()
                     // Stop is deliberately NOT color-coded red (62-UI-SPEC.md Color section) —
                     // distinguished from Reset/Add-Time by icon glyph only.
                     navCircleButton(systemName: "stop.fill", filled: false, action: onTimerStop)
@@ -1815,7 +1827,11 @@ struct NotchPillView: View {
                 }
             }
             .padding(.top, Self.cameraClearance)
-            .padding(.horizontal, 24)
+            // Phase 62-04 UAT round 3 fix (item D) — was 24, bumped to 32 matching
+            // timerSetupPicker's own B/C fix, for the same "too close to the rounded corners"
+            // reason (though with the row no longer edge-stretched above, this now only
+            // matters for the VStack's own overall box centering, not button placement).
+            .padding(.horizontal, 32)
         }
     }
 
@@ -1847,7 +1863,13 @@ struct NotchPillView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.white.opacity(isSelected ? 0.22 : 0.12))
+                            .fill(Color.white.opacity(isSelected ? 0.28 : 0.12))
+                    )
+                    // Phase 62-04 UAT round 3 fix (item F) — matches chipButton's own
+                    // selected-state border ring for visual parity between preset and custom chips.
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(Color.white.opacity(isSelected ? 0.9 : 0), lineWidth: 1.5)
                     )
             }
             .buttonStyle(.plain)
@@ -1871,7 +1893,11 @@ struct NotchPillView: View {
                                     isCustomSelected: Binding<Bool>, customText: Binding<String>) -> some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
             ForEach(presets, id: \.self) { minutes in
-                chipButton("\(minutes) min", fontSize: 12) {
+                // Phase 62-04 UAT round 3 fix (item F) — a preset chip reads "selected" only
+                // when Custom isn't active AND its own value is the current one, so exactly
+                // one chip (preset or Custom) is ever highlighted at a time.
+                chipButton("\(minutes) min", fontSize: 12,
+                           selected: !isCustomSelected.wrappedValue && selectedMinutes.wrappedValue == minutes) {
                     selectedMinutes.wrappedValue = minutes
                     isCustomSelected.wrappedValue = false
                 }
@@ -1931,7 +1957,11 @@ struct NotchPillView: View {
             }
         }
         .padding(.top, Self.cameraClearance)
-        .padding(.horizontal, 24)
+        // Phase 62-04 UAT round 3 fix (items B/C) — was 24, too little clearance from the
+        // bottomCornerRadius:32 curve: the X/checkmark buttons (and the Work/Break labels)
+        // read as pinned into the rounded corners. 32 gives every element in this column
+        // (segmented control, chip grids, labels, X/checkmark row) the same wider inset.
+        .padding(.horizontal, 32)
     }
 
     // Resolves the picker's current selection to validated Int minute value(s) and forwards
@@ -2277,7 +2307,12 @@ struct NotchPillView: View {
     // inventing a new button primitive (26-UI-SPEC.md Button/chip style). Round 2: Back/
     // Next/Finish moved off this style onto navCircleButton above; this remains the style
     // for the inline Grant/License/Buy actions, unchanged.
-    private func chipButton(_ label: String, fontSize: CGFloat = 14, action: @escaping () -> Void) -> some View {
+    // Phase 62-04 UAT round 3 fix (item F) — `selected` defaults to false so every existing
+    // call site (Grant/License/Buy) renders byte-identical; the Timer duration chips are the
+    // only callers passing `true`. Brighter fill + a white border ring mirrors
+    // navCircleButton's own filled-vs-outlined selected/unselected duality (the closest
+    // existing "this one is chosen" convention in this file) adapted to a rectangular chip.
+    private func chipButton(_ label: String, fontSize: CGFloat = 14, selected: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: fontSize, weight: .semibold, design: .rounded))
@@ -2286,7 +2321,11 @@ struct NotchPillView: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.12))
+                        .fill(Color.white.opacity(selected ? 0.28 : 0.12))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.white.opacity(selected ? 0.9 : 0), lineWidth: 1.5)
                 )
         }
         .buttonStyle(.plain)
@@ -3348,7 +3387,14 @@ struct NotchPillView: View {
         let leadingPad: CGFloat = 16
         let iconWidth: CGFloat = 20
         let trailingPad: CGFloat = 16
-        let rightContentWidth: CGFloat = 130   // fits "Break · Cycle 9" + mm:ss, the widest label/digit combination
+        // Phase 62-04 UAT round 3 fix (item E) — was 130, sized for "Break · Cycle 9" + mm:ss
+        // TEXT only, never accounting for the 6pt dot + 4pt HStack spacing (10pt) that also
+        // renders during the Work phase. With round 2's Bug-3 fix (.trailing alignment,
+        // pushing content to the wing's OUTER edge), any overflow beyond this box's width
+        // spills LEADING instead of trailing — i.e. back toward/under the camera cutout,
+        // clipping exactly the dot (the leftmost element). +15 covers the dot+spacing with
+        // a small safety margin.
+        let rightContentWidth: CGFloat = 145   // fits dot + "Break · Cycle 9" + mm:ss, the widest combination
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
