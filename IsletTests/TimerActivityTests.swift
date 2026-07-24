@@ -25,13 +25,14 @@ final class TimerActivityTests: XCTestCase {
         XCTAssertEqual(nextPhase(after: .breakTime), .work)
     }
 
+    // Phase 62-04 UAT revision (item 4) — cap raised 180 -> 999.
     func testValidateCustomDurationMinutes() {
         XCTAssertEqual(validateCustomDurationMinutes("45"), 45)
         XCTAssertNil(validateCustomDurationMinutes("0"))
-        XCTAssertNil(validateCustomDurationMinutes("181"))
+        XCTAssertNil(validateCustomDurationMinutes("1000"))
         XCTAssertNil(validateCustomDurationMinutes("abc"))
         XCTAssertEqual(validateCustomDurationMinutes("1"), 1)
-        XCTAssertEqual(validateCustomDurationMinutes("180"), 180)
+        XCTAssertEqual(validateCustomDurationMinutes("999"), 999)
     }
 
     func testCompletionSplashText() {

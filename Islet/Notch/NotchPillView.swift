@@ -104,6 +104,9 @@ struct NotchPillView: View {
         case .calendarExpanded: return Self.calendarContentHeight
         case .trayExpanded: return Self.trayContentHeight
         case .weatherExpanded: return weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight
+        // Phase 62-04 UAT design revision (item 5) — its own bigger reserved box; see
+        // timerSetupContentHeight's own doc comment for why.
+        case .timerSetup: return Self.timerSetupContentHeight
         default: return Self.homeContentHeight + (presentationState.outputPanelOpen ? Self.outputPanelExtraHeight : 0)
         }
     }
@@ -157,14 +160,16 @@ struct NotchPillView: View {
 
     // Phase 62 / TIMER-01 (D-01) — the Timer/Pomodoro activity toggle (Settings default OFF,
     // per v1.10's own "new activities default OFF" convention). Read directly here, same
-    // existing-key/existing-pattern as switcherLayout above — startTimerButton below is gated
+    // existing-key/existing-pattern as switcherLayout above — the switcher's 5th Timer icon is gated
     // on this with zero controller-side plumbing needed.
     @AppStorage(ActivitySettings.timerKey) private var timerEnabled = false
 
-    // Phase 62 / TIMER-01 (D-01..D-05) — the inline duration/mode picker's local UI state.
-    // Never reaches a controller closure directly — only the validated Int minute values passed
-    // to onStartCountdown/onStartPomodoro do (T-62-04).
-    @State private var isTimerSetupPresented = false
+    // Phase 62 / TIMER-01 (D-01..D-05) — the duration/mode picker's local UI state, now
+    // rendered under the dedicated `.timerSetup` switcher tab (Phase 62-04 UAT revision,
+    // item 6) rather than an inline Home overlay -- visibility is driven by
+    // `presentation == .timerSetup`, no local presented-flag needed anymore. Never reaches a
+    // controller closure directly — only the validated Int minute values passed to
+    // onStartCountdown/onStartPomodoro do (T-62-04).
     @State private var timerSetupMode: TimerMode = .countdown
     @State private var countdownMinutes = 10
     @State private var isCountdownCustomSelected = false
@@ -760,6 +765,17 @@ struct NotchPillView: View {
     // row heights aren't measurable from source alone.
     static let homeContentHeight: CGFloat = 170
 
+    // Phase 62-04 UAT design revision (item 5) — the Timer tab's duration/mode picker box.
+    // The original inline-in-Home picker used homeContentHeight (170) and badly overflowed
+    // for Pomodoro (segmented control + Work section + Break section + button row), rendering
+    // past the island edge into the desktop/menu bar behind it (UAT screenshot). Rough content
+    // budget for the worst case (Pomodoro): cameraClearance 42 + segmented ~28 + spacing 12 +
+    // ("Work" label 14 + spacing 4 + 2-row chip grid ~74) + spacing 8 + ("Break" label 14 +
+    // spacing 4 + 2-row chip grid ~74) + spacing 12 + button row 36 ≈ 322, +margin. Countdown
+    // mode has slack by comparison — a harmless, deliberate trade-off (one shared box height,
+    // same convention switcherContentHeight itself already established for its 6 tabs).
+    static let timerSetupContentHeight: CGFloat = 340
+
     // Phase 48 / OUTPUT-01/02/03 (CR-01 geometry three-site rule, Site 1) — the extra height
     // `tabHeight`'s default case adds when the output panel is open. Plan 48-02's original 140
     // was a rough first-pass estimate (its own fudge math, not the real per-row layout) and left
@@ -968,7 +984,7 @@ struct NotchPillView: View {
         // z-order glitch). Grouping them into ONE case arm to `tabContentView`, which
         // makes the SINGLE remaining `blobShape` call for all 6, gives every case one
         // continuously-identified subtree so `matchedGeometryEffect` morphs it directly.
-        case .nowPlayingExpanded, .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded:
+        case .nowPlayingExpanded, .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .timerSetup:
             tabContentView
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
@@ -1004,17 +1020,10 @@ struct NotchPillView: View {
                   shelfVisible: shelfStripVisible, showSwitcher: true,
                   switcherLayout: switcherLayout) {
             switch presentation {
-            // Phase 62 / TIMER-01 (D-01..D-05) — guarded arms placed BEFORE their unguarded
-            // counterparts so Swift's top-to-bottom case matching picks the picker while it's
-            // open, falling through to normal content otherwise; covers all 3 Home sub-states.
-            case .nowPlayingExpanded(_, true) where isTimerSetupPresented:
-                timerSetupPicker
             case .nowPlayingExpanded(let p, true):
                 mediaContent(p, art: nowPlaying.artwork)
             case .nowPlayingExpanded(_, false):
                 mediaUnavailableContent
-            case .homeLastPlayed where isTimerSetupPresented:
-                timerSetupPicker
             case .homeLastPlayed:
                 // Phase 30 / HOME-02 (D-04): synthesize a .paused presentation from the
                 // sticky last-played snapshot and feed the SAME mediaContent(_:art:) the
@@ -1022,8 +1031,6 @@ struct NotchPillView: View {
                 mediaContent(.paused(title: nowPlaying.lastKnownTrack?.title ?? "",
                                       artist: nowPlaying.lastKnownTrack?.artist ?? ""),
                              art: nowPlaying.lastKnownTrack?.artwork)
-            case .homeEmpty where isTimerSetupPresented:
-                timerSetupPicker
             case .homeEmpty:
                 homeEmptyContent
             case .calendarExpanded:
@@ -1032,8 +1039,12 @@ struct NotchPillView: View {
                 weatherContent
             case .trayExpanded:
                 trayContent
+            // Phase 62-04 UAT design revision (item 6) — Timer's OWN dedicated tab, no
+            // longer an inline overlay gated on Home's 3 sub-states.
+            case .timerSetup:
+                timerSetupPicker
             default:
-                EmptyView()   // unreachable — presentationSwitch only routes here for the 6 cases above
+                EmptyView()   // unreachable — presentationSwitch only routes here for the 7 cases above
             }
         }
     }
@@ -1208,9 +1219,6 @@ struct NotchPillView: View {
                 .font(.system(size: 11, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            // Phase 62 / TIMER-01 (D-01) — reachable from all 3 Home sub-states; here for
-            // "Nothing Playing".
-            if timerEnabled { startTimerButton }
         }
         // Quick task 260715-vsd gap-closure round 3 — the dead gap before the switcher row
         // here is `Self.switcherContentHeight` (196) minus this content's own natural
@@ -1758,7 +1766,12 @@ struct NotchPillView: View {
     private func timerExpandedContent(for activity: TimerActivity) -> some View {
         let isPaused: Bool
         if case .paused = activity { isPaused = true } else { isPaused = false }
-        return blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .center,
+        // Phase 62-04 UAT fix (Bug 2, defensive) — was `.center`, the ONE
+        // navCircleButton-using blobShape caller not using `.top` like every sibling
+        // (tabContentView/onboardingCarousel); normalized for consistency with the
+        // codebase's own "content grows DOWNWARD from the top-pinned notch" convention that
+        // visibleContentZone()'s click-through geometry assumes.
+        return blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                           width: Self.expandedSize.width, height: nil,
                           shelfItems: [], shelfVisible: false, showSwitcher: false) {
             VStack(spacing: 20) {
@@ -1806,29 +1819,71 @@ struct NotchPillView: View {
         }
     }
 
-    // Phase 62 / TIMER-01 (D-01, exact wording) — the Home entry point, chip style (matches
-    // the existing labeled-text-CTA convention used for "Enter License Key"/"Buy Islet"),
-    // distinct from D-08's icon-only navCircleButton circles. Opens the inline setup picker.
-    private var startTimerButton: some View {
-        chipButton("Start Timer") { isTimerSetupPresented = true }
-    }
+    // Phase 62-04 UAT fix (Bug 1) — root cause: this whole view is hosted inside a
+    // `.nonactivatingPanel` (NotchWindowController sets `canBecomeKey`/`canBecomeMain` ==
+    // false), so a plain TextField living directly in blobShape's content can NEVER become
+    // first responder — the "Custom…" field was un-typeable by construction, not a SwiftUI
+    // binding bug. `.popover` opens its own separate, key-capable window — the exact
+    // mechanism QuickAddPopover (28-CONTEXT.md, calendar quick-add's title field) already
+    // proved works in this same architecture — reused here instead of inventing a new
+    // focus-forcing trick. Trigger chip mirrors chipButton's visual style so it reads as
+    // just another chip in durationChipsGrid below.
+    private struct CustomDurationChip: View {
+        @Binding var text: String
+        @Binding var isSelected: Bool
+        @State private var isShowing = false
 
-    // Phase 62 / TIMER-01 (D-02..D-05) — a preset-chip row + "Custom…" chip shared by the
-    // Countdown/Work/Break sections below, so the 3 nearly-identical rows aren't tripled.
-    private func durationChipsRow(presets: [Int], selectedMinutes: Binding<Int>, isCustomSelected: Binding<Bool>) -> some View {
-        HStack(spacing: 8) {
-            ForEach(presets, id: \.self) { minutes in
-                chipButton("\(minutes) min") {
-                    selectedMinutes.wrappedValue = minutes
-                    isCustomSelected.wrappedValue = false
-                }
+        var body: some View {
+            Button(action: {
+                isSelected = true
+                isShowing = true
+            }) {
+                Text(isSelected && !text.isEmpty ? "\(text) min" : "Custom…")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.white.opacity(isSelected ? 0.22 : 0.12))
+                    )
             }
-            chipButton("Custom…") { isCustomSelected.wrappedValue = true }
+            .buttonStyle(.plain)
+            .popover(isPresented: $isShowing, arrowEdge: .bottom) {
+                TextField("Minutes", text: $text)
+                    .font(.system(size: 13, design: .rounded))
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 120)
+                    .padding(12)
+            }
         }
     }
 
-    // Phase 62 / TIMER-01 (D-01..D-05) — the inline Start Timer duration/mode picker.
-    // T-62-04 (threat model, mitigate): every custom-duration TextField is validated via
+    // Phase 62-04 UAT design revision (item 5) — was durationChipsRow's single HStack (read
+    // "one cramped row" in the UAT report for Work/Break); a LazyVGrid with 3 flexible
+    // columns wraps the same preset+Custom chips into 2 rows instead, with the Custom chip
+    // grouped IN the grid (not off to the side in its own trailing slot). Smaller fontSize
+    // (12, was 14) matches the "smaller chips" ask. Shared by Countdown/Work/Break exactly
+    // like the row helper it replaces.
+    private func durationChipsGrid(presets: [Int], selectedMinutes: Binding<Int>,
+                                    isCustomSelected: Binding<Bool>, customText: Binding<String>) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+            ForEach(presets, id: \.self) { minutes in
+                chipButton("\(minutes) min", fontSize: 12) {
+                    selectedMinutes.wrappedValue = minutes
+                    isCustomSelected.wrappedValue = false
+                }
+                .frame(maxWidth: .infinity)
+            }
+            CustomDurationChip(text: customText, isSelected: isCustomSelected)
+        }
+    }
+
+    // Phase 62-04 UAT design revision (item 6) — the duration/mode picker, now the content of
+    // its own dedicated `.timerSetup` switcher tab (was an inline Home overlay). T-62-04
+    // (threat model, mitigate): every custom-duration entry is validated via
     // validateCustomDurationMinutes(_:) (Plan 62-01) inside startTimerSetup() below BEFORE
     // onStartCountdown/onStartPomodoro is ever called — the raw text itself never leaves
     // this view.
@@ -1841,29 +1896,20 @@ struct NotchPillView: View {
             .pickerStyle(.segmented)
 
             if timerSetupMode == .countdown {
-                durationChipsRow(presets: [5, 10, 20, 30], selectedMinutes: $countdownMinutes, isCustomSelected: $isCountdownCustomSelected)
-                if isCountdownCustomSelected {
-                    TextField("1-180", text: $countdownCustomText)
-                        .textFieldStyle(.roundedBorder)
-                }
+                durationChipsGrid(presets: [5, 10, 20, 30], selectedMinutes: $countdownMinutes,
+                                   isCustomSelected: $isCountdownCustomSelected, customText: $countdownCustomText)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Work")
                         .font(.system(size: 11, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
-                    durationChipsRow(presets: [25], selectedMinutes: $workMinutes, isCustomSelected: $isWorkCustomSelected)
-                    if isWorkCustomSelected {
-                        TextField("1-180", text: $workCustomText)
-                            .textFieldStyle(.roundedBorder)
-                    }
+                    durationChipsGrid(presets: [15, 25, 45, 60], selectedMinutes: $workMinutes,
+                                       isCustomSelected: $isWorkCustomSelected, customText: $workCustomText)
                     Text("Break")
                         .font(.system(size: 11, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
-                    durationChipsRow(presets: [5], selectedMinutes: $breakMinutes, isCustomSelected: $isBreakCustomSelected)
-                    if isBreakCustomSelected {
-                        TextField("1-180", text: $breakCustomText)
-                            .textFieldStyle(.roundedBorder)
-                    }
+                    durationChipsGrid(presets: [5, 10, 15, 20], selectedMinutes: $breakMinutes,
+                                       isCustomSelected: $isBreakCustomSelected, customText: $breakCustomText)
                 }
             }
 
@@ -1874,8 +1920,10 @@ struct NotchPillView: View {
             }
 
             HStack {
+                // Cancel now navigates back to the Home tab (Timer is its own switcher tab,
+                // not a dismissable overlay anymore).
                 navCircleButton(systemName: "xmark", filled: false) {
-                    isTimerSetupPresented = false
+                    onSwitcherSelect(.home)
                     timerValidationMessage = nil
                 }
                 Spacer()
@@ -1888,13 +1936,13 @@ struct NotchPillView: View {
 
     // Resolves the picker's current selection to validated Int minute value(s) and forwards
     // ONLY those to onStartCountdown/onStartPomodoro — an invalid custom entry blocks dismissal
-    // and shows the locked 62-UI-SPEC.md validation copy instead (T-62-04).
+    // and shows the locked validation copy instead (T-62-04).
     private func startTimerSetup() {
         switch timerSetupMode {
         case .countdown:
             let minutes = isCountdownCustomSelected ? validateCustomDurationMinutes(countdownCustomText) : countdownMinutes
             guard let minutes else {
-                timerValidationMessage = "Enter a number between 1 and 180."
+                timerValidationMessage = "Enter a number between 1 and 999."
                 return
             }
             onStartCountdown(minutes)
@@ -1902,12 +1950,11 @@ struct NotchPillView: View {
             let work = isWorkCustomSelected ? validateCustomDurationMinutes(workCustomText) : workMinutes
             let breakMin = isBreakCustomSelected ? validateCustomDurationMinutes(breakCustomText) : breakMinutes
             guard let work, let breakMin else {
-                timerValidationMessage = "Enter a number between 1 and 180."
+                timerValidationMessage = "Enter a number between 1 and 999."
                 return
             }
             onStartPomodoro(work, breakMin)
         }
-        isTimerSetupPresented = false
         timerValidationMessage = nil
     }
 
@@ -2374,6 +2421,7 @@ struct NotchPillView: View {
         case .tray:     return ("tray.fill",      { onSwitcherSelect(.tray) })
         case .calendar: return ("calendar",       { onSwitcherSelect(.calendar) })
         case .weather:  return ("cloud.sun.fill", { onSwitcherSelect(.weather) })
+        case .timer:    return ("timer",          { onSwitcherSelect(.timer) })
         }
     }
 
@@ -2393,6 +2441,16 @@ struct NotchPillView: View {
                 let mapping = icon(for: view)
                 navCircleButton(systemName: mapping.systemName,
                                  filled: viewSwitcherState.selectedView == view,
+                                 action: mapping.action)
+            }
+            // Phase 62-04 UAT design revision (item 6) — Timer is a FIXED 5th tab, appended
+            // after the 4 user-configurable slots (not one of them — SelectedView.timer is
+            // deliberately excluded from orderedSlotIcons/the Settings slot dropdowns).
+            // Gated on timerEnabled, mirroring the removed inline "Start Timer" button's own gate.
+            if timerEnabled {
+                let mapping = icon(for: .timer)
+                navCircleButton(systemName: mapping.systemName,
+                                 filled: viewSwitcherState.selectedView == .timer,
                                  action: mapping.action)
             }
         }
@@ -2442,6 +2500,15 @@ struct NotchPillView: View {
                 navCircleButton(systemName: rightOuter.systemName,
                                  filled: viewSwitcherState.selectedView == orderedSlotViews[3],
                                  action: rightOuter.action)
+                // Phase 62-04 UAT design revision (item 6) — same fixed 5th Timer icon as
+                // switcherRow (pill layout), appended to the right group here since there is
+                // no free space near the camera cutout to split it symmetrically.
+                if timerEnabled {
+                    let timerMapping = icon(for: .timer)
+                    navCircleButton(systemName: timerMapping.systemName,
+                                     filled: viewSwitcherState.selectedView == .timer,
+                                     action: timerMapping.action)
+                }
             }
         }
         .frame(height: Self.cameraClearance)
@@ -3323,7 +3390,14 @@ struct NotchPillView: View {
                                     .monospacedDigit()
                                     .foregroundStyle(.white)
                             }
-                            .frame(width: rightContentWidth, alignment: .leading)
+                            // Phase 62-04 UAT fix (Bug 3) — was `.leading`, which hugs the
+                            // digits right against the camera gap (reads as "centered under
+                            // the notch" in the UAT screenshot, since rightContentWidth's
+                            // slack then sits on the outer side). `.trailing` pushes the
+                            // label+digits to the wing's OUTER edge instead, matching
+                            // countdownWings' own Spacer()+.padding(.trailing, 20) convention
+                            // (the "other countdown wing" the UAT report cited).
+                            .frame(width: rightContentWidth, alignment: .trailing)
                             Color.clear.frame(width: trailingPad)
                         }
                     }
@@ -3340,7 +3414,9 @@ struct NotchPillView: View {
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                             .lineLimit(1)
-                            .frame(width: rightContentWidth, alignment: .leading)
+                            // Phase 62-04 UAT fix (Bug 3) — same outward-alignment fix as the
+                            // .running/.paused branch above, for visual consistency.
+                            .frame(width: rightContentWidth, alignment: .trailing)
                         Color.clear.frame(width: trailingPad)
                     }
                 }
@@ -3655,9 +3731,6 @@ struct NotchPillView: View {
             if presentationState.outputPanelOpen {
                 outputPanel(devices: presentationState.outputDevices)
             }
-            // Phase 62 / TIMER-01 (D-01) — reachable from all 3 Home sub-states; mediaContent
-            // covers both Now Playing and Last Played (D-01's Empty State note).
-            if timerEnabled { startTimerButton }
         }
         .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
         .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve (restored to its pre-260715-vsd value —

@@ -64,8 +64,11 @@ func nextPhase(after phase: TimerPhase) -> TimerPhase {
 // ASVS V5 mitigation (T-62-01): the trust-boundary input validator Plan 62-03's picker UI
 // calls. Never used in a shell/path/format-string context — the value only ever feeds
 // Date.addingTimeInterval (Plan 62-02).
+// Phase 62-04 UAT revision (item 4) — cap raised 180 -> 999 (user request: "as long a
+// custom duration as they want"; 999min/~16.65h is a generous ceiling that still keeps
+// the value comfortably inside Int/TimeInterval range, never truly unbounded).
 func validateCustomDurationMinutes(_ text: String) -> Int? {
-    guard let value = Int(text), (1...180).contains(value) else { return nil }
+    guard let value = Int(text), (1...999).contains(value) else { return nil }
     return value
 }
 

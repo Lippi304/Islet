@@ -114,6 +114,7 @@ enum IslandPresentation: Equatable {
     case calendarExpanded                                  // Phase 28 / CALVIEW-01: month grid + day list
     case weatherExpanded                                   // 28-04 round 4: current-conditions full view
     case trayExpanded                                      // 28-04 round 5: dedicated files-only Tray view
+    case timerSetup                                        // Phase 62-04 UAT revision (item 6): the Timer tab's idle duration/mode picker -- reachable only while no Timer transient is active (a running/paused Timer always wins via the activeTransient switch below)
     case quickActionPicker(PendingDrop)                     // Phase 34 / TRAY-02: full-takeover destination picker
 }
 
@@ -160,7 +161,7 @@ extension ActiveTransient {
 // call sites now reference this one function instead.
 func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
     switch presentation {
-    case .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded: return true
+    case .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded, .timerSetup: return true
     default: return false
     }
 }
@@ -212,6 +213,11 @@ func resolve(activeTransient: ActiveTransient?,
         if selectedView == .calendar { return .calendarExpanded }
         if selectedView == .weather { return .weatherExpanded }
         if selectedView == .tray { return .trayExpanded }
+        // Phase 62-04 UAT design revision (item 6) — Timer joins the same tier as
+        // Calendar/Weather/Tray. Only reached while NO Timer transient is active: the
+        // activeTransient switch above already returned .timer/.timerExpanded first
+        // whenever a session is running/paused (D-04, transient wins even over expanded).
+        if selectedView == .timer { return .timerSetup }
         // Home (default) — the "smart Home" behavior (round 4, user-confirmed): Now-Playing
         // wins over the idle glance when present, exactly like before this fix; the only
         // change is that this branch is no longer reached for an explicit Calendar/Weather

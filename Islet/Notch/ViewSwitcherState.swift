@@ -10,11 +10,19 @@ import Foundation
 // @AppStorage-compatible (per-slot top-edge switcher placement config) and usable directly
 // in `ForEach(_:id: \.self)`. Additive/behavior-preserving: existing call sites compare via
 // `==`, none pattern-match on `.rawValue`.
+// Phase 62-04 UAT design revision (item 6) — `.timer` added as a 5th case. NOT one of
+// the 4 user-configurable slots (orderedSlotIcons below is untouched, still exactly 4
+// params): Timer renders as a FIXED 5th icon appended after the configurable slots in
+// both switcherRow/topEdgeSwitcherRow (NotchPillView.swift), gated on the same
+// `timerEnabled` flag the old Home "Start Timer" button used. SettingsView.swift's 4
+// slot dropdowns list Home/Tray/Calendar/Weather explicitly (never `.allCases`), so this
+// addition does not make Timer assignable to a configurable slot.
 enum SelectedView: String, Equatable, Hashable, CaseIterable {
     case home
     case tray
     case calendar
     case weather
+    case timer
 }
 
 // Phase 52 / D-03 — the ONE shared left-to-right ordering projection: both the pill's

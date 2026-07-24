@@ -953,14 +953,35 @@ final class NotchWindowController {
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             renderPresentation()
         }
+        // Phase 62-04 UAT fix (Bug 2, defensive) — WR-02's own discipline ("call after every
+        // phase/pointer mutation") applied here too: cheap and safe even though this
+        // presentation's click-through footprint never actually changes size on Pause/Resume/
+        // Reset/Add-Time.
+        syncClickThrough()
     }
 
-    // D-10 — Stop is a full reset; flushTransients(.timer) handles the render/dismiss-rearm
-    // dance the same way every other Stop-equivalent action does.
+    // D-10 — Stop is a full reset; flushTransients(.timer) handles the dismiss-rearm dance
+    // the same way every other Stop-equivalent action does.
+    //
+    // Phase 62-04 UAT fix (Bug 2, CONFIRMED root cause) — flushTransients(_:) itself never
+    // calls renderPresentation() (it only cancels/re-arms the dismiss timer); every OTHER
+    // caller relies on a render happening elsewhere in the SAME calling context (e.g.
+    // handleSettingsChanged()'s own trailing unconditional renderPresentation()/
+    // updateVisibility() after its own flushTransients(...) calls). This was the ONE caller
+    // that invoked flushTransients(.timer) standalone with no follow-up render at all — Stop
+    // correctly cleared transientQueue.head/timerActivityState, but presentationState.
+    // presentation (the only @Published value the view observes) never updated, so the view
+    // kept rendering the stale .timerExpanded screen. Same pattern the Charging/Device/OSD
+    // toggle-off block already uses.
     private func handleTimerStop() {
         timerActivityState.stop()
         timerMonitor.arm(at: nil)
         flushTransients(.timer)
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+        updateVisibility()
+        syncClickThrough()
     }
 
     // D-11/D-12/D-13 — called by timerMonitor's onFire closure when a countdown/segment
@@ -1362,7 +1383,14 @@ final class NotchWindowController {
         // Phase 34 (UAT revision, Pattern 3) — the 3 destination buttons' live global frames,
         // computed once per positionAndShow() alongside quickActionPickerFrame itself.
         quickActionButtonFrames = computeQuickActionButtonFrames(card: quickActionPickerFrame)
-        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExpandedFrame).union(outputPanelExpandedFrame).union(quickActionPickerFrame)
+        // Phase 62-04 UAT design revision (item 6, geometry three-site rule, Site 2) — the
+        // Timer tab's duration/mode picker needs its own bigger reservation (340pt content,
+        // taller than expandedFrame's 296pt union member), mirroring weatherExpandedFrame's/
+        // trayFrame's precedent exactly.
+        let timerSetupFrame = expandedNotchFrame(collapsed: collapsedFrame,
+                                                  expandedSize: CGSize(width: expandedSize.width,
+                                                                        height: NotchPillView.timerSetupContentHeight + NotchPillView.switcherRowHeight))
+        let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExpandedFrame).union(outputPanelExpandedFrame).union(quickActionPickerFrame).union(timerSetupFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
         hotZone = collapsedFrame.insetBy(dx: -hotZonePadding, dy: -hotZonePadding)
@@ -1773,6 +1801,14 @@ final class NotchWindowController {
             // or the CR-01 click-swallowing/dead-zone regression class comes back.
             contentSize = CGSize(width: NotchPillView.calendarWidth,
                                  height: NotchPillView.switcherContentHeight + switcherHeight)
+        } else if case .timerSetup = presentationState.presentation {
+            // Phase 62-04 UAT design revision (item 6, geometry three-site rule, Site 3) —
+            // mirrors NotchPillView.tabHeight's own `.timerSetup` override (Site 1) and
+            // positionAndShow's timerSetupFrame reservation (Site 2). Unlike .timerExpanded
+            // below, this tab DOES show the switcher row (it's a normal tab), so
+            // switcherHeight is included exactly like every other switcher-row branch above.
+            contentSize = CGSize(width: expandedSize.width,
+                                 height: NotchPillView.timerSetupContentHeight + switcherHeight)
         } else if case .timerExpanded = presentationState.presentation {
             // Phase 62 / TIMER-01..04 (Plan 04, CR-01 geometry three-site rule, Site 3) —
             // mirrors timerExpandedContent(for:)'s own blobShape call: no height override, no
