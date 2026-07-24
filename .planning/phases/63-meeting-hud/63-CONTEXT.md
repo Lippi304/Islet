@@ -23,7 +23,7 @@ While a native Zoom or Teams call is active with the microphone on, the notch sh
 ## Implementation Decisions
 
 ### Detection (locked by prior research, not re-asked)
-- **D-01:** Detection heuristic = target app running (`NSWorkspace.runningApplications`, bundle IDs `us.zoom.xos` / `com.microsoft.teams2`) AND microphone in use (`kAudioDevicePropertyDeviceIsRunningSomewhere` on the default input device, CoreAudio `AudioHardware.h`). Source: `.planning/research/FEATURES.md` §1, `.planning/research/SUMMARY.md`.
+- **D-01:** Detection heuristic = target app running (`NSWorkspace.runningApplications`, bundle IDs `us.zoom.xos` / `com.microsoft.teams2` / `com.microsoft.teams`) AND microphone in use (`kAudioDevicePropertyDeviceIsRunningSomewhere` on the default input device, CoreAudio `AudioHardware.h`). Source: `.planning/research/FEATURES.md` §1, `.planning/research/SUMMARY.md`. Classic Teams (`com.microsoft.teams`) added during plan-phase 63 — still coexists alongside new Teams in the wild (2026-07-24 plan-phase clarification).
 - **D-02:** Mute mechanism = system-wide hardware mute via `AudioObjectSetPropertyData` with `kAudioDevicePropertyMute` on the input device, NOT any Zoom/Teams-specific API. Source: `.planning/research/FEATURES.md` §1.
 - **D-03:** Detection risk isolated behind one `MeetingMonitor` file (mirrors `NowPlayingMonitor`/`BluetoothMonitor` isolation discipline) with an on-device spike + documented go/no-go before the full HUD is built — same shape as Phase 24's drag-in spike and Phase 47's audio pure-seam-first precedent.
 - **D-04:** Mute action shares a new `MicMuteController` with the future Quick Actions bar (Phase 65) — build the CoreAudio mute primitive once, invoke from both call sites.
