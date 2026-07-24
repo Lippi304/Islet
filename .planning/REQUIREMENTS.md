@@ -93,7 +93,7 @@ Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plu
 ### Timer/Pomodoro
 
 - [x] **TIMER-01**: User can start a countdown timer from the notch with a chosen duration; the collapsed island shows a live mm:ss countdown while running
-- [ ] **TIMER-02**: The expanded island offers pause/reset/add-time controls for a running timer
+- [x] **TIMER-02**: The expanded island offers pause/reset/add-time controls for a running timer
 - [ ] **TIMER-03**: When the timer completes, the island shows a completion HUD splash and the system plays a notification/sound
 - [x] **TIMER-04**: A Pomodoro mode cycles work/break durations with a session counter, selectable as an alternative to a plain one-shot countdown
 
@@ -219,7 +219,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DL-01 | Phase 61 | Complete |
 | DL-02 | Phase 61 | Complete |
 | TIMER-01 | Phase 62 | Complete |
-| TIMER-02 | Phase 62 | Pending |
+| TIMER-02 | Phase 62 | Complete |
 | TIMER-03 | Phase 62 | Pending |
 | TIMER-04 | Phase 62 | Complete |
 | MEET-01 | Phase 63 | Pending |
