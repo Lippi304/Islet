@@ -69,7 +69,8 @@ struct CalendarCountdownActivity: Equatable {
 // Tier 1 — ActiveTransient queue (collapsed pill), ranked:
 //   charging > device > focus (collapsed-only) > osd (collapsed-only) > downloadProgress
 //   (collapsed-only, sub-state-persistent) > capsLock (collapsed-only, Phase 60) >
-//   updateAvailable (collapsed-only, Phase 60)
+//   updateAvailable (collapsed-only, Phase 60) > timer (Phase 62, sub-state-persistent, has
+//   its own expanded content)
 //
 // Tier 2 — isExpanded branch, ranked:
 //   pendingDrop (quickActionPicker) > selectedView (calendarExpanded/weatherExpanded/
@@ -83,7 +84,7 @@ struct CalendarCountdownActivity: Equatable {
 //   - Caps Lock (Phase 60)          — LANDED (60-01): ActiveTransient tier, rank 5, collapsed-only (D-07)
 //   - Update-available (Phase 60)   — LANDED (60-01): ActiveTransient tier, rank 6, collapsed-only (D-07), NOT persistent
 //   - Download Progress (Phase 61)  — LANDED (61-01): ActiveTransient tier, rank 5, collapsed-only, sub-state-persistent per D-01/D-02/D-03
-//   - Timer/Pomodoro (Phase 62)     — persistent transient, generalizes ActiveTransient.isPersistent beyond Focus — rank TBD — confirm in that activity's own phase discussion
+//   - Timer/Pomodoro (Phase 62)     — LANDED (62-01): ActiveTransient tier, rank 8, sub-state-persistent (D-02/D-13-equivalent), first transient with its OWN dedicated expanded presentation (.timerExpanded)
 //   - Meeting HUD (Phase 63)        — persistent transient, depends on Phase 62's generalization — rank TBD — confirm in that activity's own phase discussion
 //   - Quick Notes (Phase 64)        — likely no IslandPresentation case at all (menu-bar-only UI, never touches the pill) — rank TBD — confirm in that activity's own phase discussion
 //   - Quick Actions bar (Phase 65)  — relationship unclear, possibly an always-visible strip rather than a presentation case — rank TBD — confirm in that activity's own phase discussion
@@ -103,6 +104,8 @@ enum IslandPresentation: Equatable {
     case downloadProgress(DownloadActivity)                // Phase 61 / DL-01/DL-02: rank 5 transient, collapsed-only (D-03), sub-state-persistent (D-02/D-13 -- see isPersistent below)
     case capsLock(CapsLockActivity)                        // Phase 60 / CAPS-01: rank 6 transient, collapsed-only (D-07)
     case updateAvailable(UpdateActivity)                   // Phase 60 / UPDATE-01: rank 7 transient, collapsed-only (D-07), NOT persistent
+    case timer(TimerActivity)                              // Phase 62 / TIMER-01..04: rank 8 transient, sub-state-persistent (SC5)
+    case timerExpanded(TimerActivity)                      // Phase 62 / TIMER-01..04: dedicated expanded controls (Pattern 4) -- no fallthrough, unlike every other transient
     case nowPlayingWings(NowPlayingPresentation)           // D-02 rank 3 ambient (collapsed glance)
     case calendarCountdown(CalendarCountdownActivity)      // Phase 41 / HUD-08: ambient tier, D-01 always wins over nowPlayingWings
     case nowPlayingExpanded(NowPlayingPresentation, healthy: Bool) // D-12 expanded media / "nicht verfügbar"
@@ -124,6 +127,7 @@ enum ActiveTransient: Equatable {
     case downloadProgress(DownloadActivity)                // Phase 61 / DL-01/DL-02: rank 5 transient, collapsed-only (D-03), sub-state-persistent (D-02/D-13 -- see isPersistent below)
     case capsLock(CapsLockActivity)                        // Phase 60 / CAPS-01: rank 6 transient, collapsed-only (D-07)
     case updateAvailable(UpdateActivity)                   // Phase 60 / UPDATE-01: rank 7 transient, collapsed-only (D-07), NOT persistent
+    case timer(TimerActivity)                              // Phase 62 / TIMER-01..04: rank 8 transient, sub-state-persistent (SC5)
 }
 
 // Phase 38 / HUD-05 (D-06) — the seam Plan 38-05's controller wiring reads to decide
@@ -140,6 +144,9 @@ extension ActiveTransient {
         // self-elapses while a download is in flight; .done is NOT matched here, so it
         // falls through to `return false` and self-elapses via the shared ~3s timer.
         if case .downloadProgress(.inProgress) = self { return true }
+        // Phase 62 / TIMER-01..04 (SC5): a running/paused Timer never self-elapses while it
+        // is live, mirroring the DownloadProgress sub-state split above.
+        if case .timer(let t) = self, t.isRunningOrPaused { return true }
         return false
     }
 }
@@ -185,6 +192,8 @@ func resolve(activeTransient: ActiveTransient?,
     case .capsLock: break                                 // expanded -- falls through to the isExpanded branch below, unmodified
     case .updateAvailable(let u) where !isExpanded: return .updateAvailable(u) // Phase 60 / UPDATE-01 rank 7, collapsed-only (D-07)
     case .updateAvailable: break                          // expanded -- falls through to the isExpanded branch below, unmodified
+    case .timer(let t) where !isExpanded: return .timer(t) // Phase 62 / TIMER-01..04 rank 8, collapsed pill
+    case .timer(let t): return .timerExpanded(t)          // Pattern 4 -- dedicated expanded controls, NOT a fallthrough, unlike every other transient above
     case nil: break
     }
     if isExpanded {
@@ -361,11 +370,17 @@ struct TransientQueue {
     // exactly like enqueue(_:) (no special-casing needed). When it IS Focus, `t` takes
     // over the head immediately and the displaced Focus is reinserted at the FRONT of
     // `pending` (not appended to the back) so the very next advance() resumes it.
+    // Phase 62 / TIMER-01..04 (SC5) — GENERALIZED beyond the original hardcoded `.focus`
+    // check: any persistent head (Focus, standing Download-in-progress, or a running/paused
+    // Timer) is now preempted, not just Focus. This closes a latent bug found during Phase
+    // 62 research: a standing `.downloadProgress(.inProgress)` head is also `isPersistent`
+    // (never self-elapses) but the old focus-only guard let a Charging/Device transient
+    // queue behind it via plain enqueue(_:) instead of preempting immediately —
+    // see `testPreemptNowGeneralizedForDownloadProgressHead` for the regression this closes.
     mutating func preempt(_ t: ActiveTransient) -> Bool {
-        guard case .focus = head else { return enqueue(t) }
-        let displaced = head!
+        guard let currentHead = head, currentHead.isPersistent else { return enqueue(t) }
         head = t
-        pending.insert(displaced, at: 0)
+        pending.insert(currentHead, at: 0)
         return true
     }
 
@@ -389,6 +404,7 @@ struct TransientQueue {
         case (.device, .device):     head = t
         case (.osd, .osd): head = t   // Phase 39 D-09/D-12: same-activity scrub refresh AND Volume<->Brightness instant replace
         case (.downloadProgress, .downloadProgress): head = t   // Phase 61 D-02/D-13: transitions a never-self-elapsing .inProgress head directly to .done(filename:)
+        case (.timer, .timer): head = t   // Phase 62 TIMER-01..04: in-place refresh (e.g. running -> paused) without re-arming the dismiss timer
         default: break   // different category — ignore (use enqueue)
         }
     }

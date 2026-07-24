@@ -657,6 +657,13 @@ final class IslandResolverTests: XCTestCase {
         // same as every other non-persistent case.
         XCTAssertTrue(ActiveTransient.downloadProgress(.inProgress).isPersistent)
         XCTAssertFalse(ActiveTransient.downloadProgress(.done(filename: "x.pdf")).isPersistent)
+        // Phase 62 / TIMER-01..04 (SC5): a running/paused Timer is persistent; a
+        // completed/segmentDone Timer is not (mirrors the DownloadProgress sub-state split).
+        let context = TimerContext(mode: .countdown, phase: nil, cycle: nil)
+        XCTAssertTrue(ActiveTransient.timer(.running(deadline: Date(timeIntervalSince1970: 0), context: context)).isPersistent)
+        XCTAssertTrue(ActiveTransient.timer(.paused(remaining: 30, context: context)).isPersistent)
+        XCTAssertFalse(ActiveTransient.timer(.completed).isPersistent)
+        XCTAssertFalse(ActiveTransient.timer(.segmentDone(finishedPhase: .work, cycle: 1)).isPersistent)
     }
 
     func testPreemptPushesFocusToFrontOfPending() {
@@ -842,6 +849,74 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(q.head, .updateAvailable(UpdateActivity(version: "1.11")))
         XCTAssertTrue(q.advance())
         XCTAssertEqual(q.head, .focus(.on))
+    }
+
+    // MARK: Phase 62 / TIMER-01..04 — Timer/Pomodoro transient (SC5 generalization)
+
+    private var fixedTimerContext: TimerContext {
+        TimerContext(mode: .countdown, phase: nil, cycle: nil)
+    }
+
+    func testTimerCollapsedOnly() {
+        // D-03-equivalent: a Timer transient wins when the island is NOT expanded,
+        // mirroring testDownloadProgressCollapsedOnly.
+        let t = TimerActivity.running(deadline: Date(timeIntervalSince1970: 0), context: fixedTimerContext)
+        let r = resolve(activeTransient: .timer(t),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .timer(t))
+    }
+
+    func testTimerShowsExpandedControlsWhenExpanded() {
+        // Pattern 4 — the first transient with its OWN dedicated expanded presentation: unlike
+        // every other collapsed-only transient (Focus/OSD/DownloadProgress/CapsLock/
+        // UpdateAvailable, which all fall through to Home/Calendar/Weather/Tray when expanded),
+        // a Timer transient resolves to .timerExpanded, NOT a fallthrough.
+        let t = TimerActivity.running(deadline: Date(timeIntervalSince1970: 0), context: fixedTimerContext)
+        let r = resolve(activeTransient: .timer(t),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .timerExpanded(t))
+    }
+
+    func testTimerPreemptsStandingFocusHead() {
+        // Timer immediately preempts an already-standing Focus head instead of queuing behind
+        // it, mirroring testDownloadProgressPreemptsStandingFocusHead with .timer(...) swapped
+        // in for .downloadProgress(...).
+        let t = TimerActivity.running(deadline: Date(timeIntervalSince1970: 0), context: fixedTimerContext)
+        var q = TransientQueue()
+        _ = q.enqueue(.focus(.on))
+        XCTAssertTrue(q.preempt(.timer(t)))
+        XCTAssertEqual(q.head, .timer(t))
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, .focus(.on))
+    }
+
+    func testUpdateHeadReplacesTimerAcrossInnerCasesInstantly() {
+        // Transitioning a running Timer head to a paused (or otherwise updated) Timer value
+        // in place, mirroring testUpdateHeadReplacesDownloadProgressAcrossInnerCasesInstantly.
+        let running = TimerActivity.running(deadline: Date(timeIntervalSince1970: 0), context: fixedTimerContext)
+        let paused = TimerActivity.paused(remaining: 30, context: fixedTimerContext)
+        var q = TransientQueue()
+        _ = q.enqueue(.timer(running))
+        q.updateHead(.timer(paused))
+        XCTAssertEqual(q.head, .timer(paused))
+    }
+
+    func testPreemptNowGeneralizedForDownloadProgressHead() {
+        // Regression (SC5, Pitfall 2 fix): before this generalization, preempt() only checked
+        // `case .focus = head`, so a standing Download-Progress .inProgress head (also
+        // isPersistent) fell through to plain enqueue(_:) and Charging waited indefinitely
+        // behind a splash that never self-elapses. Now ANY isPersistent head is preempted.
+        var q = TransientQueue()
+        _ = q.enqueue(.downloadProgress(.inProgress))
+        XCTAssertTrue(q.preempt(.charging(.charging(percent: 50))))
+        XCTAssertEqual(q.head, .charging(.charging(percent: 50)))
     }
 
     // MARK: Phase 41 / HUD-08 — Calendar Countdown

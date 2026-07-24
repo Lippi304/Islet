@@ -940,6 +940,10 @@ struct NotchPillView: View {
         case .downloadProgress(let activity): downloadWings(for: activity)  // Phase 61 / DL-01/DL-02: rank 5 transient (61-03)
         case .capsLock(let activity): capsLockWings(for: activity)          // Phase 60 / CAPS-01: rank 6 transient
         case .updateAvailable(let activity): updateWings(for: activity)     // Phase 60 / UPDATE-01: rank 7 transient
+        // Phase 62 / TIMER-01..04 (62-01): resolver seam only -- real collapsed pill / expanded
+        // controls rendering is Plan 62-03's job. EmptyView() stub keeps this switch exhaustive
+        // in the meantime (mirrors this project's own seam-then-view sequencing convention).
+        case .timer, .timerExpanded: EmptyView()
         case .idle:
             idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }
