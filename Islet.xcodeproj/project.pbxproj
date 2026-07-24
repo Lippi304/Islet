@@ -11,6 +11,7 @@
 		049E58591CD6431B0C849793 /* ClipboardStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1460D18D7C0D64BFC9D310E /* ClipboardStoreTests.swift */; };
 		04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31972FF1ED9E30425E37EE11 /* TrialLogic.swift */; };
 		05E3F6406213849B1212DA66 /* ShelfItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2C09F7CB439DBC707F7E095 /* ShelfItem.swift */; };
+		0613553C54395FD8C0CC3FC7 /* MeetingActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E7043E50BE0E348AF20894 /* MeetingActivity.swift */; };
 		089989725D4E1501962FCFD5 /* CalendarCountdownMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 645E44284FC3BC54024CD5F3 /* CalendarCountdownMonitor.swift */; };
 		08D5313FCE75B017801E4432 /* ClipboardFileStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031F804F644651F990FAFE69 /* ClipboardFileStoreTests.swift */; };
 		093EB93DF4C26FB9D4D0E4C5 /* PolarLicenseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5639E162109F97C9FE173C50 /* PolarLicenseServiceTests.swift */; };
@@ -274,6 +275,7 @@
 		A0EC5F0178A64AECEBD91C8C /* DiagnosticReportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticReportTests.swift; sourceTree = "<group>"; };
 		A1DF9B7E0816B6996D6DD363 /* LicenseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseService.swift; sourceTree = "<group>"; };
 		A615165F39E760B6745AEAD1 /* LiquidGlassShader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassShader.swift; sourceTree = "<group>"; };
+		A6E7043E50BE0E348AF20894 /* MeetingActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingActivity.swift; sourceTree = "<group>"; };
 		AB608FBDE6554EFA2A955E48 /* AudioOutputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputMonitor.swift; sourceTree = "<group>"; };
 		AEB2764F70C53D7D72B4AC4A /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivityTests.swift; sourceTree = "<group>"; };
@@ -535,6 +537,7 @@
 				8AECFB326AA1C46FECE017D0 /* IslandResolver.swift */,
 				2B5A2F6E4109A7EDAF7E5405 /* LiquidGlassShader.metal */,
 				A615165F39E760B6745AEAD1 /* LiquidGlassShader.swift */,
+				A6E7043E50BE0E348AF20894 /* MeetingActivity.swift */,
 				1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */,
 				9EE98C0240E35D702BEA0DBA /* NotchInteractionState.swift */,
 				4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */,
@@ -757,6 +760,7 @@
 				3A648BCBD12C7B890B70A229 /* LiquidGlassShader.metal in Sources */,
 				EA29DD5F3A34C0E54249CFD8 /* LiquidGlassShader.swift in Sources */,
 				59A9F1A6B642331EFB7EBE26 /* LocationProvider.swift in Sources */,
+				0613553C54395FD8C0CC3FC7 /* MeetingActivity.swift in Sources */,
 				B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */,
 				2586E152318B70467587E51C /* NotchGeometry.swift in Sources */,
 				CBFEA4D08C31BD0C3602E177 /* NotchInteractionState.swift in Sources */,
