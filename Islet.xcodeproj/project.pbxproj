@@ -18,6 +18,7 @@
 		0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C074399453E7F8439A9CD2 /* SettingsView.swift */; };
 		0B5D7C9F97587BFE2049F7D7 /* InteractionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406030D1395E35FB24681FE8 /* InteractionStateTests.swift */; };
 		16A051D140699708997B8A33 /* DeviceCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A6FA5F67CABA606F19ED731 /* DeviceCoordinatorTests.swift */; };
+		18A0994550ED1E5366D1DBF7 /* MicMuteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3B6F1344C078428D42671C /* MicMuteController.swift */; };
 		19C104D4C4BCFDB492D88B16 /* ViewSwitcherState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FD7011AF8E607471C7F73FB /* ViewSwitcherState.swift */; };
 		1A099891C9DC0C4BBD962245 /* VisibilityDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */; };
 		1BA8891F7920EC9DD6F9E2B2 /* DancingScript-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E47DF64E0B34AEF713CAB91D /* DancingScript-Variable.ttf */; };
@@ -292,6 +293,7 @@
 		C73B4C1FB5F1134D07D697B9 /* WeatherServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherServiceTests.swift; sourceTree = "<group>"; };
 		C75C7435C3C840FC929C873C /* DropInterceptTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropInterceptTap.swift; sourceTree = "<group>"; };
 		C8506A56C467857A2306C9BE /* PermissionStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionStatus.swift; sourceTree = "<group>"; };
+		CA3B6F1344C078428D42671C /* MicMuteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicMuteController.swift; sourceTree = "<group>"; };
 		D2B811CCD53A0E77D86C48E5 /* WeatherCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCategory.swift; sourceTree = "<group>"; };
 		D2C09F7CB439DBC707F7E095 /* ShelfItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItem.swift; sourceTree = "<group>"; };
 		D3ADDB7D54E2C8218B00EAFA /* MeetingActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingActivityTests.swift; sourceTree = "<group>"; };
@@ -541,6 +543,7 @@
 				2B5A2F6E4109A7EDAF7E5405 /* LiquidGlassShader.metal */,
 				A615165F39E760B6745AEAD1 /* LiquidGlassShader.swift */,
 				A6E7043E50BE0E348AF20894 /* MeetingActivity.swift */,
+				CA3B6F1344C078428D42671C /* MicMuteController.swift */,
 				1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */,
 				9EE98C0240E35D702BEA0DBA /* NotchInteractionState.swift */,
 				4B5E4C8D0F079A94374A2D7C /* NotchPanel.swift */,
@@ -764,6 +767,7 @@
 				EA29DD5F3A34C0E54249CFD8 /* LiquidGlassShader.swift in Sources */,
 				59A9F1A6B642331EFB7EBE26 /* LocationProvider.swift in Sources */,
 				0613553C54395FD8C0CC3FC7 /* MeetingActivity.swift in Sources */,
+				18A0994550ED1E5366D1DBF7 /* MicMuteController.swift in Sources */,
 				B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */,
 				2586E152318B70467587E51C /* NotchGeometry.swift in Sources */,
 				CBFEA4D08C31BD0C3602E177 /* NotchInteractionState.swift in Sources */,
