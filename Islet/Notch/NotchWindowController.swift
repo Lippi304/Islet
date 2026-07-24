@@ -896,6 +896,93 @@ final class NotchWindowController {
         startLocationOnce()
     }
 
+    // MARK: - Phase 62 / TIMER-01..04 (Plan 04) — Timer/Pomodoro handlers
+
+    // D-01..D-05 — the "Start Timer" picker's two entry points, gated on the Timer Settings
+    // toggle exactly like every other activity's guard.
+    private func handleStartCountdown(minutes: Int) {
+        guard activityEnabled(ActivitySettings.timerKey) else { return }
+        timerActivityState.startCountdown(minutes: minutes)
+        presentNewTimerSession()
+    }
+
+    private func handleStartPomodoro(workMinutes: Int, breakMinutes: Int) {
+        guard activityEnabled(ActivitySettings.timerKey) else { return }
+        timerActivityState.startPomodoro(workMinutes: workMinutes, breakMinutes: breakMinutes)
+        presentNewTimerSession()
+    }
+
+    // Shared by both start entry points above — preempts the queue with the freshly-started
+    // session and arms TimerMonitor for its deadline, mirroring how deviceCoordinator/
+    // downloadCoordinator's own enqueue + presentTransientChange() pairing is used.
+    private func presentNewTimerSession() {
+        guard let activity = timerActivityState.activity else { return }
+        _ = transientQueue.preempt(.timer(activity))
+        timerMonitor.arm(at: timerActivityState.deadline)
+        presentTransientChange()
+    }
+
+    // D-08 — Pause/Resume toggles off `activity`'s current case; Reset/Add-Time simply mutate
+    // and refresh the in-place head.
+    private func handleTimerPauseResume() {
+        if case .paused = timerActivityState.activity {
+            timerActivityState.resume()
+        } else {
+            timerActivityState.pause()
+        }
+        refreshTimerHeadInPlace()
+    }
+
+    private func handleTimerReset() {
+        timerActivityState.reset()
+        refreshTimerHeadInPlace()
+    }
+
+    private func handleTimerAddTime() {
+        timerActivityState.addMinute()
+        refreshTimerHeadInPlace()
+    }
+
+    // In-place refresh after Pause/Resume/Reset/Add-Time — mirrors the (.osd, .osd)/
+    // (.downloadProgress, .downloadProgress) updateHead precedent. Re-arms TimerMonitor for the
+    // new deadline (nil while paused, correctly cancelling with no replacement).
+    private func refreshTimerHeadInPlace() {
+        guard let activity = timerActivityState.activity else { return }
+        transientQueue.updateHead(.timer(activity))
+        timerMonitor.arm(at: timerActivityState.deadline)
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+    }
+
+    // D-10 — Stop is a full reset; flushTransients(.timer) handles the render/dismiss-rearm
+    // dance the same way every other Stop-equivalent action does.
+    private func handleTimerStop() {
+        timerActivityState.stop()
+        timerMonitor.arm(at: nil)
+        flushTransients(.timer)
+    }
+
+    // D-11/D-12/D-13 — called by timerMonitor's onFire closure when a countdown/segment
+    // deadline elapses. Plays the user's configured System Settings alert sound (D-12) even
+    // when Islet isn't the frontmost app; Pattern 4's dual-enqueue
+    // (updateHead the splash, then preempt() the next running segment) lets
+    // TransientQueue.advance()'s existing generic promotion mechanism carry the next Pomodoro
+    // segment in with zero new queue mechanics (D-11).
+    private func handleTimerDeadlineReached() {
+        let (splash, next) = timerActivityState.handleDeadlineReached()
+        NSSound.beep()
+        transientQueue.updateHead(.timer(splash))
+        if let next {
+            _ = transientQueue.preempt(.timer(next))
+        }
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+        scheduleActivityDismiss()
+        timerMonitor.arm(at: timerActivityState.deadline)
+    }
+
     // Phase 39 / HUD-03/HUD-04 (D-06) — idempotent start, mirrors startFocusModeMonitor()'s
     // exact shape. Called UNCONDITIONALLY from start() (no activityEnabled gate) — see the
     // call site's own comment for why.
@@ -1686,6 +1773,12 @@ final class NotchWindowController {
             // or the CR-01 click-swallowing/dead-zone regression class comes back.
             contentSize = CGSize(width: NotchPillView.calendarWidth,
                                  height: NotchPillView.switcherContentHeight + switcherHeight)
+        } else if case .timerExpanded = presentationState.presentation {
+            // Phase 62 / TIMER-01..04 (Plan 04, CR-01 geometry three-site rule, Site 3) —
+            // mirrors timerExpandedContent(for:)'s own blobShape call: no height override, no
+            // switcher row, so the base expandedSize applies exactly, same as the final else
+            // branch's own non-output-panel case.
+            contentSize = CGSize(width: expandedSize.width, height: expandedSize.height)
         } else {
             // Phase 48 / OUTPUT-01 (CR-01 geometry three-site rule, Site 3) — reaching this
             // final `else` already means presentation is one of .nowPlayingExpanded/
