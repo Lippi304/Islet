@@ -19,8 +19,17 @@ final class MeetingMonitorManualSpike: XCTestCase {
         if toggled != nil { _ = toggleSystemInputMute() }   // restore the machine's original mic state.
         print("[MeetingSpike] mic read/toggle succeeded, no TCC prompt expected — read=\(muted) toggledTo=\(String(describing: toggled))")
 
+        // SPIKE SUBSTITUTION: the machine this phase was validated on had neither Zoom nor Teams
+        // installed, so the spike targets Discord — a native voice-call app that produces the exact
+        // same signal shape (target app running AND default-input device active). This validates
+        // everything genuinely uncertain about the heuristic (CoreAudio mic-active reliability,
+        // once-per-transition dedup, TCC-prompt behaviour); it does NOT validate that the literal
+        // Zoom/Teams bundle IDs in MeetingMonitor's default are correct. Swap this back to
+        // MeetingMonitor(onChange:) to re-run against the real production target set.
+        let spikeTargets: Set<String> = ["com.hnc.Discord"]
+
         var monitor: MeetingMonitor!
-        monitor = MeetingMonitor(onChange: { reading in
+        monitor = MeetingMonitor(targetBundleIDs: spikeTargets, onChange: { reading in
             print("[MeetingSpike] detected=\(reading != nil) at=\(Date()) reading=\(String(describing: reading))")
         })
         monitor.start()
