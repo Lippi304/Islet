@@ -46,6 +46,7 @@
 		3CF8755FCA5F7F278D99F27C /* TimerActivityStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C691EFE490529FEFDE2AAE /* TimerActivityStateTests.swift */; };
 		3E6957C0B3CCDD414EFEC936 /* DeviceActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */; };
 		40A19305FE709A3C8F605C3B /* NowPlayingPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E725CBBC2A72FD37F720710D /* NowPlayingPresentationTests.swift */; };
+		40C17270307C76C9E0CB8367 /* TimerMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6771DABBC6345C5FBAB11E0C /* TimerMonitor.swift */; };
 		415C906FD372AAD59B63EE14 /* FocusModeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7266CC288F6F27EFA1B86451 /* FocusModeMonitor.swift */; };
 		4328BB2EFCD60AD4247AEDF3 /* VolumeReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA20EFAA3BB87C9966C5BC9 /* VolumeReader.swift */; };
 		43DF0886D3878D38B6157239 /* WeatherCategoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0C1FFC49C8A8CE3E74509 /* WeatherCategoryTests.swift */; };
@@ -237,6 +238,7 @@
 		63FACDF43375E1DE88646B05 /* DragDropSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupport.swift; sourceTree = "<group>"; };
 		645E44284FC3BC54024CD5F3 /* CalendarCountdownMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarCountdownMonitor.swift; sourceTree = "<group>"; };
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
+		6771DABBC6345C5FBAB11E0C /* TimerMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerMonitor.swift; sourceTree = "<group>"; };
 		67C811DA67737E6DE4C01AFD /* CapsLockActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockActivity.swift; sourceTree = "<group>"; };
 		6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EqualizerBarsTests.swift; sourceTree = "<group>"; };
 		6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCoordinator.swift; sourceTree = "<group>"; };
@@ -551,6 +553,7 @@
 				FE9C66C68BBF764EDA77D7F4 /* SignatureHeading.swift */,
 				105CD467BE9B3711594B4232 /* TimerActivity.swift */,
 				875773B3A3AEBE51D51C06F4 /* TimerActivityState.swift */,
+				6771DABBC6345C5FBAB11E0C /* TimerMonitor.swift */,
 				198D3625C7DA1E0AC8178F1E /* UpdateActivity.swift */,
 				5FD7011AF8E607471C7F73FB /* ViewSwitcherState.swift */,
 				4CA20EFAA3BB87C9966C5BC9 /* VolumeReader.swift */,
@@ -780,6 +783,7 @@
 				945E7037D8F44BB922D79D41 /* SignatureHeading.swift in Sources */,
 				93A8B7D9ACFDA240538C8F8B /* TimerActivity.swift in Sources */,
 				D1A563E4CD60F114A43CEF6A /* TimerActivityState.swift in Sources */,
+				40C17270307C76C9E0CB8367 /* TimerMonitor.swift in Sources */,
 				04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */,
 				98F28BB61930892735C9F48A /* TrialManager.swift in Sources */,
 				84CD5B30439881CB77632BB7 /* UpdateActivity.swift in Sources */,
