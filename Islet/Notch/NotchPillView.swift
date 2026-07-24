@@ -2970,69 +2970,60 @@ struct NotchPillView: View {
         }
     }
 
-    // Phase 61 gap closure (post-checkpoint on-device UAT feedback) — icon-only redesign. The
-    // original icon+label-left / compact-element-right layout (mirroring updateWings) rendered
-    // "Downloading…" + the real filename as visible Text, which on-device was reported far too
-    // wide for what should be a glanceable status. Rebuilt as icon-only on BOTH flanks (no text
-    // anywhere, filename no longer rendered — DL-01/DL-02 still track it internally, just not
-    // displayed), matching osdWings' icon+compact-element scale rather than capsLockWings' long
-    // text strings — so it reuses osdWings' own on-device-confirmed margin=55 and pad values
-    // instead of capsLockWings' 65. No onTap override (D-11) — falls through to the universal
-    // onClick() expand-to-Home, same as capsLockWings.
+    // Phase 61 gap closure round 2 (post-checkpoint on-device UAT feedback) — the download icon
+    // now stays fixed on the LEFT in both states (was checkmark-replaces-icon before); only the
+    // RIGHT box swaps content: spinner while in-flight, green checkmark once done. Both states
+    // now share one identical leftWidth/rightWidth (no more per-case AnyView branch — the width
+    // math no longer depends on `activity`, only the inner content does), which also removes any
+    // width jump when a download completes. Padding tightened to capsLockWings' proven 12/12
+    // (osdWings' 14/20 was sized for a 90pt BAR; our right box is just a 20pt icon, so the
+    // tighter icon-scale precedent applies) — margin stays osdWings' on-device-confirmed 55,
+    // NOT re-tuned here: that value is calibrated against the physical camera cutout, not
+    // content width, and this codebase's own history (osdWings rounds 5-16) shows guessing that
+    // number instead of measuring it on-device is exactly how clipping regressions happen.
+    // Icons switched from .hierarchical to .monochrome + .bold per user's "heller und
+    // auffälliger" (brighter/more prominent) feedback — hierarchical dims secondary symbol
+    // layers, monochrome renders a single fully-opaque fill. No onTap override (D-11) — falls
+    // through to the universal onClick() expand-to-Home, same as capsLockWings.
     private func downloadWings(for activity: DownloadActivity) -> some View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
         let margin: CGFloat = 55
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
-        let leadingPad: CGFloat = 14
+        let leadingPad: CGFloat = 12
         let iconWidth: CGFloat = 20
-        let trailingPad: CGFloat = 20
-        switch activity {
-        case .inProgress:
-            let spinnerWidth: CGFloat = 20
-            let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
-            let totalWidth = leadingPad + iconWidth + cameraBlockWidth + spinnerWidth + trailingPad
-            let rightWidth = totalWidth - leftWidth
-            assert(cameraBlockWidth > 0, "Download camera block width (\(cameraBlockWidth)) must be positive")
-            assert(rightWidth < 325 && leftWidth < 325,
-                   "Download wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
-            return AnyView(wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
-                HStack(spacing: 0) {
-                    Color.clear.frame(width: leadingPad)
-                    Image(systemName: "arrow.down.circle")
-                        .font(.system(size: 13, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white)
-                        .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
-                    Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(.white)
-                        .frame(width: spinnerWidth, height: Self.wingsSize.height, alignment: .center)
-                    Color.clear.frame(width: trailingPad)
+        let trailingPad: CGFloat = 12
+        let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
+        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + iconWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        assert(cameraBlockWidth > 0, "Download camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Download wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: leadingPad)
+                Image(systemName: "arrow.down.circle")
+                    .font(.system(size: 14, weight: .bold))
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(.white)
+                    .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
+                Group {
+                    switch activity {
+                    case .inProgress:
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(.white)
+                    case .done:
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .symbolRenderingMode(.monochrome)
+                            .foregroundStyle(.green)
+                    }
                 }
-            })
-        case .done(_):
-            // User-confirmed on the checkpoint follow-up: done state is icon-only too, no
-            // filename text — consistent with the in-progress flank's icon-only redesign above.
-            let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
-            let totalWidth = leadingPad + iconWidth + cameraBlockWidth + trailingPad
-            let rightWidth = totalWidth - leftWidth
-            assert(cameraBlockWidth > 0, "Download camera block width (\(cameraBlockWidth)) must be positive")
-            assert(rightWidth < 325 && leftWidth < 325,
-                   "Download wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
-            return AnyView(wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
-                HStack(spacing: 0) {
-                    Color.clear.frame(width: leadingPad)
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.green)
-                        .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
-                    Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
-                    Color.clear.frame(width: trailingPad)
-                }
-            })
+                .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                Color.clear.frame(width: trailingPad)
+            }
         }
     }
 
