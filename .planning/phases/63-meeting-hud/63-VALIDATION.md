@@ -1,8 +1,8 @@
 ---
 phase: 63
 slug: meeting-hud
-status: draft
-nyquist_compliant: false
+status: final
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-24
 ---
@@ -38,12 +38,12 @@ created: 2026-07-24
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 63-TBD | TBD | TBD | MEET-01 | — | `.meeting` case resolves at correct rank (D-05), preempts Focus/OSD/Download/CapsLock/Update/Timer, preempted only by Charging/Device | unit | `xcodebuild test -only-testing:IsletTests/IslandResolverTests` | ❌ W0 | ⬜ pending |
-| 63-TBD | TBD | TBD | MEET-01 | — | `ActiveTransient.meeting(...).isPersistent == true` while active | unit | `xcodebuild test -only-testing:IsletTests/IslandResolverTests` | ❌ W0 | ⬜ pending |
-| 63-TBD | TBD | TBD | MEET-01 | — | Real Zoom/Teams call + mic on shows the HUD; app-open-only does not | manual-only | On-device spike checklist (D-03) | N/A | ⬜ pending |
-| 63-TBD | TBD | TBD | MEET-02 | T-63-DoS | `MicMuteController` guarded Get/Set never crashes on unsupported device | unit | New `MicMuteControllerTests.swift` | ❌ W0 | ⬜ pending |
-| 63-TBD | TBD | TBD | MEET-02 | — | Tapping the mute icon toggles system input mute and icon reflects new state | manual-only | On-device UAT checklist | N/A | ⬜ pending |
-| 63-TBD | TBD | TBD | MEET-03 | — | Google Meet in a browser never triggers the HUD | manual-only | On-device spike checklist (negative case) | N/A | ⬜ pending |
+| 63-03 T1 | 63-03 | 3 | MEET-01 | — | `.meeting` case resolves at correct rank (D-05), preempts Focus/OSD/Download/CapsLock/Update/Timer, preempted only by Charging/Device | unit | `xcodebuild test -only-testing:IsletTests/IslandResolverTests` | ❌ W0 | ⬜ pending |
+| 63-03 T1 | 63-03 | 3 | MEET-01 | — | `ActiveTransient.meeting(...).isPersistent == true` while active | unit | `xcodebuild test -only-testing:IsletTests/IslandResolverTests` | ❌ W0 | ⬜ pending |
+| 63-02 T2 | 63-02 | 2 | MEET-01 | — | Real Zoom/Teams call + mic on shows the HUD; app-open-only does not | manual-only | On-device spike checklist (D-03), checkpoint:human-verify | N/A | ⬜ pending |
+| 63-01 T2 | 63-01 | 1 | MEET-02 | T-63-DoS | `MicMuteController` guarded Get/Set never crashes on unsupported device | unit | New `MicMuteControllerTests.swift` | ❌ W0 | ⬜ pending |
+| 63-04 T3 | 63-04 | 4 | MEET-02 | T-63-11 | Tapping the mute icon toggles system input mute and icon reflects new state; widened hot-zone doesn't swallow clicks past the icon's edge | manual-only | On-device UAT checklist, checkpoint:human-verify | N/A | ⬜ pending |
+| 63-02 T2 | 63-02 | 2 | MEET-03 | — | Google Meet in a browser never triggers the HUD | manual-only | On-device spike checklist (negative case) | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -70,11 +70,11 @@ created: 2026-07-24
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 180s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 180s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** confirmed by gsd-plan-checker (iteration 2/3), 2026-07-24
