@@ -180,6 +180,80 @@ final class DownloadCoordinatorTests: XCTestCase {
         XCTAssertEqual(removeInProgressCount, 1)
     }
 
+    func testRenamedCompletingWhileStalePendingInProgressPromotesDoneNotStuckInProgress() {
+        // Code review CR-01 regression: a download that finishes while a higher-priority
+        // transient (Charging/Device) is head must not leave a stale, never-self-elapsing
+        // .inProgress stuck in `pending` ahead of the real .done splash.
+        var q = TransientQueue()
+        let coordinator = DownloadCoordinator(
+            queueHead: { q.head },
+            enqueue: { q.enqueue($0) },
+            replaceHead: { q.updateHead($0) },
+            removeInProgress: {
+                q.removeAll(where: { t in
+                    if case .downloadProgress(.inProgress) = t { return true }
+                    return false
+                })
+            },
+            presentTransientChange: {}
+        )
+        // Charging is already standing when the download starts.
+        _ = q.enqueue(.charging(.charging(percent: 50)))
+        XCTAssertEqual(q.head, .charging(.charging(percent: 50)))
+
+        // Download starts while Charging is head — .inProgress goes to `pending`, not head.
+        coordinator.handle(DownloadReading(path: "/Downloads/movie.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
+        XCTAssertEqual(q.head, .charging(.charging(percent: 50)))
+        XCTAssertEqual(q.pendingCount, 1)
+
+        // Download finishes before Charging's dismiss timer elapses.
+        coordinator.handle(DownloadReading(path: "/Downloads/movie.crdownload", kind: .renamed, fileID: 1, renamedTo: "/Downloads/movie.mp4"), now: Date())
+        XCTAssertEqual(q.head, .charging(.charging(percent: 50)))   // Charging untouched
+
+        // Simulate Charging's dismiss timer elapsing (NotchWindowController's scheduleActivityDismiss
+        // calls transientQueue.advance() on its own timer — not exercised here, only its effect).
+        _ = q.advance()
+        // Must promote the DONE splash, not a stuck stale .inProgress.
+        XCTAssertEqual(q.head, .downloadProgress(.done(filename: "movie.mp4")))
+    }
+
+    func testRenamedWithNilRenamedToReconcilesLastInFlightViaRemoveInProgress() {
+        // Code review WR-01 regression: the defensive nil-renamedTo branch must not silently
+        // strand a standing .inProgress transient with no owner left to dismiss it.
+        var q = TransientQueue()
+        var removeInProgressCount = 0
+        let coordinator = DownloadCoordinator(
+            queueHead: { q.head },
+            enqueue: { q.enqueue($0) },
+            replaceHead: { q.updateHead($0) },
+            removeInProgress: { removeInProgressCount += 1 },
+            presentTransientChange: {}
+        )
+        coordinator.handle(DownloadReading(path: "/Downloads/movie.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
+
+        coordinator.handle(DownloadReading(path: "/Downloads/movie.crdownload", kind: .renamed, fileID: 1, renamedTo: nil), now: Date())
+        XCTAssertEqual(removeInProgressCount, 1)
+    }
+
+    func testRenamedWithNilRenamedToOneOfTwoInFlightDoesNotCallRemoveInProgress() {
+        var q = TransientQueue()
+        var removeInProgressCount = 0
+        let coordinator = DownloadCoordinator(
+            queueHead: { q.head },
+            enqueue: { q.enqueue($0) },
+            replaceHead: { q.updateHead($0) },
+            removeInProgress: { removeInProgressCount += 1 },
+            presentTransientChange: {}
+        )
+        coordinator.handle(DownloadReading(path: "/Downloads/A.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
+        coordinator.handle(DownloadReading(path: "/Downloads/B.crdownload", kind: .created, fileID: 2, renamedTo: nil), now: Date())
+
+        // A's rename malforms (nil renamedTo) while B is still in flight — must NOT dismiss the
+        // still-accurate shared .inProgress indicator.
+        coordinator.handle(DownloadReading(path: "/Downloads/A.crdownload", kind: .renamed, fileID: 1, renamedTo: nil), now: Date())
+        XCTAssertEqual(removeInProgressCount, 0)
+    }
+
     func testRemovedUntrackedPathIsSafeNoOp() {
         var enqueueCount = 0
         var replaceHeadCount = 0

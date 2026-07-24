@@ -32,6 +32,14 @@ final class DownloadMonitor {
     private let downloadsPath = (NSHomeDirectory() as NSString).appendingPathComponent("Downloads")
 
     private var pendingRenamesByFileID: [UInt64: String] = [:]
+    // Code review WR-03 — an interrupted/coalesced rename (the "moved to" half never arrives)
+    // would otherwise leave its "moved away" half in this table for the app's entire lifetime,
+    // risking a stale entry mis-correlating with a later, unrelated fileID reuse.
+    // ponytail: cap-and-reset instead of proper LRU eviction — this is a rare edge case (an
+    // in-flight download's rename literally never completing), so a full reset on overflow is a
+    // simple, sufficient ceiling. Upgrade to timestamped eviction if unmatched entries ever
+    // become common enough to observe in practice.
+    private let pendingRenamesCap = 32
 
     init(onEvent: @escaping (DownloadReading) -> Void) {
         self.onEvent = onEvent
@@ -99,6 +107,7 @@ final class DownloadMonitor {
                 if !exists {
                     // "Moved away" half.
                     if let fileID = event.fileID {
+                        if pendingRenamesByFileID.count >= pendingRenamesCap { pendingRenamesByFileID.removeAll() }
                         pendingRenamesByFileID[fileID] = event.path
                     } else {
                         onEvent(DownloadReading(path: event.path, kind: .removed, fileID: nil, renamedTo: nil))

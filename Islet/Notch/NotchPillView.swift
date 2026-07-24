@@ -3005,6 +3005,15 @@ struct NotchPillView: View {
         assert(cameraBlockWidth > 0, "Download camera block width (\(cameraBlockWidth)) must be positive")
         assert(rightWidth < 325 && leftWidth < 325,
                "Download wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        // Code review WR-02 — the icon-only redesign (per explicit user request) dropped the
+        // visible filename Text entirely, but D-12's `.done(filename:)` payload is still
+        // computed and threaded through; surfacing it as a VoiceOver-only accessibility label
+        // keeps that data useful instead of dead, without reintroducing any on-screen text.
+        let a11yLabel: String
+        switch activity {
+        case .inProgress: a11yLabel = "Downloading"
+        case .done(let filename): a11yLabel = "Download complete: \(filename)"
+        }
         return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: leadingPad)
@@ -3030,6 +3039,8 @@ struct NotchPillView: View {
                 .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
                 Color.clear.frame(width: trailingPad)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(a11yLabel)
         }
     }
 

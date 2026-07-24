@@ -80,7 +80,14 @@ final class DownloadCoordinator: ActivityCoordinator {
             // D-08 re-applied at rename time — an untracked path can't be "this download's"
             // completion.
             guard inFlightDownloads.removeValue(forKey: reading.path) != nil else { return }
-            guard let finalPath = reading.renamedTo else { return }
+            // Code review WR-01 — `renamedTo` is nil only if DownloadMonitor's contract is ever
+            // violated (today it always supplies one for .renamed); reconcile the queue the same
+            // way .removed does rather than silently stranding a standing/pending .inProgress
+            // with no owner left to dismiss it.
+            guard let finalPath = reading.renamedTo else {
+                if inFlightDownloads.isEmpty { removeInProgress() }
+                return
+            }
             let doneActivity = ActiveTransient.downloadProgress(.done(filename: downloadFilename(fromPath: finalPath)))
 
             if inFlightDownloads.isEmpty {
@@ -90,8 +97,20 @@ final class DownloadCoordinator: ActivityCoordinator {
                 // otherwise fall back to plain enqueue (D-05's "fires independently later").
                 if case .downloadProgress = queueHead() {
                     replaceHead(doneActivity)
-                } else if enqueue(doneActivity) {
-                    presentTransientChange()
+                } else {
+                    // Code review CR-01 — a stale .inProgress placeholder can be sitting in
+                    // `pending` (queued behind a higher-priority Charging/Device transient that
+                    // was head when this download started). Since .inProgress is isPersistent
+                    // (never self-elapses once promoted to head via advance()), leaving it there
+                    // would get it permanently stuck ahead of doneActivity the moment the current
+                    // head's dismiss timer fires — with doneActivity queued uselessly behind it
+                    // forever too. Strip any stale pending .inProgress FIRST (removeInProgress is
+                    // a safe no-op if the head is unaffected, per its own oldHead guard) so only
+                    // the real done splash ends up queued.
+                    removeInProgress()
+                    if enqueue(doneActivity) {
+                        presentTransientChange()
+                    }
                 }
             } else {
                 // Another download is still in flight — D-05's literal "the older download's own
@@ -119,6 +138,11 @@ final class DownloadCoordinator: ActivityCoordinator {
     // handled inside handle(_:now:)'s .renamed branch above, via plain TransientQueue
     // enqueue/advance mechanics. This empty body still satisfies ActivityCoordinator's
     // protocol requirement.
+    // Code review CR-01 note: this stays correctly empty. The fix for a stale pending
+    // .inProgress getting promoted ahead of a completed download's .done splash is applied
+    // PROACTIVELY at rename time (see removeInProgress() call in the .renamed branch above),
+    // not reactively here at promotion time — there is still no deferred recheck to do once a
+    // different transient is promoted to head.
     func activityPromoted() {}
 
     // Mirrors DeviceCoordinator.reset()'s exact one-line shape — clears the in-flight table on
