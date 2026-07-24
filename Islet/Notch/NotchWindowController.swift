@@ -513,6 +513,13 @@ final class NotchWindowController {
         // branch verbatim (updateHead + spring-animated re-render + a fresh scheduleActivityDismiss
         // re-arm) so a completing download can replace a never-self-elapsing `.inProgress` head
         // with a freshly-dismiss-timed `.done` splash.
+        // `removeInProgress` — bug fix (on-device UAT: cancelling left the spinner running
+        // forever). Scoped `removeAll(where:)` mirroring flushTransients(.downloadProgress)'s
+        // own dismiss-timer-rearm shape, but narrowed to `.inProgress` only so a still-showing
+        // `.done` splash for a DIFFERENT, already-completed download is never touched. Unlike
+        // flushTransients (a pure state mutator whose callers batch-render once at the end of
+        // handleSettingsChanged), this fires from a single real-time FSEvents callback with no
+        // other render call coming afterward, so it renders itself.
         downloadCoordinator = DownloadCoordinator(
             queueHead: { [weak self] in self?.transientQueue.head },
             enqueue: { [weak self] t in
@@ -527,6 +534,24 @@ final class NotchWindowController {
                     self.renderPresentation()
                 }
                 self.scheduleActivityDismiss()
+            },
+            removeInProgress: { [weak self] in
+                guard let self else { return }
+                let oldHead = self.transientQueue.head
+                self.transientQueue.removeAll(where: { t in
+                    if case .downloadProgress(.inProgress) = t { return true }
+                    return false
+                })
+                guard self.transientQueue.head != oldHead else { return }
+                self.dismissWorkItem?.cancel()
+                if self.transientQueue.head != nil {
+                    self.deviceCoordinator.activityPromoted()
+                    self.scheduleActivityDismiss()
+                }
+                withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
+                    self.renderPresentation()
+                }
+                self.updateVisibility()
             },
             presentTransientChange: { [weak self] in self?.presentTransientChange() }
         )

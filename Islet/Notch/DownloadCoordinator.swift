@@ -34,15 +34,25 @@ final class DownloadCoordinator: ActivityCoordinator {
     private let queueHead: () -> ActiveTransient?
     private let enqueue: (ActiveTransient) -> Bool
     private let replaceHead: (ActiveTransient) -> Void
+    // Bug fix (on-device UAT: cancelling a download left the spinner running forever) —
+    // `.inProgress` never self-elapses (see TransientQueue.updateHead's comment), and the
+    // `.removed` branch below previously only cleared the coordinator's OWN `inFlightDownloads`
+    // table, never the queue itself. This closure is the only way to actually dismiss a
+    // standing/pending `.inProgress` transient; the controller wires it to
+    // `transientQueue.removeAll(where:)` scoped to `.inProgress` only (never touches a `.done`
+    // splash for a different, already-completed download).
+    private let removeInProgress: () -> Void
     private let presentTransientChange: () -> Void
 
     init(queueHead: @escaping () -> ActiveTransient?,
          enqueue: @escaping (ActiveTransient) -> Bool,
          replaceHead: @escaping (ActiveTransient) -> Void,
+         removeInProgress: @escaping () -> Void,
          presentTransientChange: @escaping () -> Void) {
         self.queueHead = queueHead
         self.enqueue = enqueue
         self.replaceHead = replaceHead
+        self.removeInProgress = removeInProgress
         self.presentTransientChange = presentTransientChange
     }
 
@@ -91,9 +101,15 @@ final class DownloadCoordinator: ActivityCoordinator {
             }
 
         case .removed:
-            // D-15 — cancelled downloads silently drop, regardless of whether the path was
-            // tracked: no enqueue/replaceHead call at all.
-            inFlightDownloads.removeValue(forKey: reading.path)
+            // D-15 — cancelled downloads drop from tracking regardless of whether the path was
+            // tracked. Bug fix: if this was the LAST download in flight (mirrors the .renamed
+            // branch's own isEmpty check), also dismiss any standing/pending .inProgress
+            // transient — otherwise it keeps showing forever with nothing left actually
+            // downloading, since .inProgress never self-elapses on its own.
+            guard inFlightDownloads.removeValue(forKey: reading.path) != nil else { return }
+            if inFlightDownloads.isEmpty {
+                removeInProgress()
+            }
         }
     }
 

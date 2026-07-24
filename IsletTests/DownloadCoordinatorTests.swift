@@ -16,6 +16,7 @@ final class DownloadCoordinatorTests: XCTestCase {
             queueHead: { q.head },
             enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
             replaceHead: { q.updateHead($0) },
+            removeInProgress: {},
             presentTransientChange: { presentCount += 1 }
         )
         let reading = DownloadReading(path: "/Downloads/movie.crdownload", kind: .created, fileID: 1, renamedTo: nil)
@@ -31,6 +32,7 @@ final class DownloadCoordinatorTests: XCTestCase {
             queueHead: { q.head },
             enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
             replaceHead: { q.updateHead($0) },
+            removeInProgress: {},
             presentTransientChange: {}
         )
         let reading = DownloadReading(path: "/Downloads/notes.txt", kind: .created, fileID: 2, renamedTo: nil)
@@ -45,6 +47,7 @@ final class DownloadCoordinatorTests: XCTestCase {
             queueHead: { q.head },
             enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
             replaceHead: { q.updateHead($0) },
+            removeInProgress: {},
             presentTransientChange: {}
         )
         coordinator.handle(DownloadReading(path: "/Downloads/A.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
@@ -64,6 +67,7 @@ final class DownloadCoordinatorTests: XCTestCase {
             queueHead: { q.head },
             enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
             replaceHead: { t in replaceHeadCount += 1; q.updateHead(t) },
+            removeInProgress: {},
             presentTransientChange: {}
         )
         let reading = DownloadReading(path: "/Downloads/movie.crdownload", kind: .renamed, fileID: 1, renamedTo: "/Downloads/movie.mp4")
@@ -80,6 +84,7 @@ final class DownloadCoordinatorTests: XCTestCase {
             queueHead: { q.head },
             enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
             replaceHead: { t in replaceHeadCount += 1; q.updateHead(t) },
+            removeInProgress: {},
             presentTransientChange: {}
         )
         coordinator.handle(DownloadReading(path: "/Downloads/movie.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
@@ -99,6 +104,7 @@ final class DownloadCoordinatorTests: XCTestCase {
             queueHead: { q.head },
             enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
             replaceHead: { t in replaceHeadCount += 1; q.updateHead(t) },
+            removeInProgress: {},
             presentTransientChange: {}
         )
         coordinator.handle(DownloadReading(path: "/Downloads/A.pdf.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
@@ -119,14 +125,16 @@ final class DownloadCoordinatorTests: XCTestCase {
         XCTAssertEqual(q.head, .downloadProgress(.done(filename: "B.pdf")))
     }
 
-    func testRemovedTrackedPathSilentlyDropsNoQueueCalls() {
+    func testRemovedTrackedPathSilentlyDropsNoEnqueueOrReplaceHeadCalls() {
         var q = TransientQueue()
         var enqueueCount = 0
         var replaceHeadCount = 0
+        var removeInProgressCount = 0
         let coordinator = DownloadCoordinator(
             queueHead: { q.head },
             enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
             replaceHead: { t in replaceHeadCount += 1; q.updateHead(t) },
+            removeInProgress: { removeInProgressCount += 1 },
             presentTransientChange: {}
         )
         coordinator.handle(DownloadReading(path: "/Downloads/movie.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
@@ -135,6 +143,10 @@ final class DownloadCoordinatorTests: XCTestCase {
         coordinator.handle(DownloadReading(path: "/Downloads/movie.crdownload", kind: .removed, fileID: 1, renamedTo: nil), now: Date())
         XCTAssertEqual(enqueueCount, 0)
         XCTAssertEqual(replaceHeadCount, 0)
+        // Bug fix regression: cancelling the ONLY in-flight download must dismiss the
+        // standing .inProgress transient via removeInProgress(), or the spinner never stops
+        // (found via on-device UAT — .inProgress is documented as never-self-elapsing).
+        XCTAssertEqual(removeInProgressCount, 1)
 
         // D-15 — a removed (cancelled) download's entry is gone; a subsequent rename for the
         // same path is treated as untracked, not as a completion.
@@ -143,20 +155,48 @@ final class DownloadCoordinatorTests: XCTestCase {
         XCTAssertEqual(replaceHeadCount, 0)
     }
 
+    func testRemovedOneOfTwoInFlightDoesNotCallRemoveInProgress() {
+        var q = TransientQueue()
+        var enqueueCount = 0
+        var removeInProgressCount = 0
+        let coordinator = DownloadCoordinator(
+            queueHead: { q.head },
+            enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
+            replaceHead: { q.updateHead($0) },
+            removeInProgress: { removeInProgressCount += 1 },
+            presentTransientChange: {}
+        )
+        coordinator.handle(DownloadReading(path: "/Downloads/A.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
+        coordinator.handle(DownloadReading(path: "/Downloads/B.crdownload", kind: .created, fileID: 2, renamedTo: nil), now: Date())
+
+        // Cancel A while B is still in flight — the shared generic .inProgress indicator is
+        // still accurate (B is still downloading), so it must NOT be dismissed.
+        coordinator.handle(DownloadReading(path: "/Downloads/A.crdownload", kind: .removed, fileID: 1, renamedTo: nil), now: Date())
+        XCTAssertEqual(removeInProgressCount, 0)
+        XCTAssertEqual(q.head, .downloadProgress(.inProgress))
+
+        // Now cancel B too — this WAS the last one in flight — must dismiss.
+        coordinator.handle(DownloadReading(path: "/Downloads/B.crdownload", kind: .removed, fileID: 2, renamedTo: nil), now: Date())
+        XCTAssertEqual(removeInProgressCount, 1)
+    }
+
     func testRemovedUntrackedPathIsSafeNoOp() {
         var enqueueCount = 0
         var replaceHeadCount = 0
+        var removeInProgressCount = 0
         var presentCount = 0
         let coordinator = DownloadCoordinator(
             queueHead: { nil },
             enqueue: { _ in enqueueCount += 1; return false },
             replaceHead: { _ in replaceHeadCount += 1 },
+            removeInProgress: { removeInProgressCount += 1 },
             presentTransientChange: { presentCount += 1 }
         )
         let reading = DownloadReading(path: "/Downloads/never-seen.crdownload", kind: .removed, fileID: 1, renamedTo: nil)
         coordinator.handle(reading, now: Date())
         XCTAssertEqual(enqueueCount, 0)
         XCTAssertEqual(replaceHeadCount, 0)
+        XCTAssertEqual(removeInProgressCount, 0)
         XCTAssertEqual(presentCount, 0)
     }
 
@@ -169,6 +209,7 @@ final class DownloadCoordinatorTests: XCTestCase {
             queueHead: { queueHeadCallCount += 1; return nil },
             enqueue: { _ in enqueueCount += 1; return false },
             replaceHead: { _ in replaceHeadCount += 1 },
+            removeInProgress: {},
             presentTransientChange: { presentCount += 1 }
         )
         coordinator.activityPromoted()
@@ -186,6 +227,7 @@ final class DownloadCoordinatorTests: XCTestCase {
             queueHead: { q.head },
             enqueue: { t in enqueueCount += 1; return q.enqueue(t) },
             replaceHead: { t in replaceHeadCount += 1; q.updateHead(t) },
+            removeInProgress: {},
             presentTransientChange: {}
         )
         coordinator.handle(DownloadReading(path: "/Downloads/movie.crdownload", kind: .created, fileID: 1, renamedTo: nil), now: Date())
