@@ -155,6 +155,28 @@ struct NotchPillView: View {
     // .pill, mirroring weatherStyle's `?? .medium`-equivalent @AppStorage default convention.
     @AppStorage(ActivitySettings.switcherLayoutKey) private var switcherLayout: SwitcherLayout = .pill
 
+    // Phase 62 / TIMER-01 (D-01) — the Timer/Pomodoro activity toggle (Settings default OFF,
+    // per v1.10's own "new activities default OFF" convention). Read directly here, same
+    // existing-key/existing-pattern as switcherLayout above — startTimerButton below is gated
+    // on this with zero controller-side plumbing needed.
+    @AppStorage(ActivitySettings.timerKey) private var timerEnabled = false
+
+    // Phase 62 / TIMER-01 (D-01..D-05) — the inline duration/mode picker's local UI state.
+    // Never reaches a controller closure directly — only the validated Int minute values passed
+    // to onStartCountdown/onStartPomodoro do (T-62-04).
+    @State private var isTimerSetupPresented = false
+    @State private var timerSetupMode: TimerMode = .countdown
+    @State private var countdownMinutes = 10
+    @State private var isCountdownCustomSelected = false
+    @State private var countdownCustomText = ""
+    @State private var workMinutes = 25
+    @State private var isWorkCustomSelected = false
+    @State private var workCustomText = ""
+    @State private var breakMinutes = 5
+    @State private var isBreakCustomSelected = false
+    @State private var breakCustomText = ""
+    @State private var timerValidationMessage: String? = nil
+
     // Phase 52 / SWITCH-03/04 (D-03) — the ONE shared left-to-right ordering both switcherRow
     // (pill) and topEdgeSwitcherRow (top-edge) read; calls Plan 52-01's shared orderedSlotIcons(...)
     // free function so there is exactly one place that turns 4 independent slot values into an
@@ -299,6 +321,11 @@ struct NotchPillView: View {
     var onTimerReset: () -> Void = {}
     var onTimerAddTime: () -> Void = {}
     var onTimerStop: () -> Void = {}
+    // Phase 62 / TIMER-01 (D-01..D-05, T-62-04) — the Start Timer setup picker's start
+    // callbacks, forwarding ONLY the validated Int minute value(s) — never the raw TextField
+    // text (validateCustomDurationMinutes(_:) runs before either of these is ever called).
+    var onStartCountdown: (Int) -> Void = { _ in }
+    var onStartPomodoro: (Int, Int) -> Void = { _, _ in }
 
     // Phase 34 / TRAY-02 (D-09 fallback) — AirDrop/Mail dim + disable only if Plan 02 Task 3's
     // on-device spike finds no working invocation path; default `true` per 34-RESEARCH.md's
@@ -977,10 +1004,17 @@ struct NotchPillView: View {
                   shelfVisible: shelfStripVisible, showSwitcher: true,
                   switcherLayout: switcherLayout) {
             switch presentation {
+            // Phase 62 / TIMER-01 (D-01..D-05) — guarded arms placed BEFORE their unguarded
+            // counterparts so Swift's top-to-bottom case matching picks the picker while it's
+            // open, falling through to normal content otherwise; covers all 3 Home sub-states.
+            case .nowPlayingExpanded(_, true) where isTimerSetupPresented:
+                timerSetupPicker
             case .nowPlayingExpanded(let p, true):
                 mediaContent(p, art: nowPlaying.artwork)
             case .nowPlayingExpanded(_, false):
                 mediaUnavailableContent
+            case .homeLastPlayed where isTimerSetupPresented:
+                timerSetupPicker
             case .homeLastPlayed:
                 // Phase 30 / HOME-02 (D-04): synthesize a .paused presentation from the
                 // sticky last-played snapshot and feed the SAME mediaContent(_:art:) the
@@ -988,6 +1022,8 @@ struct NotchPillView: View {
                 mediaContent(.paused(title: nowPlaying.lastKnownTrack?.title ?? "",
                                       artist: nowPlaying.lastKnownTrack?.artist ?? ""),
                              art: nowPlaying.lastKnownTrack?.artwork)
+            case .homeEmpty where isTimerSetupPresented:
+                timerSetupPicker
             case .homeEmpty:
                 homeEmptyContent
             case .calendarExpanded:
@@ -1172,6 +1208,9 @@ struct NotchPillView: View {
                 .font(.system(size: 11, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            // Phase 62 / TIMER-01 (D-01) — reachable from all 3 Home sub-states; here for
+            // "Nothing Playing".
+            if timerEnabled { startTimerButton }
         }
         // Quick task 260715-vsd gap-closure round 3 — the dead gap before the switcher row
         // here is `Self.switcherContentHeight` (196) minus this content's own natural
@@ -1765,6 +1804,111 @@ struct NotchPillView: View {
             .padding(.top, Self.cameraClearance)
             .padding(.horizontal, 24)
         }
+    }
+
+    // Phase 62 / TIMER-01 (D-01, exact wording) — the Home entry point, chip style (matches
+    // the existing labeled-text-CTA convention used for "Enter License Key"/"Buy Islet"),
+    // distinct from D-08's icon-only navCircleButton circles. Opens the inline setup picker.
+    private var startTimerButton: some View {
+        chipButton("Start Timer") { isTimerSetupPresented = true }
+    }
+
+    // Phase 62 / TIMER-01 (D-02..D-05) — a preset-chip row + "Custom…" chip shared by the
+    // Countdown/Work/Break sections below, so the 3 nearly-identical rows aren't tripled.
+    private func durationChipsRow(presets: [Int], selectedMinutes: Binding<Int>, isCustomSelected: Binding<Bool>) -> some View {
+        HStack(spacing: 8) {
+            ForEach(presets, id: \.self) { minutes in
+                chipButton("\(minutes) min") {
+                    selectedMinutes.wrappedValue = minutes
+                    isCustomSelected.wrappedValue = false
+                }
+            }
+            chipButton("Custom…") { isCustomSelected.wrappedValue = true }
+        }
+    }
+
+    // Phase 62 / TIMER-01 (D-01..D-05) — the inline Start Timer duration/mode picker.
+    // T-62-04 (threat model, mitigate): every custom-duration TextField is validated via
+    // validateCustomDurationMinutes(_:) (Plan 62-01) inside startTimerSetup() below BEFORE
+    // onStartCountdown/onStartPomodoro is ever called — the raw text itself never leaves
+    // this view.
+    private var timerSetupPicker: some View {
+        VStack(spacing: 12) {
+            Picker("", selection: $timerSetupMode) {
+                Text("Countdown").tag(TimerMode.countdown)
+                Text("Pomodoro").tag(TimerMode.pomodoro)
+            }
+            .pickerStyle(.segmented)
+
+            if timerSetupMode == .countdown {
+                durationChipsRow(presets: [5, 10, 20, 30], selectedMinutes: $countdownMinutes, isCustomSelected: $isCountdownCustomSelected)
+                if isCountdownCustomSelected {
+                    TextField("1-180", text: $countdownCustomText)
+                        .textFieldStyle(.roundedBorder)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Work")
+                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    durationChipsRow(presets: [25], selectedMinutes: $workMinutes, isCustomSelected: $isWorkCustomSelected)
+                    if isWorkCustomSelected {
+                        TextField("1-180", text: $workCustomText)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    Text("Break")
+                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    durationChipsRow(presets: [5], selectedMinutes: $breakMinutes, isCustomSelected: $isBreakCustomSelected)
+                    if isBreakCustomSelected {
+                        TextField("1-180", text: $breakCustomText)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+            }
+
+            if let timerValidationMessage {
+                Text(timerValidationMessage)
+                    .foregroundStyle(.red)
+                    .font(.system(size: 11))
+            }
+
+            HStack {
+                navCircleButton(systemName: "xmark", filled: false) {
+                    isTimerSetupPresented = false
+                    timerValidationMessage = nil
+                }
+                Spacer()
+                navCircleButton(systemName: "checkmark", filled: true, action: startTimerSetup)
+            }
+        }
+        .padding(.top, Self.cameraClearance)
+        .padding(.horizontal, 24)
+    }
+
+    // Resolves the picker's current selection to validated Int minute value(s) and forwards
+    // ONLY those to onStartCountdown/onStartPomodoro — an invalid custom entry blocks dismissal
+    // and shows the locked 62-UI-SPEC.md validation copy instead (T-62-04).
+    private func startTimerSetup() {
+        switch timerSetupMode {
+        case .countdown:
+            let minutes = isCountdownCustomSelected ? validateCustomDurationMinutes(countdownCustomText) : countdownMinutes
+            guard let minutes else {
+                timerValidationMessage = "Enter a number between 1 and 180."
+                return
+            }
+            onStartCountdown(minutes)
+        case .pomodoro:
+            let work = isWorkCustomSelected ? validateCustomDurationMinutes(workCustomText) : workMinutes
+            let breakMin = isBreakCustomSelected ? validateCustomDurationMinutes(breakCustomText) : breakMinutes
+            guard let work, let breakMin else {
+                timerValidationMessage = "Enter a number between 1 and 180."
+                return
+            }
+            onStartPomodoro(work, breakMin)
+        }
+        isTimerSetupPresented = false
+        timerValidationMessage = nil
     }
 
     // UI-SPEC §5 — 3 equal-weight destination chips, no button reads as primary. AirDrop/Mail
@@ -3511,6 +3655,9 @@ struct NotchPillView: View {
             if presentationState.outputPanelOpen {
                 outputPanel(devices: presentationState.outputDevices)
             }
+            // Phase 62 / TIMER-01 (D-01) — reachable from all 3 Home sub-states; mediaContent
+            // covers both Now Playing and Last Played (D-01's Empty State note).
+            if timerEnabled { startTimerButton }
         }
         .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
         .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve (restored to its pre-260715-vsd value —
