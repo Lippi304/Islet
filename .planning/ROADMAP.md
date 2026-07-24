@@ -1111,7 +1111,25 @@ Plans:
   3. Tapping the HUD's mute control toggles the system-wide microphone mute (via a shared `MicMuteController`, not the in-app mute) and the HUD's own icon reflects the current mute state.
   4. Opening a Google Meet call in a browser does not show the Meeting-HUD — documented as a known limitation, not silently missing.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 63-01-PLAN.md — Pure seams: MeetingActivity model (TDD) + MicMuteController (shared system-wide input-mute primitive, D-02/D-04)
+
+**Wave 2** *(blocked on 63-01)*
+
+- [ ] 63-02-PLAN.md — MeetingMonitor (detection risk isolated, D-03) + on-device spike checkpoint (go/no-go)
+
+**Wave 3** *(blocked on 63-01, 63-02 go/no-go)*
+
+- [ ] 63-03-PLAN.md — IslandResolver .meeting case (rank 3, D-05/D-06) + NotchPillView meetingWings(for:) inline-tappable mute icon (D-09/D-10)
+
+**Wave 4** *(blocked on 63-02, 63-03)*
+
+- [ ] 63-04-PLAN.md — NotchWindowController wiring (monitor lifecycle, mute-tap handler, Settings toggle) + on-device UAT checkpoint
+
 **UI hint**: yes
 
 ### Phase 64: Quick Notes + Obsidian Export
