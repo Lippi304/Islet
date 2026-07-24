@@ -477,22 +477,25 @@ final class MeetingMonitor {
 | A2 | The nested `.onTapGesture` on the mute icon will reliably win hit-testing priority over `wingsShape`'s outer `.onTapGesture`, given the specific `.overlay(content())` view-composition this codebase uses | Architecture Patterns Pattern 3 | If SwiftUI's hit-testing doesn't behave as expected in this specific overlay chain, taps on the mute icon could incorrectly fall through to the no-op background tap (D-10) or, worse, if the no-op override is somehow bypassed, to the universal expand-to-Home — either way the mute control silently fails to toggle, a MEET-02-breaking regression |
 | A3 | `com.microsoft.teams2` alone (per D-01, locked) is sufficient Teams coverage, without also matching classic Teams' `com.microsoft.teams` | Common Pitfalls Pitfall 4 | Users still on Teams classic get zero Meeting-HUD functionality with Teams calls, a silent total feature miss for that subset of users — flagged as an Open Question below since D-01 is locked and not this agent's to unilaterally override |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `com.microsoft.teams` (classic Teams) be added alongside `com.microsoft.teams2` in the detection bundle-ID list?**
    - What we know: D-01 locks only `com.microsoft.teams2`; both bundle IDs are real, currently-coexisting apps per this session's web research.
    - What's unclear: Whether D-01 was written with awareness of the classic/new Teams split, or whether it simply cited the more commonly-referenced modern bundle ID without considering the split.
    - Recommendation: Surface this explicitly to the user/planner before finalizing `MeetingMonitor`'s bundle-ID constant — a one-line addition (`Set<String>` literal), low cost either way, but a real product decision (does this project's actual user base still run classic Teams?) rather than an obvious default.
+   - **Resolved:** D-01 was clarified during plan-phase 63 (see 63-CONTEXT.md D-01, "Classic Teams (`com.microsoft.teams`) added during plan-phase 63 — still coexists alongside new Teams") to include BOTH bundle IDs. Plan 63-02's `MeetingMonitor.swift` ships `targetBundleIDs` defaulting to `["us.zoom.xos", "com.microsoft.teams2", "com.microsoft.teams"]`.
 
 2. **Does the mic-active CoreAudio property listener require any permission/entitlement not already present, or is it genuinely zero-permission like the existing output-side code?**
    - What we know: `VolumeReader.swift`/`AudioOutputMonitor.swift` already do output-scope CoreAudio calls with zero microphone-related entitlement or Info.plist key present.
    - What's unclear: Whether input-scope specifically differs (Assumption A1).
    - Recommendation: First checklist item of D-03's on-device spike — run `MicMuteController`'s read/write against a fresh/never-granted Islet install and confirm no TCC dialog appears.
+   - **Resolved:** Plan 63-02's on-device spike checkpoint (checklist item 7) explicitly requires confirming no Microphone TCC prompt appears during `MicMuteController`'s read/toggle calls, with a documented go/no-go verdict recorded in `63-02-SUMMARY.md` before Plan 63-03 proceeds.
 
 3. **Is `wingsShape`'s nested-gesture hit-testing behavior confirmed to prioritize inner content over the outer `onTapGesture`, specifically in this codebase's `.overlay(content())` composition?**
    - What we know: SwiftUI's general documented behavior is that the topmost/deepest view under the pointer captures a tap gesture first; `updateWings` already proves `onTap:` overrides work at the wing level.
    - What's unclear: Whether a SECOND, nested gesture inside `content()` reliably wins over the wing-level `onTapGesture`, given the specific `.overlay()`+`.frame(alignment: .leading)` chain `wingsShape` uses (Assumption A2) — no existing wing in this codebase has a nested interactive sub-region to serve as a direct precedent.
    - Recommendation: Verify with a minimal on-device SwiftUI test (or during the phase's own build/UAT) before committing to this exact mechanism; if it fails, `.highPriorityGesture` on the icon is the documented fallback.
+   - **Resolved:** Plan 63-03 Task 2 ships the nested `.onTapGesture` on the mute icon with the `.highPriorityGesture` fallback documented inline as the mechanism to switch to if hit-testing misbehaves. Plan 63-04's on-device UAT checkpoint (step 2: background tap does nothing; step 3: mute icon tap toggles the real mic) verifies the actual hit-testing behavior on real hardware.
 
 ## Environment Availability
 
