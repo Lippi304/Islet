@@ -2970,24 +2970,28 @@ struct NotchPillView: View {
         }
     }
 
-    // Phase 61 gap closure round 2 (post-checkpoint on-device UAT feedback) — the download icon
-    // now stays fixed on the LEFT in both states (was checkmark-replaces-icon before); only the
-    // RIGHT box swaps content: spinner while in-flight, green checkmark once done. Both states
-    // now share one identical leftWidth/rightWidth (no more per-case AnyView branch — the width
-    // math no longer depends on `activity`, only the inner content does), which also removes any
-    // width jump when a download completes. Padding tightened to capsLockWings' proven 12/12
-    // (osdWings' 14/20 was sized for a 90pt BAR; our right box is just a 20pt icon, so the
-    // tighter icon-scale precedent applies) — margin stays osdWings' on-device-confirmed 55,
-    // NOT re-tuned here: that value is calibrated against the physical camera cutout, not
-    // content width, and this codebase's own history (osdWings rounds 5-16) shows guessing that
-    // number instead of measuring it on-device is exactly how clipping regressions happen.
-    // Icons switched from .hierarchical to .monochrome + .bold per user's "heller und
-    // auffälliger" (brighter/more prominent) feedback — hierarchical dims secondary symbol
-    // layers, monochrome renders a single fully-opaque fill. No onTap override (D-11) — falls
-    // through to the universal onClick() expand-to-Home, same as capsLockWings.
+    // Phase 61 gap closure round 3 (post-checkpoint on-device UAT feedback) — the download icon
+    // stays fixed on the LEFT in both states; only the RIGHT box swaps content: spinner while
+    // in-flight, green checkmark once done. Both states share one identical leftWidth/rightWidth
+    // (width math doesn't depend on `activity`, only the inner content does), so there's no width
+    // jump when a download completes. Padding is capsLockWings' proven 12/12 (osdWings' 14/20 was
+    // sized for a 90pt BAR; our right box is just a 20pt icon). Icons are .monochrome + .bold
+    // (was .hierarchical) per "heller und auffälliger" (brighter/more prominent) feedback —
+    // hierarchical dims secondary symbol layers, monochrome renders one fully-opaque fill.
+    // margin: user explicitly reported round 2's osdWings-borrowed 55 as too much dead space to
+    // the camera on-device — round 16's own comment on osdWings admits 55 was "plainly more
+    // margin than needed" (a deliberate generous overshoot to end that mechanism-debugging saga,
+    // never tuned to a minimum), so trimming it for icon-only content isn't fighting a hard floor,
+    // it's finding the floor that saga skipped. Dropped to 30 (this file's own updateWings
+    // precedent: documented tuning history "55->30->25->15->30" settled there for comparable
+    // icon-scale content) as the next on-device data point — if this reintroduces a visible gap
+    // between the black pill background and the physical camera cutout, or the icon visually
+    // creeps toward the camera edge, that's the signal to bump back up, not proof 55 was right.
+    // No onTap override (D-11) — falls through to the universal onClick() expand-to-Home, same
+    // as capsLockWings.
     private func downloadWings(for activity: DownloadActivity) -> some View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 55
+        let margin: CGFloat = 30
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
         let leadingPad: CGFloat = 12
