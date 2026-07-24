@@ -2978,25 +2978,27 @@ struct NotchPillView: View {
     // sized for a 90pt BAR; our right box is just a 20pt icon). Icons are .monochrome + .bold
     // (was .hierarchical) per "heller und auffälliger" (brighter/more prominent) feedback —
     // hierarchical dims secondary symbol layers, monochrome renders one fully-opaque fill.
-    // margin: user explicitly reported round 2's osdWings-borrowed 55 as too much dead space to
-    // the camera on-device — round 16's own comment on osdWings admits 55 was "plainly more
-    // margin than needed" (a deliberate generous overshoot to end that mechanism-debugging saga,
-    // never tuned to a minimum), so trimming it for icon-only content isn't fighting a hard floor,
-    // it's finding the floor that saga skipped. Dropped to 30 (this file's own updateWings
-    // precedent: documented tuning history "55->30->25->15->30" settled there for comparable
-    // icon-scale content) as the next on-device data point — if this reintroduces a visible gap
-    // between the black pill background and the physical camera cutout, or the icon visually
-    // creeps toward the camera edge, that's the signal to bump back up, not proof 55 was right.
+    // margin: user reported round 2's osdWings-borrowed 55 as too much dead space to the camera
+    // on-device — round 16's own comment on osdWings admits 55 was "plainly more margin than
+    // needed" (a deliberate generous overshoot to end that mechanism-debugging saga, never tuned
+    // to a minimum), so trimming it for icon-only content isn't fighting a hard floor, it's
+    // finding the floor that saga skipped. Round 3 dropped it to 30; round 4 (still reported too
+    // wide) drops it again to 20 as the next on-device data point — if this reintroduces a
+    // visible gap between the black pill background and the physical camera cutout, or the icon
+    // visually creeps toward the camera edge, that's the signal to bump back up.
+    // leadingPad/trailingPad: round 4 also asked for MORE breathing room between icon and the
+    // pill's own outer edge ("Abstand der icons zum Rand... nach außen") — bumped 12->16. Net
+    // effect vs round 3 is still narrower overall (+8pt from padding, -20pt from the margin cut).
     // No onTap override (D-11) — falls through to the universal onClick() expand-to-Home, same
     // as capsLockWings.
     private func downloadWings(for activity: DownloadActivity) -> some View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 30
+        let margin: CGFloat = 20
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
-        let leadingPad: CGFloat = 12
+        let leadingPad: CGFloat = 16
         let iconWidth: CGFloat = 20
-        let trailingPad: CGFloat = 12
+        let trailingPad: CGFloat = 16
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth + iconWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
