@@ -3403,42 +3403,50 @@ struct NotchPillView: View {
     // checkpoint if content width differs.
     private func timerWings(for activity: TimerActivity) -> some View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 20
-        let notchHalfWidth = rawNotchHalfWidth + margin
-        let cameraBlockWidth = notchHalfWidth * 2
-        let leadingPad: CGFloat = 16
-        let iconWidth: CGFloat = 20
-        let trailingPad: CGFloat = 16
-        // Phase 62-04 UAT round 4 fix (items G/H) — replaces round 3's single fixed
-        // `rightContentWidth` + `.frame(alignment: .trailing)` approach, which had two
-        // compounding problems: (1) guessing one pixel width for both the short plain-
-        // countdown digits AND the much wider "Work · Cycle 1 14:52" label+dot+digits combo
-        // was never going to fit both (round 3's 145 already clipped the dot; round 2's 130
-        // clipped it worse) -- OVER-estimating for Pomodoro left plain Countdown floating
-        // in a needlessly wide box (item H's "too much empty gap"); (2) any width guess
-        // that's even slightly too narrow makes overflow spill LEADING (toward the camera)
-        // under `.trailing` alignment, clipping exactly the dot -- the failure mode is
-        // backwards from what a "safe" mistake should look like.
-        // The robust fix: reuse countdownWings' OWN proven pattern (Spacer() between the
-        // camera block and the content, not a fixed-width alignment box) -- content is
-        // pushed toward the trailing edge by however much slack actually exists, and any
-        // future width-guess miss spills OUTWARD past the wing's own trailing edge (safe,
-        // same direction as before Bug-3 ever existed) instead of back toward the camera.
-        // The per-mode budget below only sizes the WING'S OWN total footprint (so a short
-        // "14:52" doesn't reserve as much trailing space as "Work · Cycle 1 14:52" would),
-        // it no longer constrains the content's own rendered width directly.
+        // Phase 62-04 UAT round 6 fix (items E/G, ROOT CAUSE) — rounds 3-5 kept tuning
+        // `rightContentWidth`/alignment (the box AFTER the camera block), but the actual
+        // clipping was never about that box: `margin: CGFloat = 20` — copied verbatim from
+        // downloadWings, whose right side is a single 20pt ICON, never TEXT — was the real
+        // bug. capsLockWings hit this EXACT failure class first (a text label, not an icon,
+        // next to the camera) and documents the fix in its own on-device-measured history:
+        // "osdWings' own 55pt margin still clipped the wider 'Caps Lock Off' string; 65pt is
+        // the on-device-confirmed minimum" (rawNotchHalfWidth measured 89.5pt on that test
+        // machine). "Work · Cycle 1"/"Break · Cycle 1" is the same class of content
+        // (icon/dot + a >10-character label sitting immediately after the camera block) as
+        // "Caps Lock Off" -- reusing capsLockWings' own proven 65pt margin (not a new guess)
+        // for the Pomodoro-labeled case is the actual fix; plain Countdown (just short mm:ss
+        // digits, no adjacent label) keeps the original 20pt margin unchanged, matching
+        // round 5's already-approved compact layout (item H).
         let isPomodoro: Bool
         switch activity {
         case .running(_, let ctx), .paused(_, let ctx): isPomodoro = ctx.mode == .pomodoro
         case .segmentDone: isPomodoro = true    // only ever reached for a Pomodoro session
         case .completed: isPomodoro = false     // only ever reached for a plain Countdown session
         }
+        let margin: CGFloat = isPomodoro ? 65 : 20
+        let notchHalfWidth = rawNotchHalfWidth + margin
+        let cameraBlockWidth = notchHalfWidth * 2
+        let leadingPad: CGFloat = 16
+        let iconWidth: CGFloat = 20
+        // Was 16; trimmed to 12 (matches capsLockWings' own trailingPad exactly) to reclaim
+        // a few points of the ~325pt ceiling for the wider Pomodoro margin below — harmless
+        // for Countdown (its own budget has plenty of slack either way).
+        let trailingPad: CGFloat = 12
         // Countdown: just the mm:ss digits (up to "999:00", 6 chars, per the 999-minute cap)
-        // plus a small breathing margin -- deliberately TIGHT so the Spacer above has little
+        // plus a small breathing margin -- deliberately TIGHT so the Spacer below has little
         // slack to push through (item H).
-        // Pomodoro: dot(6) + spacing(6) + "Work · Cycle 1"-length label(~112) + spacing(4) +
-        // digits(~47 worst case) plus margin (item G).
-        let rightContentWidth: CGFloat = isPomodoro ? 180 : 60
+        // Pomodoro: 144, MEASURED (not guessed) against real NSAttributedString/NSFont
+        // metrics for the actual 11pt label / 13pt monospaced-digit fonts used below:
+        // dot(6) + gap(2) + "Break · Cycle 12"@11pt (85.9pt, the longest realistic label) +
+        // gap(2) + "999:00"@13pt monospaced (47.6pt, the longest realistic digit string) =
+        // 143.5pt measured total -- fits with a hair of margin. (A session simultaneously at
+        // BOTH the longest label AND longest digits -- e.g. a 999-minute segment that's also
+        // reached cycle 12 -- would need ~8+ days of continuous running and is not a
+        // realistic combination; even then, the Spacer(minLength: 0) below overflows
+        // OUTWARD, never back toward the camera.) Verified against the leftWidth/rightWidth
+        // assert below at both the Preview/non-notch fallback width and the real on-device
+        // notch width capsLockWings' own history measured (89.5pt) -- both pass with margin.
+        let rightContentWidth: CGFloat = isPomodoro ? 144 : 60
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
@@ -3472,14 +3480,19 @@ struct NotchPillView: View {
                             // Spacer()+.padding(.trailing) convention, but can never push the
                             // dot back toward the camera even on a width-budget miss.
                             Spacer(minLength: 0)
-                            HStack(spacing: 4) {
+                            // Phase 62-04 UAT round 6 fix (item G) — the label (not the
+                            // digits) shrinks to 11pt and the HStack spacing tightens to 2pt
+                            // (was 4pt uniformly) — the exact values the 144pt budget above
+                            // was measured against. Digits stay at 13pt (the primary
+                            // glanceable value, unchanged).
+                            HStack(spacing: 2) {
                                 if let label {
                                     if timerContext.phase == .work {
                                         Circle().fill(Color.green)   // D-07 live-session dot — Work segment only, not Break
                                             .frame(width: 6, height: 6)
                                     }
                                     Text(label)
-                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .font(.system(size: 11, weight: .semibold, design: .rounded))
                                         .foregroundStyle(.white)
                                 }
                                 Text(formatMMSS(remaining))
