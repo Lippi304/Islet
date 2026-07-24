@@ -1086,7 +1086,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 62-01-PLAN.md — Pure seams: TimerActivity model (TDD) + IslandResolver.swift SC5 generalization (isPersistent/preempt(), .timer/.timerExpanded cases)
+- [x] 62-01-PLAN.md — Pure seams: TimerActivity model (TDD) + IslandResolver.swift SC5 generalization (isPersistent/preempt(), .timer/.timerExpanded cases)
 
 **Wave 2** *(blocked on 62-01)*
 
