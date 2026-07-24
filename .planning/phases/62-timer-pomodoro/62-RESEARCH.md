@@ -343,20 +343,17 @@ NSSound.beep()   // plays the user's System Settings > Sound > Alert Sound choic
 
 ## Open Questions
 
-1. **Does a running Timer's expanded control view take priority over an active Calendar/Weather/Tray tab selection?**
+1. **RESOLVED** — Does a running Timer's expanded control view take priority over an active Calendar/Weather/Tray tab selection?
+   - **Resolution (user, plan-phase gate):** Yes — Timer's expanded controls take priority unconditionally while a timer runs. Implement the recommended default: place the `.timer`/`.timerExpanded` branch inside the initial `switch activeTransient` block (same tier as Charging/Device), returning eagerly on `isExpanded`, ahead of any `selectedView`/tab check.
    - What we know: D-04's "wins even over expanded" precedent exists only for Charging/Device (unconditional `return`, no distinct expanded content); every other transient yields entirely on expand. Timer needs a THIRD shape (dedicated expanded content) that has no existing precedent to copy exactly.
-   - What's unclear: CONTEXT.md and the UI-SPEC describe the picker/controls/splash in isolation but never address what happens if the user has, say, Calendar open when the timer completes or when they try to expand.
-   - Recommendation: Default to Timer's expanded controls taking priority (simplest resolver branch, mirrors Pattern 4 above) unless the planner/discuss-phase surfaces a reason the user wants simultaneous Calendar+Timer access — this is a one-line branch-ordering decision, cheap to revisit later if wrong.
 
-2. **What container/shape does the completion splash actually render in — collapsed wing or a brief expanded blob?**
-   - What we know: UI-SPEC locks a 28px icon + text pairing, explicitly citing `homeEmptyContent` (an EXPANDED-view precedent) for icon size, but every other transient splash in this codebase (Charging, Focus, CapsLock, Download-done) renders in the much-shorter (32pt-tall) collapsed `wingsShape` container.
-   - What's unclear: whether the UI-SPEC intends a literal container-shape change (a new "big" splash) or just reused the 28px size token for typography-budget reasons without checking wing-height feasibility.
-   - Recommendation: Surface to the UI-checker before planning locks a container shape — this genuinely changes the resolver architecture (a 4th presentation shape) if the answer is "big blob," vs. zero extra architecture if the answer is "normal wing, icon size should shrink."
+2. **RESOLVED** — What container/shape does the completion splash actually render in — collapsed wing or a brief expanded blob?
+   - **Resolution (user, plan-phase gate):** Normal collapsed wing. Reuse the existing 32pt-tall `wingsShape` container like every other splash (Charging/Focus/CapsLock/Download-done); shrink the icon from the UI-SPEC's 28px token down to the standard 14-20px wing icon size. No new resolver/presentation shape — treat the 28px `homeEmptyContent` citation in UI-SPEC as superseded by this decision.
+   - What we know: UI-SPEC locks a 28px icon + text pairing, explicitly citing `homeEmptyContent` (an EXPANDED-view precedent) for icon size, but every other transient splash in this codebase renders in the much-shorter collapsed `wingsShape` container.
 
-3. **Does a running timer's state survive an app quit/relaunch or system sleep?**
-   - What we know: CONTEXT.md's own "Claude's Discretion" section flags this explicitly as unresolved ("not raised during discussion... flagging as a real open question").
-   - What's unclear: whether `TimerActivityState` needs any persistence (e.g. `UserDefaults`-backed deadline + mode) to resurrect a session after a relaunch, or whether it's acceptable for a quit/relaunch to simply lose the running timer (matching this app's existing behavior for, e.g., a running Charging/Download splash, which also don't persist across relaunch today).
-   - Recommendation: Default to NO persistence (matches every existing transient's behavior — none of Charging/Device/Focus/Download/CapsLock persist across a relaunch either), unless the planner/user explicitly wants Timer to be the first exception. Cheap to add later if needed (a `UserDefaults`-backed `deadline`/`mode` restore on `NotchWindowController.init`).
+3. **RESOLVED** — Does a running timer's state survive an app quit/relaunch or system sleep?
+   - **Resolution (user, plan-phase gate):** No persistence needed. In-memory only, matching every existing transient's behavior (Charging/Device/Focus/Download/CapsLock also don't persist across a relaunch). If the app quits or the Mac sleeps through the deadline, the session is lost/resets — this is acceptable and not a regression.
+   - What we know: CONTEXT.md's own "Claude's Discretion" section flagged this explicitly as unresolved prior to this gate.
 
 ## Environment Availability
 
