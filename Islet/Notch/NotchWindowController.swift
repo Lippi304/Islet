@@ -89,6 +89,11 @@ final class NotchWindowController {
     // @ObservedObject still re-renders an in-place % update inside the same wings case).
     private let chargingState = ChargingActivityState()
 
+    // Phase 62 / TIMER-01..04 (Plan 04) — the SEPARATE @Published Timer/Pomodoro session model
+    // Plan 02 built, mirroring chargingState's ownership contract: this controller reads
+    // `.activity`/`.deadline` and pushes into transientQueue itself (no closure reach-back).
+    private let timerActivityState = TimerActivityState()
+
     // Phase 6 / COORD-01 / D-05 — the @Published carrier of the resolver's verdict. The view
     // observes this; the controller writes it (inside the spring) on every state change via
     // renderPresentation(). This is the ONE place the rendered presentation is set.
@@ -175,6 +180,12 @@ final class NotchWindowController {
     // constructed in start() alongside deviceCoordinator for the same [weak self]-binding
     // reason and held the same implicitly-unwrapped, non-lazy way (T-16-03 precedent).
     private var downloadCoordinator: DownloadCoordinator!
+
+    // Phase 62 / TIMER-02/TIMER-04 (Plan 04) — the one-shot deadline scheduler for
+    // timerActivityState.deadline. Constructed in start() alongside downloadCoordinator (its
+    // onFire closure calls handleTimerDeadlineReached(), built later in this same plan) and
+    // held the same implicitly-unwrapped, non-lazy way (T-16-03 precedent).
+    private var timerMonitor: TimerMonitor!
 
     // Phase 27 / VISUAL-03 — the last theme applied to the hosting view: 3 independent
     // per-element accent indices plus the material style. UserDefaults posts
@@ -495,11 +506,12 @@ final class NotchWindowController {
         deviceCoordinator = DeviceCoordinator(
             queueHead: { [weak self] in self?.transientQueue.head },
             enqueue: { [weak self] t in
-                // Phase 38 / HUD-05 (D-08): a Device transient must PREEMPT a standing Focus head
-                // exactly like handlePower(_:)'s charging branch above.
+                // Phase 38 / HUD-05 (D-08) / Phase 62 SC5 — a Device transient must PREEMPT any
+                // standing persistent head (Focus, Download-in-progress, Timer), not just Focus.
+                // preempt()'s own isPersistent guard (generalized in Plan 62-01) now covers this
+                // directly, so the old .focus-only re-derivation is gone.
                 guard let self else { return false }
-                if case .focus = self.transientQueue.head { return self.transientQueue.preempt(t) }
-                return self.transientQueue.enqueue(t)
+                return self.transientQueue.preempt(t)
             },
             updateHead: { [weak self] t in self?.transientQueue.updateHead(t) },
             presentTransientChange: { [weak self] in self?.presentTransientChange() },
@@ -523,9 +535,10 @@ final class NotchWindowController {
         downloadCoordinator = DownloadCoordinator(
             queueHead: { [weak self] in self?.transientQueue.head },
             enqueue: { [weak self] t in
+                // Phase 62 SC5 — generalized preempt() call, mirrors deviceCoordinator's enqueue
+                // closure above verbatim.
                 guard let self else { return false }
-                if case .focus = self.transientQueue.head { return self.transientQueue.preempt(t) }
-                return self.transientQueue.enqueue(t)
+                return self.transientQueue.preempt(t)
             },
             replaceHead: { [weak self] t in
                 guard let self else { return }
@@ -555,6 +568,10 @@ final class NotchWindowController {
             },
             presentTransientChange: { [weak self] in self?.presentTransientChange() }
         )
+
+        // Phase 62 / TIMER-02/TIMER-04 (Plan 04) — constructed here for the same [weak self]-
+        // binding reason as deviceCoordinator/downloadCoordinator above.
+        timerMonitor = TimerMonitor { [weak self] in self?.handleTimerDeadlineReached() }
 
         updateVisibility()
 
@@ -2479,7 +2496,15 @@ final class NotchWindowController {
                       onCalendarDaySelect: { [weak self] day in self?.handleCalendarDaySelect(day) },
                       // Phase 46-02 / CALVIEW-05 — forwards QuickAddPopover's real picked Start/End
                       // (Event) or Due (Reminder) Date(s) into handleQuickAdd.
-                      onQuickAdd: { [weak self] kind, title, start, end in self?.handleQuickAdd(kind, title: title, start: start, end: end) })
+                      onQuickAdd: { [weak self] kind, title, start, end in self?.handleQuickAdd(kind, title: title, start: start, end: end) },
+                      // Phase 62 / TIMER-01..04 (Plan 04) — forwards NotchPillView's 6 Timer/
+                      // Pomodoro closures to the real handlers built later in this plan.
+                      onTimerPauseResume: { [weak self] in self?.handleTimerPauseResume() },
+                      onTimerReset: { [weak self] in self?.handleTimerReset() },
+                      onTimerAddTime: { [weak self] in self?.handleTimerAddTime() },
+                      onTimerStop: { [weak self] in self?.handleTimerStop() },
+                      onStartCountdown: { [weak self] minutes in self?.handleStartCountdown(minutes: minutes) },
+                      onStartPomodoro: { [weak self] work, brk in self?.handleStartPomodoro(workMinutes: work, breakMinutes: brk) })
             .environment(\.nowPlayingAccent, ActivitySettings.accent(for: theme.nowPlaying))
             .environment(\.chargingAccent, ActivitySettings.accent(for: theme.charging))
             .environment(\.deviceAccent, ActivitySettings.accent(for: theme.device))
@@ -2543,6 +2568,15 @@ final class NotchWindowController {
         // can sit behind other transients and show up after the user already turned it off.
         if !activityEnabled(ActivitySettings.updateHudKey) {
             flushTransients(.updateAvailable)
+        }
+
+        // Phase 62 / TIMER-01..04 (Plan 04) — Timer has no monitor to start/stop, but a live
+        // session must be force-stopped on toggle-off, mirroring the Update HUD block above
+        // (both share the "no monitor, but must clear live/queued state" shape).
+        if !activityEnabled(ActivitySettings.timerKey) {
+            timerActivityState.stop()
+            timerMonitor.arm(at: nil)
+            flushTransients(.timer)
         }
 
         // Phase 41 / HUD-08 — Calendar Countdown. Mirrors the Charging/Devices toggle-off
@@ -2611,14 +2645,14 @@ final class NotchWindowController {
     // Device splash already stands). `oldHead` is captured BEFORE removeAll(where:) runs; the
     // dismiss-timer cancel/re-arm block below is now gated on `transientQueue.head != oldHead`, so
     // an untouched standing splash's already-running ~3s countdown is left exactly as it was.
-    private enum TransientCategory { case charging, device, focus, osd, capsLock, updateAvailable, downloadProgress }
+    private enum TransientCategory { case charging, device, focus, osd, capsLock, updateAvailable, downloadProgress, timer }
     private func flushTransients(_ category: TransientCategory) {
         let oldHead = transientQueue.head
         let matches: (ActiveTransient) -> Bool = { t in
             switch (t, category) {
             case (.charging, .charging), (.device, .device), (.focus, .focus), (.osd, .osd),
                  (.capsLock, .capsLock), (.updateAvailable, .updateAvailable),
-                 (.downloadProgress, .downloadProgress): return true
+                 (.downloadProgress, .downloadProgress), (.timer, .timer): return true
             default: return false
             }
         }
@@ -2644,6 +2678,10 @@ final class NotchWindowController {
         // pendingDeviceBatteryPolls' clear are two DIFFERENT calls at two different call
         // sites for Device).
         case .downloadProgress: break
+        // Phase 62 / TIMER-01..04 (Plan 04) — no separate @Published model to clear here;
+        // Timer's own session state lives in timerActivityState, which handleTimerStop() clears
+        // directly, not via this generic flush path (mirrors capsLock/updateAvailable).
+        case .timer: break
         }
         guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
@@ -3011,6 +3049,11 @@ final class NotchWindowController {
         // Phase 61 / DL-01/DL-02: tear down the FSEvents stream — mirrors
         // capsLockMonitor?.stop()'s owner-driven teardown discipline exactly.
         downloadMonitor?.stop()
+
+        // Phase 62 / TIMER-02/TIMER-04: tear down the deadline scheduler — mirrors
+        // downloadMonitor?.stop()'s owner-driven teardown discipline exactly (TimerMonitor's
+        // own deinit doc comment expects its owner to call stop() here).
+        timerMonitor?.stop()
 
         // Phase 39 / HUD-03/HUD-04: tear down the OSD key-press event tap — mirrors
         // focusModeMonitor?.stop()'s owner-driven teardown discipline exactly.
