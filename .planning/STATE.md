@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: executing
-stopped_at: Completed 61-04-PLAN.md
-last_updated: "2026-07-23T23:13:30.752Z"
-last_activity: 2026-07-23
+status: verifying
+stopped_at: Completed 61-05-PLAN.md (Phase 61 Download-Progress shipped)
+last_updated: "2026-07-24T00:55:44.268Z"
+last_activity: 2026-07-24
 progress:
   total_phases: 19
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 39
-  completed_plans: 38
-  percent: 79
+  completed_plans: 39
+  percent: 84
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 61 — download-progress
+**Current focus:** Phase 61 — download-progress (shipped) — Phase 62 (Timer/Pomodoro) not yet planned
 
 ## Current Position
 
-Phase: 61 (download-progress) — EXECUTING
+Phase: 61 (download-progress) — COMPLETE
 Plan: 5 of 5
-Status: Ready to execute
-Last activity: 2026-07-23
+Status: Phase complete — all 4 ROADMAP Success Criteria confirmed on-device, DL-01/DL-02 shipped
+Last activity: 2026-07-24
 
 ### Phase 48 status note
 
@@ -59,7 +59,7 @@ Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3
 
 Progress (v1.9): [██████████] 100% — SHIPPED 2026-07-23 (4/4 phases — Phases 55/56/57/58 complete)
 
-Progress (v1.10): [█░░░░░░░░░] 11% (1/9 phases — Phase 59 Settings-Redesign shipped 2026-07-23, on-device UAT approved, SETTINGS-04/SETTINGS-05 complete; Phases 60-67 not started)
+Progress (v1.10): [███░░░░░░░] 33% (3/9 phases — Phase 59 Settings-Redesign, Phase 60 Caps Lock HUD + Update-Activity Restyle, Phase 61 Download-Progress all shipped and on-device UAT approved; SETTINGS-04/05, CAPS-01, UPDATE-01, DL-01/02 complete; Phases 62-67 not started)
 
 ## Performance Metrics
 
@@ -170,6 +170,7 @@ Progress (v1.10): [█░░░░░░░░░] 11% (1/9 phases — Phase 59 
 | Phase 61 P02 | 15min | 1 tasks tasks | 3 files files |
 | Phase 61 P03 | 8min | 1 tasks | 1 files |
 | Phase 61 P04 | 20min | 2 tasks | 3 files |
+| Phase 61 P05 | multi-session (checkpoint, 5 gap-closure commits) | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -262,6 +263,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 61-02]: DownloadCoordinator's activityPromoted() ships as a documented empty-body no-op (RESEARCH.md Open Question 1) -- a completing download's own done state is delivered via plain TransientQueue enqueue/advance mechanics, never a coordinator-side promoted re-check; reset() shipped in this plan (not deferred to 61-04) alongside the table it clears
 - [Phase ?]: [Phase 61-03] downloadWings(for:) wraps each switch-case's wingsShape(...) in AnyView (divergent per-state HStack content) -- presentationSwitch now renders real download-progress wing UI, replacing Plan 61-01's EmptyView() placeholder
 - [Phase ?]: [Phase 61-04]: MainActor.assumeIsolated (not DispatchQueue.main.async) bridges the FSEvents C callback into DownloadMonitor -- callback already runs on FSEventStreamSetDispatchQueue(.main), and eventPaths/eventFlags are only valid for the callback's own duration so async deferral would be unsafe; per-event dictionary extraction happens synchronously in the free-function callback before handoff
+- [Phase 61]: [Phase 61, 61-05]: On-device UAT round-trip (5 gap-closure commits) fixed a real cancel-bug (DownloadCoordinator's removeInProgress closure now dismisses a standing .inProgress transient, since .removed never told TransientQueue to clear an already-showing head) and redesigned downloadWings icon-only both flanks (fixed-left download icon, right flank swaps spinner<->checkmark, .monochrome+.bold rendering, camera margin 55->30->20, edge padding 12->16) after the wing proved too wide/dim on real hardware. All 11 UAT checklist steps confirmed, closing DL-01/DL-02 and all 4 ROADMAP Phase 61 Success Criteria.
 
 ### Roadmap Evolution
 
@@ -400,13 +402,14 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-23T23:13:30.746Z
-Stopped at: Completed 61-04-PLAN.md
+Last session: 2026-07-24T00:55:44.262Z
+Stopped at: Completed 61-05-PLAN.md (Phase 61 Download-Progress shipped)
 Resume file: None
 
 ## Operator Next Steps
 
-- **v1.10 (Live Activities Suite) roadmap created 2026-07-23.** 9 phases (59-67) defined in `.planning/ROADMAP.md`, 27/27 requirements mapped (100% coverage) in `.planning/REQUIREMENTS.md`. Not yet planned/executed — start with `/gsd-discuss-phase 59` (Settings-Redesign, the foundation phase) once the roadmap draft is approved.
+- **Phase 61 (Download-Progress) is now fully complete, shipped 2026-07-24.** All 5 plans (61-01..61-05) done, on-device UAT approved across all 11 checklist steps and all 4 ROADMAP Success Criteria — DL-01/DL-02 shipped. 61-05's own on-device checkpoint directly covered the phase's ROADMAP success criteria, so a separate `/gsd:verify-work 61` pass is not strictly required (per this project's Phase 29/36/38/39/45 precedent), though it remains available if desired. The UAT round-trip also fixed a real bug (cancel never dismissed the spinner) and iterated the wing's visual design twice (icon-only redesign, camera-margin tightening) — see `61-05-SUMMARY.md`. v1.10 now 3/9 phases shipped (59, 60, 61). Start `/gsd-discuss-phase 62` (Timer/Pomodoro) next.
+- **v1.10 (Live Activities Suite) roadmap created 2026-07-23.** 9 phases (59-67) defined in `.planning/ROADMAP.md`, 27/27 requirements mapped (100% coverage) in `.planning/REQUIREMENTS.md`. Phases 59-61 shipped; start with `/gsd-discuss-phase 62` next.
 - **v1.9 (Clipboard History) SHIPPED 2026-07-23.** All 4 phases (55-58) archived to `.planning/milestones/v1.9-ROADMAP.md`/`.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped. v1.4, v1.5, and v1.7 all remain open in parallel — pick one back up, or start a fresh milestone with `/gsd-new-milestone`.
 - **Phase 54 decision-coverage gate overridden (2026-07-22).** `check.decision-coverage-plan` flagged D-01 through D-11 as not cited inside any plan's `must_haves.truths` block (only D-12/D-13 are). Manual review confirmed all 13 decisions ARE implemented and referenced in plan task bodies/acceptance criteria (grep-verified, and gsd-plan-checker's semantic review independently confirmed all 13 decisions correctly implemented) — user chose "Proceed anyway" since this is a must_haves-phrasing gap, not a missing feature. Re-surface at `/gsd:verify-work 54` if in doubt.
 - **Phase 54 gap-closure plan (54-04-PLAN.md) created 2026-07-22** to close 54-VERIFICATION.md's 2 FAILED truths (gaps_found, 8/11). Re-running `check.decision-coverage-plan` against the phase directory (now including 54-04) re-surfaced the same D-01..D-11 override above — 54-04 doesn't touch any of those original-feature decisions, it only fixes CR-01 (Bluetooth grant bypassing the Devices toggle), CR-02 (Location grant not reaching `startLocationOnce()`), CR-03 (`replayOnboarding()` missing `updateVisibility()`), and WR-01 (Focus grant callback discarded). Passed plan-checker verification in iteration 2 (0 blockers, 0 warnings) with an added on-device checkpoint covering all 4 fixes at runtime. Next: `/gsd:execute-phase 54 --gaps-only`.
