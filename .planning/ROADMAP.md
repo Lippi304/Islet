@@ -159,7 +159,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 59: Settings-Redesign** - Droppy-style Live-Activity card grid replaces ad-hoc Activities settings; new-activity default-OFF convention locked in (completed 2026-07-23)
 - [x] **Phase 60: Caps Lock HUD + Update-Activity Restyle** - Cheapest new-activity pairing, proves the Settings-grid card pattern (completed 2026-07-23)
 - [x] **Phase 61: Download-Progress** - First FSEvents-based watcher; live download presence + completion signal (completed 2026-07-24)
-- [ ] **Phase 62: Timer/Pomodoro** - Countdown/Pomodoro HUD; generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode
+- [x] **Phase 62: Timer/Pomodoro** - Countdown/Pomodoro HUD; generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode (completed 2026-07-24)
 - [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike
 - [ ] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
 - [ ] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController`
@@ -1095,7 +1095,7 @@ Plans:
 
 **Wave 3** *(blocked on 62-02, 62-03)*
 
-- [ ] 62-04-PLAN.md — NotchWindowController wiring (construction, deadline-fire orchestration, SC5 call-site cleanup, geometry) + on-device UAT checkpoint
+- [x] 62-04-PLAN.md — NotchWindowController wiring (construction, deadline-fire orchestration, SC5 call-site cleanup, geometry) + on-device UAT checkpoint
 
 **UI hint**: yes
 

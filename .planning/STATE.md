@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: executing
-stopped_at: Completed 62-03-PLAN.md
-last_updated: "2026-07-24T13:31:22.287Z"
+status: verifying
+stopped_at: Completed 62-04-PLAN.md — Phase 62 (timer-pomodoro) fully approved and closed
+last_updated: "2026-07-24T16:32:34.754Z"
 last_activity: 2026-07-24
 progress:
   total_phases: 19
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 62 — timer-pomodoro
+**Current focus:** Phase 62 — timer-pomodoro (SHIPPED — 62-04's on-device UAT approved 2026-07-24 after 6 rounds; next up: Phase 63 Meeting HUD)
 
 ## Current Position
 
-Phase: 62 (timer-pomodoro) — EXECUTING
+Phase: 62 (timer-pomodoro) — COMPLETE (all 4 plans executed, on-device UAT approved, TIMER-01..04 marked Complete in REQUIREMENTS.md)
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-24
 
 ### Phase 48 status note
@@ -59,7 +59,7 @@ Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3
 
 Progress (v1.9): [██████████] 100% — SHIPPED 2026-07-23 (4/4 phases — Phases 55/56/57/58 complete)
 
-Progress (v1.10): [███░░░░░░░] 33% (3/9 phases — Phase 59 Settings-Redesign, Phase 60 Caps Lock HUD + Update-Activity Restyle, Phase 61 Download-Progress all shipped and on-device UAT approved; SETTINGS-04/05, CAPS-01, UPDATE-01, DL-01/02 complete; Phases 62-67 not started)
+Progress (v1.10): [████░░░░░░] 44% (4/9 phases — Phase 59 Settings-Redesign, Phase 60 Caps Lock HUD + Update-Activity Restyle, Phase 61 Download-Progress, Phase 62 Timer/Pomodoro all shipped and on-device UAT approved; SETTINGS-04/05, CAPS-01, UPDATE-01, DL-01/02, TIMER-01/02/03/04 complete; Phases 63-67 not started)
 
 ## Performance Metrics
 
@@ -174,6 +174,7 @@ Progress (v1.10): [███░░░░░░░] 33% (3/9 phases — Phase 59 
 | Phase 62 P01 | 25min | 2 tasks | 7 files |
 | Phase 62 P02 | 20min | 2 tasks | 3 files |
 | Phase 62 P03 | 35min | 3 tasks | 1 files |
+| Phase 62 P04 | multi-session (checkpoint, 6 UAT rounds) | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -271,6 +272,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 62-02]: TimerActivityState/TimerMonitor shipped exactly per plan (D-08/D-09/D-10/D-11 mutation logic + CalendarCountdownMonitor-mirrored one-shot deadline scheduler); 12/12 TimerActivityStateTests green, full 509-test suite shows zero new regressions (same 4 pre-existing unrelated failures). Only deviation: the plan's own acceptance-criteria grep for now:-parameterized overloads undercounts (5 vs 7) due to a BRE literal-parens artifact on multi-param signatures -- verified via an alternate grep that all 7 overloads genuinely exist, no code change needed.
 - [Phase 62]: [Phase 62-03]: timerTick(for:at:) plain helper extracted so a TimelineView content closure never contains a bare switch-assignment (ViewBuilder tries to build every statement as a View); shared verbatim by timerWings(for:) and timerExpandedContent(for:)
 - [Phase 62]: [Phase 62-03]: TIMER-03 left Pending in REQUIREMENTS.md -- the completion splash rendering this plan built is only half the requirement, the notification sound is Plan 62-04's job
+- [Phase 62-04]: Timer moved out of Home into its own dedicated 5th switcher tab (SelectedView.timer / IslandPresentation.timerSetup) mid-UAT round 1 — The inline Home-overlay picker overflowed for Pomodoro and conflated Now-Playing/Timer-setup concerns; Timer is a fixed icon appended after the 4 configurable switcher slots, gated on timerEnabled
+- [Phase 62-04]: Pomodoro collapsed-pill dot/label camera-cutout clipping (rounds 3/4/6) root-caused to timerWings' margin constant, not content-box width — margin=20 was copied from icon-only downloadWings; capsLockWings had already solved the identical text-adjacent-to-camera problem with an on-device-proven margin=65, reused instead of guessing a new number, verified against real NSFont metrics
 
 ### Roadmap Evolution
 
@@ -409,8 +412,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-24T13:31:22.281Z
-Stopped at: Completed 62-03-PLAN.md
+Last session: 2026-07-24T16:32:34.747Z
+Stopped at: Completed 62-04-PLAN.md — Phase 62 (timer-pomodoro) fully approved and closed
 Resume file: None
 
 ## Operator Next Steps
