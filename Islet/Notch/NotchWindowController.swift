@@ -900,15 +900,17 @@ final class NotchWindowController {
 
     // D-01..D-05 — the "Start Timer" picker's two entry points, gated on the Timer Settings
     // toggle exactly like every other activity's guard.
-    private func handleStartCountdown(minutes: Int) {
+    // Phase 62-04 UAT round 5 feature (item I) — widened minutes -> seconds, mirroring
+    // TimerActivityState's own startCountdown/startPomodoro signature change.
+    private func handleStartCountdown(seconds: Int) {
         guard activityEnabled(ActivitySettings.timerKey) else { return }
-        timerActivityState.startCountdown(minutes: minutes)
+        timerActivityState.startCountdown(seconds: seconds)
         presentNewTimerSession()
     }
 
-    private func handleStartPomodoro(workMinutes: Int, breakMinutes: Int) {
+    private func handleStartPomodoro(workSeconds: Int, breakSeconds: Int) {
         guard activityEnabled(ActivitySettings.timerKey) else { return }
-        timerActivityState.startPomodoro(workMinutes: workMinutes, breakMinutes: breakMinutes)
+        timerActivityState.startPomodoro(workSeconds: workSeconds, breakSeconds: breakSeconds)
         presentNewTimerSession()
     }
 
@@ -2632,8 +2634,8 @@ final class NotchWindowController {
                       onTimerReset: { [weak self] in self?.handleTimerReset() },
                       onTimerAddTime: { [weak self] in self?.handleTimerAddTime() },
                       onTimerStop: { [weak self] in self?.handleTimerStop() },
-                      onStartCountdown: { [weak self] minutes in self?.handleStartCountdown(minutes: minutes) },
-                      onStartPomodoro: { [weak self] work, brk in self?.handleStartPomodoro(workMinutes: work, breakMinutes: brk) })
+                      onStartCountdown: { [weak self] seconds in self?.handleStartCountdown(seconds: seconds) },
+                      onStartPomodoro: { [weak self] work, brk in self?.handleStartPomodoro(workSeconds: work, breakSeconds: brk) })
             .environment(\.nowPlayingAccent, ActivitySettings.accent(for: theme.nowPlaying))
             .environment(\.chargingAccent, ActivitySettings.accent(for: theme.charging))
             .environment(\.deviceAccent, ActivitySettings.accent(for: theme.device))

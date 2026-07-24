@@ -25,14 +25,29 @@ final class TimerActivityTests: XCTestCase {
         XCTAssertEqual(nextPhase(after: .breakTime), .work)
     }
 
-    // Phase 62-04 UAT revision (item 4) — cap raised 180 -> 999.
-    func testValidateCustomDurationMinutes() {
-        XCTAssertEqual(validateCustomDurationMinutes("45"), 45)
-        XCTAssertNil(validateCustomDurationMinutes("0"))
-        XCTAssertNil(validateCustomDurationMinutes("1000"))
-        XCTAssertNil(validateCustomDurationMinutes("abc"))
-        XCTAssertEqual(validateCustomDurationMinutes("1"), 1)
-        XCTAssertEqual(validateCustomDurationMinutes("999"), 999)
+    // Phase 62-04 UAT round 5 feature (item I, simplified round 6 — no "Ns" seconds-suffix
+    // format) — supersedes testValidateCustomDurationMinutes: parseCustomDurationSeconds
+    // returns whole SECONDS and accepts 2 formats (plain minutes, "M:SS").
+    func testParseCustomDurationSecondsPlainMinutes() {
+        XCTAssertEqual(parseCustomDurationSeconds("45"), 45 * 60)
+        XCTAssertNil(parseCustomDurationSeconds("0"))
+        XCTAssertNil(parseCustomDurationSeconds("1000"))   // 1000min > 999min cap
+        XCTAssertNil(parseCustomDurationSeconds("abc"))
+        XCTAssertEqual(parseCustomDurationSeconds("1"), 60)
+        XCTAssertEqual(parseCustomDurationSeconds("999"), 999 * 60)
+    }
+
+    func testParseCustomDurationSecondsColonFormat() {
+        XCTAssertEqual(parseCustomDurationSeconds("5:30"), 330)
+        XCTAssertEqual(parseCustomDurationSeconds("0:45"), 45)
+        XCTAssertNil(parseCustomDurationSeconds("5:60"))   // seconds part must be 0..<60
+        XCTAssertNil(parseCustomDurationSeconds("5:"))
+        XCTAssertNil(parseCustomDurationSeconds(":30"))
+    }
+
+    func testParseCustomDurationSecondsBounds() {
+        XCTAssertEqual(parseCustomDurationSeconds("999:00"), 59_940)   // exactly the 999min ceiling
+        XCTAssertNil(parseCustomDurationSeconds("999:01"))              // 1s over the ceiling
     }
 
     func testCompletionSplashText() {

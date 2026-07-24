@@ -10,9 +10,14 @@ final class TimerActivityStateTests: XCTestCase {
 
     let t0 = Date(timeIntervalSince1970: 1_700_000_000)
 
+    // Phase 62-04 UAT round 5 feature (item I) — TimerActivityState.startCountdown/
+    // startPomodoro widened from minutes: Int to seconds: Int; every call site below
+    // multiplies its old minute literal by 60 (10min -> 600s, 25min -> 1500s, etc.) — no
+    // behavior change, purely a unit-of-argument rename.
+
     func testStartCountdownSetsRunningWithDeadlineTenMinutesOut() {
         let state = TimerActivityState()
-        state.startCountdown(minutes: 10, now: t0)
+        state.startCountdown(seconds: 600, now: t0)
         XCTAssertEqual(
             state.activity,
             .running(deadline: t0.addingTimeInterval(600), context: TimerContext(mode: .countdown, phase: nil, cycle: nil))
@@ -21,7 +26,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testStartPomodoroDefaultsToWorkPhaseCycleOne() {
         let state = TimerActivityState()
-        state.startPomodoro(workMinutes: 25, breakMinutes: 5, now: t0)
+        state.startPomodoro(workSeconds: 1500, breakSeconds: 300, now: t0)
         XCTAssertEqual(
             state.activity,
             .running(deadline: t0.addingTimeInterval(1500), context: TimerContext(mode: .pomodoro, phase: .work, cycle: 1))
@@ -30,7 +35,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testPauseCapturesRemainingAndClearsRunning() {
         let state = TimerActivityState()
-        state.startCountdown(minutes: 10, now: t0)
+        state.startCountdown(seconds: 600, now: t0)
         state.pause(now: t0.addingTimeInterval(60))
         XCTAssertEqual(
             state.activity,
@@ -46,7 +51,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testResumeRecomputesDeadlineFromRemaining() {
         let state = TimerActivityState()
-        state.startCountdown(minutes: 10, now: t0)
+        state.startCountdown(seconds: 600, now: t0)
         state.pause(now: t0.addingTimeInterval(60))
         state.resume(now: t0.addingTimeInterval(90))
         XCTAssertEqual(
@@ -58,7 +63,7 @@ final class TimerActivityStateTests: XCTestCase {
     func testResetRestartsCurrentSegmentAtFullDuration() {
         // Running-then-reset.
         let runningState = TimerActivityState()
-        runningState.startCountdown(minutes: 10, now: t0)
+        runningState.startCountdown(seconds: 600, now: t0)
         runningState.reset(now: t0.addingTimeInterval(400))
         XCTAssertEqual(
             runningState.activity,
@@ -67,7 +72,7 @@ final class TimerActivityStateTests: XCTestCase {
 
         // Paused-then-reset — reset still restarts at full duration and lands .running, not .paused.
         let pausedState = TimerActivityState()
-        pausedState.startCountdown(minutes: 10, now: t0)
+        pausedState.startCountdown(seconds: 600, now: t0)
         pausedState.pause(now: t0.addingTimeInterval(60))
         pausedState.reset(now: t0.addingTimeInterval(400))
         XCTAssertEqual(
@@ -78,7 +83,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testAddMinuteExtendsDeadlineWhileRunning() {
         let state = TimerActivityState()
-        state.startCountdown(minutes: 10, now: t0)
+        state.startCountdown(seconds: 600, now: t0)
         state.addMinute(now: t0)
         XCTAssertEqual(
             state.activity,
@@ -88,7 +93,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testAddMinuteExtendsRemainingWhilePaused() {
         let state = TimerActivityState()
-        state.startCountdown(minutes: 10, now: t0)
+        state.startCountdown(seconds: 600, now: t0)
         state.pause(now: t0.addingTimeInterval(60))
         state.addMinute(now: t0.addingTimeInterval(60))
         XCTAssertEqual(
@@ -99,7 +104,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testStopClearsActivityAndResetsSessionFields() {
         let state = TimerActivityState()
-        state.startPomodoro(workMinutes: 25, breakMinutes: 5, now: t0)
+        state.startPomodoro(workSeconds: 1500, breakSeconds: 300, now: t0)
         // Advance to cycle 2 / .breakTime: work(c1)->break(c1)->work(c2)->break(c2).
         _ = state.handleDeadlineReached(now: t0.addingTimeInterval(1500))
         _ = state.handleDeadlineReached(now: t0.addingTimeInterval(1500 + 300))
@@ -108,14 +113,14 @@ final class TimerActivityStateTests: XCTestCase {
         state.stop()
         XCTAssertNil(state.activity)
 
-        state.startCountdown(minutes: 5, now: t0)
+        state.startCountdown(seconds: 300, now: t0)
         XCTAssertEqual(
             state.activity,
             .running(deadline: t0.addingTimeInterval(300), context: TimerContext(mode: .countdown, phase: nil, cycle: nil))
         )
 
         // No leaked Pomodoro phase/cycle — a subsequent startPomodoro begins fresh at .work/cycle 1.
-        state.startPomodoro(workMinutes: 25, breakMinutes: 5, now: t0)
+        state.startPomodoro(workSeconds: 1500, breakSeconds: 300, now: t0)
         XCTAssertEqual(
             state.activity,
             .running(deadline: t0.addingTimeInterval(1500), context: TimerContext(mode: .pomodoro, phase: .work, cycle: 1))
@@ -124,7 +129,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testHandleDeadlineReachedCountdownReturnsCompletedWithNoNext() {
         let state = TimerActivityState()
-        state.startCountdown(minutes: 5, now: t0)
+        state.startCountdown(seconds: 300, now: t0)
         let result = state.handleDeadlineReached(now: t0.addingTimeInterval(300))
         XCTAssertEqual(result.splash, .completed)
         XCTAssertNil(result.next)
@@ -133,7 +138,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testHandleDeadlineReachedPomodoroWorkToBreakReturnsSegmentDoneAndAdvances() {
         let state = TimerActivityState()
-        state.startPomodoro(workMinutes: 25, breakMinutes: 5, now: t0)
+        state.startPomodoro(workSeconds: 1500, breakSeconds: 300, now: t0)
         let result = state.handleDeadlineReached(now: t0.addingTimeInterval(1500))
         XCTAssertEqual(result.splash, .segmentDone(finishedPhase: .work, cycle: 1))
         XCTAssertEqual(
@@ -145,7 +150,7 @@ final class TimerActivityStateTests: XCTestCase {
 
     func testHandleDeadlineReachedPomodoroBreakToWorkIncrementsCycle() {
         let state = TimerActivityState()
-        state.startPomodoro(workMinutes: 25, breakMinutes: 5, now: t0)
+        state.startPomodoro(workSeconds: 1500, breakSeconds: 300, now: t0)
         _ = state.handleDeadlineReached(now: t0.addingTimeInterval(1500))
 
         let result = state.handleDeadlineReached(now: t0.addingTimeInterval(1500 + 300))

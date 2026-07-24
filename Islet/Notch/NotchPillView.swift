@@ -335,8 +335,11 @@ struct NotchPillView: View {
     var onTimerAddTime: () -> Void = {}
     var onTimerStop: () -> Void = {}
     // Phase 62 / TIMER-01 (D-01..D-05, T-62-04) — the Start Timer setup picker's start
-    // callbacks, forwarding ONLY the validated Int minute value(s) — never the raw TextField
-    // text (validateCustomDurationMinutes(_:) runs before either of these is ever called).
+    // callbacks, forwarding ONLY the validated Int SECOND value(s) — never the raw TextField
+    // text (parseCustomDurationSeconds(_:) runs before either of these is ever called).
+    // Phase 62-04 UAT round 5 feature (item I) — widened from whole minutes to whole
+    // seconds so the picker can express sub-minute custom durations ("30s"); preset chips
+    // (still minute-granular) convert at the call site (startTimerSetup() below, `* 60`).
     var onStartCountdown: (Int) -> Void = { _ in }
     var onStartPomodoro: (Int, Int) -> Void = { _, _ in }
 
@@ -1849,12 +1852,22 @@ struct NotchPillView: View {
         @Binding var isSelected: Bool
         @State private var isShowing = false
 
+        // Phase 62-04 UAT round 5 feature (item I, simplified round 6 — only ":" is a
+        // recognized format now) — the chip label mirrors whatever format the user actually
+        // typed: "5:30" already self-describes its unit, so only a bare number
+        // (plain-minutes shorthand) gets " min" appended for clarity.
+        private var displayLabel: String {
+            guard isSelected, !text.isEmpty else { return "Custom…" }
+            if text.contains(":") { return text }
+            return "\(text) min"
+        }
+
         var body: some View {
             Button(action: {
                 isSelected = true
                 isShowing = true
             }) {
-                Text(isSelected && !text.isEmpty ? "\(text) min" : "Custom…")
+                Text(displayLabel)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
@@ -1874,7 +1887,13 @@ struct NotchPillView: View {
             }
             .buttonStyle(.plain)
             .popover(isPresented: $isShowing, arrowEdge: .bottom) {
-                TextField("Minutes", text: $text)
+                // Phase 62-04 UAT round 6 feature (item I) — accepts plain minutes ("5") or
+                // minutes:seconds ("5:30", or "0:30" for just 30 seconds); parsed by
+                // parseCustomDurationSeconds(_:) in startTimerSetup() below. Placeholder
+                // doubles as the format hint (this project's usual subtle-placeholder
+                // convention, e.g. TextField("1-180", ...) before this same round) — no
+                // separate label needed.
+                TextField("e.g. 5:30", text: $text)
                     .font(.system(size: 13, design: .rounded))
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 120)
@@ -1910,7 +1929,7 @@ struct NotchPillView: View {
     // Phase 62-04 UAT design revision (item 6) — the duration/mode picker, now the content of
     // its own dedicated `.timerSetup` switcher tab (was an inline Home overlay). T-62-04
     // (threat model, mitigate): every custom-duration entry is validated via
-    // validateCustomDurationMinutes(_:) (Plan 62-01) inside startTimerSetup() below BEFORE
+    // parseCustomDurationSeconds(_:) (item I) inside startTimerSetup() below BEFORE
     // onStartCountdown/onStartPomodoro is ever called — the raw text itself never leaves
     // this view.
     private var timerSetupPicker: some View {
@@ -1964,26 +1983,29 @@ struct NotchPillView: View {
         .padding(.horizontal, 32)
     }
 
-    // Resolves the picker's current selection to validated Int minute value(s) and forwards
+    // Resolves the picker's current selection to validated Int SECOND value(s) and forwards
     // ONLY those to onStartCountdown/onStartPomodoro — an invalid custom entry blocks dismissal
     // and shows the locked validation copy instead (T-62-04).
+    // Phase 62-04 UAT round 5 feature (item I) — a preset chip's value is still plain
+    // minutes (the chip literally reads "5 min" etc.), converted to seconds here (`* 60`);
+    // a custom entry already comes back as seconds from parseCustomDurationSeconds(_:).
     private func startTimerSetup() {
         switch timerSetupMode {
         case .countdown:
-            let minutes = isCountdownCustomSelected ? validateCustomDurationMinutes(countdownCustomText) : countdownMinutes
-            guard let minutes else {
-                timerValidationMessage = "Enter a number between 1 and 999."
+            let seconds = isCountdownCustomSelected ? parseCustomDurationSeconds(countdownCustomText) : countdownMinutes * 60
+            guard let seconds else {
+                timerValidationMessage = "Enter minutes, or m:ss like 5:30."
                 return
             }
-            onStartCountdown(minutes)
+            onStartCountdown(seconds)
         case .pomodoro:
-            let work = isWorkCustomSelected ? validateCustomDurationMinutes(workCustomText) : workMinutes
-            let breakMin = isBreakCustomSelected ? validateCustomDurationMinutes(breakCustomText) : breakMinutes
-            guard let work, let breakMin else {
-                timerValidationMessage = "Enter a number between 1 and 999."
+            let work = isWorkCustomSelected ? parseCustomDurationSeconds(workCustomText) : workMinutes * 60
+            let breakSecs = isBreakCustomSelected ? parseCustomDurationSeconds(breakCustomText) : breakMinutes * 60
+            guard let work, let breakSecs else {
+                timerValidationMessage = "Enter minutes, or m:ss like 5:30."
                 return
             }
-            onStartPomodoro(work, breakMin)
+            onStartPomodoro(work, breakSecs)
         }
         timerValidationMessage = nil
     }

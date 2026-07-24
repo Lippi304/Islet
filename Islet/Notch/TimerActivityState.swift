@@ -36,25 +36,29 @@ final class TimerActivityState: ObservableObject {
         }
     }
 
-    func startCountdown(minutes: Int) { startCountdown(minutes: minutes, now: Date()) }
-    func startCountdown(minutes: Int, now: Date) {
+    // Phase 62-04 UAT round 5 feature (item I) — widened from `minutes: Int` to
+    // `seconds: Int` so the picker's parseCustomDurationSeconds(_:) (Plan 62-01/TimerActivity.swift)
+    // can express sub-minute custom durations ("30s") end-to-end; preset chips (still
+    // minute-granular) convert at the NotchPillView call site instead (`* 60`).
+    func startCountdown(seconds: Int) { startCountdown(seconds: seconds, now: Date()) }
+    func startCountdown(seconds: Int, now: Date) {
         mode = .countdown
         cycle = 1
         phase = .work
-        workDuration = TimeInterval(minutes * 60)
+        workDuration = TimeInterval(seconds)
         pausedRemaining = nil
         let newDeadline = now.addingTimeInterval(workDuration)
         deadline = newDeadline
         activity = .running(deadline: newDeadline, context: currentContext())
     }
 
-    func startPomodoro(workMinutes: Int, breakMinutes: Int) { startPomodoro(workMinutes: workMinutes, breakMinutes: breakMinutes, now: Date()) }
-    func startPomodoro(workMinutes: Int, breakMinutes: Int, now: Date) {
+    func startPomodoro(workSeconds: Int, breakSeconds: Int) { startPomodoro(workSeconds: workSeconds, breakSeconds: breakSeconds, now: Date()) }
+    func startPomodoro(workSeconds: Int, breakSeconds: Int, now: Date) {
         mode = .pomodoro
         cycle = 1
         phase = .work
-        workDuration = TimeInterval(workMinutes * 60)
-        breakDuration = TimeInterval(breakMinutes * 60)
+        workDuration = TimeInterval(workSeconds)
+        breakDuration = TimeInterval(breakSeconds)
         pausedRemaining = nil
         let newDeadline = now.addingTimeInterval(workDuration)
         deadline = newDeadline

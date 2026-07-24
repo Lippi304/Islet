@@ -61,15 +61,30 @@ func nextPhase(after phase: TimerPhase) -> TimerPhase {
     }
 }
 
-// ASVS V5 mitigation (T-62-01): the trust-boundary input validator Plan 62-03's picker UI
-// calls. Never used in a shell/path/format-string context — the value only ever feeds
+// ASVS V5 mitigation (T-62-01): the trust-boundary input validator the picker UI calls.
+// Never used in a shell/path/format-string context — the returned Int only ever feeds
 // Date.addingTimeInterval (Plan 62-02).
-// Phase 62-04 UAT revision (item 4) — cap raised 180 -> 999 (user request: "as long a
-// custom duration as they want"; 999min/~16.65h is a generous ceiling that still keeps
-// the value comfortably inside Int/TimeInterval range, never truly unbounded).
-func validateCustomDurationMinutes(_ text: String) -> Int? {
-    guard let value = Int(text), (1...999).contains(value) else { return nil }
-    return value
+// Phase 62-04 UAT round 5 feature (item I, simplified per round-6 correction — no "Ns"
+// seconds-suffix format, only ":") — supersedes validateCustomDurationMinutes: returns
+// whole SECONDS (was whole minutes) so the picker can express sub-minute durations,
+// parsed in priority order:
+//   1. contains ":"  -> "M:SS" (e.g. "5:30" -> 330s, "0:30" -> 30s)
+//   2. otherwise -> plain whole minutes, unchanged existing behavior (e.g. "5" -> 300s)
+// Bounds: 1...59_940s (1s .. 999min, the same ceiling item 4 already set, expressed in
+// seconds instead of minutes).
+func parseCustomDurationSeconds(_ text: String) -> Int? {
+    let trimmed = text.trimmingCharacters(in: .whitespaces)
+    let seconds: Int
+    if trimmed.contains(":") {
+        let parts = trimmed.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count == 2, let m = Int(parts[0]), let s = Int(parts[1]), m >= 0, (0..<60).contains(s) else { return nil }
+        seconds = m * 60 + s
+    } else {
+        guard let m = Int(trimmed) else { return nil }
+        seconds = m * 60
+    }
+    guard (1...59_940).contains(seconds) else { return nil }
+    return seconds
 }
 
 // Locked 62-UI-SPEC.md copy.
