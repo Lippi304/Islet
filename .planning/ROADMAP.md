@@ -1091,7 +1091,7 @@ Plans:
 **Wave 2** *(blocked on 62-01)*
 
 - [x] 62-02-PLAN.md — TimerActivityState (pause/resume/reset/add-time/stop, TDD) + TimerMonitor (one-shot deadline scheduler)
-- [ ] 62-03-PLAN.md — NotchPillView: collapsed pill + completion splash, D-08 expanded controls, duration/mode picker + Home "Start Timer" entry
+- [x] 62-03-PLAN.md — NotchPillView: collapsed pill + completion splash, D-08 expanded controls, duration/mode picker + Home "Start Timer" entry
 
 **Wave 3** *(blocked on 62-02, 62-03)*
 
