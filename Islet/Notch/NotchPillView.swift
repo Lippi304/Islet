@@ -940,10 +940,11 @@ struct NotchPillView: View {
         case .downloadProgress(let activity): downloadWings(for: activity)  // Phase 61 / DL-01/DL-02: rank 5 transient (61-03)
         case .capsLock(let activity): capsLockWings(for: activity)          // Phase 60 / CAPS-01: rank 6 transient
         case .updateAvailable(let activity): updateWings(for: activity)     // Phase 60 / UPDATE-01: rank 7 transient
-        // Phase 62 / TIMER-01..04 (62-01): resolver seam only -- real collapsed pill / expanded
-        // controls rendering is Plan 62-03's job. EmptyView() stub keeps this switch exhaustive
-        // in the meantime (mirrors this project's own seam-then-view sequencing convention).
-        case .timer, .timerExpanded: EmptyView()
+        // Phase 62 / TIMER-01/03 (62-03 Task 1): collapsed pill live countdown + completion
+        // splash, wired into presentationSwitch. .timerExpanded stays a stub here until Task 2
+        // gives it its own dedicated arm (Pattern 4, placed after .quickActionPicker below).
+        case .timer(let activity): timerWings(for: activity)  // Phase 62 / TIMER-01/03: rank 8 transient (62-01)
+        case .timerExpanded: EmptyView()  // Plan 62-03 Task 2 replaces this with its own dedicated arm
         case .idle:
             idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }
@@ -3045,6 +3046,124 @@ struct NotchPillView: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(a11yLabel)
+        }
+    }
+
+    // Phase 62 / TIMER-01/TIMER-03 (D-07) — collapsed pill: live mm:ss countdown for
+    // running/paused, plus the "Work · Cycle N"/"Break · Cycle N" Pomodoro label (D-07) and a
+    // green live-session dot (Work segment only, 62-UI-SPEC.md Color section) when
+    // `timerPillLabel(for:)` returns non-nil; a standard-size checkmark + copy for
+    // .completed/.segmentDone (Open Question 2, resolved: normal collapsed wing, NOT the 28px
+    // homeEmptyContent icon scale). Mirrors downloadWings' margin/leftWidth/rightWidth/assert
+    // baseline verbatim (62-UI-SPEC.md Spacing Scale) — only retune on-device in Plan 62-04's
+    // checkpoint if content width differs.
+    private func timerWings(for activity: TimerActivity) -> some View {
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        let margin: CGFloat = 20
+        let notchHalfWidth = rawNotchHalfWidth + margin
+        let cameraBlockWidth = notchHalfWidth * 2
+        let leadingPad: CGFloat = 16
+        let iconWidth: CGFloat = 20
+        let trailingPad: CGFloat = 16
+        let rightContentWidth: CGFloat = 130   // fits "Break · Cycle 9" + mm:ss, the widest label/digit combination
+        let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
+        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        assert(cameraBlockWidth > 0, "Timer camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Timer wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
+            Group {
+                switch activity {
+                case .running, .paused:
+                    // CRITICAL (mirrors countdownWings' own desync warning): remaining/context
+                    // are both derived from `activity` INSIDE this one TimelineView tick closure
+                    // so a live re-render always shows a consistent icon+label+digits triple.
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let tick = timerTick(for: activity, at: context.date)
+                        let remaining = tick.remaining
+                        let timerContext = tick.context
+                        let label = timerPillLabel(for: timerContext)
+                        HStack(spacing: 0) {
+                            Color.clear.frame(width: leadingPad)
+                            Image(systemName: "timer")
+                                .font(.system(size: 13, weight: .semibold))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.white)
+                                .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                            Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
+                            HStack(spacing: 4) {
+                                if let label {
+                                    if timerContext.phase == .work {
+                                        Circle().fill(Color.green)   // D-07 live-session dot — Work segment only, not Break
+                                            .frame(width: 6, height: 6)
+                                    }
+                                    Text(label)
+                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(.white)
+                                }
+                                Text(formatMMSS(remaining))
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.white)
+                            }
+                            .frame(width: rightContentWidth, alignment: .leading)
+                            Color.clear.frame(width: trailingPad)
+                        }
+                    }
+                case .completed, .segmentDone:
+                    HStack(spacing: 0) {
+                        Color.clear.frame(width: leadingPad)
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14))   // standard wing icon size — NOT homeEmptyContent's 28px (Open Question 2)
+                            .symbolRenderingMode(.monochrome)
+                            .foregroundStyle(.green)
+                            .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                        Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
+                        Text(completionSplashText(for: activity) ?? "")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .frame(width: rightContentWidth, alignment: .leading)
+                        Color.clear.frame(width: trailingPad)
+                    }
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(timerAccessibilityLabel(for: activity))
+        }
+    }
+
+    // Plain (non-@ViewBuilder) helper — a switch-statement doing bare assignment cannot live
+    // directly inside a TimelineView content closure (@ViewBuilder tries to build every
+    // statement as a View, "type '()' cannot conform to 'View'" for the assignment itself);
+    // computing the tuple here and binding it via a single `let` inside the closure sidesteps
+    // that. Shared by timerWings(for:) and timerExpandedContent(for:) (both need the identical
+    // running/paused → (remaining, context) resolution).
+    private func timerTick(for activity: TimerActivity, at date: Date) -> (remaining: TimeInterval, context: TimerContext) {
+        switch activity {
+        case .running(let deadline, let context):
+            return (max(0, deadline.timeIntervalSince(date)), context)
+        case .paused(let remaining, let context):
+            return (remaining, context)   // stored constant — ignores `date`/the tick
+        case .completed, .segmentDone:
+            return (0, TimerContext(mode: .countdown, phase: nil, cycle: nil))
+        }
+    }
+
+    // Claude's Discretion (Task 1) — one-sentence a11y description per activity state; exact
+    // wording unspecified by 62-UI-SPEC.md beyond the visible label text above.
+    private func timerAccessibilityLabel(for activity: TimerActivity) -> String {
+        switch activity {
+        case .running(_, let context):
+            if let label = timerPillLabel(for: context) { return "Timer running, \(label)" }
+            return "Timer running"
+        case .paused:
+            return "Timer paused"
+        case .completed:
+            return "Timer complete"
+        case .segmentDone(let finishedPhase, _):
+            return finishedPhase == .work ? "Work session complete" : "Break complete"
         }
     }
 
