@@ -1012,7 +1012,10 @@ struct NotchPillView: View {
         // Phase 62 / TIMER-01/03 (62-03 Task 1): collapsed pill live countdown + completion
         // splash. .timerExpanded is handled by its own dedicated arm above (Pattern 4, placed
         // right after .quickActionPicker), not grouped here.
-        case .timer(let activity): timerWings(for: activity)  // Phase 62 / TIMER-01/03: rank 8 transient (62-01)
+        case .timer(let activity): timerWings(for: activity)  // Phase 62 / TIMER-01/03: rank 9 transient (62-01)
+        // Phase 63 / MEET-01 (63-03 Task 1) — TEMPORARY exhaustiveness arm so this commit
+        // builds; 63-03 Task 2 (the very next commit) replaces it with meetingWings(for:).
+        case .meeting: EmptyView()
         case .idle:
             idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }

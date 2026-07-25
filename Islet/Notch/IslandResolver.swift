@@ -67,10 +67,10 @@ struct CalendarCountdownActivity: Equatable {
 // Tier 0 — onboarding forced-flow: `.onboarding` never pre-empted by anything else.
 //
 // Tier 1 — ActiveTransient queue (collapsed pill), ranked:
-//   charging > device > focus (collapsed-only) > osd (collapsed-only) > downloadProgress
-//   (collapsed-only, sub-state-persistent) > capsLock (collapsed-only, Phase 60) >
-//   updateAvailable (collapsed-only, Phase 60) > timer (Phase 62, sub-state-persistent, has
-//   its own expanded content)
+//   charging > device > meeting (collapsed-only, persistent, Phase 63) > focus (collapsed-only)
+//   > osd (collapsed-only) > downloadProgress (collapsed-only, sub-state-persistent) > capsLock
+//   (collapsed-only, Phase 60) > updateAvailable (collapsed-only, Phase 60) > timer (Phase 62,
+//   sub-state-persistent, has its own expanded content)
 //
 // Tier 2 — isExpanded branch, ranked:
 //   pendingDrop (quickActionPicker) > selectedView (calendarExpanded/weatherExpanded/
@@ -85,7 +85,7 @@ struct CalendarCountdownActivity: Equatable {
 //   - Update-available (Phase 60)   — LANDED (60-01): ActiveTransient tier, rank 6, collapsed-only (D-07), NOT persistent
 //   - Download Progress (Phase 61)  — LANDED (61-01): ActiveTransient tier, rank 5, collapsed-only, sub-state-persistent per D-01/D-02/D-03
 //   - Timer/Pomodoro (Phase 62)     — LANDED (62-01): ActiveTransient tier, rank 8, sub-state-persistent (D-02/D-13-equivalent), first transient with its OWN dedicated expanded presentation (.timerExpanded)
-//   - Meeting HUD (Phase 63)        — persistent transient, depends on Phase 62's generalization — rank TBD — confirm in that activity's own phase discussion
+//   - Meeting HUD (Phase 63)        — LANDED (63-03): ActiveTransient tier, rank 3, collapsed-only (D-10), persistent (D-06). Rode Phase 62's already-generalized preempt() with ZERO changes to it.
 //   - Quick Notes (Phase 64)        — likely no IslandPresentation case at all (menu-bar-only UI, never touches the pill) — rank TBD — confirm in that activity's own phase discussion
 //   - Quick Actions bar (Phase 65)  — relationship unclear, possibly an always-visible strip rather than a presentation case — rank TBD — confirm in that activity's own phase discussion
 //   - Menübar Overflow (Phase 66)   — likely no IslandPresentation case (menu-bar-only UI) — rank TBD — confirm in that activity's own phase discussion
@@ -99,12 +99,13 @@ enum IslandPresentation: Equatable {
     case idle                                              // collapsed, nothing to show
     case charging(ChargingActivity)                        // D-02 rank 1 transient
     case device(DeviceActivity)                            // D-02 rank 2 transient
-    case focus(FocusActivity)                              // Phase 38 / HUD-05: rank 3 transient, collapsed-only (D-07)
-    case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 4 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
-    case downloadProgress(DownloadActivity)                // Phase 61 / DL-01/DL-02: rank 5 transient, collapsed-only (D-03), sub-state-persistent (D-02/D-13 -- see isPersistent below)
-    case capsLock(CapsLockActivity)                        // Phase 60 / CAPS-01: rank 6 transient, collapsed-only (D-07)
-    case updateAvailable(UpdateActivity)                   // Phase 60 / UPDATE-01: rank 7 transient, collapsed-only (D-07), NOT persistent
-    case timer(TimerActivity)                              // Phase 62 / TIMER-01..04: rank 8 transient, sub-state-persistent (SC5)
+    case meeting(MeetingActivity)                          // Phase 63 / MEET-01/MEET-02: rank 3 transient, collapsed-only ALWAYS (D-10), persistent (D-06 -- a live call never self-elapses)
+    case focus(FocusActivity)                              // Phase 38 / HUD-05: rank 4 transient, collapsed-only (D-07)
+    case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 5 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
+    case downloadProgress(DownloadActivity)                // Phase 61 / DL-01/DL-02: rank 6 transient, collapsed-only (D-03), sub-state-persistent (D-02/D-13 -- see isPersistent below)
+    case capsLock(CapsLockActivity)                        // Phase 60 / CAPS-01: rank 7 transient, collapsed-only (D-07)
+    case updateAvailable(UpdateActivity)                   // Phase 60 / UPDATE-01: rank 8 transient, collapsed-only (D-07), NOT persistent
+    case timer(TimerActivity)                              // Phase 62 / TIMER-01..04: rank 9 transient, sub-state-persistent (SC5)
     case timerExpanded(TimerActivity)                      // Phase 62 / TIMER-01..04: dedicated expanded controls (Pattern 4) -- no fallthrough, unlike every other transient
     case nowPlayingWings(NowPlayingPresentation)           // D-02 rank 3 ambient (collapsed glance)
     case calendarCountdown(CalendarCountdownActivity)      // Phase 41 / HUD-08: ambient tier, D-01 always wins over nowPlayingWings
@@ -123,12 +124,13 @@ enum IslandPresentation: Equatable {
 enum ActiveTransient: Equatable {
     case charging(ChargingActivity)
     case device(DeviceActivity)
+    case meeting(MeetingActivity)                          // Phase 63 / MEET-01/MEET-02: rank 3 transient, collapsed-only ALWAYS (D-10), persistent (D-06)
     case focus(FocusActivity)
-    case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 4 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
-    case downloadProgress(DownloadActivity)                // Phase 61 / DL-01/DL-02: rank 5 transient, collapsed-only (D-03), sub-state-persistent (D-02/D-13 -- see isPersistent below)
-    case capsLock(CapsLockActivity)                        // Phase 60 / CAPS-01: rank 6 transient, collapsed-only (D-07)
-    case updateAvailable(UpdateActivity)                   // Phase 60 / UPDATE-01: rank 7 transient, collapsed-only (D-07), NOT persistent
-    case timer(TimerActivity)                              // Phase 62 / TIMER-01..04: rank 8 transient, sub-state-persistent (SC5)
+    case osd(OSDActivity)                                  // Phase 39 / HUD-03/HUD-04: rank 5 transient, collapsed-only (D-11), NOT persistent (self-elapses via D-10's own 1.5s timer, unlike Focus)
+    case downloadProgress(DownloadActivity)                // Phase 61 / DL-01/DL-02: rank 6 transient, collapsed-only (D-03), sub-state-persistent (D-02/D-13 -- see isPersistent below)
+    case capsLock(CapsLockActivity)                        // Phase 60 / CAPS-01: rank 7 transient, collapsed-only (D-07)
+    case updateAvailable(UpdateActivity)                   // Phase 60 / UPDATE-01: rank 8 transient, collapsed-only (D-07), NOT persistent
+    case timer(TimerActivity)                              // Phase 62 / TIMER-01..04: rank 9 transient, sub-state-persistent (SC5)
 }
 
 // Phase 38 / HUD-05 (D-06) — the seam Plan 38-05's controller wiring reads to decide
@@ -148,6 +150,11 @@ extension ActiveTransient {
         // Phase 62 / TIMER-01..04 (SC5): a running/paused Timer never self-elapses while it
         // is live, mirroring the DownloadProgress sub-state split above.
         if case .timer(let t) = self, t.isRunningOrPaused { return true }
+        // Phase 63 / MEET-01 (D-06): a live meeting call never self-elapses — there is no
+        // natural "done" moment the way a charging/device splash settles after ~3s; it stands
+        // until MeetingMonitor reports the call actually ended. Same unconditional shape as
+        // .focus above (no sub-state split — `isMuted` never affects persistence).
+        if case .meeting = self { return true }
         return false
     }
 }
@@ -183,17 +190,19 @@ func resolve(activeTransient: ActiveTransient?,
     switch activeTransient {                              // D-04: transient wins even over expanded
     case .charging(let a): return .charging(a)           // D-02 rank 1
     case .device(let d):   return .device(d)             // D-02 rank 2
-    case .focus(let f) where !isExpanded: return .focus(f) // Phase 38 / HUD-05 rank 3, collapsed-only (D-07)
+    case .meeting(let m) where !isExpanded: return .meeting(m) // Phase 63 / MEET-01/MEET-02 rank 3, collapsed-only (D-10)
+    case .meeting: break                                  // expanded -- falls through to the isExpanded branch below, unmodified. D-10 locks Meeting to collapsed-only ALWAYS: it deliberately gets NO dedicated expanded counterpart the way Timer has .timerExpanded, so this is the plain `break` arm every other collapsed-only transient uses.
+    case .focus(let f) where !isExpanded: return .focus(f) // Phase 38 / HUD-05 rank 4, collapsed-only (D-07)
     case .focus: break                                    // expanded -- falls through to the isExpanded branch below, unmodified
-    case .osd(let o) where !isExpanded: return .osd(o)    // Phase 39 / HUD-03/HUD-04 rank 4, collapsed-only (D-11)
+    case .osd(let o) where !isExpanded: return .osd(o)    // Phase 39 / HUD-03/HUD-04 rank 5, collapsed-only (D-11)
     case .osd: break                                      // expanded -- falls through to the isExpanded branch below, unmodified
-    case .downloadProgress(let d) where !isExpanded: return .downloadProgress(d) // Phase 61 / DL-01/DL-02 rank 5, collapsed-only (D-03)
+    case .downloadProgress(let d) where !isExpanded: return .downloadProgress(d) // Phase 61 / DL-01/DL-02 rank 6, collapsed-only (D-03)
     case .downloadProgress: break                         // expanded -- falls through to the isExpanded branch below, unmodified
-    case .capsLock(let c) where !isExpanded: return .capsLock(c) // Phase 60 / CAPS-01 rank 6, collapsed-only (D-07)
+    case .capsLock(let c) where !isExpanded: return .capsLock(c) // Phase 60 / CAPS-01 rank 7, collapsed-only (D-07)
     case .capsLock: break                                 // expanded -- falls through to the isExpanded branch below, unmodified
-    case .updateAvailable(let u) where !isExpanded: return .updateAvailable(u) // Phase 60 / UPDATE-01 rank 7, collapsed-only (D-07)
+    case .updateAvailable(let u) where !isExpanded: return .updateAvailable(u) // Phase 60 / UPDATE-01 rank 8, collapsed-only (D-07)
     case .updateAvailable: break                          // expanded -- falls through to the isExpanded branch below, unmodified
-    case .timer(let t) where !isExpanded: return .timer(t) // Phase 62 / TIMER-01..04 rank 8, collapsed pill
+    case .timer(let t) where !isExpanded: return .timer(t) // Phase 62 / TIMER-01..04 rank 9, collapsed pill
     case .timer(let t): return .timerExpanded(t)          // Pattern 4 -- dedicated expanded controls, NOT a fallthrough, unlike every other transient above
     case nil: break
     }

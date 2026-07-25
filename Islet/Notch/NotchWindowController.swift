@@ -2555,6 +2555,7 @@ final class NotchWindowController {
         case .capsLock: chargingState.activity = nil   // Phase 60 / CAPS-01: not charging -- no standing charging splash
         case .updateAvailable: chargingState.activity = nil // Phase 60 / UPDATE-01: not charging -- no standing charging splash
         case .timer:    chargingState.activity = nil   // Phase 62 / TIMER-01..04: not charging -- no standing charging splash
+        case .meeting:  chargingState.activity = nil   // Phase 63 / MEET-01: not charging -- no standing charging splash
         case nil:       chargingState.activity = nil
         }
     }
