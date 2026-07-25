@@ -285,6 +285,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         quickNotesController.vaultConfigured = QuickNotesVaultWriter.isValidVaultFolder(atPath: path)
         quickNotesController.errorMessage = nil
 
+        // Plan 64-08 (additional scope, user-approved during 64-06's on-device UAT) — re-read
+        // each note's own vault file and prune any note whose line was deleted directly in
+        // the file (outside the app), before the file list/selection below is computed.
+        if quickNotesController.vaultConfigured {
+            reconcileQuickNotesWithVault(vaultFolderPath: path)
+        }
+
         // Plan 64-08 (Task 2) — list the real .md files in the vault folder every open (D-11
         // discipline, never cached), always offering the fixed default name even when it
         // doesn't exist as a real file yet in a brand-new vault folder.
@@ -351,6 +358,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             quickNotesController.errorMessage = "Couldn't delete from vault — check your vault folder in Settings."
         }
+    }
+
+    // Plan 64-08 (additional scope, user-approved during 64-06's on-device UAT) — the other
+    // direction of vault/local-list sync from handleQuickNoteDelete above: a note deleted
+    // directly in the vault file (outside the app, e.g. in Obsidian or a text editor) is
+    // pruned from quickNotesStore too, not just app-side deletes reaching the file. Runs once
+    // per popover-open (not on every keystroke), so a plain full-file read is fine here — no
+    // need for QuickNotesVaultWriter's append-path tail-read optimization.
+    private func reconcileQuickNotesWithVault(vaultFolderPath path: String) {
+        let fileNames = Set(quickNotesStore.items.map(\.fileName))
+        guard !fileNames.isEmpty else { return }
+
+        // A file that can't be read at all (missing, permissions error) is "unknown", not
+        // "deleted" — its notes are left untouched below to avoid a false-positive data loss.
+        var fileContents: [String: String] = [:]
+        for fileName in fileNames {
+            let fileURL = URL(fileURLWithPath: path).appendingPathComponent(fileName)
+            if let data = try? Data(contentsOf: fileURL), let content = String(data: data, encoding: .utf8) {
+                fileContents[fileName] = content
+            }
+        }
+        guard !fileContents.isEmpty else { return }
+
+        // Same occurrence-by-append-order disambiguation as handleQuickNoteDelete's
+        // duplicate-entry logic, computed here across ALL notes in one forward pass instead
+        // of per-note, so a byte-identical duplicate isn't wrongly pruned just because ONE of
+        // several identical lines was removed from the file.
+        var occurrenceSeen: [String: Int] = [:]
+        var idsToKeep: Set<UUID> = []
+        for note in quickNotesStore.items {
+            guard let content = fileContents[note.fileName] else {
+                idsToKeep.insert(note.id)
+                continue
+            }
+            let block = QuickNotesFormatter.formatEntry(text: note.text, at: note.timestamp)
+            let key = "\(note.fileName)\u{0}\(block)"
+            let occurrence = occurrenceSeen[key, default: 0]
+            occurrenceSeen[key] = occurrence + 1
+            let matchCount = content.components(separatedBy: block).count - 1
+            if occurrence < matchCount {
+                idsToKeep.insert(note.id)
+            }
+        }
+
+        guard idsToKeep.count != quickNotesStore.items.count else { return }
+        quickNotesStore.prune(keepingIDs: idsToKeep)
+        quickNotesController.notes = Array(quickNotesStore.items.reversed())
+        try? QuickNotesFileStore.save(quickNotesStore.items, root: QuickNotesFileStore.storageRoot())
     }
 
     // Keep the agent alive when the Settings window is hidden or closed — only

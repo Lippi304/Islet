@@ -18,4 +18,11 @@ struct QuickNotesStore: Equatable {
     mutating func remove(id: UUID) {
         items.removeAll { $0.id == id }
     }
+
+    // Plan 64-08 (additional scope, user-approved) — bulk prune for vault-file
+    // reconciliation on popover open: keeps only the ids AppDelegate determined are
+    // still present in their own vault file, mirrors remove(id:)'s shape for a set.
+    mutating func prune(keepingIDs idsToKeep: Set<UUID>) {
+        items.removeAll { !idsToKeep.contains($0.id) }
+    }
 }
