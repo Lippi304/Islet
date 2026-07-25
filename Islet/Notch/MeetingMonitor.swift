@@ -47,6 +47,19 @@ final class MeetingMonitor {
     // call-start/call-end.
     private var lastReading: MeetingReading?
 
+    // WR-02 (63-REVIEW.md) — these two SURVIVE the nil gap `lastReading` cannot. Without them a
+    // momentary drop of half (b) restarted the call at a brand-new `detectedAt`, i.e. the HUD
+    // vanished and came back with the elapsed counter reset to 00:00 — the one number the HUD
+    // exists to show. The reachable trigger is the exact scenario retargetInputListener() exists
+    // for: AirPods connect mid-call, the default input device changes, evaluate() runs
+    // immediately, and the conferencing app has not re-opened a stream on the new device yet, so
+    // isInputRunning() reads false for a single evaluation.
+    // D-08's "no debounce" is about SHOW latency; this only affects what a re-show is labelled
+    // with, so the immediate-show and immediate-hide guarantees both still hold.
+    private var lastCallStart: Date?
+    private var lastEndedAt: Date?
+    private static let callResumeGrace: TimeInterval = 10
+
     private let targetBundleIDs: Set<String>
     private let onChange: (MeetingReading?) -> Void
 
@@ -209,7 +222,19 @@ final class MeetingMonitor {
         // Only meaningful while detected; `false` is just the unused placeholder for the off state.
         let muted = detected ? readSystemInputMuted() : false
         if detected != (lastReading != nil) {
-            lastReading = detected ? MeetingReading(detectedAt: Date(), isMuted: muted) : nil
+            if detected {
+                let now = Date()
+                // WR-02 — reuse the previous callStart when the gap since detection dropped was
+                // shorter than the grace window: that is a device swap, not a new call. Anything
+                // longer starts a fresh call at `now`.
+                let resumable = lastEndedAt.map { now.timeIntervalSince($0) < Self.callResumeGrace } ?? false
+                let start = resumable ? (lastCallStart ?? now) : now
+                lastCallStart = start
+                lastReading = MeetingReading(detectedAt: start, isMuted: muted)
+            } else {
+                lastEndedAt = Date()
+                lastReading = nil
+            }
             onChange(lastReading)
         } else if let last = lastReading, last.isMuted != muted {
             // Same call, mute changed under us — keep callStart, refresh the mute half only.
