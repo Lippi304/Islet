@@ -2441,10 +2441,25 @@ final class NotchWindowController {
     private func handleMeetingActivityChange(_ reading: MeetingReading?) {
         let changed: Bool
         if let reading {
-            // Read-after-write discipline (63-UI-SPEC.md): the initial muted state comes from the
-            // real system, never an assumed `false`, so a mic already muted by a hardware key or
+            // Read-after-write discipline (63-UI-SPEC.md): the muted state comes from the real
+            // system, never an assumed `false`, so a mic already muted by a hardware key or
             // another app renders correctly the moment the HUD appears.
-            let activity = MeetingActivity(callStart: reading.detectedAt, isMuted: readSystemInputMuted())
+            // CR-01 — and it now comes from the READING rather than a fresh one-shot read here,
+            // because MeetingMonitor also emits when mute flips mid-call (device swap, hardware
+            // key, another app). The reading is the single source of truth for both halves.
+            let activity = MeetingActivity(callStart: reading.detectedAt, isMuted: reading.isMuted)
+            // CR-01 — a mid-call mute emission arrives with a .meeting head ALREADY standing.
+            // That must be an in-place payload refresh, exactly like handleMuteTap's: the
+            // displayed CASE is unchanged, so re-arming the dismiss window would be wrong, and
+            // routing it through preempt() would push the OLD meeting head into `pending`
+            // (preempt stashes a displaced persistent head) and resurrect it after the call.
+            if case .meeting = transientQueue.head {
+                transientQueue.updateHead(.meeting(activity))
+                withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+                    renderPresentation()
+                }
+                return
+            }
             changed = transientQueue.preempt(.meeting(activity))
         } else {
             // `changed` is the head-transition test flushTransients(_:) itself uses (`head !=

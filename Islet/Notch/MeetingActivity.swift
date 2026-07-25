@@ -20,8 +20,17 @@ struct MeetingActivity: Equatable {
 
 // The minimal raw reading MeetingMonitor (Plan 63-02) emits on an actual on/off
 // transition. Plain values so tests construct it by hand, mirroring DownloadReading.
+//
+// CR-01 (63-REVIEW.md) — `isMuted` is carried HERE, not sampled once by the controller at call
+// start. The mute property is owned by whatever input device happens to be default, and it can
+// flip under us at any moment (an AirPods swap mid-call re-points the default input device to a
+// device with its own independent mute, the hardware mic-mute key, another app). A one-shot
+// sample meant the HUD could keep asserting "muted" for a live microphone for the whole call —
+// the exact opposite of 63-UI-SPEC's "truthful indicator, never an optimistic local flip".
+// The monitor now re-reads mute on every evaluation and emits when it differs.
 struct MeetingReading: Equatable {
     let detectedAt: Date
+    let isMuted: Bool
 }
 
 // D-13: plain minutes:seconds, forever — past 59:59 the minutes field just keeps counting

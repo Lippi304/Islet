@@ -191,10 +191,30 @@ final class MeetingMonitor {
     }
 
     // The ONE place the AND gate and the dedup live. Every event source above funnels here.
+    //
+    // CR-01 (63-REVIEW.md) — TWO kinds of change are emitted now, not one:
+    //   (1) the nil <-> non-nil call-start/call-end edge (the original dedup, unchanged), and
+    //   (2) a mute flip WHILE the same call stands.
+    // (2) exists because nothing else ever re-reads mute: there is no kAudioDevicePropertyMute
+    // listener, and the controller sampled it exactly once at call start. So a mid-call AirPods
+    // swap (the very scenario retargetInputListener() exists for — the new device has its own
+    // independent mute), the hardware mic-mute key, or any other process writing the property
+    // left the HUD asserting "muted" over a live microphone for the rest of the call. The 5s poll
+    // now bounds that staleness; the controller treats a (2)-emission as an in-place payload
+    // refresh, never a re-preempt (see handleMeetingActivityChange).
+    //
+    // Still deduped: when neither the AND gate nor mute changed, nothing is emitted.
     private func evaluate() {
         let detected = isTargetAppRunning() && isInputRunning()
-        guard detected != (lastReading != nil) else { return }   // not an actual transition — stay silent.
-        lastReading = detected ? MeetingReading(detectedAt: Date()) : nil
-        onChange(lastReading)
+        // Only meaningful while detected; `false` is just the unused placeholder for the off state.
+        let muted = detected ? readSystemInputMuted() : false
+        if detected != (lastReading != nil) {
+            lastReading = detected ? MeetingReading(detectedAt: Date(), isMuted: muted) : nil
+            onChange(lastReading)
+        } else if let last = lastReading, last.isMuted != muted {
+            // Same call, mute changed under us — keep callStart, refresh the mute half only.
+            lastReading = MeetingReading(detectedAt: last.detectedAt, isMuted: muted)
+            onChange(lastReading)
+        }
     }
 }

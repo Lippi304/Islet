@@ -42,8 +42,13 @@ final class MeetingActivityTests: XCTestCase {
     }
 
     func testMeetingReadingIsEquatable() {
-        XCTAssertEqual(MeetingReading(detectedAt: t), MeetingReading(detectedAt: t))
-        XCTAssertNotEqual(MeetingReading(detectedAt: t),
-                          MeetingReading(detectedAt: t.addingTimeInterval(1)))
+        XCTAssertEqual(MeetingReading(detectedAt: t, isMuted: false),
+                       MeetingReading(detectedAt: t, isMuted: false))
+        XCTAssertNotEqual(MeetingReading(detectedAt: t, isMuted: false),
+                          MeetingReading(detectedAt: t.addingTimeInterval(1), isMuted: false))
+        // CR-01 — mute is part of the reading now, so a mid-call mute flip is an actual
+        // inequality the monitor's dedup can detect.
+        XCTAssertNotEqual(MeetingReading(detectedAt: t, isMuted: false),
+                          MeetingReading(detectedAt: t, isMuted: true))
     }
 }
