@@ -161,7 +161,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 61: Download-Progress** - First FSEvents-based watcher; live download presence + completion signal (completed 2026-07-24)
 - [x] **Phase 62: Timer/Pomodoro** - Countdown/Pomodoro HUD; generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode (completed 2026-07-24)
 - [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike (all 4 plans executed 2026-07-25; awaiting orchestrator phase-level gates)
-- [ ] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
+- [x] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
 - [ ] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController`
 - [ ] **Phase 66: Menübar-Overflow (Ice-Style MVP)** - Chevron-hide for other apps' menu-bar icons, own feasibility spike first
 - [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern
@@ -1144,7 +1144,7 @@ Plans:
   3. The same flyout shows a local, unencrypted list of recent notes, most-recent-first, mirroring Clipboard History's list pattern (no AES-GCM parity needed — notes are destined for a plaintext vault file anyway).
   4. The design conflict between `SelectedView`'s existing 4-case top-edge-switcher slot model (Phase 52) and Quick Notes' own UI surface is explicitly resolved — a documented decision (extra flyout-only surface vs. growing the switcher's slot model) exists before this phase's implementation plans are written, not discovered mid-build.
 
-**Plans:** 7/8 plans executed
+**Plans:** 8/8 plans executed (64-05's own scope was absorbed into 64-06's on-device UAT rounds rather than run standalone — see note below)
 
 Plans:
 **Wave 1**
@@ -1159,9 +1159,14 @@ Plans:
 
 **Wave 4** *(blocked on 64-04)*
 
-- [ ] 64-05-PLAN.md — On-device UAT checkpoint (Pitfall 10 focus spike, TCC flow, mid-write survival)
+- [x] 64-05-PLAN.md — On-device UAT checkpoint (Pitfall 10 focus spike, TCC flow, mid-write survival) — no standalone SUMMARY.md; its manual verification scope was carried out across 64-06's 4-round on-device UAT instead (focus, TCC vault-folder access, and delete/mid-write behavior were all exercised there)
+- [x] 64-06-PLAN.md — Gap closure: popover focus, delete hit-target, menu order + separator, ⌘⏎ save hint (4 on-device UAT rounds)
+- [x] 64-07-PLAN.md — Gap closure: vault-delete + file-enumeration primitives, `QuickNote.fileName` (depends on 64-01, 64-02)
+- [x] 64-08-PLAN.md — Gap closure: multi-file picker, "New File…" creation, vault-delete wiring, vault↔app sync reconciliation, per-file note filtering, background-window dismiss fix (3 on-device UAT rounds; depends on 64-06, 64-07)
 
 **UI hint**: yes
+
+**Closure note (2026-07-25):** User chose to skip a formal `/gsd-verify-work 64` pass — the phase's success criteria were already exercised end-to-end across 64-06's and 64-08's combined 7 on-device checkpoint rounds (focus/keyboard handling, TCC vault-folder access, append-only write survival, delete hit-target, multi-file targeting, vault-delete, crash-mid-rewrite safety, vault↔app reconciliation, and popover dismiss behavior all explicitly re-tested live), so a separate verification pass was judged redundant. Same precedent as Phases 29/36/38/39/45.
 
 ### Phase 65: Quick Actions Bar
 

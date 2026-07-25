@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: verifying
-stopped_at: Completed 64-08-PLAN.md — Phase 64 (Quick Notes + Obsidian Export) 8/8 plans complete, NOTES-01/02/03 shipped; ready for /gsd-verify-work 64
+status: active
+stopped_at: Phase 64 (Quick Notes + Obsidian Export) closed — 8/8 plans complete, NOTES-01/02/03 shipped; user chose to skip formal /gsd-verify-work 64 (success criteria already exercised across 64-06/64-08's 7 combined on-device checkpoint rounds)
 last_updated: "2026-07-25T16:55:49.596Z"
 last_activity: 2026-07-25
 progress:
   total_phases: 19
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 39
-  completed_plans: 38
-  percent: 79
+  completed_plans: 39
+  percent: 84
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 64 — quick-notes-obsidian-export
+**Current focus:** Phase 63 (Meeting-HUD) still awaiting its own phase-level closure gates; Phase 65 — Quick Actions Bar not yet started
 
 ## Current Position
 
-Phase: 64 (quick-notes-obsidian-export) — READY FOR VERIFICATION
+Phase: 64 (quick-notes-obsidian-export) — COMPLETE, formal verify-work skipped by user decision
 Plan: 8 of 8 (64-01..64-08 all complete)
-Status: Phase complete — ready for verification
+Status: Phase closed — NOTES-01/02/03 shipped. Next: `/gsd-discuss-phase 65` (Quick Actions Bar)
 Last activity: 2026-07-25
 
 ### Phase 48 status note
@@ -452,6 +452,7 @@ Resume file: None
 
 ## Operator Next Steps
 
+- **Phase 64 (Quick Notes + Obsidian Export) is now fully complete, closed 2026-07-25 without a formal `/gsd:verify-work 64` pass (user decision).** All 8 plans done (64-01..64-08), NOTES-01/NOTES-02/NOTES-03 shipped. `--gaps-only` execution closed 3 gap-closure plans this session: 64-06 (popover focus, delete hit-target, menu order + separator, ⌘⏎ save hint — 4 on-device UAT rounds, several dead-end fix attempts before the real root causes: an AppKit scroll-indicator gutter overlap, not gesture priority), 64-07 (vault-delete + file-enumeration primitives), and 64-08 (multi-file picker, "New File…" creation, vault-delete wiring, vault↔app sync reconciliation, per-file note filtering, and a background-window popover-dismiss fix that needed a global `NSEvent` monitor layered on top of `NSApplication.didResignActiveNotification` — 3 on-device UAT rounds). 64-05 (the original on-device UAT plan) has no standalone `SUMMARY.md`; its manual verification scope (focus, TCC vault access, mid-write survival) was carried out live across 64-06's rounds instead. User explicitly judged formal verify-work redundant given 7 combined on-device checkpoint rounds already exercised every phase success criterion; user also declined a post-execution code review for now given the amount of live-UAT churn (several superseded fix attempts, a new global event-monitor lifecycle) — worth a `/gsd-code-review 64` pass later if this file sees more changes. v1.10 now 5/9 phases shipped (59, 60, 61, 62, 64). Phase 63 (Meeting-HUD) has all 4 plans executed (2026-07-25) but is still awaiting its own orchestrator phase-level closure gates — separate from this Phase 64 closure. Once 63 is closed too, next up is `/gsd-discuss-phase 65` (Quick Actions Bar).
 - **Phase 61 (Download-Progress) is now fully complete and formally verified, shipped 2026-07-24.** All 5 plans (61-01..61-05) done, on-device UAT approved across all 11 checklist steps and all 4 ROADMAP Success Criteria — DL-01/DL-02 shipped. Post-execution code review (`61-REVIEW.md`) then found 1 blocker (CR-01: a completed download's spinner could get stuck if a Charging/Device transient was head at completion — same root-cause family as the earlier cancel bug, different trigger path) plus 3 warnings (WR-01 nil-renamedTo reconciliation, WR-02 dead filename now surfaced via accessibilityLabel, WR-03 unbounded pendingRenamesByFileID now capped) — all fixed same session (`e8a552c`), 3 new regression tests added (101/101 scoped tests green). `/gsd:verify-work 61`-equivalent formal verification (`61-VERIFICATION.md`) then ran: initially `human_needed` for 2 items (CR-01's exact race condition never re-checked on-device after the fix; scoped-test pass/fail not confirmed post-fix in that sandboxed session) — both resolved same session (user re-tested the exact CR-01 interleaving on real hardware, "approved"; fresh 101/101 test run confirmed from the orchestrator session) — status upgraded to `passed`. v1.10 now 3/9 phases shipped (59, 60, 61). Start `/gsd-discuss-phase 62` (Timer/Pomodoro) next.
 - **v1.10 (Live Activities Suite) roadmap created 2026-07-23.** 9 phases (59-67) defined in `.planning/ROADMAP.md`, 27/27 requirements mapped (100% coverage) in `.planning/REQUIREMENTS.md`. Phases 59-61 shipped; start with `/gsd-discuss-phase 62` next.
 - **v1.9 (Clipboard History) SHIPPED 2026-07-23.** All 4 phases (55-58) archived to `.planning/milestones/v1.9-ROADMAP.md`/`.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped. v1.4, v1.5, and v1.7 all remain open in parallel — pick one back up, or start a fresh milestone with `/gsd-new-milestone`.
