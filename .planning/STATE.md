@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 Phase: 63 (meeting-hud) — ALL PLANS EXECUTED
 Plan: 4 of 4 (complete)
 Status: Ready for verification — on-device UAT approved (2 rounds); orchestrator owns the remaining phase-level gates (code review, regression, /gsd:verify-work 63)
-Last activity: 2026-07-25
+Last activity: 2026-07-25 - Completed quick task 260725-hnu: 3 pre-existing test failures fixed (suite now 529/529 green)
 
 ### Phase 48 status note
 
@@ -352,6 +352,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 | 260709-gvy | SettingsView restructured from a single Form into a 3-tab TabView (General/Appearance/Activities) — pure view-hierarchy reorg, no `@AppStorage` keys or behavior changed; Accent picker moved from Activities into Appearance | 2026-07-09 | 9972811 | Complete ✓ (Debug build verified — manual on-device tab check recommended) | [260709-gvy-settingsview-tabview-umbau-general-appea](./quick/260709-gvy-settingsview-tabview-umbau-general-appea/) |
 | 260714-3k6 | Widen expanded island to 420pt (anticipates ROADMAP Phase 32/TRAY-05 width portion) + gate file-shelf strip to Tray-only (anticipates Phase 31/TRAY-01); 2 on-device gap-closure rounds fixed media-player edge overflow, empty-state camera clearance, and internal player compactness | 2026-07-14 | db11d72 | Complete ✓ (on-device approved after 3 UAT rounds — "Passt") | [260714-3k6-notch-island-verbreitern-und-file-shelf-](./quick/260714-3k6-notch-island-verbreitern-und-file-shelf-/) |
 | 260715-vsd | Drei UI-Spacing/Sizing-Fixes: Calendar Add-button overflow fixed on first try; Now Playing/Tray spacing needed 5 gap-closure rounds — a nested debug session found `trayEmptyState` was unreachable (demo shelf re-seeded every Debug launch), then Home (idle/playing/unavailable) got its own 170pt content-hugging box instead of the shared 196pt one, matching the precedent Tray/Weather already set | 2026-07-16 | 2c7904f | Complete ✓ (on-device confirmed — "passt") | [260715-vsd-drei-kleine-ui-spacing-sizing-fixes-now-](./quick/260715-vsd-drei-kleine-ui-spacing-sizing-fixes-now-/) |
+| 260725-hnu | Drei vorbestehende Test-Failures (unabhängig von Phase 63) behoben: `defaultQuickAddTime` benutzte `isDateInToday` statt des injizierten `now` (Funktion jetzt rein — Produktionsverhalten unverändert, einziger Call-Site übergibt `Date()`); Clipboard-Orphan-Test verglich Ciphertext-Bytes, die wegen frischer AES-GCM-Nonce pro Save nie gleich sein können (jetzt Klartext-Vergleich nach Entschlüsselung); `systemHUDCardsCount` 8→9 und `suffix(3)`→`suffix(4)` (stale seit `95581c4`, Karte `capsLock` war ungeprüft) | 2026-07-25 | cf17509 | Complete ✓ (volle Suite: 529 Tests, 0 Failures) | [260725-hnu-fix-3-pre-existing-failing-unit-tests-pu](./quick/260725-hnu-fix-3-pre-existing-failing-unit-tests-pu/) |
 
 ## Deferred Items
 
