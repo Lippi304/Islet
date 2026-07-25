@@ -1144,7 +1144,23 @@ Plans:
   3. The same flyout shows a local, unencrypted list of recent notes, most-recent-first, mirroring Clipboard History's list pattern (no AES-GCM parity needed — notes are destined for a plaintext vault file anyway).
   4. The design conflict between `SelectedView`'s existing 4-case top-edge-switcher slot model (Phase 52) and Quick Notes' own UI surface is explicitly resolved — a documented decision (extra flyout-only surface vs. growing the switcher's slot model) exists before this phase's implementation plans are written, not discovered mid-build.
 
-**Plans**: TBD
+**Plans:** 5 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 64-01-PLAN.md — Pure data layer: QuickNote, QuickNotesStore, QuickNotesFormatter, QuickNotesFileStore (TDD)
+- [ ] 64-02-PLAN.md — QuickNotesVaultWriter: append-only tail-read vault writer (TDD, depends on 64-01)
+- [ ] 64-03-PLAN.md — Settings vault-folder picker wiring
+
+**Wave 3** *(blocked on 64-01, 64-02, 64-03)*
+
+- [ ] 64-04-PLAN.md — QuickNotesPopoverView + AppDelegate wiring (menu item, popover, submit/delete)
+
+**Wave 4** *(blocked on 64-04)*
+
+- [ ] 64-05-PLAN.md — On-device UAT checkpoint (Pitfall 10 focus spike, TCC flow, mid-write survival)
+
 **UI hint**: yes
 
 ### Phase 65: Quick Actions Bar
