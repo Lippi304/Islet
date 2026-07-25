@@ -20,6 +20,11 @@ final class QuickNotesController: ObservableObject {
     var onSubmit: (String) -> Void = { _ in }
     var onDelete: (UUID) -> Void = { _ in }
     var onSelectFile: (String) -> Void = { _ in }
+    // Plan 64-08 (additional scope) — a typed name that isn't in availableFiles yet;
+    // AppDelegate adds it to the list and selects it, letting the normal submit path
+    // lazily create the file on its first note (QuickNotesVaultWriter.append already does
+    // this for any file that doesn't exist yet).
+    var onCreateFile: (String) -> Void = { _ in }
 }
 
 // Phase 64 — the popover's SwiftUI content, hosted via NSHostingController inside the
@@ -29,6 +34,12 @@ struct QuickNotesPopoverView: View {
     @ObservedObject var controller: QuickNotesController
     @State private var text = ""
     @FocusState private var isTextFocused: Bool
+    // Plan 64-08 (additional scope) — inline "New File…" name prompt, matching this
+    // codebase's existing plain-TextField convention for quick name entry (e.g.
+    // NotchPillView's calendar quick-add TextField("What's this for?", ...)) rather than an
+    // NSAlert/sheet, which has no precedent anywhere in Islet.
+    @State private var isAddingNewFile = false
+    @State private var newFileName = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -39,12 +50,29 @@ struct QuickNotesPopoverView: View {
                 ForEach(controller.availableFiles, id: \.self) { fileName in
                     Button(fileName) { controller.onSelectFile(fileName) }
                 }
+                Divider()
+                Button("New File…") { isAddingNewFile = true }
             }, label: {
                 Text(controller.selectedFileName)
             })
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
             .disabled(!controller.vaultConfigured)
+
+            if isAddingNewFile {
+                HStack(spacing: 6) {
+                    TextField("File name", text: $newFileName)
+                        .font(.system(size: 11))
+                        .onSubmit { createNewFile() }
+                    Button("Add") { createNewFile() }
+                        .font(.system(size: 11))
+                    Button("Cancel") {
+                        isAddingNewFile = false
+                        newFileName = ""
+                    }
+                    .font(.system(size: 11))
+                }
+            }
 
             TextEditor(text: $text)
                 .font(.system(size: 13))
@@ -122,6 +150,18 @@ struct QuickNotesPopoverView: View {
         if controller.errorMessage == nil {
             text = ""
         }
+    }
+
+    // Plan 64-08 (additional scope) — no extra validation beyond what
+    // QuickNotesVaultWriter's append path already handles (invalid chars etc.); this just
+    // trims and ensures the ".md" suffix so listMarkdownFiles recognizes the file next open.
+    private func createNewFile() {
+        let trimmed = newFileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let fileName = trimmed.hasSuffix(".md") ? trimmed : "\(trimmed).md"
+        controller.onCreateFile(fileName)
+        isAddingNewFile = false
+        newFileName = ""
     }
 }
 

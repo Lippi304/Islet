@@ -194,6 +194,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             UserDefaults.standard.set(fileName, forKey: ActivitySettings.quickNotesSelectedFileNameKey)
             self?.quickNotesController.selectedFileName = fileName
         }
+        // Plan 64-08 (additional scope) — a typed "New File…" name isn't created on disk here;
+        // it's just added to availableFiles and selected, then the normal submit path
+        // (handleQuickNoteSubmit -> QuickNotesVaultWriter.append) lazily creates the real file
+        // on its first note, same as any other selected filename.
+        quickNotesController.onCreateFile = { [weak self] fileName in
+            guard let self else { return }
+            if !self.quickNotesController.availableFiles.contains(fileName) {
+                self.quickNotesController.availableFiles = (self.quickNotesController.availableFiles + [fileName]).sorted()
+            }
+            UserDefaults.standard.set(fileName, forKey: ActivitySettings.quickNotesSelectedFileNameKey)
+            self.quickNotesController.selectedFileName = fileName
+        }
 
         // Phase 40 / HUD-06 — construct Sparkle after the notch controller.
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
