@@ -498,7 +498,11 @@ extension AppDelegate: NSMenuDelegate {
         // section's item count varies 0-31).
         menu.items.removeAll { $0.identifier?.rawValue.hasPrefix("clip.") == true }
 
-        var insertionIndex = 0
+        // Plan 64-06 (Task 3) — inserts the dynamic Clipboard History section right after
+        // the static "New Note…" item instead of at the very top, so "New Note…" renders
+        // above it. Selector-based lookup (not a positional literal), matching this
+        // method's existing identifier-prefix-removal preference above.
+        var insertionIndex = menu.indexOfItem(withTarget: self, andAction: #selector(openQuickNotesPopover)) + 1
         // MRU-first: ClipboardStore.append pushes newest to the array's END, so
         // .reversed() renders newest-first (RESEARCH.md Pitfall 4).
         let items = Array(clipboardStore.items.reversed())
