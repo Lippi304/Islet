@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: active
-stopped_at: Phase 64 (Quick Notes + Obsidian Export) closed — 8/8 plans complete, NOTES-01/02/03 shipped; user chose to skip formal /gsd-verify-work 64 (success criteria already exercised across 64-06/64-08's 7 combined on-device checkpoint rounds)
-last_updated: "2026-07-25T16:55:49.596Z"
+status: "Phase closed — NOTES-01/02/03 shipped. Next: `/gsd-discuss-phase 65` (Quick Actions Bar)"
+stopped_at: Phase 65 context gathered
+last_updated: "2026-07-25T23:08:51.130Z"
 last_activity: 2026-07-25
 progress:
   total_phases: 19
-  completed_phases: 16
+  completed_phases: 15
   total_plans: 39
-  completed_plans: 39
-  percent: 84
+  completed_plans: 38
+  percent: 79
 ---
 
 # Project State
@@ -446,9 +446,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-25T16:55:49.590Z
-Stopped at: Completed 64-08-PLAN.md — Phase 64 (Quick Notes + Obsidian Export) 8/8 plans complete, NOTES-01/02/03 shipped; ready for /gsd-verify-work 64
-Resume file: None
+Last session: 2026-07-25T23:08:51.124Z
+Stopped at: Phase 65 context gathered
+Resume file: .planning/phases/65-quick-actions-bar/65-CONTEXT.md
 
 ## Operator Next Steps
 
