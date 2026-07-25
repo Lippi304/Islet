@@ -36,7 +36,7 @@ final class SettingsViewTests: XCTestCase {
     // default (mirrors this file's existing bare-instantiation-free style).
 
     func testSystemHUDCardsCount() {
-        XCTAssertEqual(SettingsView().systemHUDCards.count, 8)
+        XCTAssertEqual(SettingsView().systemHUDCards.count, 9)
     }
 
     func testMediaCardsCount() {
@@ -53,7 +53,7 @@ final class SettingsViewTests: XCTestCase {
         for card in cards.prefix(5) {
             XCTAssertFalse(card.isNew, "\(card.id) should not be isNew")
         }
-        for card in cards.suffix(3) {
+        for card in cards.suffix(4) {
             XCTAssertTrue(card.isNew, "\(card.id) should be isNew")
         }
     }
