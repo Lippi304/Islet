@@ -987,20 +987,62 @@ final class IslandResolverTests: XCTestCase {
         }
     }
 
-    func testChargingAndDevicePreemptStandingMeetingHead() {
-        // D-05's only 2 exceptions: Charging (rank 1) and Device (rank 2) still outrank a live
-        // Meeting. Mirrors testPreemptNowGeneralizedForDownloadProgressHead — this is the
-        // regression proving Phase 62's ALREADY-generalized preempt() (any isPersistent head, no
-        // hardcoded .focus check) handles a persistent .meeting head with ZERO changes to
-        // preempt() itself.
-        for preempting in [charging, device] {
+    // Phase 63-04 UAT round 1 — REPLACES testChargingAndDevicePreemptStandingMeetingHead.
+    // D-05 (Charging/Device outrank Meeting) was SUPERSEDED on-device: the user rejected any
+    // interruption of a live call, and specifically rejected the delayed pop-up that queuing
+    // produced. Nothing displaces a standing Meeting head and nothing queues behind it.
+    func testNothingInterruptsAStandingMeetingHead() {
+        let runningTimer = ActiveTransient.timer(.running(deadline: Date(timeIntervalSince1970: 0),
+                                                           context: fixedTimerContext))
+        let osd = ActiveTransient.osd(.volume(percent: 50, hardwareMuted: false))
+        for incoming in [charging, device, ActiveTransient.focus(.on),
+                         .downloadProgress(.inProgress), runningTimer, osd,
+                         .capsLock(.on), .updateAvailable(UpdateActivity(version: "1.11"))] {
             var q = TransientQueue()
             _ = q.enqueue(.meeting(fixedMeeting))
-            XCTAssertTrue(q.preempt(preempting))
-            XCTAssertEqual(q.head, preempting)
-            XCTAssertTrue(q.advance())
+
+            // Both entry points drop it — the rule lives in the queue, not at the call sites.
+            XCTAssertFalse(q.preempt(incoming), "preempt(\(incoming)) must be dropped mid-call")
+            XCTAssertFalse(q.enqueue(incoming), "enqueue(\(incoming)) must be dropped mid-call")
             XCTAssertEqual(q.head, .meeting(fixedMeeting))
+
+            // Dropped OUTRIGHT, not parked: nothing may surface after the call ends. This is the
+            // exact symptom the on-device UAT caught (charger plugged in mid-call, splash popped
+            // up minutes later once the call ended).
+            XCTAssertEqual(q.pendingCount, 0)
+            XCTAssertTrue(q.advance())
+            XCTAssertNil(q.head)
         }
+    }
+
+    func testMeetingHeadStillRefreshesAndClearsWhileTheDropRuleStands() {
+        // The drop rule must not cost the two things the call HUD itself depends on: the
+        // mute-tap isMuted refresh (updateHead) and the Settings toggle-off flush (removeAll).
+        let muted = MeetingActivity(callStart: Date(timeIntervalSince1970: 0), isMuted: true)
+        var q = TransientQueue()
+        _ = q.enqueue(.meeting(fixedMeeting))
+        q.updateHead(.meeting(muted))
+        XCTAssertEqual(q.head, .meeting(muted))
+        q.removeAll(where: { if case .meeting = $0 { return true }; return false })
+        XCTAssertNil(q.head)
+    }
+
+    func testChargingPreemptsAStandingTimerHead() {
+        // Phase 63-04 UAT round 1 regression (Rule 3, root cause). Four NotchWindowController
+        // call sites (charging, capsLock, updateAvailable, osd) still carried the pre-Phase-62
+        // `if case .focus = head` guard and fell through to plain enqueue() for any OTHER
+        // persistent head — so a running Timer swallowed the charging splash into `pending` and
+        // popped it up late, exactly like the Meeting case the UAT caught. All four now call
+        // preempt() unconditionally, which routes here. Meeting is deliberately NOT in this test:
+        // it is the one head that drops instead (see testNothingInterruptsAStandingMeetingHead).
+        let runningTimer = ActiveTransient.timer(.running(deadline: Date(timeIntervalSince1970: 0),
+                                                           context: fixedTimerContext))
+        var q = TransientQueue()
+        _ = q.enqueue(runningTimer)
+        XCTAssertTrue(q.preempt(charging))
+        XCTAssertEqual(q.head, charging)
+        XCTAssertTrue(q.advance())
+        XCTAssertEqual(q.head, runningTimer)   // the timer resumes, it is not lost
     }
 
     // MARK: Phase 41 / HUD-08 — Calendar Countdown

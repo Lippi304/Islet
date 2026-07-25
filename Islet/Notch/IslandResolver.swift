@@ -367,9 +367,31 @@ struct TransientQueue {
     // Read-only depth accessor so tests assert the bound/dedup without exposing `pending`.
     var pendingCount: Int { pending.count }
 
+    // Phase 63-04 UAT round 1 — D-05 SUPERSEDED BY USER DECISION (on-device, not planning).
+    // D-05 originally had Charging/Device outrank Meeting at rank 3. On real hardware the user
+    // rejected that: a live call must not be interrupted by ANYTHING. While a `.meeting` head
+    // stands, every other incoming transient is DROPPED OUTRIGHT — not preempted, not queued —
+    // so nothing pops up mid-call and nothing surfaces late once the call ends (the late pop-up
+    // was the specific behaviour the user called unacceptable).
+    //
+    // This lives HERE, in the queue, rather than at each controller call site, so a future
+    // transient category cannot forget the rule. It deliberately does NOT touch `updateHead(_:)`
+    // (the mute-tap isMuted refresh must still work) or `removeAll(where:)` (the Settings toggle
+    // must still clear a standing call HUD).
+    //
+    // The user was explicitly warned this also suppresses the volume/brightness OSD during a
+    // call and accepted it. To loosen it later, allow one category through — e.g.
+    // `if case .osd = t { return false }` — this predicate is the single knob.
+    private func dropsWhileCallStands(_ t: ActiveTransient) -> Bool {
+        guard case .meeting = head else { return false }
+        if case .meeting = t { return false }   // a call may still replace/refresh itself
+        return true
+    }
+
     // Returns true iff `t` becomes the head NOW (show immediately); false if it was
     // enqueued behind the current head, de-duped, or dropped on overflow.
     mutating func enqueue(_ t: ActiveTransient) -> Bool {
+        if dropsWhileCallStands(t) { return false }
         if head == nil { head = t; return true }
         if head == t || pending.contains(t) { return false }   // D-03 dedup (head + pending)
         pending.append(t)
@@ -392,7 +414,11 @@ struct TransientQueue {
     // (never self-elapses) but the old focus-only guard let a Charging/Device transient
     // queue behind it via plain enqueue(_:) instead of preempting immediately —
     // see `testPreemptNowGeneralizedForDownloadProgressHead` for the regression this closes.
+    // Phase 63-04 UAT round 1 — a `.meeting` head IS persistent, so without the drop guard below
+    // this branch would hand the head straight over to the incoming transient. See
+    // dropsWhileCallStands(_:) for why nothing interrupts a live call.
     mutating func preempt(_ t: ActiveTransient) -> Bool {
+        if dropsWhileCallStands(t) { return false }
         guard let currentHead = head, currentHead.isPersistent else { return enqueue(t) }
         head = t
         pending.insert(currentHead, at: 0)

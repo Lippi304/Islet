@@ -2354,15 +2354,19 @@ final class NotchWindowController {
             // ~3s one-shot dismiss that advances the queue. If a transient already stands it is
             // enqueued behind it (D-03 sequential) and plays when the head's ~3s elapses.
             chargingState.activity = activity   // keep the model in sync (the % tick mutates it)
-            // Phase 38 / HUD-05 (D-08): a standing Focus head never self-elapses (isPersistent),
-            // so Charging must PREEMPT it immediately rather than queue behind it indefinitely.
-            // Every other head shape (nil, .charging, .device) behaves exactly like plain enqueue.
-            let changed: Bool
-            if case .focus = transientQueue.head {
-                changed = transientQueue.preempt(.charging(activity))
-            } else {
-                changed = transientQueue.enqueue(.charging(activity))
-            }
+            // Phase 38 / HUD-05 (D-08): a standing persistent head never self-elapses, so Charging
+            // must PREEMPT it immediately rather than queue behind it indefinitely.
+            //
+            // Phase 63-04 UAT round 1 (Rule 3, root cause) — this used to be gated on
+            // `if case .focus`, a leftover from when preempt() itself hardcoded a Focus-only
+            // check. Phase 62-01 generalized preempt() to `currentHead.isPersistent` and updated
+            // the two deviceCoordinator call sites, but missed this one (and capsLock/
+            // updateAvailable/osd below), so a standing .timer or .meeting head still swallowed
+            // the charging splash into `pending` — it then popped up minutes later once the call/
+            // timer ended, which is what the on-device UAT actually caught. preempt() already
+            // falls back to enqueue() for a nil or non-persistent head, so the conditional was
+            // pure redundancy and is deleted at all four sites.
+            let changed = transientQueue.preempt(.charging(activity))
             if changed {
                 presentTransientChange()     // Finding 11 — shared render/visibility/dismiss triplet
             }
@@ -2407,12 +2411,8 @@ final class NotchWindowController {
     // case for Caps Lock).
     private func handleCapsLockChange(_ isOn: Bool) {
         let activity = capsLockActivity(isOn: isOn)
-        let changed: Bool
-        if case .focus = transientQueue.head {
-            changed = transientQueue.preempt(.capsLock(activity))
-        } else {
-            changed = transientQueue.enqueue(.capsLock(activity))
-        }
+        // Phase 63-04 UAT round 1 (Rule 3) — unconditional preempt, see handlePower's own note.
+        let changed = transientQueue.preempt(.capsLock(activity))
         if changed {
             presentTransientChange()
         }
@@ -2427,12 +2427,8 @@ final class NotchWindowController {
     func handleUpdateAvailable(version: String) {
         guard activityEnabled(ActivitySettings.updateHudKey) else { return }
         let activity = UpdateActivity(version: version)
-        let changed: Bool
-        if case .focus = transientQueue.head {
-            changed = transientQueue.preempt(.updateAvailable(activity))
-        } else {
-            changed = transientQueue.enqueue(.updateAvailable(activity))
-        }
+        // Phase 63-04 UAT round 1 (Rule 3) — unconditional preempt, see handlePower's own note.
+        let changed = transientQueue.preempt(.updateAvailable(activity))
         if changed {
             presentTransientChange()
         }
@@ -2584,12 +2580,8 @@ final class NotchWindowController {
             }
             scheduleActivityDismiss()   // D-09 — re-arm on every press while an .osd head stands
         } else {
-            let changed: Bool
-            if case .focus = transientQueue.head {
-                changed = transientQueue.preempt(.osd(activity))
-            } else {
-                changed = transientQueue.enqueue(.osd(activity))
-            }
+            // Phase 63-04 UAT round 1 (Rule 3) — unconditional preempt, see handlePower's own note.
+            let changed = transientQueue.preempt(.osd(activity))
             if changed {
                 #if DEBUG
                 print("[OSD-TIMING] c) about to mutate presentation (enqueue/preempt path) t=\(String(format: "%.2f", CFAbsoluteTimeGetCurrent() * 1000))ms")
