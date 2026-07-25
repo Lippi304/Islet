@@ -760,6 +760,40 @@ struct SettingsView: View {
         .frame(width: 280)
     }
 
+    // Phase 64 / NOTES-02 (D-08/D-09/D-10) — the Obsidian vault folder picker popover,
+    // cloning focusPermissionExplanationView's exact structure (spacing 8, 15pt semibold
+    // title, 12pt body, HStack row, padding 16, fixed width 280). The stored path only
+    // ever comes from NSOpenPanel's own return value (T-64-07) — never user-typed text.
+    private var quickNotesVaultPickerView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Obsidian Vault Folder")
+                .font(.system(size: 15, weight: .semibold))
+            Text(quickNotesVaultFolderPath.isEmpty ? "No folder selected." : quickNotesVaultFolderPath)
+                .font(.system(size: 12))
+                .foregroundStyle(quickNotesVaultFolderPath.isEmpty ? .secondary : .primary)
+            HStack {
+                Button("Choose Folder…") {
+                    let panel = NSOpenPanel()
+                    panel.canChooseDirectories = true
+                    panel.canChooseFiles = false
+                    panel.allowsMultipleSelection = false
+                    panel.prompt = "Choose"
+                    panel.message = "Choose your Obsidian vault folder"
+                    if panel.runModal() == .OK, let url = panel.url {
+                        quickNotesVaultFolderPath = url.path
+                    }
+                }
+                Spacer()
+                Button("Done") {
+                    showQuickNotesVaultPicker = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
+    }
+
     // D-03 — Workspace: no shelf-specific settings exist today; a quiet centered
     // placeholder literally satisfies the 4-section sidebar contract (UI-SPEC
     // §Section Content Specs/Workspace). No Form/Section wrapper.
