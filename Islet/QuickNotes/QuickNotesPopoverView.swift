@@ -12,9 +12,14 @@ final class QuickNotesController: ObservableObject {
     // popover view observes this to request TextEditor focus via @FocusState instead of
     // AppKit's makeFirstResponder (Pitfall 10 root-cause fix).
     @Published var focusRequestToken: Int = 0
+    // Plan 64-08 (Task 1) — the real .md files in the chosen vault folder, and which one
+    // new notes currently target; AppDelegate recomputes both on every popover open.
+    @Published var availableFiles: [String] = []
+    @Published var selectedFileName: String = ActivitySettings.quickNotesDefaultFileName
 
     var onSubmit: (String) -> Void = { _ in }
     var onDelete: (UUID) -> Void = { _ in }
+    var onSelectFile: (String) -> Void = { _ in }
 }
 
 // Phase 64 — the popover's SwiftUI content, hosted via NSHostingController inside the
@@ -27,6 +32,20 @@ struct QuickNotesPopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Plan 64-08 (Task 1) — file-picker control targeting whichever .md file new
+            // notes are appended to; disabled under the same vault-not-configured guard as
+            // the TextEditor/Save button below.
+            Menu(content: {
+                ForEach(controller.availableFiles, id: \.self) { fileName in
+                    Button(fileName) { controller.onSelectFile(fileName) }
+                }
+            }, label: {
+                Text(controller.selectedFileName)
+            })
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .disabled(!controller.vaultConfigured)
+
             TextEditor(text: $text)
                 .font(.system(size: 13))
                 .frame(height: 80)
@@ -34,7 +53,10 @@ struct QuickNotesPopoverView: View {
                 .focused($isTextFocused)
 
             if controller.errorMessage != nil {
-                Text("Couldn't save — check your vault folder in Settings.")
+                // Plan 64-08 (Task 1) — AppDelegate is the single source of truth for both
+                // the save-failure and delete-failure copy strings; this view no longer
+                // hardcodes either one.
+                Text(controller.errorMessage ?? "")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.red)
             }
