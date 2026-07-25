@@ -65,12 +65,19 @@ struct QuickNotesPopoverView: View {
                             QuickNoteRowView(note: note, onDelete: controller.onDelete)
                         }
                     }
-                    // Plan 64-06 (Task 2) — insets rows clear of the ScrollView's overlay
-                    // NSScroller hit-test strip, which otherwise covers the trailing delete
-                    // button once the list is scrolled and the indicator becomes visible.
-                    .padding(.trailing, 14)
                 }
             }
+            // Plan 64-06 (Task 3, 2nd re-fix) — root cause per on-device testing: the delete
+            // button worked once the native overlay NSScroller had auto-hidden, and failed
+            // only while it was visibly overlapping the button's real screen region — this is
+            // the AppKit scroller view itself consuming the click, not a SwiftUI gesture losing
+            // arbitration (the earlier .highPriorityGesture change didn't touch this). Content
+            // padding on the row (previous attempt) never moves the indicator itself, which
+            // always renders flush to the ScrollView's own trailing edge regardless of inner
+            // content insets. `.contentMargins(_:_:for: .scrollIndicators)` is the SwiftUI API
+            // built for exactly this — pushes the indicator's own draw region away from the
+            // trailing edge, reserving a real indicator-free gutter for the button.
+            .contentMargins(.trailing, 20, for: .scrollIndicators)
         }
         .padding(16)
         .frame(width: 280)
