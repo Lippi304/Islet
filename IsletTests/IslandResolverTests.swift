@@ -919,6 +919,90 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(q.head, .charging(.charging(percent: 50)))
     }
 
+    // MARK: Phase 63 / MEET-01/MEET-02 — Meeting HUD transient (rank 3, collapsed-only D-10,
+    // persistent D-06)
+    //
+    // Note on what "rank 3" is (and is not) testable as: resolve(...) takes exactly ONE
+    // activeTransient, so its switch order can never be observed by feeding it two transients at
+    // once — rank is observable ONLY through TransientQueue.preempt(), which is why the
+    // outranking tests below are queue tests rather than resolve() tests (mirroring
+    // testDownloadProgressPreemptsStandingFocusHead / testPreemptNowGeneralizedForDownloadProgressHead).
+    // The three lower-ranked NON-persistent transients (.osd rank 5, .capsLock rank 7,
+    // .updateAvailable rank 8) are deliberately absent from testMeetingOutranksLowerRanked...:
+    // they self-elapse on the shared ~3s timer, so a standing one is never displaced by anything —
+    // it simply expires and advance() promotes the queued Meeting. Nothing about that path is
+    // Meeting-specific, and it is already covered by the generic enqueue/advance tests above.
+
+    private var fixedMeeting: MeetingActivity {
+        MeetingActivity(callStart: Date(timeIntervalSince1970: 0), isMuted: false)
+    }
+
+    func testMeetingCollapsedOnly() {
+        // D-10: a Meeting transient wins when the island is NOT expanded, mirroring
+        // testDownloadProgressCollapsedOnly.
+        let r = resolve(activeTransient: .meeting(fixedMeeting),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: false)
+        XCTAssertEqual(r, .meeting(fixedMeeting))
+    }
+
+    func testMeetingFallsThroughWhenExpanded() {
+        // D-10: collapsed-only ALWAYS. Unlike Timer (Pattern 4, its own .timerExpanded arm), a
+        // Meeting transient has NO dedicated expanded presentation — it falls through to whatever
+        // Home/Calendar/Weather/Tray would resolve to, exactly like Focus/OSD/CapsLock.
+        let r = resolve(activeTransient: .meeting(fixedMeeting),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: false,
+                        isExpanded: true,
+                        selectedView: .home)
+        XCTAssertEqual(r, .homeEmpty)
+    }
+
+    func testMeetingIsPersistent() {
+        // D-06: a live call never self-elapses — the seam the controller reads to skip the
+        // uniform ~3s auto-dismiss (same shape as .focus). True for BOTH mute states: unlike
+        // DownloadProgress/Timer there is no sub-state split, `isMuted` never affects persistence.
+        XCTAssertTrue(ActiveTransient.meeting(fixedMeeting).isPersistent)
+        XCTAssertTrue(ActiveTransient.meeting(MeetingActivity(callStart: Date(timeIntervalSince1970: 0),
+                                                              isMuted: true)).isPersistent)
+    }
+
+    func testMeetingOutranksLowerRankedPersistentTransients() {
+        // D-05 rank 3: Meeting outranks Focus (rank 4), DownloadProgress (rank 6) and Timer
+        // (rank 9). Each of those is itself isPersistent (never self-elapses), so preempt() is
+        // the ONLY way it yields — and the displaced head goes to the FRONT of pending, so
+        // advance() resumes it once the call ends.
+        let runningTimer = ActiveTransient.timer(.running(deadline: Date(timeIntervalSince1970: 0),
+                                                           context: fixedTimerContext))
+        for standing in [ActiveTransient.focus(.on), .downloadProgress(.inProgress), runningTimer] {
+            var q = TransientQueue()
+            _ = q.enqueue(standing)
+            XCTAssertTrue(q.preempt(.meeting(fixedMeeting)))
+            XCTAssertEqual(q.head, .meeting(fixedMeeting))
+            XCTAssertTrue(q.advance())
+            XCTAssertEqual(q.head, standing)
+        }
+    }
+
+    func testChargingAndDevicePreemptStandingMeetingHead() {
+        // D-05's only 2 exceptions: Charging (rank 1) and Device (rank 2) still outrank a live
+        // Meeting. Mirrors testPreemptNowGeneralizedForDownloadProgressHead — this is the
+        // regression proving Phase 62's ALREADY-generalized preempt() (any isPersistent head, no
+        // hardcoded .focus check) handles a persistent .meeting head with ZERO changes to
+        // preempt() itself.
+        for preempting in [charging, device] {
+            var q = TransientQueue()
+            _ = q.enqueue(.meeting(fixedMeeting))
+            XCTAssertTrue(q.preempt(preempting))
+            XCTAssertEqual(q.head, preempting)
+            XCTAssertTrue(q.advance())
+            XCTAssertEqual(q.head, .meeting(fixedMeeting))
+        }
+    }
+
     // MARK: Phase 41 / HUD-08 — Calendar Countdown
 
     func testCalendarCountdownOutranksAmbientMedia() {
