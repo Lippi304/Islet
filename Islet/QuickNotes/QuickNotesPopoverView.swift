@@ -128,13 +128,18 @@ struct QuickNoteRowView: View {
                 .font(.system(size: 13))
             Spacer(minLength: 0)
             if isHovering {
-                Button {
-                    onDelete(note.id)
-                } label: {
-                    Image(systemName: "trash")
-                        .foregroundStyle(Color.red)
-                }
-                .buttonStyle(.plain)
+                // Plan 64-06 (Task 3 re-fix, UAT re-check) — a plain Button's tap gesture lost
+                // the gesture-arbitration race to the enclosing ScrollView's pan recognizer
+                // near the trailing edge, so the click "slipped" past the button (UAT test 7).
+                // .highPriorityGesture is SwiftUI's mechanism for making a gesture win over an
+                // ancestor's gesture regardless of position, which a plain Button/.onTapGesture
+                // does not guarantee inside a ScrollView.
+                Image(systemName: "trash")
+                    .foregroundStyle(Color.red)
+                    .contentShape(Rectangle())
+                    .highPriorityGesture(
+                        TapGesture().onEnded { onDelete(note.id) }
+                    )
             }
         }
         .padding(.vertical, 8)
