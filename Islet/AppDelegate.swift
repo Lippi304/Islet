@@ -118,15 +118,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // The dropdown menu shown when the status item is clicked.
         menu = NSMenu()
+        // Phase 64 / NOTES-01 (Plan 64-06 Task 3, on-device-revised order) — "New Note…" is
+        // now the very first item so the dynamic Clipboard History block (inserted right
+        // after it in menuNeedsUpdate, ending in its own separator) renders above
+        // Settings/Check for Updates, not below.
+        menu.addItem(withTitle: "New Note…",
+                     action: #selector(openQuickNotesPopover), keyEquivalent: "")
         menu.addItem(withTitle: "Settings…",
                      action: #selector(openSettings), keyEquivalent: ",")
         // Phase 40 / HUD-06 — sits between "Settings…" and the separator (40-UI-SPEC.md Menu
         // Item Contract).
         menu.addItem(withTitle: "Check for Updates…",
                      action: #selector(checkForUpdates), keyEquivalent: "")
-        // Phase 64 / NOTES-01 — opens the Quick Notes popover (D-13: menu-bar-only entry point).
-        menu.addItem(withTitle: "New Note…",
-                     action: #selector(openQuickNotesPopover), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Islet",
                      action: #selector(quit), keyEquivalent: "q")
