@@ -214,7 +214,8 @@ struct SettingsView: View {
             ActivityCardData(id: "menuBarOverflow", title: "Menu Bar Overflow",
                               description: "Hides overflow menu-bar icons behind a chevron, Ice-style.",
                               icon: "menubar.rectangle", iconColor: .secondary,
-                              isOn: $menuBarOverflowEnabled, isNew: true, onOptionsTap: nil),
+                              isOn: $menuBarOverflowEnabled, isNew: false, onOptionsTap: nil,
+                              isComingSoon: true),
             ActivityCardData(id: "update", title: "Update Available",
                               description: "Shows a brief HUD in the notch when a new Islet version is available.",
                               icon: "arrow.triangle.2.circlepath", iconColor: .secondary,
@@ -253,11 +254,13 @@ struct SettingsView: View {
             ActivityCardData(id: "quickActions", title: "Quick Actions",
                               description: "A row of one-tap system actions — mute mic, lock screen, and more.",
                               icon: "bolt.horizontal.fill", iconColor: .secondary,
-                              isOn: $quickActionsEnabled, isNew: true, onOptionsTap: nil),
+                              isOn: $quickActionsEnabled, isNew: false, onOptionsTap: nil,
+                              isComingSoon: true),
             ActivityCardData(id: "codingProgress", title: "Coding Progress",
                               description: "Shows your Claude Code session's live todo progress.",
                               icon: "checklist", iconColor: .secondary,
-                              isOn: $codingProgressEnabled, isNew: true, onOptionsTap: nil),
+                              isOn: $codingProgressEnabled, isNew: false, onOptionsTap: nil,
+                              isComingSoon: true),
         ]
     }
 

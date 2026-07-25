@@ -20,6 +20,7 @@ struct ActivityCardData: Identifiable {
     let isOn: Binding<Bool>
     let isNew: Bool
     let onOptionsTap: (() -> Void)?
+    var isComingSoon: Bool = false
 }
 
 struct ActivityCard: View {
@@ -43,6 +44,7 @@ struct ActivityCard: View {
 
             Toggle("", isOn: data.isOn)
                 .labelsHidden()
+                .disabled(data.isComingSoon)
 
             if let onOptionsTap = data.onOptionsTap {
                 Button(action: onOptionsTap) {
@@ -50,6 +52,7 @@ struct ActivityCard: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .disabled(data.isComingSoon)
             }
         }
         .padding(12)
@@ -57,8 +60,19 @@ struct ActivityCard: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(nsColor: .controlBackgroundColor))
         )
+        .opacity(data.isComingSoon ? 0.5 : 1.0)
         .overlay(alignment: .topTrailing) {
-            if data.isNew {
+            if data.isComingSoon {
+                Text("Coming Soon")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule().fill(Color.secondary.opacity(0.85))
+                    )
+                    .offset(x: -6, y: -6)
+            } else if data.isNew {
                 Text("New")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.white)
