@@ -1124,7 +1124,7 @@ Plans:
 
 **Wave 3** *(blocked on 63-01, 63-02 go/no-go)*
 
-- [ ] 63-03-PLAN.md — IslandResolver .meeting case (rank 3, D-05/D-06) + NotchPillView meetingWings(for:) inline-tappable mute icon (D-09/D-10)
+- [x] 63-03-PLAN.md — IslandResolver .meeting case (rank 3, D-05/D-06) + NotchPillView meetingWings(for:) inline-tappable mute icon (D-09/D-10)
 
 **Wave 4** *(blocked on 63-02, 63-03)*
 
