@@ -104,3 +104,7 @@ Both new unit-test methods and the 7 vault-writer tests were verified via `xcode
 ---
 *Phase: 64-quick-notes-obsidian-export*
 *Completed: 2026-07-25*
+
+## Self-Check: PASSED
+
+All 5 modified files and the SUMMARY.md file exist on disk; commits `b6bf7bd` (Task 1), `6d9938d` (Task 2), and `264b5e0` (docs) all found in `git log`.
