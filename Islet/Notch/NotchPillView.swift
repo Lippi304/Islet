@@ -251,6 +251,14 @@ struct NotchPillView: View {
     // without a controller.
     var onUpdateTap: () -> Void = {}
 
+    // Phase 63 / MEET-02 (D-09) — the Meeting wing's mute-icon tap callback, mirroring
+    // `onUpdateTap`'s exact declaration style. NOT a wingsShape `onTap` override: unlike Update
+    // (whose WHOLE wing is tappable), this fires from a nested `.onTapGesture` on the mute icon
+    // subregion ALONE, while the wing's own background is an explicit no-op (D-10). Plan 63-04
+    // wires it to MicMuteController.toggleSystemInputMute(). Defaults to a no-op so DEBUG
+    // #Previews build without a controller.
+    var onMuteTap: () -> Void = {}
+
     // Phase 42 / DUAL-01 (D-12, SUPERSEDED 2026-07-19 — live user decision during Plan 42-04
     // Task 3's on-device UAT) — the secondary bubble's tap callback, mirroring `onClick`'s
     // exact declaration style. Originally wired to expand to Now-Playing (D-12); now repurposed
@@ -1013,9 +1021,7 @@ struct NotchPillView: View {
         // splash. .timerExpanded is handled by its own dedicated arm above (Pattern 4, placed
         // right after .quickActionPicker), not grouped here.
         case .timer(let activity): timerWings(for: activity)  // Phase 62 / TIMER-01/03: rank 9 transient (62-01)
-        // Phase 63 / MEET-01 (63-03 Task 1) — TEMPORARY exhaustiveness arm so this commit
-        // builds; 63-03 Task 2 (the very next commit) replaces it with meetingWings(for:).
-        case .meeting: EmptyView()
+        case .meeting(let activity): meetingWings(for: activity)  // Phase 63 / MEET-01: rank 3 transient (D-05), collapsed-only always (D-10)
         case .idle:
             idleOrResumePreview                                              // idle pill / Phase 53 hover-resume preview
         }
@@ -3531,6 +3537,97 @@ struct NotchPillView: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(timerAccessibilityLabel(for: activity))
+        }
+    }
+
+    // Phase 63 / MEET-01/MEET-02 (D-09/D-10/D-12) — collapsed pill: a non-interactive call icon
+    // on the left, live mm:ss call duration + the TAPPABLE mute icon on the right. This is the
+    // FIRST wing in this codebase with a real interactive sub-region inside it, so two things
+    // here are deliberately unlike every other wing:
+    //
+    //  (1) `onTap: {}` — an EXPLICIT no-op, never `nil`. `wingsShape`'s `(onTap ?? onClick)()`
+    //      means a `nil` override falls through to the universal expand-to-Home, which D-10
+    //      forbids for Meeting (collapsed-only ALWAYS — the resolver has no expanded counterpart
+    //      to fall through TO). Tapping the wing background must do nothing at all.
+    //  (2) The mute icon carries its own nested `.onTapGesture` (D-09), which SwiftUI's
+    //      deepest-view-first hit-testing consumes before the outer wing gesture ever sees it.
+    //      `.contentShape(Rectangle())` first, so the whole 20pt frame is tappable rather than
+    //      just the glyph's opaque pixels. Research Assumption A2 flags this as the one thing
+    //      with no in-codebase precedent: if Plan 63-04's on-device UAT shows the outer gesture
+    //      winning, the documented fallback is
+    //      `.highPriorityGesture(TapGesture().onEnded { onMuteTap() })` in its place.
+    //
+    // Geometry is downloadWings' margin/leftWidth/rightWidth/assert template verbatim
+    // (63-UI-SPEC.md Spacing Scale): margin 20, NOT capsLockWings'/Pomodoro-timerWings' 65 —
+    // one icon + short mm:ss digits + one icon is the same "short, icon-adjacent" content class
+    // as Download/plain-Countdown, not the long-text class. Retune on-device in 63-04 only if
+    // content is reported clipped or over-spaced.
+    private func meetingWings(for activity: MeetingActivity) -> some View {
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        let margin: CGFloat = 20
+        let notchHalfWidth = rawNotchHalfWidth + margin
+        let cameraBlockWidth = notchHalfWidth * 2
+        let leadingPad: CGFloat = 16
+        let iconWidth: CGFloat = 20
+        // mm:ss text box 60 (timerWings' own non-Pomodoro countdown budget — same digit-count
+        // class) + 4 gap + 20 mute icon = 84.
+        let elapsedWidth: CGFloat = 60
+        let iconGap: CGFloat = 4
+        let muteIconWidth: CGFloat = 20
+        let trailingPad: CGFloat = 12
+        let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
+        let totalWidth = leadingPad + iconWidth + cameraBlockWidth
+            + elapsedWidth + iconGap + muteIconWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        assert(cameraBlockWidth > 0, "Meeting camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Meeting wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, onTap: {}) {
+            // CRITICAL (mirrors countdownWings'/timerWings' own desync warning): the elapsed
+            // label is computed INSIDE this one tick closure, never outside it, so a live
+            // re-render always shows a consistent icon+digits pair.
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let elapsed = meetingElapsedLabel(callStart: activity.callStart, now: context.date)
+                HStack(spacing: 0) {
+                    Color.clear.frame(width: leadingPad)
+                    Image(systemName: "video.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white)
+                        .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                        // Purely decorative — "in a call" is already carried by the duration
+                        // label below, so this would only add a redundant VoiceOver stop
+                        // (63-UI-SPEC.md Accessibility). Note this wing canNOT use
+                        // downloadWings' blanket `.accessibilityElement(children: .ignore)`:
+                        // that would swallow the mute icon's own interactive element too.
+                        .accessibilityHidden(true)
+                    Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
+                    Text(elapsed)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                        // .trailing so the digits hug the 4pt gap before the mute icon (the
+                        // "icon-to-value proximity" the xs token is for), rather than floating
+                        // in the middle of the 60pt box.
+                        .frame(width: elapsedWidth, alignment: .trailing)
+                        .accessibilityLabel("Call duration \(elapsed)")
+                    Color.clear.frame(width: iconGap)
+                    // D-12 — icon swap AND red tint when muted (both, not either): red alone
+                    // would be a color-only signal, the swapped glyph carries the state for
+                    // anyone who can't rely on hue. `.monochrome` (not `.hierarchical`) so the
+                    // interactive glyph reads fully opaque/prominent, matching downloadWings'
+                    // own "brighter/more prominent" precedent for a tappable/status glyph.
+                    Image(systemName: activity.isMuted ? "mic.slash.fill" : "mic.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundStyle(activity.isMuted ? Color.red : Color.white)
+                        .frame(width: muteIconWidth, height: Self.wingsSize.height, alignment: .center)
+                        .contentShape(Rectangle())
+                        .onTapGesture { onMuteTap() }
+                        .accessibilityLabel(activity.isMuted ? "Unmute Microphone" : "Mute Microphone")
+                    Color.clear.frame(width: trailingPad)
+                }
+            }
         }
     }
 
