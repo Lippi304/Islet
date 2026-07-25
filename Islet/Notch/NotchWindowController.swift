@@ -867,21 +867,7 @@ final class NotchWindowController {
     // Microphone TCC permission.
     private func startMeetingMonitor() {
         guard meetingMonitor == nil else { return }
-        // ===================== UAT SUBSTITUTION — REVERT BEFORE PHASE CLOSE =====================
-        // The validation machine has NEITHER Zoom NOR Teams installed, so with MeetingMonitor's
-        // production default targetBundleIDs the HUD could never appear and Plan 63-04's on-device
-        // UAT would be impossible to perform. Discord (com.hnc.Discord) is a native voice-call app
-        // producing the IDENTICAL signal shape (target app running AND default-input device
-        // active) — the exact same stand-in 63-02's detection spike used and approved (commit
-        // 63e6db1, "On-Device Spike Verdict — GO").
-        //
-        // TO REVERT: `git revert <this commit>` — or delete the `targetBundleIDs:` argument below
-        // so the initializer falls back to its production default
-        // ["us.zoom.xos", "com.microsoft.teams2", "com.microsoft.teams"].
-        let monitor = MeetingMonitor(
-            targetBundleIDs: ["us.zoom.xos", "com.microsoft.teams2", "com.microsoft.teams", "com.hnc.Discord"]
-        ) { [weak self] reading in self?.handleMeetingActivityChange(reading) }
-        // =======================================================================================
+        let monitor = MeetingMonitor { [weak self] reading in self?.handleMeetingActivityChange(reading) }
         meetingMonitor = monitor
         monitor.start()
     }
