@@ -76,6 +76,7 @@
 		6834F012466C396EF5D7439B /* BrightnessReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5304DD9EE0040C6059114A1 /* BrightnessReader.swift */; };
 		68CE6D5F610C8C037058F697 /* WeatherCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B811CCD53A0E77D86C48E5 /* WeatherCategory.swift */; };
 		69C5A7E82B83ECD8D72EBFF7 /* QuickNotesFileStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7612D210FA7E3A36B54449A3 /* QuickNotesFileStoreTests.swift */; };
+		262D42880955460DB2CBAD3B /* QuickNotesVaultWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B442EDDD922049958A9B06B6 /* QuickNotesVaultWriterTests.swift */; };
 		6B351B58889CA7C8B7C93511 /* DragApproachGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */; };
 		6C7E52AAA6072F2639842425 /* TimerActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3386F9F8E7F82A15E06AA96A /* TimerActivityTests.swift */; };
 		6DA98B2B2107409BB8BD64FE /* CGSSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2151B8D097AF9D3098ED16D7 /* CGSSpace.swift */; };
@@ -267,6 +268,7 @@
 		73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfCoordinatorTests.swift; sourceTree = "<group>"; };
 		74A9A9669B73F37C9B93F564 /* OSDInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSDInterceptor.swift; sourceTree = "<group>"; };
 		7612D210FA7E3A36B54449A3 /* QuickNotesFileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickNotesFileStoreTests.swift; sourceTree = "<group>"; };
+		B442EDDD922049958A9B06B6 /* QuickNotesVaultWriterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickNotesVaultWriterTests.swift; sourceTree = "<group>"; };
 		76ADF16C067A181F295BA4C5 /* PowerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivity.swift; sourceTree = "<group>"; };
 		77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityDecisionTests.swift; sourceTree = "<group>"; };
 		77E66EB6AC760DEC7C38A28E /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
@@ -423,6 +425,7 @@
 				7612D210FA7E3A36B54449A3 /* QuickNotesFileStoreTests.swift */,
 				AAC07EE709C3E4CCAB9EAECA /* QuickNotesFormatterTests.swift */,
 				E44BA9FF276A6DCDA62F7633 /* QuickNotesStoreTests.swift */,
+				B442EDDD922049958A9B06B6 /* QuickNotesVaultWriterTests.swift */,
 				F99A514914B21E05DB962A52 /* SettingsViewTests.swift */,
 				73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */,
 				858D32BF5C426DA996EF8187 /* ShelfFileStoreTests.swift */,
@@ -894,6 +897,7 @@
 				69C5A7E82B83ECD8D72EBFF7 /* QuickNotesFileStoreTests.swift in Sources */,
 				E589E15DAB0CB7E5BE0D46A6 /* QuickNotesFormatterTests.swift in Sources */,
 				42C71E248A376C505D5952B7 /* QuickNotesStoreTests.swift in Sources */,
+				262D42880955460DB2CBAD3B /* QuickNotesVaultWriterTests.swift in Sources */,
 				F4E5D51C196553F5C39EE6E0 /* SettingsViewTests.swift in Sources */,
 				D29EBA9C26F56C26B9E49CDE /* ShelfCoordinatorTests.swift in Sources */,
 				3958A1E6D1E4AAE3829D3F20 /* ShelfFileStoreTests.swift in Sources */,
