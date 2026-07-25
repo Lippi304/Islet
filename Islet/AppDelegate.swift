@@ -203,14 +203,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // in the popover reaches this AppDelegate's handlers (D-12's guard lives there).
         let loadedQuickNotes = QuickNotesFileStore.load(root: QuickNotesFileStore.storageRoot())
         for note in loadedQuickNotes { quickNotesStore.append(note) }
-        quickNotesController.notes = Array(quickNotesStore.items.reversed())
+        refreshQuickNotesList()
         quickNotesController.onSubmit = { [weak self] text in self?.handleQuickNoteSubmit(text) }
         quickNotesController.onDelete = { [weak self] id in self?.handleQuickNoteDelete(id) }
         // Plan 64-08 (Task 2) — persists the picker's selection immediately so it survives
         // relaunch (self-healed back to the default on the next open if the file's gone).
+        // Additional scope (coordinator-requested) — switching files re-filters the visible
+        // list to only that file's notes; the underlying quickNotesStore.items is untouched.
         quickNotesController.onSelectFile = { [weak self] fileName in
+            guard let self else { return }
             UserDefaults.standard.set(fileName, forKey: ActivitySettings.quickNotesSelectedFileNameKey)
-            self?.quickNotesController.selectedFileName = fileName
+            self.quickNotesController.selectedFileName = fileName
+            self.refreshQuickNotesList()
         }
         // Plan 64-08 (additional scope) — a typed "New File…" name isn't created on disk here;
         // it's just added to availableFiles and selected, then the normal submit path
@@ -223,6 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             UserDefaults.standard.set(fileName, forKey: ActivitySettings.quickNotesSelectedFileNameKey)
             self.quickNotesController.selectedFileName = fileName
+            self.refreshQuickNotesList()
         }
 
         // Phase 40 / HUD-06 — construct Sparkle after the notch controller.
@@ -333,6 +338,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             quickNotesController.availableFiles = []
         }
+        // selectedFileName may have just changed above (or reconciliation may have pruned
+        // notes before it settled) — refresh the filtered list against its final value.
+        refreshQuickNotesList()
 
         quickNotesPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         // Plan 64-06 (Task 1) — fixes UAT tests 2 and 8: no focus request of any kind is
@@ -356,7 +364,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try QuickNotesVaultWriter.append(note: text, to: fileURL, at: Date())
             let note = QuickNote(id: UUID(), text: text, timestamp: Date(), fileName: quickNotesController.selectedFileName)
             quickNotesStore.append(note)
-            quickNotesController.notes = Array(quickNotesStore.items.reversed())
+            refreshQuickNotesList()
             quickNotesController.errorMessage = nil
             try? QuickNotesFileStore.save(quickNotesStore.items, root: QuickNotesFileStore.storageRoot())
         } catch {
@@ -382,7 +390,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             _ = try QuickNotesVaultWriter.removeEntry(matching: note, occurrence: occurrence, from: fileURL)
             quickNotesStore.remove(id: id)
-            quickNotesController.notes = Array(quickNotesStore.items.reversed())
+            refreshQuickNotesList()
             quickNotesController.errorMessage = nil
             try? QuickNotesFileStore.save(quickNotesStore.items, root: QuickNotesFileStore.storageRoot())
         } catch {
@@ -434,8 +442,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard idsToKeep.count != quickNotesStore.items.count else { return }
         quickNotesStore.prune(keepingIDs: idsToKeep)
-        quickNotesController.notes = Array(quickNotesStore.items.reversed())
+        refreshQuickNotesList()
         try? QuickNotesFileStore.save(quickNotesStore.items, root: QuickNotesFileStore.storageRoot())
+    }
+
+    // Additional scope (coordinator-requested) — the popover's recent-notes list is filtered
+    // to the currently selected file only; quickNotesStore.items itself always holds every
+    // note across every file (delete/reconciliation logic reads from that full list, keyed by
+    // id/fileName, never from this filtered display projection).
+    private func refreshQuickNotesList() {
+        quickNotesController.notes = Array(
+            quickNotesStore.items.filter { $0.fileName == quickNotesController.selectedFileName }.reversed()
+        )
     }
 
     // Keep the agent alive when the Settings window is hidden or closed — only
