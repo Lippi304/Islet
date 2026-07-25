@@ -83,12 +83,15 @@ final class ClipboardFileStoreTests: XCTestCase {
         let fileB = imagesDir.appendingPathComponent(imageItemB.id.uuidString + ".enc")
         XCTAssertTrue(FileManager.default.fileExists(atPath: fileA.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: fileB.path))
-        let fileAContentsBefore = try Data(contentsOf: fileA)
 
         try ClipboardFileStore.save([imageItemA], root: fixturesDir, key: testKey)
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: fileA.path))
-        XCTAssertEqual(try Data(contentsOf: fileA), fileAContentsBefore)
+        // Ciphertext byte-equality is NOT a valid assertion here: save re-encrypts every image
+        // on every call and AES.GCM.seal draws a fresh nonce, so the bytes legitimately differ
+        // at identical length. What must survive the orphan sweep is the PLAINTEXT.
+        let sealedA = try AES.GCM.SealedBox(combined: try Data(contentsOf: fileA))
+        XCTAssertEqual(try AES.GCM.open(sealedA, using: testKey), Data("image A bytes".utf8))
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileB.path))
     }
 
