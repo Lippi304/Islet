@@ -102,4 +102,97 @@ final class QuickNotesVaultWriterTests: XCTestCase {
 
         XCTAssertFalse(QuickNotesVaultWriter.isValidVaultFolder(atPath: fileURL.path))
     }
+
+    // MARK: - removeEntry / listMarkdownFiles (Phase 64-07, gap closure)
+
+    func testRemoveEntryDeletesOnlyMatchingBulletLeavesOthersByteIdentical() throws {
+        let fileURL = fixturesDir.appendingPathComponent("notes.md")
+        let noteA = QuickNote(id: UUID(), text: "Erste Notiz.", timestamp: date(2026, 7, 25, 14, 32))
+        let noteB = QuickNote(id: UUID(), text: "Zweite Notiz.", timestamp: date(2026, 7, 25, 14, 47))
+        try QuickNotesVaultWriter.append(note: noteA.text, to: fileURL, at: noteA.timestamp)
+        try QuickNotesVaultWriter.append(note: noteB.text, to: fileURL, at: noteB.timestamp)
+
+        let result = try QuickNotesVaultWriter.removeEntry(matching: noteA, from: fileURL)
+
+        XCTAssertEqual(result, .removed)
+        let content = try String(contentsOf: fileURL, encoding: .utf8)
+        XCTAssertFalse(content.contains("Erste Notiz."))
+        XCTAssertTrue(content.contains("## 2026-07-25"))
+        XCTAssertTrue(content.contains("- 14:47 Zweite Notiz."))
+    }
+
+    func testRemoveEntryRemovesMultiLineContinuationLines() throws {
+        let fileURL = fixturesDir.appendingPathComponent("notes.md")
+        let multiLine = QuickNote(id: UUID(), text: "Line one\nLine two", timestamp: date(2026, 7, 25, 10, 0))
+        let after = QuickNote(id: UUID(), text: "After note.", timestamp: date(2026, 7, 25, 10, 5))
+        try QuickNotesVaultWriter.append(note: multiLine.text, to: fileURL, at: multiLine.timestamp)
+        try QuickNotesVaultWriter.append(note: after.text, to: fileURL, at: after.timestamp)
+
+        let result = try QuickNotesVaultWriter.removeEntry(matching: multiLine, from: fileURL)
+
+        XCTAssertEqual(result, .removed)
+        let content = try String(contentsOf: fileURL, encoding: .utf8)
+        XCTAssertFalse(content.contains("Line one"))
+        XCTAssertFalse(content.contains("Line two"))
+        XCTAssertTrue(content.contains("- 10:05 After note."))
+    }
+
+    func testRemoveEntryReturnsNotFoundWhenLineAlreadyGone() throws {
+        let fileURL = fixturesDir.appendingPathComponent("notes.md")
+        let note = QuickNote(id: UUID(), text: "Erste Notiz.", timestamp: date(2026, 7, 25, 14, 32))
+        try QuickNotesVaultWriter.append(note: note.text, to: fileURL, at: note.timestamp)
+        let beforeBytes = try Data(contentsOf: fileURL)
+
+        let alreadyGone = QuickNote(id: UUID(), text: "Never written.", timestamp: date(2026, 7, 25, 15, 0))
+        let result = try QuickNotesVaultWriter.removeEntry(matching: alreadyGone, from: fileURL)
+
+        XCTAssertEqual(result, .notFound)
+        let afterBytes = try Data(contentsOf: fileURL)
+        XCTAssertEqual(beforeBytes, afterBytes)
+    }
+
+    func testRemoveEntryReturnsNotFoundForNonexistentFileWithoutCreatingIt() throws {
+        let fileURL = fixturesDir.appendingPathComponent("does-not-exist.md")
+        let note = QuickNote(id: UUID(), text: "Some note.", timestamp: date(2026, 7, 25, 12, 0))
+
+        let result = try QuickNotesVaultWriter.removeEntry(matching: note, from: fileURL)
+
+        XCTAssertEqual(result, .notFound)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+    }
+
+    func testRemoveEntryTargetsRequestedOccurrenceAmongDuplicates() throws {
+        let fileURL = fixturesDir.appendingPathComponent("notes.md")
+        let noteDate = date(2026, 7, 25, 14, 32)
+        let duplicateText = "Same note."
+        // Two byte-identical entries (same text, same to-the-minute timestamp).
+        try QuickNotesVaultWriter.append(note: duplicateText, to: fileURL, at: noteDate)
+        try QuickNotesVaultWriter.append(note: duplicateText, to: fileURL, at: noteDate)
+        let noteFixture = QuickNote(id: UUID(), text: duplicateText, timestamp: noteDate)
+
+        let result = try QuickNotesVaultWriter.removeEntry(matching: noteFixture, occurrence: 1, from: fileURL)
+
+        XCTAssertEqual(result, .removed)
+        let content = try String(contentsOf: fileURL, encoding: .utf8)
+        let bulletCount = content.components(separatedBy: "- 14:32 Same note.").count - 1
+        XCTAssertEqual(bulletCount, 1, "Exactly one of the two duplicate bullets must remain")
+    }
+
+    func testListMarkdownFilesReturnsOnlyMdFilesSorted() throws {
+        try Data("a".utf8).write(to: fixturesDir.appendingPathComponent("Zebra.md"))
+        try Data("b".utf8).write(to: fixturesDir.appendingPathComponent("Apple.md"))
+        try Data("c".utf8).write(to: fixturesDir.appendingPathComponent("notes.txt"))
+
+        let result = QuickNotesVaultWriter.listMarkdownFiles(inFolder: fixturesDir.path)
+
+        XCTAssertEqual(result, ["Apple.md", "Zebra.md"])
+    }
+
+    func testListMarkdownFilesReturnsEmptyForMissingFolder() {
+        let missingPath = fixturesDir.appendingPathComponent("does-not-exist").path
+
+        let result = QuickNotesVaultWriter.listMarkdownFiles(inFolder: missingPath)
+
+        XCTAssertEqual(result, [])
+    }
 }

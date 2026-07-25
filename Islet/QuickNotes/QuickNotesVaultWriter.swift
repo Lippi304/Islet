@@ -39,6 +39,63 @@ enum QuickNotesVaultWriter {
         return exists && isDirectory.boolValue
     }
 
+    enum VaultDeleteResult: Equatable { case removed, notFound }
+
+    /// Phase 64-07 (gap closure) — the ONE deliberate, scoped exception to this file's D-07
+    /// append-only rule: it only runs on an explicit, rare, single-row user delete, never on
+    /// the hot append path above. Unlike `append`, this reads and rewrites the whole file, but
+    /// never via a truncating in-place write — the rewritten content is written to a hidden
+    /// temp file in the SAME directory as the target, then atomically swapped into place via
+    /// `FileManager.replaceItemAt`, giving the same "safe save while another process (Obsidian)
+    /// may have the file open" guarantee ordinary text editors rely on.
+    ///
+    /// `occurrence` (0-based) disambiguates the case where two or more notes format to the
+    /// byte-identical entry block (same text, same to-the-minute timestamp) — `range(of:)`
+    /// alone always finds the first match regardless of which physical line the caller
+    /// actually means. Plan 64-08 computes the correct `occurrence` value from its own ordered
+    /// note list before calling this function.
+    static func removeEntry(matching note: QuickNote, occurrence: Int = 0, from fileURL: URL) throws -> VaultDeleteResult {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return .notFound }
+
+        let data = try Data(contentsOf: fileURL)
+        guard let content = String(data: data, encoding: .utf8) else {
+            throw DecodeError()
+        }
+
+        let entryBlock = QuickNotesFormatter.formatEntry(text: note.text, at: note.timestamp)
+
+        var searchStart = content.startIndex
+        var matchCount = 0
+        var targetRange: Range<String.Index>?
+        while let range = content.range(of: entryBlock, range: searchStart..<content.endIndex) {
+            if matchCount == occurrence {
+                targetRange = range
+                break
+            }
+            matchCount += 1
+            searchStart = range.upperBound
+        }
+
+        guard let foundRange = targetRange else { return .notFound }
+
+        var updated = content
+        updated.removeSubrange(foundRange)
+
+        let tempURL = fileURL.deletingLastPathComponent()
+            .appendingPathComponent(".\(fileURL.lastPathComponent).tmp-\(UUID().uuidString)")
+        try updated.write(to: tempURL, atomically: true, encoding: .utf8)
+        _ = try FileManager.default.replaceItemAt(fileURL, withItemAt: tempURL)
+
+        return .removed
+    }
+
+    struct DecodeError: Error {}
+
+    static func listMarkdownFiles(inFolder path: String) -> [String] {
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: path)) ?? []
+        return entries.filter { $0.hasSuffix(".md") }.sorted()
+    }
+
     private static func readTail(of fileURL: URL, windowBytes: Int) throws
         -> (sizeBytes: UInt64, endsWithNewline: Bool, lastHeadingDate: String?) {
         let handle = try FileHandle(forReadingFrom: fileURL)
