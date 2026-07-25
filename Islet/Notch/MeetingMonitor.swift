@@ -94,7 +94,18 @@ final class MeetingMonitor {
             mSelector: kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain)
-        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &defaultInputAddr, nil, block)
+        // WR-03 (63-REVIEW.md) — the OSStatus was discarded entirely here while
+        // retargetInputListener() guards its own registration, an asymmetry this file's header
+        // claims to have eliminated. A silent failure degrades default-input-device tracking to
+        // the coarse 5s poll with no signal anywhere that the event path is dead. Not fatal (the
+        // poll still converges, and stop()'s matching Remove on a never-added listener is a
+        // harmless no-op), so this reports rather than bails.
+        if AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject),
+                                               &defaultInputAddr, nil, block) != noErr {
+            #if DEBUG
+            print("[MeetingMonitor] default-input-device listener registration failed; relying on the 5s poll")
+            #endif
+        }
 
         retargetInputListener()
 
