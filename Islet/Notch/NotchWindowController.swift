@@ -2485,8 +2485,14 @@ final class NotchWindowController {
     // updateHead(_:) alone never touches it (the exact Phase 62-04 "Bug 2" failure class). Mirrors
     // refreshTimerHeadInPlace()'s withAnimation + renderPresentation() pair.
     private func handleMuteTap() {
-        guard let newMuted = toggleSystemInputMute() else { return }
+        // WR-01 (63-REVIEW.md) — VALIDATE BEFORE THE SIDE EFFECT. toggleSystemInputMute() writes
+        // the machine's system-wide input mute; issuing it first meant that if the call ended (or
+        // a Settings toggle flushed the HUD) in the window between the icon rendering and the tap
+        // being delivered, the user's microphone was flipped and the function then returned with
+        // no UI update at all — a silent mute/unmute with no indicator left to notice it by.
+        // Every other tap handler in this file validates first.
         guard case .meeting(let m) = transientQueue.head else { return }
+        guard let newMuted = toggleSystemInputMute() else { return }
         transientQueue.updateHead(.meeting(MeetingActivity(callStart: m.callStart, isMuted: newMuted)))
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             renderPresentation()
