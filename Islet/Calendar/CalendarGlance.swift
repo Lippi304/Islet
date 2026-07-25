@@ -78,7 +78,7 @@ func nextUpcomingEvent(events: [EventInput], now: Date, lookahead: TimeInterval 
 func defaultQuickAddTime(selectedDay: Date, now: Date) -> Date {
     let calendar = Calendar.current
 
-    guard calendar.isDateInToday(selectedDay) else {
+    guard calendar.isDate(selectedDay, inSameDayAs: now) else {
         return calendar.startOfDay(for: selectedDay)
     }
 
