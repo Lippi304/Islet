@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Completed 64-02-PLAN.md
-last_updated: "2026-07-25T15:13:59.231Z"
-last_activity: 2026-07-25 -- Phase 64 planning complete
+stopped_at: Completed 64-07-PLAN.md
+last_updated: "2026-07-25T15:22:28.884Z"
+last_activity: 2026-07-25 -- Completed 64-07-PLAN.md
 progress:
   total_phases: 19
   completed_phases: 15
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 64 (quick-notes-obsidian-export) — UAT GAPS FOUND
-Plan: 5 of 5 (64-01..64-04 code-complete; 64-05 checkpoint reached, on-device UAT recorded gaps — see 64-UAT.md)
-Status: Ready to execute
-Last activity: 2026-07-25 -- Phase 64 planning complete
+Phase: 64 (quick-notes-obsidian-export) — EXECUTING
+Plan: 7 of 8 (64-01..64-07 complete; 64-08 remaining)
+Status: Ready to execute 64-08
+Last activity: 2026-07-25 -- Completed 64-07-PLAN.md
 
 ### Phase 48 status note
 
@@ -183,6 +183,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 64 P03 | 10min | 2 tasks | 2 files |
 | Phase 64 P02 | 15min | 2 tasks | 3 files |
 | Phase 64 P04 | 12min | 2 tasks | 3 files |
+| Phase 64 P07 | 12min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -298,6 +299,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 64]: QuickNotesVaultWriter shipped exactly per the plan's locked reference implementation (bounded 4096-byte tail-read + seekToEndOfFile+write append), no deviations to the write logic itself
 - [Phase 64-04]: submit() only clears the TextEditor's text when controller.errorMessage == nil after onSubmit returns, not unconditionally as the plan's action text literally said — preserves D-12's locked data-loss guard (typed text stays present on a failed vault write) and matches the plan's own state-3 behavior spec
 - [Phase 64-04]: error banner copy is hardcoded in QuickNotesPopoverView rather than solely derived from controller.errorMessage's string content — keeps the exact UI-SPEC Copywriting Contract text owned by the view; errorMessage still gates visibility
+- [Phase 64]: [Phase 64-07] removeEntry is the ONE deliberate, scoped exception to QuickNotesVaultWriter's D-07 append-only rule -- documented directly above the function, runs only on an explicit rare user delete via temp-file+atomic-rename, never touches the append path
+- [Phase 64]: [Phase 64-07] removeEntry's occurrence parameter (0-based) disambiguates byte-identical duplicate vault entries by rank; Plan 64-08 computes the correct occurrence from its own ordered note list before calling removeEntry
 
 ### Roadmap Evolution
 
@@ -437,9 +440,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-25T13:33:42.040Z
-Stopped at: Completed 64-02-PLAN.md
-Resume file: None
+Last session: 2026-07-25T15:22:28.879Z
+Stopped at: Completed 64-07-PLAN.md
+Resume file: 64-08-PLAN.md
 
 ## Operator Next Steps
 
