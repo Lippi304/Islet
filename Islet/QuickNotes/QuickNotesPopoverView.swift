@@ -39,15 +39,23 @@ struct QuickNotesPopoverView: View {
                     .foregroundStyle(Color.red)
             }
 
-            Button {
-                submit()
-            } label: {
-                Text("Save Note").fontWeight(.semibold)
+            HStack(spacing: 6) {
+                Button {
+                    submit()
+                } label: {
+                    Text("Save Note").fontWeight(.semibold)
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+                .buttonStyle(.borderedProminent)
+                .tint(Color.accentColor)
+                .disabled(!controller.vaultConfigured)
+
+                // Requested hint — no existing shortcut-glyph convention elsewhere in the
+                // app to reuse, so a plain small secondary label.
+                Text("⌘⏎")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
             }
-            .keyboardShortcut(.return, modifiers: .command)
-            .buttonStyle(.borderedProminent)
-            .tint(Color.accentColor)
-            .disabled(!controller.vaultConfigured)
 
             ScrollView {
                 if !controller.vaultConfigured {
