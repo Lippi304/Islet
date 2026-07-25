@@ -29,6 +29,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // the #if DEBUG-only `debugClipboardMonitor` below; this is the real, always-on path.
     private var clipboardStore = ClipboardStore()
     private var clipboardMonitor: ClipboardMonitor?
+    // Phase 64 / NOTES-01/02/03 — Quick Notes menu-bar capture (D-13: menu-bar-only, zero
+    // notch/IslandResolver participation). Parallel to clipboardStore/clipboardMonitor above.
+    private var quickNotesStore = QuickNotesStore()
+    private let quickNotesController = QuickNotesController()
+    private lazy var quickNotesPopover: NSPopover = {
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.contentViewController = NSHostingController(rootView: QuickNotesPopoverView(controller: quickNotesController))
+        return popover
+    }()
     // D-revised (2026-07-23, on-device UAT amendment): rows moved into a flyout
     // submenu, but Cmd+0-9 must still restore instantly on icon-click without
     // requiring the submenu to be hovered open first — NSMenuItem keyEquivalents
@@ -114,6 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Item Contract).
         menu.addItem(withTitle: "Check for Updates…",
                      action: #selector(checkForUpdates), keyEquivalent: "")
+        // Phase 64 / NOTES-01 — opens the Quick Notes popover (D-13: menu-bar-only entry point).
+        menu.addItem(withTitle: "New Note…",
+                     action: #selector(openQuickNotesPopover), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Islet",
                      action: #selector(quit), keyEquivalent: "q")
@@ -163,6 +176,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? ClipboardFileStore.save(self.clipboardStore.items, root: ClipboardFileStore.storageRoot(), key: KeychainClipboardKeyStore().readOrCreateKey())
         })
         clipboardMonitor?.start()
+
+        // Phase 64 / NOTES-02/03 — seed the local recent-notes list from disk before the
+        // popover can ever be opened, then wire the controller's closures so a submit/delete
+        // in the popover reaches this AppDelegate's handlers (D-12's guard lives there).
+        let loadedQuickNotes = QuickNotesFileStore.load(root: QuickNotesFileStore.storageRoot())
+        for note in loadedQuickNotes { quickNotesStore.append(note) }
+        quickNotesController.notes = Array(quickNotesStore.items.reversed())
+        quickNotesController.onSubmit = { [weak self] text in self?.handleQuickNoteSubmit(text) }
+        quickNotesController.onDelete = { [weak self] id in self?.handleQuickNoteDelete(id) }
 
         // Phase 40 / HUD-06 — construct Sparkle after the notch controller.
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
@@ -244,6 +266,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+
+    // Phase 64 / NOTES-01 — D-11: re-checks the vault path fresh every time the popover
+    // opens, never cached from a prior open.
+    @objc private func openQuickNotesPopover() {
+        guard let button = statusItem.button else { return }
+        let path = UserDefaults.standard.string(forKey: ActivitySettings.quickNotesVaultFolderPathKey) ?? ""
+        quickNotesController.vaultConfigured = QuickNotesVaultWriter.isValidVaultFolder(atPath: path)
+        quickNotesController.errorMessage = nil
+        quickNotesPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        // Pitfall 10 — flagged for the Plan 64-05 on-device focus spike, not assumed to
+        // work reliably without on-device verification.
+        DispatchQueue.main.async { [weak self] in
+            self?.quickNotesPopover.contentViewController?.view.window?.makeFirstResponder(
+                self?.quickNotesPopover.contentViewController?.view
+            )
+        }
+    }
+
+    // Phase 64 / NOTES-02 — D-12's locked data-loss guard: quickNotesStore.append only runs
+    // inside the vault write's success path, never before it and never in the catch.
+    private func handleQuickNoteSubmit(_ text: String) {
+        let path = UserDefaults.standard.string(forKey: ActivitySettings.quickNotesVaultFolderPathKey) ?? ""
+        let fileURL = URL(fileURLWithPath: path).appendingPathComponent("Islet Notes.md")
+        do {
+            try QuickNotesVaultWriter.append(note: text, to: fileURL, at: Date())
+            let note = QuickNote(id: UUID(), text: text, timestamp: Date())
+            quickNotesStore.append(note)
+            quickNotesController.notes = Array(quickNotesStore.items.reversed())
+            quickNotesController.errorMessage = nil
+            try? QuickNotesFileStore.save(quickNotesStore.items, root: QuickNotesFileStore.storageRoot())
+        } catch {
+            quickNotesController.errorMessage = "Couldn't save — check your vault folder in Settings."
+        }
+    }
+
+    // Phase 64 / NOTES-03 — D-17: local list only, never touches QuickNotesVaultWriter or the
+    // vault file.
+    private func handleQuickNoteDelete(_ id: UUID) {
+        quickNotesStore.remove(id: id)
+        quickNotesController.notes = Array(quickNotesStore.items.reversed())
+        try? QuickNotesFileStore.save(quickNotesStore.items, root: QuickNotesFileStore.storageRoot())
     }
 
     // Keep the agent alive when the Settings window is hidden or closed — only
