@@ -59,7 +59,7 @@ struct ActivityCard: View {
         )
         .overlay(alignment: .topTrailing) {
             if data.isNew {
-                Text("Neu")
+                Text("New")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 6)
