@@ -24,6 +24,16 @@ final class MicMuteControllerTests: XCTestCase {
     func testToggleSystemInputMuteNeverPartiallyAppliesAndRestores() {
         let original = readSystemInputMuted()
 
+        // WR-07 (63-REVIEW.md) — this test mutates the REAL machine-wide input mute, so the
+        // restore must run on EVERY exit path, not only the happy one at the end of the method.
+        // A crash, an XCTFail-triggered early exit, or any future `return` added above it would
+        // otherwise leave the dev/CI machine's microphone in a state this test created. The
+        // teardown re-reads before acting so it is a no-op when the body already restored it, and
+        // it never asserts — a teardown that fails would only mask the real failure.
+        addTeardownBlock {
+            if readSystemInputMuted() != original { _ = toggleSystemInputMute() }
+        }
+
         guard let toggled = toggleSystemInputMute() else {
             // nil = a Get/Set guard failed (e.g. no default input device, or the device does
             // not implement kAudioDevicePropertyMute). The contract is that NOTHING changed.
@@ -36,7 +46,8 @@ final class MicMuteControllerTests: XCTestCase {
         XCTAssertEqual(readSystemInputMuted(), toggled,
                        "the post-toggle read must agree with the value toggle reported")
 
-        // Never leave the dev machine's mic in a state this test created.
+        // Never leave the dev machine's mic in a state this test created. The teardown block
+        // above is the backstop if this line (or the assertions below it) never runs.
         let restored = toggleSystemInputMute()
         XCTAssertEqual(restored, original)
         XCTAssertEqual(readSystemInputMuted(), original)
