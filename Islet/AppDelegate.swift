@@ -506,6 +506,12 @@ extension AppDelegate: NSMenuDelegate {
         // above it. Selector-based lookup (not a positional literal), matching this
         // method's existing identifier-prefix-removal preference above.
         var insertionIndex = menu.indexOfItem(withTarget: self, andAction: #selector(openQuickNotesPopover)) + 1
+        // Plan 64-06 (menu-order re-fix) — a visual break between "New Note…" and the
+        // Clipboard History block, same clip.-tagged rebuild-every-time pattern as the
+        // existing trailing separator below so it stays in sync with removeAll above.
+        let leadingSeparator = NSMenuItem.separator()
+        leadingSeparator.identifier = NSUserInterfaceItemIdentifier("clip.leadingSeparator")
+        menu.insertItem(leadingSeparator, at: insertionIndex); insertionIndex += 1
         // MRU-first: ClipboardStore.append pushes newest to the array's END, so
         // .reversed() renders newest-first (RESEARCH.md Pitfall 4).
         let items = Array(clipboardStore.items.reversed())
