@@ -276,12 +276,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         quickNotesController.vaultConfigured = QuickNotesVaultWriter.isValidVaultFolder(atPath: path)
         quickNotesController.errorMessage = nil
         quickNotesPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        // Pitfall 10 — flagged for the Plan 64-05 on-device focus spike, not assumed to
-        // work reliably without on-device verification.
+        // Plan 64-06 (Task 1) — fixes UAT tests 2 and 8: no focus request of any kind is
+        // issued when the vault isn't configured, so the disabled empty state is never
+        // touched by a first-responder call, removing the responder-chain interference that
+        // was blocking the popover's .transient outside-click/Escape dismissal.
+        guard quickNotesController.vaultConfigured else { return }
         DispatchQueue.main.async { [weak self] in
-            self?.quickNotesPopover.contentViewController?.view.window?.makeFirstResponder(
-                self?.quickNotesPopover.contentViewController?.view
-            )
+            self?.quickNotesController.focusRequestToken += 1
         }
     }
 

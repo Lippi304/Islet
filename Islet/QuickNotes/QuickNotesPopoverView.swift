@@ -8,6 +8,10 @@ final class QuickNotesController: ObservableObject {
     @Published var notes: [QuickNote] = []
     @Published var vaultConfigured: Bool = true
     @Published var errorMessage: String?
+    // Plan 64-06 (Task 1) — bumped by AppDelegate only when the vault is configured; the
+    // popover view observes this to request TextEditor focus via @FocusState instead of
+    // AppKit's makeFirstResponder (Pitfall 10 root-cause fix).
+    @Published var focusRequestToken: Int = 0
 
     var onSubmit: (String) -> Void = { _ in }
     var onDelete: (UUID) -> Void = { _ in }
@@ -18,6 +22,7 @@ final class QuickNotesController: ObservableObject {
 struct QuickNotesPopoverView: View {
     @ObservedObject var controller: QuickNotesController
     @State private var text = ""
+    @FocusState private var isTextFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -25,6 +30,7 @@ struct QuickNotesPopoverView: View {
                 .font(.system(size: 13))
                 .frame(height: 80)
                 .disabled(!controller.vaultConfigured)
+                .focused($isTextFocused)
 
             if controller.errorMessage != nil {
                 Text("Couldn't save — check your vault folder in Settings.")
@@ -64,6 +70,9 @@ struct QuickNotesPopoverView: View {
         }
         .padding(16)
         .frame(width: 280)
+        // Plan 64-06 (Task 1) — the only focus mechanism for this popover; AppDelegate bumps
+        // focusRequestToken (gated on vaultConfigured), never calls makeFirstResponder.
+        .onChange(of: controller.focusRequestToken) { _, _ in isTextFocused = true }
     }
 
     // D-03: clears the field on a successful submit so the popover stays open ready for
