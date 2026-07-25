@@ -18,7 +18,8 @@ final class QuickNotesController: ObservableObject {
 }
 
 // Phase 64 — the popover's SwiftUI content, hosted via NSHostingController inside the
-// NSPopover AppDelegate (Task 2) builds. Fixed 280pt width (64-UI-SPEC.md Spacing Scale).
+// NSPopover AppDelegate (Task 2) builds. Fixed 320pt width (widened from 280pt in Plan
+// 64-06's Task 3 3rd re-fix, to give the delete button's wider trailing margin room).
 struct QuickNotesPopoverView: View {
     @ObservedObject var controller: QuickNotesController
     @State private var text = ""
@@ -67,20 +68,14 @@ struct QuickNotesPopoverView: View {
                     }
                 }
             }
-            // Plan 64-06 (Task 3, 2nd re-fix) — root cause per on-device testing: the delete
-            // button worked once the native overlay NSScroller had auto-hidden, and failed
-            // only while it was visibly overlapping the button's real screen region — this is
-            // the AppKit scroller view itself consuming the click, not a SwiftUI gesture losing
-            // arbitration (the earlier .highPriorityGesture change didn't touch this). Content
-            // padding on the row (previous attempt) never moves the indicator itself, which
-            // always renders flush to the ScrollView's own trailing edge regardless of inner
-            // content insets. `.contentMargins(_:_:for: .scrollIndicators)` is the SwiftUI API
-            // built for exactly this — pushes the indicator's own draw region away from the
-            // trailing edge, reserving a real indicator-free gutter for the button.
-            .contentMargins(.trailing, 20, for: .scrollIndicators)
+            // Plan 64-06 (Task 3, 3rd re-fix) — .contentMargins(for: .scrollIndicators)
+            // didn't hold up on-device either; reverted so the scrollbar renders at its
+            // normal true trailing edge again. Real fix per user's direct layout guidance is
+            // on QuickNoteRowView's own trailing padding below (moves the button, not the
+            // scrollbar).
         }
         .padding(16)
-        .frame(width: 280)
+        .frame(width: 320)
         // Plan 64-06 (Task 1) — the only focus mechanism for this popover; AppDelegate bumps
         // focusRequestToken (gated on vaultConfigured), never calls makeFirstResponder.
         .onChange(of: controller.focusRequestToken) { _, _ in isTextFocused = true }
@@ -135,18 +130,20 @@ struct QuickNoteRowView: View {
                 .font(.system(size: 13))
             Spacer(minLength: 0)
             if isHovering {
-                // Plan 64-06 (Task 3 re-fix, UAT re-check) — a plain Button's tap gesture lost
-                // the gesture-arbitration race to the enclosing ScrollView's pan recognizer
-                // near the trailing edge, so the click "slipped" past the button (UAT test 7).
-                // .highPriorityGesture is SwiftUI's mechanism for making a gesture win over an
-                // ancestor's gesture regardless of position, which a plain Button/.onTapGesture
-                // does not guarantee inside a ScrollView.
+                // Plan 64-06 (Task 3, 3rd re-fix) — real fix per user's direct on-device
+                // guidance: the scrollbar stays at its normal trailing edge (contentMargins
+                // approach reverted, didn't hold up), and the button itself moves further
+                // left instead — 36pt clears the scroller's track by a comfortable margin
+                // (previous 14pt attempt still sat right at the edge of it). contentShape is
+                // applied before the padding so the tappable region stays tight to the icon,
+                // not stretched into the 36pt gap (which would just reintroduce the overlap).
                 Image(systemName: "trash")
                     .foregroundStyle(Color.red)
                     .contentShape(Rectangle())
                     .highPriorityGesture(
                         TapGesture().onEnded { onDelete(note.id) }
                     )
+                    .padding(.trailing, 36)
             }
         }
         .padding(.vertical, 8)
