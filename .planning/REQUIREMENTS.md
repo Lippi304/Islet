@@ -99,9 +99,9 @@ Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plu
 
 ### Quick Notes
 
-- [ ] **NOTES-01**: User can quickly capture a typed text note from the notch (menu-bar flyout, mirroring the existing Clipboard History submenu)
+- [x] **NOTES-01**: User can quickly capture a typed text note from the notch (menu-bar flyout, mirroring the existing Clipboard History submenu)
 - [x] **NOTES-02**: Each captured note is appended, with a timestamp, to one fixed .md file inside a user-chosen Obsidian vault folder — the file is created if missing, never overwritten/corrupted, and the append works even while Obsidian.app is closed
-- [ ] **NOTES-03**: A local, unencrypted recent-notes list is shown in the same flyout, mirroring Clipboard History's most-recent-first list (decision: plaintext is fine since notes are destined for a plaintext vault file anyway — no AES-GCM parity with Clipboard History needed)
+- [x] **NOTES-03**: A local, unencrypted recent-notes list is shown in the same flyout, mirroring Clipboard History's most-recent-first list (decision: plaintext is fine since notes are destined for a plaintext vault file anyway — no AES-GCM parity with Clipboard History needed)
 
 ### Quick Actions
 
@@ -225,9 +225,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MEET-01 | Phase 63 | Complete |
 | MEET-02 | Phase 63 | Complete |
 | MEET-03 | Phase 63 | Complete |
-| NOTES-01 | Phase 64 | Pending |
+| NOTES-01 | Phase 64 | Complete |
 | NOTES-02 | Phase 64 | Complete |
-| NOTES-03 | Phase 64 | Pending |
+| NOTES-03 | Phase 64 | Complete |
 | QACTION-01 | Phase 65 | Pending |
 | QACTION-02 | Phase 65 | Pending |
 | QACTION-03 | Phase 65 | Pending |

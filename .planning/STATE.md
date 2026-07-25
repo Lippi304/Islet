@@ -4,7 +4,7 @@ milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
 stopped_at: Completed 64-02-PLAN.md
-last_updated: "2026-07-25T13:18:34.302Z"
+last_updated: "2026-07-25T13:33:42.054Z"
 last_activity: 2026-07-25
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 64 (quick-notes-obsidian-export) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-07-25
 
@@ -182,6 +182,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 64 P01 | 10min | 3 tasks | 8 files |
 | Phase 64 P03 | 10min | 2 tasks | 2 files |
 | Phase 64 P02 | 15min | 2 tasks | 3 files |
+| Phase 64 P04 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -295,6 +296,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 64]: QuickNotesFileStore comment reworded from 'CryptoKit/Keychain' to 'encryption/Keychain layer' so the plan's own grep -c CryptoKit acceptance check passes literally (no behavior change)
 - [Phase ?]: [Phase 64-03] Vault path stored as plain UserDefaults String (D-09) — path only ever comes from NSOpenPanel's return value, no path-injection surface (T-64-07)
 - [Phase 64]: QuickNotesVaultWriter shipped exactly per the plan's locked reference implementation (bounded 4096-byte tail-read + seekToEndOfFile+write append), no deviations to the write logic itself
+- [Phase 64-04]: submit() only clears the TextEditor's text when controller.errorMessage == nil after onSubmit returns, not unconditionally as the plan's action text literally said — preserves D-12's locked data-loss guard (typed text stays present on a failed vault write) and matches the plan's own state-3 behavior spec
+- [Phase 64-04]: error banner copy is hardcoded in QuickNotesPopoverView rather than solely derived from controller.errorMessage's string content — keeps the exact UI-SPEC Copywriting Contract text owned by the view; errorMessage still gates visibility
 
 ### Roadmap Evolution
 
@@ -434,7 +437,7 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-25T13:18:34.289Z
+Last session: 2026-07-25T13:33:42.040Z
 Stopped at: Completed 64-02-PLAN.md
 Resume file: None
 
