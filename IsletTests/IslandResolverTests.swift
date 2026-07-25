@@ -973,8 +973,14 @@ final class IslandResolverTests: XCTestCase {
     func testMeetingOutranksLowerRankedPersistentTransients() {
         // D-05 rank 3: Meeting outranks Focus (rank 4), DownloadProgress (rank 6) and Timer
         // (rank 9). Each of those is itself isPersistent (never self-elapses), so preempt() is
-        // the ONLY way it yields — and the displaced head goes to the FRONT of pending, so
-        // advance() resumes it once the call ends.
+        // the ONLY way it yields.
+        // CR-02 (63-REVIEW.md) — the displaced head is now DROPPED, not parked at the front of
+        // `pending`. While the call stands nothing can refresh a parked entry (updateHead no-ops
+        // across categories, preempt/enqueue are dropped), so promoting it after the call meant
+        // promoting a STALE persistent transient that then stood forever: a frozen download
+        // spinner, or a timer showing 00:00 that TimerMonitor would never update again. This is
+        // the same "nothing surfaces late once the call ends" contract
+        // testNothingInterruptsAStandingMeetingHead asserts for the other direction.
         let runningTimer = ActiveTransient.timer(.running(deadline: Date(timeIntervalSince1970: 0),
                                                            context: fixedTimerContext))
         for standing in [ActiveTransient.focus(.on), .downloadProgress(.inProgress), runningTimer] {
@@ -982,9 +988,28 @@ final class IslandResolverTests: XCTestCase {
             _ = q.enqueue(standing)
             XCTAssertTrue(q.preempt(.meeting(fixedMeeting)))
             XCTAssertEqual(q.head, .meeting(fixedMeeting))
+            XCTAssertEqual(q.pendingCount, 0, "the displaced \(standing) must be dropped, not parked")
             XCTAssertTrue(q.advance())
-            XCTAssertEqual(q.head, standing)
+            XCTAssertNil(q.head, "nothing may surface late once the call ends")
         }
+    }
+
+    // CR-03 (63-REVIEW.md) — regression: a call must NEVER sit in `pending`, where enqueue's
+    // maxDepth bound (which drops the OLDEST entry) could evict it. MeetingMonitor emits the
+    // call-start edge exactly once, so an evicted `.meeting` was never re-emitted and the HUD
+    // stayed gone for the whole call — a silent total failure for a persistent indicator.
+    func testMeetingIsNeverQueuedBehindANonPersistentHead() {
+        var q = TransientQueue()
+        _ = q.enqueue(charging)   // a non-persistent splash stands — the old fall-through to enqueue()
+        XCTAssertTrue(q.preempt(.meeting(fixedMeeting)), "a call must take the head immediately")
+        XCTAssertEqual(q.head, .meeting(fixedMeeting))
+        XCTAssertEqual(q.pendingCount, 0)
+        // The exact old overflow trigger: two further transients used to push the queued call
+        // past maxDepth and evict it. Now they are simply dropped by the standing call.
+        XCTAssertFalse(q.enqueue(device))
+        XCTAssertFalse(q.enqueue(.capsLock(.on)))
+        XCTAssertEqual(q.head, .meeting(fixedMeeting))
+        XCTAssertEqual(q.pendingCount, 0)
     }
 
     // Phase 63-04 UAT round 1 — REPLACES testChargingAndDevicePreemptStandingMeetingHead.

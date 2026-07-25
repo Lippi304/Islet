@@ -419,6 +419,36 @@ struct TransientQueue {
     // dropsWhileCallStands(_:) for why nothing interrupts a live call.
     mutating func preempt(_ t: ActiveTransient) -> Bool {
         if dropsWhileCallStands(t) { return false }
+        // Phase 63 CR-02/CR-03 (63-REVIEW.md) — a call NEVER queues and NEVER stashes what it
+        // displaced: it takes the head immediately and clears `pending` outright. Two
+        // non-recoverable defects fall out of this one rule.
+        //
+        //   CR-02: the old code pushed a displaced PERSISTENT head into pending[0]. While the
+        //   call stands nothing can refresh a parked entry — updateHead(_:) no-ops across
+        //   categories and preempt/enqueue are dropped by dropsWhileCallStands(_:) — so the
+        //   entry promoted once the call ended was STALE. Both realistic victims are themselves
+        //   isPersistent and so never self-elapse: a `.downloadProgress(.inProgress)` whose
+        //   download finished mid-call stood as a frozen spinner forever, and a `.timer` whose
+        //   deadline passed mid-call stood at 00:00 forever (TimerMonitor had already fired, so
+        //   nothing would ever update it again). Dropping instead of parking is also the literal
+        //   reading of the UAT requirement this whole rule came from: "nothing surfaces late
+        //   once the call ends".
+        //
+        //   CR-03: when the standing head was NOT persistent (charging/device/OSD splash) the
+        //   old code fell through to enqueue(_:), which appends and then bounds the list by
+        //   dropping the OLDEST entry — which could be the just-queued `.meeting` itself
+        //   (head=splash, pending=[.meeting, .device, .capsLock] -> removeFirst evicts the
+        //   call). MeetingMonitor emits the call-start edge exactly once, so an evicted
+        //   `.meeting` was never re-emitted: the HUD was silently gone for the entire call. A
+        //   call that always takes the head can never sit in `pending` to be evicted at all.
+        //
+        // The cost is deliberate and small: an incoming call cuts short the tail of a ~3s
+        // splash. That is the same tradeoff the drop rule already makes in the other direction.
+        if case .meeting = t {
+            head = t
+            pending.removeAll()
+            return true
+        }
         guard let currentHead = head, currentHead.isPersistent else { return enqueue(t) }
         head = t
         pending.insert(currentHead, at: 0)
