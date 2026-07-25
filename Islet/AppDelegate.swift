@@ -47,6 +47,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // switches away to another app) via the supported NSApplication notification, rather than
     // fighting SwiftUI's internal Menu/NSMenu tracking machinery, which isn't ours to control.
     private var quickNotesPopoverDeactivationObserver: NSObjectProtocol?
+    // Plan 64-08 (bug fix, root-cause round 2) — didResignActiveNotification above turned out
+    // to only cover SOME app-switch paths (confirmed working for Cmd+Tab) but not a direct
+    // click on an already-visible background app's window, which doesn't reliably produce the
+    // same active-app resign transition. A global mouse-down monitor is the correct
+    // complement: per Apple's own documented contract, addGlobalMonitorForEvents only ever
+    // receives events landing in ANOTHER application's windows, so it structurally can never
+    // see a click inside this popover's own Menu (a same-app event) — it cannot regress the
+    // already-approved Menu-click behavior from earlier in this plan.
+    private var quickNotesOutsideClickMonitor: Any?
     // D-revised (2026-07-23, on-device UAT amendment): rows moved into a flyout
     // submenu, but Cmd+0-9 must still restore instantly on icon-click without
     // requiring the submenu to be hovered open first — NSMenuItem keyEquivalents
@@ -171,6 +180,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // broke once the file-picker Menu was added to the popover's hosted content.
         quickNotesPopoverDeactivationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let popover = self?.quickNotesPopover, popover.isShown else { return }
+            popover.close()
+        }
+        // Plan 64-08 (bug fix, root-cause round 2) — see quickNotesOutsideClickMonitor's
+        // declaration comment: covers the missing case (a direct click into an already-visible
+        // background app's window) that the observer above doesn't reliably catch.
+        quickNotesOutsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
         ) { [weak self] _ in
             guard let popover = self?.quickNotesPopover, popover.isShown else { return }
             popover.close()
