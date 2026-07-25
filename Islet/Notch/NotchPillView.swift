@@ -445,6 +445,26 @@ struct NotchPillView: View {
         wingsLabelWidth / 2 + secondaryBubbleGap + secondaryBubbleDiameter / 2
     }
 
+    // Phase 63 / MEET-02 (Plan 04, D-09) — meetingWings' two locked 63-UI-SPEC.md Spacing-Scale
+    // values, hoisted to statics for the exact same WR-03 reason as secondaryBubbleCenterOffset
+    // above: NotchWindowController.collapsedInteractiveZone() must widen the collapsed
+    // click-through hot-zone to the mute icon's REAL rendered screen position, and repeating the
+    // number there as a bare literal is the CR-01/CR-02 desync class this file already fixed once.
+    //   margin 20 — the "short, icon-adjacent" camera-clearance class (downloadWings/plain
+    //     countdownWings), NOT capsLockWings'/Pomodoro's 65.
+    //   rightContentWidth 84 — mm:ss text box 60 + 4pt gap + 20pt mute icon.
+    static let meetingWingMargin: CGFloat = 20
+    static let meetingWingRightContentWidth: CGFloat = 84
+
+    // How far past the raw notch cutout's trailing edge the mute icon's own far edge sits. Read by
+    // BOTH meetingWings(for:)'s render math and collapsedInteractiveZone()'s widen, so a future
+    // on-device retune of either constant above moves the rendered icon and the clickable region
+    // together. (The wing's 12pt trailingPad sits OUTSIDE this offset — it is padding after the
+    // icon, not part of the icon's footprint.)
+    static var meetingMuteIconTrailingEdgeOffset: CGFloat {
+        meetingWingMargin + meetingWingRightContentWidth
+    }
+
     // 39-07 gap closure ROUND 9 — RETRACTED. This constant (formerly `cameraSafeZoneLeadingInset =
     // 100`) was derived from an on-device DEBUG-only ruler and treated as "the real camera boundary
     // in local coordinates" — but it was measuring a CONFOUNDED quantity, not pure camera occlusion:
@@ -3564,22 +3584,28 @@ struct NotchPillView: View {
     // content is reported clipped or over-spaced.
     private func meetingWings(for activity: MeetingActivity) -> some View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 20
+        // Plan 63-04 Task 2 (D-09) — margin and the right-block width now come from the shared
+        // statics, so this render and collapsedInteractiveZone()'s click-through widen can never
+        // desync. The mute icon's width is DERIVED from the same total rather than restated as a
+        // third literal, making the 84pt right block exact by construction.
+        let margin = Self.meetingWingMargin
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
         let leadingPad: CGFloat = 16
         let iconWidth: CGFloat = 20
         // mm:ss text box 60 (timerWings' own non-Pomodoro countdown budget — same digit-count
-        // class) + 4 gap + 20 mute icon = 84.
+        // class) + 4 gap + 20 mute icon = meetingWingRightContentWidth (84).
         let elapsedWidth: CGFloat = 60
         let iconGap: CGFloat = 4
-        let muteIconWidth: CGFloat = 20
+        let muteIconWidth = Self.meetingWingRightContentWidth - elapsedWidth - iconGap
         let trailingPad: CGFloat = 12
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth
-            + elapsedWidth + iconGap + muteIconWidth + trailingPad
+            + Self.meetingWingRightContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
         assert(cameraBlockWidth > 0, "Meeting camera block width (\(cameraBlockWidth)) must be positive")
+        assert(muteIconWidth > 0,
+               "Meeting mute icon width (\(muteIconWidth)) must be positive — meetingWingRightContentWidth was retuned below elapsedWidth + iconGap")
         assert(rightWidth < 325 && leftWidth < 325,
                "Meeting wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
         return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, onTap: {}) {

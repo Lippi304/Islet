@@ -1748,6 +1748,21 @@ final class NotchWindowController {
                               width: bubbleFarEdge - hotZone.minX, height: hotZone.height)
             }
         }
+        // Phase 63 / MEET-02 (Plan 04, D-09) — the Meeting wing's mute icon is the ONE tappable
+        // sub-region in a collapsed wing, and it renders ~104pt past the raw notch-cutout-sized
+        // hotZone. syncClickThrough() only flips ignoresMouseEvents = false inside whatever rect
+        // THIS function returns, so without this widen the icon renders correctly but never
+        // receives a click at all — the same mechanism as Phase 42's secondary bubble and the
+        // Phase 40-03 badge-tap regression. Bounded to an exact constant derived 1:1 from
+        // NotchPillView's own render geometry (single source of truth, T-63-11) and strictly
+        // gated on a Meeting head, so clicks past the icon's real footprint still pass through.
+        // No `> hotZone.maxX` guard is needed (unlike the bubble branch above): both constants
+        // are positive, so the icon ALWAYS sits outside the raw hotZone.
+        if case .meeting = presentationState.presentation {
+            let muteFarEdge = hotZone.maxX + NotchPillView.meetingMuteIconTrailingEdgeOffset
+            return CGRect(x: hotZone.minX, y: hotZone.minY,
+                          width: muteFarEdge - hotZone.minX, height: hotZone.height)
+        }
         // Phase 53 / RESUME-01 (53-RESEARCH.md Pitfall 1) — the idle hover-preview renders at
         // NotchPillView.wingsSize.width (290pt), wider than the raw notch-cutout-sized hotZone.
         // Gated on the SAME eligibility precondition idleOrResumePreview itself checks (never
