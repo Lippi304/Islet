@@ -23,12 +23,39 @@ final class QuickNotesFileStoreTests: XCTestCase {
 
     func testSaveThenLoadRoundTripsNotes() throws {
         let noteA = QuickNote(id: UUID(), text: "erste Notiz", timestamp: Date())
-        let noteB = QuickNote(id: UUID(), text: "zweite Notiz\nmit zweiter Zeile", timestamp: Date())
+        let noteB = QuickNote(
+            id: UUID(), text: "zweite Notiz\nmit zweiter Zeile", timestamp: Date(),
+            fileName: "Work.md"
+        )
 
         try QuickNotesFileStore.save([noteA, noteB], root: fixturesDir)
         let loaded = QuickNotesFileStore.load(root: fixturesDir)
 
         XCTAssertEqual(loaded, [noteA, noteB])
+        XCTAssertEqual(loaded.last?.fileName, "Work.md")
+    }
+
+    // Phase 64-07 (gap closure) — a pre-existing index.json written before fileName
+    // existed must still decode, defaulting to ActivitySettings.quickNotesDefaultFileName,
+    // instead of being silently dropped by load()'s "any decode failure returns []" guard.
+    func testLoadDecodesOldJSONMissingFileNameAsDefault() throws {
+        let id = UUID()
+        let timestamp = Date()
+        let oldJSON = """
+        [
+            {
+                "id": "\(id.uuidString)",
+                "text": "alte Notiz",
+                "timestamp": \(timestamp.timeIntervalSinceReferenceDate)
+            }
+        ]
+        """
+        try Data(oldJSON.utf8).write(to: fixturesDir.appendingPathComponent("index.json"))
+
+        let loaded = QuickNotesFileStore.load(root: fixturesDir)
+
+        XCTAssertEqual(loaded.count, 1)
+        XCTAssertEqual(loaded.first?.fileName, ActivitySettings.quickNotesDefaultFileName)
     }
 
     func testLoadReturnsEmptyArrayOnMissingIndex() {

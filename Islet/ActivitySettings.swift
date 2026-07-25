@@ -42,6 +42,13 @@ enum ActivitySettings {
     // String UserDefaults value (Islet is not sandboxed, no security-scoped bookmark needed).
     // NOT added to defaultsToFalseKeys below — that set is for Bool activity toggles only.
     static let quickNotesVaultFolderPathKey = "quickNotes.vaultFolderPath"
+    // Phase 64-07 (gap closure, NOTES-02/NOTES-03) — single named source of truth for the
+    // filename already hardcoded today in AppDelegate.swift's handleQuickNoteSubmit, and the
+    // default QuickNote.fileName falls back to when decoding pre-existing notes that predate
+    // this field. Also a plain String UserDefaults key for the user's selected vault file
+    // (Plan 64-08's file picker); NOT added to defaultsToFalseKeys — that set is Bool-only.
+    static let quickNotesDefaultFileName = "Islet Notes.md"
+    static let quickNotesSelectedFileNameKey = "quickNotes.selectedFileName"
     static let quickActionsKey = "activity.quickActions"
     static let codingProgressKey = "activity.codingProgress"
     // Phase 60 / UPDATE-01: the 9th Phase-59-style key — gates THIS HUD's visibility, NOT
