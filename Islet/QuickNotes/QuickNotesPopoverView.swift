@@ -65,6 +65,10 @@ struct QuickNotesPopoverView: View {
                             QuickNoteRowView(note: note, onDelete: controller.onDelete)
                         }
                     }
+                    // Plan 64-06 (Task 2) — insets rows clear of the ScrollView's overlay
+                    // NSScroller hit-test strip, which otherwise covers the trailing delete
+                    // button once the list is scrolled and the indicator becomes visible.
+                    .padding(.trailing, 14)
                 }
             }
         }
