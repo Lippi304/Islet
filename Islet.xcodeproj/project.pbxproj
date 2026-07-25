@@ -68,6 +68,7 @@
 		5D3091F521E6A6CCBF2EF35A /* AudioOutputPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903726B931FE524FE3691AA2 /* AudioOutputPresentationTests.swift */; };
 		5E2A0DEF48DA471FE9426F9A /* CalendarViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D373EEE76BE733AFEDD28FD /* CalendarViewState.swift */; };
 		618300F20A7EE3C75C21156B /* QuickNotesFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43509455C9C45E4E5E03083 /* QuickNotesFormatter.swift */; };
+		5C0BADBB317A4A10801B24FD /* QuickNotesVaultWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FCC19A0DBE54D43887E1C93 /* QuickNotesVaultWriter.swift */; };
 		62BB9F9BCB658F55890D95BD /* LicenseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471EC72A07A658DCBFCDDB38 /* LicenseServiceTests.swift */; };
 		62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */; };
 		6760B75E8CA5DA979BB43486 /* KeychainLicenseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30839BA1A62ECDA5057B779C /* KeychainLicenseStore.swift */; };
@@ -301,6 +302,7 @@
 		AEB2B7145BD887A3866F1B1D /* DeviceActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivityTests.swift; sourceTree = "<group>"; };
 		AF3780F57677A92A7657FF41 /* DownloadCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadCoordinatorTests.swift; sourceTree = "<group>"; };
 		B43509455C9C45E4E5E03083 /* QuickNotesFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickNotesFormatter.swift; sourceTree = "<group>"; };
+		3FCC19A0DBE54D43887E1C93 /* QuickNotesVaultWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickNotesVaultWriter.swift; sourceTree = "<group>"; };
 		B94FF8FB96D00B8442591E7B /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
 		BAA15A9291849B26F80AE0A3 /* AudioOutputMonitorManualSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputMonitorManualSpike.swift; sourceTree = "<group>"; };
 		BB884D12561F8F8110F1DB63 /* FocusActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusActivity.swift; sourceTree = "<group>"; };
@@ -376,6 +378,7 @@
 				5398F7F2DA02EC8BC05BE0D1 /* QuickNotesFileStore.swift */,
 				B43509455C9C45E4E5E03083 /* QuickNotesFormatter.swift */,
 				606B7766701630D6228FBBEA /* QuickNotesStore.swift */,
+				3FCC19A0DBE54D43887E1C93 /* QuickNotesVaultWriter.swift */,
 			);
 			path = QuickNotes;
 			sourceTree = "<group>";
@@ -830,6 +833,7 @@
 				1A819E7EE8B838940D127CA7 /* QuickNotesFileStore.swift in Sources */,
 				618300F20A7EE3C75C21156B /* QuickNotesFormatter.swift in Sources */,
 				5BE8D8718C0CD42AD7703488 /* QuickNotesStore.swift in Sources */,
+				5C0BADBB317A4A10801B24FD /* QuickNotesVaultWriter.swift in Sources */,
 				0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */,
 				1E4766E3B83E3E06186D2154 /* ShelfCoordinator.swift in Sources */,
 				E80E54F355F9DD7F3895158E /* ShelfFileStore.swift in Sources */,
