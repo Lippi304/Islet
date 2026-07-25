@@ -54,6 +54,9 @@ struct SettingsView: View {
     // Caps Lock detection needs Accessibility access too, same permission bucket as OSD,
     // but gets its own standalone popover/copy (RESEARCH.md Pitfall 2 / UI-SPEC contract).
     @State private var showCapsLockPermissionExplanation = false
+    // Phase 64 / NOTES-02 (D-08/D-10) — drives the Quick Notes card's vault-folder-picker
+    // popover, mirroring the Focus/OSD/Caps-Lock explanation-popover wiring shape exactly.
+    @State private var showQuickNotesVaultPicker = false
     // Phase 40 / HUD-06 (D-11/D-12) — default true: the one deliberate exception among the
     // Activities toggles (besides osdSuppression's off-default), since this gates no system
     // permission, just a background network check.
@@ -69,6 +72,9 @@ struct SettingsView: View {
     @AppStorage(ActivitySettings.timerKey) private var timerEnabled = false
     @AppStorage(ActivitySettings.meetingHUDKey) private var meetingHUDEnabled = false
     @AppStorage(ActivitySettings.quickNotesKey) private var quickNotesEnabled = false
+    // Phase 64 / NOTES-02 (D-09) — plain String, empty means "not yet chosen"; @AppStorage
+    // IS the source of truth (Islet is not sandboxed, no security-scoped bookmark).
+    @AppStorage(ActivitySettings.quickNotesVaultFolderPathKey) private var quickNotesVaultFolderPath: String = ""
     @AppStorage(ActivitySettings.quickActionsKey) private var quickActionsEnabled = false
     @AppStorage(ActivitySettings.codingProgressKey) private var codingProgressEnabled = false
     // Quick task 260709-glz — default true mirrors the controller's default (matches
@@ -242,7 +248,8 @@ struct SettingsView: View {
             ActivityCardData(id: "quickNotes", title: "Quick Notes",
                               description: "Capture a quick text note straight into your Obsidian vault.",
                               icon: "note.text", iconColor: .secondary,
-                              isOn: $quickNotesEnabled, isNew: true, onOptionsTap: nil),
+                              isOn: $quickNotesEnabled, isNew: true,
+                              onOptionsTap: { showQuickNotesVaultPicker = true }),
             ActivityCardData(id: "quickActions", title: "Quick Actions",
                               description: "A row of one-tap system actions — mute mic, lock screen, and more.",
                               icon: "bolt.horizontal.fill", iconColor: .secondary,
@@ -416,6 +423,9 @@ struct SettingsView: View {
                     }
                 categorySection(title: "Medien", cards: mediaCards)
                 categorySection(title: "Produktivität", cards: productivityCards)
+                    .popover(isPresented: $showQuickNotesVaultPicker) {
+                        quickNotesVaultPickerView
+                    }
             }
             .padding(20)
         }

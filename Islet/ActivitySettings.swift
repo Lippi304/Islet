@@ -38,6 +38,10 @@ enum ActivitySettings {
     static let timerKey = "activity.timer"
     static let meetingHUDKey = "activity.meetingHUD"
     static let quickNotesKey = "activity.quickNotes"
+    // Phase 64 / NOTES-02 (D-08/D-09) — the user-chosen Obsidian vault folder path, a plain
+    // String UserDefaults value (Islet is not sandboxed, no security-scoped bookmark needed).
+    // NOT added to defaultsToFalseKeys below — that set is for Bool activity toggles only.
+    static let quickNotesVaultFolderPathKey = "quickNotes.vaultFolderPath"
     static let quickActionsKey = "activity.quickActions"
     static let codingProgressKey = "activity.codingProgress"
     // Phase 60 / UPDATE-01: the 9th Phase-59-style key — gates THIS HUD's visibility, NOT
