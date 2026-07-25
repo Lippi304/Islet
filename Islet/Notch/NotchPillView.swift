@@ -455,6 +455,12 @@ struct NotchPillView: View {
     //   rightContentWidth 84 — mm:ss text box 60 + 4pt gap + 20pt mute icon.
     static let meetingWingMargin: CGFloat = 20
     static let meetingWingRightContentWidth: CGFloat = 84
+    // WR-05 (63-REVIEW.md) — the mute icon's OWN width, hoisted for the same reason as the two
+    // above: the click-through zone must now cover just the icon's footprint rather than the
+    // whole 104pt band out to it, or a standing call HUD makes that entire strip of menu bar
+    // unclickable for the call's full (potentially hours-long) duration. meetingWings(for:)
+    // asserts this still equals its locally-derived width.
+    static let meetingMuteIconWidth: CGFloat = 20
 
     // How far past the raw notch cutout's trailing edge the mute icon's own far edge sits. Read by
     // BOTH meetingWings(for:)'s render math and collapsedInteractiveZone()'s widen, so a future
@@ -3598,6 +3604,11 @@ struct NotchPillView: View {
         let elapsedWidth: CGFloat = 60
         let iconGap: CGFloat = 4
         let muteIconWidth = Self.meetingWingRightContentWidth - elapsedWidth - iconGap
+        // WR-05 — collapsedInteractiveZone()'s narrowed click-through rect is sized from the
+        // static, so the two must agree by construction; this catches a retune of any of the
+        // three numbers above that would silently desync the clickable region from the glyph.
+        assert(muteIconWidth == Self.meetingMuteIconWidth,
+               "Meeting mute icon width (\(muteIconWidth)) must match NotchPillView.meetingMuteIconWidth (\(Self.meetingMuteIconWidth)) — the click-through zone is sized from the static")
         let trailingPad: CGFloat = 12
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth

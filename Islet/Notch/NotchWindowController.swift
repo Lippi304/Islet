@@ -1722,6 +1722,13 @@ final class NotchWindowController {
         // expanded, not just at the coarser expandedZone enter/exit edges.
         if interaction.isExpanded {
             syncClickThrough()
+        } else if case .meeting = presentationState.presentation {
+            // Phase 63 WR-05 — the SAME mechanism, collapsed: a standing call HUD's click-through
+            // region (pill + mute icon) is narrower than its hover zone, and that inner boundary
+            // is never crossed by the enter/exit edge detection above either. Without this tick,
+            // whichever side of the dead band the pointer happened to ENTER from would decide
+            // click-through for the whole traversal.
+            syncClickThrough()
         }
     }
 
@@ -1758,6 +1765,12 @@ final class NotchWindowController {
         // gated on a Meeting head, so clicks past the icon's real footprint still pass through.
         // No `> hotZone.maxX` guard is needed (unlike the bubble branch above): both constants
         // are positive, so the icon ALWAYS sits outside the raw hotZone.
+        // WR-05 (63-REVIEW.md) — this stays ONE CONTIGUOUS rect on purpose. It is the HOVER
+        // zone, and the enter/exit edge detection in handlePointer() would flap if it had a hole
+        // in the middle. Interactivity is narrowed separately, in syncClickThrough(), to
+        // meetingClickThroughZones() — otherwise this ~112pt band would swallow every click for
+        // the entire duration of a call (the wing background's own onTap is an explicit no-op),
+        // and menu-bar extras commonly sit immediately right of the notch.
         if case .meeting = presentationState.presentation {
             let muteFarEdge = hotZone.maxX + NotchPillView.meetingMuteIconTrailingEdgeOffset
             return CGRect(x: hotZone.minX, y: hotZone.minY,
@@ -1774,6 +1787,25 @@ final class NotchWindowController {
             return hotZone.insetBy(dx: -widen, dy: 0)
         }
         return hotZone
+    }
+
+    // WR-05 (63-REVIEW.md) — the ONLY two rects a standing Meeting head may swallow clicks in:
+    // the pill itself, and the mute icon's real footprint ~78-104pt past the pill's trailing
+    // edge. Everything between them stays click-through so the menu-bar extras underneath keep
+    // working for the whole call.
+    // Deliberately an ARRAY, not one CGRect: the two are disjoint, and CGRect.union of disjoint
+    // rects is their BOUNDING BOX — i.e. exactly the over-wide band this narrowing exists to
+    // avoid. Empty when the panel has not been shown yet (no hotZone), which reads as
+    // "not interactive" at the call site.
+    private func meetingClickThroughZones() -> [CGRect] {
+        guard let hotZone else { return [] }
+        let iconFarEdge = hotZone.maxX + NotchPillView.meetingMuteIconTrailingEdgeOffset
+        // The same hotZonePadding slack the pill's own zone carries, so the 20pt glyph is
+        // over-covered rather than under-covered — the direction a click-target error must err in.
+        let iconNearEdge = iconFarEdge - NotchPillView.meetingMuteIconWidth - hotZonePadding
+        return [hotZone,
+                CGRect(x: iconNearEdge, y: hotZone.minY,
+                       width: iconFarEdge - iconNearEdge, height: hotZone.height)]
     }
 
     // CR-01 — the actual VISIBLE-content rect, narrower than expandedZone (which is the
@@ -1943,6 +1975,18 @@ final class NotchWindowController {
             // visibleContentZone() (the actual visible blob rect) may grant interactivity while
             // expanded.
             interactive = visibleContentZone()?.contains(lastPointerLocation) ?? false
+        } else if case .meeting = presentationState.presentation {
+            // WR-05 (63-REVIEW.md) — collapsedInteractiveZone() widens the Meeting hover zone by
+            // ~104pt so the mute icon can be reached at all, but granting INTERACTIVITY across
+            // that whole band made every click in it disappear (the wing background's onTap is an
+            // explicit no-op) for the entire duration of a call — potentially hours of dead menu
+            // bar. Meeting is the first isPersistent presentation to widen the zone; every prior
+            // widen was bounded to a ~3s transient, which is why this never bit before.
+            // Narrowed to the pill + the mute icon's own footprint. handlePointer() re-runs this
+            // on every raw pointer tick while a call stands, because this inner boundary is never
+            // crossed by the coarse hot-zone enter/exit edges.
+            interactive = pointerInZone
+                && meetingClickThroughZones().contains { $0.contains(lastPointerLocation) }
         } else {
             interactive = pointerInZone
         }
