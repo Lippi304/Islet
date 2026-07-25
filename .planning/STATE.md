@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 63 UI-SPEC approved
-last_updated: "2026-07-24T23:41:03.789Z"
-last_activity: 2026-07-24
+stopped_at: Completed 63-02-PLAN.md (spike GO)
+last_updated: "2026-07-25T00:10:17.898Z"
+last_activity: 2026-07-25
 progress:
   total_phases: 19
   completed_phases: 15
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 63 (meeting-hud) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
-Last activity: 2026-07-24
+Last activity: 2026-07-25
 
 ### Phase 48 status note
 
@@ -176,6 +176,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases — Phase 59 
 | Phase 62 P03 | 35min | 3 tasks | 1 files |
 | Phase 62 P04 | multi-session (checkpoint, 6 UAT rounds) | 3 tasks | 9 files |
 | Phase 63 P01 | 12min | 2 tasks | 5 files |
+| Phase 63 P02 | 25min | 2 tasks tasks | 3 files files |
 
 ## Accumulated Context
 
@@ -276,6 +277,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 62-04]: Timer moved out of Home into its own dedicated 5th switcher tab (SelectedView.timer / IslandPresentation.timerSetup) mid-UAT round 1 — The inline Home-overlay picker overflowed for Pomodoro and conflated Now-Playing/Timer-setup concerns; Timer is a fixed icon appended after the 4 configurable switcher slots, gated on timerEnabled
 - [Phase 62-04]: Pomodoro collapsed-pill dot/label camera-cutout clipping (rounds 3/4/6) root-caused to timerWings' margin constant, not content-box width — margin=20 was copied from icon-only downloadWings; capsLockWings had already solved the identical text-adjacent-to-camera problem with an on-device-proven margin=65, reused instead of guessing a new number, verified against real NSFont metrics
 - [Phase 63]: [Phase 63-01]: No MeetingActivityState holder created (deliberate deviation from 63-RESEARCH.md's file list) — TransientQueue.head (ActiveTransient.meeting) already IS the live payload, mirroring CapsLockActivity/UpdateActivity's simpler shape; defaultInputDeviceID() is internal not private so Plan 63-02's MeetingMonitor reuses it; MicMuteController adds an AudioObjectHasProperty guard before every Get/Set that VolumeReader.swift itself lacks (T-63-01), plus a Rule-2 kAudioObjectUnknown (deviceID == 0) rejection the verbatim copy would have missed
+- [Phase ?]: [Phase 63-02]: On-device spike verdict = GO. Detection heuristic (target app running AND kAudioDevicePropertyDeviceIsRunningSomewhere on the default input device) validated on real hardware across 3 runs: no Microphone TCC prompt from MicMuteController's read/toggle (Pitfall 2 / A1 hard gate PASSED - no NSMicrophoneUsageDescription or permission flow needed), detection fires within ~5s of the mic going live, clears on call end, exactly 4 perfectly-alternating transitions with zero duplicate fires while a state held (the dedup contract Plan 63-04's preempt/removeAll depends on), stays silent when an unrelated mic app records with no target app running, and never fires for a browser-tab Google Meet (MEET-03 negative confirmed). D-07's accepted false positive (mic test without joining a call) reproduced as expected. SUBSTITUTION: the validation machine had neither Zoom nor Teams installed, so the spike targeted Discord (com.hnc.Discord), a native voice-call app with the identical signal shape - production targetBundleIDs unchanged, spike file carries a SPIKE SUBSTITUTION comment. CARRIED-FORWARD RISK: the literal production bundle IDs us.zoom.xos / com.microsoft.teams2 / com.microsoft.teams are UNVERIFIED against real installs; if 63-03's UAT shows no detection on a real Zoom/Teams call, check the bundle ID first before re-debugging the heuristic.
+- [Phase ?]: [Phase 63-02]: Rule-2 deviation - MeetingMonitor adds a kAudioHardwarePropertyDefaultInputDevice listener plus retargetInputListener()/stored listenedDeviceID beyond the plan's single-listener design. Without it a mid-session default-input change (AirPods connecting) strands the running-somewhere listener on the old device, and stop() would remove it from whatever is default at teardown - leaking the real registration across repeated Settings toggle on/off (T-63-04). Also: kAudioDevicePropertyScopeInput was probe-verified on-device before writing (Apple documents this property on the Global scope; Input, Global and Output all answer hasProperty=true here), so the plan's mandated Input scope is correct as written with no fallback branch.
 
 ### Roadmap Evolution
 
@@ -414,8 +417,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-24T23:40:58.163Z
-Stopped at: Phase 63 UI-SPEC approved
+Last session: 2026-07-25T00:10:17.892Z
+Stopped at: Completed 63-02-PLAN.md (spike GO)
 Resume file: None
 
 ## Operator Next Steps

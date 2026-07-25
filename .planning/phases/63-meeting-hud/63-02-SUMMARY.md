@@ -192,3 +192,7 @@ of `MeetingMonitor`'s once-per-transition `onChange`. MEET-01/MEET-03 stay **Pen
 REQUIREMENTS.md until the phase's own on-device UAT confirms the shipped HUD end-to-end — matching
 this project's Phase 45 / 52-03 / 53-01 precedent of not closing requirements on an infrastructure
 plan.
+
+## Self-Check: PASSED
+
+All 3 claimed files exist on disk; all 3 claimed commit hashes exist in git history.

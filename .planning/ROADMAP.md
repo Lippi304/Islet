@@ -1120,7 +1120,7 @@ Plans:
 
 **Wave 2** *(blocked on 63-01)*
 
-- [ ] 63-02-PLAN.md — MeetingMonitor (detection risk isolated, D-03) + on-device spike checkpoint (go/no-go)
+- [x] 63-02-PLAN.md — MeetingMonitor (detection risk isolated, D-03) + on-device spike checkpoint (go/no-go)
 
 **Wave 3** *(blocked on 63-01, 63-02 go/no-go)*
 
