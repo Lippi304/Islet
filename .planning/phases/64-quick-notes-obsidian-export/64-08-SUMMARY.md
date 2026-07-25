@@ -126,3 +126,7 @@ The plan's `checkpoint:human-verify` task (gate="blocking") has NOT yet been run
 ---
 *Phase: 64-quick-notes-obsidian-export*
 *Completed: 2026-07-25 (automated tasks only; checkpoint pending)*
+
+## Self-Check: PASSED
+
+All modified files exist (`Islet/QuickNotes/QuickNotesPopoverView.swift`, `Islet/AppDelegate.swift`, `Islet/QuickNotes/QuickNotesStore.swift`, this SUMMARY.md); all 4 referenced commit hashes (`36084bf`, `c0891d9`, `44c3ad3`, `bfabf79`) confirmed present in git history.
