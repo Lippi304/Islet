@@ -420,6 +420,7 @@ struct TransientQueue {
         case (.osd, .osd): head = t   // Phase 39 D-09/D-12: same-activity scrub refresh AND Volume<->Brightness instant replace
         case (.downloadProgress, .downloadProgress): head = t   // Phase 61 D-02/D-13: transitions a never-self-elapsing .inProgress head directly to .done(filename:)
         case (.timer, .timer): head = t   // Phase 62 TIMER-01..04: in-place refresh (e.g. running -> paused) without re-arming the dismiss timer
+        case (.meeting, .meeting): head = t   // Phase 63 MEET-02 (Plan 04): mute-tap payload refresh (isMuted flip) on a standing call head
         default: break   // different category — ignore (use enqueue)
         }
     }

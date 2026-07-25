@@ -233,6 +233,13 @@ final class NotchWindowController {
     // property so the nonisolated deinit can call its stop().
     private var downloadMonitor: DownloadMonitor?
 
+    // Phase 63 / MEET-01/MEET-02 (Plan 04) — the LIVE meeting detector (Zoom/Teams running AND
+    // the default input device active). Constructed + started in start() ONLY when the Meeting
+    // HUD toggle is on (SETTINGS-05 default OFF), mirrors downloadMonitor's own toggle-gated
+    // idempotent-start discipline. Held as a plain stored property so the nonisolated deinit can
+    // call its stop().
+    private var meetingMonitor: MeetingMonitor?
+
     // Phase 60 / UPDATE-01 (Plan 02) — internal (not private): AppDelegate sets this
     // cross-file right after constructing the controller, mirroring notchController's own
     // cross-file access-level precedent. The Update wing's tap reaches Sparkle's real
@@ -666,6 +673,11 @@ final class NotchWindowController {
         // requires no special TCC permission.
         if activityEnabled(ActivitySettings.downloadProgressKey) { startDownloadMonitor() }
 
+        // Phase 63 / MEET-01/MEET-02 (Plan 04): toggle-gated like Download Progress (default OFF
+        // per SETTINGS-05), no separate permission-authorized gate — 63-02's on-device spike
+        // confirmed the NSWorkspace + CoreAudio HAL reads need no Microphone TCC prompt.
+        if activityEnabled(ActivitySettings.meetingHUDKey) { startMeetingMonitor() }
+
         // Phase 41 / HUD-08 (D-03): default-ON toggle. Bug fix (found via a clean-TCC-state
         // relaunch test): startCalendarCountdownMonitor() -> CalendarCountdownMonitor ->
         // CalendarService.fetchUpcomingRaw(_:) DOES call requestFullAccessToEvents() — the
@@ -846,6 +858,17 @@ final class NotchWindowController {
         guard downloadMonitor == nil else { return }
         let monitor = DownloadMonitor { [weak self] reading in self?.downloadCoordinator.handle(reading) }
         downloadMonitor = monitor
+        monitor.start()
+    }
+
+    // Phase 63 / MEET-01/MEET-02 (Plan 04) — idempotent start, mirrors startDownloadMonitor()'s
+    // exact shape. No extra isAuthorized-style gate: MeetingMonitor reads NSWorkspace and the
+    // CoreAudio HAL device-state property only, which 63-02's on-device spike confirmed needs no
+    // Microphone TCC permission.
+    private func startMeetingMonitor() {
+        guard meetingMonitor == nil else { return }
+        let monitor = MeetingMonitor { [weak self] reading in self?.handleMeetingActivityChange(reading) }
+        meetingMonitor = monitor
         monitor.start()
     }
 
@@ -2393,6 +2416,57 @@ final class NotchWindowController {
         onUpdateInstallRequested?()
     }
 
+    // MARK: - Phase 63 / MEET-01/MEET-02 (Plan 04) — Meeting HUD handlers
+
+    // MeetingMonitor's once-per-transition onChange lands here (already on main; the monitor's
+    // callback hopped). Unlike handleCapsLockChange's `if case .focus` conditional, this preempts
+    // UNCONDITIONALLY: per D-05 Meeting outranks every persistent case except Charging/Device, and
+    // preempt()'s own generalized `currentHead.isPersistent` guard (Phase 62) already handles
+    // displacing WHICHEVER persistent case currently holds the head. Safe to call directly because
+    // MeetingMonitor fires exactly once per real call-start/call-end (its nil<->non-nil dedup,
+    // T-63-09) — never re-preempting an already-standing .meeting head.
+    //
+    // D-07/D-08: immediate show AND immediate hide, no debounce in either direction.
+    private func handleMeetingActivityChange(_ reading: MeetingReading?) {
+        let changed: Bool
+        if let reading {
+            // Read-after-write discipline (63-UI-SPEC.md): the initial muted state comes from the
+            // real system, never an assumed `false`, so a mic already muted by a hardware key or
+            // another app renders correctly the moment the HUD appears.
+            let activity = MeetingActivity(callStart: reading.detectedAt, isMuted: readSystemInputMuted())
+            changed = transientQueue.preempt(.meeting(activity))
+        } else {
+            // `changed` is the head-transition test flushTransients(_:) itself uses (`head !=
+            // oldHead`), not "did removeAll touch anything": dropping a QUEUED .meeting that was
+            // never on screen changes nothing the user can see, so it must not re-run the spring
+            // or re-arm the dismiss window of the standing head.
+            let oldHead = transientQueue.head
+            transientQueue.removeAll(where: { if case .meeting = $0 { return true }; return false })
+            changed = transientQueue.head != oldHead
+        }
+        if changed {
+            presentTransientChange()
+        }
+    }
+
+    // The mute icon's nested tap (NotchPillView.onMuteTap, D-09) lands here. Writes the real
+    // system-wide input mute, then refreshes the standing head IN PLACE with the value the write
+    // actually produced — never an optimistic local flip, so a failed CoreAudio write (nil) leaves
+    // the icon in its pre-tap state rather than lying about it (63-UI-SPEC.md's error-state rule).
+    // Deliberately NOT presentTransientChange(): the displayed CASE is unchanged, only its
+    // payload, so re-arming the dismiss window would be wrong. But renderPresentation() is still
+    // mandatory — presentationState.presentation is the only value the view observes, and
+    // updateHead(_:) alone never touches it (the exact Phase 62-04 "Bug 2" failure class). Mirrors
+    // refreshTimerHeadInPlace()'s withAnimation + renderPresentation() pair.
+    private func handleMuteTap() {
+        guard let newMuted = toggleSystemInputMute() else { return }
+        guard case .meeting(let m) = transientQueue.head else { return }
+        transientQueue.updateHead(.meeting(MeetingActivity(callStart: m.callStart, isMuted: newMuted)))
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            renderPresentation()
+        }
+    }
+
     // Phase 41 / HUD-08 — the live Calendar Countdown change lands here (already on main; the
     // monitor's callback hopped). This is the ENTIRE function body: it never touches
     // transientQueue.enqueue/preempt, flushTransients, or scheduleActivityDismiss (Pitfall 5 —
@@ -2598,6 +2672,11 @@ final class NotchWindowController {
                       // onUpdateTap, onSecondaryTap, ...) — Swift call-site argument order must
                       // match the initializer's parameter order.
                       onUpdateTap: { [weak self] in self?.triggerUpdateInstall() },
+                      // Phase 63 / MEET-02 (Plan 04) — the Meeting wing's nested mute-icon tap
+                      // (D-09). Positioned between onUpdateTap and onSecondaryTap to match
+                      // NotchPillView's declared property order (Swift call-site argument order
+                      // must match the initializer's parameter order).
+                      onMuteTap: { [weak self] in self?.handleMuteTap() },
                       onSecondaryTap: { [weak self] in self?.handleSecondaryTap() },
                       onResumeTap: { [weak self] in self?.handleResumeTap() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
@@ -2695,6 +2774,16 @@ final class NotchWindowController {
             flushTransients(.downloadProgress)
         }
 
+        // Phase 63 / MEET-01/MEET-02 (Plan 04) — Meeting HUD. Mirrors the Caps Lock toggle-on/off
+        // block exactly (no extra coordinator/state to reset — the MeetingActivity payload lives
+        // entirely in transientQueue.head, per 63-01's "no MeetingActivityState holder" decision).
+        if activityEnabled(ActivitySettings.meetingHUDKey) {
+            startMeetingMonitor()
+        } else if meetingMonitor != nil {
+            meetingMonitor?.stop(); meetingMonitor = nil
+            flushTransients(.meeting)
+        }
+
         // Phase 60 / UPDATE-01 (code review WR-01) — Update HUD has no monitor to start/stop, but
         // a standing/queued transient must still be flushed on live toggle-off, or a queued copy
         // can sit behind other transients and show up after the user already turned it off.
@@ -2777,14 +2866,15 @@ final class NotchWindowController {
     // Device splash already stands). `oldHead` is captured BEFORE removeAll(where:) runs; the
     // dismiss-timer cancel/re-arm block below is now gated on `transientQueue.head != oldHead`, so
     // an untouched standing splash's already-running ~3s countdown is left exactly as it was.
-    private enum TransientCategory { case charging, device, focus, osd, capsLock, updateAvailable, downloadProgress, timer }
+    private enum TransientCategory { case charging, device, focus, osd, capsLock, updateAvailable, downloadProgress, timer, meeting }
     private func flushTransients(_ category: TransientCategory) {
         let oldHead = transientQueue.head
         let matches: (ActiveTransient) -> Bool = { t in
             switch (t, category) {
             case (.charging, .charging), (.device, .device), (.focus, .focus), (.osd, .osd),
                  (.capsLock, .capsLock), (.updateAvailable, .updateAvailable),
-                 (.downloadProgress, .downloadProgress), (.timer, .timer): return true
+                 (.downloadProgress, .downloadProgress), (.timer, .timer),
+                 (.meeting, .meeting): return true
             default: return false
             }
         }
@@ -2814,6 +2904,10 @@ final class NotchWindowController {
         // Timer's own session state lives in timerActivityState, which handleTimerStop() clears
         // directly, not via this generic flush path (mirrors capsLock/updateAvailable).
         case .timer: break
+        // Phase 63 / MEET-01/MEET-02 (Plan 04) — no separate @Published model to clear; the
+        // MeetingActivity payload lives entirely in transientQueue.head (63-01's deliberate
+        // "no MeetingActivityState holder" decision), mirroring .capsLock/.updateAvailable.
+        case .meeting: break
         }
         guard transientQueue.head != oldHead else { return }   // WR-2 — untouched head, no timer reset
         dismissWorkItem?.cancel()
@@ -3181,6 +3275,11 @@ final class NotchWindowController {
         // Phase 61 / DL-01/DL-02: tear down the FSEvents stream — mirrors
         // capsLockMonitor?.stop()'s owner-driven teardown discipline exactly.
         downloadMonitor?.stop()
+
+        // Phase 63 / MEET-01/MEET-02: tear down the CoreAudio listeners, poll timer and both
+        // NSWorkspace observers (T-63-04) — mirrors downloadMonitor?.stop()'s owner-driven
+        // teardown discipline exactly (MeetingMonitor's empty deinit expects this).
+        meetingMonitor?.stop()
 
         // Phase 62 / TIMER-02/TIMER-04: tear down the deadline scheduler — mirrors
         // downloadMonitor?.stop()'s owner-driven teardown discipline exactly (TimerMonitor's
