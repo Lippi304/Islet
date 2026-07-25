@@ -188,6 +188,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         quickNotesController.notes = Array(quickNotesStore.items.reversed())
         quickNotesController.onSubmit = { [weak self] text in self?.handleQuickNoteSubmit(text) }
         quickNotesController.onDelete = { [weak self] id in self?.handleQuickNoteDelete(id) }
+        // Plan 64-08 (Task 2) — persists the picker's selection immediately so it survives
+        // relaunch (self-healed back to the default on the next open if the file's gone).
+        quickNotesController.onSelectFile = { [weak self] fileName in
+            UserDefaults.standard.set(fileName, forKey: ActivitySettings.quickNotesSelectedFileNameKey)
+            self?.quickNotesController.selectedFileName = fileName
+        }
 
         // Phase 40 / HUD-06 — construct Sparkle after the notch controller.
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
@@ -278,6 +284,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let path = UserDefaults.standard.string(forKey: ActivitySettings.quickNotesVaultFolderPathKey) ?? ""
         quickNotesController.vaultConfigured = QuickNotesVaultWriter.isValidVaultFolder(atPath: path)
         quickNotesController.errorMessage = nil
+
+        // Plan 64-08 (Task 2) — list the real .md files in the vault folder every open (D-11
+        // discipline, never cached), always offering the fixed default name even when it
+        // doesn't exist as a real file yet in a brand-new vault folder.
+        if quickNotesController.vaultConfigured {
+            let files = QuickNotesVaultWriter.listMarkdownFiles(inFolder: path)
+            quickNotesController.availableFiles = Array(Set(files + [ActivitySettings.quickNotesDefaultFileName])).sorted()
+            let stored = UserDefaults.standard.string(forKey: ActivitySettings.quickNotesSelectedFileNameKey) ?? ActivitySettings.quickNotesDefaultFileName
+            quickNotesController.selectedFileName = quickNotesController.availableFiles.contains(stored) ? stored : ActivitySettings.quickNotesDefaultFileName
+        } else {
+            quickNotesController.availableFiles = []
+        }
+
         quickNotesPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         // Plan 64-06 (Task 1) — fixes UAT tests 2 and 8: no focus request of any kind is
         // issued when the vault isn't configured, so the disabled empty state is never
@@ -293,10 +312,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // inside the vault write's success path, never before it and never in the catch.
     private func handleQuickNoteSubmit(_ text: String) {
         let path = UserDefaults.standard.string(forKey: ActivitySettings.quickNotesVaultFolderPathKey) ?? ""
-        let fileURL = URL(fileURLWithPath: path).appendingPathComponent("Islet Notes.md")
+        // Plan 64-08 (Task 2) — targets whichever file the popover's picker currently has
+        // selected, not a fixed hardcoded filename literal.
+        let fileURL = URL(fileURLWithPath: path).appendingPathComponent(quickNotesController.selectedFileName)
         do {
             try QuickNotesVaultWriter.append(note: text, to: fileURL, at: Date())
-            let note = QuickNote(id: UUID(), text: text, timestamp: Date())
+            let note = QuickNote(id: UUID(), text: text, timestamp: Date(), fileName: quickNotesController.selectedFileName)
             quickNotesStore.append(note)
             quickNotesController.notes = Array(quickNotesStore.items.reversed())
             quickNotesController.errorMessage = nil
@@ -306,12 +327,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // Phase 64 / NOTES-03 — D-17: local list only, never touches QuickNotesVaultWriter or the
-    // vault file.
+    // Phase 64-08 (Task 2) — D-17 REVISED: delete now also removes the matching line from
+    // the vault file the note was actually written to (note.fileName, never the currently
+    // selected file), only mutating the local list on a genuine success (T-64-15).
     private func handleQuickNoteDelete(_ id: UUID) {
-        quickNotesStore.remove(id: id)
-        quickNotesController.notes = Array(quickNotesStore.items.reversed())
-        try? QuickNotesFileStore.save(quickNotesStore.items, root: QuickNotesFileStore.storageRoot())
+        guard let note = quickNotesStore.items.first(where: { $0.id == id }) else { return }
+        let path = UserDefaults.standard.string(forKey: ActivitySettings.quickNotesVaultFolderPathKey) ?? ""
+        let fileURL = URL(fileURLWithPath: path).appendingPathComponent(note.fileName)
+
+        // T-64-17: occurrence rank from quickNotesStore.items' append-order position (matches
+        // the file's own line order) disambiguates byte-identical duplicate entries.
+        let targetBlock = QuickNotesFormatter.formatEntry(text: note.text, at: note.timestamp)
+        let occurrence = quickNotesStore.items.prefix(while: { $0.id != note.id })
+            .filter { $0.fileName == note.fileName && QuickNotesFormatter.formatEntry(text: $0.text, at: $0.timestamp) == targetBlock }
+            .count
+
+        do {
+            _ = try QuickNotesVaultWriter.removeEntry(matching: note, occurrence: occurrence, from: fileURL)
+            quickNotesStore.remove(id: id)
+            quickNotesController.notes = Array(quickNotesStore.items.reversed())
+            quickNotesController.errorMessage = nil
+            try? QuickNotesFileStore.save(quickNotesStore.items, root: QuickNotesFileStore.storageRoot())
+        } catch {
+            quickNotesController.errorMessage = "Couldn't delete from vault — check your vault folder in Settings."
+        }
     }
 
     // Keep the agent alive when the Settings window is hidden or closed — only
