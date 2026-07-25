@@ -45,7 +45,11 @@ final class MeetingMonitor {
     // controller handler depends on this — it calls transientQueue.preempt(_:)/removeAll(where:)
     // straight from onChange, which is only duplicate-safe if we fire exactly once per real
     // call-start/call-end.
-    private var lastReading: MeetingReading?
+    // WR-04 (63-REVIEW.md) — nonisolated(unsafe), like the five stored properties above, so
+    // stop() can clear it: leaving it non-nil made stop()/start() on the SAME instance silently
+    // swallow an already-active call (evaluate() would find detected == (lastReading != nil) and
+    // return), contradicting the "idempotent and symmetric" contract in this file's header.
+    private nonisolated(unsafe) var lastReading: MeetingReading?
 
     // WR-02 (63-REVIEW.md) — these two SURVIVE the nil gap `lastReading` cannot. Without them a
     // momentary drop of half (b) restarted the call at a brand-new `detectedAt`, i.e. the HUD
@@ -56,8 +60,10 @@ final class MeetingMonitor {
     // isInputRunning() reads false for a single evaluation.
     // D-08's "no debounce" is about SHOW latency; this only affects what a re-show is labelled
     // with, so the immediate-show and immediate-hide guarantees both still hold.
-    private var lastCallStart: Date?
-    private var lastEndedAt: Date?
+    // Same nonisolated(unsafe) treatment as lastReading, for the same reason (WR-04: stop() must
+    // reset the whole detection state, not just part of it).
+    private nonisolated(unsafe) var lastCallStart: Date?
+    private nonisolated(unsafe) var lastEndedAt: Date?
     private static let callResumeGrace: TimeInterval = 10
 
     private let targetBundleIDs: Set<String>
@@ -158,6 +164,16 @@ final class MeetingMonitor {
         listenedDeviceID = nil
         listenerBlock = nil
         running = false
+        // WR-04 (63-REVIEW.md) — the detection state is part of the teardown too. Without this,
+        // a start() on the SAME instance found `lastReading` still non-nil for an already-active
+        // call, took evaluate()'s "not an actual transition" early return, and never re-emitted —
+        // the HUD would never come back. Today's owner discards the instance instead, so this was
+        // latent, but it directly contradicted this class's own "idempotent and symmetric"
+        // contract. The WR-02 gap state goes with it: a deliberate Settings toggle-off is not the
+        // brief device-swap gap that grace window exists to bridge.
+        lastReading = nil
+        lastCallStart = nil
+        lastEndedAt = nil
     }
 
     deinit {
