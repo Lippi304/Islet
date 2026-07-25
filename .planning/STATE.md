@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Completed 64-07-PLAN.md
-last_updated: "2026-07-25T15:22:28.884Z"
-last_activity: 2026-07-25 -- Completed 64-07-PLAN.md
+stopped_at: Completed 64-06-PLAN.md
+last_updated: "2026-07-25T16:03:17.587Z"
+last_activity: 2026-07-25
 progress:
   total_phases: 19
   completed_phases: 15
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 64 (quick-notes-obsidian-export) — EXECUTING
-Plan: 7 of 8 (64-01..64-07 complete; 64-08 remaining)
-Status: Ready to execute 64-08
-Last activity: 2026-07-25 -- Completed 64-07-PLAN.md
+Plan: 8 of 8 (64-01..64-07 complete; 64-08 remaining)
+Status: Ready to execute
+Last activity: 2026-07-25
 
 ### Phase 48 status note
 
@@ -184,6 +184,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 64 P02 | 15min | 2 tasks | 3 files |
 | Phase 64 P04 | 12min | 2 tasks | 3 files |
 | Phase 64 P07 | 12min | 2 tasks | 5 files |
+| Phase 64 P06 | multi-session (checkpoint, 4 UAT rounds) | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -301,6 +302,9 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 64-04]: error banner copy is hardcoded in QuickNotesPopoverView rather than solely derived from controller.errorMessage's string content — keeps the exact UI-SPEC Copywriting Contract text owned by the view; errorMessage still gates visibility
 - [Phase 64]: [Phase 64-07] removeEntry is the ONE deliberate, scoped exception to QuickNotesVaultWriter's D-07 append-only rule -- documented directly above the function, runs only on an explicit rare user delete via temp-file+atomic-rename, never touches the append path
 - [Phase 64]: [Phase 64-07] removeEntry's occurrence parameter (0-based) disambiguates byte-identical duplicate vault entries by rank; Plan 64-08 computes the correct occurrence from its own ordered note list before calling removeEntry
+- [Phase 64]: [Phase 64-06] Delete-button hit-target regression required 3 failed hypotheses before root cause: AppKit's native NSScroller overlay physically consumes clicks in its overlap region — no SwiftUI gesture priority or scroll-indicator margin API could override it. Final fix (user-directed): widen popover 280->320pt, revert scrollbar to true trailing edge, move delete icon 36pt further left with contentShape scoped before the padding.
+- [Phase 64]: [Phase 64-06] Menu-order fix needed the static menu's build order changed (New Note moved to item 0), not just the dynamic Clipboard History insertion index -- the selector-based relative insertion alone was insufficient since New Note was still built third.
+- [Phase 64]: [Phase 64-06] Vault-file reconciliation (re-read .md file on popover open, prune notes deleted directly in vault) requested mid-plan as additional scope; deferred to Plan 64-08 rather than built in 64-06, since it is new functionality (not a regression against 64-06's locked spec) and 64-08 already owns vault-delete wiring plus the 64-07 read/enumerate contracts it needs.
 
 ### Roadmap Evolution
 
@@ -440,9 +444,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-25T15:22:28.879Z
-Stopped at: Completed 64-07-PLAN.md
-Resume file: 64-08-PLAN.md
+Last session: 2026-07-25T16:03:17.582Z
+Stopped at: Completed 64-06-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
