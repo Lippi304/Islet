@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: executing
-stopped_at: Completed 63-03-PLAN.md
-last_updated: "2026-07-25T00:34:26.088Z"
+status: verifying
+stopped_at: Completed 63-04-PLAN.md
+last_updated: "2026-07-25T01:15:20.525Z"
 last_activity: 2026-07-25
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 39
-  completed_plans: 38
+  completed_plans: 39
   percent: 79
 ---
 
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 63 (meeting-hud) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
+Phase: 63 (meeting-hud) — ALL PLANS EXECUTED
+Plan: 4 of 4 (complete)
+Status: Ready for verification — on-device UAT approved (2 rounds); orchestrator owns the remaining phase-level gates (code review, regression, /gsd:verify-work 63)
 Last activity: 2026-07-25
 
 ### Phase 48 status note
@@ -59,7 +59,7 @@ Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3
 
 Progress (v1.9): [██████████] 100% — SHIPPED 2026-07-23 (4/4 phases — Phases 55/56/57/58 complete)
 
-Progress (v1.10): [████░░░░░░] 44% (4/9 phases — Phase 59 Settings-Redesign, Phase 60 Caps Lock HUD + Update-Activity Restyle, Phase 61 Download-Progress, Phase 62 Timer/Pomodoro all shipped and on-device UAT approved; SETTINGS-04/05, CAPS-01, UPDATE-01, DL-01/02, TIMER-01/02/03/04 complete; Phases 63-67 not started)
+Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — Phase 59 Settings-Redesign, Phase 60 Caps Lock HUD + Update-Activity Restyle, Phase 61 Download-Progress, Phase 62 Timer/Pomodoro all shipped and on-device UAT approved; SETTINGS-04/05, CAPS-01, UPDATE-01, DL-01/02, TIMER-01/02/03/04 complete. **Phase 63 Meeting-HUD: all 4 plans executed, 2-round on-device UAT approved, MEET-01/02/03 complete — awaiting orchestrator phase-level gates (code review, regression, verify-work) before the phase counts as shipped.** Phases 64-67 not started)
 
 ## Performance Metrics
 
@@ -178,6 +178,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases — Phase 59 
 | Phase 63 P01 | 12min | 2 tasks | 5 files |
 | Phase 63 P02 | 25min | 2 tasks tasks | 3 files files |
 | Phase 63 P03 | 20min | 2 tasks | 4 files |
+| Phase 63 P04 | multi-session (checkpoint, 2 UAT rounds) | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -283,6 +284,11 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 63]: .meeting landed at D-05 rank 3 (persistent D-06, collapsed-only D-10), riding Phase 62's already-generalized preempt() with zero changes to preempt() itself
 - [Phase 63]: Rank ordering is asserted via TransientQueue.preempt() tests, not resolve() tests — resolve() takes exactly one activeTransient, so its switch order is externally unobservable
 - [Phase 63]: MEET-01/MEET-02 stay Pending until Plan 63-04's controller wiring + on-device UAT — 63-02 precedent: infrastructure plans do not close requirements
+- [Phase ?]: [Phase 63-04]: D-05 SUPERSEDED by D-05a (user decision during on-device UAT round 1, NOT planning): nothing interrupts a live call. While a .meeting head stands every other transient is DROPPED OUTRIGHT — Charging and Device included — not preempted, not queued. Trigger: UAT step 10 found the charger mid-call queued behind the persistent Meeting head and the splash popped up minutes later once the call ended; the user identified that delayed pop-up as the unacceptable part and chose 'nothing interrupts a live call' from four offered options. Accepted cost (user explicitly warned): the volume/brightness OSD is also suppressed during a call. Implemented ONCE as TransientQueue.dropsWhileCallStands(_:) consulted by both enqueue() and preempt(), so a future transient category inherits the rule automatically; updateHead (mute-tap isMuted refresh) and removeAll (Settings toggle-off) are deliberately exempt. Loosening it later is a one-line change inside that predicate. D-05's rank placement (after .device, before .focus) is unchanged and still correct — rank governs resolve()'s switch order, a separate mechanism from the queue's admission rule.
+- [Phase ?]: [Phase 63-04]: Rule-3 root-cause fix for a LATENT PHASE 62 BUG, not one Phase 63 introduced — four NotchWindowController call sites (charging, capsLock, updateAvailable, osd) still carried the pre-Phase-62 hardcoded 'if case .focus = transientQueue.head' guard and fell through to plain enqueue() for any OTHER persistent head, even though Phase 62-01 generalized preempt() to 'currentHead.isPersistent' and updated the two deviceCoordinator sites. A running .timer head had the identical failure in shipped code. All four conditionals deleted (pure redundancy — preempt() already falls back to enqueue() for a nil/non-persistent head); regression-locked by testChargingPreemptsAStandingTimerHead. Behaviour change outside Phase 63's declared scope worth flagging at phase review: a Timer user may notice charging splashes now appearing DURING a countdown where they previously arrived late.
+- [Phase ?]: [Phase 63-04]: Research Assumption A2 CLOSED on-device — the nested .onTapGesture on meetingWings' mute icon reliably beats wingsShape's outer gesture on real hardware; the documented .highPriorityGesture fallback was never needed. Wing geometry also CLOSED with ZERO retuning: 63-UI-SPEC.md's locked margin 20 / 84pt right block were correct first try (unlike timerWings' 6-round history). Neither risk carries forward.
+- [Phase ?]: [Phase 63-04]: Meeting-HUD UAT ran against Discord (com.hnc.Discord) as a Zoom/Teams stand-in — the validation machine has neither installed, so with the production target set the HUD could never appear and the UAT would have been impossible (same substitution 63-02's spike used, 63e6db1). Temporary commit f716489 reverted in e455ea7; production default targetBundleIDs verified back to exactly [us.zoom.xos, com.microsoft.teams2, com.microsoft.teams]. CARRIED-FORWARD RISK: those literal bundle IDs remain UNVALIDATED against a real install across all 4 plans of this phase — the user's first real Zoom or Teams call is what confirms them. If the HUD ever fails to appear on a real call, check the bundle ID FIRST, not the heuristic, which is now UAT-proven.
+- [Phase ?]: [Phase 63-04]: handleMuteTap() must call renderPresentation() even though the plan said no re-trigger was needed — updateHead(_:) mutates only the queue, and presentationState.presentation is the sole value the view observes, so the mute icon would never visibly change state. Same failure class as Phase 62-04's 'Bug 2' (flushTransients called standalone with no follow-up render). presentTransientChange() is still deliberately NOT used: re-arming the dismiss window for an unchanged displayed case would be wrong.
 
 ### Roadmap Evolution
 
@@ -421,8 +427,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-25T00:34:26.082Z
-Stopped at: Completed 63-03-PLAN.md
+Last session: 2026-07-25T01:14:17.249Z
+Stopped at: Completed 63-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
