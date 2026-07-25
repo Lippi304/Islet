@@ -3,6 +3,14 @@
     <channel>
         <title>Islet</title>
         <item>
+            <title>2.1</title>
+            <pubDate>Sat, 25 Jul 2026 19:15:10 +0200</pubDate>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>2.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Lippi304/Islet/releases/download/v2.1/Islet.dmg" length="3003097" type="application/octet-stream" sparkle:edSignature="56IaI8KXMCyLLvitHsob1ktXddyWH5KVgLYhMAQIQCHP3ypkeO/RNtbUZn/oGnoRnntL1hxhcrKXxZM/JzkgBg=="/>
+        </item>
+        <item>
             <title>2.0</title>
             <pubDate>Thu, 23 Jul 2026 12:22:00 +0200</pubDate>
             <sparkle:version>9</sparkle:version>
