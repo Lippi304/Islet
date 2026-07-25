@@ -39,6 +39,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController = NSHostingController(rootView: QuickNotesPopoverView(controller: quickNotesController))
         return popover
     }()
+    // Plan 64-08 (bug fix, root cause) — SwiftUI's Menu (the file-picker added in this plan's
+    // Task 1) is a documented AppKit/SwiftUI interop gap: once a Menu exists anywhere in a
+    // popover's hosted content, NSPopover.behavior = .transient's own outside-click/app-switch
+    // auto-dismiss silently stops firing, even though `.transient` above was never changed.
+    // This observer restores exactly the missing half of that contract (closing when the user
+    // switches away to another app) via the supported NSApplication notification, rather than
+    // fighting SwiftUI's internal Menu/NSMenu tracking machinery, which isn't ours to control.
+    private var quickNotesPopoverDeactivationObserver: NSObjectProtocol?
     // D-revised (2026-07-23, on-device UAT amendment): rows moved into a flyout
     // submenu, but Cmd+0-9 must still restore instantly on icon-click without
     // requiring the submenu to be hovered open first — NSMenuItem keyEquivalents
@@ -156,6 +164,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if self?.updaterController?.updater.automaticallyChecksForUpdates != desired {
                 self?.updaterController?.updater.automaticallyChecksForUpdates = desired
             }
+        }
+
+        // Plan 64-08 (bug fix) — see quickNotesPopoverDeactivationObserver's declaration
+        // comment: restores .transient's "closes when the app is deactivated" behavior, which
+        // broke once the file-picker Menu was added to the popover's hosted content.
+        quickNotesPopoverDeactivationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let popover = self?.quickNotesPopover, popover.isShown else { return }
+            popover.close()
         }
 
         // Phase 1: build and show the notch overlay on the built-in notched display.
