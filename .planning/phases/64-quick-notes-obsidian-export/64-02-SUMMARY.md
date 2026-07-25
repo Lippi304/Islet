@@ -107,3 +107,12 @@ None - no external service configuration required.
 ---
 *Phase: 64-quick-notes-obsidian-export*
 *Completed: 2026-07-25*
+
+## Self-Check: PASSED
+
+- FOUND: Islet/QuickNotes/QuickNotesVaultWriter.swift
+- FOUND: IsletTests/QuickNotesVaultWriterTests.swift
+- FOUND: .planning/phases/64-quick-notes-obsidian-export/64-02-SUMMARY.md
+- FOUND commit: 44569ee (test)
+- FOUND commit: fb5db82 (feat)
+- FOUND commit: ab397e8 (docs: summary)
