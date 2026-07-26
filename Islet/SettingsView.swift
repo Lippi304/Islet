@@ -57,6 +57,9 @@ struct SettingsView: View {
     // Phase 64 / NOTES-02 (D-08/D-10) — drives the Quick Notes card's vault-folder-picker
     // popover, mirroring the Focus/OSD/Caps-Lock explanation-popover wiring shape exactly.
     @State private var showQuickNotesVaultPicker = false
+    // Phase 65 / QACTION-01 (D-02) — drives the Quick Actions bar's 8-slot configuration
+    // popover, mirroring showQuickNotesVaultPicker's wiring shape exactly.
+    @State private var showQuickActionsBarPopover = false
     // Phase 40 / HUD-06 (D-11/D-12) — default true: the one deliberate exception among the
     // Activities toggles (besides osdSuppression's off-default), since this gates no system
     // permission, just a background network check.
@@ -254,8 +257,9 @@ struct SettingsView: View {
             ActivityCardData(id: "quickActions", title: "Quick Actions",
                               description: "A row of one-tap system actions — mute mic, lock screen, and more.",
                               icon: "bolt.horizontal.fill", iconColor: .secondary,
-                              isOn: $quickActionsEnabled, isNew: false, onOptionsTap: nil,
-                              isComingSoon: true),
+                              isOn: $quickActionsEnabled, isNew: false,
+                              onOptionsTap: { showQuickActionsBarPopover = true },
+                              isComingSoon: false),
             ActivityCardData(id: "codingProgress", title: "Coding Progress",
                               description: "Shows your Claude Code session's live todo progress.",
                               icon: "checklist", iconColor: .secondary,
@@ -429,6 +433,9 @@ struct SettingsView: View {
                     .popover(isPresented: $showQuickNotesVaultPicker) {
                         quickNotesVaultPickerView
                     }
+                    .popover(isPresented: $showQuickActionsBarPopover) {
+                        quickActionsBarPopoverView
+                    }
             }
             .padding(20)
         }
@@ -504,6 +511,7 @@ struct SettingsView: View {
         Label("Tray", systemImage: "tray.fill").tag(SelectedView.tray)
         Label("Calendar", systemImage: "calendar").tag(SelectedView.calendar)
         Label("Weather", systemImage: "cloud.sun.fill").tag(SelectedView.weather)
+        Label("Quick Actions", systemImage: "bolt.horizontal.fill").tag(SelectedView.quickActions)
     }
 
     // Phase 33 / WEATHER-01/02 (D-03/D-04/D-05) — live-switches the Weather card between
