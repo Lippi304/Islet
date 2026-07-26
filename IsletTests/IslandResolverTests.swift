@@ -342,6 +342,47 @@ final class IslandResolverTests: XCTestCase {
         XCTAssertEqual(r, .trayExpanded)
     }
 
+    func testQuickActionsSelectedExpandedReturnsQuickActionsBarExpanded() {
+        // Phase 65 / QACTION-01 (D-01): Quick Actions bar is its OWN IslandPresentation case,
+        // at the same priority tier as Calendar/Weather/Tray -- no active transient, no
+        // now-playing, expanded + Quick Actions selected -> .quickActionsBarExpanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .quickActions)
+        XCTAssertEqual(r, .quickActionsBarExpanded)
+    }
+
+    func testTransientOutranksQuickActionsSelection() {
+        // D-04: a standing transient always outranks an explicit Quick Actions selection, just
+        // like it outranks Calendar/Weather/Tray.
+        let r = resolve(activeTransient: .charging(.charging(percent: 50)),
+                        nowPlaying: .none,
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .quickActions)
+        XCTAssertEqual(r, .charging(.charging(percent: 50)))
+    }
+
+    func testShowsSwitcherRowForQuickActionsBarExpanded() {
+        XCTAssertTrue(showsSwitcherRow(for: .quickActionsBarExpanded))
+    }
+
+    func testQuickActionsSelectionOutranksMedia() {
+        // Same precedence fix as Calendar/Weather/Tray -- an explicit Quick Actions selection
+        // wins over Now-Playing even while expanded.
+        let r = resolve(activeTransient: nil,
+                        nowPlaying: .playing(title: "Song", artist: "Artist"),
+                        nowPlayingHealthy: true,
+                        hasPlayedSinceLaunch: true,
+                        isExpanded: true,
+                        selectedView: .quickActions)
+        XCTAssertEqual(r, .quickActionsBarExpanded)
+    }
+
     func testTransientOutranksTraySelection() {
         // D-04: a standing transient always outranks the tray selection too.
         let r = resolve(activeTransient: .charging(.charging(percent: 50)),
