@@ -2585,7 +2585,7 @@ final class NotchWindowController {
         case .screenLock:
             ScreenLockAction.lockNow()
         case .focusToggle:
-            break // Task 2 (Plan 65-07) completes this case.
+            handleQuickActionFocusToggle()
         case .caffeinate:
             CaffeinateToggleAction.toggle()
         case .emptyTrash:
@@ -2613,6 +2613,27 @@ final class NotchWindowController {
         default: key = ActivitySettings.quickActionsBarSlot8LaunchTargetKey
         }
         return UserDefaults.standard.string(forKey: key) ?? ""
+    }
+
+    // Phase 65 / QACTION-03 (Plan 07 Task 2) — the DND/Focus tile's dispatch + failure-flash
+    // auto-clear. FocusToggleAction.toggle's completion already lands on main (its own
+    // DispatchQueue.main.asyncAfter implementation) — no redundant hop needed here.
+    private func handleQuickActionFocusToggle() {
+        FocusToggleAction.toggle { [weak self] success in
+            guard let self else { return }
+            guard !success else { return }
+            // On success, the tile's green "confirmed-on" state already re-reads live off
+            // FocusToggleAction.isConfirmedOn on next render — no controller-side state needed.
+            self.quickActionsBarFeedback.lastFailedAction = .focusToggle
+            // ~1.2s auto-clear (CAPS-01's existing ~1-2s transient-splash duration convention).
+            // The guard-before-clearing check prevents a stale timer from clobbering a NEWER
+            // failure flash if the user taps DND again within the window.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+                if self?.quickActionsBarFeedback.lastFailedAction == .focusToggle {
+                    self?.quickActionsBarFeedback.lastFailedAction = nil
+                }
+            }
+        }
     }
 
     // Phase 41 / HUD-08 — the live Calendar Countdown change lands here (already on main; the
