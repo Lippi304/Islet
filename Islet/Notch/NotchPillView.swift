@@ -3665,9 +3665,12 @@ struct NotchPillView: View {
         let margin: CGFloat = 20
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
-        let leadingPad: CGFloat = 16
+        // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
+        let wScale = resolvedWingWidthScale
+        let dScale = resolvedWingDepthScale
+        let leadingPad: CGFloat = 16 * wScale
         let iconWidth: CGFloat = 20
-        let trailingPad: CGFloat = 16
+        let trailingPad: CGFloat = 16 * wScale
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth + iconWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
@@ -3683,14 +3686,14 @@ struct NotchPillView: View {
         case .inProgress: a11yLabel = "Downloading"
         case .done(let filename): a11yLabel = "Download complete: \(filename)"
         }
-        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: dScale) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: leadingPad)
                 Image(systemName: "arrow.down.circle")
                     .font(.system(size: 14, weight: .bold))
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.white)
-                    .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                    .frame(width: iconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                 Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                 Group {
                     switch activity {
@@ -3705,7 +3708,7 @@ struct NotchPillView: View {
                             .foregroundStyle(.green)
                     }
                 }
-                .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                .frame(width: iconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                 Color.clear.frame(width: trailingPad)
             }
             .accessibilityElement(children: .ignore)
@@ -3746,12 +3749,15 @@ struct NotchPillView: View {
         let margin: CGFloat = isPomodoro ? 65 : 20
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
-        let leadingPad: CGFloat = 16
+        // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
+        let wScale = resolvedWingWidthScale
+        let dScale = resolvedWingDepthScale
+        let leadingPad: CGFloat = 16 * wScale
         let iconWidth: CGFloat = 20
         // Was 16; trimmed to 12 (matches capsLockWings' own trailingPad exactly) to reclaim
         // a few points of the ~325pt ceiling for the wider Pomodoro margin below — harmless
         // for Countdown (its own budget has plenty of slack either way).
-        let trailingPad: CGFloat = 12
+        let trailingPad: CGFloat = 12 * wScale
         // Countdown: just the mm:ss digits (up to "999:00", 6 chars, per the 999-minute cap)
         // plus a small breathing margin -- deliberately TIGHT so the Spacer below has little
         // slack to push through (item H).
@@ -3773,7 +3779,7 @@ struct NotchPillView: View {
         assert(cameraBlockWidth > 0, "Timer camera block width (\(cameraBlockWidth)) must be positive")
         assert(rightWidth < 325 && leftWidth < 325,
                "Timer wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
-        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: dScale) {
             Group {
                 switch activity {
                 case .running, .paused:
@@ -3791,7 +3797,7 @@ struct NotchPillView: View {
                                 .font(.system(size: 13, weight: .semibold))
                                 .symbolRenderingMode(.hierarchical)
                                 .foregroundStyle(.white)
-                                .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                                .frame(width: iconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                             Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                             // Phase 62-04 UAT round 4 fix (items E/G/H) — Spacer(minLength: 0)
                             // replaces the round-3 fixed-width `.trailing` frame; see this
@@ -3831,7 +3837,7 @@ struct NotchPillView: View {
                             .font(.system(size: 14))   // standard wing icon size — NOT homeEmptyContent's 28px (Open Question 2)
                             .symbolRenderingMode(.monochrome)
                             .foregroundStyle(.green)
-                            .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                            .frame(width: iconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                         Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                         // Phase 62-04 UAT round 4 fix (items E/G/H) — same Spacer-based
                         // outward alignment as the .running/.paused branch above, for
@@ -3882,7 +3888,13 @@ struct NotchPillView: View {
         let margin = Self.meetingWingMargin
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
-        let leadingPad: CGFloat = 16
+        // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales. The
+        // locked right-content triple below (elapsedWidth/iconGap/muteIconWidth) is explicitly
+        // excluded — scaling any of the three would desync meetingWingRightContentWidth from
+        // NotchWindowController's click-through zone (WR-05 invariant).
+        let wScale = resolvedWingWidthScale
+        let dScale = resolvedWingDepthScale
+        let leadingPad: CGFloat = 16 * wScale
         let iconWidth: CGFloat = 20
         // mm:ss text box 60 (timerWings' own non-Pomodoro countdown budget — same digit-count
         // class) + 4 gap + 20 mute icon = meetingWingRightContentWidth (84).
@@ -3894,7 +3906,7 @@ struct NotchPillView: View {
         // three numbers above that would silently desync the clickable region from the glyph.
         assert(muteIconWidth == Self.meetingMuteIconWidth,
                "Meeting mute icon width (\(muteIconWidth)) must match NotchPillView.meetingMuteIconWidth (\(Self.meetingMuteIconWidth)) — the click-through zone is sized from the static")
-        let trailingPad: CGFloat = 12
+        let trailingPad: CGFloat = 12 * wScale
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth
             + Self.meetingWingRightContentWidth + trailingPad
@@ -3904,7 +3916,7 @@ struct NotchPillView: View {
                "Meeting mute icon width (\(muteIconWidth)) must be positive — meetingWingRightContentWidth was retuned below elapsedWidth + iconGap")
         assert(rightWidth < 325 && leftWidth < 325,
                "Meeting wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
-        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, onTap: {}) {
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: dScale, onTap: {}) {
             // CRITICAL (mirrors countdownWings'/timerWings' own desync warning): the elapsed
             // label is computed INSIDE this one tick closure, never outside it, so a live
             // re-render always shows a consistent icon+digits pair.
@@ -3916,7 +3928,7 @@ struct NotchPillView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.white)
-                        .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                        .frame(width: iconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                         // Purely decorative — "in a call" is already carried by the duration
                         // label below, so this would only add a redundant VoiceOver stop
                         // (63-UI-SPEC.md Accessibility). Note this wing canNOT use
@@ -3943,7 +3955,7 @@ struct NotchPillView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .symbolRenderingMode(.monochrome)
                         .foregroundStyle(activity.isMuted ? Color.red : Color.white)
-                        .frame(width: muteIconWidth, height: Self.wingsSize.height, alignment: .center)
+                        .frame(width: muteIconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                         .contentShape(Rectangle())
                         .onTapGesture { onMuteTap() }
                         .accessibilityLabel(activity.isMuted ? "Unmute Microphone" : "Mute Microphone")
