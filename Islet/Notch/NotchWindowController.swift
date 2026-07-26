@@ -1860,6 +1860,15 @@ final class NotchWindowController {
         } else if case .trayExpanded = presentationState.presentation {
             contentSize = CGSize(width: NotchPillView.traySize.width,
                                  height: NotchPillView.trayContentHeight + switcherHeight)
+        } else if case .quickActionsBarExpanded = presentationState.presentation {
+            // Phase 65 gap-closure (code review CR-01, geometry three-site rule, Site 3) —
+            // mirrors trayExpanded's precedent immediately above: quickActionsBarContentHeight
+            // (150) is shorter than the shared switcherContentHeight (196) box, so without this
+            // branch the fallthrough `else` below sizes the panel to 196+44 instead of the real
+            // 150+44 rendered height — a 46pt band stays click-interactive over nothing visibly
+            // rendered there (the CR-01/WR-02 click-swallowing/dead-zone regression class).
+            contentSize = CGSize(width: expandedSize.width,
+                                 height: NotchPillView.quickActionsBarContentHeight + switcherHeight)
         } else if case .weatherExpanded = presentationState.presentation {
             // Phase 33 / WEATHER-01/02 (geometry three-site rule) — must mirror NotchPillView's
             // blobShape `height:` override and positionAndShow's weatherExpandedFrame exactly,
