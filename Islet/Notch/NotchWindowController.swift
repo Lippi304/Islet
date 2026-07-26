@@ -436,6 +436,15 @@ final class NotchWindowController {
     // tracks display/resolution/clamshell changes. nil until the first successful resolve.
     private var hotZone: CGRect?
 
+    // 67.1-03 (D-01/D-02/D-04, geometry three-site rule) — resolved once per positionAndShow()
+    // call via the SAME 2 pure functions (islandAutoScaleFactor/resolvedIslandScale) Plan 01
+    // unit-tested, using the SAME screen-width input Site 1 (NotchPillView) already reads.
+    // visibleContentZone() (Site 3) reads these stored properties directly so it always matches
+    // what's actually rendered right now. Site 2's OWN panel-frame reservation deliberately does
+    // NOT use these — it reserves the fixed 150% (D-04) ceiling instead (Pitfall 3).
+    private var currentWidthScale: CGFloat = 1.0
+    private var currentDepthScale: CGFloat = 1.0
+
     // While EXPANDED the keep-open region is the WHOLE expanded island, NOT the tiny collapsed
     // pill — otherwise moving the pointer DOWN onto the transport controls reads as "left the
     // hot-zone" and the grace timer collapses the island out from under the pointer (no time to
@@ -1328,6 +1337,15 @@ final class NotchWindowController {
         debugLastCollapsedFrame = collapsedFrame   // 39-07 gap closure ROUND 9 — see stored property doc comment
         #endif
 
+        // 67.1-03 (D-01/D-02, geometry three-site rule) — resolve LIVE scale once per call,
+        // via the SAME 2 pure functions Plan 01 unit-tested, so visibleContentZone() (Site 3)
+        // can read it back and stay in exact parity with Site 1's render.
+        let widthOffset = UserDefaults.standard.double(forKey: ActivitySettings.islandWidthScaleOffsetKey)
+        let depthOffset = UserDefaults.standard.double(forKey: ActivitySettings.islandDepthScaleOffsetKey)
+        let autoScale = islandAutoScaleFactor(screenWidthPoints: target.frame.width)
+        currentWidthScale = resolvedIslandScale(auto: autoScale, manualOffset: widthOffset)
+        currentDepthScale = resolvedIslandScale(auto: autoScale, manualOffset: depthOffset)
+
         // D-01 — publish the VISIBLE collapsed pill size from the SAME measured notch, but
         // UNFUDGED (widthFudge: 0 == exactly the cutout macOS reports). The fudge split is
         // deliberate: the transparent WINDOW / hot-zone above keeps its 4pt overlap so the
@@ -1365,9 +1383,13 @@ final class NotchWindowController {
         // top corners (NotchPillView.swift's blobShape()/wingsShape() call sites), which stays
         // entirely within each presentation's own rect (no overflow past expandedSize.width/
         // wingsSize.width), so this panel-frame reservation needs no extra margin.
+        // 67.1-03 (D-04, geometry three-site rule, Site 2) — reserve the FIXED 150% ceiling on
+        // every in-scope constant, NEVER the live currentWidthScale/currentDepthScale (Pitfall
+        // 3: a live slider drag must never need a mid-interaction panel resize).
+        let maxAxisScale: CGFloat = 1.5 // D-04 ceiling — Pitfall 3: always worst case, never currentWidthScale/currentDepthScale
         let expandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                               expandedSize: CGSize(width: expandedSize.width,
-                                                                     height: NotchPillView.switcherContentHeight + NotchPillView.shelfRowHeight + NotchPillView.switcherRowHeight))
+                                               expandedSize: CGSize(width: expandedSize.width * maxAxisScale,
+                                                                     height: (NotchPillView.switcherContentHeight + NotchPillView.switcherRowHeight) * maxAxisScale + NotchPillView.shelfRowHeight))
 
         // CHG-01 / Pattern 4: the wings extend SIDEWAYS, so the panel must also cover the
         // flat wings strip. Size the panel ONCE to the UNION of the downward-expanded and the
@@ -1384,8 +1406,8 @@ final class NotchWindowController {
         // real screen (invisible in Xcode Previews, which render NotchPillView standalone with
         // no panel constraint).
         let trayFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                           expandedSize: CGSize(width: NotchPillView.traySize.width,
-                                                                 height: NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight))
+                                           expandedSize: CGSize(width: NotchPillView.traySize.width * maxAxisScale,
+                                                                 height: (NotchPillView.trayContentHeight + NotchPillView.switcherRowHeight) * maxAxisScale))
         // Phase 33 / WEATHER-01/02 (D-03/D-04/D-10, geometry three-site rule) — the panel must
         // reserve space for the Weather card up front too, mirroring trayFrame/onboardingFrame's
         // precedent exactly. Included UNCONDITIONALLY (same static-upper-bound approach trayFrame
@@ -1397,8 +1419,8 @@ final class NotchWindowController {
         // distinction is enforced at blobShape's height ternary and visibleContentZone's
         // branch below, both of which must agree with this reservation.
         let weatherExpandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                                       expandedSize: CGSize(width: expandedSize.width,
-                                                                             height: NotchPillView.weatherLargeContentHeight + NotchPillView.switcherRowHeight))
+                                                       expandedSize: CGSize(width: expandedSize.width * maxAxisScale,
+                                                                             height: (NotchPillView.weatherLargeContentHeight + NotchPillView.switcherRowHeight) * maxAxisScale))
         // Phase 48 / OUTPUT-01 (CR-01 geometry three-site rule, Site 2) — mirrors
         // weatherExpandedFrame's UNCONDITIONAL-reservation shape immediately above: included in
         // the union regardless of outputPanelOpen's current value ("size once, up front"), same
@@ -1406,8 +1428,8 @@ final class NotchWindowController {
         // homeContentHeight-plus-outputPanelExtraHeight sum Plan 48-02's tabHeight default-case
         // ternary (Site 1) already computes.
         let outputPanelExpandedFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                                           expandedSize: CGSize(width: expandedSize.width,
-                                                                                 height: NotchPillView.homeContentHeight + NotchPillView.outputPanelExtraHeight + NotchPillView.switcherRowHeight))
+                                                           expandedSize: CGSize(width: expandedSize.width * maxAxisScale,
+                                                                                 height: (NotchPillView.homeContentHeight + NotchPillView.outputPanelExtraHeight + NotchPillView.switcherRowHeight) * maxAxisScale))
         // Phase 44 / TRAY-06/DRAG-02 (D-03/D-04, geometry three-site rule) — the picker's width
         // still matches trayFrame's footprint (traySize.width), so it never renders NARROWER than
         // the real, already-widened Tray view the user compares it against. Height, however, no
@@ -1427,8 +1449,8 @@ final class NotchWindowController {
         // taller than expandedFrame's 296pt union member), mirroring weatherExpandedFrame's/
         // trayFrame's precedent exactly.
         let timerSetupFrame = expandedNotchFrame(collapsed: collapsedFrame,
-                                                  expandedSize: CGSize(width: expandedSize.width,
-                                                                        height: NotchPillView.timerSetupContentHeight + NotchPillView.switcherRowHeight))
+                                                  expandedSize: CGSize(width: expandedSize.width * maxAxisScale,
+                                                                        height: (NotchPillView.timerSetupContentHeight + NotchPillView.switcherRowHeight) * maxAxisScale))
         let panelFrame = expandedFrame.union(wings).union(onboardingFrame).union(trayFrame).union(weatherExpandedFrame).union(outputPanelExpandedFrame).union(quickActionPickerFrame).union(timerSetupFrame)
 
         // The hot-zone is the COLLAPSED pill (padded), in the same global bottom-left coords.
