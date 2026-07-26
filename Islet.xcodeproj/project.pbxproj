@@ -88,6 +88,7 @@
 		71789AF4FFE1F8E9A52A4CA3 /* ClipboardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 787DB6CF8372E20FC8BA296F /* ClipboardStore.swift */; };
 		730C2D90EDBDA9578FFD3D07 /* BasicOutfitState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25742CBF490BEC1233F661FD /* BasicOutfitState.swift */; };
 		73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C75C7435C3C840FC929C873C /* DropInterceptTap.swift */; };
+		73E4D4F3599A379F420656D4 /* DisplaySleepAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FFD2BE4C795F3C0A797473D /* DisplaySleepAction.swift */; };
 		75B9F62FA809ED170142A930 /* ShelfLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB460DC51BC6612D0A4A134 /* ShelfLogicTests.swift */; };
 		7604855295CC6043B60954AF /* LicenseManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */; };
 		774A2C14E09EB8BE82006A9B /* ActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */; };
@@ -123,6 +124,7 @@
 		AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63FACDF43375E1DE88646B05 /* DragDropSupport.swift */; };
 		AB991A4C458C448D0F3FD6BC /* ClipboardMonitorManualSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DD31F95265B382E4B2E627 /* ClipboardMonitorManualSpike.swift */; };
 		AD54150D0BFD3C0A9F3DA852 /* ClipboardMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B60D6A7EA8A3B688244EBCB /* ClipboardMonitorTests.swift */; };
+		B06F0C8CDC64CB7D5AC3F2F9 /* ScreenLockAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83F5C11A82621B88D99B53E9 /* ScreenLockAction.swift */; };
 		B2ADB08E18FABDBA8931EA42 /* FocusActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB884D12561F8F8110F1DB63 /* FocusActivity.swift */; };
 		B5C45C53901AF3059620F219 /* CalendarGlanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */; };
 		B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72C119AE687341C28E9786C /* NSScreen+Notch.swift */; };
@@ -240,6 +242,7 @@
 		4CA20EFAA3BB87C9966C5BC9 /* VolumeReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeReader.swift; sourceTree = "<group>"; };
 		4E50622410CCEEA5EC66C796 /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
 		4F61A24F6789742D7442ADF0 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
+		4FFD2BE4C795F3C0A797473D /* DisplaySleepAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplaySleepAction.swift; sourceTree = "<group>"; };
 		503CB4F6C3E444AEF826DDB3 /* IsletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IsletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		518F37B1B7F2553405CF0926 /* ShelfCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfCoordinator.swift; sourceTree = "<group>"; };
 		51C0A7B42CF6115383E65C78 /* ShelfViewStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfViewStateTests.swift; sourceTree = "<group>"; };
@@ -279,6 +282,7 @@
 		7D373EEE76BE733AFEDD28FD /* CalendarViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewState.swift; sourceTree = "<group>"; };
 		8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlanceTests.swift; sourceTree = "<group>"; };
 		83B2D92BF83095959068F293 /* NotchPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanelTests.swift; sourceTree = "<group>"; };
+		83F5C11A82621B88D99B53E9 /* ScreenLockAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenLockAction.swift; sourceTree = "<group>"; };
 		858D32BF5C426DA996EF8187 /* ShelfFileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfFileStoreTests.swift; sourceTree = "<group>"; };
 		875773B3A3AEBE51D51C06F4 /* TimerActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerActivityState.swift; sourceTree = "<group>"; };
 		8823B706C17870EC45D0A98C /* QuickActionSharingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionSharingServiceTests.swift; sourceTree = "<group>"; };
@@ -541,7 +545,9 @@
 		CB2D72C3530ECB36AB58E011 /* QuickActionsBar */ = {
 			isa = PBXGroup;
 			children = (
+				4FFD2BE4C795F3C0A797473D /* DisplaySleepAction.swift */,
 				481203BD8903085A2FE8800A /* QuickActionsBarCatalog.swift */,
+				83F5C11A82621B88D99B53E9 /* ScreenLockAction.swift */,
 			);
 			path = QuickActionsBar;
 			sourceTree = "<group>";
@@ -801,6 +807,7 @@
 				FFB8FF809780DAA08EC9B819 /* DeviceCoordinator.swift in Sources */,
 				A5CBE92E220E6C6C2FC10FF1 /* Diagnostics.swift in Sources */,
 				C78CA158C085F216D8F78933 /* DisplayResolver.swift in Sources */,
+				73E4D4F3599A379F420656D4 /* DisplaySleepAction.swift in Sources */,
 				8E1D60A2E7300A0620A1E5FD /* DownloadActivity.swift in Sources */,
 				9535B1BBF5C5ABA313893DA4 /* DownloadCoordinator.swift in Sources */,
 				67BA29BACB89BF0BDF942299 /* DownloadMonitor.swift in Sources */,
@@ -850,6 +857,7 @@
 				0C693C96C5FCC524EC61ACC2 /* QuickNotesPopoverView.swift in Sources */,
 				5BE8D8718C0CD42AD7703488 /* QuickNotesStore.swift in Sources */,
 				575A136884F27F5FDED7F952 /* QuickNotesVaultWriter.swift in Sources */,
+				B06F0C8CDC64CB7D5AC3F2F9 /* ScreenLockAction.swift in Sources */,
 				0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */,
 				1E4766E3B83E3E06186D2154 /* ShelfCoordinator.swift in Sources */,
 				E80E54F355F9DD7F3895158E /* ShelfFileStore.swift in Sources */,
