@@ -1242,7 +1242,7 @@ Plans:
 **Goal:** The notch island's expanded content (Home, Tray, Weather, Calendar, Quick Actions, Switcher) automatically scales with the display's current resolution relative to a locked 1470x956pt baseline, and two independent Settings sliders (Width, Depth — 80%-150%) let the user further nudge that auto-computed default — so the island stops looking too small after a resolution change, without a per-resolution redesign of every view. The collapsed/idle pill stays exactly as-is.
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08 (source: 67.1-CONTEXT.md locked decisions — no formal REQUIREMENTS.md IDs exist for this inserted phase, same precedent as Phase 16)
 **Depends on:** Phase 67
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1252,7 +1252,7 @@ Plans:
 **Wave 2** *(blocked on 67.1-01)*
 
 - [x] 67.1-02-PLAN.md — NotchPillView.swift Site 1: live auto-scale + manual-offset resolved properties, applied to tabWidth/tabHeight/totalHeight
-- [ ] 67.1-03-PLAN.md — NotchWindowController.swift Site 2 (positionAndShow, fixed 150% ceiling) + Site 3 (visibleContentZone, live scale)
+- [x] 67.1-03-PLAN.md — NotchWindowController.swift Site 2 (positionAndShow, fixed 150% ceiling) + Site 3 (visibleContentZone, live scale)
 - [ ] 67.1-04-PLAN.md — SettingsView.swift "Island Size" section: Width/Depth sliders (computed bindings) + Reset to Auto
 
 **Wave 3** *(blocked on 67.1-02, 67.1-03, 67.1-04)*
