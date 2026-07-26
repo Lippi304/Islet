@@ -30,8 +30,10 @@ final class FocusToggleActionTests: XCTestCase {
     func testToggleDoesNotCrashAndReportsFalseWhenUnauthorized() {
         let expectation = expectation(description: "onResult called")
         FocusToggleAction.toggle { result in
-            // On a machine without Focus authorization granted, toggle must call onResult(false)
-            // synchronously rather than crash or hang.
+            // toggle() now requests authorization itself (see toggle()'s doc comment); on a
+            // machine that has never granted or denied Focus access, requestAuthorization's
+            // completion still fires (immediately if already decided, or after a system prompt
+            // otherwise) rather than crashing or hanging.
             if !FocusModeMonitor.isAuthorized {
                 XCTAssertFalse(result)
             }

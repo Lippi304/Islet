@@ -42,22 +42,32 @@ enum FocusToggleAction {
         before != after
     }
 
+    // Requests INFocusStatusCenter authorization itself rather than only reading
+    // FocusModeMonitor.isAuthorized (pre-65-08-checkpoint bug): that flag was previously only
+    // ever set true via the unrelated Phase-38 Focus HUD Settings toggle, so a user who never
+    // touched that toggle got a silent, unexplained failure flash here forever. Mirrors
+    // SettingsView.swift's own requestAuthorization call site — completion isn't guaranteed
+    // to land on the main thread, so it's re-dispatched exactly the same way.
     static func toggle(onResult: @escaping (Bool) -> Void) {
-        guard FocusModeMonitor.isAuthorized else { onResult(false); return }
-        let before = INFocusStatusCenter.default.focusStatus.isFocused ?? false
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
-        task.arguments = ["run", focusShortcutName]
-        do {
-            try task.run()
-        } catch {
-            onResult(false)
-            return
-        }
-        task.terminationHandler = { _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                let after = INFocusStatusCenter.default.focusStatus.isFocused ?? before
-                onResult(focusStateChanged(before: before, after: after))
+        FocusModeMonitor.requestAuthorization { granted in
+            DispatchQueue.main.async {
+                guard granted else { onResult(false); return }
+                let before = INFocusStatusCenter.default.focusStatus.isFocused ?? false
+                let task = Process()
+                task.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
+                task.arguments = ["run", focusShortcutName]
+                do {
+                    try task.run()
+                } catch {
+                    onResult(false)
+                    return
+                }
+                task.terminationHandler = { _ in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        let after = INFocusStatusCenter.default.focusStatus.isFocused ?? before
+                        onResult(focusStateChanged(before: before, after: after))
+                    }
+                }
             }
         }
     }
