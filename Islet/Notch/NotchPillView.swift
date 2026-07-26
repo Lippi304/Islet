@@ -3060,6 +3060,30 @@ struct NotchPillView: View {
         }
     }
 
+    // 67.1-10 (D-14) — the ORIGINAL bug that triggered this entire phase amendment: unlike the
+    // other 9 wings (osdWings/capsLockWings/etc., Plans 08/09), mediaWingsOrToast never adopted
+    // the live-hardware camera-clearance mechanism — it sized itself from a fixed
+    // Self.wingsSize.width (290pt) constant with a plain, non-measuring Spacer() for camera
+    // clearance. At a non-baseline resolution (1710x1112) the real camera cutout exceeds what
+    // that fixed combination naturally reserves, clipping the album art and the 5th equalizer
+    // bar. Mirrors osdWings' proven rawNotchHalfWidth+margin pattern (39-07 ROUND 15/16), NOT
+    // wingsShape — mediaWingsOrToast builds its own shape/frame directly since its bottom
+    // corner radius varies with the song-change toast (see this function's own header comment
+    // below). cameraBlockWidth is returned alongside left/right so mediaWingsRow never
+    // recomputes the notch-clearance formula independently (single source of truth).
+    private func mediaWingContentWidth() -> (left: CGFloat, right: CGFloat, cameraBlockWidth: CGFloat) {
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        let margin: CGFloat = 55   // osdWings' own on-device-confirmed value (39-07 ROUND 16) — closest existing content class (album art + equalizer bars, not long text)
+        let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2   // T-67.1-14: never scaled by wing scale, at any slider position
+        let leadingPad = 22 * resolvedWingWidthScale     // the wing's existing 22pt leading padding, now D-14 scaled
+        let trailingPad = 24 * resolvedWingWidthScale    // the wing's existing 24pt trailing padding, now D-14 scaled
+        let artSide = (Self.wingsSize.height - 8) * resolvedWingDepthScale   // album art's square side — scaled with depth; no camera-safety floor on this axis
+        let eqBarsWidth: CGFloat = 21   // EqualizerBars' own intrinsic width: 5 * barWidth(1) + 4 * spacing(4) — fixed, content stays fixed size on the width axis
+        let left = leadingPad + artSide + cameraBlockWidth / 2
+        let right = (leadingPad + artSide + cameraBlockWidth + eqBarsWidth + trailingPad) - left
+        return (left, right, cameraBlockWidth)
+    }
+
     // D-02/D-03/D-04/D-05 — the MEDIA glance WINGS: the collapsed now-playing peek.
     // Same flat strip shape + shared morph identity + wingsSize as the charging wings, so
     // SwiftUI morphs the ONE black island between the charging/media/expanded/collapsed
@@ -3083,7 +3107,12 @@ struct NotchPillView: View {
     @ViewBuilder
     private func mediaWingsOrToast(_ p: NowPlayingPresentation) -> some View {
         let toast = nowPlaying.songChangeToast
-        let height = Self.wingsSize.height + (toast != nil ? Self.toastExtraHeight : 0)
+        // 67.1-10 (D-14) — replaces the old fixed 290pt constant + a plain flexible spacer:
+        // width is now derived from the live camera cutout (mediaWingContentWidth()), never guessed.
+        let (leftWidth, rightWidth, cameraBlockWidth) = mediaWingContentWidth()
+        let width = leftWidth + rightWidth
+        // 67.1-10 (D-14): height now scales with resolvedWingDepthScale, like every other wing.
+        let height = Self.wingsSize.height * resolvedWingDepthScale + (toast != nil ? Self.toastExtraHeight : 0)
         // WR-02 (35-REVIEW.md): hoisted so the visible fill and the rim-mask
         // overlay below always share one shape instance — see collapsedIsland.
         let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
@@ -3094,37 +3123,50 @@ struct NotchPillView: View {
             // matching the file's previous — wrong — "canonical" convention; see collapsedIsland
             // for the full explanation of why frame-before-effect breaks the size morph).
             .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.wingsSize.width, height: height)
+            .frame(width: width, height: height)
+            // 67.1-10 (D-14) follow-up — same root cause as wingsShape/collapsedIsland: width
+            // now derives from the live-measured interaction.collapsedNotchSize, so this frame
+            // can ride along on an ambient animation transaction from an unrelated simultaneous
+            // state change, letting the camera-clearance geometry visibly lag after a live
+            // resolution switch. Mirrors D-10/Plan 06's fix for collapsedIsland/wingsShape.
+            .animation(nil, value: CGSize(width: width, height: height))
             // Phase 35 / GLASS-01 (D-04): media wings use full-strength .expanded parameters.
-            .overlay(liquidGlassEffectLayer(shape: shape, size: CGSize(width: Self.wingsSize.width, height: height), parameters: .expanded))
+            .overlay(liquidGlassEffectLayer(shape: shape, size: CGSize(width: width, height: height), parameters: .expanded))
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
-                    mediaWingsRow(p, art: nowPlaying.artwork)
+                    mediaWingsRow(p, art: nowPlaying.artwork, leftWidth: leftWidth, rightWidth: rightWidth, cameraBlockWidth: cameraBlockWidth)
                     if let toast {
                         toastTextRow(toast)
                             .transition(.opacity)
                     }
                 }
             }
+            // 67.1-10 (D-14): true center — not geometric width/2 — now that leftWidth/rightWidth
+            // can be asymmetric; mirrors wingsShape's own alignmentGuide mechanism (line ~3005).
+            .alignmentGuide(HorizontalAlignment.center) { _ in leftWidth }
             // Finding 15 (06-10) precedent: the shared tap-to-toggle, same as wingsShape's
             // callers — no buttons live in this content, so one ancestor gesture is safe.
             .onTapGesture { onClick() }
     }
 
-    // Row 1 — the collapsed media glance content, UNCHANGED from before this phase (D-02):
-    // album art LEFT, animated equalizer bars RIGHT, same paddings. Factored out of the old
-    // `mediaWings(_:art:)` (which used to also own the `wingsShape` wrapper) so
-    // `mediaWingsOrToast` can size the combined shape itself; the visual output is identical.
-    private func mediaWingsRow(_ presentation: NowPlayingPresentation, art: NSImage?) -> some View {
+    // Row 1 — the collapsed media glance content. Album art LEFT, animated equalizer bars
+    // RIGHT — visual output unchanged from before this phase (D-02). 67.1-10 (D-14): the
+    // old flexible separator element that previously separated them is replaced by an EXPLICIT
+    // fixed-width Color.clear block (mirroring osdWings'/capsLockWings' own convention, 39-07 —
+    // a flexible separator only correlates with where the camera roughly is, an explicit
+    // fixed-width element mechanically cannot be skipped or shrunk). leftWidth/rightWidth/
+    // cameraBlockWidth all come from mediaWingContentWidth() via mediaWingsOrToast, the single
+    // source of truth — this function recomputes nothing.
+    private func mediaWingsRow(_ presentation: NowPlayingPresentation, art: NSImage?, leftWidth: CGFloat, rightWidth: CGFloat, cameraBlockWidth: CGFloat) -> some View {
         let isPlaying = isPlayingFor(presentation)
         return HStack(spacing: 0) {
-            artThumbnail(art, side: Self.wingsSize.height - 8, corner: 6)  // LEFT wing
-                .padding(.leading, 22)   // inset from the outer notch edge (user request)
-            Spacer()                                            // clears the physical camera bridge
+            artThumbnail(art, side: (Self.wingsSize.height - 8) * resolvedWingDepthScale, corner: 6)  // LEFT wing
+                .padding(.leading, 22 * resolvedWingWidthScale)   // inset from the outer notch edge (user request), D-14 scaled
+            Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block, not a flexible spacer
             EqualizerBars(isPlaying: isPlaying)  // RIGHT wing — EQ-01 bars, fixed white (no accent)
-                .padding(.trailing, 24)  // inset from the outer notch edge (user request)
+                .padding(.trailing, 24 * resolvedWingWidthScale)  // inset from the outer notch edge (user request), D-14 scaled
         }
-        .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+        .frame(width: leftWidth + rightWidth, height: Self.wingsSize.height * resolvedWingDepthScale)
     }
 
     // Phase 53 / RESUME-01/RESUME-02 — the idle hover-preview's own wings shape. Mirrors

@@ -49,3 +49,20 @@ Out of scope for 67.1-06 (D-09/D-10 only covers the collapsed pill's own geometr
 locks the collapsed pill against D-01/D-03/D-04 scaling — this is a different subsystem, the OSD/Live-
 Activity overlay renderers). Flagging as a new gap for a future phase/gsd-discuss-phase covering
 Live-Activity-HUD sizing.
+
+## From Plan 10 (Music-Play Wing Camera-Clearance Fix)
+
+**`MeetingMonitorManualSpike.testManualDetectionHeuristic()` fails under a full `xcodebuild test` run,
+unrelated to this plan's `NotchPillView.swift` changes:**
+
+The test file's own header comment (`IsletTests/MeetingMonitorManualSpike.swift:4-7`) states: "MANUAL
+SPIKE — DO NOT RUN VIA `xcodebuild test` (the full Islet.app test host hangs headless — this project's
+established xcodebuild-test-headless-hang precedent). Run via Xcode Cmd-U for THIS single test method
+only." It runs a live 3-minute `RunLoop` window expecting a human to join/leave real Zoom/Discord calls
+and read console output — it is not a real pass/fail assertion (`XCTAssertTrue(true, ...)` unconditionally
+at the end) and was never meant to execute headless in a batch run. Zero relationship to
+`mediaWingsOrToast`/`mediaWingsRow`/`mediaWingContentWidth()` (this plan's only changed function group).
+Not one of the 6 pre-existing failures already documented above from Plans 02/06, but same category
+(pre-existing, environment/harness limitation, not caused by this plan). Not auto-fixed per the scope
+boundary rule. Flagging for a future `/gsd-quick` to add an `XCTSkip`/environment guard so full-suite
+runs don't report it as a failure.
