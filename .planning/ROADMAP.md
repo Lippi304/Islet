@@ -1242,12 +1242,12 @@ Plans:
 **Goal:** The notch island's expanded content (Home, Tray, Weather, Calendar, Quick Actions, Switcher) automatically scales with the display's current resolution relative to a locked 1470x956pt baseline, and two independent Settings sliders (Width, Depth — 80%-150%) let the user further nudge that auto-computed default — so the island stops looking too small after a resolution change, without a per-resolution redesign of every view. The collapsed/idle pill stays exactly as-is.
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08 (source: 67.1-CONTEXT.md locked decisions — no formal REQUIREMENTS.md IDs exist for this inserted phase, same precedent as Phase 16)
 **Depends on:** Phase 67
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 67.1-01-PLAN.md — Pure scale-factor functions (islandAutoScaleFactor/resolvedIslandScale, TDD) + ActivitySettings.swift manual-offset keys
+- [x] 67.1-01-PLAN.md — Pure scale-factor functions (islandAutoScaleFactor/resolvedIslandScale, TDD) + ActivitySettings.swift manual-offset keys
 
 **Wave 2** *(blocked on 67.1-01)*
 
