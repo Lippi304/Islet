@@ -1237,6 +1237,16 @@ Plans:
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 67.1: Notch Size Scaling — Resolution-Aware + Manual Override (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 67
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 67.1 to break down)
+
 ### Phase 68: App Switcher / Window Previews
 
 **Goal:** [To be planned] — DockDoor-inspired (dockdoor.net) Windows-style Alt+Tab replacement: live per-app window thumbnails and restoring minimized windows, via ScreenCaptureKit (live thumbnails) + Accessibility API (window focus/un-minimize) — no private APIs needed.

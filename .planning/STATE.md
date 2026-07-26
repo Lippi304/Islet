@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: ready_to_plan
-stopped_at: Phase 65 complete (8/8) — ready to discuss Phase 68
-last_updated: 2026-07-26T02:37:44.449Z
+status: Ready to discuss
+stopped_at: Completed 65-08-PLAN.md (checkpoint approved, 2 UAT gap-closure fixes)
+last_updated: "2026-07-26T02:47:03.823Z"
 last_activity: 2026-07-26
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 39
-  completed_plans: 107
+  completed_plans: 38
   percent: 79
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 68 — app switcher window previews
+**Current focus:** Phase 67.1 — notch size scaling (resolution-aware + manual)
 
 ## Current Position
 
-Phase: 68
+Phase: 67.1
 Plan: Not started
-Status: Ready to plan
+Status: Ready to discuss
 Last activity: 2026-07-26
 
 ### Phase 48 status note
@@ -345,6 +345,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - v1.10 (Live Activities Suite) roadmap created 2026-07-23: Phase 59 (Settings-Redesign, SETTINGS-04/05), Phase 60 (Caps Lock HUD + Update-Activity Restyle, CAPS-01/UPDATE-01), Phase 61 (Download-Progress, DL-01/02), Phase 62 (Timer/Pomodoro, TIMER-01..04), Phase 63 (Meeting-HUD, MEET-01..03), Phase 64 (Quick Notes + Obsidian Export, NOTES-01..03), Phase 65 (Quick Actions Bar, QACTION-01..03), Phase 66 (Menübar-Overflow, MENUBAR-01..04), Phase 67 (Coding-Progress, CODE-01..04) — 100% coverage (27/27). Phase numbering continues from Phase 58 (v1.9's last phase). Order follows research's explicit foundation-first/ascending-risk build order: Settings-grid foundation first (avoids retrofitting Settings onto the first feature, the exact mistake v1.8 already fixed once), then cheapest-pairing (Caps Lock + Update restyle) to prove the new card pattern, then Download-Progress (first FSEvents watcher, proven once before Coding-Progress reuses it), then Timer/Pomodoro (generalizes `TransientQueue.preempt()`/`ActiveTransient.isPersistent` beyond the Focus-Mode-only case on the simpler no-detection-risk case), then Meeting-HUD (reuses that generalized path, gated behind its own call-detection spike), then Quick Notes (resolves the 4-slot top-edge-switcher conflict in its own planning), then Quick Actions bar (reuses Meeting-HUD's `MicMuteController`), then Menübar-Overflow (isolated last among the notch-facing work as the milestone's highest-novelty, zero-reuse feature, own feasibility spike against Ice's actual source), then Coding-Progress (reuses Phase 61's FileWatcher pattern, own hook-contract research step).
 - Phase 68 added 2026-07-26: App Switcher / Window Previews — DockDoor-inspired (dockdoor.net) Windows-style Alt+Tab replacement with live per-app window thumbnails and minimized-window restore, via ScreenCaptureKit + Accessibility API. User-requested, sequenced as the last phase after all currently open v1.10 phases (59-67). No formal REQ-ID yet, not part of the milestone's original 27/27 requirement coverage — needs its own `/gsd-discuss-phase 68` before planning.
 - Phase 69 added 2026-07-26: Claude Session Usage Display — Now-Playing-style notch expansion showing live Claude Code usage when a session is active: 5-hour limit + reset countdown on the left, weekly limit fill/percentage on the right, configurable update interval (5-min poll or live). Data sourcing intended to build on a separate usage-tracking tool/script the user already started, source at `/Users/lippi304/AI-OS/OS/5. Claude Usage Tracker` — reuse/port its usage-fetching logic instead of rebuilding it. User-requested, sequenced as the last phase after Phase 68. No formal REQ-ID yet, not part of the milestone's original 27/27 requirement coverage — needs its own `/gsd-discuss-phase 69` before planning.
+- Phase 67.1 inserted after Phase 67: Notch Size Scaling — Resolution-Aware + Manual Override: user changed screen resolution and the notch island now looks too small; adds auto-scaling of island width/depth to display resolution/DPI plus a manual Settings fine-tune override. User-requested, sequenced before Phase 68. (URGENT)
 
 ### Pending Todos
 
