@@ -2815,6 +2815,18 @@ struct NotchPillView: View {
         resolvedIslandScale(auto: autoIslandScale, manualOffset: 0)
     }
 
+    // 67.1-08 (D-12/D-14): retargets the SAME @AppStorage offsets Plan 07 stopped feeding into
+    // resolvedWidthScale/resolvedDepthScale (expanded content, now auto-only) — this drives
+    // collapsed-state Live Activity wing content instead. Identical auto+manual mechanism
+    // (D-07/D-08: auto default, manual offset from it, 0.8...1.5 clamp) as the property it
+    // replaces conceptually; only the TARGET changed, not the math.
+    private var resolvedWingWidthScale: CGFloat {
+        resolvedIslandScale(auto: autoIslandScale, manualOffset: CGFloat(islandWidthScaleOffset))
+    }
+    private var resolvedWingDepthScale: CGFloat {
+        resolvedIslandScale(auto: autoIslandScale, manualOffset: CGFloat(islandDepthScaleOffset))
+    }
+
     // Phase 52 / SWITCH-03 (D-04/D-05) — the alternate top-edge switcher layout: 4
     // navCircleButtons flanking the camera/notch cutout, 2 left + 2 right, sharing
     // orderedSlotViews/icon(for:) with switcherRow (D-03: one shared ordering source feeds
@@ -2943,11 +2955,12 @@ struct NotchPillView: View {
     private func wingsShape<Content: View>(
         leftWidth: CGFloat = Self.wingsSize.width / 2,
         rightWidth: CGFloat = Self.wingsSize.width / 2,
+        depthScale: CGFloat = 1.0,
         onTap: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         let shape = NotchShape(topCornerRadius: 12, bottomCornerRadius: 6)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside a 6pt bottom radius without squeezing the wall to almost nothing
-        let size = CGSize(width: leftWidth + rightWidth, height: Self.wingsSize.height)
+        let size = CGSize(width: leftWidth + rightWidth, height: Self.wingsSize.height * depthScale)
         return shape
             .fill(islandFill)
             // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order,
