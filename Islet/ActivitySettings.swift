@@ -105,6 +105,31 @@ enum ActivitySettings {
     static let switcherSlotRightInnerKey = "switcher.slot.rightInner"
     static let switcherSlotRightOuterKey = "switcher.slot.rightOuter"
 
+    // Phase 65 / QACTION-01/QACTION-02 (D-03/D-05) — 8 independent per-slot keys for the Quick
+    // Actions bar, one key per fixed bar position (never a single encoded array — mirrors the
+    // switcherSlot* convention immediately above). An unconfigured slot's rawValue is absent/
+    // corrupted and the consuming @AppStorage (declared by a later plan) falls back to
+    // QuickActionsBarCatalog.Action.none — never force-unwrapped, never crashes.
+    static let quickActionsBarSlot1Key = "quickActionsBar.slot.1"
+    static let quickActionsBarSlot2Key = "quickActionsBar.slot.2"
+    static let quickActionsBarSlot3Key = "quickActionsBar.slot.3"
+    static let quickActionsBarSlot4Key = "quickActionsBar.slot.4"
+    static let quickActionsBarSlot5Key = "quickActionsBar.slot.5"
+    static let quickActionsBarSlot6Key = "quickActionsBar.slot.6"
+    static let quickActionsBarSlot7Key = "quickActionsBar.slot.7"
+    static let quickActionsBarSlot8Key = "quickActionsBar.slot.8"
+    // D-05 — per-slot independent launch target, plain String storage (mirrors
+    // quickNotesVaultFolderPathKey's existing precedent); empty string = unset. NOT added to
+    // defaultsToFalseKeys below — these are String/enum-rawValue keys, not Bool toggles.
+    static let quickActionsBarSlot1LaunchTargetKey = "quickActionsBar.slot.1.launchTarget"
+    static let quickActionsBarSlot2LaunchTargetKey = "quickActionsBar.slot.2.launchTarget"
+    static let quickActionsBarSlot3LaunchTargetKey = "quickActionsBar.slot.3.launchTarget"
+    static let quickActionsBarSlot4LaunchTargetKey = "quickActionsBar.slot.4.launchTarget"
+    static let quickActionsBarSlot5LaunchTargetKey = "quickActionsBar.slot.5.launchTarget"
+    static let quickActionsBarSlot6LaunchTargetKey = "quickActionsBar.slot.6.launchTarget"
+    static let quickActionsBarSlot7LaunchTargetKey = "quickActionsBar.slot.7.launchTarget"
+    static let quickActionsBarSlot8LaunchTargetKey = "quickActionsBar.slot.8.launchTarget"
+
     // Phase 27 / VISUAL-03: the island's material look — a flat black fill
     // ("solidBlack") or the Phase 25 vertical gradient ("gradient"). Phase 35 /
     // GLASS-01 (D-05) adds a third case, "liquidGlass" — the distorted-shader
