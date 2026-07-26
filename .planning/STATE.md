@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: 67.1-05-PLAN.md Task 1 complete (Release build + full test suite green); Task 2 on-device UAT checkpoint awaiting user
-last_updated: "2026-07-26T22:14:23.396Z"
+stopped_at: 67.1-05-PLAN.md Task 2 approved by user on-device — Phase 67.1 complete
+last_updated: "2026-07-26T21:52:00.000Z"
 last_activity: 2026-07-26
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 39
-  completed_plans: 38
+  completed_plans: 39
   percent: 79
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 67.1 — notch-size-scaling-resolution-aware-manual-override
+**Current focus:** Phase 67.1 complete — next phase in v1.10 (64-68) not yet started
 
 ## Current Position
 
-Phase: 67.1 (notch-size-scaling-resolution-aware-manual-override) — EXECUTING
-Plan: 05 of 10 (final closeout plan, wave 9 — depends on 02/03/04/06/07/08/09/10, all of which are complete)
-Status: Blocked on checkpoint — Task 1 (Release build + full XCTest suite) is green; Task 2 is a blocking on-device UAT checkpoint (`gate="blocking"`) awaiting the user's physical hardware verification per the plan's 9-step how-to-verify. Do NOT mark 67.1-05 or Phase 67.1 complete until the user replies "approved".
+Phase: 67.1 (notch-size-scaling-resolution-aware-manual-override) — COMPLETE
+Plan: 10 of 10 — all plans executed and summarized
+Status: Phase 67.1 formally closed. User completed and approved all 9 on-device UAT steps for 67.1-05 Task 2 (D-01..D-14 all verified on real 1710x1112 hardware, no issues reported). v2.2 (build 13), which already contains all of Phase 67.1's changes, was released to GitHub and is live via Sparkle appcast — done in a prior session before this UAT approval. Formal orchestrator-level gates (code review, verifier, nyquist audit) were intentionally skipped for this closeout given user's session-credit constraints; revisit only if a regression surfaces.
 Last activity: 2026-07-26
 
 ### Phase 67.1 Plan 05 Task 1 result (2026-07-26)
@@ -39,6 +39,10 @@ Plans 07-10's merged changes. `MeetingMonitorManualSpike.testManualDetectionHeur
 (its own unconditional `XCTAssertTrue(true)` after a 180s manual-observation window) — not a new failure.
 All 4 grep-based structural invariants confirmed present (D-13 Site 1 = 2, D-13 Site 3 = 2, D-14 contract = 2).
 No files were modified by Task 1 (build/test verification only, per `files_modified: []`) — no code commit.
+
+### Phase 67.1 Plan 05 Task 2 result (2026-07-26)
+
+User performed all 9 on-device UAT steps on their real 1710x1112 hardware and replied "approved" — no issues reported. Per the plan's acceptance criteria, this closes Phase 67.1: all 14 decisions (D-01..D-14) are verified end-to-end (expanded-state auto-only scaling, collapsed-wing auto+manual scaling with camera-safety floor, idle-pill non-regression, Reset to Auto, Meeting-wing mute-icon clickability). See `67.1-05-SUMMARY.md`.
 
 ### Phase 48 status note
 
