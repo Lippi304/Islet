@@ -846,10 +846,11 @@ struct SettingsView: View {
                 }
             }
             // RESEARCH.md Open Question 1 — surfaced only while at least one slot is
-            // configured as Do Not Disturb, since that action's write path depends on a
-            // Shortcut existing with this exact name (FocusToggleAction.focusShortcutName).
+            // configured as Do Not Disturb, since that action's write path depends on two
+            // Shortcuts existing with these exact names (one-way, not a single toggling
+            // Shortcut — see FocusToggleAction.swift's doc comment for why).
             if quickActionsBarAnySlotIsFocusToggle {
-                Text("Do Not Disturb requires a Shortcut named '\(FocusToggleAction.focusShortcutName)' with a Set Focus action.")
+                Text("Do Not Disturb requires two Shortcuts: '\(FocusToggleAction.focusOnShortcutName)' (Set Focus \u{2192} On) and '\(FocusToggleAction.focusOffShortcutName)' (Set Focus \u{2192} Off).")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }

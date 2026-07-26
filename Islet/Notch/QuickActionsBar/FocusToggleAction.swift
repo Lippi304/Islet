@@ -23,11 +23,16 @@ import Intents
 // around it.
 @MainActor
 enum FocusToggleAction {
-    // Fixed, documented Shortcut name (RESEARCH.md Open Question 1) — no per-call parameter,
-    // no setup-flow UI this phase. If the user hasn't created a Shortcut with this exact name,
+    // Two fixed, documented, ONE-WAY Shortcut names (post-65-08-checkpoint fix) — a single
+    // Shortcut using Apple's "Set Focus" action can only ever be built as "Turn On" or "Turn
+    // Off", never a real toggle (Shortcuts has no native "flip current state" action). Rather
+    // than requiring the user to build conditional logic inside the Shortcuts app (fragile,
+    // hard to verify from outside), toggle() below already knows the "before" state and picks
+    // the correct one-way shortcut itself. If the user hasn't created the needed Shortcut,
     // `shortcuts run` fails/no-ops and the read-back naturally reports failure: the required
     // "visible, not silent" behavior, with zero extra config surface.
-    static let focusShortcutName = "Islet Toggle Focus"
+    static let focusOnShortcutName = "Islet Focus On"
+    static let focusOffShortcutName = "Islet Focus Off"
 
     // Live read of current Focus/DND state — the green "confirmed-on" icon state Plan 65-05's
     // DND tile uses. Never force-unwraps; degrades to `false` (not authorized / no data yet).
@@ -55,7 +60,7 @@ enum FocusToggleAction {
                 let before = INFocusStatusCenter.default.focusStatus.isFocused ?? false
                 let task = Process()
                 task.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
-                task.arguments = ["run", focusShortcutName]
+                task.arguments = ["run", before ? focusOffShortcutName : focusOnShortcutName]
                 do {
                     try task.run()
                 } catch {
