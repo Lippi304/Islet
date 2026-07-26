@@ -1192,7 +1192,7 @@ Plans:
 
 **Wave 2** *(blocked on 65-01; 65-05 also blocked on 65-02/65-04)*
 
-- [ ] 65-05-PLAN.md — NotchPillView.swift quickActionsBarContent (8-tile grid, D-04 tap-pulse, live icon-state reads)
+- [x] 65-05-PLAN.md — NotchPillView.swift quickActionsBarContent (8-tile grid, D-04 tap-pulse, live icon-state reads)
 - [ ] 65-06-PLAN.md — SettingsView.swift Quick Actions card flip + 8-slot configuration popover + 5th switcher-slot option
 
 **Wave 3** *(blocked on 65-01..65-05)*

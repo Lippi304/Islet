@@ -4,7 +4,7 @@ milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
 stopped_at: Completed 65-02-PLAN.md
-last_updated: "2026-07-26T01:00:33.257Z"
+last_updated: "2026-07-26T01:19:14.344Z"
 last_activity: 2026-07-26
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 65 (quick-actions-bar) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-07-26
 
@@ -190,6 +190,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 65 P02 | 12min | 2 tasks | 3 files |
 | Phase 65 P03 | 15min | 2 tasks | 3 files |
 | Phase 65 P04 | 15min | 1 tasks | 3 files |
+| Phase 65 P05 | 20min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -314,6 +315,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 65]: [Phase 65-01] Quick Actions bar confirmed as a 5th switcher-tab catalog entry (D-01), resolved in the isExpanded tier alongside Calendar/Weather/Tray/Timer, never an ActiveTransient
 - [Phase 65]: [Phase 65-02] CaffeinateToggleAction implemented as a static-state enum (not RESEARCH.md's class-instance example) per the plan's own locked deviation
 - [Phase ?]: [Phase 65-04] @MainActor added to FocusToggleAction (blocking-fix): FocusModeMonitor.isAuthorized is itself MainActor-isolated, so the RESEARCH.md code example needed this to compile
+- [Phase 65]: navCircleButton gained an optional tint param (default nil) to express DND/caffeinate/mic green-red icon states, keeping every other of its 15+ call sites byte-identical
+- [Phase 65]: NotchWindowController.swift and IsletTests/NotchPillViewTests.swift touched beyond Plan 65-05's files_modified list (Rule 3): quickActionsBarFeedback is a non-defaulted stored property, so the app's one real NotchPillView construction site and all 3 test constructions needed the new argument to keep compiling
 
 ### Roadmap Evolution
 
@@ -455,7 +458,7 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-26T01:00:29.438Z
+Last session: 2026-07-26T01:19:14.339Z
 Stopped at: Completed 65-02-PLAN.md
 Resume file: None
 
