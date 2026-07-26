@@ -1061,7 +1061,7 @@ struct SettingsView: View {
                                 .monospacedDigit()
                         }
                     }
-                    Text("Adjusts the size of expanded views — Home, Tray, Calendar, Weather, Quick Actions. The collapsed notch is unaffected.")
+                    Text("Adjusts the size of collapsed Live Activities — Music, OSD volume/brightness, Caps Lock, Charging, Focus, Device, Update, Download, Timer, Meeting, and Countdown. The plain idle notch is unaffected.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     HStack {
