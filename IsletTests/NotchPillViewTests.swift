@@ -149,7 +149,29 @@ final class NotchPillViewTests: XCTestCase {
 
     func testOrderedSlotViewsDefaultsToTodaysPillOrder() {
         // Fresh view, no UserDefaults overrides — must byte-match today's hardcoded
-        // switcherRow order (SWITCH-04 default, zero regression).
+        // switcherRow order (SWITCH-04 default, zero regression). UserDefaults.standard is the
+        // REAL app defaults domain (this test host is Islet.app, not an isolated suite), so a
+        // real device that has ever had a switcher slot reassigned via Settings (e.g. Phase 65's
+        // own on-device UAT assigning Quick Actions to a slot) pollutes this "fresh" assumption.
+        // Explicitly clear + restore the 4 slot keys, mirroring
+        // testOrderedSlotViewsReflectsUserDefaultsOverride's own save/restore pattern below.
+        let defaults = UserDefaults.standard
+        let keys = [ActivitySettings.switcherSlotLeftOuterKey,
+                    ActivitySettings.switcherSlotLeftInnerKey,
+                    ActivitySettings.switcherSlotRightInnerKey,
+                    ActivitySettings.switcherSlotRightOuterKey]
+        let originalValues = keys.map { defaults.string(forKey: $0) }
+        defer {
+            for (key, original) in zip(keys, originalValues) {
+                if let original {
+                    defaults.set(original, forKey: key)
+                } else {
+                    defaults.removeObject(forKey: key)
+                }
+            }
+        }
+        for key in keys { defaults.removeObject(forKey: key) }
+
         XCTAssertEqual(makeSlotView().orderedSlotViews, [.home, .tray, .calendar, .weather])
     }
 
