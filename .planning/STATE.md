@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Completed 67.1-10-PLAN.md
-last_updated: "2026-07-26T20:06:58.439Z"
+stopped_at: 67.1-05-PLAN.md Task 1 complete (Release build + full test suite green); Task 2 on-device UAT checkpoint awaiting user
+last_updated: "2026-07-26T22:14:23.396Z"
 last_activity: 2026-07-26
 progress:
   total_phases: 19
@@ -26,9 +26,19 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 67.1 (notch-size-scaling-resolution-aware-manual-override) — EXECUTING
-Plan: 10 of 10 (all plans executed — awaiting orchestrator phase-level gates)
-Status: Ready to execute
+Plan: 05 of 10 (final closeout plan, wave 9 — depends on 02/03/04/06/07/08/09/10, all of which are complete)
+Status: Blocked on checkpoint — Task 1 (Release build + full XCTest suite) is green; Task 2 is a blocking on-device UAT checkpoint (`gate="blocking"`) awaiting the user's physical hardware verification per the plan's 9-step how-to-verify. Do NOT mark 67.1-05 or Phase 67.1 complete until the user replies "approved".
 Last activity: 2026-07-26
+
+### Phase 67.1 Plan 05 Task 1 result (2026-07-26)
+
+Release build (`xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'`) succeeded.
+Full XCTest suite: 569 tests, 6 failures — all 6 are the pre-existing, already-documented failures
+(4x `LicenseStateTests`, 2x `SettingsViewTests`, see `deferred-items.md`), zero new failures from
+Plans 07-10's merged changes. `MeetingMonitorManualSpike.testManualDetectionHeuristic` passed this run
+(its own unconditional `XCTAssertTrue(true)` after a 180s manual-observation window) — not a new failure.
+All 4 grep-based structural invariants confirmed present (D-13 Site 1 = 2, D-13 Site 3 = 2, D-14 contract = 2).
+No files were modified by Task 1 (build/test verification only, per `files_modified: []`) — no code commit.
 
 ### Phase 48 status note
 
