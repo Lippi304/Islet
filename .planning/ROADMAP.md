@@ -1247,9 +1247,9 @@ Plans:
 Plans:
 - [ ] TBD (run /gsd-plan-phase 68 to break down)
 
-### Phase 69: Claude Code Session Usage in der Notch: Wenn eine Claude Code Session aktiv laeuft, faehrt die Notch aehnlich wie bei der Now-Playing-Preview etwas aus und zeigt den aktuellen Usage-Status. Links: aktuelles 5-Stunden-Limit inkl. Restzeit bis Reset (z.B. 1:40h). Rechts: Wochenlimit als Fuellstand/Prozent. Update-Intervall einstellbar (alle 5 Minuten oder live/dauerhaft). Datenbeschaffung kann auf einem bereits vom User begonnenen separaten Tool/Script aufbauen, das Claude-Usage-Daten abgreift.
+### Phase 69: Claude Session Usage Display
 
-**Goal:** [To be planned]
+**Goal:** [To be planned] — Notch-Erweiterung ähnlich der Now-Playing-Preview, die anzeigt, wenn eine Claude Code Session aktiv läuft: links das aktuelle 5-Stunden-Limit inkl. Restzeit bis Reset (z. B. "1:40h"), rechts das Wochenlimit als Füllstand/Prozent. Update-Intervall einstellbar (alle 5 Minuten oder live/dauerhaft). Datenbeschaffung kann auf dem separaten Usage-Tracking-Tool/Script aufbauen, das der User bereits begonnen hat.
 **Requirements**: TBD
 **Depends on:** Phase 68
 **Plans:** 0 plans
