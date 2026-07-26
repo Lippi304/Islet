@@ -115,6 +115,10 @@ struct NotchPillView: View {
         // direction (mirrors OUTPUT-01's own accepted "static reservation, slightly taller
         // than needed sometimes" trade-off) — Site 1 alone decides the actually-visible height.
         case .timerSetup: return timerSetupMode == .countdown ? Self.calendarContentHeight : Self.timerSetupContentHeight
+        // Phase 65 / QACTION-02 (Plan 05 Task 2) — the Quick Actions bar's own dedicated
+        // content height, matching every sibling switcher-tab presentation's explicit branch
+        // (never falls through to `default:`, which is Home-shaped, not grid-shaped).
+        case .quickActionsBarExpanded: return Self.quickActionsBarContentHeight
         default: return Self.homeContentHeight + (presentationState.outputPanelOpen ? Self.outputPanelExtraHeight : 0)
         }
     }
@@ -1110,8 +1114,11 @@ struct NotchPillView: View {
             // longer an inline overlay gated on Home's 3 sub-states.
             case .timerSetup:
                 timerSetupPicker
+            // Phase 65 / QACTION-02 (Plan 05 Task 2) — the Quick Actions bar's own content.
+            case .quickActionsBarExpanded:
+                quickActionsBarContent
             default:
-                EmptyView()   // unreachable — presentationSwitch only routes here for the 7 cases above
+                EmptyView()   // unreachable — presentationSwitch only routes here for the 8 cases above
             }
         }
     }
