@@ -1239,10 +1239,10 @@ Plans:
 
 ### Phase 67.1: Notch Size Scaling — Resolution-Aware + Manual Override (INSERTED)
 
-**Goal:** The notch island's expanded content (Home, Tray, Weather, Calendar, Quick Actions, Switcher) automatically scales with the display's current resolution relative to a locked 1470x956pt baseline, and two independent Settings sliders (Width, Depth — 80%-150%) let the user further nudge that auto-computed default — so the island stops looking too small after a resolution change, without a per-resolution redesign of every view. The collapsed/idle pill stays exactly as-is.
-**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 (source: 67.1-CONTEXT.md locked decisions — no formal REQUIREMENTS.md IDs exist for this inserted phase, same precedent as Phase 16)
+**Goal:** The notch island's expanded content (Home, Tray, Weather, Calendar, Quick Actions, Switcher) automatically scales with the display's current resolution relative to a locked 1470x956pt baseline (auto-only, D-13) — while the SAME two independent Settings sliders (Width, Depth — 80%-150%) now grow/shrink the COLLAPSED-state Live Activity wing content instead (Music, OSD, Caps Lock, Charging, Focus, Device, Update, Download, Timer, Meeting, Countdown), combining the same auto default with the manual offset (D-14), with the real camera cutout's clearance guaranteed untouched at every slider position. The plain idle collapsed pill stays exactly as-is (D-02/D-09/D-11 reaffirmed).
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14 (source: 67.1-CONTEXT.md locked decisions — no formal REQUIREMENTS.md IDs exist for this inserted phase, same precedent as Phase 16)
 **Depends on:** Phase 67
-**Plans:** 5/6 plans executed
+**Plans:** 6/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1259,9 +1259,25 @@ Plans:
 
 - [x] 67.1-06-PLAN.md — Gap closure: evidence-based fix for collapsed-pill live re-measurement bug on live scaled-resolution switch (D-09, D-10)
 
-**Wave 4** *(blocked on 67.1-02, 67.1-03, 67.1-04, 67.1-06)*
+**Wave 5** *(blocked on 67.1-02, 67.1-03, 67.1-04 — second amendment, D-11..D-14)*
 
-- [ ] 67.1-05-PLAN.md — Full build/test gate + on-device UAT checkpoint (auto-scale, live slider drag, click-through at 0.8x/1.5x extremes, collapsed-pill/camera-clearance non-regression) — depends on 67.1-06's collapsed-pill fix landing first
+- [ ] 67.1-07-PLAN.md — D-13: expanded state becomes auto-only (Site 1 + Site 3) + D-12: retarget Settings "Island Size" helper copy
+
+**Wave 6** *(blocked on 67.1-07)*
+
+- [ ] 67.1-08-PLAN.md — D-14 wing-scale contract (resolvedWingWidthScale/resolvedWingDepthScale + wingsShape depthScale param) + apply to Charging/Focus/Device/Countdown wings
+
+**Wave 7** *(blocked on 67.1-08)*
+
+- [ ] 67.1-09-PLAN.md — Apply D-14 wing scale to OSD/Caps Lock/Update/Download/Timer/Meeting wings (live-hardware camera-block preserved)
+
+**Wave 8** *(blocked on 67.1-08, 67.1-09)*
+
+- [ ] 67.1-10-PLAN.md — Fix mediaWingsOrToast/mediaWingsRow's original clipping bug (live-hardware camera block, replacing the flexible Spacer()) + D-14 wing scale
+
+**Wave 9** *(blocked on 67.1-02, 67.1-03, 67.1-04, 67.1-06, 67.1-07, 67.1-08, 67.1-09, 67.1-10 — supersedes the original, never-executed Wave 4 closeout)*
+
+- [ ] 67.1-05-PLAN.md — Full build/test gate + on-device UAT checkpoint covering D-01..D-14: expanded auto-only non-regression, wing-content auto+manual scaling with camera-safety floor, idle-pill non-regression, and the original Music-Play wing clipping fix
 
 ### Phase 68: App Switcher / Window Previews
 
