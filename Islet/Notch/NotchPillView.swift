@@ -3462,11 +3462,16 @@ struct NotchPillView: View {
         // effort already spent chasing precision that turned out to be built on a broken mechanism.
         let margin: CGFloat = 55
         let notchHalfWidth = rawNotchHalfWidth + margin
-        let iconLeadingPad: CGFloat = 14
+        // 67.1-09 (D-14) — resolvedWingWidthScale/resolvedWingDepthScale (Plan 08) scale ONLY the
+        // outermost footprint padding here; margin/cameraBlockWidth above (and every content width
+        // below) stay completely untouched at every slider position.
+        let wScale = resolvedWingWidthScale
+        let dScale = resolvedWingDepthScale
+        let iconLeadingPad: CGFloat = 14 * wScale
         let iconWidth: CGFloat = 20
         let cameraBlockWidth = notchHalfWidth * 2   // the FULL excluded span, centered on the notch's true center
         let barWidth: CGFloat = 90
-        let trailingPad: CGFloat = 20
+        let trailingPad: CGFloat = 20 * wScale
         // `wingsShape`'s `alignmentGuide` pins local x=`leftWidth` to the notch's TRUE center — so
         // `leftWidth` must land exactly at the camera block's own midpoint (icon pad + icon width,
         // then half the camera block), which is what makes the block's fixed width actually line up
@@ -3491,14 +3496,14 @@ struct NotchPillView: View {
         #if DEBUG
         print("[OSD-GEOM] ROUND 15 sequential HStack layout: collapsedNotchSize=\(String(describing: interaction.collapsedNotchSize)) notchHalfWidth(+margin)=\(notchHalfWidth) cameraBlockWidth=\(cameraBlockWidth) leftWidth=\(leftWidth) rightWidth=\(rightWidth) totalWidth=\(totalWidth)")
         #endif
-        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: dScale) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: iconLeadingPad)
                 Image(systemName: iconName)
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
-                    .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                    .frame(width: iconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                     .modifier(OSDFrameLogger(label: "icon (named osdWing)", space: .named("osdWing"), verdict: { g in
                         g.maxX <= excludedMinX
                             ? "PASS (icon ends at \(String(format: "%.1f", g.maxX)), excludedMinX=\(String(format: "%.1f", excludedMinX)))"
@@ -3540,9 +3545,12 @@ struct NotchPillView: View {
         let margin: CGFloat = 65
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
-        let iconLeadingPad: CGFloat = 12
+        // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
+        let wScale = resolvedWingWidthScale
+        let dScale = resolvedWingDepthScale
+        let iconLeadingPad: CGFloat = 12 * wScale
         let iconWidth: CGFloat = 20
-        let trailingPad: CGFloat = 12
+        let trailingPad: CGFloat = 12 * wScale
         let textWidth: CGFloat = 110
         let leftWidth = iconLeadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = iconLeadingPad + iconWidth + cameraBlockWidth + textWidth + trailingPad
@@ -3553,14 +3561,14 @@ struct NotchPillView: View {
         assert(cameraBlockWidth > 0, "Caps Lock camera block width (\(cameraBlockWidth)) must be positive")
         assert(rightWidth < 325 && leftWidth < 325,
                "Caps Lock wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
-        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth) {
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: dScale) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: iconLeadingPad)
                 Image(systemName: "capslock.fill")
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)
-                    .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                    .frame(width: iconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                 Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                 Text(activity == .on ? "Caps Lock On" : "Caps Lock Off")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -3593,12 +3601,15 @@ struct NotchPillView: View {
         let margin: CGFloat = 30
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
-        let leadingPad: CGFloat = 8
+        // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
+        let wScale = resolvedWingWidthScale
+        let dScale = resolvedWingDepthScale
+        let leadingPad: CGFloat = 8 * wScale
         let iconWidth: CGFloat = 20
         let iconLabelGap: CGFloat = 2
         let labelWidth: CGFloat = 38    // "Update" (6 chars) at 12pt semibold rounded
         let pillWidth: CGFloat = 52     // UpdateVersionPill ("v1.99"-class content) at 11pt
-        let trailingPad: CGFloat = 8
+        let trailingPad: CGFloat = 8 * wScale
         let leftWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth + pillWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
@@ -3606,14 +3617,14 @@ struct NotchPillView: View {
         assert(cameraBlockWidth > 0, "Update camera block width (\(cameraBlockWidth)) must be positive")
         assert(rightWidth < 325 && leftWidth < 325,
                "Update wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
-        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, onTap: onUpdateTap) {
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: dScale, onTap: onUpdateTap) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: leadingPad)
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)
-                    .frame(width: iconWidth, height: Self.wingsSize.height, alignment: .center)
+                    .frame(width: iconWidth, height: Self.wingsSize.height * dScale, alignment: .center)
                 Color.clear.frame(width: iconLabelGap)
                 Text("Update")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -3622,7 +3633,7 @@ struct NotchPillView: View {
                     .frame(width: labelWidth, alignment: .leading)
                 Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                 UpdateVersionPill(version: activity.version)
-                    .frame(width: pillWidth, height: Self.wingsSize.height, alignment: .leading)
+                    .frame(width: pillWidth, height: Self.wingsSize.height * dScale, alignment: .leading)
                 Color.clear.frame(width: trailingPad)
             }
         }
