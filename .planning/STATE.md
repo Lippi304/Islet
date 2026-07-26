@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Completed 67.1-01-PLAN.md
-last_updated: "2026-07-26T10:08:53.359Z"
+stopped_at: Completed 67.1-02-PLAN.md
+last_updated: "2026-07-26T10:21:40.980Z"
 last_activity: 2026-07-26
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 67.1 (notch-size-scaling-resolution-aware-manual-override) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-07-26
 
@@ -196,6 +196,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 65 P07 | 20min | 2 tasks | 1 files |
 | Phase 65 P08 | 45min | 2 tasks | 5 files |
 | Phase 67.1 P01 | 5min | 2 tasks | 3 files |
+| Phase 67.1 P02 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -327,6 +328,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase ?]: [Phase 65, 65-08]: DND uses two fixed one-way Shortcuts (Islet Focus On / Islet Focus Off) selected at runtime from the already-read before state, since Shortcuts' Set Focus action has no native toggle mode -- confirmed working in both directions on-device
 - [Phase ?]: [Phase 65]: All 8 Quick Actions confirmed working end-to-end on real hardware including the two previously-unconfirmed claims -- Screen Lock (RESEARCH.md A2) and DND/Focus (RESEARCH.md Open Question 1) -- QACTION-01/02/03 complete, phase ready for verification
 - [Phase ?]: [Phase 67.1] islandAutoScaleFactor/resolvedIslandScale established as the single shared contract all three geometry call sites (Plans 02-04) must use for three-site parity by construction
+- [Phase ?]: [Phase 67.1-02]: NotchPillViewTests.swift's hardcoded per-case width/height assertions rewritten to compute the live scale multiplier via the same pure production functions (islandAutoScaleFactor/resolvedIslandScale), since the plan's zero-regression acceptance criteria assumed a 1470pt-baseline test screen that doesn't hold on real hardware
 
 ### Roadmap Evolution
 
@@ -469,8 +471,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-26T10:08:53.354Z
-Stopped at: Completed 67.1-01-PLAN.md
+Last session: 2026-07-26T10:21:40.975Z
+Stopped at: Completed 67.1-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
