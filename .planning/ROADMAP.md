@@ -1180,7 +1180,29 @@ Plans:
   3. The mic-mute action reuses the same `MicMuteController` Meeting-HUD already established — toggling it from either surface reflects the same live system mute state.
   4. The Do Not Disturb/Focus action visibly shows a failure state when it can't reliably act (documented best-effort, no stable public macOS API) rather than silently doing nothing.
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 65-01-PLAN.md — Pure seams: QuickActionsBarCatalog.swift (8-slot catalog + AppStorage keys) + .quickActionsBarExpanded resolver case, TDD
+- [ ] 65-02-PLAN.md — DisplaySleepAction + ScreenLockAction + CaffeinateToggleAction (fire-and-forget/stateful system helpers)
+- [ ] 65-03-PLAN.md — DarkModeToggleAction + EmptyTrashAction (AppleScript+errorDict) + LaunchAction (validated URL/app passthrough)
+- [ ] 65-04-PLAN.md — FocusToggleAction: best-effort DND toggle + INFocusStatusCenter read-back verification (QACTION-03), TDD
+
+**Wave 2** *(blocked on 65-01; 65-05 also blocked on 65-02/65-04)*
+
+- [ ] 65-05-PLAN.md — NotchPillView.swift quickActionsBarContent (8-tile grid, D-04 tap-pulse, live icon-state reads)
+- [ ] 65-06-PLAN.md — SettingsView.swift Quick Actions card flip + 8-slot configuration popover + 5th switcher-slot option
+
+**Wave 3** *(blocked on 65-01..65-05)*
+
+- [ ] 65-07-PLAN.md — NotchWindowController.swift dispatch wiring for all 8 catalog actions + quickActionsKey gating
+
+**Wave 4** *(blocked on 65-07)*
+
+- [ ] 65-08-PLAN.md — Manual spike scaffold + on-device UAT checkpoint covering all 8 actions
+
 **UI hint**: yes
 
 ### Phase 66: Menübar-Overflow (Ice-Style MVP)
