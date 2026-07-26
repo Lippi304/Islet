@@ -29,6 +29,7 @@ final class NotchPillViewTests: XCTestCase {
                                   presentationState: IslandPresentationState(.idle),
                                   outfit: BasicOutfitState(),
                                   shelfViewState: shelf,
+                                  quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                                   onboardingState: OnboardingViewState(),
                                   viewSwitcherState: ViewSwitcherState(),
                                   calendarViewState: CalendarViewState())
@@ -52,6 +53,7 @@ final class NotchPillViewTests: XCTestCase {
                                   presentationState: IslandPresentationState(presentation),
                                   outfit: BasicOutfitState(),
                                   shelfViewState: ShelfViewState(),
+                                  quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                                   onboardingState: OnboardingViewState(),
                                   viewSwitcherState: ViewSwitcherState(),
                                   calendarViewState: CalendarViewState())
@@ -139,6 +141,7 @@ final class NotchPillViewTests: XCTestCase {
                               presentationState: IslandPresentationState(presentation),
                               outfit: BasicOutfitState(),
                               shelfViewState: ShelfViewState(),
+                              quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                               onboardingState: OnboardingViewState(),
                               viewSwitcherState: ViewSwitcherState(),
                               calendarViewState: CalendarViewState())

@@ -206,6 +206,12 @@ struct NotchPillView: View {
     // published — no ShelfCoordinator, no file I/O.
     @ObservedObject var shelfViewState: ShelfViewState
 
+    // Phase 65 / QACTION-02 (interfaces) — the SEPARATE @Published DND/Focus failure-flash
+    // model, mirroring outfit's/shelfViewState's ownership contract exactly: the controller
+    // (Plan 65-07/08) always owns and injects a real instance, never defaulted. This view only
+    // RENDERS quickActionsBarFeedback.lastFailedAction (see quickActionsBarContent below).
+    @ObservedObject var quickActionsBarFeedback: QuickActionsBarFeedbackState
+
     // Phase 26 / ONBOARD-01 — the SEPARATE @Published onboarding-permissions model,
     // mirroring nowPlaying/presentationState/outfit/shelfViewState's existing ownership
     // contract: the controller (Plan 26-04) always owns and injects a real instance, never
@@ -258,6 +264,14 @@ struct NotchPillView: View {
     // wires it to MicMuteController.toggleSystemInputMute(). Defaults to a no-op so DEBUG
     // #Previews build without a controller.
     var onMuteTap: () -> Void = {}
+
+    // Phase 65 / QACTION-02 — the Quick Actions bar's tile tap callback, mirroring
+    // `onMuteTap`'s exact declaration style. The Int is the CAPTURED 0-7 slot index (not the
+    // filtered configured-tiles position) — needed so the controller (Plan 65-07) can resolve
+    // the matching per-slot launch-target key for `.launch` taps without re-deriving
+    // orderedQuickActionsBarSlots itself. Defaults to a no-op so the DEBUG #Previews build
+    // without a controller.
+    var onQuickActionTap: (QuickActionsBarCatalog.Action, Int) -> Void = { _, _ in }
 
     // Phase 42 / DUAL-01 (D-12, SUPERSEDED 2026-07-19 — live user decision during Plan 42-04
     // Task 3's on-device UAT) — the secondary bubble's tap callback, mirroring `onClick`'s
@@ -968,6 +982,13 @@ struct NotchPillView: View {
     static let hourlyChipCount = 6
     static let largeDailyRowCount = 4
 
+    // Phase 65 / QACTION-02 (65-UI-SPEC.md Spacing Scale) — the ONE dedicated content height
+    // for `.quickActionsBarExpanded`, mirroring `trayContentHeight`/`calendarContentHeight`'s
+    // own per-tab-override precedent (a plain `tabHeight` branch, not a fall-through to the
+    // Home-shaped `default:` case). Box math: cameraClearance (42) + row 1 tile (36) + row gap
+    // (16) + row 2 tile (36) + bottom pad (16) + 4pt rounding slack = 150.
+    static let quickActionsBarContentHeight: CGFloat = 150
+
     // Phase 44 UAT gap-closure (round 2) — quickActionButton() previously used
     // `.frame(maxWidth: .infinity)`, so on the new 650pt-wide picker card (Plan 44-01) the 3
     // chips flex-filled far wider than their pre-Phase-44 size, which broke D-06's "buttons stay
@@ -1287,6 +1308,186 @@ struct NotchPillView: View {
         // same constant here aligns the vertical position with every sibling presentation.
         .padding(.top, Self.cameraClearance)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    // Phase 65 / QACTION-01/02 — the 8 per-slot action assignments, one independent
+    // @AppStorage key per position (mirrors slotLeftOuter etc.'s declaration style, D-03: never
+    // a single encoded array). Corrupted/unknown stored values fall back to `.none` (the
+    // catalog's own unconfigured-slot sentinel).
+    @AppStorage(ActivitySettings.quickActionsBarSlot1Key) private var quickActionsBarSlot1: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot2Key) private var quickActionsBarSlot2: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot3Key) private var quickActionsBarSlot3: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot4Key) private var quickActionsBarSlot4: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot5Key) private var quickActionsBarSlot5: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot6Key) private var quickActionsBarSlot6: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot7Key) private var quickActionsBarSlot7: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot8Key) private var quickActionsBarSlot8: QuickActionsBarCatalog.Action = .none
+    // The 8 independent `.launch`-only per-slot targets — only ever read for the accessibility
+    // label ("Open {target}"); this view never passes these into a shell/AppleScript call
+    // (LaunchAction.swift, Plan 65-03, owns the actual open).
+    @AppStorage(ActivitySettings.quickActionsBarSlot1LaunchTargetKey) private var quickActionsBarSlot1LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot2LaunchTargetKey) private var quickActionsBarSlot2LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot3LaunchTargetKey) private var quickActionsBarSlot3LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot4LaunchTargetKey) private var quickActionsBarSlot4LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot5LaunchTargetKey) private var quickActionsBarSlot5LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot6LaunchTargetKey) private var quickActionsBarSlot6LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot7LaunchTargetKey) private var quickActionsBarSlot7LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot8LaunchTargetKey) private var quickActionsBarSlot8LaunchTarget: String = ""
+
+    // Phase 65 / QACTION-02 (D-04) — the D-04 tap-pulse's local, purely-visual state: which
+    // slot index (if any) is currently mid-pulse. Local @State, never round-trips through the
+    // controller (mirrors timerSetupMode's own local-UI-state precedent above).
+    @State private var quickActionsBarPulsingSlot: Int? = nil
+
+    // Phase 65 / QACTION-01/02 (65-UI-SPEC.md) — renders the 8-slot Quick Actions bar: the
+    // empty state for 0 configured slots (mirrors homeEmptyContent's icon/heading/body/
+    // cameraClearance structure exactly), or a 2-row x 4-column grid for 1-8 configured slots.
+    // `configured` is `orderedQuickActionsBarSlots(_:)`'s own filtered array (Plan 65-01's
+    // single source of truth for "which slots are actually configured"); `slots.indices.filter`
+    // recovers each configured action's ORIGINAL 0-7 slot position (needed for
+    // onQuickActionTap's Int param and the .launch accessibility-label lookup) without
+    // reordering anything — orderedQuickActionsBarSlots only filters `.none` out, it never
+    // reorders (Plan 65-01-SUMMARY.md).
+    private var quickActionsBarContent: some View {
+        let slots: [QuickActionsBarCatalog.Action] = [
+            quickActionsBarSlot1, quickActionsBarSlot2, quickActionsBarSlot3, quickActionsBarSlot4,
+            quickActionsBarSlot5, quickActionsBarSlot6, quickActionsBarSlot7, quickActionsBarSlot8,
+        ]
+        let configured = orderedQuickActionsBarSlots(slots)
+        let configuredIndices = slots.indices.filter { slots[$0] != .none }
+        let tiles = Array(zip(configuredIndices, configured))
+
+        return Group {
+            if configured.isEmpty {
+                VStack(spacing: 4) {
+                    Image(systemName: "bolt.horizontal.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.white.opacity(0.4))
+                    Text("No Actions Configured")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                    Text("Pick up to 8 actions in Settings → Quick Actions.")
+                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, Self.cameraClearance)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            } else {
+                VStack(spacing: 16) {
+                    quickActionsBarRow(Array(tiles.prefix(4)))
+                    if tiles.count > 4 {
+                        quickActionsBarRow(Array(tiles.suffix(from: 4)))
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, Self.cameraClearance)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+        }
+    }
+
+    // One row of up to 4 tiles, evenly distributed via Spacer() across the full content width
+    // (65-UI-SPEC.md Spacing Scale exception — NOT a fixed 16/24px gap) so 1-4 configured tiles
+    // stay visually centered regardless of exactly how many are configured.
+    private func quickActionsBarRow(_ tiles: [(Int, QuickActionsBarCatalog.Action)]) -> some View {
+        HStack(spacing: 0) {
+            ForEach(tiles, id: \.0) { pair in
+                Spacer()
+                quickActionsBarTile(index: pair.0, action: pair.1)
+            }
+            Spacer()
+        }
+    }
+
+    // A single tile: reuses navCircleButton verbatim for the circle/glyph/outline chrome
+    // (PATTERNS.md: "not a new tile/button style"), with the D-04 uniform tap-pulse (scale
+    // 1.0->1.15->1.0 + a white 0->0.3->0 opacity flash behind the glyph, spring response 0.15/
+    // damping 0.86 — Phase 39-08's OSD level-bar retune, reused verbatim per 65-UI-SPEC.md)
+    // layered on as modifiers, not a new button type. `index`/`action` are plain function
+    // parameters captured by value at call time (T-65-09's mitigation) — never a shared/mutated
+    // loop variable.
+    private func quickActionsBarTile(index: Int, action: QuickActionsBarCatalog.Action) -> some View {
+        let mapping = quickActionsBarIcon(for: action, slotIndex: index)
+        let isPulsing = quickActionsBarPulsingSlot == index
+        return ZStack {
+            Circle()
+                .fill(Color.white.opacity(isPulsing ? 0.3 : 0))
+                .frame(width: Self.navCircleDiameter, height: Self.navCircleDiameter)
+            navCircleButton(systemName: mapping.systemName, filled: false, tint: mapping.tint) {
+                withAnimation(.spring(response: 0.15, dampingFraction: 0.86)) {
+                    quickActionsBarPulsingSlot = index
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring(response: 0.15, dampingFraction: 0.86)) {
+                        if quickActionsBarPulsingSlot == index { quickActionsBarPulsingSlot = nil }
+                    }
+                }
+                onQuickActionTap(action, index)
+            }
+        }
+        .scaleEffect(isPulsing ? 1.15 : 1.0)
+        .accessibilityLabel(mapping.accessibilityLabel)
+    }
+
+    // The Icon Catalog (65-UI-SPEC.md): default/alternate SF Symbol + state-dependent tint +
+    // accessibility label per catalog Action. Live reads are all synchronous, side-effect-free
+    // (T-65-10, accepted) — readSystemInputMuted() is MicMuteController.swift's existing
+    // top-level free function (Phase 63, unmodified), never duplicated here.
+    private func quickActionsBarIcon(
+        for action: QuickActionsBarCatalog.Action, slotIndex: Int
+    ) -> (systemName: String, tint: Color?, accessibilityLabel: String) {
+        switch action {
+        case .none:
+            return ("questionmark", nil, "")   // unreachable — configured filters .none out
+        case .micMute:
+            let muted = readSystemInputMuted()
+            return (muted ? "mic.slash.fill" : "mic.fill",
+                    muted ? .red : nil,
+                    muted ? "Unmute Microphone" : "Mute Microphone")
+        case .displaySleep:
+            return ("moon.zzz.fill", nil, "Sleep Display Now")
+        case .darkMode:
+            let isDark = DarkModeToggleAction.isDarkMode
+            return (isDark ? "sun.max.fill" : "moon.fill", nil,
+                    isDark ? "Switch to Light Mode" : "Switch to Dark Mode")
+        case .screenLock:
+            return ("lock.fill", nil, "Lock Screen")
+        case .focusToggle:
+            if quickActionsBarFeedback.lastFailedAction == .focusToggle {
+                return ("exclamationmark.triangle.fill", .red, "Turn On Do Not Disturb")
+            }
+            let isOn = FocusToggleAction.isConfirmedOn
+            return ("bell.slash.fill", isOn ? .green : nil,
+                    isOn ? "Turn Off Do Not Disturb" : "Turn On Do Not Disturb")
+        case .caffeinate:
+            let isActive = CaffeinateToggleAction.isActive
+            return ("cup.and.saucer.fill", isActive ? .green : nil,
+                    isActive ? "Allow Mac to Sleep" : "Keep Mac Awake")
+        case .emptyTrash:
+            return ("trash.fill", nil, "Empty Trash")
+        case .launch:
+            let target = quickActionsBarLaunchTarget(forSlot: slotIndex)
+            return ("arrow.up.forward.app.fill", nil,
+                    "Open \(target.isEmpty ? "App/URL" : target)")
+        }
+    }
+
+    // The matching per-slot launch-target string, resolved by the ORIGINAL 0-7 slot index
+    // (never the filtered configured-tiles position) — each `.launch` slot is independently
+    // configured (Plan 65-01's 8 quickActionsBarSlot*LaunchTargetKey entries).
+    private func quickActionsBarLaunchTarget(forSlot index: Int) -> String {
+        switch index {
+        case 0: return quickActionsBarSlot1LaunchTarget
+        case 1: return quickActionsBarSlot2LaunchTarget
+        case 2: return quickActionsBarSlot3LaunchTarget
+        case 3: return quickActionsBarSlot4LaunchTarget
+        case 4: return quickActionsBarSlot5LaunchTarget
+        case 5: return quickActionsBarSlot6LaunchTarget
+        case 6: return quickActionsBarSlot7LaunchTarget
+        case 7: return quickActionsBarSlot8LaunchTarget
+        default: return ""
+        }
     }
 
     // Phase 28 / CALVIEW-01/02 (28-UI-SPEC.md "Calendar full view") — the month grid + day
@@ -2329,11 +2530,17 @@ struct NotchPillView: View {
     // not spec-mandated). Replaces the earlier text chip nav per on-device feedback.
     private static let navCircleDiameter: CGFloat = 36
 
-    private func navCircleButton(systemName: String, filled: Bool, action: @escaping () -> Void) -> some View {
+    // Phase 65 / QACTION-02 — `tint` added as an OPTIONAL trailing param (default nil) so every
+    // existing call site (onboarding nav, Timer controls, switcher rows) compiles byte-identical
+    // and renders unchanged; only quickActionsBarContent's tiles pass a non-nil value, for the
+    // green (active) / red (failure) icon-tint states 65-UI-SPEC.md's Icon Catalog requires —
+    // states the plain filled/outlined duality alone can't express. Reuses this ONE primitive
+    // rather than a parallel button type (PATTERNS.md: "not a new tile/button style").
+    private func navCircleButton(systemName: String, filled: Bool, tint: Color? = nil, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(filled ? Color.black : Color.white)
+                .foregroundStyle(tint ?? (filled ? Color.black : Color.white))
                 .frame(width: Self.navCircleDiameter, height: Self.navCircleDiameter)
                 .background(Circle().fill(filled ? Color.white : Color.clear))
                 .overlay(Circle().strokeBorder(Color.white.opacity(filled ? 0 : 0.4), lineWidth: 1.5))
@@ -4631,6 +4838,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.idle),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4649,6 +4857,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.homeLastPlayed),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4669,6 +4878,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.charging(.charging(percent: 47))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4687,6 +4897,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.device(.connected(name: "AirPods Pro", glyph: .airpodsPro, battery: 80))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4709,6 +4920,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: presentationState,
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4728,6 +4940,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.focus(.on)),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4748,6 +4961,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.nowPlayingWings(.playing(title: "New Rules", artist: "Dua Lipa"))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4768,6 +4982,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.nowPlayingWings(.paused(title: "New Rules", artist: "Dua Lipa"))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4788,6 +5003,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.playing(title: "New Rules", artist: "Dua Lipa"), healthy: true)),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4807,6 +5023,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.nowPlayingExpanded(.none, healthy: false)),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4828,6 +5045,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: IslandPresentationState(.quickActionPicker(PendingDrop(items: [item]))),
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())
@@ -4851,6 +5069,7 @@ private struct OnboardingDoneStep: View {
                          presentationState: presentationState,
                          outfit: BasicOutfitState(),
                          shelfViewState: ShelfViewState(),
+                         quickActionsBarFeedback: QuickActionsBarFeedbackState(),
                          onboardingState: OnboardingViewState(),
                          viewSwitcherState: ViewSwitcherState(),
                          calendarViewState: CalendarViewState())

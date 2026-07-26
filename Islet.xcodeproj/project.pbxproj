@@ -34,6 +34,7 @@
 		21D3560AA4C7B91581AA5272 /* FullscreenDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */; };
 		21DD22351526B5DCB2A38A65 /* NotchPillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65127041FDE5365C865095B1 /* NotchPillView.swift */; };
 		2586E152318B70467587E51C /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */; };
+		26CFD4EF68FA9CA2D8B2FD8C /* QuickActionsBarFeedbackState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 294EAA5F7B550E08D11536FC /* QuickActionsBarFeedbackState.swift */; };
 		28626D0246AAA3E67B6D0F4D /* ClipboardFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 330BE2F6665352789C4BF082 /* ClipboardFileStore.swift */; };
 		28C2D5C7AD9401DC3E873B05 /* CapsLockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80361AFAC4FDAD549382CFE /* CapsLockMonitor.swift */; };
 		2B39C5509C7EE35B552C322B /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C997928190396DADC0ADA29 /* NotchWindowController.swift */; };
@@ -226,6 +227,7 @@
 		279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargingActivityState.swift; sourceTree = "<group>"; };
 		28316551B58651959797184D /* DeviceActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivity.swift; sourceTree = "<group>"; };
 		2881BA44136BA76B0C21DEBA /* PermissionStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionStatusTests.swift; sourceTree = "<group>"; };
+		294EAA5F7B550E08D11536FC /* QuickActionsBarFeedbackState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsBarFeedbackState.swift; sourceTree = "<group>"; };
 		2B5A2F6E4109A7EDAF7E5405 /* LiquidGlassShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = LiquidGlassShader.metal; sourceTree = "<group>"; };
 		2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingState.swift; sourceTree = "<group>"; };
 		2CE5ADCC0E3E4220ABEADB47 /* CaffeinateToggleAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaffeinateToggleAction.swift; sourceTree = "<group>"; };
@@ -565,6 +567,7 @@
 				5AFE58F9AAB79136B14EC77D /* FocusToggleAction.swift */,
 				3FCDC1E75FAE6EAD6E3BE639 /* LaunchAction.swift */,
 				481203BD8903085A2FE8800A /* QuickActionsBarCatalog.swift */,
+				294EAA5F7B550E08D11536FC /* QuickActionsBarFeedbackState.swift */,
 				83F5C11A82621B88D99B53E9 /* ScreenLockAction.swift */,
 			);
 			path = QuickActionsBar;
@@ -874,6 +877,7 @@
 				EB0A6293AAD242E76B254033 /* PowerSourceMonitor.swift in Sources */,
 				4D42E4610ECAF1591FEAD40D /* QuickActionSharingService.swift in Sources */,
 				1A79C5E78E4DC4C99695D044 /* QuickActionsBarCatalog.swift in Sources */,
+				26CFD4EF68FA9CA2D8B2FD8C /* QuickActionsBarFeedbackState.swift in Sources */,
 				392D4303EA60FFC6DC5E567D /* QuickNote.swift in Sources */,
 				1A819E7EE8B838940D127CA7 /* QuickNotesFileStore.swift in Sources */,
 				618300F20A7EE3C75C21156B /* QuickNotesFormatter.swift in Sources */,

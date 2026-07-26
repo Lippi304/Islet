@@ -118,6 +118,13 @@ final class NotchWindowController {
     private let viewSwitcherState = ViewSwitcherState()
     private let calendarViewState = CalendarViewState()
 
+    // Phase 65 / QACTION-02 (interfaces) — the SEPARATE @Published DND/Focus failure-flash
+    // model NotchPillView's Quick Actions bar tiles observe, mirroring shelfViewState/
+    // onboardingState's ownership contract. Plan 65-05 only needs the property to exist so
+    // makeRootView's non-defaulted quickActionsBarFeedback param compiles; Plan 65-07/08 wire
+    // the real write (including the ~1.2s auto-clear-back-to-nil).
+    private let quickActionsBarFeedback = QuickActionsBarFeedbackState()
+
     // Phase 20 / SHELF-04/05/07 — owns the real Phase-19 append/remove/clear + disk-IO seam.
     // No `start()`-time construction needed (unlike deviceCoordinator, ShelfCoordinator has no
     // `[weak self]`-capturing closures to bind).
@@ -2733,6 +2740,7 @@ final class NotchWindowController {
                       presentationState: presentationState,
                       outfit: outfitState,
                       shelfViewState: shelfViewState,
+                      quickActionsBarFeedback: quickActionsBarFeedback,
                       onboardingState: onboardingState,
                       viewSwitcherState: viewSwitcherState,
                       calendarViewState: calendarViewState,
