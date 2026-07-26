@@ -97,3 +97,26 @@ func expandedNotchFrame(collapsed: CGRect, expandedSize: CGSize) -> CGRect {
 func wingsFrame(collapsed: CGRect, wingsSize: CGSize) -> CGRect {
     topPinnedFrame(collapsed: collapsed, size: wingsSize)
 }
+
+// Phase 67.1 / D-06 — resolution-aware auto-scale factor. `screenWidthPoints` is the
+// scaled-resolution width in POINTS (not physical screen diagonal, not raw pixels —
+// D-05), so a user running a denser scaled resolution on the same physical hardware
+// gets a proportionally larger factor. `baseline` (default 1470pt) is the locked
+// reference point where the factor reads as an untouched 1.0 (today's shipped sizing).
+// Guards non-positive inputs and returns the safe identity 1.0 rather than dividing by
+// zero or producing a negative/undefined scale — mirrors this file's existing
+// guard-return-safe-default convention (see topEdgeCutoutGap above).
+func islandAutoScaleFactor(screenWidthPoints: CGFloat, baseline: CGFloat = 1470) -> CGFloat {
+    guard baseline > 0, screenWidthPoints > 0 else { return 1.0 }
+    return screenWidthPoints / baseline
+}
+
+// Phase 67.1 / D-04/D-07/D-08 — resolves the final island scale from the auto factor
+// above plus a user-controlled manual offset. ADDITIVE, never multiplicative (D-07/D-08):
+// the offset shifts the auto value by a flat amount rather than scaling it, so the same
+// manual adjustment feels consistent regardless of the current auto factor. `range`
+// (default 0.8...1.5, D-04) is the single shared clamp every consumer routes through —
+// no call site clamps independently (T-67.1-01).
+func resolvedIslandScale(auto: CGFloat, manualOffset: CGFloat, range: ClosedRange<CGFloat> = 0.8...1.5) -> CGFloat {
+    min(max(auto + manualOffset, range.lowerBound), range.upperBound)
+}
