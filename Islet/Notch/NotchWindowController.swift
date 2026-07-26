@@ -604,10 +604,26 @@ final class NotchWindowController {
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
+            #if DEBUG
+            // 67.1-06 D10-TRACE (temporary): dump every screen's descriptor at the instant
+            // the notification fires, before the settle hop below.
+            for d in NSScreen.screens.map({ $0.descriptor }) {
+                print("[D10-TRACE][notify-immediate] \(Date()) uuid=\(d.uuid ?? "nil") isBuiltin=\(d.isBuiltin) safeAreaTop=\(d.safeAreaTop) auxLeftWidth=\(String(describing: d.auxLeftWidth)) auxRightWidth=\(String(describing: d.auxRightWidth))")
+            }
+            #endif
             // Pitfall 6: this can fire several times / mid-transition. Hop to the next
             // main-loop turn so NSScreen.screens has fully settled; the routine is
             // idempotent so extra calls are harmless.
-            DispatchQueue.main.async { self?.updateVisibility() }
+            DispatchQueue.main.async {
+                #if DEBUG
+                // 67.1-06 D10-TRACE (temporary): re-dump after the settle hop, to compare
+                // against the immediate dump above.
+                for d in NSScreen.screens.map({ $0.descriptor }) {
+                    print("[D10-TRACE][notify-afterHop] \(Date()) uuid=\(d.uuid ?? "nil") isBuiltin=\(d.isBuiltin) safeAreaTop=\(d.safeAreaTop) auxLeftWidth=\(String(describing: d.auxLeftWidth)) auxRightWidth=\(String(describing: d.auxRightWidth))")
+                }
+                #endif
+                self?.updateVisibility()
+            }
         }
 
         // Pattern 6 (ISL-05): fullscreen enter/exit and Space switches feed the SAME single
@@ -1357,6 +1373,10 @@ final class NotchWindowController {
                                                    auxLeftWidth: target.auxLeftWidth,
                                                    auxRightWidth: target.auxRightWidth,
                                                    widthFudge: 0)
+        #if DEBUG
+        // 67.1-06 D10-TRACE (temporary): the values actually used to compute collapsedNotchSize.
+        print("[D10-TRACE][positionAndShow] \(Date()) safeAreaTop=\(target.safeAreaTop) auxLeftWidth=\(String(describing: target.auxLeftWidth)) auxRightWidth=\(String(describing: target.auxRightWidth)) collapsedNotchSize=\(String(describing: interaction.collapsedNotchSize))")
+        #endif
 
         // Pattern 4 / Pitfall 4: size the PANEL to the EXPANDED frame UP FRONT (the extra
         // area is transparent → invisible) so the SwiftUI spring morph never clips or jumps
