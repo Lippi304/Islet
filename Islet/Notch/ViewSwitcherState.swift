@@ -17,12 +17,17 @@ import Foundation
 // `timerEnabled` flag the old Home "Start Timer" button used. SettingsView.swift's 4
 // slot dropdowns list Home/Tray/Calendar/Weather explicitly (never `.allCases`), so this
 // addition does not make Timer assignable to a configurable slot.
+// Phase 65 / QACTION-01 (D-01) — `.quickActions` added as a new trailing case. Unlike `.timer`
+// (a FIXED 5th switcher tab, deliberately excluded from `orderedSlotIcons`), `.quickActions`
+// joins the 4 user-CONFIGURABLE slots via `slotOptions`'s explicit list in a later plan --
+// `orderedSlotIcons`'s signature stays untouched (still exactly 4 params; Research Pitfall 5).
 enum SelectedView: String, Equatable, Hashable, CaseIterable {
     case home
     case tray
     case calendar
     case weather
     case timer
+    case quickActions
 }
 
 // Phase 52 / D-03 — the ONE shared left-to-right ordering projection: both the pill's

@@ -1029,7 +1029,7 @@ struct NotchPillView: View {
         // z-order glitch). Grouping them into ONE case arm to `tabContentView`, which
         // makes the SINGLE remaining `blobShape` call for all 6, gives every case one
         // continuously-identified subtree so `matchedGeometryEffect` morphs it directly.
-        case .nowPlayingExpanded, .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .timerSetup:
+        case .nowPlayingExpanded, .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .timerSetup, .quickActionsBarExpanded:
             tabContentView
         case .quickActionPicker:
             quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
@@ -2518,6 +2518,7 @@ struct NotchPillView: View {
         case .calendar: return ("calendar",       { onSwitcherSelect(.calendar) })
         case .weather:  return ("cloud.sun.fill", { onSwitcherSelect(.weather) })
         case .timer:    return ("timer",          { onSwitcherSelect(.timer) })
+        case .quickActions: return ("bolt.horizontal.fill", { onSwitcherSelect(.quickActions) })
         }
     }
 

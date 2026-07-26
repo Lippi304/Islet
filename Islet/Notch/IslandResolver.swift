@@ -87,7 +87,7 @@ struct CalendarCountdownActivity: Equatable {
 //   - Timer/Pomodoro (Phase 62)     — LANDED (62-01): ActiveTransient tier, rank 8, sub-state-persistent (D-02/D-13-equivalent), first transient with its OWN dedicated expanded presentation (.timerExpanded)
 //   - Meeting HUD (Phase 63)        — LANDED (63-03): ActiveTransient tier, rank 3, collapsed-only (D-10), persistent (D-06). Rode Phase 62's already-generalized preempt() with ZERO changes to it.
 //   - Quick Notes (Phase 64)        — likely no IslandPresentation case at all (menu-bar-only UI, never touches the pill) — rank TBD — confirm in that activity's own phase discussion
-//   - Quick Actions bar (Phase 65)  — relationship unclear, possibly an always-visible strip rather than a presentation case — rank TBD — confirm in that activity's own phase discussion
+//   - Quick Actions bar (Phase 65)  — LANDED (65-01): isExpanded tier, same tier as calendarExpanded/weatherExpanded/trayExpanded/timerSetup, selectedView-driven (D-01: a 5th switcher-tab catalog entry, NOT an ActiveTransient)
 //   - Menübar Overflow (Phase 66)   — likely no IslandPresentation case (menu-bar-only UI) — rank TBD — confirm in that activity's own phase discussion
 //   - Coding Progress (Phase 67)    — likely ambient tier, same shape as Calendar Countdown — rank TBD — confirm in that activity's own phase discussion
 
@@ -116,6 +116,7 @@ enum IslandPresentation: Equatable {
     case weatherExpanded                                   // 28-04 round 4: current-conditions full view
     case trayExpanded                                      // 28-04 round 5: dedicated files-only Tray view
     case timerSetup                                        // Phase 62-04 UAT revision (item 6): the Timer tab's idle duration/mode picker -- reachable only while no Timer transient is active (a running/paused Timer always wins via the activeTransient switch below)
+    case quickActionsBarExpanded                           // Phase 65 / QACTION-01 (D-01): the Quick Actions bar's own switcher-tab presentation, same tier as calendarExpanded/weatherExpanded/trayExpanded/timerSetup -- NEVER an ActiveTransient case
     case quickActionPicker(PendingDrop)                     // Phase 34 / TRAY-02: full-takeover destination picker
 }
 
@@ -168,7 +169,7 @@ extension ActiveTransient {
 // call sites now reference this one function instead.
 func showsSwitcherRow(for presentation: IslandPresentation) -> Bool {
     switch presentation {
-    case .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded, .timerSetup: return true
+    case .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .nowPlayingExpanded, .timerSetup, .quickActionsBarExpanded: return true
     default: return false
     }
 }
@@ -227,6 +228,9 @@ func resolve(activeTransient: ActiveTransient?,
         // activeTransient switch above already returned .timer/.timerExpanded first
         // whenever a session is running/paused (D-04, transient wins even over expanded).
         if selectedView == .timer { return .timerSetup }
+        // Phase 65 / QACTION-01 (D-01): Quick Actions joins the same tier as Calendar/Weather/
+        // Tray/Timer -- an explicit switcher selection, never an ActiveTransient case.
+        if selectedView == .quickActions { return .quickActionsBarExpanded }
         // Home (default) — the "smart Home" behavior (round 4, user-confirmed): Now-Playing
         // wins over the idle glance when present, exactly like before this fix; the only
         // change is that this branch is no longer reached for an explicit Calendar/Weather
