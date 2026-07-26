@@ -3030,9 +3030,11 @@ struct NotchPillView: View {
         // physical notch cutout). Round N+1 (user request): the RIGHT flank (BatteryIndicator)
         // never needed the extra room, so it stays fixed at the original half-width regardless
         // of charging state — only the label-bearing left side grows/shrinks.
+        let widthGrowth = max(1.0, resolvedWingWidthScale)
         return wingsShape(
-            leftWidth: isCharging ? Self.wingsLabelWidth / 2 : Self.wingsSize.width / 2,
-            rightWidth: Self.wingsSize.width / 2
+            leftWidth: (isCharging ? Self.wingsLabelWidth / 2 : Self.wingsSize.width / 2) * widthGrowth,
+            rightWidth: Self.wingsSize.width / 2 * widthGrowth,
+            depthScale: resolvedWingDepthScale
         ) {
             HStack(spacing: 0) {
                 // Round N (HUD-02 Droppy restyle, D-02/D-03/D-04) — left wing gains an
@@ -3210,9 +3212,11 @@ struct NotchPillView: View {
         // physical notch cutout). Round N+1 (user request): the RIGHT flank (battery/ring/
         // xmark) never needed the extra room, so it stays fixed at the original half-width
         // regardless of connection state — only the label-bearing left side grows/shrinks.
+        let widthGrowth = max(1.0, resolvedWingWidthScale)
         return wingsShape(
-            leftWidth: isConnected ? Self.wingsLabelWidth / 2 : Self.wingsSize.width / 2,
-            rightWidth: Self.wingsSize.width / 2
+            leftWidth: (isConnected ? Self.wingsLabelWidth / 2 : Self.wingsSize.width / 2) * widthGrowth,
+            rightWidth: Self.wingsSize.width / 2 * widthGrowth,
+            depthScale: resolvedWingDepthScale
         ) {
             HStack(spacing: 0) {
                 // Round N (HUD-01 Droppy restyle, D-02/D-03/D-04) — left wing gains an
@@ -3256,9 +3260,11 @@ struct NotchPillView: View {
         // Floor is the physical notch half-width (~89.5pt, notch measured 179pt) + icon +
         // its leading padding — going below that renders the icon under the camera housing
         // (invisible/clipped), which is what leftWidth: 100 did.
-        wingsShape(
-            leftWidth: 118,
-            rightWidth: 160
+        let widthGrowth = max(1.0, resolvedWingWidthScale)
+        return wingsShape(
+            leftWidth: 118 * widthGrowth,
+            rightWidth: 160 * widthGrowth,
+            depthScale: resolvedWingDepthScale
         ) {
             HStack(spacing: 0) {
                 Image(systemName: "moon.fill")
@@ -3304,7 +3310,8 @@ struct NotchPillView: View {
         // for its "Connected" text (wingsLabelWidth/2 = 200pt), or its leading digit renders
         // under the physical camera housing (invisible), same root cause as the Round N label-
         // clip fix documented on wingsLabelWidth above.
-        wingsShape(leftWidth: 118, rightWidth: Self.wingsLabelWidth / 2) {
+        let widthGrowth = max(1.0, resolvedWingWidthScale)
+        return wingsShape(leftWidth: 118 * widthGrowth, rightWidth: Self.wingsLabelWidth / 2 * widthGrowth, depthScale: resolvedWingDepthScale) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let remaining = max(0, activity.eventStart.timeIntervalSince(context.date))
                 let color = urgencyColor(for: activity.eventStart, at: context.date)
