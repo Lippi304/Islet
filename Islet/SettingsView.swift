@@ -79,6 +79,26 @@ struct SettingsView: View {
     // IS the source of truth (Islet is not sandboxed, no security-scoped bookmark).
     @AppStorage(ActivitySettings.quickNotesVaultFolderPathKey) private var quickNotesVaultFolderPath: String = ""
     @AppStorage(ActivitySettings.quickActionsKey) private var quickActionsEnabled = false
+    // Phase 65 / QACTION-01 (D-02/D-03) — 8 independent per-slot @AppStorage bindings (never a
+    // single encoded array, mirrors switcherSlot*'s per-position convention) feeding the
+    // Configure Quick Actions popover's 8 Pickers, plus their matching launch-target String
+    // bindings for the one action (Launch) that needs an inline config value.
+    @AppStorage(ActivitySettings.quickActionsBarSlot1Key) private var quickActionsBarSlot1: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot2Key) private var quickActionsBarSlot2: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot3Key) private var quickActionsBarSlot3: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot4Key) private var quickActionsBarSlot4: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot5Key) private var quickActionsBarSlot5: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot6Key) private var quickActionsBarSlot6: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot7Key) private var quickActionsBarSlot7: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot8Key) private var quickActionsBarSlot8: QuickActionsBarCatalog.Action = .none
+    @AppStorage(ActivitySettings.quickActionsBarSlot1LaunchTargetKey) private var quickActionsBarSlot1LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot2LaunchTargetKey) private var quickActionsBarSlot2LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot3LaunchTargetKey) private var quickActionsBarSlot3LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot4LaunchTargetKey) private var quickActionsBarSlot4LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot5LaunchTargetKey) private var quickActionsBarSlot5LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot6LaunchTargetKey) private var quickActionsBarSlot6LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot7LaunchTargetKey) private var quickActionsBarSlot7LaunchTarget: String = ""
+    @AppStorage(ActivitySettings.quickActionsBarSlot8LaunchTargetKey) private var quickActionsBarSlot8LaunchTarget: String = ""
     @AppStorage(ActivitySettings.codingProgressKey) private var codingProgressEnabled = false
     // Quick task 260709-glz — default true mirrors the controller's default (matches
     // today's behavior for existing users, no regression).
@@ -803,6 +823,96 @@ struct SettingsView: View {
         }
         .padding(16)
         .frame(width: 280)
+    }
+
+    // Phase 65 / QACTION-01 (D-02/D-05) — "Configure Quick Actions" popover: 8 independent
+    // per-slot Pickers over the fixed 9-entry catalog (8 real actions + "None"), cloning
+    // quickNotesVaultPickerView's exact title/Done-button skeleton but widened (8 rows need
+    // more room than a single folder path) and wrapped in a ScrollView.
+    private var quickActionsBarPopoverView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Configure Quick Actions")
+                .font(.system(size: 15, weight: .semibold))
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 12) {
+                    quickActionsBarSlotRow(label: "Slot 1", selection: $quickActionsBarSlot1, launchTarget: $quickActionsBarSlot1LaunchTarget)
+                    quickActionsBarSlotRow(label: "Slot 2", selection: $quickActionsBarSlot2, launchTarget: $quickActionsBarSlot2LaunchTarget)
+                    quickActionsBarSlotRow(label: "Slot 3", selection: $quickActionsBarSlot3, launchTarget: $quickActionsBarSlot3LaunchTarget)
+                    quickActionsBarSlotRow(label: "Slot 4", selection: $quickActionsBarSlot4, launchTarget: $quickActionsBarSlot4LaunchTarget)
+                    quickActionsBarSlotRow(label: "Slot 5", selection: $quickActionsBarSlot5, launchTarget: $quickActionsBarSlot5LaunchTarget)
+                    quickActionsBarSlotRow(label: "Slot 6", selection: $quickActionsBarSlot6, launchTarget: $quickActionsBarSlot6LaunchTarget)
+                    quickActionsBarSlotRow(label: "Slot 7", selection: $quickActionsBarSlot7, launchTarget: $quickActionsBarSlot7LaunchTarget)
+                    quickActionsBarSlotRow(label: "Slot 8", selection: $quickActionsBarSlot8, launchTarget: $quickActionsBarSlot8LaunchTarget)
+                }
+            }
+            // RESEARCH.md Open Question 1 — surfaced only while at least one slot is
+            // configured as Do Not Disturb, since that action's write path depends on a
+            // Shortcut existing with this exact name (FocusToggleAction.focusShortcutName).
+            if quickActionsBarAnySlotIsFocusToggle {
+                Text("Do Not Disturb requires a Shortcut named '\(FocusToggleAction.focusShortcutName)' with a Set Focus action.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Spacer()
+                Button("Done") { showQuickActionsBarPopover = false }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 320)
+    }
+
+    private var quickActionsBarAnySlotIsFocusToggle: Bool {
+        [quickActionsBarSlot1, quickActionsBarSlot2, quickActionsBarSlot3, quickActionsBarSlot4,
+         quickActionsBarSlot5, quickActionsBarSlot6, quickActionsBarSlot7, quickActionsBarSlot8]
+            .contains(.focusToggle)
+    }
+
+    // One Picker row per slot, reused 8 times above. For a Launch-configured slot, an inline
+    // "Choose App…" row appears directly below — the stored path only ever comes from
+    // NSOpenPanel's own return value (T-65-06), never a free-text field.
+    @ViewBuilder
+    private func quickActionsBarSlotRow(label: String, selection: Binding<QuickActionsBarCatalog.Action>,
+                                         launchTarget: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Picker(label, selection: selection) { quickActionCatalogOptions }
+                .pickerStyle(.menu)
+            if selection.wrappedValue == .launch {
+                HStack {
+                    Text(launchTarget.wrappedValue.isEmpty ? "No app selected." : (launchTarget.wrappedValue as NSString).lastPathComponent)
+                        .font(.system(size: 11))
+                        .foregroundStyle(launchTarget.wrappedValue.isEmpty ? .secondary : .primary)
+                    Spacer()
+                    Button("Choose App…") {
+                        let panel = NSOpenPanel()
+                        panel.allowedContentTypes = [.application]
+                        panel.canChooseDirectories = false
+                        panel.canChooseFiles = true
+                        panel.allowsMultipleSelection = false
+                        panel.prompt = "Choose"
+                        panel.message = "Choose an app to launch"
+                        if panel.runModal() == .OK, let url = panel.url {
+                            launchTarget.wrappedValue = url.path
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // The fixed 9-entry catalog (8 real actions + "None") shared by all 8 slot Pickers above.
+    // Titles/icons per 65-UI-SPEC.md's Copywriting Contract and Icon Catalog table.
+    @ViewBuilder private var quickActionCatalogOptions: some View {
+        Text("None").tag(QuickActionsBarCatalog.Action.none)
+        Label("Mute Microphone", systemImage: "mic.fill").tag(QuickActionsBarCatalog.Action.micMute)
+        Label("Sleep Display", systemImage: "moon.zzz.fill").tag(QuickActionsBarCatalog.Action.displaySleep)
+        Label("Dark/Light Mode", systemImage: "moon.fill").tag(QuickActionsBarCatalog.Action.darkMode)
+        Label("Lock Screen", systemImage: "lock.fill").tag(QuickActionsBarCatalog.Action.screenLock)
+        Label("Do Not Disturb", systemImage: "bell.slash.fill").tag(QuickActionsBarCatalog.Action.focusToggle)
+        Label("Keep Awake", systemImage: "cup.and.saucer.fill").tag(QuickActionsBarCatalog.Action.caffeinate)
+        Label("Empty Trash", systemImage: "trash.fill").tag(QuickActionsBarCatalog.Action.emptyTrash)
+        Label("Open App/URL", systemImage: "arrow.up.forward.app.fill").tag(QuickActionsBarCatalog.Action.launch)
     }
 
     // D-03 — Workspace: no shelf-specific settings exist today; a quiet centered
