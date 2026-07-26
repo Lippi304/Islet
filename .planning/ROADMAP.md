@@ -1188,7 +1188,7 @@ Plans:
 - [x] 65-01-PLAN.md — Pure seams: QuickActionsBarCatalog.swift (8-slot catalog + AppStorage keys) + .quickActionsBarExpanded resolver case, TDD
 - [x] 65-02-PLAN.md — DisplaySleepAction + ScreenLockAction + CaffeinateToggleAction (fire-and-forget/stateful system helpers)
 - [x] 65-03-PLAN.md — DarkModeToggleAction + EmptyTrashAction (AppleScript+errorDict) + LaunchAction (validated URL/app passthrough)
-- [ ] 65-04-PLAN.md — FocusToggleAction: best-effort DND toggle + INFocusStatusCenter read-back verification (QACTION-03), TDD
+- [x] 65-04-PLAN.md — FocusToggleAction: best-effort DND toggle + INFocusStatusCenter read-back verification (QACTION-03), TDD
 
 **Wave 2** *(blocked on 65-01; 65-05 also blocked on 65-02/65-04)*
 
