@@ -170,6 +170,11 @@ struct NotchPillView: View {
     // .pill, mirroring weatherStyle's `?? .medium`-equivalent @AppStorage default convention.
     @AppStorage(ActivitySettings.switcherLayoutKey) private var switcherLayout: SwitcherLayout = .pill
 
+    // Phase 67.1-02 / D-07/D-08 — the two manual scale-offset sliders, additive deltas from
+    // the live auto-detected scale (NotchGeometry.resolvedIslandScale), never absolute scales.
+    @AppStorage(ActivitySettings.islandWidthScaleOffsetKey) private var islandWidthScaleOffset: Double = 0
+    @AppStorage(ActivitySettings.islandDepthScaleOffsetKey) private var islandDepthScaleOffset: Double = 0
+
     // Phase 62 / TIMER-01 (D-01) — the Timer/Pomodoro activity toggle (Settings default OFF,
     // per v1.10's own "new activities default OFF" convention). Read directly here, same
     // existing-key/existing-pattern as switcherLayout above — the switcher's 5th Timer icon is gated
@@ -2780,6 +2785,25 @@ struct NotchPillView: View {
                                 safeAreaTop: target.safeAreaTop,
                                 auxLeftWidth: target.auxLeftWidth,
                                 auxRightWidth: target.auxRightWidth)
+    }
+
+    // Phase 67.1-02 / D-05/D-06 — live auto-detected scale from the current built-in screen's
+    // width in points, mirroring topEdgeCutoutWidth's exact live-screen-read shape. Falls back
+    // to identity 1.0 (never crashes) when no notched built-in screen is present.
+    private var autoIslandScale: CGFloat {
+        guard let target = selectTargetScreen(from: NSScreen.screens.map { $0.descriptor }) else { return 1.0 }
+        return islandAutoScaleFactor(screenWidthPoints: target.frame.width)
+    }
+
+    // Phase 67.1-02 / D-01/D-07 — width axis: auto scale + the width manual-offset slider,
+    // clamped inside resolvedIslandScale (Plan 01) — no separate clamp here.
+    private var resolvedWidthScale: CGFloat {
+        resolvedIslandScale(auto: autoIslandScale, manualOffset: CGFloat(islandWidthScaleOffset))
+    }
+
+    // Phase 67.1-02 / D-01/D-08 — depth/height axis, same contract as resolvedWidthScale.
+    private var resolvedDepthScale: CGFloat {
+        resolvedIslandScale(auto: autoIslandScale, manualOffset: CGFloat(islandDepthScaleOffset))
     }
 
     // Phase 52 / SWITCH-03 (D-04/D-05) — the alternate top-edge switcher layout: 4
