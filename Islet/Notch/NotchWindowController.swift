@@ -1171,12 +1171,19 @@ final class NotchWindowController {
         // not silently degraded to "nicht verfügbar" from a stale `false` left over from before
         // the toggle.
         let healthy = nowPlayingHealthGate(enabled: npEnabled, isHealthy: nowPlayingState.isHealthy)
+        // Phase 65 / QACTION-01 (T-65-12, mirrors npEnabled's exact shape immediately above) —
+        // a stale switcher-slot selection left on .quickActions while the Settings toggle is off
+        // must fall back to .home instead of leaving the bar reachable. The resolver itself
+        // stays settings-agnostic (D-09 precedent); the gate lives here, at the single call site.
+        let quickActionsEnabled = activityEnabled(ActivitySettings.quickActionsKey)
+        let gatedSelectedView: SelectedView = (viewSwitcherState.selectedView == .quickActions && !quickActionsEnabled)
+            ? .home : viewSwitcherState.selectedView
         let presentation = resolve(activeTransient: transientQueue.head,
                        nowPlaying: np,
                        nowPlayingHealthy: healthy,
                        hasPlayedSinceLaunch: nowPlayingState.hasPlayedSinceLaunch,
                        isExpanded: interaction.isExpanded,
-                       selectedView: viewSwitcherState.selectedView,
+                       selectedView: gatedSelectedView,
                        onboardingStep: onboardingStep,
                        pendingDrop: pendingDrop,
                        calendarCountdown: calendarCountdownActivity)
@@ -2550,6 +2557,64 @@ final class NotchWindowController {
         }
     }
 
+    // Phase 65 / QACTION-01/QACTION-02/QACTION-03 (Plan 07) — the Quick Actions bar's tap
+    // dispatcher, forwarded verbatim from NotchPillView's onQuickActionTap closure (mirrors
+    // handleSwitcherSelect's "forwards intent, no precedence re-deciding" shape). Switches over
+    // every QuickActionsBarCatalog.Action case and calls the REAL system-call helper already
+    // landed by Plans 65-02/65-03/65-04 — this function never re-implements any mechanism
+    // inline. `.focusToggle` is completed in a later commit (Task 2) with its failure-flash wiring.
+    private func handleQuickActionTap(_ action: QuickActionsBarCatalog.Action, slotIndex: Int) {
+        switch action {
+        case .none:
+            // Unreachable in practice — orderedQuickActionsBarSlots(_:) never renders a tile for
+            // an unconfigured slot, so no tap can ever deliver .none.
+            return
+        case .micMute:
+            // Quick Actions' mic tile works standalone — deliberately NOT gated on
+            // transientQueue.head == .meeting the way handleMuteTap() above is. This state lives
+            // outside IslandPresentation entirely; the tile's own icon re-reads
+            // readSystemInputMuted() live on next draw, no renderPresentation() needed.
+            _ = toggleSystemInputMute()
+        case .displaySleep:
+            DisplaySleepAction.sleepNow()
+        case .darkMode:
+            // Fire-and-forget from the controller's perspective — the tile's icon re-reads
+            // DarkModeToggleAction.isDarkMode live on next render; no failure-visible requirement
+            // for this action per UI-SPEC.
+            DarkModeToggleAction.toggle { _ in }
+        case .screenLock:
+            ScreenLockAction.lockNow()
+        case .focusToggle:
+            break // Task 2 (Plan 65-07) completes this case.
+        case .caffeinate:
+            CaffeinateToggleAction.toggle()
+        case .emptyTrash:
+            EmptyTrashAction.empty { _ in }
+        case .launch:
+            LaunchAction.launch(target: quickActionsBarLaunchTarget(forSlotIndex: slotIndex))
+        }
+    }
+
+    // T-65-13 — the 0-based slotIndex -> ActivitySettings.quickActionsBarSlot{N}LaunchTargetKey
+    // mapping: a fixed, compile-time-checkable arithmetic offset, never a dynamic
+    // string-building/interpolation step. LaunchAction.resolvedURL(from:) is the one validation
+    // chokepoint on the resulting string (already closed in Plan 65-03) — this helper only
+    // resolves WHICH stored string to pass, never validates it itself.
+    private func quickActionsBarLaunchTarget(forSlotIndex slotIndex: Int) -> String {
+        let key: String
+        switch slotIndex {
+        case 0: key = ActivitySettings.quickActionsBarSlot1LaunchTargetKey
+        case 1: key = ActivitySettings.quickActionsBarSlot2LaunchTargetKey
+        case 2: key = ActivitySettings.quickActionsBarSlot3LaunchTargetKey
+        case 3: key = ActivitySettings.quickActionsBarSlot4LaunchTargetKey
+        case 4: key = ActivitySettings.quickActionsBarSlot5LaunchTargetKey
+        case 5: key = ActivitySettings.quickActionsBarSlot6LaunchTargetKey
+        case 6: key = ActivitySettings.quickActionsBarSlot7LaunchTargetKey
+        default: key = ActivitySettings.quickActionsBarSlot8LaunchTargetKey
+        }
+        return UserDefaults.standard.string(forKey: key) ?? ""
+    }
+
     // Phase 41 / HUD-08 — the live Calendar Countdown change lands here (already on main; the
     // monitor's callback hopped). This is the ENTIRE function body: it never touches
     // transientQueue.enqueue/preempt, flushTransients, or scheduleActivityDismiss (Pitfall 5 —
@@ -2757,6 +2822,9 @@ final class NotchWindowController {
                       // NotchPillView's declared property order (Swift call-site argument order
                       // must match the initializer's parameter order).
                       onMuteTap: { [weak self] in self?.handleMuteTap() },
+                      // Phase 65 / QACTION-01/02/03 (Plan 07) — forwards intent to the real
+                      // dispatcher, no precedence re-deciding (mirrors onSwitcherSelect's shape).
+                      onQuickActionTap: { [weak self] action, slotIndex in self?.handleQuickActionTap(action, slotIndex: slotIndex) },
                       onSecondaryTap: { [weak self] in self?.handleSecondaryTap() },
                       onResumeTap: { [weak self] in self?.handleResumeTap() },
                       // NOW-02: transport rides the EXISTING persistent child's stdin via the
