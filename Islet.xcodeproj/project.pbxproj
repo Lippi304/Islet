@@ -104,6 +104,7 @@
 		85C8C46347EB08A657DB3CEE /* BluetoothMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F2A9A634959D28CB05024E /* BluetoothMonitor.swift */; };
 		873F50F44716655751E47E8B /* ShelfLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58372E319659DF8AA32F403D /* ShelfLogic.swift */; };
 		880123373A38864B1A861C2C /* WeatherServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73B4C1FB5F1134D07D697B9 /* WeatherServiceTests.swift */; };
+		8CAFEAE9B70D80AAB9D53F1A /* DarkModeToggleAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A6D6D6FF57E98ED7A91051 /* DarkModeToggleAction.swift */; };
 		8CEEBDB51AC0041BDC1306AC /* FullscreenDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 885DB8C610716B7530D89BDB /* FullscreenDetector.swift */; };
 		8E1D60A2E7300A0620A1E5FD /* DownloadActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2636C7A97DDE803D917532AD /* DownloadActivity.swift */; };
 		91F81FE03A457F64032081F8 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC50D5D14612F7A3B39F683 /* NotchShape.swift */; };
@@ -146,6 +147,7 @@
 		DB506F16085ECD1612616899 /* EqualizerBarsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */; };
 		DE3C88D60447745B95BF4F52 /* OSDInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A9A9669B73F37C9B93F564 /* OSDInterceptor.swift */; };
 		E1D44F4C77B71284EC1D4C50 /* AudioOutputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB608FBDE6554EFA2A955E48 /* AudioOutputMonitor.swift */; };
+		E508FAEDF7B83308C577CD1F /* EmptyTrashAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82CE155D978CF861D2B421AC /* EmptyTrashAction.swift */; };
 		E5486BB85DD633FA76BD6F59 /* ActivityCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6D591BFC3DCEBAFE23986B /* ActivityCard.swift */; };
 		E589E15DAB0CB7E5BE0D46A6 /* QuickNotesFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC07EE709C3E4CCAB9EAECA /* QuickNotesFormatterTests.swift */; };
 		E5B578444004340719E35097 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 121EF57B076562C03445F3D4 /* Sparkle */; };
@@ -266,6 +268,7 @@
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
 		6771DABBC6345C5FBAB11E0C /* TimerMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerMonitor.swift; sourceTree = "<group>"; };
 		67C811DA67737E6DE4C01AFD /* CapsLockActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockActivity.swift; sourceTree = "<group>"; };
+		69A6D6D6FF57E98ED7A91051 /* DarkModeToggleAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkModeToggleAction.swift; sourceTree = "<group>"; };
 		6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EqualizerBarsTests.swift; sourceTree = "<group>"; };
 		6DC5BB9CB3A249FF6341FA77 /* ActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCoordinator.swift; sourceTree = "<group>"; };
 		6E328B1A66ACF5DB943AC2DC /* MeetingMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingMonitor.swift; sourceTree = "<group>"; };
@@ -282,6 +285,7 @@
 		77E66EB6AC760DEC7C38A28E /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
 		787DB6CF8372E20FC8BA296F /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
 		7D373EEE76BE733AFEDD28FD /* CalendarViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewState.swift; sourceTree = "<group>"; };
+		82CE155D978CF861D2B421AC /* EmptyTrashAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyTrashAction.swift; sourceTree = "<group>"; };
 		8390C339C18F49D6B8192D9E /* CalendarGlanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlanceTests.swift; sourceTree = "<group>"; };
 		83B2D92BF83095959068F293 /* NotchPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanelTests.swift; sourceTree = "<group>"; };
 		83F5C11A82621B88D99B53E9 /* ScreenLockAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenLockAction.swift; sourceTree = "<group>"; };
@@ -548,7 +552,9 @@
 			isa = PBXGroup;
 			children = (
 				2CE5ADCC0E3E4220ABEADB47 /* CaffeinateToggleAction.swift */,
+				69A6D6D6FF57E98ED7A91051 /* DarkModeToggleAction.swift */,
 				4FFD2BE4C795F3C0A797473D /* DisplaySleepAction.swift */,
+				82CE155D978CF861D2B421AC /* EmptyTrashAction.swift */,
 				481203BD8903085A2FE8800A /* QuickActionsBarCatalog.swift */,
 				83F5C11A82621B88D99B53E9 /* ScreenLockAction.swift */,
 			);
@@ -807,6 +813,7 @@
 				2C5933CCB454CDD77CD06C2D /* ClipboardItem.swift in Sources */,
 				CC892C5D7AB2B07DA486B6CA /* ClipboardMonitor.swift in Sources */,
 				71789AF4FFE1F8E9A52A4CA3 /* ClipboardStore.swift in Sources */,
+				8CAFEAE9B70D80AAB9D53F1A /* DarkModeToggleAction.swift in Sources */,
 				FBB85FBE9181449077C178CF /* DeviceActivity.swift in Sources */,
 				FFB8FF809780DAA08EC9B819 /* DeviceCoordinator.swift in Sources */,
 				A5CBE92E220E6C6C2FC10FF1 /* Diagnostics.swift in Sources */,
@@ -817,6 +824,7 @@
 				67BA29BACB89BF0BDF942299 /* DownloadMonitor.swift in Sources */,
 				AAA0B5B7D091A45913410641 /* DragDropSupport.swift in Sources */,
 				73CE033423AF42901EED96D5 /* DropInterceptTap.swift in Sources */,
+				E508FAEDF7B83308C577CD1F /* EmptyTrashAction.swift in Sources */,
 				B2ADB08E18FABDBA8931EA42 /* FocusActivity.swift in Sources */,
 				415C906FD372AAD59B63EE14 /* FocusModeMonitor.swift in Sources */,
 				8CEEBDB51AC0041BDC1306AC /* FullscreenDetector.swift in Sources */,
