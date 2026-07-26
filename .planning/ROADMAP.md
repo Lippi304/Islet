@@ -162,7 +162,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 62: Timer/Pomodoro** - Countdown/Pomodoro HUD; generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode (completed 2026-07-24)
 - [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike (all 4 plans executed 2026-07-25; awaiting orchestrator phase-level gates)
 - [x] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
-- [ ] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController`
+- [x] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController` (completed 2026-07-26)
 - [ ] **Phase 66: Menübar-Overflow (Ice-Style MVP)** - Chevron-hide for other apps' menu-bar icons, own feasibility spike first
 - [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern
 
@@ -1201,7 +1201,7 @@ Plans:
 
 **Wave 4** *(blocked on 65-07)*
 
-- [ ] 65-08-PLAN.md — Manual spike scaffold + on-device UAT checkpoint covering all 8 actions
+- [x] 65-08-PLAN.md — Manual spike scaffold + on-device UAT checkpoint covering all 8 actions
 
 **UI hint**: yes
 

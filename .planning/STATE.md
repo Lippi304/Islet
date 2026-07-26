@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: executing
-stopped_at: Completed 65-02-PLAN.md
-last_updated: "2026-07-26T01:36:38.093Z"
+status: verifying
+stopped_at: Completed 65-08-PLAN.md (checkpoint approved, 2 UAT gap-closure fixes)
+last_updated: "2026-07-26T02:06:30.458Z"
 last_activity: 2026-07-26
 progress:
   total_phases: 19
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 65 (quick-actions-bar) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-26
 
 ### Phase 48 status note
@@ -193,6 +193,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 65 P05 | 20min | 2 tasks | 5 files |
 | Phase 65 P06 | 20min | - tasks | - files |
 | Phase 65 P07 | 20min | 2 tasks | 1 files |
+| Phase 65 P08 | 45min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -320,6 +321,9 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 65]: navCircleButton gained an optional tint param (default nil) to express DND/caffeinate/mic green-red icon states, keeping every other of its 15+ call sites byte-identical
 - [Phase 65]: NotchWindowController.swift and IsletTests/NotchPillViewTests.swift touched beyond Plan 65-05's files_modified list (Rule 3): quickActionsBarFeedback is a non-defaulted stored property, so the app's one real NotchPillView construction site and all 3 test constructions needed the new argument to keep compiling
 - [Phase 65]: [Phase 65-06] Task 1's build verification deferred to after Task 2 (same-file forward reference); commits split by git hunk rather than sequential coded-then-verified passes
+- [Phase ?]: [Phase 65, 65-08]: FocusToggleAction.toggle now self-requests INFocusStatusCenter authorization instead of only reading FocusModeMonitor.isAuthorized -- DND no longer silently fails for users who never touched the unrelated Phase-38 Focus HUD Settings toggle
+- [Phase ?]: [Phase 65, 65-08]: DND uses two fixed one-way Shortcuts (Islet Focus On / Islet Focus Off) selected at runtime from the already-read before state, since Shortcuts' Set Focus action has no native toggle mode -- confirmed working in both directions on-device
+- [Phase ?]: [Phase 65]: All 8 Quick Actions confirmed working end-to-end on real hardware including the two previously-unconfirmed claims -- Screen Lock (RESEARCH.md A2) and DND/Focus (RESEARCH.md Open Question 1) -- QACTION-01/02/03 complete, phase ready for verification
 
 ### Roadmap Evolution
 
@@ -461,8 +465,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-26T01:35:48.169Z
-Stopped at: Completed 65-02-PLAN.md
+Last session: 2026-07-26T02:06:30.453Z
+Stopped at: Completed 65-08-PLAN.md (checkpoint approved, 2 UAT gap-closure fixes)
 Resume file: None
 
 ## Operator Next Steps
