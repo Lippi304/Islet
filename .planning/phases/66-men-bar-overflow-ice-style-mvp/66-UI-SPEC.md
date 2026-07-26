@@ -36,9 +36,10 @@ Declared values (must be multiples of 4), for the Settings permission-status car
 | xs | 4px | `lineSpacing` fine-tuning on explanation body text (`12 * 0.4`, matches `osdPermissionExplanationView`) |
 | sm | 8px | VStack row spacing inside the permission-status card (matches `permissionRow`'s `HStack(spacing: 8)`) |
 | md | 16px | Popover/card internal padding when the card renders as a `.padding(16)` block (matches `osdPermissionExplanationView`/`capsLockPermissionExplanationView`) |
-| lg | 20px | Outer `Form` padding for the Settings section hosting this card (matches every existing section: `permissionsSection`, `weatherSection`, `diagnosticsSection` — all `.padding(20)`) |
 
-Exceptions: the chevron `NSStatusItem`'s own icon glyph size (~18×18pt, SF Symbol default rendering inside a ~22pt-tall menu-bar button) is OS-controlled via `NSStatusItem.variableLength`, not part of this app-level 8pt scale — mirrors `AppDelegate.swift:107-115`'s existing status-item construction exactly, no new sizing decision needed.
+Exceptions:
+- The chevron `NSStatusItem`'s own icon glyph size (~18×18pt, SF Symbol default rendering inside a ~22pt-tall menu-bar button) is OS-controlled via `NSStatusItem.variableLength`, not part of this app-level 8pt scale — mirrors `AppDelegate.swift:107-115`'s existing status-item construction exactly, no new sizing decision needed.
+- Outer `Form` padding for the Settings section hosting this card is **20px**, not a member of the 8pt scale (4/8/16/24/32/48/64). This is a deliberate exception, not a new value invented for this phase: it matches this codebase's exact, pre-existing `.padding(20)` convention used identically at `permissionsSection`, `weatherSection`, and `diagnosticsSection` (Source: `SettingsView.swift`). Rounding to 24px to fit the scale would break visual consistency with every other existing Settings section on this same screen; reusing the established 20px value takes priority over strict 8pt-scale adherence for this single outer-container padding.
 
 ---
 
@@ -109,6 +110,8 @@ Accent reserved for: the single "Open System Settings" call-to-action button —
 ## Settings Permission-Status Card
 
 (Extends the template — this is the D-04 "Permission required" surface.)
+
+**Primary visual anchor:** the status title + glyph pair (e.g. "Permission required" + red `xmark.circle.fill`, or the feature-name title + green `checkmark.circle.fill`) — title and glyph draw the eye first, the confirmation/explanation body text is secondary, and the "Open System Settings" button (denied state only) is tertiary.
 
 **Placement:** Its own small `Section` (mirrors `weatherSection`/`diagnosticsSection`'s `ScrollView(.vertical) { Form { Section(...) { ... } } }.padding(20)` shape), recommended in the **System** sidebar section (Phase 27's `NavigationSplitView` categories: General/Workspace/System/About) since this is a system-level menu-bar mechanism, not workspace/shelf content — not explicitly locked by CONTEXT.md, so treat as a default the planner may relocate if a better-fitting section exists.
 
