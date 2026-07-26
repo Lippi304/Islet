@@ -1197,7 +1197,7 @@ Plans:
 
 **Wave 3** *(blocked on 65-01..65-05)*
 
-- [ ] 65-07-PLAN.md — NotchWindowController.swift dispatch wiring for all 8 catalog actions + quickActionsKey gating
+- [x] 65-07-PLAN.md — NotchWindowController.swift dispatch wiring for all 8 catalog actions + quickActionsKey gating
 
 **Wave 4** *(blocked on 65-07)*
 
