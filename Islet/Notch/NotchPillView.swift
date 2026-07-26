@@ -1271,6 +1271,14 @@ struct NotchPillView: View {
             // growing symmetrically from the shared center — read as the diagonal jump/bounce.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: size.width, height: size.height)
+            // 67.1-06 (D-10) root cause: collapsedNotchSize itself was never stale — D10-TRACE
+            // confirmed the notification handler and positionAndShow both report the NEW
+            // resolution's values on the very first firing, in both switch directions. The
+            // mismatch was purely visual: this frame's `size` can ride along on an ambient
+            // animation transaction from an unrelated simultaneous state change, letting
+            // matchedGeometryEffect interpolate the live-measured hardware notch size instead
+            // of snapping. It must never visibly lag behind the real camera cutout.
+            .animation(nil, value: size)
             // Phase 35 / GLASS-01 (D-04): collapsed pill uses the subtler .collapsed
             // parameters.
             .overlay(liquidGlassEffectLayer(shape: shape, size: size, parameters: .collapsed))
