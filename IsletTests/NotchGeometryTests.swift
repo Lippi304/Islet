@@ -237,4 +237,26 @@ final class NotchGeometryTests: XCTestCase {
         let frame = wingsFrame(collapsed: collapsed, wingsSize: collapsed.size)
         XCTAssertEqual(frame, collapsed)
     }
+
+    // MARK: islandAutoScaleFactor / resolvedIslandScale (Phase 67.1 — D-04/D-06/D-07/D-08)
+
+    func testIslandAutoScaleFactorAtBaselineIsOne() {
+        XCTAssertEqual(islandAutoScaleFactor(screenWidthPoints: 1470), 1.0, accuracy: 0.0001)
+    }
+
+    func testIslandAutoScaleFactorAtUserReportedResolution() {
+        XCTAssertEqual(islandAutoScaleFactor(screenWidthPoints: 1710), 1.1633, accuracy: 0.001)
+    }
+
+    func testResolvedIslandScaleClampsAboveCeiling() {
+        XCTAssertEqual(resolvedIslandScale(auto: 2.0, manualOffset: 0), 1.5, accuracy: 0.0001)
+    }
+
+    func testResolvedIslandScaleClampsBelowFloor() {
+        XCTAssertEqual(resolvedIslandScale(auto: 0.1, manualOffset: 0), 0.8, accuracy: 0.0001)
+    }
+
+    func testResolvedIslandScaleIsAdditiveNotMultiplicative() {
+        XCTAssertEqual(resolvedIslandScale(auto: 1.1633, manualOffset: 0.05), 1.2133, accuracy: 0.001)
+    }
 }
