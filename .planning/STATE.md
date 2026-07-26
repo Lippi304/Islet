@@ -4,8 +4,8 @@ milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
 stopped_at: Phase 67.1 context amended (D-09/D-10 collapsed-pill bug fix)
-last_updated: "2026-07-26T11:46:25.740Z"
-last_activity: 2026-07-26
+last_updated: "2026-07-26T12:03:49.887Z"
+last_activity: 2026-07-26 -- Phase 67.1 planning complete
 progress:
   total_phases: 19
   completed_phases: 15
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 Phase: 67.1 (notch-size-scaling-resolution-aware-manual-override) — EXECUTING
 Plan: 5 of 5
 Status: Ready to execute
-Last activity: 2026-07-26
+Last activity: 2026-07-26 -- Phase 67.1 planning complete
 
 ### Phase 48 status note
 
