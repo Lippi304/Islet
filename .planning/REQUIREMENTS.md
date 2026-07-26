@@ -105,7 +105,7 @@ Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plu
 
 ### Quick Actions
 
-- [ ] **QACTION-01**: Settings lets the user enable/reorder a Quick Actions bar shown in the notch, choosing from a fixed catalog: mic mute/unmute, display sleep now, dark/light mode toggle, screen lock, Do Not Disturb toggle (best-effort), caffeinate/keep-awake toggle, empty Trash, launch app/open URL
+- [x] **QACTION-01**: Settings lets the user enable/reorder a Quick Actions bar shown in the notch, choosing from a fixed catalog: mic mute/unmute, display sleep now, dark/light mode toggle, screen lock, Do Not Disturb toggle (best-effort), caffeinate/keep-awake toggle, empty Trash, launch app/open URL
 - [ ] **QACTION-02**: Tapping an enabled Quick Action performs it immediately without expanding the notch any further than the action bar itself
 - [ ] **QACTION-03**: The Do Not Disturb/Focus action is documented as best-effort (no stable public macOS API) — a failure is visible to the user, not silently swallowed
 
@@ -228,7 +228,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTES-01 | Phase 64 | Complete |
 | NOTES-02 | Phase 64 | Complete |
 | NOTES-03 | Phase 64 | Complete |
-| QACTION-01 | Phase 65 | Pending |
+| QACTION-01 | Phase 65 | Complete |
 | QACTION-02 | Phase 65 | Pending |
 | QACTION-03 | Phase 65 | Pending |
 | MENUBAR-01 | Phase 66 | Pending |

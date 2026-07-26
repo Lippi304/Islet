@@ -1186,7 +1186,7 @@ Plans:
 **Wave 1**
 
 - [x] 65-01-PLAN.md — Pure seams: QuickActionsBarCatalog.swift (8-slot catalog + AppStorage keys) + .quickActionsBarExpanded resolver case, TDD
-- [ ] 65-02-PLAN.md — DisplaySleepAction + ScreenLockAction + CaffeinateToggleAction (fire-and-forget/stateful system helpers)
+- [x] 65-02-PLAN.md — DisplaySleepAction + ScreenLockAction + CaffeinateToggleAction (fire-and-forget/stateful system helpers)
 - [ ] 65-03-PLAN.md — DarkModeToggleAction + EmptyTrashAction (AppleScript+errorDict) + LaunchAction (validated URL/app passthrough)
 - [ ] 65-04-PLAN.md — FocusToggleAction: best-effort DND toggle + INFocusStatusCenter read-back verification (QACTION-03), TDD
 
@@ -1246,3 +1246,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 68 to break down)
+
+### Phase 69: Claude Code Session Usage in der Notch: Wenn eine Claude Code Session aktiv laeuft, faehrt die Notch aehnlich wie bei der Now-Playing-Preview etwas aus und zeigt den aktuellen Usage-Status. Links: aktuelles 5-Stunden-Limit inkl. Restzeit bis Reset (z.B. 1:40h). Rechts: Wochenlimit als Fuellstand/Prozent. Update-Intervall einstellbar (alle 5 Minuten oder live/dauerhaft). Datenbeschaffung kann auf einem bereits vom User begonnenen separaten Tool/Script aufbauen, das Claude-Usage-Daten abgreift.
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 68
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 69 to break down)

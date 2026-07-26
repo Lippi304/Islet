@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Completed 65-01-PLAN.md
-last_updated: "2026-07-26T00:46:15.987Z"
+stopped_at: Completed 65-02-PLAN.md
+last_updated: "2026-07-26T00:51:00.667Z"
 last_activity: 2026-07-26
 progress:
   total_phases: 19
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 65 (quick-actions-bar) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-07-26
 
@@ -187,6 +187,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 64 P06 | multi-session (checkpoint, 4 UAT rounds) | 3 tasks | 2 files |
 | Phase 64 P08 | ~60min (3 checkpoint rounds) | 7 tasks | 3 files |
 | Phase 65 P01 | 25min | 2 tasks | 6 files |
+| Phase 65 P02 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -309,6 +310,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 64]: [Phase 64-06] Vault-file reconciliation (re-read .md file on popover open, prune notes deleted directly in vault) requested mid-plan as additional scope; deferred to Plan 64-08 rather than built in 64-06, since it is new functionality (not a regression against 64-06's locked spec) and 64-08 already owns vault-delete wiring plus the 64-07 read/enumerate contracts it needs.
 - [Phase 64]: Quick Notes popover outside-click/app-switch dismiss needed two rounds: NSApplication.didResignActiveNotification (Cmd+Tab-style app switches) plus a global NSEvent mouse-down monitor (direct click on an already-visible background window), added in Plan 64-08 round 2 after on-device testing found the notification alone insufficient — A global monitor only ever receives events targeted at OTHER applications (Apple's documented contract), so it structurally cannot see clicks inside the popover's own hosted SwiftUI Menu — safe against regressing the Menu's own click handling
 - [Phase 65]: [Phase 65-01] Quick Actions bar confirmed as a 5th switcher-tab catalog entry (D-01), resolved in the isExpanded tier alongside Calendar/Weather/Tray/Timer, never an ActiveTransient
+- [Phase 65]: [Phase 65-02] CaffeinateToggleAction implemented as a static-state enum (not RESEARCH.md's class-instance example) per the plan's own locked deviation
 
 ### Roadmap Evolution
 
@@ -449,8 +451,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-26T00:46:15.982Z
-Stopped at: Completed 65-01-PLAN.md
+Last session: 2026-07-26T00:51:00.661Z
+Stopped at: Completed 65-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
