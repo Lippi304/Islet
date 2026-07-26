@@ -1261,7 +1261,7 @@ Plans:
 
 **Wave 5** *(blocked on 67.1-02, 67.1-03, 67.1-04 — second amendment, D-11..D-14)*
 
-- [ ] 67.1-07-PLAN.md — D-13: expanded state becomes auto-only (Site 1 + Site 3) + D-12: retarget Settings "Island Size" helper copy
+- [x] 67.1-07-PLAN.md — D-13: expanded state becomes auto-only (Site 1 + Site 3) + D-12: retarget Settings "Island Size" helper copy
 
 **Wave 6** *(blocked on 67.1-07)*
 

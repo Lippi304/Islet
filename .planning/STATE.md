@@ -4,8 +4,8 @@ milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
 stopped_at: Phase 67.1 context amended (D-11..D-14, slider retarget)
-last_updated: "2026-07-26T13:29:57.007Z"
-last_activity: 2026-07-26 -- Phase 67.1 planning complete
+last_updated: "2026-07-26T18:19:51.189Z"
+last_activity: 2026-07-26
 progress:
   total_phases: 19
   completed_phases: 15
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 67.1 (notch-size-scaling-resolution-aware-manual-override) — EXECUTING
-Plan: 5 of 5
+Plan: 2 of 10
 Status: Ready to execute
-Last activity: 2026-07-26 -- Phase 67.1 planning complete
+Last activity: 2026-07-26
 
 ### Phase 48 status note
 
@@ -199,6 +199,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 67.1 P02 | 12min | 2 tasks | 2 files |
 | Phase 67.1 P03 | 25min | 2 tasks | 1 files |
 | Phase 67.1 P04 | 15min | 1 tasks | 1 files |
+| Phase 67.1 P07 | 8min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -331,6 +332,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase ?]: [Phase 65]: All 8 Quick Actions confirmed working end-to-end on real hardware including the two previously-unconfirmed claims -- Screen Lock (RESEARCH.md A2) and DND/Focus (RESEARCH.md Open Question 1) -- QACTION-01/02/03 complete, phase ready for verification
 - [Phase ?]: [Phase 67.1] islandAutoScaleFactor/resolvedIslandScale established as the single shared contract all three geometry call sites (Plans 02-04) must use for three-site parity by construction
 - [Phase ?]: [Phase 67.1-02]: NotchPillViewTests.swift's hardcoded per-case width/height assertions rewritten to compute the live scale multiplier via the same pure production functions (islandAutoScaleFactor/resolvedIslandScale), since the plan's zero-regression acceptance criteria assumed a 1470pt-baseline test screen that doesn't hold on real hardware
+- [Phase ?]: [Phase 67.1-07] D-13 implemented literally: manualOffset hardcoded to 0 at both Site 1 (NotchPillView) and Site 3 (NotchWindowController) in the same commit, verified by the same grep patterns in one acceptance_criteria block (threat T-67.1-10 mitigation)
 
 ### Roadmap Evolution
 
@@ -473,9 +475,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-26T13:29:57.001Z
+Last session: 2026-07-26T18:19:51.183Z
 Stopped at: Phase 67.1 context amended (D-11..D-14, slider retarget)
-Resume file: .planning/phases/67.1-notch-size-scaling-resolution-aware-manual-override/67.1-CONTEXT.md
+Resume file: None
 
 ## Operator Next Steps
 
