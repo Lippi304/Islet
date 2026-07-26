@@ -1340,11 +1340,11 @@ final class NotchWindowController {
         // 67.1-03 (D-01/D-02, geometry three-site rule) — resolve LIVE scale once per call,
         // via the SAME 2 pure functions Plan 01 unit-tested, so visibleContentZone() (Site 3)
         // can read it back and stay in exact parity with Site 1's render.
-        let widthOffset = UserDefaults.standard.double(forKey: ActivitySettings.islandWidthScaleOffsetKey)
-        let depthOffset = UserDefaults.standard.double(forKey: ActivitySettings.islandDepthScaleOffsetKey)
+        // 67.1-07 (D-13) — expanded state is auto-only going forward; manual offsets no
+        // longer read here (retargeted to collapsed-state wing content, Plan 08).
         let autoScale = islandAutoScaleFactor(screenWidthPoints: target.frame.width)
-        currentWidthScale = resolvedIslandScale(auto: autoScale, manualOffset: widthOffset)
-        currentDepthScale = resolvedIslandScale(auto: autoScale, manualOffset: depthOffset)
+        currentWidthScale = resolvedIslandScale(auto: autoScale, manualOffset: 0)
+        currentDepthScale = resolvedIslandScale(auto: autoScale, manualOffset: 0)
 
         // D-01 — publish the VISIBLE collapsed pill size from the SAME measured notch, but
         // UNFUDGED (widthFudge: 0 == exactly the cutout macOS reports). The fudge split is

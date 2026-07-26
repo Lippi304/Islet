@@ -2803,15 +2803,16 @@ struct NotchPillView: View {
         return islandAutoScaleFactor(screenWidthPoints: target.frame.width)
     }
 
-    // Phase 67.1-02 / D-01/D-07 — width axis: auto scale + the width manual-offset slider,
-    // clamped inside resolvedIslandScale (Plan 01) — no separate clamp here.
+    // 67.1-07 (D-13) — expanded state is auto-only going forward; the manual Width/Depth
+    // sliders now drive collapsed-state wing content instead via resolvedWingWidthScale/
+    // resolvedWingDepthScale (Plan 08).
     private var resolvedWidthScale: CGFloat {
-        resolvedIslandScale(auto: autoIslandScale, manualOffset: CGFloat(islandWidthScaleOffset))
+        resolvedIslandScale(auto: autoIslandScale, manualOffset: 0)
     }
 
-    // Phase 67.1-02 / D-01/D-08 — depth/height axis, same contract as resolvedWidthScale.
+    // 67.1-07 (D-13) — see resolvedWidthScale comment above.
     private var resolvedDepthScale: CGFloat {
-        resolvedIslandScale(auto: autoIslandScale, manualOffset: CGFloat(islandDepthScaleOffset))
+        resolvedIslandScale(auto: autoIslandScale, manualOffset: 0)
     }
 
     // Phase 52 / SWITCH-03 (D-04/D-05) — the alternate top-edge switcher layout: 4
