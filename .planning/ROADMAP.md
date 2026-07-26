@@ -1242,7 +1242,7 @@ Plans:
 **Goal:** The notch island's expanded content (Home, Tray, Weather, Calendar, Quick Actions, Switcher) automatically scales with the display's current resolution relative to a locked 1470x956pt baseline (auto-only, D-13) — while the SAME two independent Settings sliders (Width, Depth — 80%-150%) now grow/shrink the COLLAPSED-state Live Activity wing content instead (Music, OSD, Caps Lock, Charging, Focus, Device, Update, Download, Timer, Meeting, Countdown), combining the same auto default with the manual offset (D-14), with the real camera cutout's clearance guaranteed untouched at every slider position. The plain idle collapsed pill stays exactly as-is (D-02/D-09/D-11 reaffirmed).
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14 (source: 67.1-CONTEXT.md locked decisions — no formal REQUIREMENTS.md IDs exist for this inserted phase, same precedent as Phase 16)
 **Depends on:** Phase 67
-**Plans:** 7/10 plans executed
+**Plans:** 8/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1269,7 +1269,7 @@ Plans:
 
 **Wave 7** *(blocked on 67.1-08)*
 
-- [ ] 67.1-09-PLAN.md — Apply D-14 wing scale to OSD/Caps Lock/Update/Download/Timer/Meeting wings (live-hardware camera-block preserved)
+- [x] 67.1-09-PLAN.md — Apply D-14 wing scale to OSD/Caps Lock/Update/Download/Timer/Meeting wings (live-hardware camera-block preserved)
 
 **Wave 8** *(blocked on 67.1-08, 67.1-09)*
 
