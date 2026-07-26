@@ -117,8 +117,8 @@ targets:
         INFOPLIST_KEY_NSAppleEventsUsageDescription: "Islet fragt diese Berechtigung an, um den aktuellen Titel als Favorit zu markieren."
         # D-10: no INFOPLIST_KEY_SUScheduledCheckInterval — Sparkle's own ~24h default is used.
         GENERATE_INFOPLIST_FILE: YES                   # modern Xcode: synthesize Info.plist from build settings
-        MARKETING_VERSION: "2.1.2"                     # -> CFBundleShortVersionString (v2.1.2 — quick fix: gray out not-yet-implemented Settings cards with "Coming Soon")
-        CURRENT_PROJECT_VERSION: "12"                  # -> CFBundleVersion (build number, incremented per release)
+        MARKETING_VERSION: "2.2"                       # -> CFBundleShortVersionString (v2.2 — Phase 67.1: resolution-aware auto-scaling + collapsed Live Activity size sliders, Music-Play wing clipping fix)
+        CURRENT_PROJECT_VERSION: "13"                  # -> CFBundleVersion (build number, incremented per release)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_APP_SANDBOX: NO                         # un-sandboxed (needed for later MediaRemote/IOKit work)
         SWIFT_VERSION: "5.0"
