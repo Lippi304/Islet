@@ -1860,7 +1860,9 @@ final class NotchWindowController {
         // layout (mirrors NotchPillView's showsPillRow); a corrupted/missing stored value falls
         // back to .pill, matching the weatherStyleKey read one line below (T-52-02 mitigation).
         let layout = ActivitySettings.SwitcherLayout(rawValue: UserDefaults.standard.string(forKey: ActivitySettings.switcherLayoutKey) ?? "") ?? .pill
-        let switcherHeight = (switcherRowShowing && layout == .pill) ? NotchPillView.switcherRowHeight : 0
+        // 67.1-03 (D-01/D-02, geometry three-site rule, Site 3) — scaled once at its own
+        // declaration site rather than re-scaled at each of its usage sites below.
+        let switcherHeight = (switcherRowShowing && layout == .pill) ? NotchPillView.switcherRowHeight * currentDepthScale : 0
         // Phase 26 / ONBOARD-01/02 — the onboarding card renders at its own taller fixed size
         // (onboardingSize vs. the 144pt expandedSize), independent of shelf state (onboarding's
         // shelf is always empty, D-06). Scoping this branch to ONLY the geometry
@@ -1880,8 +1882,8 @@ final class NotchWindowController {
         if isOnboardingActive {
             contentSize = NotchPillView.onboardingSize
         } else if case .trayExpanded = presentationState.presentation {
-            contentSize = CGSize(width: NotchPillView.traySize.width,
-                                 height: NotchPillView.trayContentHeight + switcherHeight)
+            contentSize = CGSize(width: NotchPillView.traySize.width * currentWidthScale,
+                                 height: NotchPillView.trayContentHeight * currentDepthScale + switcherHeight)
         } else if case .quickActionsBarExpanded = presentationState.presentation {
             // Phase 65 gap-closure (code review CR-01, geometry three-site rule, Site 3) —
             // mirrors trayExpanded's precedent immediately above: quickActionsBarContentHeight
@@ -1889,8 +1891,8 @@ final class NotchWindowController {
             // branch the fallthrough `else` below sizes the panel to 196+44 instead of the real
             // 150+44 rendered height — a 46pt band stays click-interactive over nothing visibly
             // rendered there (the CR-01/WR-02 click-swallowing/dead-zone regression class).
-            contentSize = CGSize(width: expandedSize.width,
-                                 height: NotchPillView.quickActionsBarContentHeight + switcherHeight)
+            contentSize = CGSize(width: expandedSize.width * currentWidthScale,
+                                 height: NotchPillView.quickActionsBarContentHeight * currentDepthScale + switcherHeight)
         } else if case .weatherExpanded = presentationState.presentation {
             // Phase 33 / WEATHER-01/02 (geometry three-site rule) — must mirror NotchPillView's
             // blobShape `height:` override and positionAndShow's weatherExpandedFrame exactly,
@@ -1901,8 +1903,8 @@ final class NotchWindowController {
             // an absent key to true) — a corrupted/absent weatherStyleKey falls back to `.medium`,
             // exactly like NotchPillView's own @AppStorage default.
             let style = ActivitySettings.WeatherStyle(rawValue: UserDefaults.standard.string(forKey: ActivitySettings.weatherStyleKey) ?? "") ?? .medium
-            contentSize = CGSize(width: expandedSize.width,
-                                 height: (style == .large ? NotchPillView.weatherLargeContentHeight : NotchPillView.weatherMediumContentHeight) + switcherHeight)
+            contentSize = CGSize(width: expandedSize.width * currentWidthScale,
+                                 height: (style == .large ? NotchPillView.weatherLargeContentHeight : NotchPillView.weatherMediumContentHeight) * currentDepthScale + switcherHeight)
         } else if case .quickActionPicker = presentationState.presentation {
             // Phase 44 / TRAY-06/DRAG-02 (D-03/D-04, CR-01 geometry three-site rule) — must mirror
             // positionAndShow's quickActionPickerFrame reservation and NotchPillView's
@@ -1916,22 +1918,22 @@ final class NotchWindowController {
             // Quick task 260715-vsd (geometry three-site rule) — must mirror
             // calendarFullView's new `blobShape(width: NotchPillView.calendarWidth)` override,
             // or the CR-01 click-swallowing/dead-zone regression class comes back.
-            contentSize = CGSize(width: NotchPillView.calendarWidth,
-                                 height: NotchPillView.switcherContentHeight + switcherHeight)
+            contentSize = CGSize(width: NotchPillView.calendarWidth * currentWidthScale,
+                                 height: NotchPillView.switcherContentHeight * currentDepthScale + switcherHeight)
         } else if case .timerSetup = presentationState.presentation {
             // Phase 62-04 UAT design revision (item 6, geometry three-site rule, Site 3) —
             // mirrors NotchPillView.tabHeight's own `.timerSetup` override (Site 1) and
             // positionAndShow's timerSetupFrame reservation (Site 2). Unlike .timerExpanded
             // below, this tab DOES show the switcher row (it's a normal tab), so
             // switcherHeight is included exactly like every other switcher-row branch above.
-            contentSize = CGSize(width: expandedSize.width,
-                                 height: NotchPillView.timerSetupContentHeight + switcherHeight)
+            contentSize = CGSize(width: expandedSize.width * currentWidthScale,
+                                 height: NotchPillView.timerSetupContentHeight * currentDepthScale + switcherHeight)
         } else if case .timerExpanded = presentationState.presentation {
             // Phase 62 / TIMER-01..04 (Plan 04, CR-01 geometry three-site rule, Site 3) —
             // mirrors timerExpandedContent(for:)'s own blobShape call: no height override, no
             // switcher row, so the base expandedSize applies exactly, same as the final else
             // branch's own non-output-panel case.
-            contentSize = CGSize(width: expandedSize.width, height: expandedSize.height)
+            contentSize = CGSize(width: expandedSize.width * currentWidthScale, height: expandedSize.height * currentDepthScale)
         } else {
             // Phase 48 / OUTPUT-01 (CR-01 geometry three-site rule, Site 3) — reaching this
             // final `else` already means presentation is one of .nowPlayingExpanded/
@@ -1944,11 +1946,11 @@ final class NotchWindowController {
             // read the EXACT SAME NotchPillView.homeContentHeight + NotchPillView.
             // outputPanelExtraHeight sum Plan 48-02's tabHeight (Site 1) computes.
             if presentationState.outputPanelOpen {
-                contentSize = CGSize(width: expandedSize.width,
-                                     height: NotchPillView.homeContentHeight + NotchPillView.outputPanelExtraHeight + switcherHeight)
+                contentSize = CGSize(width: expandedSize.width * currentWidthScale,
+                                     height: (NotchPillView.homeContentHeight + NotchPillView.outputPanelExtraHeight) * currentDepthScale + switcherHeight)
             } else {
-                contentSize = CGSize(width: expandedSize.width,
-                                     height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) + switcherHeight)
+                contentSize = CGSize(width: expandedSize.width * currentWidthScale,
+                                     height: (switcherRowShowing ? NotchPillView.switcherContentHeight : expandedSize.height) * currentDepthScale + switcherHeight)
             }
         }
         let visibleFrame = expandedNotchFrame(collapsed: collapsedFrame, expandedSize: contentSize)
