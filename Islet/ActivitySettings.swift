@@ -89,6 +89,17 @@ enum ActivitySettings {
     }
     static let weatherStyleKey = "weather.style"
 
+    // Phase 67.1 — D-07/D-08: store the OFFSET from the live auto default (via
+    // resolvedIslandScale), never an absolute scale value — the manual sliders (Plans
+    // 02-04) shift the resolution-aware auto factor by this amount, they don't replace
+    // it. Double keys with their own @AppStorage-declared default of 0, established
+    // independently in Plans 02-04 — deliberately NOT added to defaultsToFalseKeys
+    // below (that set is Bool-only, per its own doc comment).
+    static let islandWidthScaleOffsetKey = "island.widthScaleOffset"
+    // Phase 67.1 — D-07/D-08: same OFFSET-not-absolute contract as
+    // islandWidthScaleOffsetKey above, for the depth axis.
+    static let islandDepthScaleOffsetKey = "island.depthScaleOffset"
+
     // Phase 52 / SWITCH-03/04 — the view switcher's layout: today's pill-below-the-island
     // (default) or the alternate compact top-edge row. Corrupted/unknown UserDefaults values
     // parse to nil; every read site applies `?? .pill` (mirrors WeatherStyle's convention).
