@@ -18,6 +18,7 @@
 		0AEE728088F02887A0E07BAE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C074399453E7F8439A9CD2 /* SettingsView.swift */; };
 		0B5D7C9F97587BFE2049F7D7 /* InteractionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406030D1395E35FB24681FE8 /* InteractionStateTests.swift */; };
 		0C693C96C5FCC524EC61ACC2 /* QuickNotesPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E229CD35A19E341118D6DE /* QuickNotesPopoverView.swift */; };
+		13543D74CC58F4086906C4A1 /* CaffeinateToggleAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CE5ADCC0E3E4220ABEADB47 /* CaffeinateToggleAction.swift */; };
 		14DBE84A1300DB501522C37D /* QuickNotesVaultWriterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD30A4BFDFD4A90FED6718E /* QuickNotesVaultWriterTests.swift */; };
 		16A051D140699708997B8A33 /* DeviceCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A6FA5F67CABA606F19ED731 /* DeviceCoordinatorTests.swift */; };
 		18A0994550ED1E5366D1DBF7 /* MicMuteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3B6F1344C078428D42671C /* MicMuteController.swift */; };
@@ -222,6 +223,7 @@
 		2881BA44136BA76B0C21DEBA /* PermissionStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionStatusTests.swift; sourceTree = "<group>"; };
 		2B5A2F6E4109A7EDAF7E5405 /* LiquidGlassShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = LiquidGlassShader.metal; sourceTree = "<group>"; };
 		2CC68721BB7F3A268C3B0443 /* NowPlayingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingState.swift; sourceTree = "<group>"; };
+		2CE5ADCC0E3E4220ABEADB47 /* CaffeinateToggleAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaffeinateToggleAction.swift; sourceTree = "<group>"; };
 		30839BA1A62ECDA5057B779C /* KeychainLicenseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainLicenseStore.swift; sourceTree = "<group>"; };
 		31972FF1ED9E30425E37EE11 /* TrialLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLogic.swift; sourceTree = "<group>"; };
 		330BE2F6665352789C4BF082 /* ClipboardFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFileStore.swift; sourceTree = "<group>"; };
@@ -545,6 +547,7 @@
 		CB2D72C3530ECB36AB58E011 /* QuickActionsBar */ = {
 			isa = PBXGroup;
 			children = (
+				2CE5ADCC0E3E4220ABEADB47 /* CaffeinateToggleAction.swift */,
 				4FFD2BE4C795F3C0A797473D /* DisplaySleepAction.swift */,
 				481203BD8903085A2FE8800A /* QuickActionsBarCatalog.swift */,
 				83F5C11A82621B88D99B53E9 /* ScreenLockAction.swift */,
@@ -792,6 +795,7 @@
 				85C8C46347EB08A657DB3CEE /* BluetoothMonitor.swift in Sources */,
 				6834F012466C396EF5D7439B /* BrightnessReader.swift in Sources */,
 				6DA98B2B2107409BB8BD64FE /* CGSSpace.swift in Sources */,
+				13543D74CC58F4086906C4A1 /* CaffeinateToggleAction.swift in Sources */,
 				089989725D4E1501962FCFD5 /* CalendarCountdownMonitor.swift in Sources */,
 				56BC6DBE6E5F1E2B6F485BE0 /* CalendarGlance.swift in Sources */,
 				9470F8F6CC68D789DC5A7D9C /* CalendarService.swift in Sources */,
