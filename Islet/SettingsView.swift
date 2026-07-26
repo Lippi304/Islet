@@ -132,6 +132,12 @@ struct SettingsView: View {
     @AppStorage(ActivitySettings.chargingAccentKey) private var chargingAccentIndex = ActivitySettings.defaultAccentIndex
     @AppStorage(ActivitySettings.deviceAccentKey) private var deviceAccentIndex = ActivitySettings.defaultAccentIndex
 
+    // Phase 67.1-04 / D-03/D-07 — Island Size sliders' underlying raw offsets. The
+    // sliders themselves bind to widthScaleBinding/depthScaleBinding below (the
+    // EFFECTIVE auto+offset value, Open Question 2), never to these directly.
+    @AppStorage(ActivitySettings.islandWidthScaleOffsetKey) private var islandWidthScaleOffset: Double = 0
+    @AppStorage(ActivitySettings.islandDepthScaleOffsetKey) private var islandDepthScaleOffset: Double = 0
+
     // Phase 51 / SETTINGS-02/SETTINGS-03 (D-01–D-06) — sidebar section identity.
     // Order and copy are locked: Activities, Appearance, Fullscreen, Weather,
     // Diagnostics, Workspace, About.
@@ -985,6 +991,32 @@ struct SettingsView: View {
         }
     }
 
+    // Phase 67.1-04 / D-05/D-06 — this file's own live-screen-read copy of
+    // NotchPillView.swift's autoIslandScale (no cross-file sharing mechanism exists
+    // in this codebase — SettingsView is a separate View struct). Falls back to
+    // identity 1.0 when no notched built-in screen is present.
+    private var autoIslandScale: CGFloat {
+        guard let target = selectTargetScreen(from: NSScreen.screens.map { $0.descriptor }) else { return 1.0 }
+        return islandAutoScaleFactor(screenWidthPoints: target.frame.width)
+    }
+
+    // Phase 67.1-04 / Open Question 2 resolution — the slider always displays/drags
+    // the EFFECTIVE (auto + offset) 0.8-1.5 value; the @AppStorage property underneath
+    // only ever stores the offset. Resetting to auto zeroes the offset directly.
+    private var widthScaleBinding: Binding<Double> {
+        Binding(
+            get: { Double(resolvedIslandScale(auto: autoIslandScale, manualOffset: CGFloat(islandWidthScaleOffset))) },
+            set: { islandWidthScaleOffset = $0 - Double(autoIslandScale) }
+        )
+    }
+
+    private var depthScaleBinding: Binding<Double> {
+        Binding(
+            get: { Double(resolvedIslandScale(auto: autoIslandScale, manualOffset: CGFloat(islandDepthScaleOffset))) },
+            set: { islandDepthScaleOffset = $0 - Double(autoIslandScale) }
+        )
+    }
+
     // D-01/D-04/D-05/D-07 — Appearance (renamed from System, Phase 51): material-style
     // segmented picker + 3 independent per-element accent swatch rows.
     private var appearanceSection: some View {
@@ -1008,6 +1040,38 @@ struct SettingsView: View {
                     LabeledContent("Now Playing") { swatchRow(selection: $nowPlayingAccentIndex) }
                     LabeledContent("Charging") { swatchRow(selection: $chargingAccentIndex) }
                     LabeledContent("Device") { swatchRow(selection: $deviceAccentIndex) }
+                }
+
+                // Phase 67.1-04 / D-03/D-04/D-07 — Island Size: independent Width/Depth
+                // sliders bound to the EFFECTIVE (auto+offset) value, per 67.1-UI-SPEC.md's
+                // locked copy/layout/range contract. No editing-change debounce — live
+                // update on every drag tick, matching every other control in this section.
+                Section("Island Size") {
+                    LabeledContent("Width") {
+                        HStack {
+                            Slider(value: widthScaleBinding, in: 0.8...1.5)
+                            Text("\(Int(widthScaleBinding.wrappedValue * 100))%")
+                                .monospacedDigit()
+                        }
+                    }
+                    LabeledContent("Depth") {
+                        HStack {
+                            Slider(value: depthScaleBinding, in: 0.8...1.5)
+                            Text("\(Int(depthScaleBinding.wrappedValue * 100))%")
+                                .monospacedDigit()
+                        }
+                    }
+                    Text("Adjusts the size of expanded views — Home, Tray, Calendar, Weather, Quick Actions. The collapsed notch is unaffected.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        Spacer()
+                        Button("Reset to Auto") {
+                            islandWidthScaleOffset = 0
+                            islandDepthScaleOffset = 0
+                        }
+                        .buttonStyle(.link)
+                    }
                 }
             }
             .padding(20)
