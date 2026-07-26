@@ -2953,6 +2953,12 @@ struct NotchPillView: View {
             // see collapsedIsland/blobShape: `.matchedGeometryEffect` must precede `.frame`.
             .matchedGeometryEffect(id: "island", in: ns)
             .frame(width: size.width, height: size.height)
+            // 67.1-06 (D-10) follow-up — same root cause as collapsedIsland: leftWidth/rightWidth
+            // (and therefore `size`) for camera-clearance callers (osdWings, capsLockWings) derive
+            // from the live-measured `interaction.collapsedNotchSize`, so this frame can ride along
+            // on an ambient animation transaction from an unrelated simultaneous state change,
+            // letting the camera-clearance geometry visibly lag after a live resolution switch.
+            .animation(nil, value: size)
             // Phase 35 / GLASS-01 (D-04): wings use full-strength .expanded parameters.
             .overlay(liquidGlassEffectLayer(shape: shape, size: size, parameters: .expanded))
             // 39-07 gap closure ROUND 11 — `alignment: .leading` added (was implicit `.center`).

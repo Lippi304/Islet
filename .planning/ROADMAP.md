@@ -1242,7 +1242,7 @@ Plans:
 **Goal:** The notch island's expanded content (Home, Tray, Weather, Calendar, Quick Actions, Switcher) automatically scales with the display's current resolution relative to a locked 1470x956pt baseline, and two independent Settings sliders (Width, Depth — 80%-150%) let the user further nudge that auto-computed default — so the island stops looking too small after a resolution change, without a per-resolution redesign of every view. The collapsed/idle pill stays exactly as-is.
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 (source: 67.1-CONTEXT.md locked decisions — no formal REQUIREMENTS.md IDs exist for this inserted phase, same precedent as Phase 16)
 **Depends on:** Phase 67
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 **Wave 1**
@@ -1257,7 +1257,7 @@ Plans:
 
 **Wave 3** *(blocked on 67.1-02, 67.1-03)*
 
-- [ ] 67.1-06-PLAN.md — Gap closure: evidence-based fix for collapsed-pill live re-measurement bug on live scaled-resolution switch (D-09, D-10)
+- [x] 67.1-06-PLAN.md — Gap closure: evidence-based fix for collapsed-pill live re-measurement bug on live scaled-resolution switch (D-09, D-10)
 
 **Wave 4** *(blocked on 67.1-02, 67.1-03, 67.1-04, 67.1-06)*
 
