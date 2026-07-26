@@ -82,6 +82,7 @@
 		6792F78DC530A9635F3D2FED /* Sparkle in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 121EF57B076562C03445F3D4 /* Sparkle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		67BA29BACB89BF0BDF942299 /* DownloadMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BCB23B35F0E96FD7A4617B /* DownloadMonitor.swift */; };
 		6834F012466C396EF5D7439B /* BrightnessReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5304DD9EE0040C6059114A1 /* BrightnessReader.swift */; };
+		68C0DCB2BC1D8AF381E6AA48 /* QuickActionsBarManualSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D89A4AA386EFC4F78F58CB /* QuickActionsBarManualSpike.swift */; };
 		68CE6D5F610C8C037058F697 /* WeatherCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B811CCD53A0E77D86C48E5 /* WeatherCategory.swift */; };
 		69C5A7E82B83ECD8D72EBFF7 /* QuickNotesFileStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7612D210FA7E3A36B54449A3 /* QuickNotesFileStoreTests.swift */; };
 		6B351B58889CA7C8B7C93511 /* DragApproachGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */; };
@@ -355,6 +356,7 @@
 		ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragApproachGeometryTests.swift; sourceTree = "<group>"; };
 		ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardItem.swift; sourceTree = "<group>"; };
 		EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseState.swift; sourceTree = "<group>"; };
+		F0D89A4AA386EFC4F78F58CB /* QuickActionsBarManualSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsBarManualSpike.swift; sourceTree = "<group>"; };
 		F1460D18D7C0D64BFC9D310E /* ClipboardStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStoreTests.swift; sourceTree = "<group>"; };
 		F47ECDE27429D65F0FC0282A /* MeetingMonitorManualSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingMonitorManualSpike.swift; sourceTree = "<group>"; };
 		F5E229CD35A19E341118D6DE /* QuickNotesPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickNotesPopoverView.swift; sourceTree = "<group>"; };
@@ -568,6 +570,7 @@
 				3FCDC1E75FAE6EAD6E3BE639 /* LaunchAction.swift */,
 				481203BD8903085A2FE8800A /* QuickActionsBarCatalog.swift */,
 				294EAA5F7B550E08D11536FC /* QuickActionsBarFeedbackState.swift */,
+				F0D89A4AA386EFC4F78F58CB /* QuickActionsBarManualSpike.swift */,
 				83F5C11A82621B88D99B53E9 /* ScreenLockAction.swift */,
 			);
 			path = QuickActionsBar;
@@ -878,6 +881,7 @@
 				4D42E4610ECAF1591FEAD40D /* QuickActionSharingService.swift in Sources */,
 				1A79C5E78E4DC4C99695D044 /* QuickActionsBarCatalog.swift in Sources */,
 				26CFD4EF68FA9CA2D8B2FD8C /* QuickActionsBarFeedbackState.swift in Sources */,
+				68C0DCB2BC1D8AF381E6AA48 /* QuickActionsBarManualSpike.swift in Sources */,
 				392D4303EA60FFC6DC5E567D /* QuickNote.swift in Sources */,
 				1A819E7EE8B838940D127CA7 /* QuickNotesFileStore.swift in Sources */,
 				618300F20A7EE3C75C21156B /* QuickNotesFormatter.swift in Sources */,
