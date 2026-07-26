@@ -40,11 +40,43 @@ final class NotchPillViewTests: XCTestCase {
                         "shelfStripVisible must stay false even with a non-empty shelf — the additive shelf-strip reveal is Tray-only (TRAY-01).")
     }
 
+    // Phase 67.1-02 — tabWidth/tabHeight/totalHeight now multiply every constant by a
+    // live-screen-derived scale (resolvedWidthScale/resolvedDepthScale), which is NOT
+    // guaranteed to be 1.0 on whatever real Mac happens to run this test — only a screen
+    // exactly matching the 1470pt baseline resolves to identity. Computed here via the exact
+    // same pure functions production uses (islandAutoScaleFactor + resolvedIslandScale) so
+    // assertions stay correct regardless of the actual connected display. The two manual-
+    // offset @AppStorage keys are reset to 0 for the duration, mirroring this file's existing
+    // weatherStyle/switcherLayout isolation precedent, so a locally-configured Settings offset
+    // on the machine running this test can't desync this helper from what NotchPillView itself
+    // resolves within the same process.
+    private func liveIslandScale() -> CGFloat {
+        let auto: CGFloat
+        if let target = selectTargetScreen(from: NSScreen.screens.map { $0.descriptor }) {
+            auto = islandAutoScaleFactor(screenWidthPoints: target.frame.width)
+        } else {
+            auto = 1.0
+        }
+        return resolvedIslandScale(auto: auto, manualOffset: 0)
+    }
+
     // Phase 45 / SWITCH-01/SWITCH-02 — regression lock: tabWidth/tabHeight must reproduce
     // today's exact per-case width/height mapping (the 6 former per-case blobShape call
     // sites' own arguments) across all 7 switcher-row presentation states, so Task 2's
     // consolidation into one tabContentView call site cannot silently drift the geometry.
     func testTabWidthHeightMatchesKnownPerCaseValues() {
+        let defaults0 = UserDefaults.standard
+        let widthKey = ActivitySettings.islandWidthScaleOffsetKey
+        let depthKey = ActivitySettings.islandDepthScaleOffsetKey
+        let originalWidthOffset = defaults0.object(forKey: widthKey)
+        let originalDepthOffset = defaults0.object(forKey: depthKey)
+        defaults0.set(0.0, forKey: widthKey)
+        defaults0.set(0.0, forKey: depthKey)
+        defer {
+            if let originalWidthOffset { defaults0.set(originalWidthOffset, forKey: widthKey) } else { defaults0.removeObject(forKey: widthKey) }
+            if let originalDepthOffset { defaults0.set(originalDepthOffset, forKey: depthKey) } else { defaults0.removeObject(forKey: depthKey) }
+        }
+        let scale = liveIslandScale()
         func makeView(_ presentation: IslandPresentation) -> NotchPillView {
             let state = NotchInteractionState()
             state.phase = .expanded
@@ -67,19 +99,19 @@ final class NotchPillViewTests: XCTestCase {
             .nowPlayingExpanded(.none, healthy: false),
         ] {
             let view = makeView(presentation)
-            XCTAssertEqual(view.tabWidth, 420, "\(presentation)")
-            XCTAssertEqual(view.tabHeight, 170, "\(presentation)")
+            XCTAssertEqual(view.tabWidth, 420 * scale, "\(presentation)")
+            XCTAssertEqual(view.tabHeight, 170 * scale, "\(presentation)")
         }
 
         // Calendar — 472 x 220
         let calendarView = makeView(.calendarExpanded)
-        XCTAssertEqual(calendarView.tabWidth, 472)
-        XCTAssertEqual(calendarView.tabHeight, 220)
+        XCTAssertEqual(calendarView.tabWidth, 472 * scale)
+        XCTAssertEqual(calendarView.tabHeight, 220 * scale)
 
         // Tray — 650 x 117
         let trayView = makeView(.trayExpanded)
-        XCTAssertEqual(trayView.tabWidth, 650)
-        XCTAssertEqual(trayView.tabHeight, 117)
+        XCTAssertEqual(trayView.tabWidth, 650 * scale)
+        XCTAssertEqual(trayView.tabHeight, 117 * scale)
 
         // Weather — 420 x (290 medium / 410 large), both branches locked explicitly via
         // UserDefaults.standard (no store: override at NotchPillView.swift:100, per this
@@ -98,13 +130,13 @@ final class NotchPillViewTests: XCTestCase {
 
         defaults.set(ActivitySettings.WeatherStyle.medium.rawValue, forKey: key)
         let weatherMediumView = makeView(.weatherExpanded)
-        XCTAssertEqual(weatherMediumView.tabWidth, 420)
-        XCTAssertEqual(weatherMediumView.tabHeight, 290)
+        XCTAssertEqual(weatherMediumView.tabWidth, 420 * scale)
+        XCTAssertEqual(weatherMediumView.tabHeight, 290 * scale)
 
         defaults.set(ActivitySettings.WeatherStyle.large.rawValue, forKey: key)
         let weatherLargeView = makeView(.weatherExpanded)
-        XCTAssertEqual(weatherLargeView.tabWidth, 420)
-        XCTAssertEqual(weatherLargeView.tabHeight, 410)
+        XCTAssertEqual(weatherLargeView.tabWidth, 420 * scale)
+        XCTAssertEqual(weatherLargeView.tabHeight, 410 * scale)
     }
 
     // MARK: - Phase 52 / SWITCH-03/04 — orderedSlotIcons + SelectedView(rawValue:)
@@ -203,6 +235,18 @@ final class NotchPillViewTests: XCTestCase {
     // MARK: - Phase 52 / SWITCH-03 Task 2 — totalHeight three-site height-math fix (D-06)
 
     func testTotalHeightExcludesSwitcherRowHeightOnlyInTopEdgeLayout() {
+        let widthKey = ActivitySettings.islandWidthScaleOffsetKey
+        let depthKey = ActivitySettings.islandDepthScaleOffsetKey
+        let defaultsForOffsets = UserDefaults.standard
+        let originalWidthOffset = defaultsForOffsets.object(forKey: widthKey)
+        let originalDepthOffset = defaultsForOffsets.object(forKey: depthKey)
+        defaultsForOffsets.set(0.0, forKey: widthKey)
+        defaultsForOffsets.set(0.0, forKey: depthKey)
+        defer {
+            if let originalWidthOffset { defaultsForOffsets.set(originalWidthOffset, forKey: widthKey) } else { defaultsForOffsets.removeObject(forKey: widthKey) }
+            if let originalDepthOffset { defaultsForOffsets.set(originalDepthOffset, forKey: depthKey) } else { defaultsForOffsets.removeObject(forKey: depthKey) }
+        }
+        let scale = liveIslandScale()
         let defaults = UserDefaults.standard
         let key = ActivitySettings.switcherLayoutKey
         let originalValue = defaults.string(forKey: key)
@@ -215,8 +259,9 @@ final class NotchPillViewTests: XCTestCase {
         }
 
         // .homeEmpty / .calendarExpanded / .trayExpanded all show the switcher row in pill
-        // layout — top-edge layout must subtract exactly switcherRowHeight (44) from each,
-        // leaving the content-box height (baseHeight) untouched (D-06).
+        // layout — top-edge layout must subtract exactly the scaled switcherRowHeight (44 *
+        // resolvedDepthScale, Phase 67.1-02) from each, leaving the content-box height
+        // (baseHeight) untouched (D-06).
         for presentation: IslandPresentation in [.homeEmpty, .calendarExpanded, .trayExpanded] {
             defaults.set(ActivitySettings.SwitcherLayout.pill.rawValue, forKey: key)
             let pillHeight = makeSlotView(presentation).totalHeight
@@ -224,8 +269,12 @@ final class NotchPillViewTests: XCTestCase {
             defaults.set(ActivitySettings.SwitcherLayout.topEdge.rawValue, forKey: key)
             let topEdgeHeight = makeSlotView(presentation).totalHeight
 
-            XCTAssertEqual(topEdgeHeight, pillHeight - NotchPillView.switcherRowHeight,
-                            "\(presentation)")
+            // accuracy: floating-point non-associativity — pillHeight/topEdgeHeight each sum
+            // independently-rounded `constant * scale` terms inside totalHeight, so re-deriving
+            // the expected delta via a separate subtraction here can differ from the true result
+            // in the last ULP; exact equality is the wrong tool for a real scale multiplier.
+            XCTAssertEqual(topEdgeHeight, pillHeight - NotchPillView.switcherRowHeight * scale,
+                            accuracy: 0.0001, "\(presentation)")
         }
     }
 }

@@ -93,17 +93,17 @@ struct NotchPillView: View {
     // lock), same testability precedent as `shelfStripVisible`.
     var tabWidth: CGFloat {
         switch presentation {
-        case .calendarExpanded: return Self.calendarWidth
-        case .trayExpanded: return Self.traySize.width
-        default: return Self.expandedSize.width
+        case .calendarExpanded: return Self.calendarWidth * resolvedWidthScale
+        case .trayExpanded: return Self.traySize.width * resolvedWidthScale
+        default: return Self.expandedSize.width * resolvedWidthScale
         }
     }
 
     var tabHeight: CGFloat {
         switch presentation {
-        case .calendarExpanded: return Self.calendarContentHeight
-        case .trayExpanded: return Self.trayContentHeight
-        case .weatherExpanded: return weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight
+        case .calendarExpanded: return Self.calendarContentHeight * resolvedDepthScale
+        case .trayExpanded: return Self.trayContentHeight * resolvedDepthScale
+        case .weatherExpanded: return (weatherStyle == .large ? Self.weatherLargeContentHeight : Self.weatherMediumContentHeight) * resolvedDepthScale
         // Phase 62-04 UAT round 3 fix (item A) — Countdown's box is now mode-aware/compact
         // (was sharing Pomodoro's tall reservation, leaving a big empty gap below Countdown's
         // single chip grid). Reuses calendarContentHeight (220) rather than a new constant —
@@ -114,12 +114,12 @@ struct NotchPillView: View {
         // visibility into this view-local timerSetupMode, and over-reserving is the safe
         // direction (mirrors OUTPUT-01's own accepted "static reservation, slightly taller
         // than needed sometimes" trade-off) — Site 1 alone decides the actually-visible height.
-        case .timerSetup: return timerSetupMode == .countdown ? Self.calendarContentHeight : Self.timerSetupContentHeight
+        case .timerSetup: return (timerSetupMode == .countdown ? Self.calendarContentHeight : Self.timerSetupContentHeight) * resolvedDepthScale
         // Phase 65 / QACTION-02 (Plan 05 Task 2) — the Quick Actions bar's own dedicated
         // content height, matching every sibling switcher-tab presentation's explicit branch
         // (never falls through to `default:`, which is Home-shaped, not grid-shaped).
-        case .quickActionsBarExpanded: return Self.quickActionsBarContentHeight
-        default: return Self.homeContentHeight + (presentationState.outputPanelOpen ? Self.outputPanelExtraHeight : 0)
+        case .quickActionsBarExpanded: return Self.quickActionsBarContentHeight * resolvedDepthScale
+        default: return (Self.homeContentHeight + (presentationState.outputPanelOpen ? Self.outputPanelExtraHeight : 0)) * resolvedDepthScale
         }
     }
 
@@ -134,11 +134,11 @@ struct NotchPillView: View {
     // precedent as tabWidth/tabHeight.
     var totalHeight: CGFloat {
         isTrayPresentation
-            ? Self.trayContentHeight + (switcherLayout == .pill ? Self.switcherRowHeight : 0)
+            ? Self.trayContentHeight * resolvedDepthScale + (switcherLayout == .pill ? Self.switcherRowHeight * resolvedDepthScale : 0)
             : (isOnboardingPresentation
                 ? Self.onboardingSize.height
-                : (showsSwitcherRow ? Self.switcherContentHeight : Self.expandedSize.height)
-                    + (showsSwitcherRow && switcherLayout == .pill ? Self.switcherRowHeight : 0))
+                : (showsSwitcherRow ? Self.switcherContentHeight * resolvedDepthScale : Self.expandedSize.height * resolvedDepthScale)
+                    + (showsSwitcherRow && switcherLayout == .pill ? Self.switcherRowHeight * resolvedDepthScale : 0))
     }
 
     // Phase 14 / WEATHER-01 / CAL-01 — the SEPARATE @Published outfit model (weather +
@@ -1198,7 +1198,7 @@ struct NotchPillView: View {
         // this outer frame must grow/shrink in lockstep with blobShape's own height ternary
         // below, or the wider/shorter Tray content clips or leaves a stale gap. Tray still
         // shows the switcher row (showsSwitcherRow), so + switcherRowHeight is unchanged.
-        .frame(width: isTrayPresentation ? Self.traySize.width : (isCalendarPresentation ? Self.calendarWidth : (isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width)),
+        .frame(width: isTrayPresentation ? Self.traySize.width * resolvedWidthScale : (isCalendarPresentation ? Self.calendarWidth * resolvedWidthScale : (isOnboardingPresentation ? Self.onboardingSize.width : Self.expandedSize.width * resolvedWidthScale)),
                height: totalHeight,
                alignment: .top)
         // Phase 32 / TRAY-05 gap-closure (on-device UAT round 1) — root cause of "notch renders
