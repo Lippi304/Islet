@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Completed 67.1-04-PLAN.md
-last_updated: "2026-07-26T10:50:27.147Z"
+stopped_at: Phase 67.1 context amended (D-09/D-10 collapsed-pill bug fix)
+last_updated: "2026-07-26T11:46:25.740Z"
 last_activity: 2026-07-26
 progress:
   total_phases: 19
@@ -473,9 +473,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-26T10:50:27.142Z
-Stopped at: Completed 67.1-04-PLAN.md
-Resume file: None
+Last session: 2026-07-26T11:46:25.734Z
+Stopped at: Phase 67.1 context amended (D-09/D-10 collapsed-pill bug fix)
+Resume file: .planning/phases/67.1-notch-size-scaling-resolution-aware-manual-override/67.1-CONTEXT.md
 
 ## Operator Next Steps
 
