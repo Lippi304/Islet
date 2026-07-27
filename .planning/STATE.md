@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: executing
-stopped_at: Phase 66 UI-SPEC approved
-last_updated: "2026-07-27T17:09:00.000Z"
-last_activity: 2026-07-27 -- Phase 66 Plan 01 Task 1 complete, Task 2 checkpoint pending
+status: blocked
+stopped_at: Phase 66 Plan 01 checkpoint returned NO-GO
+last_updated: "2026-07-27T20:00:00.000Z"
+last_activity: 2026-07-27 -- Phase 66 Plan 01 checkpoint NO-GO; halted pending /gsd:discuss-phase 66
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,33 +21,36 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 66 — men-bar-overflow-ice-style-mvp
+**Current focus:** Phase 66 — men-bar-overflow-ice-style-mvp (BLOCKED — needs re-discussion)
 
 ## Current Position
 
-Phase: 66 (men-bar-overflow-ice-style-mvp) — EXECUTING
-Plan: 1 of 6 — BLOCKED on checkpoint (Task 1 of 2 done, Task 2 pending human on-device verification)
-Status: Executing Phase 66
-Last activity: 2026-07-27 -- Phase 66 Plan 01 Task 1 complete, Task 2 checkpoint pending
+Phase: 66 (men-bar-overflow-ice-style-mvp) — BLOCKED
+Plan: 1 of 6 — checkpoint closed with NO-GO verdict; execution halted per plan's own rule
+Status: Blocked, awaiting /gsd:discuss-phase 66
+Last activity: 2026-07-27 -- Phase 66 Plan 01 checkpoint NO-GO; halted pending /gsd:discuss-phase 66
 
-### Phase 66 Plan 01 Task 1 result (2026-07-27)
+### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
 `MenuBarOverflowBridging.swift` (private CGS* window-enumeration/frame-read shim +
 `moveMenuBarItem()` synthetic-drag, transcribed directly from Ice's real source) and
 `IsletTests/MenuBarOverflowManualSpike.swift` (Cmd-U-only manual spike, mirrors
-`MeetingMonitorManualSpike.swift`) created and committed (`adfbd70`). One auto-fixed
-deviation: a naive port of RESEARCH.md's `CGSMainConnectionID()`/`CGSConnectionID` Code
-Example collided with pre-existing declarations in `FullscreenSpaceProbe.swift` (Phase 2)
-and `CGSSpace.swift` (Phase 9) — fixed by reusing the existing global `CGSMainConnectionID()`
-and typing the new symbols' connection-ID params as raw `Int32`. `xcodegen generate` +
-`xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'` —
-BUILD SUCCEEDED, zero errors, zero new warnings. See `66-01-SUMMARY.md`.
+`MeetingMonitorManualSpike.swift`) built, committed, build verified clean (`adfbd70`).
 
-**Task 2 (checkpoint:human-verify, gate=blocking) is PENDING** — an on-device Xcode Cmd-U
-run of `MenuBarOverflowManualSpike.testManualMechanism`, human-judged RECLAIMED-vs-OCCLUDED
-verdict (Pitfall 2) plus permission-denied/sleep-wake/Dock-relaunch checks. No later Phase 66
-plan (66-02..66-06) may start until this returns GO. Full 8-step checklist in
-`66-01-SUMMARY.md`'s "Next Phase Readiness" section.
+**On-device checkpoint verdict: NO-GO.** Three Cmd-U rounds on real hardware isolated the
+cause: the private `CGSGetProcessMenuBarWindowList` call (identical arguments to Ice's own
+`getMenuBarWindowList()`) does not reliably enumerate real menu-bar-item windows on this
+hardware/macOS version — it failed to find even the developer's own confirmed-running Islet
+status item (found independently via the public `CGWindowListCopyWindowInfo` API at the
+`statusWindow` CGWindowLevel, at a different pid than anything CGS returned). Screen Recording
+permission and `Bundle.main` bundle-identity were both ruled out as causes. Matches
+RESEARCH.md Pitfall 3's flagged risk (undocumented, version-fragile CGS symbols).
+
+Per the plan's own rule, **no later Phase 66 plan (66-02..66-06) proceeds under current scope.**
+Next step: `/gsd:discuss-phase 66` to decide direction (different private symbols, a different
+reference implementation, or descoping SC#4). Diagnostic instrumentation added during the
+checkpoint (commits `5f231f3`, `6136d7f`, `68bb5a2`) is left in place for whoever picks this up.
+Full detail in `66-01-SUMMARY.md`.
 
 ### Phase 67.1 Plan 05 Task 1 result (2026-07-26)
 

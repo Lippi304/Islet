@@ -31,20 +31,32 @@ key-decisions:
   - "moveMenuBarItem() posts synthetic events via CGEvent.postToPid(pid) (a real, simpler public CGEvent API) rather than replicating Ice's full EventTap-based 'scrombleEvent' routing machinery — sufficient for this spike's validation purpose; a future production Controller (Plan 66-03) can revisit Ice's fuller routing if postToPid proves unreliable on-device"
   - "Owner-PID -> bundle-identifier resolution uses the public CGWindowListCopyWindowInfo (not a private symbol) combined with the private CGS windowID enumeration — CGS itself has no owner-pid accessor; this is a standard combined technique, not an invented one"
 
-requirements-completed: []  # Spike-only plan — MENUBAR-01..04 are NOT complete; they require the production Controller/Store built in later 66-0x plans, gated on this plan's own checkpoint returning GO.
+requirements-completed: []  # Spike-only plan — MENUBAR-01..04 are NOT complete. Verdict is NO-GO: the private CGS mechanism does not work reliably on this hardware/macOS version, so 66-02..66-06 do not proceed as scoped.
 
 # Metrics
-duration: ~35min (Task 1 only; Task 2 checkpoint still open)
-completed: PENDING (Task 1 done 2026-07-27; Task 2 human on-device verification not yet run)
+duration: ~35min Task 1 + ~1h diagnostic/checkpoint round-trip
+completed: 2026-07-27 — Task 2 checkpoint returned NO-GO
 ---
 
 # Phase 66 Plan 01: MenuBarOverflowBridging Shim + On-Device Manual Spike Summary
 
-**Private CGS*-symbol window-enumeration/frame-read shim + a synthetic-CGEvent-drag move function, transcribed directly from Ice's real source, plus a Cmd-U-only manual spike test — build verified clean; the mandatory on-device RECLAIMED-vs-OCCLUDED verdict (Task 2) is still PENDING human verification.**
+**Private CGS*-symbol window-enumeration/frame-read shim + a synthetic-CGEvent-drag move function, transcribed directly from Ice's real source, plus a Cmd-U-only manual spike test — build verified clean. On-device verdict: NO-GO. The private CGS enumeration mechanism does not reliably find real menu-bar-item windows on this hardware/macOS version, including the developer's own confirmed-running Islet status item.**
 
-## Status: BLOCKED on human checkpoint
+## Status: NO-GO — checkpoint closed, phase execution halted
 
-Task 1 (the automated build task) is complete and committed. Task 2 is a `checkpoint:human-verify` gate — an on-device Xcode Cmd-U manual spike run that only a human with physical hardware access can perform. This plan is **not** finished; no later plan in Phase 66 (66-02 through 66-06) may begin until Task 2 returns a GO verdict per the plan's own explicit rule ("No later plan in this phase may begin until this plan's checkpoint returns a GO").
+Task 1 (the automated build task) completed and committed. Task 2 (`checkpoint:human-verify`, gate=blocking) ran on real hardware across three on-device rounds (see "On-device verdict" below) and returned **NO-GO**. Per this plan's own explicit rule ("A NO-GO ... requires stopping here and returning to `/gsd:discuss-phase 66` to revisit SC#4's wording before any of Plans 66-02..66-06 proceed"), Phase 66 execution halts here. Plans 66-02 through 66-06 do not proceed under their current scope.
+
+## On-device verdict: NO-GO
+
+Three Cmd-U rounds were run on real hardware (2026-07-27), each adding diagnostics to isolate the cause before concluding:
+
+1. **Round 1** — `CGSGetProcessMenuBarWindowList` returned 0 other-process windows despite the user confirming several visible non-system menu-bar icons were present.
+2. **Round 2** — Ruled out Screen Recording permission: `CGRequestScreenCaptureAccess()` was added and actively invoked; no system prompt appeared and the result was unchanged (permission was later confirmed already-granted in Round 3, with no change in outcome).
+3. **Round 3 (conclusive)** — With Screen Recording confirmed `true` and `Bundle.main.bundleIdentifier` confirmed correctly resolving to `"com.lippi304.islet"` (ruling out the hosted-XCTest-bundle-identity gotcha), the private CGS call `CGSGetProcessMenuBarWindowList(CGSMainConnectionID(), 0, ...)` — called with the exact same arguments Ice's own `getMenuBarWindowList()` uses — returned exactly one window: `windowID=6771, pid=630`, whose bundle identifier could not even be resolved via `NSRunningApplication(processIdentifier:)` (`rawBundleID=nil`). An independent cross-check via the **public** `CGWindowListCopyWindowInfo` API, filtered to `kCGWindowLayer == CGWindowLevelForKey(.statusWindow)`, found the developer's own real, currently-running Islet status item at a **different** pid (`pid=55045, ownerName="Islet"`) — a window the private CGS enumeration did not surface at all.
+
+**Conclusion:** The private CGS mechanism, transcribed faithfully from Ice's real, current source (not guessed or invented — RESEARCH.md's own mandate was honored), fails to enumerate even a guaranteed-real, independently-confirmed menu-bar-item window on this developer's hardware/macOS version. This is not a permission gap, not a Bundle.main resolution bug, and not an absence-of-target-icon issue — it is the core private-API mechanism itself not returning correct results. This matches the exact risk RESEARCH.md Pitfall 3 flagged going in ("undocumented, version-fragile SkyLight/CoreGraphics symbols with no API stability guarantee... multiple recent Ice GitHub issues report cross-macOS-version breakage").
+
+**Diagnostic instrumentation added during this checkpoint** (commits `5f231f3`, `6136d7f`, `68bb5a2`) remains in both files for whoever picks this back up — it should be stripped once a fix direction (different private API, a different macOS-version-specific symbol, or abandoning the private-CGS approach entirely) is decided in `/gsd:discuss-phase 66`.
 
 ## Performance
 
@@ -103,28 +115,9 @@ None beyond the CGS redeclaration fix documented above.
 
 None - no external service configuration required. Task 2, however, requires the user's physical presence at the Mac (see below).
 
-## Next Phase Readiness — BLOCKED
+## Next Phase Readiness — NO-GO, halted
 
-**Task 2 (`checkpoint:human-verify`, gate: blocking) has NOT been run.** No later plan in Phase 66 (66-02 through 66-06) may begin until this returns GO, per the plan's own explicit rule and ROADMAP Success Criteria #1.
-
-### What was built (for the human to verify)
-
-A manual on-device spike (`MenuBarOverflowManualSpike.testManualMechanism`) that reads/moves a real third-party menu-bar icon using the same private CGS*-symbol + synthetic-CGEvent-drag technique Ice itself uses, and reports whether Accessibility-denied degrades gracefully.
-
-### How to verify (run these steps exactly, in Xcode, on real hardware)
-
-1. In Xcode, open `IsletTests/MenuBarOverflowManualSpike.swift` and run ONLY `testManualMechanism` via Cmd-U (never `xcodebuild test` — this project's test host hangs headless on TCC waits).
-2. Read the console output. Confirm `AXIsProcessTrusted()` prints `true` (grant Accessibility to the Xcode-launched test host in System Settings -> Privacy & Security -> Accessibility if it prints `false`, then re-run).
-3. Confirm the console lists at least one other process's menu-bar-item window with a bundle ID and CGRect that is NOT Islet's own bundle ID.
-4. Watch the target icon during the 180s run — confirm it visually moves when `moveMenuBarItem` fires.
-5. THE CENTRAL QUESTION (Pitfall 2): after the move, does an adjacent visible icon shift left to fill the vacated position (RECLAIMED — real space returned), or does the position just sit empty/covered by the frontmost app's own menu titles when you switch apps (OCCLUDED)? Report which one you observed.
-6. During the same 180s run, revoke Accessibility for the Xcode test host in System Settings, re-run the test once, and confirm the window-list read returns empty/no crash (not a partial/garbage result).
-7. Put the Mac to sleep and wake it once during a run; confirm a subsequent window-list read still succeeds without needing an app relaunch.
-8. Quit and relaunch the target third-party app during a run; confirm a fresh window-list read finds its NEW window ID at its new default position (not a stale/dead reference).
-
-### Resume signal
-
-Report **GO** (mechanism works, state whether RECLAIMED or OCCLUDED) or **NO-GO** (describe what failed). A NO-GO or an OCCLUDED-only finding requires stopping here and returning to `/gsd:discuss-phase 66` to revisit SC#4's wording before any of Plans 66-02..66-06 proceed.
+Per the plan's own resume-signal rule, Phase 66 execution stops here. **Next step: `/gsd:discuss-phase 66`** to decide how to proceed — options to weigh there include: trying a different/updated private CGS symbol set for this macOS version, researching whether a newer fork of Ice (or a different reference implementation) has already adapted to this breakage, or descoping/abandoning the Ice-style overflow mechanism (SC#4) for this milestone.
 
 ---
 *Phase: 66-men-bar-overflow-ice-style-mvp*

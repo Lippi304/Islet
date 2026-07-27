@@ -1224,7 +1224,7 @@ Plans:
 Plans:
 **Wave 0**
 
-- [ ] 66-01-PLAN.md — Spike (checkpoint): MenuBarOverflowBridging.swift private CGS*/CGEvent-move shim + MenuBarOverflowManualSpike.swift, reading Ice's real source directly — GO/NO-GO + RECLAIMED-vs-OCCLUDED verdict gates every plan below
+- [ ] 66-01-PLAN.md — Spike (checkpoint): MenuBarOverflowBridging.swift private CGS*/CGEvent-move shim + MenuBarOverflowManualSpike.swift, reading Ice's real source directly — GO/NO-GO + RECLAIMED-vs-OCCLUDED verdict gates every plan below — **NO-GO (2026-07-27): private CGS enumeration doesn't reliably find real menu-bar windows on this hardware/macOS; see 66-01-SUMMARY.md. Needs /gsd:discuss-phase 66 before continuing.**
 
 **Wave 1** *(blocked on 66-01 GO)*
 
