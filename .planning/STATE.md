@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: verifying
+status: executing
 stopped_at: Phase 66 UI-SPEC approved
-last_updated: "2026-07-26T22:27:28.085Z"
-last_activity: 2026-07-26
+last_updated: "2026-07-27T16:16:15.903Z"
+last_activity: 2026-07-27 -- Phase 66 planning complete
 progress:
   total_phases: 19
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 67.1 (notch-size-scaling-resolution-aware-manual-override) — COMPLETE
 Plan: 10 of 10 — all plans executed and summarized
-Status: Phase 67.1 formally closed. User completed and approved all 9 on-device UAT steps for 67.1-05 Task 2 (D-01..D-14 all verified on real 1710x1112 hardware, no issues reported). v2.2 (build 13), which already contains all of Phase 67.1's changes, was released to GitHub and is live via Sparkle appcast — done in a prior session before this UAT approval. Formal orchestrator-level gates (code review, verifier, nyquist audit) were intentionally skipped for this closeout given user's session-credit constraints; revisit only if a regression surfaces.
-Last activity: 2026-07-26
+Status: Ready to execute
+Last activity: 2026-07-27 -- Phase 66 planning complete
 
 ### Phase 67.1 Plan 05 Task 1 result (2026-07-26)
 

@@ -343,7 +343,7 @@ Button("Open System Settings") {
 
 **If this table is empty:** N/A — see entries above; none of these need to block planning, since the phase's own mandated SC#1 spike is the designed mechanism for resolving A1 and A3 empirically before production code is written.
 
-## Open Questions
+## Open Questions (RESOLVED via Wave 0 spike gate — see 66-01-PLAN.md's blocking checkpoint)
 
 1. **Does the vacated position genuinely reclaim visible menu-bar space, or only get occluded by the frontmost app's menu (Pitfall 2)?**
    - What we know: Ice's own source contains no cross-process AppKit removal call for third-party items; only its own control items get `isVisible = false`.
