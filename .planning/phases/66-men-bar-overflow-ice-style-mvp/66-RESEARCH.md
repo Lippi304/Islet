@@ -1,38 +1,43 @@
-# Phase 66: Menübar-Overflow (Ice-Style MVP) - Research
+# Phase 66: Menübar-Overflow (Spacer-Technique MVP) - Research
 
-**Researched:** 2026-07-27
-**Domain:** macOS menu-bar item management via private/undocumented `NSStatusItem`-repositioning APIs, gated behind the Accessibility (`AXIsProcessTrusted`) permission
-**Confidence:** MEDIUM-HIGH (mechanism itself verified directly against Ice's real source; genuine-space-reclamation claim and cross-macOS-version durability remain the phase's own mandated on-device spike questions)
+**Researched:** 2026-07-27 (full replacement — supersedes the Ice-private-API research below after Plan 66-01's on-device NO-GO and the resulting mechanism pivot to the public-API spacer technique)
+**Domain:** macOS menu-bar item overflow management via the public `NSStatusBar`/`NSStatusItem` API — a spacer status item whose `.length` is toggled to exploit AppKit's own menu-bar layout/overflow behavior
+**Confidence:** HIGH (mechanism itself is a long-established public-API pattern used in production by multiple shipped apps for years — Hidden Bar, Bartender, Vanilla, Dozer — a fundamentally lower-risk domain than the superseded private-CGS mechanism)
 
 <user_constraints>
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
 
+#### Mechanism (revised 2026-07-27)
+- **D-06 (NEW):** Build the hide/reveal mechanism using the spacer-`NSStatusItem` technique (Hidden Bar reference, public API only), NOT Ice's private-CGS-API/synthetic-CGEvent technique. This is the direct outcome of Plan 66-01's on-device NO-GO. `Islet/Notch/MenuBarOverflowBridging.swift` and `IsletTests/MenuBarOverflowManualSpike.swift` (the Ice-mechanism spike artifacts) are superseded — Claude's discretion whether to delete or repurpose them when the new plans are written; they must not be relied upon as-is.
+
 #### Chevron placement & activation
-- **D-01:** The chevron is the leftmost-positioned control item among Islet's menu-bar items — mirroring Ice's actual mechanic, where truly-hidden icons sit further left (off the visible strip) and always-visible icons stay to the right, closer to the system clock.
-- **D-02:** The feature activates automatically as soon as Accessibility permission is granted — there is no separate Settings on/off toggle for the mechanism itself. This deliberately diverges from the v1.10 "new activities default OFF" convention (research Pitfall 5), because Menübar-Overflow is not an `IslandResolver`/notch activity — it's a standalone menu-bar mechanism, same category as Quick Notes (Phase 64 D-13, menu-bar-only, zero resolver participation).
+- **D-01:** The chevron is the leftmost-positioned control item among Islet's menu-bar items — truly-hidden icons sit further left (off the visible strip, behind the widened spacer) and always-visible icons stay to the right, closer to the system clock. *(unchanged)*
+- **D-02 (REVISED):** The feature activates automatically on app launch — there is no separate Settings on/off toggle for the mechanism itself, and (per the mechanism pivot) no permission gate of any kind to wait on either. This deliberately diverges from the v1.10 "new activities default OFF" convention, because Menübar-Overflow is not an `IslandResolver`/notch activity — it's a standalone menu-bar mechanism, same category as Quick Notes (Phase 64 D-13, menu-bar-only, zero resolver participation).
 
 #### Persistence
-- **D-03:** The hidden/visible icon assignment persists across app relaunch — Islet remembers which other apps' icons were hidden (keyed by bundle identifier, mirroring Ice's own persistence approach) and restores that grouping the next time those icons are (re)created by their owning apps.
-
-#### Permission-denied degradation (MENUBAR-04)
-- **D-04:** If Accessibility permission is denied, the chevron does not appear in the menu bar at all — no broken/dead icon sitting there. Settings shows a clear "Permission required" state with a button that opens System Settings → Privacy & Security → Accessibility directly.
+- **D-03:** The hidden/visible icon assignment persists across app relaunch — Islet remembers which other apps' icons were hidden and restores that grouping the next time those icons are (re)created by their owning apps. **Open question for research/planning:** under the spacer technique, "hidden" is really just "positioned left of the spacer" — whether macOS's own system-level status-item-ordering persistence is sufficient on its own, or whether Islet still needs active re-apply logic on relaunch (the same class of risk as the original research's Pitfall 1, but the concrete mechanism differs now that no per-icon private-API repositioning is involved), is a technical question for the phase's research step, not decided here.
 
 #### Reveal interaction (MENUBAR-03)
-- **D-05:** Clicking the chevron reveals hidden icons **inline in the menu bar itself** (Ice-style — they slide/appear directly in the strip), not in a separate dropdown/popover. Clicking again re-hides them.
+- **D-05:** Clicking the chevron reveals hidden icons **inline in the menu bar itself** (they slide/appear directly in the strip as the spacer narrows), not in a separate dropdown/popover. Clicking again re-hides them (spacer widens again). *(unchanged in spirit; mechanically it's now a width animation, not a per-icon move)*
+
+#### Permission requirement — DROPPED (was MENUBAR-04 / old D-04)
+- **D-04 (SUPERSEDED, kept for history):** ~~If Accessibility permission is denied, the chevron does not appear... Settings shows a "Permission required" state...~~ No longer applicable — the spacer technique requires no Accessibility permission. Do not implement any part of this.
 
 ### Claude's Discretion
-- Exact persistence storage mechanism/format (UserDefaults keyed by bundle ID vs. plist, etc.) for D-03.
+- Exact persistence storage mechanism/format for D-03, informed by the research step's answer to the open question above.
 - Chevron icon glyph/SF Symbol choice.
-- Animation style for the reveal/hide transition (D-05).
-- Exact one-time permission-explanation copy/wording (D-04/MENUBAR-04).
-- Whether Islet's **own** status item(s) (the main status item, and the debug-only status item) can also be dragged behind the chevron, or are exempt from hiding — not discussed; default assumption is **exempt** (Islet's own icon stays always visible) unless the phase's own spike/research finds a strong reason otherwise.
-- All technical mechanism details the ROADMAP's own Success Criteria #1 already assigns to an on-device spike (the private `NSStatusItem`-repositioning technique, sleep/wake and Dock-relaunch edge cases) — this is research/spike work, not a discussion decision.
+- Animation style for the reveal/hide width transition (D-05).
+- Bounded max width for the spacer's "collapsed" state (Hidden Bar clamps to screen width to avoid pathological layout on newer macOS — mirror that discipline).
+- Whether to delete or repurpose the now-superseded `MenuBarOverflowBridging.swift`/`MenuBarOverflowManualSpike.swift` spike artifacts (D-06).
+- Whether Islet's **own** status item(s) (the main status item, and the debug-only status item) can also be dragged behind the chevron, or are exempt from hiding — default assumption remains **exempt** (Islet's own icon stays always visible) unless research finds a strong reason otherwise.
+- All remaining technical mechanism details (exact spacer-width values, sleep/wake and Dock-relaunch behavior under the new technique) — research/planning work, not a discussion decision. Given the new mechanism is public-API-only and far less exotic than Ice's, a full on-device spike-gate may no longer be strictly necessary before production code — but that call belongs to research/planning, not this discussion.
 
 ### Deferred Ideas (OUT OF SCOPE)
-- **Always-hidden/hotkey tier, menu-bar theming, hotkeys** — explicitly out of scope per this milestone's own MVP bound (PROJECT.md), reaffirmed here, not re-opened for discussion.
+- **Always-hidden/hotkey tier, menu-bar theming, hotkeys** — explicitly out of scope per this milestone's own MVP bound (PROJECT.md), reaffirmed here, not re-opened for discussion. (Both Ice and Hidden Bar have these extras; neither is in scope.)
 - **Hiding Islet's own status item(s) behind the chevron** — not decided; left to Claude's discretion, default assumption is that Islet's own icon(s) stay exempt/always-visible (see Claude's Discretion above).
+- **Retrying Ice's private-API mechanism / porting Ice's own Tahoe-compatibility fix** — considered and explicitly rejected during this discussion in favor of the spacer technique, given this hardware runs an even newer macOS beta (27.0) than Tahoe and the private-API approach was assessed as inherently fragile long-term.
 </user_constraints>
 
 <phase_requirements>
@@ -40,65 +45,67 @@
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| MENUBAR-01 | A chevron icon in the menu bar separates a "visible" and a "hidden" section of menu-bar icons, mirroring Ice's MVP mechanic | Architecture Patterns (chevron NSStatusItem construction, reuses AppDelegate.swift statusItem precedent); MenuBarSection 3-tier model verified against Ice source |
-| MENUBAR-02 | The user can drag other apps' menu-bar icons across the chevron (standard macOS Cmd-drag) to assign them to the hidden section | Don't Hand-Roll (Cmd-drag is native, zero app code); Architecture Patterns/EventManager.handleLeftMouseDragged precedent for the optional auto-reveal UX assist |
-| MENUBAR-03 | Clicking the chevron reveals/hides the hidden section's icons; hidden icons are genuinely absent from the visible menu-bar strip when hidden, not just repositioned off-screen while occupying visual space | Pitfall 2 (genuine space reclamation is the spike's central open question); Standard Stack (synthetic CGEvent move mechanism) |
-| MENUBAR-04 | This feature requires a new Accessibility permission grant, requested with a clear one-time explanation — distinct from Islet's existing WeatherKit/EventKit/Bluetooth permission prompts | Architecture Patterns 2/3 (existing AXIsProcessTrusted + deep-link precedent in this codebase); Pitfall 4 (macOS 15+ modal-suppression behavior); Security Domain (V4 Access Control) |
+| MENUBAR-01 | A chevron icon in the menu bar separates a "visible" and a "hidden" section of menu-bar icons | Architecture Patterns (chevron + spacer `NSStatusItem` construction, reuses `AppDelegate.swift:107`/`:490` precedent) |
+| MENUBAR-02 | The user can drag other apps' menu-bar icons across the chevron (standard macOS Cmd-drag) to assign them to the hidden section | Don't Hand-Roll (Cmd-drag is native, zero app code, unaffected by which technique owns the separator) |
+| MENUBAR-03 | Clicking the chevron reveals/hides the hidden section's icons; hidden icons are genuinely absent from the visible menu-bar strip when hidden, not just repositioned off-screen while occupying visual space | Summary + Pitfall 3 (the spacer `.length` participates in AppKit's real menu-bar layout/overflow algorithm — this is the same system behavior that causes icons to silently disappear when there are "too many" of them; cross-verified against three independent production apps, not occlusion) |
+
+*(MENUBAR-04 is dropped per CONTEXT.md D-04/D-06 — no permission-gating research needed; REQUIREMENTS.md itself still shows the original wording and is not yet updated for this phase.)*
 </phase_requirements>
 
 ## Summary
 
-Ice (github.com/jordanbaird/Ice, MIT) does **not** hide other apps' menu-bar icons via any Apple-documented API. It combines three private/undocumented layers: (1) `Bridging.swift` links directly against private `CGS*` SkyLight/CoreGraphics symbols (`CGSMainConnectionID`, `CGSGetScreenRectForWindow`, `CGSGetProcessMenuBarWindowList`, `CGSGetOnScreenWindowList`, etc.) declared via `@_silgen_name` — pure window/space *introspection* only, no window-server mutation calls exist in this file; (2) `MenuBarItemManager.swift` performs the actual *repositioning* by synthesizing `CGEvent` mouse-down/drag/up sequences ("scromble" events, its own internal term) that mimic a real user physically dragging the target app's status-item button to a destination X-coordinate, with a 5-attempt `wakeUpItem()` retry loop for unresponsive items; (3) `Permission.swift`/`PermissionsManager.swift` gate the whole `AppState.performSetup()` bootstrap behind `AXIsProcessTrustedWithOptions` (via the small `AXSwift` package), polled every 1 second so a mid-session grant activates the feature without requiring a relaunch — no Screen Recording permission is required for the MVP hide/show mechanic itself (Ice's Screen Recording use is for a *separate*, non-MVP live-icon-image preview feature, `isRequired: false`).
+The superseded research investigated Ice's private-CGS/synthetic-CGEvent mechanism, which Plan 66-01's on-device spike confirmed does not reliably work on this project's hardware/macOS build. This replacement research covers the new, pivoted mechanism: **Hidden Bar's spacer-`NSStatusItem` technique** (github.com/dwarvesf/hidden, MIT), which uses **only public `NSStatusBar`/`NSStatusItem` API**. The mechanism is structurally simple: two additional `NSStatusItem`s — a visible chevron (`NSStatusItem.variableLength`) and an invisible spacer (`NSStatusItem` with a `.length` toggled between ~20pt "collapsed" and ~2000pt "expanded," clamped to the current screen's width). Widening the spacer causes AppKit's own menu-bar layout engine to run out of room and stop displaying every item positioned to its left — this is the *same, well-documented, non-Islet-specific* macOS behavior that causes menu-bar icons to silently disappear when there are "too many" of them for the available width (confirmed independently for Bartender, corroborated by Jesse Squires' widely-cited notch-and-menu-bar article, and stated explicitly in Hidden Bar's own docs). This is genuine layout removal, not occlusion — a materially different (and much stronger) guarantee than the old Ice mechanism could offer, which could only *reposition* third-party items and never actually removed them from layout.
 
-Critically, **this codebase already has three working, shipped instances of exactly the permission-check pattern this phase needs**: `OSDInterceptor.isAccessibilityTrusted`, `CapsLockMonitor.isAccessibilityTrusted`, and `DropInterceptTap`'s prompt-and-proceed call, all using the bare `AXIsProcessTrusted()`/`AXIsProcessTrustedWithOptions()` public-but-unusual API — no `AXSwift` package needed. This contradicts CONTEXT.md's canonical_refs claim that "no existing Accessibility-permission code" exists in the codebase; the mechanism is precedented, only the drag-to-hide-and-reveal chevron behavior is genuinely novel. `CapsLockMonitor.start()` additionally has a directly reusable 5-second health-check-retry pattern for exactly the D-02 requirement ("activates automatically once permission granted, no relaunch").
+**Critically, the new mechanism needs no window/process introspection at all.** Unlike Ice's private CGS window-enumeration, the spacer technique is entirely oblivious to *which app* owns *which icon* — "hidden" is purely a geometric fact (an icon's X-position is left of the spacer's left edge) that AppKit itself computes and enforces. This eliminates the single largest risk class from the old research (private/undocumented API fragility) and the entire Accessibility-permission surface (MENUBAR-04, now dropped).
 
-The single largest open risk — and the reason the ROADMAP mandates an on-device spike before any production code — is **whether "hiding" genuinely reclaims screen space (SC#4) or merely occludes the icon behind the frontmost app's own menu**. Ice's `MenuBarItemManager` moves third-party items to X-coordinates to the *left* of its own hidden-section control item; it never calls anything equivalent to `NSStatusItem.isVisible = false` on items it does not own (it cannot — that property lives in the other process's `NSStatusItem` object, inaccessible cross-process). Real screen space is only reclaimed for Ice's *own* control items via the public `NSStatusItem.isVisible = false` property (confirmed in `ControlItem.swift`). For third-party items, apparent space reclamation depends on the frontmost app's own menu (File/Edit/View…) visually covering the repositioned icon — an occlusion effect, not a layout removal. Multiple recent Ice GitHub issues (#679 "Unable to display menu bar items" on macOS Tahoe, #331/#675 icons "disappear at random") corroborate that this technique is version-fragile in practice, reinforcing the project's own "isolate the fragile thing behind its own seam" precedent (`NowPlayingMonitor`, `MicMuteController`) and the mandated spike-first order.
+This reframes D-03's open persistence question with a concrete, evidence-backed answer (see Open Questions / Pitfall 1 below): **macOS's own system-level status-item position persistence is the primary and largely sufficient mechanism** — it is documented, real AppKit behavior (`NSStatusItem.autosaveName`), not a guess. Hidden Bar's own manual states plainly that "macOS remembers that placement per app" once a user has Cmd-dragged an icon across the separator, and that this persists across that *other* app's relaunches — because the persisted state lives in the *system's* per-item-identity position table, not in Hidden Bar's own storage. The one documented edge case is a brand-new or updated third-party status item with no prior remembered position: macOS's own default insertion behavior places new items at the *outer* edge of the menu-extras cluster (farthest from the clock) — which, given D-01's leftmost-chevron placement, biases toward landing in (or near) the *hidden* zone rather than randomly in the visible one. This means Islet's own required persistence work is much smaller in scope than the old mechanism needed: mainly, giving **Islet's own** chevron and spacer items a stable `autosaveName` (so the boundary reference point itself doesn't drift across launches) plus persisting Islet's own UI state (is the hidden section currently expanded or collapsed) — not a bespoke "list of hidden bundle IDs + active re-apply on relaunch" store, which was the old mechanism's Pitfall 1 conclusion but does not transfer to this one.
 
-**Primary recommendation:** Build the spike as an `XCTestCase`-based manual-spike file (mirroring `IsletTests/MeetingMonitorManualSpike.swift` verbatim — Cmd-U only, console-driven, always-green assertion, human checklist in the plan) that (a) links the same handful of private `CGS*` symbols Ice uses via `@_silgen_name` in a new `Bridging.swift`-style file, (b) drives one real third-party icon through a synthetic-drag move using the same `CGEvent` technique, and (c) has the human visually confirm on real hardware whether the vacated position is truly reclaimed or merely covered. Reuse the existing `AXIsProcessTrusted()`/`AXIsProcessTrustedWithOptions()` pattern and `CapsLockMonitor`-style health-check timer for the permission plumbing — do not add the `AXSwift` package.
+**Primary recommendation:** Build this as a direct production implementation, not a spike-gated exploratory plan. The mechanism is public API, has multiple years of production precedent across at least three shipped apps, and needs no permission or private-symbol validation. Skip a dedicated `checkpoint:human-verify` spike plan (unlike Plan 66-01); fold on-device visual confirmation of "genuine reclamation vs. occlusion" into a lightweight UAT checkpoint at the end of the first real implementation task instead, mirroring how most of this project's non-exotic features are verified (Wave-end on-device check, not a whole preceding spike wave).
 
 ## Architectural Responsibility Map
 
 | Capability | Primary Tier | Secondary Tier | Rationale |
 |------------|-------------|----------------|-----------|
-| Chevron `NSStatusItem` creation & click handling | App process (new isolated manager type, constructed from `AppDelegate`) | Settings UI (SwiftUI, status display only) | Follows `AppDelegate.swift:107`/`:490` `statusItem`/`debugStatusItem` construction precedent; per D-02 there is no Settings on/off toggle, so Settings never owns activation logic |
-| Other apps' icon detection & private repositioning | New isolated manager type (e.g. `MenuBarOverflowController` + a `Bridging`-style private-API file) | macOS Window Server (out-of-process, private `CGS*` symbols) | Highest-novelty/zero-reuse code in the milestone; must get its own seam per the project's `NowPlayingMonitor`/`MicMuteController` precedent, validated by the mandated spike first |
-| Accessibility permission check & one-time explanation | New isolated manager type, reusing `AXIsProcessTrusted()`/`AXIsProcessTrustedWithOptions()` pattern already in `OSDInterceptor.swift`/`CapsLockMonitor.swift`/`DropInterceptTap.swift` | Settings UI (permission-status card, D-04) | Precedented mechanism, not genuinely new — only the explanation copy/UI instance is new (MENUBAR-04's "distinct from existing prompts") |
-| Hidden/visible bundle-ID assignment persistence | New `UserDefaults`-backed store, namespaced like `ActivitySettings` | New isolated manager type (re-applies stored assignment whenever a matching bundle ID's status item reappears) | D-03; no existing subsystem to reuse — must be its own small store, and must actively re-apply on relaunch/Dock-launch since Ice itself does not solve this generically (see Pitfall 1 below) |
-| Cmd-drag repositioning gesture | macOS system (native, zero app code) | New isolated manager type (optional: auto-reveal hidden section while a Cmd-drag is in progress, Ice `EventManager.handleLeftMouseDragged` precedent) | Cmd-dragging any `NSStatusItem` (including third-party ones) to reposition it is native macOS behavior that has existed since classic Mac OS X — Ice adds zero custom drag code for the move itself, only a drag-in-progress UX assist |
+| Chevron + spacer `NSStatusItem` creation, click handling, width toggling | App process (new isolated manager type, constructed from `AppDelegate`) | Settings UI (SwiftUI) — none needed per D-02, no toggle/status card | Follows `AppDelegate.swift:107`/`:490` `statusItem`/`debugStatusItem` construction precedent; D-02 removes any Settings-tier involvement entirely |
+| Other apps' icon hide/reveal ordering | macOS Window Server / AppKit menu-bar layout engine (out-of-process, public behavior) | New isolated manager type (owns only the spacer's `.length`, never touches other apps' items directly) | This phase's app code never references another app's `NSStatusItem` at all — the entire "move an icon" concept from the old mechanism does not exist here; AppKit's own layout algorithm does 100% of the work once the spacer's length changes |
+| Cmd-drag repositioning gesture | macOS system (native, zero app code) | — | Cmd-dragging any `NSStatusItem`, including third-party ones, across another item is native macOS behavior, unaffected by which technique owns the separator (confirmed in both Ice's and Hidden Bar's source, per CONTEXT.md) |
+| Hidden/visible icon-position persistence (D-03) | macOS system-level `NSStatusItem` position table (per-app, `autosaveName`-anchored) | New isolated manager type — persists Islet's own reveal/hide UI state (bool) and gives Islet's own items stable `autosaveName`s | See Summary/Pitfall 1 — the heavy lifting is OS-native; Islet's own code only needs to keep its own boundary-defining items stable, not track other apps' bundle IDs |
+| Screen-width-bounded "expanded" spacer length | New isolated manager type, reacting to `NSApplication.didChangeScreenParametersNotification` | — | Must be recomputed on every screen-configuration change (external display connect/disconnect, resolution change), not captured once at launch — codebase already has this exact notification pattern at `NotchWindowController.swift:604` |
 
 ## Standard Stack
 
 ### Core
 
-No new external package dependency is recommended. The mechanism this phase needs is a handful of private C symbols linked directly via Swift's `@_silgen_name`, exactly as Ice does — this is a private-API linkage pattern, not a library.
+No new external package dependency. The entire mechanism is built from public `AppKit` APIs already used elsewhere in this codebase.
 
 | Approach | Purpose | Why Standard (for this exact problem) |
 |----------|---------|----------------------------------------|
-| `@_silgen_name`-declared private `CGS*` functions (own `Bridging.swift`-style file) | Query window list / window frame / space for other apps' menu-bar item windows | `[VERIFIED: github.com/jordanbaird/Ice, direct source read]` — this is what Ice itself does; no public API exposes this |
-| Synthetic `CGEvent` mouse-down/dragged/up sequences (own file, mirroring `MenuBarItemManager.move(item:to:)`) | Physically reposition another app's `NSStatusItem` by simulating a real drag | `[VERIFIED: github.com/jordanbaird/Ice, direct source read]` — no public API moves another process's status item |
-| `AXIsProcessTrusted()` / `AXIsProcessTrustedWithOptions()` (public `ApplicationServices`/`HIServices` API, no import needed beyond `AppKit`) | Check/request Accessibility trust | `[VERIFIED: codebase]` — already used in `Islet/Notch/OSDInterceptor.swift:46`, `Islet/Notch/CapsLockMonitor.swift:34`, `Islet/Notch/DropInterceptTap.swift:40` |
+| `NSStatusBar.system.statusItem(withLength:)` (chevron, `NSStatusItem.variableLength`) | Visible chevron control | `[VERIFIED: codebase]` — identical call already used at `Islet/AppDelegate.swift:107` and `:490` |
+| `NSStatusBar.system.statusItem(withLength:)` (spacer, numeric length toggled between ~20 and a screen-width-bounded ~2000) | The actual hide/reveal mechanism | `[CITED: github.com/dwarvesf/hidden, StatusBarController.swift — fetched directly]` — `btnSeparate = NSStatusBar.system.statusItem(withLength: 1)`, then `btnHiddenLength`/`btnHiddenCollapseLength` toggled on click |
+| `NSStatusItem.autosaveName` | Give Islet's own chevron/spacer a stable position reference across relaunches (answers D-03's open question) | `[CITED: github.com/dwarvesf/hidden, StatusBarController.swift]` — Hidden Bar sets `btnExpandCollapse.autosaveName = "hiddenbar_expandcollapse"` / `btnSeparate.autosaveName = "hiddenbar_separate"`; this is a documented public `NSStatusItem` property, not a private one |
+| `NSApplication.didChangeScreenParametersNotification` | Recompute the spacer's bounded "expanded" length on display changes | `[VERIFIED: codebase]` — identical pattern already used at `Islet/Notch/NotchWindowController.swift:604` for an unrelated purpose (ISL-06) |
+| `UserDefaults` | Persist Islet's own small UI state (expanded/collapsed) — NOT a bundle-ID hidden-list (see Summary) | `[VERIFIED: codebase]` — standard project pattern (`ActivitySettings`) |
 
 ### Supporting
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `NSStatusBar.system.statusItem(withLength:)` | AppKit (built-in) | Construct the chevron's own `NSStatusItem` | Same call already used at `AppDelegate.swift:107`/`:490` |
-| `UserDefaults` | Foundation (built-in) | Persist hidden/visible bundle-ID assignments (D-03) | Namespaced keys, mirroring `ActivitySettings`'s `@AppStorage` style but keyed by arbitrary bundle IDs |
+| `NSWorkspace.didLaunchApplicationNotification`/`didTerminateApplicationNotification` | AppKit (built-in) | Optional: detect a Dock-relaunch of another app, purely for debug logging / future diagnostics — NOT required for the core hide/show mechanism to function (see Pitfall 1) | `[VERIFIED: codebase]` — identical pattern already used at `Islet/Notch/MeetingMonitor.swift:119-120` |
 
 ### Alternatives Considered
 
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
-| Raw `@_silgen_name` private symbols | `AXSwift` package (Ice's dependency for the *permission* wrapper only, not the CGS mechanism) | `AXSwift`'s `checkIsProcessTrusted(prompt:)` is a one-line wrapper around `AXIsProcessTrustedWithOptions` — adds a dependency for something the codebase already does inline (ladder rung 2: reuse in-codebase pattern instead) |
-| Ice's synthetic-drag `CGEvent` technique | Accessibility API (`AXUIElement`) to directly set another process's window position | `[ASSUMED]` — Ice's own `Bridging.swift` contains zero `AXUIElement` calls despite requiring Accessibility trust; Accessibility trust is required to *create* certain `CGEventTap`/`CGEvent.tapCreate` calls and to read `CGWindowListCopyWindowInfo` process names, not to directly manipulate other apps' `AXUIElement` positions for status items — this needs on-device confirmation during the spike, since it changes which private API surface the spike must validate |
+| macOS's own `autosaveName`-based position persistence for D-03 | A bespoke `UserDefaults`-backed bundle-ID → hidden/visible store with active re-apply logic on every app relaunch (the old research's Pitfall-1-driven design) | `[CITED, MEDIUM confidence]` — this was the correct answer for the *old* mechanism (which had zero persisted state of any kind), but is unnecessary complexity here: it would duplicate a system-level guarantee that already exists for this specific mechanism, and risks *fighting* macOS's own remembered order rather than complementing it. Revisit only if on-device UAT finds the OS-level persistence measurably unreliable for this project's actual icon set. |
+| A fixed collapsed-spacer max width (e.g. a hardcoded `2000`) | Screen-width-bounded value, recomputed on screen-parameter change | `[CITED: github.com/dwarvesf/hidden]` — Hidden Bar clamps between roughly 500–4000pt based on the *current* screen, specifically to avoid pathological layout on newer macOS; a hardcoded value would misbehave on this project's notch MacBook's narrower usable menu-bar width (`CLAUDE.md` confirms notch MacBooks are the sole target platform) |
 
-**Installation:** No package manager changes required — no `npm install`/SPM package additions. New Swift source files only.
+**Installation:** No package manager changes required — no SPM package additions. New Swift source files only.
 
-**Version verification:** N/A — no versioned package is being added. If a future change decides to add `AXSwift` after all, verify via `swift package resolve` against `https://github.com/tmandry/AXSwift` (last known state: small, single-purpose wrapper, MIT).
+**Version verification:** N/A — no versioned package is being added; all APIs used (`NSStatusBar`, `NSStatusItem`, `NSApplication.didChangeScreenParametersNotification`) are stable public AppKit surface, present since long before this project's macOS 14.0+ deployment target.
 
 ## Package Legitimacy Audit
 
-Not applicable — this phase adds no new external package dependency (see Standard Stack: Core, above). The private-API mechanism is implemented as first-party Swift source declaring `@_silgen_name` symbols, following the codebase's own existing `Bridging`-free-but-precedented pattern (e.g. `BrightnessReader`'s private `DisplayServices` framework `dlopen`, per `OSDInterceptor.swift`'s own comment referencing it) — not a downloaded package.
+Not applicable — this phase adds no new external package dependency. The entire mechanism is public-API AppKit code; no packages to verify via slopcheck or registry lookups.
 
 **Packages removed due to slopcheck verdict:** none (no packages proposed).
 **Packages flagged as suspicious:** none.
@@ -108,263 +115,260 @@ Not applicable — this phase adds no new external package dependency (see Stand
 ### System Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  macOS Window Server (out-of-process, other apps' NSStatusItems)     │
-│                                                                        │
-│   [3rd-party icon A]  [3rd-party icon B]  [Islet's own icons]         │
-└───────────────▲────────────────────────────────────────▲─────────────┘
-                 │ private CGS* introspection            │ owned, public
-                 │ (read window list/frame)               │ NSStatusItem API
-                 │ synthetic CGEvent drag                 │
-┌────────────────┴────────────────────────────────────────┴────────────┐
+┌───────────────────────────────────────────────────────────────────────┐
+│  macOS Menu Bar (AppKit's own layout engine, out-of-process)          │
+│                                                                          │
+│  [3rd-party icon A]  [3rd-party icon B]  ...  [Islet chevron][spacer] │
+│  ◄── pushed out of layout when spacer.length grows past available ──► │
+│      width; AppKit itself removes them from the visible strip          │
+│      (genuine layout removal — same mechanism that silently drops      │
+│      icons when there are "too many" for the screen)                   │
+└───────────────────────────▲─────────────────────────────────────────┘
+                             │ NSStatusItem.length (public property)
+                             │ set on Islet's OWN spacer item only —
+                             │ zero reads/writes of any other app's item
+┌────────────────────────────┴────────────────────────────────────────┐
 │  Islet app process                                                    │
 │                                                                        │
-│  AppDelegate ──creates──► ChevronControlItem (NSStatusItem, leftmost, │
-│      │                     D-01) ──click──► reveal/hide toggle (D-05) │
+│  AppDelegate ──creates──► ChevronStatusItem (variableLength,          │
+│      │                     leftmost per D-01, autosaveName set)       │
+│      │                     ──click──► toggle expanded/collapsed (D-05)│
 │      │                                                                 │
-│      ├──gates on──► AccessibilityPermissionCheck                      │
-│      │              (AXIsProcessTrusted / WithOptions — reuses         │
-│      │               OSDInterceptor/CapsLockMonitor pattern)          │
-│      │              ──denied──► chevron never created (D-04);         │
-│      │                          Settings shows "Permission required"  │
-│      │              ──granted mid-session──► 5s health-check timer    │
-│      │                (CapsLockMonitor.start() precedent) activates   │
-│      │                the feature with no relaunch (D-02)             │
+│      ├──creates──► SpacerStatusItem (invisible, autosaveName set)     │
+│      │              ├─ collapsed: length ≈ 20pt (hidden section open) │
+│      │              └─ expanded: length ≈ 2000pt, clamped to current  │
+│      │                 screen width (hidden section closed)           │
 │      │                                                                 │
-│      └──owns──► MenuBarOverflowController (new, isolated seam)        │
-│                    ├─ detects other apps' status-item windows          │
-│                    │  (private CGS* window-list read)                 │
-│                    ├─ Cmd-drag across chevron ──native macOS──►        │
-│                    │  (zero app code for the drag itself; optional    │
-│                    │   UX assist: auto-reveal hidden section while    │
-│                    │   dragging, Ice EventManager precedent)          │
-│                    ├─ on drop: repositions target item via synthetic  │
-│                    │  CGEvent sequence past the chevron (private,     │
-│                    │  spike-validated mechanism)                       │
-│                    ├─ persists bundle-ID → hidden/visible assignment  │
-│                    │  (new UserDefaults store, D-03)                  │
-│                    └─ re-applies assignment whenever NSWorkspace      │
-│                       reports a matching bundle ID's app (re)launched │
-│                       (Pitfall 1 — required because Ice itself does   │
-│                       not solve this generically)                     │
-└─────────────────────────────────────────────────────────────────────┘
+│      ├──observes──► NSApplication.didChangeScreenParametersNotif.     │
+│      │               (recompute the clamp bound on display change,    │
+│      │               reuses NotchWindowController.swift:604 pattern)  │
+│      │                                                                 │
+│      ├──persists (UserDefaults)──► own expanded/collapsed UI state    │
+│      │               (NOT a per-bundle-ID hidden list — see Summary)  │
+│      │                                                                 │
+│      └── NO code anywhere reads/writes another app's NSStatusItem,    │
+│          NO window enumeration, NO Accessibility permission gate      │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Recommended Project Structure
 
 ```
-Islet/Notch/  (or a new Islet/MenuBar/ group, mirroring Ice's own top-level split)
-├── MenuBarOverflowBridging.swift    # private CGS* @_silgen_name declarations (introspection only)
-├── MenuBarOverflowController.swift  # isolated manager: detect/move/persist, mirrors NowPlayingMonitor/MicMuteController seam discipline
-├── MenuBarOverflowStore.swift       # UserDefaults-backed bundle-ID → hidden/visible store (D-03)
-└── (chevron NSStatusItem construction lives in AppDelegate.swift, alongside statusItem/debugStatusItem)
+Islet/Notch/  (or a new Islet/MenuBar/ group)
+├── MenuBarOverflowController.swift   # owns chevron + spacer NSStatusItems, toggle logic, screen-width clamp
+└── (construction lives in AppDelegate.swift, alongside statusItem/debugStatusItem)
 
-IsletTests/
-└── MenuBarOverflowManualSpike.swift # SC#1's mandated spike — mirrors MeetingMonitorManualSpike.swift exactly
+# Superseded, D-06 discretion — delete or repurpose, do not build on:
+Islet/Notch/MenuBarOverflowBridging.swift        # old private-CGS shim
+IsletTests/MenuBarOverflowManualSpike.swift      # old private-API spike test
 ```
 
-### Pattern 1: Manual on-device spike as an XCTestCase (this project's established precedent)
+### Pattern 1: Two-status-item spacer toggle (the core mechanism)
 
-**What:** A single `XCTestCase` method, run via Xcode Cmd-U only (never `xcodebuild test`, which hangs headless in this project per the documented `xcodebuild-test-headless-hang` precedent), that exercises the real mechanism against real hardware and prints console diagnostics for a human to read against a written checklist. The assertion is always `XCTAssertTrue(true)` — pass/fail is human-judged from the console output plus the plan's on-device checklist, not from the test framework.
+**What:** A dedicated, invisible `NSStatusItem` whose only job is to occupy width. Toggling its `.length` between a small "collapsed" value and a large "expanded" value (clamped to the current screen's usable width) is the entire hide/reveal mechanism — no other app code participates.
 
-**When to use:** Exactly SC#1's mandate — validating a private/undocumented mechanism (permission-denied, sleep/wake, Dock-relaunch cases) before committing to a production implementation.
+**When to use:** Exactly MENUBAR-01/MENUBAR-03's mechanism.
 
-**Example (precedent, not this phase's file):**
+**Example (reconstructed from Hidden Bar's real source, fetched directly — verify exact property names/values against the live file before copying literally into production code):**
 ```swift
-// Source: IsletTests/MeetingMonitorManualSpike.swift (this codebase, Phase 63)
-final class MeetingMonitorManualSpike: XCTestCase {
-    @MainActor
-    func testManualDetectionHeuristic() {
-        print("[MeetingSpike] about to read+toggle system input mute — NO TCC prompt expected")
-        // ... exercises the real mechanism ...
-        RunLoop.current.run(until: Date().addingTimeInterval(180))
-        XCTAssertTrue(true, "manual spike — see console output and plan Task 2 for pass/fail criteria")
-    }
+// Source: github.com/dwarvesf/hidden, hidden/Features/StatusBar/StatusBarController.swift
+private let btnExpandCollapse = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+private let btnSeparate = NSStatusBar.system.statusItem(withLength: 1)
+
+private var btnHiddenLength: CGFloat = 20
+private var btnHiddenCollapseLength: CGFloat = 2000   // clamped to current screen width, see Pitfall 4
+
+func expandCollapseIfNeeded() {
+    let isCollapsed = btnSeparate.button?.frame.width == btnHiddenCollapseLength
+    btnSeparate.length = isCollapsed ? btnHiddenLength : btnHiddenCollapseLength
 }
 ```
-The Phase 66 spike should follow this shape 1:1, substituting the CGS-symbol window-list read + synthetic-drag move for the mic-mute read/toggle, and covering permission-denied / sleep-wake / Dock-relaunch as separate checklist steps within the same run.
 
-### Pattern 2: Accessibility-gated feature bootstrap with mid-session activation (existing codebase precedent)
+### Pattern 2: `autosaveName` for Islet's own boundary-defining items (directly answers D-03's open question)
 
-**What:** Gate a feature's `start()` behind `AXIsProcessTrusted()`; if untrusted, arm a repeating timer instead of giving up, so a grant made later in System Settings activates the feature without an app relaunch.
+**What:** Set a stable, hardcoded `autosaveName` string on both the chevron and spacer `NSStatusItem`s so macOS's own system-level position table anchors them consistently across relaunches. This is what makes the *reference point* for "hidden = left of spacer" stable — everything else (other apps' items) is then persisted by the OS relative to that stable anchor.
 
-**When to use:** Directly satisfies D-02 ("activates automatically once Accessibility permission is granted — no separate toggle").
+**When to use:** Required for D-03. Set once, at construction, alongside `AppDelegate.swift:107`'s existing `statusItem` construction.
 
 **Example:**
 ```swift
-// Source: Islet/Notch/CapsLockMonitor.swift (this codebase, Phase 60)
-static var isAccessibilityTrusted: Bool { AXIsProcessTrusted() }
+// Source: github.com/dwarvesf/hidden, StatusBarController.swift (public NSStatusItem API, not private)
+btnExpandCollapse.autosaveName = "hiddenbar_expandcollapse"
+btnSeparate.autosaveName = "hiddenbar_separate"
+```
 
-func start() {
-    guard monitorToken == nil else { return }
-    guard Self.isAccessibilityTrusted else {
-        armHealthCheck()   // 5s retry, per line ~44-52 comment: "a single AXIsProcessTrusted()
-        return             // check at toggle-time can still read false even when System
-    }                       // Settings already shows the grant checked"
-    install()
+### Pattern 3: Screen-parameter-driven re-clamp (reuses existing codebase pattern)
+
+**What:** Recompute the spacer's "expanded" length bound whenever the screen configuration changes (external display connect/disconnect, resolution change, notch-MacBook lid open/close) — never capture a single value once at launch.
+
+**When to use:** Required for correctness on the notch MacBook target hardware, whose built-in display already has a physically narrower usable menu-bar width than a non-notch Mac.
+
+**Example:**
+```swift
+// Source: Islet/Notch/NotchWindowController.swift:601-610 (this codebase, existing pattern for
+// an unrelated purpose — ISL-06/D-05 — directly reusable shape for this phase)
+observer = NotificationCenter.default.addObserver(
+    forName: NSApplication.didChangeScreenParametersNotification,
+    object: nil, queue: .main
+) { [weak self] _ in
+    DispatchQueue.main.async { self?.recomputeSpacerExpandedLength() }
 }
 ```
 
-### Pattern 3: Deep-link to System Settings' Accessibility pane on denial (existing codebase precedent, directly satisfies D-04)
+### Pattern 4: Position-validity self-heal (defensive, optional but recommended)
 
-**What:** `NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)`
+**What:** Hidden Bar checks, on each interaction, whether its own control items are still in a sane relative order (`isBtnSeparateValidPosition`/`isBtnAlwaysHiddenValidPosition`) and self-corrects if the user has Cmd-dragged the chevron/spacer itself out of its expected place — since nothing in the public API can *prevent* the user from doing so (see Open Question 2 below re: "exempt" own-item semantics).
 
-**When to use:** Exactly D-04's "button that opens System Settings → Privacy & Security → Accessibility directly." Already used verbatim in `Islet/SettingsView.swift:760` and `:790` for OSD suppression and Caps Lock.
+**When to use:** Optional hardening for Claude's Discretion item ("Islet's own icon(s) exempt from hiding") — since true enforcement isn't possible via public API, a self-heal check is the closest achievable approximation.
 
 ### Anti-Patterns to Avoid
 
-- **Adding the `AXSwift` package:** Ice uses it only as a thin wrapper around `AXIsProcessTrustedWithOptions`; this codebase already calls the raw API directly in three places. Adding a dependency for something already precedented in-repo is unnecessary (ladder rung 2).
-- **Force-prompting Accessibility on every check:** `CapsLockMonitor`/`OSDInterceptor` deliberately never call the `prompt: true` variant from a passive health-check — only `DropInterceptTap` calls it once, at explicit user-initiated `start()`. Accessibility has no re-request API; repeatedly calling the prompt variant does not re-show a dialog once denied and is functionally a no-op after the first call, so gate the prompt call behind a genuine user action (first grant of the feature), not a timer.
-- **Treating "item moved past the control item" as equivalent to "screen space reclaimed":** Ice's own mechanism does NOT call any AppKit removal API on third-party items (it cannot — no cross-process access to another app's `NSStatusItem` object). Do not assume SC#4 is satisfied just because Ice's `move()` succeeds; this must be visually confirmed on real hardware during the spike (see Pitfall 3).
+- **Reading/writing another app's `NSStatusItem` object:** Not possible cross-process, and not needed — this mechanism never references one. If a future task is tempted to add window/process introspection "to be sure," that's a sign of porting the old mechanism's mental model where it doesn't apply.
+- **Recreating the spacer/chevron `NSStatusItem` on every toggle:** Only `.length` should change; recreating the item loses its `autosaveName`-anchored position and is unnecessary churn (mirrors Hidden Bar's own single-instance-per-launch construction).
+- **Hardcoding a fixed max width instead of clamping to the current screen:** Will misbehave on this project's notch hardware and on any external-display setup (Pitfall 4).
+- **Building a bundle-ID-keyed hidden-list store with active re-apply logic as the primary D-03 mechanism:** Unnecessary for this mechanism (see Alternatives Considered) — the OS already does this for the common case; over-building here duplicates a system guarantee.
 
 ## Don't Hand-Roll
 
 | Problem | Don't Build | Use Instead | Why |
 |---------|-------------|-------------|-----|
-| Cmd-drag repositioning of a menu-bar icon | Custom `NSDraggingSession`/drop-target code for the drag gesture itself | Nothing — it's free, native macOS behavior for any `NSStatusItem`, including third-party ones (verified: Ice's `EventManager.swift` contains no custom drag-move code, only a `.leftMouseDragged` *observer* for a UX assist) | The OS already handles Cmd-drag repositioning; building custom drag machinery here would duplicate free system behavior and risks fighting the OS's own drag session |
-| Accessibility permission check/request plumbing | A new `PermissionsManager`-style abstraction (Ice's own class) | The codebase's existing bare `AXIsProcessTrusted()`/`AXIsProcessTrustedWithOptions()` + health-check-timer pattern (`OSDInterceptor`, `CapsLockMonitor`) | Three working precedents already exist; a fourth near-identical implementation with a different shape (Ice's `ObservableObject` class) would fragment the pattern for no benefit |
-| Deep-linking to the Accessibility settings pane | A generic "open Privacy & Security" helper | The exact `x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility` URL string, copy-pasted from `SettingsView.swift:760`/`:790` | Already proven working in this exact app on this exact deployment target |
+| Cmd-drag repositioning of a menu-bar icon | Custom `NSDraggingSession`/drop-target code | Nothing — free, native macOS behavior for any `NSStatusItem`, including third-party ones | Confirmed in both Ice's and Hidden Bar's source (per CONTEXT.md); unaffected by which technique owns the separator |
+| Hidden-icon position persistence across relaunch | A bespoke bundle-ID-keyed `UserDefaults` store + active re-apply-on-relaunch subscriber | `NSStatusItem.autosaveName` on Islet's own items, relying on macOS's own per-app position table for everyone else's items | See Summary/Pitfall 1 — this is the single biggest scope reduction the mechanism pivot enables; do not port the old mechanism's Pitfall-1-driven design forward |
+| Detecting "is the vacated space genuinely reclaimed" | A custom `CGWindowListCopyWindowInfo` visual-diff check at runtime | Trust the mechanism (public `NSStatusItem.length` participating in AppKit's real layout algorithm) — confirm once, visually, during UAT, not via runtime introspection code shipped in the app | The old mechanism needed a runtime check because it could not know its own effect (private repositioning with unknown layout consequences); this mechanism's effect on layout is deterministic AppKit behavior, not something the app needs to verify at runtime |
 
-**Key insight:** The only genuinely novel code in this phase is the private-API window detection + synthetic-drag repositioning mechanism (Bridging + Controller). Everything else — the chevron `NSStatusItem`, the Accessibility check, the deep link, the Cmd-drag gesture itself — has direct, working precedent either in this codebase or as native, code-free macOS behavior. Plans should be scoped accordingly: most of the phase's task budget belongs to the spike and the isolated mechanism seam, not to permission plumbing or UI chrome.
+**Key insight:** The mechanism pivot doesn't just change *how* hide/reveal works — it eliminates two entire problem classes the old research had to solve (private-API window introspection, and active persistence re-application). The remaining genuinely novel code is small: the chevron+spacer construction, the width-toggle/animation, and the screen-width clamp. Plans should be scoped accordingly — this is a meaningfully smaller phase than the superseded research anticipated.
 
 ## Common Pitfalls
 
-### Pitfall 1: Hidden-icon assignment does not survive an app relaunch/Dock-relaunch automatically — directly affects D-03
+### Pitfall 1: D-03's open question, resolved — macOS's own position persistence is sufficient for the common case, but Islet's OWN items must be pinned via `autosaveName`
 
-**What goes wrong:** After the user hides another app's icon, quitting and relaunching that *other* app (or a Dock-relaunch) creates a brand-new `NSStatusItem` in that process, at a position macOS itself decides (or wherever the OS's own `NSStatusItem.autosaveName`-keyed `UserDefaults` position remembers, *if* that specific third-party app happens to set an autosave name — most apps that don't opt into this land in a default/visible position).
+**What goes wrong:** Assuming either extreme — either "macOS remembers everything, build nothing" or "nothing persists automatically, build a full bundle-ID store" — is wrong in different ways.
 
-**Why it happens:** `[VERIFIED: github.com/jordanbaird/Ice, MenuBarItemManager.swift]` — Ice's own `cacheItemsIfNeeded()` (triggered on a 5s timer and on every `NSWorkspace.shared.publisher(for: \.runningApplications)` change) recomputes section membership *purely from each item's current physical X-position* relative to the control items. No persisted "these bundle IDs are hidden" list drives an active re-hide of a freshly-recreated item was found anywhere in `MenuBarItemManager.swift`, `MenuBarManager.swift`, or the Settings managers reviewed. Islet's own persistence (D-03, keyed by bundle identifier) is therefore not just "remember a preference" — it must **actively re-invoke the move mechanism** every time a bundle ID with a stored "hidden" assignment reappears in `NSWorkspace.shared.runningApplications`, exactly as the CONTEXT's own discretion note anticipated.
+**Why it happens:** `[CITED: github.com/dwarvesf/hidden, docs/MANUAL.md — fetched directly]` — Hidden Bar's own manual states plainly that once a user Cmd-drags an icon across the separator, "macOS remembers that placement per app," and that this is *system* behavior ("this is macOS positioning behavior, not Hidden Bar moving your icon"), not something Hidden Bar's own code tracks or re-applies. The one documented gap: brand-new or updated third-party items with no prior remembered position get inserted at the *outer* edge of the menu-extras cluster by macOS's own default rule — which, given D-01's leftmost-chevron placement, tends to land at or near the hidden zone rather than randomly in the visible one, but this is not a hard guarantee `[ASSUMED — inferred from the "new items insert at the far/outer edge" description, not independently confirmed against Apple's own documentation]`. Separately, `[CITED: multiple developer-forum threads found via WebSearch]` confirms `NSStatusItem.autosaveName` is the actual public mechanism macOS uses for this per-app remembered-position behavior, and that it is opt-in per item — an item with no `autosaveName` set has no persisted position guarantee at all. This matters directly for Islet's **own** chevron and spacer: if they don't set a stable `autosaveName`, the *reference point* itself could drift across relaunches, which would make the whole hidden/visible boundary unstable even if every other app's item persists correctly.
 
-**How to avoid:** Subscribe to `NSWorkspace.shared.publisher(for: \.runningApplications)` (or `NSWorkspace.didLaunchApplicationNotification`), diff against the stored hidden-bundle-ID set, and re-run the move-to-hidden sequence for any newly-appeared status item whose owning bundle ID is in that set. This must be idempotent and tolerant of the item not being immediately available (mirrors Ice's own retry/wake-up loop).
+**How to avoid:** Set `NSStatusItem.autosaveName` on both the chevron and spacer with a hardcoded, stable string (mirrors Hidden Bar's `"hiddenbar_expandcollapse"`/`"hiddenbar_separate"`) at construction time, alongside `AppDelegate.swift:107`'s existing pattern. Do NOT build a bundle-ID-keyed hidden/visible store with active re-apply logic as the primary persistence mechanism — that solves a problem this mechanism mostly doesn't have. Persist only Islet's own small UI state (is the hidden section currently expanded or collapsed) via plain `UserDefaults`.
 
-**Warning signs:** A previously-hidden icon reappearing in the visible strip every time its owning app relaunches, requiring the user to re-hide it manually — this would silently violate D-03.
+**Warning signs:** The chevron or spacer appearing at a different relative position after a fresh app launch than where it was left — this would indicate the `autosaveName` wiring is missing or broken, and should be treated as a correctness bug, not a cosmetic one.
 
-### Pitfall 2: "Genuine space reclamation" (SC#4) may not hold for third-party items — this IS the spike's central question
+### Pitfall 2: Cmd-dragging Islet's own chevron/spacer is not preventable via public API
 
-**What goes wrong:** Building the production UI/UX around an assumption that hiding an icon shrinks the visible menu-bar strip, when the real mechanism only occludes the icon behind the frontmost app's own menu titles.
+**What goes wrong:** Assuming "Islet's own icon(s) stay exempt from hiding" (the default discretion assumption) can be enforced programmatically.
 
-**Why it happens:** `[VERIFIED: github.com/jordanbaird/Ice, ControlItem.swift:556-560]` — the only confirmed real AppKit-level space reclamation (`statusItem.isVisible = false`, which macOS documents as removing the item from layout) applies to Ice's *own* control items, which Ice owns as first-class `NSStatusItem` Swift objects. Third-party items are only ever *repositioned*, never had `isVisible` toggled by Ice, because Ice has no in-process object reference to another app's `NSStatusItem`.
+**Why it happens:** Cmd-drag repositioning is a system-level gesture that applies to *any* `NSStatusItem` a user can see, including Islet's own — there is no public API to disable or intercept it for a specific item. `[CITED: github.com/dwarvesf/hidden, docs/MANUAL.md]` — Hidden Bar's own manual acknowledges this exact limitation for its own control items ("if the arrow or separator was Command-dragged off the bar... they come back on next launch" — a self-heal, not a prevention).
 
-**How to avoid:** The mandated spike (SC#1) must specifically observe, on real hardware, whether other visible icons shift/reflow to fill the vacated space when an item is moved past the chevron, or whether the vacated position is simply covered by the frontmost app's menu (an occlusion, not a reclamation). If it is occlusion-only, SC#4 as literally worded ("real screen space reclaimed") may need to be revisited with the user before the production mechanism is built — this is exactly the kind of finding the spike-first ROADMAP ordering exists to surface early.
+**How to avoid:** Treat "exempt from hiding" as a *default positioning* guarantee (constructed to the right of the spacer, in the visible zone), not an enforced constraint. Optionally add Pattern 4's self-heal check to detect and correct if Islet's own items end up out of their expected relative order. Document this limitation explicitly rather than promising the user something the public API can't deliver.
 
-**Warning signs:** Icons that were "hidden" reappearing/flickering when switching frontmost app (since the occluding menu changes width per-app), or the visible strip's total width not changing after a hide.
+**Warning signs:** A support report that "Islet's icon disappeared" — likely the user accidentally Cmd-dragged it behind their own spacer, not a bug in the hide/reveal mechanism itself.
 
-### Pitfall 3: The technique is empirically fragile across macOS versions
+### Pitfall 3: Genuine reclamation (not occlusion) is the mechanism's actual behavior — but confirm on-device once, don't assume unconditionally
 
-**What goes wrong:** A mechanism that works today silently breaks after a macOS point release.
+**What goes wrong:** Carrying forward the old research's Pitfall 2 anxiety ("is this occlusion or reclamation?") unnecessarily, OR conversely assuming zero on-device verification is needed at all.
 
-**Why it happens:** `[CITED: github.com/jordanbaird/Ice/issues]` — multiple open issues report exactly this: #679 "Unable to display menu bar items on macOS Tahoe," #331/#675 hidden/always-hidden icons "disappear at random." These are private, undocumented SkyLight/CoreGraphics symbols with no API stability guarantee.
+**Why it happens:** `[CITED: multiple independent sources]` — general reporting on `NSStatusItem` overflow behavior confirms "when there are too many app icons on the menu bar, macOS automatically hides some of them" as real, system-level layout behavior (not an app-specific trick), and this is corroborated independently by Bartender's documented technique and by developer commentary on the notch reducing available menu-bar width. This is a fundamentally different (and stronger) guarantee than Ice's private repositioning ever offered. However, this research is based on cross-referenced secondary sources plus one direct fetch of Hidden Bar's real file, not a live on-device test on this project's actual hardware/macOS 27 beta.
 
-**How to avoid:** Isolate the mechanism behind its own seam (per this project's `NowPlayingMonitor`/`MicMuteController` precedent) so a future OS-version break is a contained, single-file fix rather than a scattered regression. Document the risk explicitly in code comments, mirroring how `OSDInterceptor.swift` documents its own tap-mode fallback discipline.
+**How to avoid:** A single lightweight on-device visual check (do hidden icons genuinely vanish and does the visible strip's width change, versus merely getting covered by the frontmost app's menu) is still worth doing once, as an end-of-task UAT checkpoint — not as a full blocking spike wave like Plan 66-01 was. Given the strength of the corroborating evidence, this should be a fast confirmation, not an open-ended investigation.
 
-**Warning signs:** Items failing to move (the spike's retry/wake-up loop exhausting its attempts), or a `CGEvent.tapCreate`/window-list read silently returning empty/nil.
+**Warning signs:** If, contrary to all corroborating evidence, hidden icons remain visually present after collapse on this specific hardware/macOS build — this would be a genuinely novel finding worth its own follow-up investigation, not something to silently work around.
 
-### Pitfall 4: `AXIsProcessTrustedWithOptions`'s prompt no longer shows a modal dialog on macOS Sequoia (15)/Tahoe (26)
+### Pitfall 4: The "expanded" spacer length must be clamped to the CURRENT screen, recomputed on change — not a fixed constant
 
-**What goes wrong:** Code (or UX copy) that assumes calling the "with options, prompt: true" variant pops a system dialog the user can approve inline.
+**What goes wrong:** Hardcoding `btnHiddenCollapseLength = 2000` (or any fixed value) without accounting for the actual current screen width, or capturing the bound once at launch.
 
-**Why it happens:** `[CITED: community reports, MEDIUM confidence, matches this project's own deployment target of macOS 15.0+]` — on macOS Sequoia and Tahoe, this call instead silently adds the app to the System Settings → Privacy & Security → Accessibility list (unchecked) and returns immediately; there is no modal for the user to approve in-place. The user must be sent to System Settings and manually toggle it on.
+**Why it happens:** `[CITED: github.com/dwarvesf/hidden, StatusBarController.swift]` — Hidden Bar itself bounds this value dynamically (roughly 500–4000pt, clamped to `NSScreen.main?.visibleFrame.width`) specifically to avoid pathological layout on newer macOS. This project's sole target platform is notch MacBooks (per `CLAUDE.md`'s own platform constraint), whose built-in display has a physically narrower usable menu-bar width than a non-notch Mac to begin with — an even stronger reason to clamp dynamically rather than trust a fixed constant. External-display connect/disconnect also changes the effective screen width mid-session.
 
-**How to avoid:** This validates D-04's design exactly as locked — a "Permission required" state with a button that opens System Settings directly is not just good UX, it is now the *only* viable flow on this project's deployment target. Do not build any UI copy implying an in-app approval dialog will appear.
+**How to avoid:** Recompute the bound inside the `NSApplication.didChangeScreenParametersNotification` handler (Pattern 3), using the screen the menu bar currently renders on, not a value captured once at app launch.
 
-**Warning signs:** A permission-explanation popover that says "click Allow" with no actual system dialog appearing.
+**Warning signs:** The expanded spacer overshooting or undershooting on an external monitor, or behaving differently before/after a display is connected without an app relaunch.
 
-### Pitfall 5: `xcodebuild test` hangs headless in this repo — do not gate the spike or CI on it
+### Pitfall 5: Sleep/wake is a non-issue for this mechanism — do not port forward the old mechanism's sleep/wake concern
 
-**What goes wrong:** Writing the spike as a normal automated test expected to pass in a headless/CI run.
+**What goes wrong:** Assuming sleep/wake needs dedicated handling because the superseded research's ROADMAP success-criteria wording (SC#1) explicitly called it out as a spike checklist item for the *old* mechanism.
 
-**Why it happens:** `[VERIFIED: codebase — .planning/PROJECT.md, project memory "xcodebuild-test-headless-hang"]` — this project's full test host already hangs headless due to a pre-existing TCC-authorization wait (Bluetooth). Adding a second TCC-gated permission (Accessibility) to the same test target compounds this risk.
+**Why it happens:** The old mechanism's sleep/wake risk was tied to synthetic `CGEvent` injection and Accessibility-permission state, both of which no longer exist in this design. The spacer technique touches nothing but Islet's own in-process `NSStatusItem.length` — a value that simply persists in memory across sleep like any other app state, with no OS-level teardown on sleep.
 
-**How to avoid:** Follow the `MeetingMonitorManualSpike.swift` precedent exactly — a single manual-only `XCTestCase`, explicitly commented "DO NOT RUN VIA `xcodebuild test`", run via Cmd-U for that one method only.
+**How to avoid:** Do not add sleep/wake-specific handling (`NSWorkspace.screensDidSleepNotification`/`didWakeNotification`) unless a genuine, observed on-device issue surfaces — there is no known mechanism-specific reason to expect one. This is a scope reduction versus the old research's SC#1 checklist, not an oversight.
+
+**Warning signs:** None expected; only add handling reactively if UAT surfaces an actual problem.
 
 ## Code Examples
 
-### Reading the actual private-symbol declaration style used for window introspection
+### Two-status-item construction and toggle (reconstructed from Hidden Bar's real source — verify exact property/method names against the live file before production use)
 
 ```swift
-// Source: github.com/jordanbaird/Ice, Ice/Bridging/Shims/Private.swift (direct source read)
-import CoreGraphics
+// Source: github.com/dwarvesf/hidden, hidden/Features/StatusBar/StatusBarController.swift (fetched directly)
+private let btnExpandCollapse = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+private let btnSeparate = NSStatusBar.system.statusItem(withLength: 1)
 
-typealias CGSConnectionID = Int32
+private var btnHiddenLength: CGFloat = 20
+private var btnHiddenCollapseLength: CGFloat = 2000  // clamped dynamically, see Pitfall 4
 
-@_silgen_name("CGSMainConnectionID")
-func CGSMainConnectionID() -> CGSConnectionID
-
-@_silgen_name("CGSGetScreenRectForWindow")
-func CGSGetScreenRectForWindow(
-    _ cid: CGSConnectionID,
-    _ wid: CGWindowID,
-    _ rect: inout CGRect
-) -> CGError
-```
-
-### Existing codebase pattern for the Accessibility permission gate (reuse this shape)
-
-```swift
-// Source: Islet/Notch/CapsLockMonitor.swift (this codebase)
-static var isAccessibilityTrusted: Bool { AXIsProcessTrusted() }
-
-func start() {
-    guard monitorToken == nil else { return }
-    guard Self.isAccessibilityTrusted else {
-        armHealthCheck()
-        return
+@objc func btnExpandCollapsePressed(sender: NSStatusBarButton) {
+    if let event = NSApp.currentEvent, event.type == .leftMouseUp {
+        expandCollapseIfNeeded()
     }
-    install()
 }
 ```
 
-### Existing codebase pattern for the one-time explanation + deep link (reuse this shape, new copy per MENUBAR-04)
+### Existing codebase pattern for screen-parameter-driven recompute (directly reusable shape)
 
 ```swift
-// Source: Islet/SettingsView.swift:744-768 (osdPermissionExplanationView, this codebase)
-Button("Open System Settings") {
-    NSWorkspace.shared.open(URL(string:
-        "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
-    showOSDPermissionExplanation = false
+// Source: Islet/Notch/NotchWindowController.swift:601-610 (this codebase)
+observer = NotificationCenter.default.addObserver(
+    forName: NSApplication.didChangeScreenParametersNotification,
+    object: nil, queue: .main
+) { [weak self] _ in
+    DispatchQueue.main.async { self?.updateVisibility() }
 }
 ```
+
+### Existing codebase pattern for the chevron/spacer's own `NSStatusItem` construction site
+
+```swift
+// Source: Islet/AppDelegate.swift:107 (this codebase)
+statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+```
+The new chevron and spacer items follow this same construction call, added alongside `statusItem`/`debugStatusItem` (`AppDelegate.swift:490`), confirming no structural conflict with running multiple simultaneous `NSStatusItem` instances — already proven in this exact app in Debug builds.
 
 ## State of the Art
 
-| Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|---------------|--------|
-| `AXIsProcessTrustedWithOptions(prompt: true)` shows a modal system dialog immediately | Same call adds the app to the Accessibility list but shows no modal; user must open System Settings manually | `[CITED, MEDIUM confidence]` macOS Sequoia (15) onward, confirmed persisting into Tahoe (26) | Directly validates D-04's "button that opens System Settings" as necessary, not just polish |
+| Old Approach (superseded, this phase) | Current Approach | When Changed | Impact |
+|--------------------------------------|-------------------|---------------|--------|
+| Ice's private `CGS*`-symbol window enumeration + synthetic-`CGEvent` drag repositioning, gated behind Accessibility permission | Public `NSStatusItem.length` spacer toggle, no permission, no window introspection | This phase's own pivot (2026-07-27), following Plan 66-01's on-device NO-GO | Eliminates the private-API fragility risk (old Pitfall 3), the occlusion-vs-reclamation uncertainty (old Pitfall 2, now resolved in this mechanism's favor), and the entire permission-gating surface (old MENUBAR-04, now dropped) |
 
-**Deprecated/outdated:** None specific to this mechanism found beyond the above — the private `CGS*` API surface itself has no formal deprecation notices (it is undocumented, not deprecated-documented).
+**Deprecated/outdated:** The old research's Ice-mechanism findings remain historically accurate for what they described (Ice's real source, as read on 2026-07-27) but no longer describe this phase's chosen mechanism — do not port forward any conclusion from that document that assumes private-CGS APIs, Accessibility gating, or per-icon window repositioning.
 
 ## Assumptions Log
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | Ice's synthetic-`CGEvent`-drag technique (not `AXUIElement` position-setting) is the actual mechanism by which items are repositioned, and Accessibility trust is required to create the relevant `CGEventTap`/read process window info rather than to manipulate another app's `AXUIElement` directly | Standard Stack (Alternatives Considered), Architecture Patterns | If wrong, the spike would need to validate a materially different private API surface (`AXUIElement` position-setting) than what this research documents; would require re-reading Ice's `Bridging.swift` `AXUIElement`-adjacent code more deeply (none was found in the file, but the possibility of a second undiscovered file using it was not exhaustively ruled out) |
-| A2 | `AXIsProcessTrustedWithOptions`'s modal-suppression behavior on macOS 15+/26 (Pitfall 4) generalizes to this project's actual target hardware/OS build, not just the community reports found | Common Pitfalls (Pitfall 4) | If wrong (i.e., a modal still appears on this project's specific macOS build), the one-time explanation copy could reference System Settings unnecessarily verbosely, or miss an opportunity to rely on the in-app dialog — low-severity UX-only risk, easily corrected during the phase's own UAT |
-| A3 | The mandated spike's private-symbol/synthetic-drag mechanism will work unmodified on Apple Silicon under this project's actual macOS 15.0+ deployment target — Ice's own GitHub issues (#679) report breakage specifically on Tahoe (26), the newest OS version, so cross-version durability is genuinely unverified for this project's own hardware | Summary, Pitfall 3 | This is precisely why the ROADMAP mandates the spike before any production commitment — if the spike fails, the phase's entire approach needs re-scoping (possibly to a narrower/differently-implemented mechanism), which is the spike's whole purpose to surface early |
+| A1 | New/updated third-party status items with no prior remembered position get inserted at the outer/left edge of the menu-extras cluster by macOS's own default rule, biasing toward the hidden zone rather than landing randomly in the visible one | Pitfall 1 | If wrong, a newly-installed or updated app's icon could unexpectedly appear in the *visible* zone on first launch even though the user never explicitly un-hid it — a minor UX surprise, not a correctness failure of the core mechanism, and easily caught during on-device UAT |
+| A2 | The mandated on-device visual confirmation of "genuine reclamation vs. occlusion" (Pitfall 3) will confirm the corroborating secondary-source evidence on this project's specific macOS 27 beta hardware | Summary, Pitfall 3 | If wrong (i.e., this specific macOS beta build behaves differently from years of prior-version precedent), MENUBAR-03 as worded would need re-scoping — low probability given the mechanism is fundamental AppKit layout behavior, not a version-fragile private API, but not zero given the project runs a beta OS |
+| A3 | A dedicated blocking spike-gate plan (mirroring Plan 66-01's structure) is not necessary for this mechanism, and a lighter end-of-task UAT checkpoint suffices | Summary, Pitfall 3 | If wrong, the planner would need to add a blocking checkpoint earlier than currently recommended — low-severity, easily corrected by the planner if it disagrees with this recommendation |
 
-**If this table is empty:** N/A — see entries above; none of these need to block planning, since the phase's own mandated SC#1 spike is the designed mechanism for resolving A1 and A3 empirically before production code is written.
+**If this table is empty:** N/A — see entries above. None of A1-A3 need to block planning; A2's resolution is exactly what an end-of-task UAT checkpoint (Pitfall 3's recommendation) is designed to catch early and cheaply.
 
-## Open Questions (RESOLVED via Wave 0 spike gate — see 66-01-PLAN.md's blocking checkpoint)
+## Open Questions
 
-1. **Does the vacated position genuinely reclaim visible menu-bar space, or only get occluded by the frontmost app's menu (Pitfall 2)?**
-   - What we know: Ice's own source contains no cross-process AppKit removal call for third-party items; only its own control items get `isVisible = false`.
-   - What's unclear: The actual visual behavior on real hardware — this project's own screen geometry, resolution, and typical icon count may make the occlusion effect visually indistinguishable from "genuine" reclamation, or may not.
-   - Recommendation: This is exactly what the ROADMAP's mandated spike (SC#1) must observe and report before the production mechanism is built; the planner should make this the spike's primary acceptance criterion, not a secondary check.
+1. **Does macOS's own `autosaveName`-based position persistence hold reliably for the actual set of third-party menu-bar apps this user runs, or will some subset of them lack a stable identity and require manual re-hiding after every relaunch?**
+   - What we know: The mechanism is real, documented, and Hidden Bar's own manual describes it as generally reliable in production.
+   - What's unclear: Whether *every* app the user actually runs sets up its own status item in a way that participates cleanly in this system behavior — some apps are known (from general community reports) to behave inconsistently here.
+   - Recommendation: Not a blocker for planning or implementation — this is inherent, pre-existing macOS behavior outside Islet's control either way, and the UX cost of an occasional manual re-hide is low. Worth a one-line mention in user-facing copy/documentation, not engineering work.
 
-2. **Does the codebase's existing `AXIsProcessTrusted()`-gated pattern extend cleanly to the private `CGEventTap`/window-list-read calls this phase needs, or does the window-list read require a *different* permission (e.g., Screen Recording, per Ice's separate `ScreenRecordingPermission` for its live-icon-preview feature)?**
-   - What we know: Ice requires Accessibility as `isRequired: true` for its MVP hide/show mechanic and Screen Recording only as `isRequired: false` for a separate (out-of-scope-for-this-MVP) live-image-preview feature.
-   - What's unclear: Whether `Bridging.getWindowList`/`CGSGetProcessMenuBarWindowList`-style calls specifically require Accessibility trust to return non-empty results for *other processes'* windows, independent of the drag-move mechanism.
-   - Recommendation: The spike should explicitly test window-list reads with Accessibility denied (per the ROADMAP's own "including the Accessibility-permission-denied... case" requirement) to confirm this returns empty/fails gracefully rather than partially working.
+2. **Should Islet's own status items be literally undraggable, or is the "exempt by default positioning + optional self-heal" answer (Pitfall 2) sufficient for this MVP?**
+   - What we know: True prevention isn't possible via public API (Pitfall 2).
+   - What's unclear: Whether the self-heal pattern (Pattern 4) is worth the extra code for an MVP, or whether "exempt by default construction order" alone is good enough until a user actually reports the edge case.
+   - Recommendation: Claude's Discretion per CONTEXT.md — lean toward skipping the self-heal check for MVP scope (YAGNI) unless the planner judges it trivially cheap to add alongside the core toggle logic; document the limitation either way.
 
 ## Environment Availability
 
 | Dependency | Required By | Available | Version | Fallback |
 |------------|------------|-----------|---------|----------|
-| Xcode | Build/spike | ✓ | 26.6 (research machine) | — |
-| Swift toolchain | Build/spike | ✓ | 6.3.3 | — |
-| macOS (research machine) | N/A — not the deployment target | ✓ | 27.0 (beta) | Deployment target remains 15.0+ per project; on-device spike/UAT must run on the user's actual target hardware, not necessarily this research machine |
-| Accessibility TCC permission | Spike, production feature | Unknown until on-device run | — | None — this permission is the feature's core dependency; SC#1 explicitly requires testing the denied case too |
+| Xcode | Build | ✓ | 26.6 (research machine) | — |
+| Swift toolchain | Build | ✓ | 6.3.3 | — |
+| macOS (research machine) | N/A — not the deployment target | ✓ | 27.0 (beta) | Deployment target remains 14.0+/15.0+ per project; on-device UAT must run on the user's actual target hardware |
+| Accessibility TCC permission | **None** — this mechanism requires no permission at all | N/A | — | N/A |
 
-**Missing dependencies with no fallback:** None identified — this is a code-only phase against an already-configured, non-sandboxed Xcode project (`ENABLE_APP_SANDBOX = NO` confirmed in `Islet.xcodeproj/project.pbxproj`).
+**Missing dependencies with no fallback:** None identified — this is a code-only phase against an already-configured Xcode project, using only stable public AppKit API.
 
 **Missing dependencies with fallback:** None.
 
@@ -374,29 +378,26 @@ Button("Open System Settings") {
 | Property | Value |
 |----------|-------|
 | Framework | XCTest (existing project standard, `IsletTests/` target) |
-| Config file | `Islet.xcodeproj` scheme `Islet` — no separate `.xctestplan` found |
-| Quick run command | Manual Xcode Cmd-U for the single new spike test method — `xcodebuild test` hangs headless in this repo (documented precedent) |
-| Full suite command | `xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'` (build-only; full `xcodebuild test` remains unusable headless per project memory) |
+| Config file | `Islet.xcodeproj` scheme `Islet` — no separate `.xctestplan` |
+| Quick run command | `xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'` for the pure-logic pieces (width clamp math, position-validity check if built); manual Cmd-U or on-device run for the visual chevron/spacer behavior itself |
+| Full suite command | `xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'` (build-only; full `xcodebuild test` remains unusable headless per project memory — TCC-wait precedent, `.planning/PROJECT.md`) |
 
 ### Phase Requirements → Test Map
 
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
-| MENUBAR-01 | Chevron appears, separates visible/hidden sections | manual on-device UAT | Cmd-U spike + visual check | ❌ Wave 0 — new `MenuBarOverflowManualSpike.swift` |
-| MENUBAR-02 | Cmd-drag another app's icon across the chevron moves it to hidden | manual on-device UAT (native OS gesture, cannot be scripted via XCTest) | Cmd-U spike console log + human drag test | ❌ Wave 0 |
-| MENUBAR-03 | Click chevron reveals/hides; hidden icons genuinely absent | manual on-device UAT (visual space-reclamation judgment, Pitfall 2) | Cmd-U spike + human visual confirmation | ❌ Wave 0 |
-| MENUBAR-04 | Accessibility permission requested with one-time explanation, distinct copy, denies gracefully | unit (pure permission-state mapping, mirrors `PermissionStatus.swift`'s existing pure-function pattern) + manual UAT for the actual system dialog/deep-link behavior | `xcodebuild test`-safe pure functions only; system-dialog behavior itself is manual-only | ❌ Wave 0 |
+| MENUBAR-01 | Chevron appears, separates visible/hidden sections | manual on-device UAT (visual) | End-of-task checkpoint visual check | ❌ Wave 0 — new file(s) |
+| MENUBAR-02 | Cmd-drag another app's icon across the chevron moves it to hidden | manual on-device UAT (native OS gesture, cannot be scripted via XCTest) | End-of-task checkpoint drag test | ❌ Wave 0 |
+| MENUBAR-03 | Click chevron reveals/hides; hidden icons genuinely absent (Pitfall 3) | manual on-device UAT (visual space-reclamation confirmation) + unit test for the pure width-clamp math | `xcodebuild build` for the pure function; visual check for the rest | ❌ Wave 0 |
 
 ### Sampling Rate
-- **Per task commit:** Manual Cmd-U spike run for mechanism-touching tasks; standard `xcodebuild build` for others
-- **Per wave merge:** Full `xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'`
-- **Phase gate:** On-device UAT covering SC#1-#5 (per the ROADMAP's own explicit spike/UAT mandate) before `/gsd:verify-work`
+- **Per task commit:** `xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'`
+- **Per wave merge:** Same full build command
+- **Phase gate:** One on-device UAT checkpoint (chevron appears, drag works, reveal/hide genuinely changes visible strip width) before `/gsd:verify-work` — lighter-weight than the superseded mechanism's Plan-66-01-style blocking spike wave (Pitfall 3/Summary)
 
 ### Wave 0 Gaps
-- [ ] `IsletTests/MenuBarOverflowManualSpike.swift` — covers MENUBAR-01/02/03, mirrors `MeetingMonitorManualSpike.swift` exactly (manual-only, Cmd-U, always-green assertion, human checklist referenced from the plan)
-- [ ] Pure unit tests for the Accessibility permission 3-state mapping if a new mapping function is introduced, mirroring `Islet/PermissionStatus.swift`'s existing pure-function style (only if MENUBAR-04's status card reuses/extends that rollup; otherwise `AXIsProcessTrusted()` is called directly like `OSDInterceptor`/`CapsLockMonitor` and needs no new mapping function)
-
-*(No existing test file covers any part of this phase — all listed items are net-new.)*
+- [ ] Unit test for the spacer's expanded-length clamp math (`min(max(candidate, lowerBound), currentScreenWidth)`-shaped pure function) if the implementation extracts it as a testable pure function, mirroring this project's existing pure-function testing style
+- [ ] No existing test file covers any part of this phase — the superseded `IsletTests/MenuBarOverflowManualSpike.swift` tested the OLD mechanism and should not be extended for this one (D-06 discretion: delete or fully rewrite, don't patch)
 
 ## Security Domain
 
@@ -404,31 +405,31 @@ Button("Open System Settings") {
 
 | ASVS Category | Applies | Standard Control |
 |---------------|---------|-----------------|
-| V2 Authentication | No | Single-user local macOS app, no auth surface touched by this phase |
+| V2 Authentication | No | Single-user local macOS app, no auth surface |
 | V3 Session Management | No | N/A |
-| V4 Access Control | Yes (OS-level, not app-level) | Gate all mechanism activation behind `AXIsProcessTrusted()`/`AXIsProcessTrustedWithOptions()` — never attempt the private mechanism while untrusted (D-12 precedent in `DropInterceptTap.swift`: "a nil tap is a silent no-op, no crash, no dialog") |
-| V5 Input Validation | Partial | Bundle identifiers read from `NSWorkspace.runningApplications`/window info are OS-supplied, not user-supplied text — no injection surface, but the persisted store should still guard against malformed/empty bundle-ID strings before using them as `UserDefaults` keys |
-| V6 Cryptography | No | Hidden/visible assignment (a list of bundle identifiers) is not sensitive data — no encryption required (mirrors NOTES-03's precedent decision that not everything needs Clipboard-History-style AES-GCM parity) |
+| V4 Access Control | No | Unlike the superseded mechanism, this phase requires **zero** permission gating of any kind — D-04/MENUBAR-04 are fully dropped; there is no privileged capability being requested |
+| V5 Input Validation | No | No user-supplied or process-supplied text is read or parsed by this mechanism at all (a meaningful simplification versus the old mechanism, which read bundle identifiers from OS APIs) |
+| V6 Cryptography | No | No sensitive data of any kind is created or stored by this feature |
 
 ### Known Threat Patterns for this stack
 
 | Pattern | STRIDE | Standard Mitigation |
 |---------|--------|---------------------|
-| Synthetic `CGEvent` injection is itself a powerful capability (any process with Accessibility trust can synthesize input events system-wide) | Elevation of Privilege (inherent to the OS permission, not introduced by this app) | Scope all synthetic-event generation strictly to the menu-bar item move sequence; never build a generalized "send arbitrary events" helper. Mirrors this project's existing discipline in `OSDInterceptor`/`DropInterceptTap`, which scope their `CGEventTap` usage narrowly to their one documented purpose |
-| A failed/partial move leaving another app's icon in an indeterminate position | Tampering (unintended side effect on a third-party app's UI state) | Follow Ice's own retry-with-timeout discipline (`wakeUpItem()`, bounded attempts) and fail closed — leave the item where it is rather than looping indefinitely or leaving it in a half-moved state |
+| None identified specific to this mechanism | — | The spacer technique has no elevated-privilege capability, no cross-process data access, and no persisted sensitive data — a materially smaller security surface than the superseded mechanism, which required scoping synthetic-event generation narrowly (no longer applicable here) |
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- github.com/jordanbaird/Ice — `Ice/MenuBar/MenuBarItems/MenuBarItemManager.swift` (direct raw-file fetch and read, 1671 lines, `move()`/`cacheItemsIfNeeded()`/`enforceControlItemOrder()` verified)
-- github.com/jordanbaird/Ice — `Ice/Bridging/Bridging.swift` + `Ice/Bridging/Shims/Private.swift` (direct raw-file fetch and read, `@_silgen_name` CGS declarations verified)
-- github.com/jordanbaird/Ice — `Ice/Permissions/Permission.swift` + `PermissionsManager.swift` (direct raw-file fetch and read, `AccessibilityPermission`/`ScreenRecordingPermission` verified)
-- github.com/jordanbaird/Ice — `Ice/MenuBar/ControlItem/ControlItem.swift`, `Ice/MenuBar/MenuBarSection.swift`, `Ice/Events/EventManager.swift`, `Ice/Main/AppState.swift`, `Ice/Main/AppDelegate.swift` (direct raw-file fetch and grep/read)
-- This codebase — `Islet/Notch/OSDInterceptor.swift`, `Islet/Notch/CapsLockMonitor.swift`, `Islet/Notch/DropInterceptTap.swift`, `Islet/SettingsView.swift`, `Islet/AppDelegate.swift`, `Islet/PermissionStatus.swift`, `Islet/Notch/MicMuteController.swift`, `IsletTests/MeetingMonitorManualSpike.swift` (direct read)
+- This codebase — `Islet/AppDelegate.swift:107`, `:490` (`statusItem`/`debugStatusItem` construction, direct read)
+- This codebase — `Islet/Notch/NotchWindowController.swift:598-615` (`didChangeScreenParametersNotification` pattern, direct read)
+- This codebase — `Islet/Notch/MeetingMonitor.swift:110-135` (`NSWorkspace` launch/terminate notification pattern, direct read)
+- This codebase — `.planning/phases/66-men-bar-overflow-ice-style-mvp/66-CONTEXT.md`, `66-01-SUMMARY.md` (direct read)
+- General web reporting on `NSStatusItem` menu-bar overflow behavior — multiple independent sources cross-referenced (WebSearch), confirming the core layout-removal mechanism is real, non-app-specific AppKit behavior
 
 ### Secondary (MEDIUM confidence)
-- Community reports on `AXIsProcessTrustedWithOptions` modal-suppression behavior on macOS Sequoia/Tahoe (multiple developer-forum threads, cross-referenced against this project's own macOS 15.0+ deployment target)
-- github.com/jordanbaird/Ice/issues #679, #331, #675 — cross-macOS-version fragility reports
+- github.com/dwarvesf/hidden — `hidden/Features/StatusBar/StatusBarController.swift` (fetched directly via WebFetch, code shape confirmed but not read as raw bytes in this session — verify exact property/method names against the live file before literal production use)
+- github.com/dwarvesf/hidden — `docs/MANUAL.md`, GitHub Discussion #162 (fetched via WebFetch, position-persistence and always-hidden behavior claims)
+- Developer-forum threads on `NSStatusItem.autosaveName` and macOS status-item position persistence (WebSearch, cross-referenced across multiple threads)
 
 ### Tertiary (LOW confidence)
 - None used as load-bearing claims in this document.
@@ -436,9 +437,9 @@ Button("Open System Settings") {
 ## Metadata
 
 **Confidence breakdown:**
-- Standard stack (private-API mechanism identification): HIGH — verified directly against Ice's real, current source, not description-from-memory
-- Architecture (permission gating, persistence gap, chevron construction): HIGH for the codebase-precedented parts (permission plumbing, deep link), MEDIUM for the persistence-reapplication design (Pitfall 1 — inferred from absence of evidence in Ice's source, not a positive confirmation)
-- Pitfalls (space-reclamation question, cross-version fragility, modal-suppression on macOS 15+): MEDIUM — grounded in source review and community reports, but the phase's own mandated spike is explicitly the mechanism for resolving the highest-stakes one (Pitfall 2) with certainty
+- Standard stack (public API mechanism identification): HIGH — established production pattern across multiple shipped apps (Hidden Bar, Bartender, Vanilla), materially lower risk than the superseded private-API mechanism
+- Architecture (D-03 persistence resolution): MEDIUM-HIGH — grounded in Hidden Bar's own documentation plus general `autosaveName` corroboration, but not independently confirmed via a live on-device test in this session
+- Pitfalls (screen-width clamp, sleep/wake non-issue, own-item drag limitation): HIGH for the codebase-precedented parts, MEDIUM for the macOS-version-specific reclamation claim (Pitfall 3) pending the phase's own lightweight on-device confirmation
 
 **Research date:** 2026-07-27
-**Valid until:** ~14 days — this domain depends on undocumented private APIs and a specific macOS version's TCC prompt behavior, both of which can change with any macOS point release; re-verify against Ice's source and the actual macOS build on the target hardware if planning is delayed
+**Valid until:** ~30 days — this mechanism relies on stable, long-established public AppKit API rather than undocumented private symbols, so it is materially less time-sensitive than the superseded research; re-verify only if a macOS point release changes menu-bar-overflow layout behavior
