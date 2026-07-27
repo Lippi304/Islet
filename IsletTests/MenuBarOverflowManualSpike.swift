@@ -10,7 +10,12 @@ final class MenuBarOverflowManualSpike: XCTestCase {
     @MainActor
     func testManualMechanism() {
         print("[MenuBarOverflowSpike] AXIsProcessTrusted() = \(AXIsProcessTrusted())")
-        print("[MenuBarOverflowSpike][diag] CGPreflightScreenCaptureAccess() = \(CGPreflightScreenCaptureAccess())")
+        print("[MenuBarOverflowSpike][diag] CGPreflightScreenCaptureAccess() (before request) = \(CGPreflightScreenCaptureAccess())")
+        // ponytail: preflight alone never shows the system prompt or registers this process in
+        // System Settings — only an actual request call does. Diagnostic-only; drop once the
+        // production Controller (Plan 66-03) owns its own permission-request flow.
+        let requested = CGRequestScreenCaptureAccess()
+        print("[MenuBarOverflowSpike][diag] CGRequestScreenCaptureAccess() = \(requested) (if false and no prompt appeared, grant manually in System Settings > Privacy & Security > Screen Recording, then re-run)")
 
         let windows = MenuBarOverflowBridging.menuBarItemWindows()
         print("[MenuBarOverflowSpike] found \(windows.count) other-process menu-bar-item window(s):")
