@@ -78,3 +78,48 @@ None beyond what the milestone scope already excludes (always-hidden/hotkey tier
 - `2026-07-19-calendar-month-grid-polish.md` — unrelated (calendar UI).
 - `2026-07-19-island-briefly-disappears-during-click-through.md` — unrelated (notch click-through).
 - `2026-07-19-quick-action-disabled-state-has-no-controller-gate.md` — belongs to Phase 65, not 66.
+
+---
+
+# Revision: 2026-07-27 — Mechanism pivot after Plan 66-01 NO-GO
+
+> **Audit trail only.** Decisions captured in the revised CONTEXT.md — this log preserves the alternatives considered.
+
+**Date:** 2026-07-27
+**Trigger:** Plan 66-01's on-device spike returned NO-GO — Ice's private `CGSGetProcessMenuBarWindowList` mechanism does not enumerate real menu-bar windows on this hardware (macOS 27.0 beta), matching RESEARCH.md's own flagged Pitfall 3 risk. See `66-01-SUMMARY.md`.
+**Areas discussed:** Technical direction after NO-GO, fate of MENUBAR-04 (Accessibility permission requirement)
+
+---
+
+## Technical direction after NO-GO
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Switch to spacer technique (Hidden Bar reference) | Reimplement using a giant-width invisible NSStatusItem that pushes icons off-screen. Public API only, no Accessibility permission, robust across macOS versions. Requires revising D-04/MENUBAR-04. | ✓ |
+| Keep chasing Ice's private-API technique | Try to find/port whatever fix Ice's own team shipped for Tahoe compatibility. | |
+| Descope Menübar-Overflow from v1.10 | Drop MENUBAR-01..04 entirely, move on to Phase 67. | |
+
+**User's choice:** Switch to spacer technique (Recommended option)
+**Notes:** Grounded in a direct read of Hidden Bar's `StatusBarController.swift` (github.com/dwarvesf/hidden, MIT) confirming the technique is public-API-only (`NSStatusBar.system.statusItem(withLength:)`, width toggled between ~20pt and ~2000pt bounded to screen width) and needs no private symbols or permissions. Also grounded in confirming this dev machine runs macOS 27.0 (beta, build 26A5388g) — newer than Tahoe (26), where Ice's own issues #679/#711 already documented the same class of breakage.
+
+---
+
+## Fate of MENUBAR-04 (Accessibility permission requirement)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Drop it entirely | No permission needed → no gating, no "Permission required" Settings card, no deep-link button. | ✓ |
+| Keep a minimal Settings entry anyway | Show a small Settings row confirming the feature is active, without permission-status logic. | |
+
+**User's choice:** Drop it entirely
+**Notes:** REQUIREMENTS.md still shows MENUBAR-04's original wording; the revised CONTEXT.md is the authority that supersedes it for this phase — downstream agents must not build any permission flow.
+
+## Claude's Discretion (this revision)
+
+- Whether to delete or repurpose the now-superseded `MenuBarOverflowBridging.swift`/`MenuBarOverflowManualSpike.swift` spike artifacts.
+- Whether a full on-device spike-gate is still necessary before production code, given the new mechanism is public-API-only (research/planning call).
+- D-03's open question: whether macOS's own status-item-ordering persistence suffices, or Islet needs active re-apply logic under the new technique.
+
+## Deferred Ideas (this revision)
+
+- Retrying Ice's private-API mechanism or porting Ice's own Tahoe-compatibility fix — explicitly considered and rejected in favor of the spacer technique.
