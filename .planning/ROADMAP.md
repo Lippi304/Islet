@@ -1209,7 +1209,7 @@ Plans:
 
 **Goal:** A chevron icon in the menu bar lets the user Cmd-drag other apps' menu-bar icons into a genuinely hidden section and reveal/hide them with a click — the milestone's highest-novelty, zero-reuse feature, preceded by its own feasibility spike reading Ice's actual source before any production mechanism is committed.
 **Depends on:** Nothing structurally — fully isolated from `NotchWindowController`/`IslandResolver`; sequenced here per the milestone's ascending-risk order to keep this highest-novelty item isolated from the notch-facing work above.
-**Requirements**: MENUBAR-01, MENUBAR-02, MENUBAR-03, MENUBAR-04
+**Requirements**: MENUBAR-01, MENUBAR-02, MENUBAR-03 (MENUBAR-04 dropped 2026-07-27 — see 66-CONTEXT.md D-04: the pivoted public-API spacer technique needs no Accessibility permission grant of any kind)
 **Success Criteria** (what must be TRUE):
 
   1. An on-device spike — reading Ice's actual open-source mechanism directly (`MenuBarItemManager.swift`/`Bridging.swift`), not a general description of it — confirms the private `NSStatusItem`-repositioning technique works on this project's own macOS/hardware, including the Accessibility-permission-denied, sleep/wake, and Dock-relaunch cases, before the production mechanism is built.
@@ -1218,7 +1218,7 @@ Plans:
   4. Clicking the chevron reveals or hides the hidden section's icons — hidden icons are genuinely absent from the visible menu-bar strip (real screen space reclaimed), not just repositioned off-screen while still occupying visual space.
   5. The feature requests a new Accessibility permission grant with a clear one-time explanation, distinct from Islet's existing WeatherKit/EventKit/Bluetooth prompts, and degrades visibly (not silently) if that permission is denied.
 
-**Plans**: 6 plans
+**Plans**: 4 plans (66-01 spike returned NO-GO on the original Ice private-API mechanism 2026-07-27 — see 66-01-SUMMARY.md; 66-02/66-03/66-04 replan the pivoted public-API spacer-`NSStatusItem` technique per 66-CONTEXT.md's mechanism pivot)
 **UI hint**: yes
 
 Plans:
@@ -1226,22 +1226,17 @@ Plans:
 
 - [ ] 66-01-PLAN.md — Spike (checkpoint): MenuBarOverflowBridging.swift private CGS*/CGEvent-move shim + MenuBarOverflowManualSpike.swift, reading Ice's real source directly — GO/NO-GO + RECLAIMED-vs-OCCLUDED verdict gates every plan below — **NO-GO (2026-07-27): private CGS enumeration doesn't reliably find real menu-bar windows on this hardware/macOS; see 66-01-SUMMARY.md. Needs /gsd:discuss-phase 66 before continuing.**
 
-**Wave 1** *(blocked on 66-01 GO)*
+**Wave 1** *(replans from scratch after 66-01's NO-GO — targets the pivoted spacer technique, not the original mechanism)*
 
-- [ ] 66-02-PLAN.md — MenuBarOverflowStore.swift: D-03 bundle-ID hidden/visible persistence + itemsNeedingReapplication diff (Pitfall 1), TDD
+- [ ] 66-02-PLAN.md — MenuBarOverflowController.swift: chevron+spacer NSStatusItem construction, click-toggle logic, autosaveName persistence (D-03), screen-width clamp (TDD) + AppDelegate unconditional wiring (D-02) + ActivitySettings.swift key swap (menuBarOverflowKey → menuBarOverflowRevealedKey)
 
-**Wave 2** *(blocked on 66-01, 66-02)*
+**Wave 2** *(blocked on 66-02 — shares project.pbxproj regeneration, no source-level dependency)*
 
-- [ ] 66-03-PLAN.md — MenuBarOverflowController.swift: Accessibility gate (D-02/D-04) + detect/move mechanism + Store integration + relaunch reapplication + reveal/hide toggle (D-05)
+- [ ] 66-03-PLAN.md — Delete superseded Ice-mechanism spike files (D-06: MenuBarOverflowBridging.swift, MenuBarOverflowManualSpike.swift) + remove stale menuBarOverflow Settings toggle/card from SettingsView.swift (D-02/D-04 forbid any Settings surface for this feature)
 
-**Wave 3** *(blocked on 66-03)*
+**Wave 3** *(blocked on 66-02, 66-03)*
 
-- [ ] 66-04-PLAN.md — AppDelegate.swift: permission-gated chevron construction (D-01/D-04) + click wiring (D-05)
-- [ ] 66-05-PLAN.md — SettingsView.swift/ActivitySettings.swift: remove conflicting dead placeholder toggle card + new D-04 permission-status card
-
-**Wave 4** *(blocked on 66-04, 66-05)*
-
-- [ ] 66-06-PLAN.md — Build gate + dead-reference sweep + consolidated on-device UAT checkpoint (SC#2-#5)
+- [ ] 66-04-PLAN.md — On-device UAT checkpoint: chevron placement, Cmd-drag hide, click reveal/hide genuine space reclamation (not occlusion), relaunch persistence (MENUBAR-01/02/03)
 
 ### Phase 67: Coding-Progress
 
