@@ -1218,8 +1218,30 @@ Plans:
   4. Clicking the chevron reveals or hides the hidden section's icons — hidden icons are genuinely absent from the visible menu-bar strip (real screen space reclaimed), not just repositioned off-screen while still occupying visual space.
   5. The feature requests a new Accessibility permission grant with a clear one-time explanation, distinct from Islet's existing WeatherKit/EventKit/Bluetooth prompts, and degrades visibly (not silently) if that permission is denied.
 
-**Plans**: TBD
+**Plans**: 6 plans
 **UI hint**: yes
+
+Plans:
+**Wave 0**
+
+- [ ] 66-01-PLAN.md — Spike (checkpoint): MenuBarOverflowBridging.swift private CGS*/CGEvent-move shim + MenuBarOverflowManualSpike.swift, reading Ice's real source directly — GO/NO-GO + RECLAIMED-vs-OCCLUDED verdict gates every plan below
+
+**Wave 1** *(blocked on 66-01 GO)*
+
+- [ ] 66-02-PLAN.md — MenuBarOverflowStore.swift: D-03 bundle-ID hidden/visible persistence + itemsNeedingReapplication diff (Pitfall 1), TDD
+
+**Wave 2** *(blocked on 66-01, 66-02)*
+
+- [ ] 66-03-PLAN.md — MenuBarOverflowController.swift: Accessibility gate (D-02/D-04) + detect/move mechanism + Store integration + relaunch reapplication + reveal/hide toggle (D-05)
+
+**Wave 3** *(blocked on 66-03)*
+
+- [ ] 66-04-PLAN.md — AppDelegate.swift: permission-gated chevron construction (D-01/D-04) + click wiring (D-05)
+- [ ] 66-05-PLAN.md — SettingsView.swift/ActivitySettings.swift: remove conflicting dead placeholder toggle card + new D-04 permission-status card
+
+**Wave 4** *(blocked on 66-04, 66-05)*
+
+- [ ] 66-06-PLAN.md — Build gate + dead-reference sweep + consolidated on-device UAT checkpoint (SC#2-#5)
 
 ### Phase 67: Coding-Progress
 
