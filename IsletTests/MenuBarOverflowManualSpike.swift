@@ -10,6 +10,7 @@ final class MenuBarOverflowManualSpike: XCTestCase {
     @MainActor
     func testManualMechanism() {
         print("[MenuBarOverflowSpike] AXIsProcessTrusted() = \(AXIsProcessTrusted())")
+        print("[MenuBarOverflowSpike][diag] CGPreflightScreenCaptureAccess() = \(CGPreflightScreenCaptureAccess())")
 
         let windows = MenuBarOverflowBridging.menuBarItemWindows()
         print("[MenuBarOverflowSpike] found \(windows.count) other-process menu-bar-item window(s):")

@@ -64,13 +64,17 @@ enum MenuBarOverflowBridging {
     /// CGS result (T-66-04) — any guard failure degrades to an empty result.
     static func menuBarItemWindows() -> [MenuBarItemWindow] {
         var totalCount: Int32 = 0
-        guard CGSGetWindowCount(CGSMainConnectionID(), 0, &totalCount) == .success, totalCount > 0 else {
+        let countErr = CGSGetWindowCount(CGSMainConnectionID(), 0, &totalCount)
+        print("[MenuBarOverflowSpike][diag] CGSGetWindowCount err=\(countErr) totalCount=\(totalCount)")
+        guard countErr == .success, totalCount > 0 else {
             return []
         }
 
         var rawList = [CGWindowID](repeating: 0, count: Int(totalCount))
         var realCount: Int32 = 0
-        guard CGSGetProcessMenuBarWindowList(CGSMainConnectionID(), 0, totalCount, &rawList, &realCount) == .success
+        let listErr = CGSGetProcessMenuBarWindowList(CGSMainConnectionID(), 0, totalCount, &rawList, &realCount)
+        print("[MenuBarOverflowSpike][diag] CGSGetProcessMenuBarWindowList err=\(listErr) realCount=\(realCount) rawIDs=\(rawList[..<Int(max(0, realCount))])")
+        guard listErr == .success
         else {
             return []
         }
@@ -81,15 +85,25 @@ enum MenuBarOverflowBridging {
         // owning process via the public CGWindowListCopyWindowInfo, the standard combined
         // technique (private ID enumeration + public ownership lookup).
         let ownerByWindowID = windowOwnerPIDs()
+        print("[MenuBarOverflowSpike][diag] windowOwnerPIDs() resolved \(ownerByWindowID.count) entries from CGWindowListCopyWindowInfo")
 
         let ownBundleID = Bundle.main.bundleIdentifier ?? ""
         var results: [MenuBarItemWindow] = []
         for windowID in menuBarWindowIDs {
-            guard let pid = ownerByWindowID[windowID] else { continue }
+            guard let pid = ownerByWindowID[windowID] else {
+                print("[MenuBarOverflowSpike][diag]   windowID=\(windowID): no owner PID found in CGWindowListCopyWindowInfo — dropped")
+                continue
+            }
             guard let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
                   !bundleID.isEmpty, bundleID != ownBundleID
-            else { continue }
-            guard let frame = currentFrame(windowID: windowID) else { continue }
+            else {
+                print("[MenuBarOverflowSpike][diag]   windowID=\(windowID) pid=\(pid): bundleID missing/empty/own-bundle — dropped")
+                continue
+            }
+            guard let frame = currentFrame(windowID: windowID) else {
+                print("[MenuBarOverflowSpike][diag]   windowID=\(windowID) pid=\(pid) bundleID=\(bundleID): CGSGetScreenRectForWindow failed — dropped")
+                continue
+            }
             results.append(MenuBarItemWindow(windowID: windowID, ownerPID: pid, bundleIdentifier: bundleID, frame: frame))
         }
         return results
