@@ -88,13 +88,33 @@ enum MenuBarOverflowBridging {
         print("[MenuBarOverflowSpike][diag] windowOwnerPIDs() resolved \(ownerByWindowID.count) entries from CGWindowListCopyWindowInfo")
 
         let ownBundleID = Bundle.main.bundleIdentifier ?? ""
+        print("[MenuBarOverflowSpike][diag] Bundle.main.bundleIdentifier (ownBundleID, used for the exclusion filter) = \"\(ownBundleID)\"")
+
+        // Independent cross-check, no CGS involved at all: how many windows system-wide sit at
+        // the status-bar-item CGWindowLevel via the PUBLIC CGWindowListCopyWindowInfo? Tells us
+        // whether the CGS enumeration above is uniquely under-reporting, or whether the window
+        // server itself currently exposes few/no separately-tracked menu-bar-item windows.
+        if let publicList = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: AnyObject]] {
+            let statusLevel = CGWindowLevelForKey(.statusWindow)
+            let candidates = publicList.filter { ($0[kCGWindowLayer as String] as? Int) == Int(statusLevel) }
+            print("[MenuBarOverflowSpike][diag] public CGWindowListCopyWindowInfo cross-check: \(publicList.count) windows total, \(candidates.count) at statusWindow layer (\(statusLevel))")
+            for c in candidates.prefix(15) {
+                let pid = c[kCGWindowOwnerPID as String] as? Int ?? -1
+                let name = c[kCGWindowOwnerName as String] as? String ?? "?"
+                print("[MenuBarOverflowSpike][diag]   statusLevel window: pid=\(pid) ownerName=\(name)")
+            }
+        }
+
         var results: [MenuBarItemWindow] = []
         for windowID in menuBarWindowIDs {
             guard let pid = ownerByWindowID[windowID] else {
                 print("[MenuBarOverflowSpike][diag]   windowID=\(windowID): no owner PID found in CGWindowListCopyWindowInfo — dropped")
                 continue
             }
-            guard let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
+            let rawBundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
+            let rawName = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "?"
+            print("[MenuBarOverflowSpike][diag]   windowID=\(windowID) pid=\(pid) processName=\(rawName) rawBundleID=\(rawBundleID.map { "\"\($0)\"" } ?? "nil")")
+            guard let bundleID = rawBundleID,
                   !bundleID.isEmpty, bundleID != ownBundleID
             else {
                 print("[MenuBarOverflowSpike][diag]   windowID=\(windowID) pid=\(pid): bundleID missing/empty/own-bundle — dropped")
