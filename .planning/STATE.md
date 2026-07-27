@@ -4,8 +4,8 @@ milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
 stopped_at: Phase 66 UI-SPEC approved
-last_updated: "2026-07-27T16:16:15.903Z"
-last_activity: 2026-07-27 -- Phase 66 planning complete
+last_updated: "2026-07-27T17:09:00.000Z"
+last_activity: 2026-07-27 -- Phase 66 Plan 01 Task 1 complete, Task 2 checkpoint pending
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 67.1 complete — next phase in v1.10 (64-68) not yet started
+**Current focus:** Phase 66 — men-bar-overflow-ice-style-mvp
 
 ## Current Position
 
-Phase: 67.1 (notch-size-scaling-resolution-aware-manual-override) — COMPLETE
-Plan: 10 of 10 — all plans executed and summarized
-Status: Ready to execute
-Last activity: 2026-07-27 -- Phase 66 planning complete
+Phase: 66 (men-bar-overflow-ice-style-mvp) — EXECUTING
+Plan: 1 of 6 — BLOCKED on checkpoint (Task 1 of 2 done, Task 2 pending human on-device verification)
+Status: Executing Phase 66
+Last activity: 2026-07-27 -- Phase 66 Plan 01 Task 1 complete, Task 2 checkpoint pending
+
+### Phase 66 Plan 01 Task 1 result (2026-07-27)
+
+`MenuBarOverflowBridging.swift` (private CGS* window-enumeration/frame-read shim +
+`moveMenuBarItem()` synthetic-drag, transcribed directly from Ice's real source) and
+`IsletTests/MenuBarOverflowManualSpike.swift` (Cmd-U-only manual spike, mirrors
+`MeetingMonitorManualSpike.swift`) created and committed (`adfbd70`). One auto-fixed
+deviation: a naive port of RESEARCH.md's `CGSMainConnectionID()`/`CGSConnectionID` Code
+Example collided with pre-existing declarations in `FullscreenSpaceProbe.swift` (Phase 2)
+and `CGSSpace.swift` (Phase 9) — fixed by reusing the existing global `CGSMainConnectionID()`
+and typing the new symbols' connection-ID params as raw `Int32`. `xcodegen generate` +
+`xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'` —
+BUILD SUCCEEDED, zero errors, zero new warnings. See `66-01-SUMMARY.md`.
+
+**Task 2 (checkpoint:human-verify, gate=blocking) is PENDING** — an on-device Xcode Cmd-U
+run of `MenuBarOverflowManualSpike.testManualMechanism`, human-judged RECLAIMED-vs-OCCLUDED
+verdict (Pitfall 2) plus permission-denied/sleep-wake/Dock-relaunch checks. No later Phase 66
+plan (66-02..66-06) may start until this returns GO. Full 8-step checklist in
+`66-01-SUMMARY.md`'s "Next Phase Readiness" section.
 
 ### Phase 67.1 Plan 05 Task 1 result (2026-07-26)
 
