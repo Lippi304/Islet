@@ -163,7 +163,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike (all 4 plans executed 2026-07-25; awaiting orchestrator phase-level gates)
 - [x] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
 - [x] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController` (completed 2026-07-26)
-- [ ] **Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)** - Chevron-hide for other apps' menu-bar icons — third pivot: debug the original private-CGS mechanism against real, working Ice rather than a third blind mechanism guess (66-CONTEXT.md D-07); replanned 2026-07-28 as Plans 66-05..66-08
+- [ ] **Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)** - PAUSED by user (2026-07-28) after 3 consecutive NO-GOs (see Phase Details) — even real Ice.app's own mechanism no longer works on this machine; root cause unconfirmed (Golden-Gate/Developer-Mode hypothesis, untestable without a full macOS 26 downgrade); feature still wanted, revisit unscheduled
 - [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern
 
 ## Phase Details
@@ -1207,6 +1207,8 @@ Plans:
 
 ### Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)
 
+**⚠ PAUSED BY USER (2026-07-28) after 3 consecutive NO-GOs.** Plan 66-05's on-device checkpoint disproved the phase's own D-07 premise — real, currently-installed Ice.app no longer hides/reveals a menu-bar icon via Cmd-drag on this machine, so even the live reference mechanism is broken, not just Islet's port of it. Root cause unconfirmed: the user's own hypothesis (macOS 27 "Golden Gate" update and/or this machine's Developer Mode setting) would require a full downgrade back to macOS 26 to test — judged disproportionate in `/gsd-discuss-phase 66` (third revision). **Decision: pause, not descope** — the feature is still wanted, just not being actively worked on, with no revisit trigger (unscheduled). See `66-CONTEXT.md` (third revision) and `66-DISCUSSION-LOG.md` for the full reasoning. Resume via a fresh `/gsd-discuss-phase 66` whenever there's appetite.
+
 **Goal:** A chevron icon in the menu bar lets the user Cmd-drag other apps' menu-bar icons into a genuinely hidden section and reveal/hide them with a click — the milestone's highest-novelty, zero-reuse feature, preceded by its own feasibility spike reading Ice's actual source before any production mechanism is committed.
 **Depends on:** Nothing structurally — fully isolated from `NotchWindowController`/`IslandResolver`; sequenced here per the milestone's ascending-risk order to keep this highest-novelty item isolated from the notch-facing work above.
 **Requirements**: MENUBAR-01, MENUBAR-02, MENUBAR-03, MENUBAR-04 (MENUBAR-04 reopened 2026-07-28 — see 66-CONTEXT.md D-07: reverting to the private-CGS mechanism, which requires Accessibility, same as real Ice's own implementation)
@@ -1218,7 +1220,7 @@ Plans:
   4. Clicking the chevron reveals or hides the hidden section's icons — hidden icons are genuinely absent from the visible menu-bar strip (real screen space reclaimed), not just repositioned off-screen while still occupying visual space.
   5. The feature requests a new Accessibility permission grant with a clear one-time explanation, distinct from Islet's existing WeatherKit/EventKit/Bluetooth prompts, and degrades visibly (not silently, chevron absent + Settings row) if that permission is denied.
 
-**Plans**: 8 plans total. 66-01 spiked the original private-CGS mechanism, NO-GO 2026-07-27 (66-01-SUMMARY.md). 66-02/66-03/66-04 replanned the pivoted public-spacer technique, also NO-GO 2026-07-28 (66-04-SUMMARY.md). 66-01..66-04 are historical record, superseded, not resumed. CONTEXT.md's second revision (D-07) reverts to debugging the original private-CGS mechanism against real, working Ice — 66-05 executed 2026-07-28, also NO-GO (66-05-SUMMARY.md): the live Ice.app reference itself is broken on this machine, root cause unknown. **Phase HALTED — 66-06/66-07/66-08 do not proceed until `/gsd:discuss-phase 66`.**
+**Plans**: 8 plans total. 66-01 spiked the original private-CGS mechanism, NO-GO 2026-07-27 (66-01-SUMMARY.md). 66-02/66-03/66-04 replanned the pivoted public-spacer technique, also NO-GO 2026-07-28 (66-04-SUMMARY.md). 66-01..66-04 are historical record, superseded, not resumed. CONTEXT.md's second revision (D-07) reverted to debugging the original private-CGS mechanism against real, working Ice — 66-05 executed 2026-07-28, also NO-GO (66-05-SUMMARY.md): the live Ice.app reference itself is broken on this machine, root cause unknown. **Phase PAUSED (third `/gsd-discuss-phase 66` revision, D-08) — 66-06/66-07/66-08 do not proceed; no revisit trigger set.**
 **UI hint**: yes
 
 Plans:
@@ -1233,7 +1235,7 @@ Plans:
 
 - [x] 66-05-PLAN.md — Reinstall real Ice.app, restore the 66-01 spike from git history, add the missing `AXIsProcessTrusted()` gate (was print-only), add a real-launch debug hook — on-device Pattern-1 cheapest-first elimination checkpoint — **NO-GO 2026-07-28**: the live Ice.app reference itself does not work on this machine (Cmd-drag hide/reveal non-functional), Islet's own gate never reached/tested; root cause unknown (see 66-05-SUMMARY.md)
 
-**Wave 2** *(BLOCKED — 66-05 returned NO-GO, not GO; do not proceed without /gsd:discuss-phase 66)*
+**Wave 2** *(PAUSED — 66-05 returned NO-GO; /gsd-discuss-phase 66 (third revision) resolved this as an open-ended pause, not a resumption)*
 
 - [ ] 66-06-PLAN.md — MenuBarOverflowAssignmentStore.swift (D-03 persisted third-party hidden assignment, TDD) + MenuBarOverflowController.swift rewired onto the gated CGS mechanism (position-based hide/reveal, active re-apply on launch), spacer apparatus fully removed (MENUBAR-01/02/03)
 

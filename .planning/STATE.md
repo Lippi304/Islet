@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 66 Plan 05 Task 2 checkpoint NO-GO — halted, pending /gsd:discuss-phase 66
-last_updated: "2026-07-28T15:45:00.000Z"
-last_activity: 2026-07-28 -- Phase 66 Plan 05 NO-GO, third consecutive checkpoint failure
+stopped_at: Phase 66 discuss-phase (third revision) resolved as PAUSED, not descoped — next up is Phase 67
+last_updated: "2026-07-28T22:19:00.000Z"
+last_activity: 2026-07-28 -- Phase 66 discuss-phase (third revision): paused indefinitely after Developer-Mode diagnostic was judged too costly (would need a macOS 26 downgrade)
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 66 — men-bar-overflow-ice-style-mvp
+**Current focus:** Phase 67 — coding-progress (Phase 66 paused, see below)
 
 ## Current Position
 
-Phase: 66 (men-bar-overflow-ice-style-mvp) — BLOCKED (NO-GO, third consecutive)
-Plan: 5 of 8
-Status: Halted — needs /gsd:discuss-phase 66
-Last activity: 2026-07-28 -- Phase 66 Plan 05 Task 2 checkpoint NO-GO
+Phase: 67 (Coding-Progress) — not started
+Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
+Last activity: 2026-07-28 -- Phase 66 discuss-phase (third revision) resolved as paused
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
@@ -98,6 +97,23 @@ Per the plan's own rule, **Plans 66-06/66-07/66-08 do not proceed under current 
 Next step: `/gsd:discuss-phase 66` to investigate the Golden Gate/Developer Mode hypothesis,
 check whether Ice's mechanism ever genuinely worked on this OS build, or descope
 Menübar-Overflow (SC#2-5) from v1.10 entirely. Full detail in `66-05-SUMMARY.md`.
+
+### Phase 66 discuss-phase result (2026-07-28, third revision) — PAUSED
+
+`/gsd-discuss-phase 66` ran to resolve the third NO-GO. The Developer-Mode/Golden-Gate
+hypothesis could in principle be tested by disabling Developer Mode and re-testing Ice, but on
+this machine that requires a full downgrade back to macOS 26 — the user judged this
+disproportionate to one diagnostic data point and declined.
+
+**Decision: PAUSE, not descope.** The user still wants Menübar-Overflow, but does not want to
+keep sinking further attempts into it right now, after three consecutive NO-GOs across two
+structurally different mechanisms plus an unconfirmed, expensive-to-test root cause for the
+third. No revisit trigger was set — this is an open-ended pause (not "when macOS 27 is stable",
+not conditional on anything), following this project's Phase 49/50 PAUSED precedent rather than
+Phase 37's ABANDONED precedent. Plans 66-06/66-07/66-08 remain un-executed and are not scheduled.
+Full reasoning in `66-CONTEXT.md` (third revision) and `66-DISCUSSION-LOG.md`.
+
+**Next up:** Phase 67 (Coding-Progress) — not blocked by Phase 66's pause (fully isolated feature).
 
 ### Phase 67.1 Plan 05 Task 1 result (2026-07-26)
 

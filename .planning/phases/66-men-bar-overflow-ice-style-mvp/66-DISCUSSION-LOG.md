@@ -210,4 +210,69 @@ None beyond what the milestone scope already excludes (always-hidden/hotkey tier
 
 - Descoping Menübar-Overflow from v1.10 entirely — considered and rejected; user chose to keep pursuing it given the new diagnostic evidence.
 - "Wait for stable macOS release" theory — rejected for the CGS mechanism now that Ice is confirmed working on this exact build; the public-spacer failure's cause remains unexplained but is no longer being pursued.
-- Hidden Bar's public-spacer technique as a fallback if CGS debugging dead-ends — not decided; if debugging genuinely dead-ends, return to `/gsd:discuss-phase 66` rather than silently falling back.
+- Hidden Bar's public-spacer technique as a fallback if CGS debugging dead-ends — not decided; if debugging genuinely dead-ends, return to `/gsd-discuss-phase 66` rather than silently falling back.
+
+---
+
+# Revision: 2026-07-28 — Third NO-GO (Plan 66-05): pause, not descope
+
+> **Audit trail only.** Decisions captured in the revised CONTEXT.md — this log preserves the alternatives considered.
+
+**Date:** 2026-07-28
+**Trigger:** Plan 66-05's on-device checkpoint returned NO-GO at Step 1 — the live comparison reference itself, real currently-installed Ice.app, no longer hides/reveals a menu-bar icon via Cmd-drag on this machine. This disproves the second revision's central premise ("Ice works here"). See `66-05-SUMMARY.md`.
+**Areas discussed:** Diagnose vor Entscheidung, Weitermachen vs. Descope, Nächster konkreter Schritt, Aufwands-Budget, Revisit-Trigger
+
+---
+
+## Reihenfolge (Diagnose vor Entscheidung)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Erst diagnostizieren | Test the Developer-Mode/Golden-Gate hypothesis (toggle Developer Mode off, re-test Ice) before deciding direction | ✓ |
+| Richtung zuerst festlegen | Decide direction now, fold diagnosis into a later plan's first task | |
+
+**User's choice:** Erst diagnostizieren (initially).
+**Notes:** Superseded by the next exchange once the real cost of the test became clear.
+
+---
+
+## Timing (when to run the diagnostic check)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Jetzt direkt | Run the manual Developer-Mode-off / Ice re-test live in this session | ✓ |
+| Als eigener Plan/Spike | Formalize the diagnostic as a standalone plan with its own checkpoint | |
+
+**User's choice:** Jetzt direkt (initially selected, then the check itself was called off — see below).
+
+---
+
+## Outcome: diagnostic check called off
+
+**User's finding:** Disabling Developer Mode on this machine is not a simple toggle-and-restart — it would require a full downgrade back to macOS 26, which the user judged far too costly for one diagnostic data point. The user declined to run the check.
+
+**Resulting decision — Weitermachen vs. Descope:** Neither. The user chose a third option not offered as a pre-written choice: **pause** the phase — still wants the feature, but does not want to keep sinking further attempts into it right now. This is deliberately not the same as "Descope" (which would mean dropping MENUBAR-01..04 and formally abandoning the phase) — matches this project's Phase 49/50 "PAUSED" precedent rather than Phase 37's "ABANDONED" precedent.
+
+**Nächster konkreter Schritt / Aufwands-Budget:** Both areas became moot once the pause decision was made — there is no next step and no further budget being spent right now.
+
+---
+
+## Revisit-Trigger
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Unbestimmt | No fixed trigger — backlog item for a later milestone, no condition | ✓ |
+| Wenn macOS 27 stabil ist | Resume only once the beta becomes a stable release | |
+| Wenn Developer Mode ohnehin ausgeschaltet wird | Opportunistic re-test if a clean test becomes available for unrelated reasons | |
+
+**User's choice:** Unbestimmt.
+**Notes:** No scheduled or conditional resume — purely open-ended.
+
+## Claude's Discretion (this revision)
+
+- None new — the pause decision closed this revision without reaching any implementation-level discretion items.
+
+## Deferred Ideas (this revision)
+
+- Menü-Bar-Overflow itself — paused indefinitely (see CONTEXT.md D-08), not dropped.
+- Testing the Golden-Gate/Developer-Mode hypothesis via a macOS 26 downgrade — explicitly rejected as disproportionate; would only be worth doing opportunistically if the machine is ever downgraded for unrelated reasons.
