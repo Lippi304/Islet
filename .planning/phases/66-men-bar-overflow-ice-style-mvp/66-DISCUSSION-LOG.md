@@ -123,3 +123,91 @@ None beyond what the milestone scope already excludes (always-hidden/hotkey tier
 ## Deferred Ideas (this revision)
 
 - Retrying Ice's private-API mechanism or porting Ice's own Tahoe-compatibility fix — explicitly considered and rejected in favor of the spacer technique.
+
+---
+
+# Revision: 2026-07-28 — Second mechanism pivot after Plan 66-04 NO-GO
+
+> **Audit trail only.** Decisions captured in the revised CONTEXT.md — this log preserves the alternatives considered.
+
+**Date:** 2026-07-28
+**Trigger:** Plan 66-04's on-device UAT checkpoint returned NO-GO — the pivoted public-`NSStatusItem`-spacer technique (built in 66-02) does not reclaim/hide layout space and does not accept Cmd-drag. See `66-04-SUMMARY.md`.
+**Areas discussed:** Grundrichtung (overall direction), Diagnose (third-party-app check), Mechanismus (third mechanism candidate), Ansatz (debug vs. new spike), Ice-Status (live reference availability)
+
+---
+
+## Grundrichtung (Overall Direction)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Dritten Mechanismus spiken | Try a third mechanism, spike-first on real hardware before any plan | ✓ |
+| Feature aus v1.10 descopen | Drop Menübar-Overflow from the milestone; it blocks nothing else | |
+| Pausieren bis stabiles macOS | Pause on the theory this is a Tahoe-beta-specific OS regression | |
+
+**User's choice:** Try a third approach, spike-first.
+**Notes:** Refined by the next two questions below.
+
+---
+
+## Diagnose (Third-Party-App Check)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Ja, erst Ice/Hidden Bar installieren | Install real reference apps first to test whether the "OS regression" theory holds | |
+| Nein, direkt neue Variante spiken | Assume it's our own implementation, skip the diagnostic | |
+
+**User's choice:** Neither pre-written option — user volunteered directly: "Ich kann sagen das Ice funktioniert auf dem Gerät weil ich das bisher immer benutzt habe." (Ice already works on this machine, confirmed from daily use.)
+**Notes:** The pivotal fact of this whole discussion. It disproves the "macOS 27 Tahoe beta regression" hypothesis recorded in project memory `phase66_menubar_overflow_second_nogo` for the CGS-based mechanism specifically — real Ice uses that same private-CGS technique and works fine here.
+
+---
+
+## Mechanismus (Third Mechanism Candidate) — superseded before being decided
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Spacer-Variante mit anderen Flags | Retry the spacer technique with isVisible/autosaveName/behavior tweaks | |
+| Private CGS mit anderen Symbolen | Retry private CGS with different/renamed symbols | |
+| Ich habe noch keine Präferenz | Defer to research/spike | ✓ (answered, then overtaken by the diagnostic finding above) |
+
+**User's choice:** No preference given — the question itself was overtaken by the Ice-works-here finding, which redirected the whole approach (see Ansatz below).
+**Notes:** Kept for the record; not the direction actually taken.
+
+---
+
+## Ansatz (Debug vs. New Spike)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| 66-01 debuggen statt neu spiken | Debug the original CGS spike against real, working Ice as a live reference | ✓ |
+| Trotzdem neue dritte Variante | Treat 66-01 as closed, try a different technique anyway | |
+
+**User's choice:** Debug 66-01 against real Ice.
+**Notes:** Given Ice's own private-CGS mechanism works on this exact hardware, the most direct, evidence-based path is finding where Islet's port of that mechanism (built in Plan 66-01) diverges from Ice's actual working behavior — rather than guessing at a fourth unrelated technique.
+
+---
+
+## Ice-Status (Live Reference Availability)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Ja, läuft aktuell | Ice installed and running now | |
+| Installiert, aber nicht aktiv | Ice installed but not currently running | ✓ |
+| Nicht mehr installiert | Ice not installed, would need reinstall | |
+
+**User's choice:** Installed but not currently running.
+**Notes:** The debugging plan's first step must launch Ice before any comparison work can begin.
+
+## Claude's Discretion (this revision)
+
+- Exact persistence storage mechanism/format for D-03, informed by research under the CGS mechanism's real semantics.
+- Chevron icon glyph/SF Symbol choice.
+- Animation style for the reveal/hide transition (D-05).
+- Whether to restore/repurpose the existing (partially superseded) `MenuBarOverflowBridging.swift`/`MenuBarOverflowManualSpike.swift` files, or start the CGS spike fresh.
+- Whether Islet's own status item(s) are exempt from the hide mechanism (default: exempt).
+- Exact debugging technique for comparing Islet's spike against live Ice (logging, `lsappinfo`-style inspection, line-by-line source re-read).
+
+## Deferred Ideas (this revision)
+
+- Descoping Menübar-Overflow from v1.10 entirely — considered and rejected; user chose to keep pursuing it given the new diagnostic evidence.
+- "Wait for stable macOS release" theory — rejected for the CGS mechanism now that Ice is confirmed working on this exact build; the public-spacer failure's cause remains unexplained but is no longer being pursued.
+- Hidden Bar's public-spacer technique as a fallback if CGS debugging dead-ends — not decided; if debugging genuinely dead-ends, return to `/gsd:discuss-phase 66` rather than silently falling back.
