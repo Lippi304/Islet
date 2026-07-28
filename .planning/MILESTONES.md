@@ -65,6 +65,21 @@
 
 ---
 
+## v1.5 Home Focus & Widget Redesign (Shipped: 2026-07-28)
+
+**Phases completed:** 6 phases (29-34), 11/11 requirements. All 6 phases were actually code-complete and on-device-verified since 2026-07-14/15 — this milestone's formal closing ceremony (this entry, the git tag) simply never ran until 2026-07-28, discovered and closed out in the same session as v1.4.
+
+**Key accomplishments:**
+
+- Home decluttered to music-only (Phase 30): the old time/weather/calendar idle glance is fully removed, replaced by a real last-played-track state or an explicit "Nothing Playing" empty state, both with live transport hover feedback.
+- File-drop behavior fully consolidated into Tray (Phase 31) and widened for a file-forward layout (Phase 32, 650pt/40×40pt tiles) — including a root-caused fix for a `ScrollView(.horizontal)` centering bug that had silently defeated top-clearance padding for 4 UAT rounds.
+- A Droppy-style Drop/AirDrop/Mail destination picker (Phase 34) replaced the original click-based design after on-device UAT rejected it, rebuilt as a live drag-target interaction instead.
+- Weather redesigned as a 1:1 iOS Weather-widget clone (Phase 33): a permanent Medium hourly row, a Settings-gated Large daily range-bar list — and, as a side effect of chasing a rendering bug, a structural content-clipping fix (`blobShape` never clipped to `NotchShape`) that benefits every other tab, not just Weather.
+- The expanded-state notch silhouette gained a visibly larger top-corner radius (Phase 29) — after 3 more elaborate geometry designs (concave sweep, shoulder bulge, centered notch dip) were each built, tested on-device, and rejected across a single ~6-hour session, before a reference re-read revealed the target look was just a bigger corner radius all along.
+- Along the way, PROJECT.md's own Validated section was found to be missing entries for 4 of this milestone's 6 phases (29, 30, 32, 33) — backfilled as part of this close-out.
+
+---
+
 ## v1.3 Notch Shelf (Shipped: 2026-07-11)
 
 **Phases completed:** 3 phases (19-21), 5 plans, 12 tasks
