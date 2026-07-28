@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01168B5EC7AF98EE1ADA34D8 /* IsletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 143DD03B59EE64AE773112BD /* IsletApp.swift */; };
+		03BCA633E697D2FB59AA9E80 /* MenuBarOverflowClampTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE44634582E30C12BAC06198 /* MenuBarOverflowClampTests.swift */; };
 		049E58591CD6431B0C849793 /* ClipboardStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1460D18D7C0D64BFC9D310E /* ClipboardStoreTests.swift */; };
 		04A2E8142E58F12B0A28BBB4 /* TrialLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31972FF1ED9E30425E37EE11 /* TrialLogic.swift */; };
 		05E3F6406213849B1212DA66 /* ShelfItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2C09F7CB439DBC707F7E095 /* ShelfItem.swift */; };
@@ -65,6 +66,7 @@
 		43DF0886D3878D38B6157239 /* WeatherCategoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB0C1FFC49C8A8CE3E74509 /* WeatherCategoryTests.swift */; };
 		48156062092638E2BD35BAA0 /* LicenseStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B227C92D09FB6EAB081E62E /* LicenseStateTests.swift */; };
 		4D42E4610ECAF1591FEAD40D /* QuickActionSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8C607878B62D262514A41D /* QuickActionSharingService.swift */; };
+		4E144BDED6E685831A95087D /* MenuBarOverflowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65A8CA468FB57CC7FA86448C /* MenuBarOverflowController.swift */; };
 		4EBD25B8C54F6A68250153F4 /* NotchShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F635228C4261E9EECEC41F /* NotchShapeTests.swift */; };
 		52D451CE0495741C638844F9 /* DownloadActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D783322BFD3B2A860BF8E120 /* DownloadActivityTests.swift */; };
 		56BC6DBE6E5F1E2B6F485BE0 /* CalendarGlance.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECDB797EE481836D5DD878FD /* CalendarGlance.swift */; };
@@ -278,6 +280,7 @@
 		63FACDF43375E1DE88646B05 /* DragDropSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropSupport.swift; sourceTree = "<group>"; };
 		645E44284FC3BC54024CD5F3 /* CalendarCountdownMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarCountdownMonitor.swift; sourceTree = "<group>"; };
 		65127041FDE5365C865095B1 /* NotchPillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPillView.swift; sourceTree = "<group>"; };
+		65A8CA468FB57CC7FA86448C /* MenuBarOverflowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarOverflowController.swift; sourceTree = "<group>"; };
 		6771DABBC6345C5FBAB11E0C /* TimerMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerMonitor.swift; sourceTree = "<group>"; };
 		67C811DA67737E6DE4C01AFD /* CapsLockActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockActivity.swift; sourceTree = "<group>"; };
 		69A6D6D6FF57E98ED7A91051 /* DarkModeToggleAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkModeToggleAction.swift; sourceTree = "<group>"; };
@@ -359,6 +362,7 @@
 		ECDB797EE481836D5DD878FD /* CalendarGlance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGlance.swift; sourceTree = "<group>"; };
 		ED0AECE18823EB0442DA5464 /* DragApproachGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragApproachGeometryTests.swift; sourceTree = "<group>"; };
 		ED5D3200EB9C1BD846D8862F /* ClipboardItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardItem.swift; sourceTree = "<group>"; };
+		EE44634582E30C12BAC06198 /* MenuBarOverflowClampTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarOverflowClampTests.swift; sourceTree = "<group>"; };
 		EF2A4014879EF0DD23CA4CB0 /* LicenseState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseState.swift; sourceTree = "<group>"; };
 		F0D89A4AA386EFC4F78F58CB /* QuickActionsBarManualSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsBarManualSpike.swift; sourceTree = "<group>"; };
 		F1460D18D7C0D64BFC9D310E /* ClipboardStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStoreTests.swift; sourceTree = "<group>"; };
@@ -443,6 +447,7 @@
 				605C8A3B6F9015948DC073F0 /* LocationServiceTests.swift */,
 				D3ADDB7D54E2C8218B00EAFA /* MeetingActivityTests.swift */,
 				F47ECDE27429D65F0FC0282A /* MeetingMonitorManualSpike.swift */,
+				EE44634582E30C12BAC06198 /* MenuBarOverflowClampTests.swift */,
 				DD88E9AE1BEB4002C5C2446B /* MenuBarOverflowManualSpike.swift */,
 				7176B428776EBAD2495B22C9 /* MicMuteControllerTests.swift */,
 				984325CC40BE13B07D21477D /* NotchGeometryTests.swift */,
@@ -633,6 +638,7 @@
 				A6E7043E50BE0E348AF20894 /* MeetingActivity.swift */,
 				6E328B1A66ACF5DB943AC2DC /* MeetingMonitor.swift */,
 				5EBB9448C717B593D5CCE0FF /* MenuBarOverflowBridging.swift */,
+				65A8CA468FB57CC7FA86448C /* MenuBarOverflowController.swift */,
 				CA3B6F1344C078428D42671C /* MicMuteController.swift */,
 				1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */,
 				9EE98C0240E35D702BEA0DBA /* NotchInteractionState.swift */,
@@ -866,6 +872,7 @@
 				0613553C54395FD8C0CC3FC7 /* MeetingActivity.swift in Sources */,
 				2FD84333F982B8676FE2D3AF /* MeetingMonitor.swift in Sources */,
 				D92439B942125FBBD8A0B730 /* MenuBarOverflowBridging.swift in Sources */,
+				4E144BDED6E685831A95087D /* MenuBarOverflowController.swift in Sources */,
 				18A0994550ED1E5366D1DBF7 /* MicMuteController.swift in Sources */,
 				B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */,
 				2586E152318B70467587E51C /* NotchGeometry.swift in Sources */,
@@ -949,6 +956,7 @@
 				EECA01E637ADFB54CFAA54E3 /* LocationServiceTests.swift in Sources */,
 				591C396D0D62FB65A9CDC0DF /* MeetingActivityTests.swift in Sources */,
 				6E5C18AA80000F33A722932B /* MeetingMonitorManualSpike.swift in Sources */,
+				03BCA633E697D2FB59AA9E80 /* MenuBarOverflowClampTests.swift in Sources */,
 				6107FA350CADD4672F966E67 /* MenuBarOverflowManualSpike.swift in Sources */,
 				A7D7BA53A8F1B56340BA7E9B /* MicMuteControllerTests.swift in Sources */,
 				EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */,

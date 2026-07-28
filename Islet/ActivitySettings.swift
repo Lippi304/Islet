@@ -34,7 +34,6 @@ enum ActivitySettings {
     // falls through to each @AppStorage declaration's own compiled-in `false` default.
     static let capsLockKey = "activity.capsLock"
     static let downloadProgressKey = "activity.downloadProgress"
-    static let menuBarOverflowKey = "activity.menuBarOverflow"
     static let timerKey = "activity.timer"
     static let meetingHUDKey = "activity.meetingHUD"
     static let quickNotesKey = "activity.quickNotes"
@@ -42,6 +41,13 @@ enum ActivitySettings {
     // String UserDefaults value (Islet is not sandboxed, no security-scoped bookmark needed).
     // NOT added to defaultsToFalseKeys below — that set is for Bool activity toggles only.
     static let quickNotesVaultFolderPathKey = "quickNotes.vaultFolderPath"
+    // Phase 66 / MENUBAR-01/02/03 (D-02/D-05) — persists MenuBarOverflowController's
+    // reveal/hide UI state (spacer expanded vs collapsed). NOT a Bool activity toggle
+    // read by activityEnabled(_:) (D-02: the feature activates unconditionally at
+    // launch, no Settings gate), so NOT added to defaultsToFalseKeys below — that set
+    // is Bool-activity-toggle-only per its own doc comment. Defaults to `false`
+    // (hidden) via UserDefaults.bool(forKey:)'s own safe absent-key default.
+    static let menuBarOverflowRevealedKey = "menuBarOverflow.revealed"
     // Phase 64-07 (gap closure, NOTES-02/NOTES-03) — single named source of truth for the
     // filename already hardcoded today in AppDelegate.swift's handleQuickNoteSubmit, and the
     // default QuickNote.fileName falls back to when decoding pre-existing notes that predate
@@ -62,7 +68,7 @@ enum ActivitySettings {
     // `true`. A future phase adding its own false-default activity key must add it here too
     // (regression-locked by testDefaultsToFalseKeysCoversAllFalseDefaultActivities).
     static let defaultsToFalseKeys: Set<String> = [
-        focusKey, osdSuppressionKey, capsLockKey, downloadProgressKey, menuBarOverflowKey,
+        focusKey, osdSuppressionKey, capsLockKey, downloadProgressKey,
         timerKey, meetingHUDKey, quickNotesKey, quickActionsKey, codingProgressKey, updateHudKey,
     ]
     // Phase 40 / HUD-06 (D-11) — gates Sparkle's automaticallyChecksForUpdates only; default

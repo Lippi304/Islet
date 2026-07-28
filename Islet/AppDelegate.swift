@@ -24,6 +24,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Quick task 260708-u47: not `private` so SettingsView can read the live
     // nowPlayingState.isHealthy via the standard `NSApp.delegate as? AppDelegate` idiom.
     var notchController: NotchWindowController?
+    // Phase 66 / MENUBAR-01/02/03 (D-02) — retained for the app's lifetime, parallel to
+    // notchController/statusItem. Implicitly-unwrapped + constructed inside
+    // applicationDidFinishLaunching (like statusItem below): MenuBarOverflowController is
+    // @MainActor, so a class-scope default initializer here would run in a synchronous
+    // nonisolated context and fail to compile. Activated unconditionally, no Settings
+    // toggle, no permission gate.
+    private var menuBarOverflowController: MenuBarOverflowController!
 
     // Phase 58 / CLIP-01/02/03 — production (non-DEBUG) clipboard wiring. Distinct from
     // the #if DEBUG-only `debugClipboardMonitor` below; this is the real, always-on path.
@@ -270,6 +277,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         setupDebugMenu()
         #endif
+
+        // Phase 66 / MENUBAR-01/02/03 (D-01/D-02) — constructed + started AFTER statusItem
+        // (and debugStatusItem in DEBUG builds) above: RESEARCH.md Pitfall 1 — later-
+        // created status items land further left/outer, so the chevron+spacer (created
+        // inside start()) land left of both, satisfying D-01's "chevron is leftmost among
+        // Islet's own menu-bar items". Unconditional — no toggle, no gate.
+        menuBarOverflowController = MenuBarOverflowController()
+        menuBarOverflowController.start()
     }
 
     // The SwiftUI Window(id:) NSWindow may not exist yet on the first run-loop

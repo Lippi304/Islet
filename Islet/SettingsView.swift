@@ -71,7 +71,11 @@ struct SettingsView: View {
     @AppStorage(ActivitySettings.capsLockKey) private var capsLockEnabled = false
     @AppStorage(ActivitySettings.updateHudKey) private var updateHudEnabled = false
     @AppStorage(ActivitySettings.downloadProgressKey) private var downloadProgressEnabled = false
-    @AppStorage(ActivitySettings.menuBarOverflowKey) private var menuBarOverflowEnabled = false
+    // Phase 66 Plan 02 (deviation, Rule 3 — blocking build fix): repointed to the new
+    // revealed-state key so this pre-existing "coming soon" card still compiles after
+    // ActivitySettings.menuBarOverflowKey's removal. Plan 66-03 owns the card's actual
+    // UI rework (removing isComingSoon, retitling) per this plan's own interfaces note.
+    @AppStorage(ActivitySettings.menuBarOverflowRevealedKey) private var menuBarOverflowEnabled = false
     @AppStorage(ActivitySettings.timerKey) private var timerEnabled = false
     @AppStorage(ActivitySettings.meetingHUDKey) private var meetingHUDEnabled = false
     @AppStorage(ActivitySettings.quickNotesKey) private var quickNotesEnabled = false

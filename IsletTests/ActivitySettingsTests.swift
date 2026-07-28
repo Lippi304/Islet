@@ -121,7 +121,6 @@ final class ActivitySettingsTests: XCTestCase {
     func testNewV110KeyNames() {
         XCTAssertEqual(ActivitySettings.capsLockKey, "activity.capsLock")
         XCTAssertEqual(ActivitySettings.downloadProgressKey, "activity.downloadProgress")
-        XCTAssertEqual(ActivitySettings.menuBarOverflowKey, "activity.menuBarOverflow")
         XCTAssertEqual(ActivitySettings.timerKey, "activity.timer")
         XCTAssertEqual(ActivitySettings.meetingHUDKey, "activity.meetingHUD")
         XCTAssertEqual(ActivitySettings.quickNotesKey, "activity.quickNotes")
@@ -164,7 +163,6 @@ final class ActivitySettingsTests: XCTestCase {
             ActivitySettings.osdSuppressionKey,
             ActivitySettings.capsLockKey,
             ActivitySettings.downloadProgressKey,
-            ActivitySettings.menuBarOverflowKey,
             ActivitySettings.timerKey,
             ActivitySettings.meetingHUDKey,
             ActivitySettings.quickNotesKey,
@@ -172,5 +170,11 @@ final class ActivitySettingsTests: XCTestCase {
             ActivitySettings.codingProgressKey,
             ActivitySettings.updateHudKey,
         ]))
+    }
+
+    // MARK: Phase 66 / MENUBAR-01/02/03
+
+    func testMenuBarOverflowRevealedKeyName() {
+        XCTAssertEqual(ActivitySettings.menuBarOverflowRevealedKey, "menuBarOverflow.revealed")
     }
 }
