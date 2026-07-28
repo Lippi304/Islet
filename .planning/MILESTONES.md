@@ -49,6 +49,22 @@
 
 ---
 
+## v1.4 Architecture Redesign (Shipped: 2026-07-13)
+
+**Phases completed:** 6 phases (23-28), 32 phase commits, 88 files changed (+15.0k/-262 lines)
+
+**Key accomplishments:**
+
+- Rebuilt `NotchPanel`/`NotchWindowController` from the ground up (Phase 23), deleting the failed Phase-22 `NSDraggingDestination` drag-in spike with zero behavioral regression — confirmed via a line-by-line invariant audit plus a human-approved 20-item on-device UAT — clearing the path for a working drag-in mechanism.
+- SHELF-01/SHELF-02 (drag-in), carried forward as an open gap from v1.3, finally shipped (Phase 24): a `DragApproachDetector` global-monitor spike confirmed real Finder-drag detection, then a production `DropInterceptTap` (session `CGEventTap`) closed the last data-loss gap — the original file is never relocated, and the drag cursor releases cleanly.
+- A shared black-to-transparent gradient material and slower single-overshoot spring redesigned the notch shell's whole visual language (Phase 25) — confirmed correct on real hardware with zero code changes needed after UAT.
+- A first-launch 4-step onboarding carousel (Welcome → Trial/License/Buy → Permissions → Done) was built as a structurally un-pre-emptable `IslandResolver` state (Phase 26), closing 7 rounds of on-device UAT including a Droppy-inspired visual redesign and a SwiftUI launch-time reentrancy crash fix.
+- Settings was rebuilt from a 3-tab `TabView` into a 4-section `NavigationSplitView` sidebar with a new Theming section — material style and 3 independent per-element accent colors, all live-updating with no app restart (Phase 27).
+- A full-screen Calendar view shipped alongside a new Home/Tray/Calendar/Weather switcher pill (Phase 28) — month grid, day list, quick-add for Events/Reminders, backed by a single shared `EventKitService` seam; a mid-UAT design supersession reversed the original "idle-default" plan so Home shows Now-Playing controls whenever something is actually playing.
+- Both of this milestone's outstanding on-device verification gaps — Phase 28's Tray click-through fix (CR-01) and quick-add-after-month-navigation fix (CR-02), plus a since-discovered Phase 27 Cmd-U confirmation gap (`ActivitySettingsTests`/`DiagnosticReportTests`) — were confirmed clean on 2026-07-28, clearing the way for this formal close.
+
+---
+
 ## v1.3 Notch Shelf (Shipped: 2026-07-11)
 
 **Phases completed:** 3 phases (19-21), 5 plans, 12 tasks
