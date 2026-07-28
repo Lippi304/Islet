@@ -71,11 +71,6 @@ struct SettingsView: View {
     @AppStorage(ActivitySettings.capsLockKey) private var capsLockEnabled = false
     @AppStorage(ActivitySettings.updateHudKey) private var updateHudEnabled = false
     @AppStorage(ActivitySettings.downloadProgressKey) private var downloadProgressEnabled = false
-    // Phase 66 Plan 02 (deviation, Rule 3 — blocking build fix): repointed to the new
-    // revealed-state key so this pre-existing "coming soon" card still compiles after
-    // ActivitySettings.menuBarOverflowKey's removal. Plan 66-03 owns the card's actual
-    // UI rework (removing isComingSoon, retitling) per this plan's own interfaces note.
-    @AppStorage(ActivitySettings.menuBarOverflowRevealedKey) private var menuBarOverflowEnabled = false
     @AppStorage(ActivitySettings.timerKey) private var timerEnabled = false
     @AppStorage(ActivitySettings.meetingHUDKey) private var meetingHUDEnabled = false
     @AppStorage(ActivitySettings.quickNotesKey) private var quickNotesEnabled = false
@@ -244,11 +239,6 @@ struct SettingsView: View {
                               description: "Shows a live indicator while a file downloads to your Mac.",
                               icon: "arrow.down.circle.fill", iconColor: .secondary,
                               isOn: $downloadProgressEnabled, isNew: true, onOptionsTap: nil),
-            ActivityCardData(id: "menuBarOverflow", title: "Menu Bar Overflow",
-                              description: "Hides overflow menu-bar icons behind a chevron, Ice-style.",
-                              icon: "menubar.rectangle", iconColor: .secondary,
-                              isOn: $menuBarOverflowEnabled, isNew: false, onOptionsTap: nil,
-                              isComingSoon: true),
             ActivityCardData(id: "update", title: "Update Available",
                               description: "Shows a brief HUD in the notch when a new Islet version is available.",
                               icon: "arrow.triangle.2.circlepath", iconColor: .secondary,
