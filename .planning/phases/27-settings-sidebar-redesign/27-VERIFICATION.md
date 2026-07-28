@@ -1,16 +1,19 @@
 ---
 phase: 27-settings-sidebar-redesign
 verified: 2026-07-12T22:23:45Z
-status: human_needed
-score: 10/10 must-haves verified (code-level); 1 human verification item outstanding
+reverified: 2026-07-28T22:41:00.000Z
+status: complete
+score: 10/10 must-haves verified (code-level); both human verification items confirmed 2026-07-28
 overrides_applied: 0
 human_verification:
   - test: "Run Cmd-U (IsletTests scheme) in Xcode and confirm all 8 ActivitySettingsTests methods pass"
     expected: "testMaterialStyleParsesGradient, testMaterialStyleParsesSolidBlack, testMaterialStyleParsesCorruptedValueToNil, testAccentClampsOutOfRangeIndexToDefault, testNewKeyNames, testMigrationOnFreshInstallWritesNothing, testMigrationSeedsAllThreeKeysFromLegacyAccentIndex, testMigrationIsIdempotentAndNeverClobbersAnAlreadySetKey all pass"
     why_human: "xcodebuild test hangs in this project (test target hosts the full NSPanel/MediaRemote/IOBluetooth app stack, a documented prior constraint) — only build/build-for-testing (compile-only) can be run headlessly. The 27-01-PLAN.md and 27-03-PLAN.md verify blocks both required a manual Cmd-U pass; neither 27-01-SUMMARY.md nor 27-03-SUMMARY.md nor 27-04-SUMMARY.md records that this pass was actually executed and confirmed (27-03-SUMMARY.md explicitly lists it under 'User Setup Required' as still recommended, and 27-04's on-device UAT covered app-level behavior only, not the unit-test suite)."
+    result: "CONFIRMED 2026-07-28 — Cmd-U run: Test Suite 'ActivitySettingsTests' passed, Executed 21 tests, with 0 failures."
   - test: "Run Cmd-U (IsletTests scheme) and confirm DiagnosticReportTests passes, including the updated 3-line accent assertions"
     expected: "testTextContainsAllSectionsWithSuppliedValues and related tests pass with Now Playing/Charging/Device Accent lines"
     why_human: "Same xcodebuild test hang constraint as above; build-for-testing confirms the test file compiles against the new 3-param API shape but not that assertions actually pass at runtime."
+    result: "CONFIRMED 2026-07-28 — Cmd-U run: Test Suite 'DiagnosticReportTests' passed, Executed 8 tests, with 0 failures. testTextContainsAllSectionsWithSuppliedValues passed."
 ---
 
 # Phase 27: Settings Sidebar Redesign Verification Report
@@ -93,7 +96,11 @@ No orphaned requirements: REQUIREMENTS.md maps only SETTINGS-01 and VISUAL-03 to
 
 No TBD/FIXME/XXX/HACK/PLACEHOLDER debt markers found in any of the 9 files modified across this phase's plans (only benign uses of the word "placeholder" describing legitimate UI/UX concepts — the Workspace empty-state copy and pre-existing album-art/drag-seed placeholders unrelated to this phase's changes).
 
-### Human Verification Required
+### Human Verification Required — CONFIRMED 2026-07-28
+
+Both items below were confirmed via a full Cmd-U run on 2026-07-28 (as part of closing out v1.4). `ActivitySettingsTests` (21 tests) and `DiagnosticReportTests` (8 tests) both passed with 0 failures. This phase's verification is now complete.
+
+**Note — unrelated failures found in the same Cmd-U run, not blocking this phase:** The full run (575 tests) had 7 failures outside this phase's scope: `LicenseStateTests` (4 failures, looks like a test-isolation issue — the tests expect trial state but the real Keychain on this machine has an active license) and `SettingsViewTests` (3 failures — HUD card count 8 vs. expected 9, `calendarCountdown` not marked `isNew` — looks like drift from a later phase that added a card without updating this test). Neither touches Phase 27's `ActivitySettingsTests`/`DiagnosticReportTests`/`SettingsView.swift` sidebar work. Flagged for a separate `/gsd-debug` session, not resolved here.
 
 ### 1. ActivitySettingsTests — Cmd-U pass confirmation
 
