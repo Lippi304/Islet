@@ -77,6 +77,7 @@
 		5BE8D8718C0CD42AD7703488 /* QuickNotesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 606B7766701630D6228FBBEA /* QuickNotesStore.swift */; };
 		5D3091F521E6A6CCBF2EF35A /* AudioOutputPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903726B931FE524FE3691AA2 /* AudioOutputPresentationTests.swift */; };
 		5E2A0DEF48DA471FE9426F9A /* CalendarViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D373EEE76BE733AFEDD28FD /* CalendarViewState.swift */; };
+		6107FA350CADD4672F966E67 /* MenuBarOverflowManualSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD88E9AE1BEB4002C5C2446B /* MenuBarOverflowManualSpike.swift */; };
 		618300F20A7EE3C75C21156B /* QuickNotesFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43509455C9C45E4E5E03083 /* QuickNotesFormatter.swift */; };
 		62BB9F9BCB658F55890D95BD /* LicenseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471EC72A07A658DCBFCDDB38 /* LicenseServiceTests.swift */; };
 		62EB1AC3385E6D87A18F3852 /* ChargingActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279E3593C9C2B7DD25AF01BA /* ChargingActivityState.swift */; };
@@ -150,6 +151,7 @@
 		D4C67684455C828A20F0AF6B /* AudioOutputMonitorManualSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA15A9291849B26F80AE0A3 /* AudioOutputMonitorManualSpike.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
 		D7F2FFB86450FE73193492BB /* DownloadCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF3780F57677A92A7657FF41 /* DownloadCoordinatorTests.swift */; };
+		D92439B942125FBBD8A0B730 /* MenuBarOverflowBridging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBB9448C717B593D5CCE0FF /* MenuBarOverflowBridging.swift */; };
 		DB506F16085ECD1612616899 /* EqualizerBarsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D729262924ACC596A1FFF23 /* EqualizerBarsTests.swift */; };
 		DE3C88D60447745B95BF4F52 /* OSDInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A9A9669B73F37C9B93F564 /* OSDInterceptor.swift */; };
 		E1D44F4C77B71284EC1D4C50 /* AudioOutputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB608FBDE6554EFA2A955E48 /* AudioOutputMonitor.swift */; };
@@ -269,6 +271,7 @@
 		5998347EF705695E4C020094 /* Info-Sparkle.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-Sparkle.plist"; sourceTree = "<group>"; };
 		5AFE58F9AAB79136B14EC77D /* FocusToggleAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusToggleAction.swift; sourceTree = "<group>"; };
 		5D869CDF80317230429414E1 /* PowerActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerActivityTests.swift; sourceTree = "<group>"; };
+		5EBB9448C717B593D5CCE0FF /* MenuBarOverflowBridging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarOverflowBridging.swift; sourceTree = "<group>"; };
 		5F13DD9E9F8F782EEAE48FC2 /* Islet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Islet.entitlements; sourceTree = "<group>"; };
 		5FD7011AF8E607471C7F73FB /* ViewSwitcherState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewSwitcherState.swift; sourceTree = "<group>"; };
 		605C8A3B6F9015948DC073F0 /* LocationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServiceTests.swift; sourceTree = "<group>"; };
@@ -345,6 +348,7 @@
 		D5304DD9EE0040C6059114A1 /* BrightnessReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessReader.swift; sourceTree = "<group>"; };
 		D783322BFD3B2A860BF8E120 /* DownloadActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadActivityTests.swift; sourceTree = "<group>"; };
 		D80361AFAC4FDAD549382CFE /* CapsLockMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockMonitor.swift; sourceTree = "<group>"; };
+		DD88E9AE1BEB4002C5C2446B /* MenuBarOverflowManualSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarOverflowManualSpike.swift; sourceTree = "<group>"; };
 		E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenDetectorTests.swift; sourceTree = "<group>"; };
 		E3F2A9A634959D28CB05024E /* BluetoothMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothMonitor.swift; sourceTree = "<group>"; };
 		E44BA9FF276A6DCDA62F7633 /* QuickNotesStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickNotesStoreTests.swift; sourceTree = "<group>"; };
@@ -444,6 +448,7 @@
 				D3ADDB7D54E2C8218B00EAFA /* MeetingActivityTests.swift */,
 				F47ECDE27429D65F0FC0282A /* MeetingMonitorManualSpike.swift */,
 				EE44634582E30C12BAC06198 /* MenuBarOverflowClampTests.swift */,
+				DD88E9AE1BEB4002C5C2446B /* MenuBarOverflowManualSpike.swift */,
 				7176B428776EBAD2495B22C9 /* MicMuteControllerTests.swift */,
 				984325CC40BE13B07D21477D /* NotchGeometryTests.swift */,
 				83B2D92BF83095959068F293 /* NotchPanelTests.swift */,
@@ -632,6 +637,7 @@
 				A615165F39E760B6745AEAD1 /* LiquidGlassShader.swift */,
 				A6E7043E50BE0E348AF20894 /* MeetingActivity.swift */,
 				6E328B1A66ACF5DB943AC2DC /* MeetingMonitor.swift */,
+				5EBB9448C717B593D5CCE0FF /* MenuBarOverflowBridging.swift */,
 				65A8CA468FB57CC7FA86448C /* MenuBarOverflowController.swift */,
 				CA3B6F1344C078428D42671C /* MicMuteController.swift */,
 				1B3A21E53CD41A67CFDD818B /* NotchGeometry.swift */,
@@ -865,6 +871,7 @@
 				59A9F1A6B642331EFB7EBE26 /* LocationProvider.swift in Sources */,
 				0613553C54395FD8C0CC3FC7 /* MeetingActivity.swift in Sources */,
 				2FD84333F982B8676FE2D3AF /* MeetingMonitor.swift in Sources */,
+				D92439B942125FBBD8A0B730 /* MenuBarOverflowBridging.swift in Sources */,
 				4E144BDED6E685831A95087D /* MenuBarOverflowController.swift in Sources */,
 				18A0994550ED1E5366D1DBF7 /* MicMuteController.swift in Sources */,
 				B8A5ADF13268775B31FBF78A /* NSScreen+Notch.swift in Sources */,
@@ -950,6 +957,7 @@
 				591C396D0D62FB65A9CDC0DF /* MeetingActivityTests.swift in Sources */,
 				6E5C18AA80000F33A722932B /* MeetingMonitorManualSpike.swift in Sources */,
 				03BCA633E697D2FB59AA9E80 /* MenuBarOverflowClampTests.swift in Sources */,
+				6107FA350CADD4672F966E67 /* MenuBarOverflowManualSpike.swift in Sources */,
 				A7D7BA53A8F1B56340BA7E9B /* MicMuteControllerTests.swift in Sources */,
 				EC7657D874B7543FB31FE075 /* NotchGeometryTests.swift in Sources */,
 				A532C893CA28FEBC8B8F87A8 /* NotchPanelTests.swift in Sources */,

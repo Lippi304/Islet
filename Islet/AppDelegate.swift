@@ -530,6 +530,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugSpikeWriteConcealedTestItem), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Simulate Self-Capture Write",
                           action: #selector(debugSpikeSimulateSelfCaptureWrite), keyEquivalent: "")
+        debugMenu.addItem(withTitle: "Spike: Print Menu Bar Overflow Enumeration",
+                          action: #selector(debugSpikePrintMenuBarOverflowEnumeration), keyEquivalent: "")
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -635,6 +637,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.writeObjects([item])
         print("[Spike-ClipboardMonitor] wrote self-capture-marker test item to NSPasteboard.general — the running monitor must NOT print a captured line for this")
+    }
+
+    // Phase 66 Plan 05 / MENUBAR-04 (Pattern 1 Step 3, RESEARCH.md Pitfall 2) — exercises the
+    // exact same enumeration used by the Cmd-U manual spike, but from a genuine `open`-launched
+    // instance instead of the Xcode test host, to rule out (or confirm) the launch-context
+    // hypothesis independently of the Accessibility-permission hypothesis.
+    @objc private func debugSpikePrintMenuBarOverflowEnumeration() {
+        let trusted = AXIsProcessTrusted()
+        print("[MenuBarOverflowSpike-RealLaunch] AXIsProcessTrusted() = \(trusted) — \(trusted ? "gate PASSES, enumeration will run" : "gate BLOCKS, expect 0 windows below")")
+        let windows = MenuBarOverflowBridging.menuBarItemWindows()
+        print("[MenuBarOverflowSpike-RealLaunch] found \(windows.count) other-process menu-bar-item window(s):")
+        for window in windows {
+            print("[MenuBarOverflowSpike-RealLaunch]   bundleID=\(window.bundleIdentifier) windowID=\(window.windowID)")
+        }
     }
     #endif
 }
