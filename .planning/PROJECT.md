@@ -372,6 +372,11 @@ _v1.4 (Architecture Redesign) shipped 2026-07-28 — all 6 phases (23-28) comple
 - [x] The island's auto-expand / Quick Action destination picker only fires on a genuine external file drag approaching it — an ordinary click or hover on the collapsed/expanded island never triggers it. Fixed via `isGenuineFileDrag(currentChangeCount:gestureBaselineChangeCount:urls:)`, a pasteboard-change-count gate wired into `recheckDragAcceptRegion`'s auto-expand arm branch. (Phase 43 — DRAG-01)
 - On-device UAT of the fix took 4 rounds and found 2 further real regressions no build/unit-test gate could see: the island got permanently stuck expanded after discarding a drag (the auto-collapse grace-timer only fires from `.mouseMoved`-driven hover-exit, which never occurs during an active OS drag session), and even after that was fixed, resolving the Quick Action picker still briefly flashed the underlying Home/Now-Playing/Tray content before collapsing. Both closed by adding a dedicated `.dismissed` state-machine event (immediate `expanded → collapsed`, no grace defer) and a shared `dismissExpandedImmediately()` helper consolidating all 4 picker-resolution paths (Drop, AirDrop, Mail, discard). See `43-02-SUMMARY.md` for the full round-by-round record. (Phase 43)
 
+**Tray & Quick Action Width Alignment (Phase 44 — TRAY-06, DRAG-02):**
+
+- [x] The Quick Action picker's panel reservation, click-through content size, and `blobShape` call all switched from a hardcoded 420×117pt box to the real Tray's actual 650×189pt footprint — closing the visible size mismatch between the during-drag preview and the landed Tray state. (Phase 44)
+- On-device UAT (6 rounds) found and fixed 5 real bugs beyond the build-verified geometry: button overflow past the card's curved edges, a hover hit-test anchored to the wrong edge, excess picker height, a Tray-height mismatch, and clipped empty-state text — ending with the picker and Tray sharing one exact height/width footprint by explicit user design. (Phase 44)
+
 **View Switcher Morph Fix (Phase 45 — SWITCH-01, SWITCH-02):**
 
 - [x] Tab switches (Home/Tray/Calendar/Weather) morph continuously with no disappear/rebuild flicker and no large→small behind-buttons z-order glitch. Root cause was `presentationSwitch` calling `blobShape` from 6 textually-distinct case branches — SwiftUI's structural-identity model treats a case change as remove+insert, not update. Fixed by collapsing all 6 switcher-row cases into one shared `tabContentView` call site (`tabWidth`/`tabHeight` computed properties, content-only inner switch), giving every case one continuous view identity for `matchedGeometryEffect` to morph across. On-device 12-pairwise-transition sweep (both directions) plus an interrupted-mid-morph-tap retarget check confirmed the fix with zero regressions. (Phase 45 — SWITCH-01, SWITCH-02)
@@ -382,6 +387,17 @@ _v1.4 (Architecture Redesign) shipped 2026-07-28 — all 6 phases (23-28) comple
 - [x] The "+ Add" trigger moved from the previously-clipped right edge to the day-list column's left edge, popover opening trailing so it never overlaps the month grid. (Phase 46 — CALVIEW-06)
 - [x] Day-list rows gained more padding/margin; Calendar got its own 472×220 size (independent of the shared switcher-tab constant) to fit the roomier rows without clipping. (Phase 46 — CALVIEW-07)
 - On-device UAT confirmed all 3 requirements working exactly as specified in a single ~15min pass, no code changes needed. **Note:** REQUIREMENTS.md's checkboxes/traceability table showed CALVIEW-06/07 as still Pending until 2026-07-28 — same stale-documentation pattern found and fixed elsewhere this session (Phase 24/27/29/30/32/33), not a real gap. (Phase 46)
+
+**Audio Output Switcher — Pure Seam + Monitor (Phase 47 — infrastructure, no requirements formally scoped):**
+
+- [x] `AudioOutputPresentation`'s device value type, sort/reorder logic, and `AudioOutputMonitor` (event-driven CoreAudio glue enumerating real output devices via `kAudioHardwarePropertyDevices`, confirm-after-set default-output switching, guarded per-device volume-control detection) built and proven correct in isolation before any UI touches them — mirrors this project's own pure-seam-first precedent (Phase 19/22-01/24-01/38-01/39-01). (Phase 47)
+- On-device manual Cmd-U spike surfaced and fixed a real HAL "wrong data size" bug in `resolveDeviceID`'s UID-translation call, then re-verified clean: stable UIDs across a Bluetooth reconnect, a confirmed-after-set default-output switch, and `hasVolumeControl` results recorded for built-in/Bluetooth/USB/external-monitor devices — the authoritative input Phase 48's slider UI builds on. (Phase 47)
+
+**Audio Output Switcher — UI Wiring (Phase 48 — OUTPUT-01, OUTPUT-02, OUTPUT-03, OUTPUT-04):**
+
+- [x] An absolute-set CoreAudio volume write path plus 4 new controller-owned `@Published` output-panel fields, with `AudioOutputMonitor` started unconditionally and its live device-list callback wired into `presentationState`. (Phase 48 — OUTPUT-04)
+- [x] The output-switcher panel restructured so the active device's row itself IS the draggable volume bar (a `Capsule` track/fill as the row's own background) instead of a standalone slider above a checkmarked list — full-white-vs-dimmed text opacity is the sole active-device signal. (Phase 48 — OUTPUT-01, OUTPUT-02, OUTPUT-03)
+- [x] Real CoreAudio-backed toggle/select/drag handlers close the loop end to end; all 4 ROADMAP Phase 48 Success Criteria confirmed on real hardware against the row-as-volume-bar UI after a two-round on-device UAT that found and fixed a choppy volume-drag animation bug. (Phase 48 — OUTPUT-01, OUTPUT-03, OUTPUT-04)
 
 **Settings Reorganization & Scroll Fix (Phase 51 — SETTINGS-02, SETTINGS-03):**
 
