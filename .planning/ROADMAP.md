@@ -163,7 +163,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike (all 4 plans executed 2026-07-25; awaiting orchestrator phase-level gates)
 - [x] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
 - [x] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController` (completed 2026-07-26)
-- [ ] **Phase 66: Menübar-Overflow (Ice-Style MVP)** - Chevron-hide for other apps' menu-bar icons, own feasibility spike first — **BLOCKED (NO-GO 2026-07-28): all 4 plans executed but on-device checkpoint 66-04 failed MENUBAR-02/03; needs /gsd:discuss-phase 66**
+- [ ] **Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)** - Chevron-hide for other apps' menu-bar icons — third pivot: debug the original private-CGS mechanism against real, working Ice rather than a third blind mechanism guess (66-CONTEXT.md D-07); replanned 2026-07-28 as Plans 66-05..66-08
 - [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern
 
 ## Phase Details
@@ -1205,38 +1205,45 @@ Plans:
 
 **UI hint**: yes
 
-### Phase 66: Menübar-Overflow (Ice-Style MVP)
+### Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)
 
 **Goal:** A chevron icon in the menu bar lets the user Cmd-drag other apps' menu-bar icons into a genuinely hidden section and reveal/hide them with a click — the milestone's highest-novelty, zero-reuse feature, preceded by its own feasibility spike reading Ice's actual source before any production mechanism is committed.
 **Depends on:** Nothing structurally — fully isolated from `NotchWindowController`/`IslandResolver`; sequenced here per the milestone's ascending-risk order to keep this highest-novelty item isolated from the notch-facing work above.
-**Requirements**: MENUBAR-01, MENUBAR-02, MENUBAR-03 (MENUBAR-04 dropped 2026-07-27 — see 66-CONTEXT.md D-04: the pivoted public-API spacer technique needs no Accessibility permission grant of any kind)
+**Requirements**: MENUBAR-01, MENUBAR-02, MENUBAR-03, MENUBAR-04 (MENUBAR-04 reopened 2026-07-28 — see 66-CONTEXT.md D-07: reverting to the private-CGS mechanism, which requires Accessibility, same as real Ice's own implementation)
 **Success Criteria** (what must be TRUE):
 
-  1. An on-device spike — reading Ice's actual open-source mechanism directly (`MenuBarItemManager.swift`/`Bridging.swift`), not a general description of it — confirms the private `NSStatusItem`-repositioning technique works on this project's own macOS/hardware, including the Accessibility-permission-denied, sleep/wake, and Dock-relaunch cases, before the production mechanism is built.
+  1. An on-device debugging pass — restoring Plan 66-01's private-CGS spike and comparing it against real, currently-running Ice on this exact machine — confirms the gated CGS enumeration/repositioning mechanism works on this project's own macOS/hardware, including the Accessibility-permission-denied, sleep/wake, and relaunch cases, before production Controller code is finalized.
   2. A chevron icon appears in the menu bar, visually separating a "visible" section from a "hidden" section of other apps' icons.
   3. User can Cmd-drag another app's menu-bar icon across the chevron to move it into the hidden section.
   4. Clicking the chevron reveals or hides the hidden section's icons — hidden icons are genuinely absent from the visible menu-bar strip (real screen space reclaimed), not just repositioned off-screen while still occupying visual space.
-  5. The feature requests a new Accessibility permission grant with a clear one-time explanation, distinct from Islet's existing WeatherKit/EventKit/Bluetooth prompts, and degrades visibly (not silently) if that permission is denied.
+  5. The feature requests a new Accessibility permission grant with a clear one-time explanation, distinct from Islet's existing WeatherKit/EventKit/Bluetooth prompts, and degrades visibly (not silently, chevron absent + Settings row) if that permission is denied.
 
-**Plans**: 4 plans (66-01 spike returned NO-GO on the original Ice private-API mechanism 2026-07-27 — see 66-01-SUMMARY.md; 66-02/66-03/66-04 replan the pivoted public-API spacer-`NSStatusItem` technique per 66-CONTEXT.md's mechanism pivot — 66-04's on-device checkpoint also returned NO-GO 2026-07-28, see 66-04-SUMMARY.md)
+**Plans**: 8 plans total. 66-01 spiked the original private-CGS mechanism, NO-GO 2026-07-27 (66-01-SUMMARY.md). 66-02/66-03/66-04 replanned the pivoted public-spacer technique, also NO-GO 2026-07-28 (66-04-SUMMARY.md). 66-01..66-04 are historical record, superseded, not resumed. CONTEXT.md's second revision (D-07) reverts to debugging the original private-CGS mechanism against real, working Ice — 66-05..66-08 are the active plan set.
 **UI hint**: yes
 
 Plans:
-**Wave 0**
+**Historical (superseded, not resumed — see each SUMMARY.md)**
 
-- [x] 66-01-PLAN.md — Spike (checkpoint): MenuBarOverflowBridging.swift private CGS*/CGEvent-move shim + MenuBarOverflowManualSpike.swift, reading Ice's real source directly — GO/NO-GO + RECLAIMED-vs-OCCLUDED verdict gates every plan below — **NO-GO (2026-07-27): private CGS enumeration doesn't reliably find real menu-bar windows on this hardware/macOS; see 66-01-SUMMARY.md. Needs /gsd:discuss-phase 66 before continuing.**
+- [x] 66-01-PLAN.md — Spike: private-CGS shim + manual spike — NO-GO 2026-07-27 (enumeration failed to find real menu-bar windows)
+- [x] 66-02-PLAN.md — Pivoted public-spacer `NSStatusItem` mechanism (D-06, later superseded)
+- [x] 66-03-PLAN.md — Cleanup: deleted the 66-01 spike files, removed the stale Settings toggle
+- [x] 66-04-PLAN.md — On-device UAT of the spacer mechanism — NO-GO 2026-07-28 (Cmd-drag never engaged, `.length` toggle had no reclaim effect)
 
-**Wave 1** *(replans from scratch after 66-01's NO-GO — targets the pivoted spacer technique, not the original mechanism)*
+**Wave 1** *(D-07 second pivot: debug 66-01's private-CGS spike against real, working Ice — not a third blind mechanism)*
 
-- [x] 66-02-PLAN.md — MenuBarOverflowController.swift: chevron+spacer NSStatusItem construction, click-toggle logic, autosaveName persistence (D-03), screen-width clamp (TDD) + AppDelegate unconditional wiring (D-02) + ActivitySettings.swift key swap (menuBarOverflowKey → menuBarOverflowRevealedKey)
+- [ ] 66-05-PLAN.md — Reinstall real Ice.app, restore the 66-01 spike from git history, add the missing `AXIsProcessTrusted()` gate (was print-only), add a real-launch debug hook — on-device Pattern-1 cheapest-first elimination checkpoint (GO/NO-GO gates every plan below)
 
-**Wave 2** *(blocked on 66-02 — shares project.pbxproj regeneration, no source-level dependency)*
+**Wave 2** *(blocked on 66-05's GO verdict)*
 
-- [x] 66-03-PLAN.md — Delete superseded Ice-mechanism spike files (D-06: MenuBarOverflowBridging.swift, MenuBarOverflowManualSpike.swift) + remove stale menuBarOverflow Settings toggle/card from SettingsView.swift (D-02/D-04 forbid any Settings surface for this feature)
+- [ ] 66-06-PLAN.md — MenuBarOverflowAssignmentStore.swift (D-03 persisted third-party hidden assignment, TDD) + MenuBarOverflowController.swift rewired onto the gated CGS mechanism (position-based hide/reveal, active re-apply on launch), spacer apparatus fully removed (MENUBAR-01/02/03)
 
-**Wave 3** *(blocked on 66-02, 66-03)*
+**Wave 3** *(blocked on 66-06 — shares project.pbxproj regeneration)*
 
-- [x] 66-04-PLAN.md — On-device UAT checkpoint: chevron placement, Cmd-drag hide, click reveal/hide genuine space reclamation (not occlusion), relaunch persistence (MENUBAR-01/02/03) — **NO-GO (2026-07-28): click glyph-swap works, but Cmd-drag across the chevron does not engage, and the spacer's `.length` toggle has no visible reclaim/hide effect on real hardware; see 66-04-SUMMARY.md. Needs /gsd:discuss-phase 66 before continuing.**
+- [ ] 66-07-PLAN.md — MENUBAR-04: standalone one-time Accessibility permission-explanation popover (anchored to Islet's main status item) + Settings row, both reactive to live grant/deny state
+
+**Wave 4** *(blocked on 66-07)*
+
+- [ ] 66-08-PLAN.md — Consolidated on-device UAT checkpoint: chevron placement, drag-to-assign, hide/reveal reclamation, D-03 relaunch persistence, and the full permission-denied/granted flow together (MENUBAR-01/02/03/04)
 
 ### Phase 67: Coding-Progress
 
