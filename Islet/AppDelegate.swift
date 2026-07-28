@@ -32,8 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // toggle, no permission gate.
     private var menuBarOverflowController: MenuBarOverflowController!
 
-    // Phase 58 / CLIP-01/02/03 — production (non-DEBUG) clipboard wiring. Distinct from
-    // the #if DEBUG-only `debugClipboardMonitor` below; this is the real, always-on path.
+    // Phase 58 / CLIP-01/02/03 — production (non-DEBUG) clipboard wiring.
     private var clipboardStore = ClipboardStore()
     private var clipboardMonitor: ClipboardMonitor?
     // Phase 64 / NOTES-01/02/03 — Quick Notes menu-bar capture (D-13: menu-bar-only, zero
@@ -82,8 +81,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // while locked would otherwise make debug items unreachable exactly when a
     // developer most needs to flip the stub back to licensed). Absent from Release.
     private var debugStatusItem: NSStatusItem!
-    // Phase 57 spike hooks — see 57-02-SUMMARY.md for the on-device verdict.
-    private var debugClipboardMonitor: ClipboardMonitor?
     #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -512,26 +509,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugForceLicensed), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Debug: Reset Trial",
                           action: #selector(debugResetTrial), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Like Current Track",
-                          action: #selector(debugSpikeLikeCurrentTrack), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Trigger Automation Prompt",
-                          action: #selector(debugSpikeTriggerAutomationPrompt), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Simulate Update Available",
-                          action: #selector(debugSpikeSimulateUpdateAvailable), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Seed Clipboard Test Data",
-                          action: #selector(debugSpikeSeedClipboardData), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Print Clipboard Reload Result",
-                          action: #selector(debugSpikePrintClipboardReload), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Start Clipboard Monitor",
-                          action: #selector(debugSpikeStartClipboardMonitor), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Stop Clipboard Monitor",
-                          action: #selector(debugSpikeStopClipboardMonitor), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Write Concealed Test Item",
-                          action: #selector(debugSpikeWriteConcealedTestItem), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Simulate Self-Capture Write",
-                          action: #selector(debugSpikeSimulateSelfCaptureWrite), keyEquivalent: "")
-        debugMenu.addItem(withTitle: "Spike: Print Menu Bar Overflow Enumeration",
-                          action: #selector(debugSpikePrintMenuBarOverflowEnumeration), keyEquivalent: "")
 
         // Quick task 260728-wg7 — DEBUG-only "Wing Tuner": 4 live nudge axes (Leading/Trailing/
         // Margin/Gap) applied additively on top of every collapsed-wing's own existing
@@ -564,8 +541,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Quick task 260729-0b5 — DEBUG-only "Preview Wing": fake-triggers every
         // collapsed-state HUD wing on demand (no need to actually play music, press volume
         // keys, toggle real DND, plug in a charger, connect a device, start a download,
-        // etc.), mirroring debugSpikeSimulateUpdateAvailable()'s existing per-activity
-        // fake-trigger precedent — one function, one menu item, per activity.
+        // etc.), mirroring the pre-existing per-activity fake-trigger precedent this plan's
+        // interfaces section documented — one function, one menu item, per activity.
         let previewWingMenu = NSMenu()
         previewWingMenu.addItem(withTitle: "Preview: Now Playing", action: #selector(debugPreviewNowPlaying), keyEquivalent: "")
         previewWingMenu.addItem(withTitle: "Preview: OSD (Volume)", action: #selector(debugPreviewOSDVolume), keyEquivalent: "")
@@ -608,103 +585,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         TrialManager.shared.recordFirstLaunchIfNeeded()
     }
 
-    // Phase 49 spike hooks — see 49-01-SUMMARY.md for the on-device verdict.
-    // @MainActor required: NotchWindowController (and its spike methods) are @MainActor-
-    // isolated; menu-item actions run on main but this method itself isn't inferred
-    // @MainActor by default (not a protocol requirement like applicationDidFinishLaunching).
-    @MainActor @objc private func debugSpikeLikeCurrentTrack() {
-        notchController?.spikeLikeCurrentTrack()
-    }
-
-    @MainActor @objc private func debugSpikeTriggerAutomationPrompt() {
-        notchController?.spikeTriggerAutomationPrompt()
-    }
-
-    // Phase 60 / UPDATE-01 (Plan 02) — the only way to exercise the Update HUD on-device
-    // without a real newer Sparkle appcast version, needed by Plan 60-05's on-device
-    // checkpoint. Mirrors debugSpikeTriggerAutomationPrompt()'s exact @MainActor @objc private
-    // shape. #if DEBUG-scoped — absent from Release builds.
-    @MainActor @objc private func debugSpikeSimulateUpdateAvailable() {
-        notchController?.handleUpdateAvailable(version: "1.99")
-    }
-
-    // Phase 56 spike hooks — see 56-02-SUMMARY.md for the on-device verdict.
-    @objc private func debugSpikeSeedClipboardData() {
-        let items: [ClipboardItem] = [
-            ClipboardItem(id: UUID(), kind: .text("Spike seed item A"), timestamp: Date()),
-            ClipboardItem(id: UUID(), kind: .text("Spike seed item B"), timestamp: Date()),
-            ClipboardItem(id: UUID(), kind: .image(Data([0x01, 0x02, 0x03, 0x04])), timestamp: Date())
-        ]
-        try? ClipboardFileStore.save(items, root: ClipboardFileStore.storageRoot(), key: KeychainClipboardKeyStore().readOrCreateKey())
-        print("[Spike-Clipboard] seeded \(items.count) items to \(ClipboardFileStore.storageRoot().path)")
-    }
-
-    @objc private func debugSpikePrintClipboardReload() {
-        let loaded = ClipboardFileStore.load(root: ClipboardFileStore.storageRoot(), key: KeychainClipboardKeyStore().readOrCreateKey())
-        print("[Spike-Clipboard] reloaded \(loaded.count) items:")
-        for item in loaded {
-            print("  - id=\(item.id) kind=\(item.kind) timestamp=\(item.timestamp)")
-        }
-    }
-
-    // Phase 57 spike hooks — see 57-02-SUMMARY.md for the on-device verdict.
-    @MainActor @objc private func debugSpikeStartClipboardMonitor() {
-        guard debugClipboardMonitor == nil else {
-            print("[Spike-ClipboardMonitor] already running")
-            return
-        }
-        debugClipboardMonitor = ClipboardMonitor(onChange: { item in
-            print("[Spike-ClipboardMonitor] captured kind=\(item.kind) timestamp=\(item.timestamp)")
-        })
-        debugClipboardMonitor?.start()
-        print("[Spike-ClipboardMonitor] monitor started")
-    }
-
-    // WR-01 fix: pairs with debugSpikeStartClipboardMonitor() so the class's documented
-    // "owner calls stop() on teardown" contract has an actual call site — the debug menu
-    // couldn't stop a running monitor before this.
-    @MainActor @objc private func debugSpikeStopClipboardMonitor() {
-        guard let monitor = debugClipboardMonitor else {
-            print("[Spike-ClipboardMonitor] not running")
-            return
-        }
-        monitor.stop()
-        debugClipboardMonitor = nil
-        print("[Spike-ClipboardMonitor] monitor stopped")
-    }
-
-    @objc private func debugSpikeWriteConcealedTestItem() {
-        let item = NSPasteboardItem()
-        item.setString("fake-password-123", forType: .string)
-        item.setData(Data(), forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"))
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.writeObjects([item])
-        print("[Spike-ClipboardMonitor] wrote concealed test item to NSPasteboard.general — the running monitor must NOT print a captured line for this")
-    }
-
-    @objc private func debugSpikeSimulateSelfCaptureWrite() {
-        let item = NSPasteboardItem()
-        item.setString("simulated restored content", forType: .string)
-        item.setData(Data(), forType: ClipboardMonitor.restoreMarkerType)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.writeObjects([item])
-        print("[Spike-ClipboardMonitor] wrote self-capture-marker test item to NSPasteboard.general — the running monitor must NOT print a captured line for this")
-    }
-
-    // Phase 66 Plan 05 / MENUBAR-04 (Pattern 1 Step 3, RESEARCH.md Pitfall 2) — exercises the
-    // exact same enumeration used by the Cmd-U manual spike, but from a genuine `open`-launched
-    // instance instead of the Xcode test host, to rule out (or confirm) the launch-context
-    // hypothesis independently of the Accessibility-permission hypothesis.
-    @objc private func debugSpikePrintMenuBarOverflowEnumeration() {
-        let trusted = AXIsProcessTrusted()
-        print("[MenuBarOverflowSpike-RealLaunch] AXIsProcessTrusted() = \(trusted) — \(trusted ? "gate PASSES, enumeration will run" : "gate BLOCKS, expect 0 windows below")")
-        let windows = MenuBarOverflowBridging.menuBarItemWindows()
-        print("[MenuBarOverflowSpike-RealLaunch] found \(windows.count) other-process menu-bar-item window(s):")
-        for window in windows {
-            print("[MenuBarOverflowSpike-RealLaunch]   bundleID=\(window.bundleIdentifier) windowID=\(window.windowID)")
-        }
-    }
-
     // Quick task 260728-wg7 — Wing Tuner actions. Plain UserDefaults.standard.set(...), no new
     // persistence mechanism, mirroring debugForceExpired()'s own style — these live-update
     // NotchPillView's @AppStorage-backed nudge properties with zero plumbing between the files.
@@ -741,8 +621,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) — add these deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift, then click Reset Wing Tuner before tuning the next wing.")
     }
 
-    // Quick task 260729-0b5 — "Preview Wing" fake-trigger actions. Each mirrors
-    // debugSpikeSimulateUpdateAvailable()'s exact one-line-body @MainActor @objc private shape.
+    // Quick task 260729-0b5 — "Preview Wing" fake-trigger actions. Each mirrors the
+    // pre-existing per-activity fake-trigger precedent's exact one-line-body
+    // @MainActor @objc private shape.
     @MainActor @objc private func debugPreviewNowPlaying() {
         notchController?.handleNowPlaying(TrackSnapshot(bundleIdentifier: "com.spotify.client", isPlaying: true, title: "Preview Track", artist: "Preview Artist"), nil)
     }
