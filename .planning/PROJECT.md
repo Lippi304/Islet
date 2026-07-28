@@ -105,7 +105,7 @@ See `.planning/research/inspiration/notes.md` for the Droppy reference material 
 
 **Goal:** Fix a set of real-usage interaction and layout bugs surfaced since v1.4-v1.6 shipped — no new features, pure polish. Started 2026-07-19 while v1.4 and v1.5 both remain open in parallel (explicit user decision).
 
-**Status:** Paused, not shipped. 6/8 phases complete (43-48, including Phase 48 Audio Output Switcher — UI Wiring, on-device approved). Phase 46 (Calendar Quick-Add Improvements) shipped CALVIEW-05 only — CALVIEW-06/07 remain Pending. Phase 49 (Favorite/Like Spike) was explicitly paused by the user after Plans 01-02 showed weak results (SC#1 like-effect-not-observed; SC#2 Apple Music `loved` broken via AppleScript in all 4 states tested) — Plan 03 (Spotify PKCE) left incomplete, Plan 04 (go/no-go synthesis) never started. Phase 50 (Favorite/Like Implementation) is undecided pending a user call on whether/how to revisit the feature.
+**Status:** Paused, not shipped. 6/8 phases complete (43-48, including Phase 48 Audio Output Switcher — UI Wiring, on-device approved). Phase 46 (Calendar Quick-Add Improvements) actually shipped all 3 requirements (CALVIEW-05/06/07) on-device-confirmed 2026-07-19 — REQUIREMENTS.md had gone stale showing 06/07 as still Pending, corrected 2026-07-28. Phase 49 (Favorite/Like Spike) was paused by the user after Plans 01-02 showed weak results (SC#1 like-effect-not-observed; SC#2 Apple Music `loved` broken via AppleScript in all 4 states tested) — reconfirmed 2026-07-28: staying paused, the user declined to run the remaining Spotify PKCE checkpoint (Plan 03's script was already built, just never verified on-device). No revisit trigger, matching Phase 66's precedent — not a formal drop, just not being pursued right now. Phase 50 (Favorite/Like Implementation) stays blocked on Phase 49 as a direct consequence.
 
 **Target features:**
 - **Drag-detection hardening** — the `DragApproachDetector`/Quick Action picker auto-expand currently false-triggers on an ordinary click on the island, not just a real external file drag approaching it; must only fire on a genuine inbound file drag. The Quick Action picker (the during-drag view) should render at the exact same width as the real Tray view.
@@ -375,6 +375,13 @@ _v1.4 (Architecture Redesign) shipped 2026-07-28 — all 6 phases (23-28) comple
 **View Switcher Morph Fix (Phase 45 — SWITCH-01, SWITCH-02):**
 
 - [x] Tab switches (Home/Tray/Calendar/Weather) morph continuously with no disappear/rebuild flicker and no large→small behind-buttons z-order glitch. Root cause was `presentationSwitch` calling `blobShape` from 6 textually-distinct case branches — SwiftUI's structural-identity model treats a case change as remove+insert, not update. Fixed by collapsing all 6 switcher-row cases into one shared `tabContentView` call site (`tabWidth`/`tabHeight` computed properties, content-only inner switch), giving every case one continuous view identity for `matchedGeometryEffect` to morph across. On-device 12-pairwise-transition sweep (both directions) plus an interrupted-mid-morph-tap retarget check confirmed the fix with zero regressions. (Phase 45 — SWITCH-01, SWITCH-02)
+
+**Calendar Quick-Add Improvements (Phase 46 — CALVIEW-05, CALVIEW-06, CALVIEW-07):**
+
+- [x] Quick-add gained a real Starts/Ends/Due `DatePicker` UI with day-aware defaults (next full hour if today, else 00:00) and a Start→End 1-hour auto-follow that survives repeated Start edits but correctly stops following after a manual End edit. Real picked dates wired into `CalendarService.createEvent`/`createReminder`. (Phase 46 — CALVIEW-05)
+- [x] The "+ Add" trigger moved from the previously-clipped right edge to the day-list column's left edge, popover opening trailing so it never overlaps the month grid. (Phase 46 — CALVIEW-06)
+- [x] Day-list rows gained more padding/margin; Calendar got its own 472×220 size (independent of the shared switcher-tab constant) to fit the roomier rows without clipping. (Phase 46 — CALVIEW-07)
+- On-device UAT confirmed all 3 requirements working exactly as specified in a single ~15min pass, no code changes needed. **Note:** REQUIREMENTS.md's checkboxes/traceability table showed CALVIEW-06/07 as still Pending until 2026-07-28 — same stale-documentation pattern found and fixed elsewhere this session (Phase 24/27/29/30/32/33), not a real gap. (Phase 46)
 
 **Settings Reorganization & Scroll Fix (Phase 51 — SETTINGS-02, SETTINGS-03):**
 
