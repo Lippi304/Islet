@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: "On-device checkpoint returned NO-GO — needs /gsd:discuss-phase 66 before phase can close"
-stopped_at: Phase 66 context gathered (second revision — debug CGS spike vs live Ice)
-last_updated: "2026-07-28T08:46:19.709Z"
-last_activity: 2026-07-28
+status: executing
+stopped_at: Phase 66 UI-SPEC approved (CGS-debug pivot)
+last_updated: "2026-07-28T13:20:33.812Z"
+last_activity: 2026-07-28 -- Phase 66 planning complete
 progress:
   total_phases: 19
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 66 (men-bar-overflow-ice-style-mvp) — BLOCKED (NO-GO)
 Plan: 4 of 4
-Status: On-device checkpoint returned NO-GO — needs /gsd:discuss-phase 66 before phase can close
-Last activity: 2026-07-28
+Status: Ready to execute
+Last activity: 2026-07-28 -- Phase 66 planning complete
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
@@ -542,9 +542,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-28T08:46:19.702Z
-Stopped at: Phase 66 context gathered (second revision — debug CGS spike vs live Ice)
-Resume file: .planning/phases/66-men-bar-overflow-ice-style-mvp/66-CONTEXT.md
+Last session: 2026-07-28T09:01:41.415Z
+Stopped at: Phase 66 UI-SPEC approved (CGS-debug pivot)
+Resume file: .planning/phases/66-men-bar-overflow-ice-style-mvp/66-UI-SPEC.md
 
 ## Operator Next Steps
 
