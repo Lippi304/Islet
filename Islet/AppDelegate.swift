@@ -532,6 +532,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           action: #selector(debugSpikeSimulateSelfCaptureWrite), keyEquivalent: "")
         debugMenu.addItem(withTitle: "Spike: Print Menu Bar Overflow Enumeration",
                           action: #selector(debugSpikePrintMenuBarOverflowEnumeration), keyEquivalent: "")
+
+        // Quick task 260728-wg7 — DEBUG-only "Wing Tuner": 4 live nudge axes (Leading/Trailing/
+        // Margin/Gap) applied additively on top of every collapsed-wing's own existing
+        // constants (all default 0 -> zero visual change until nudged). Since only one wing is
+        // visible on real hardware at a time, the intended workflow is: trigger one wing (e.g.
+        // play music for Now Playing, or press a volume/brightness key for the OSD wing), nudge
+        // until it looks right, click "Print Wing Tuner Values", paste the 4 printed deltas to
+        // Claude for THAT ONE wing's own constants, click "Reset Wing Tuner", move to the next wing.
+        let wingTunerMenu = NSMenu()
+        wingTunerMenu.addItem(withTitle: "Leading -2", action: #selector(debugWingLeadingMinus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Leading +2", action: #selector(debugWingLeadingPlus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Trailing -2", action: #selector(debugWingTrailingMinus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Trailing +2", action: #selector(debugWingTrailingPlus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Margin -5", action: #selector(debugWingMarginMinus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Margin +5", action: #selector(debugWingMarginPlus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Gap -1", action: #selector(debugWingGapMinus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Gap +1", action: #selector(debugWingGapPlus), keyEquivalent: "")
+        wingTunerMenu.addItem(.separator())
+        wingTunerMenu.addItem(withTitle: "Reset Wing Tuner", action: #selector(debugWingTunerReset), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Print Wing Tuner Values", action: #selector(debugWingTunerPrint), keyEquivalent: "")
+        for item in wingTunerMenu.items { item.target = self }
+        let wingTunerItem = NSMenuItem(title: "Wing Tuner", action: nil, keyEquivalent: "")
+        wingTunerItem.submenu = wingTunerMenu
+        debugMenu.addItem(wingTunerItem)
+
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -651,6 +676,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for window in windows {
             print("[MenuBarOverflowSpike-RealLaunch]   bundleID=\(window.bundleIdentifier) windowID=\(window.windowID)")
         }
+    }
+
+    // Quick task 260728-wg7 — Wing Tuner actions. Plain UserDefaults.standard.set(...), no new
+    // persistence mechanism, mirroring debugForceExpired()'s own style — these live-update
+    // NotchPillView's @AppStorage-backed nudge properties with zero plumbing between the files.
+    private func adjustWingNudge(_ key: String, by delta: Double) {
+        let current = UserDefaults.standard.double(forKey: key)
+        UserDefaults.standard.set(current + delta, forKey: key)
+    }
+
+    @objc private func debugWingLeadingMinus() { adjustWingNudge(ActivitySettings.debugWingLeadingNudgeKey, by: -2) }
+    @objc private func debugWingLeadingPlus() { adjustWingNudge(ActivitySettings.debugWingLeadingNudgeKey, by: 2) }
+    @objc private func debugWingTrailingMinus() { adjustWingNudge(ActivitySettings.debugWingTrailingNudgeKey, by: -2) }
+    @objc private func debugWingTrailingPlus() { adjustWingNudge(ActivitySettings.debugWingTrailingNudgeKey, by: 2) }
+    @objc private func debugWingMarginMinus() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: -5) }
+    @objc private func debugWingMarginPlus() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: 5) }
+    @objc private func debugWingGapMinus() { adjustWingNudge(ActivitySettings.debugWingGapNudgeKey, by: -1) }
+    @objc private func debugWingGapPlus() { adjustWingNudge(ActivitySettings.debugWingGapNudgeKey, by: 1) }
+
+    @objc private func debugWingTunerReset() {
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingLeadingNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingTrailingNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingMarginNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingGapNudgeKey)
+    }
+
+    @objc private func debugWingTunerPrint() {
+        let leading = UserDefaults.standard.double(forKey: ActivitySettings.debugWingLeadingNudgeKey)
+        let trailing = UserDefaults.standard.double(forKey: ActivitySettings.debugWingTrailingNudgeKey)
+        let margin = UserDefaults.standard.double(forKey: ActivitySettings.debugWingMarginNudgeKey)
+        let gap = UserDefaults.standard.double(forKey: ActivitySettings.debugWingGapNudgeKey)
+        print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) — add these deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift, then click Reset Wing Tuner before tuning the next wing.")
     }
     #endif
 }
