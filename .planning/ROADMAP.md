@@ -1232,7 +1232,7 @@ Plans:
 
 **Wave 2** *(blocked on 66-02 — shares project.pbxproj regeneration, no source-level dependency)*
 
-- [ ] 66-03-PLAN.md — Delete superseded Ice-mechanism spike files (D-06: MenuBarOverflowBridging.swift, MenuBarOverflowManualSpike.swift) + remove stale menuBarOverflow Settings toggle/card from SettingsView.swift (D-02/D-04 forbid any Settings surface for this feature)
+- [x] 66-03-PLAN.md — Delete superseded Ice-mechanism spike files (D-06: MenuBarOverflowBridging.swift, MenuBarOverflowManualSpike.swift) + remove stale menuBarOverflow Settings toggle/card from SettingsView.swift (D-02/D-04 forbid any Settings surface for this feature)
 
 **Wave 3** *(blocked on 66-02, 66-03)*
 
