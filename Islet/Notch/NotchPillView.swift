@@ -3345,6 +3345,22 @@ struct NotchPillView: View {
         // its leading padding — going below that renders the icon under the camera housing
         // (invisible/clipped), which is what leftWidth: 100 did.
         let widthGrowth = max(1.0, resolvedWingWidthScale)
+        // Quick task 260729-0b5 — this wing was one of 4 (with wings(for: ChargingActivity)/
+        // deviceWings/resumePreviewWings) that used a plain Spacer() for camera clearance instead of
+        // an explicit margin constant, so 260728-wg7's wingMarginNudge wiring had nothing to attach
+        // to here (documented exclusion in that plan's own <interfaces> section). leftWidth (118) is
+        // already near the bare camera-clearance floor per this function's own header comment above
+        // (little slack on the left specifically), so this does NOT migrate to osdWings/
+        // capsLockWings' notch-cutout-derived cameraBlockWidth formula (that derives leftWidth/
+        // rightWidth FROM margin, which would make this wing noticeably wider than today — out of
+        // scope, and the opposite of "must not visually change"). Instead margin replaces the
+        // un-nudgeable Spacer() directly, keeping leftWidth/rightWidth byte-for-byte unchanged.
+        // Starting value (175) is a best-effort estimate of the Spacer's own current natural fill
+        // (icon+pad ~28pt from the left edge, dot+text+pad ~55pt from the right edge, out of this
+        // wing's 278pt total width) — not a live-measured value. Use "Margin -5/-10/-20" / "+5/+10/
+        // +20" in the Wing Tuner to confirm/correct live on real hardware; the on-device checkpoint
+        // at the end of this plan is the actual verification gate for "no visible regression."
+        let margin: CGFloat = 175 + wingMarginNudge
         return wingsShape(
             leftWidth: 118 * widthGrowth,
             rightWidth: 160 * widthGrowth,
@@ -3356,7 +3372,7 @@ struct NotchPillView: View {
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)
                     .padding(.leading, 14 + wingLeadingNudge)
-                Spacer()                                      // clears the physical camera bridge
+                Color.clear.frame(width: max(0, margin))
                 HStack(spacing: 4 + wingGapNudge) {
                     Circle().fill(Color.green)                 // fixed, universal active signal — never theme-tinted
                         .frame(width: 8, height: 8)
