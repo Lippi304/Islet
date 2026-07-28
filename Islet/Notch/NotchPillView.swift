@@ -3083,7 +3083,7 @@ struct NotchPillView: View {
                 // icon+label pairing shown only in the positive (charging) state; the
                 // 12pt leading padding moves from the icon onto this wrapping HStack so
                 // total left inset stays 12pt.
-                HStack(spacing: 4) {
+                HStack(spacing: 4 + wingGapNudge) {
                     Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (charging cue)
                         .font(.system(size: 13, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
@@ -3094,10 +3094,10 @@ struct NotchPillView: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .padding(.leading, 12)
+                .padding(.leading, 12 + wingLeadingNudge)
                 Spacer()                                             // clears the physical camera bridge
                 BatteryIndicator(level: percent, accent: chargingAccent)     // RIGHT — same indicator as the device glance
-                    .padding(.trailing, 14)
+                    .padding(.trailing, 14 + wingTrailingNudge)
             }
         }
     }
@@ -3115,10 +3115,10 @@ struct NotchPillView: View {
     // recomputes the notch-clearance formula independently (single source of truth).
     private func mediaWingContentWidth() -> (left: CGFloat, right: CGFloat, cameraBlockWidth: CGFloat) {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 55   // osdWings' own on-device-confirmed value (39-07 ROUND 16) — closest existing content class (album art + equalizer bars, not long text)
+        let margin: CGFloat = 55 + wingMarginNudge   // osdWings' own on-device-confirmed value (39-07 ROUND 16) — closest existing content class (album art + equalizer bars, not long text)
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2   // T-67.1-14: never scaled by wing scale, at any slider position
-        let leadingPad = 22 * resolvedWingWidthScale     // the wing's existing 22pt leading padding, now D-14 scaled
-        let trailingPad = 24 * resolvedWingWidthScale    // the wing's existing 24pt trailing padding, now D-14 scaled
+        let leadingPad = 22 * resolvedWingWidthScale + wingLeadingNudge     // the wing's existing 22pt leading padding, now D-14 scaled
+        let trailingPad = 24 * resolvedWingWidthScale + wingTrailingNudge    // the wing's existing 24pt trailing padding, now D-14 scaled
         let artSide = (Self.wingsSize.height - 8) * resolvedWingDepthScale   // album art's square side — scaled with depth; no camera-safety floor on this axis
         let eqBarsWidth: CGFloat = 21   // EqualizerBars' own intrinsic width: 5 * barWidth(1) + 4 * spacing(4) — fixed, content stays fixed size on the width axis
         let left = leadingPad + artSide + cameraBlockWidth / 2
@@ -3203,10 +3203,10 @@ struct NotchPillView: View {
         let isPlaying = isPlayingFor(presentation)
         return HStack(spacing: 0) {
             artThumbnail(art, side: (Self.wingsSize.height - 8) * resolvedWingDepthScale, corner: 6)  // LEFT wing
-                .padding(.leading, 22 * resolvedWingWidthScale)   // inset from the outer notch edge (user request), D-14 scaled
+                .padding(.leading, 22 * resolvedWingWidthScale + wingLeadingNudge)   // inset from the outer notch edge (user request), D-14 scaled
             Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block, not a flexible spacer
             EqualizerBars(isPlaying: isPlaying)  // RIGHT wing — EQ-01 bars, fixed white (no accent)
-                .padding(.trailing, 24 * resolvedWingWidthScale)  // inset from the outer notch edge (user request), D-14 scaled
+                .padding(.trailing, 24 * resolvedWingWidthScale + wingTrailingNudge)  // inset from the outer notch edge (user request), D-14 scaled
         }
         .frame(width: leftWidth + rightWidth, height: Self.wingsSize.height * resolvedWingDepthScale)
     }
@@ -3232,19 +3232,19 @@ struct NotchPillView: View {
             .overlay {
                 HStack(spacing: 0) {
                     artThumbnail(track.artwork, side: Self.wingsSize.height - 8, corner: 6)
-                        .padding(.leading, 22)
+                        .padding(.leading, 22 + wingLeadingNudge)
                     Spacer()
                     if nowPlaying.resumePreviewFailed {
                         Text("Wiedergabe nicht möglich")
                             .font(.system(size: 11, weight: .medium, design: .rounded))
                             .foregroundStyle(.white)
                             .lineLimit(1)
-                            .padding(.trailing, 24)
+                            .padding(.trailing, 24 + wingTrailingNudge)
                     } else {
                         Image(systemName: "play.fill")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.white)
-                            .padding(.trailing, 24)
+                            .padding(.trailing, 24 + wingTrailingNudge)
                     }
                 }
                 .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
@@ -3307,7 +3307,7 @@ struct NotchPillView: View {
                 // icon+label pairing shown only in the positive (connected) state; the
                 // 12pt leading padding moves from the icon onto this wrapping HStack so
                 // total left inset stays 12pt.
-                HStack(spacing: 4) {
+                HStack(spacing: 4 + wingGapNudge) {
                     Image(systemName: deviceSymbol(for: glyph))   // LEFT wing — device glyph (D-02)
                         .font(.system(size: 13, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
@@ -3321,10 +3321,10 @@ struct NotchPillView: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .padding(.leading, 12)
+                .padding(.leading, 12 + wingLeadingNudge)
                 Spacer()                                      // clears the physical camera bridge
                 deviceTrailing(isConnected: isConnected, battery: battery)   // RIGHT wing
-                    .padding(.trailing, 14)
+                    .padding(.trailing, 14 + wingTrailingNudge)
             }
         }
     }
@@ -3355,16 +3355,16 @@ struct NotchPillView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)
-                    .padding(.leading, 14)
+                    .padding(.leading, 14 + wingLeadingNudge)
                 Spacer()                                      // clears the physical camera bridge
-                HStack(spacing: 4) {
+                HStack(spacing: 4 + wingGapNudge) {
                     Circle().fill(Color.green)                 // fixed, universal active signal — never theme-tinted
                         .frame(width: 8, height: 8)
                     Text("On")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
                 }
-                .padding(.trailing, 20)
+                .padding(.trailing, 20 + wingTrailingNudge)
             }
         }
     }
@@ -3404,13 +3404,13 @@ struct NotchPillView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(color)
-                        .padding(.leading, 14)
+                        .padding(.leading, 14 + wingLeadingNudge)
                     Spacer()                                      // clears the physical camera bridge
                     Text(formatMMSS(remaining))
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(color)
-                        .padding(.trailing, 20)
+                        .padding(.trailing, 20 + wingTrailingNudge)
                 }
             }
         }
@@ -3544,18 +3544,18 @@ struct NotchPillView: View {
         // generously (8 -> 55, not another small nudge) — per explicit direction, erring toward
         // "plainly more margin than needed" over hunting for an exact minimal value after this much
         // effort already spent chasing precision that turned out to be built on a broken mechanism.
-        let margin: CGFloat = 55
+        let margin: CGFloat = 55 + wingMarginNudge
         let notchHalfWidth = rawNotchHalfWidth + margin
         // 67.1-09 (D-14) — resolvedWingWidthScale/resolvedWingDepthScale (Plan 08) scale ONLY the
         // outermost footprint padding here; margin/cameraBlockWidth above (and every content width
         // below) stay completely untouched at every slider position.
         let wScale = resolvedWingWidthScale
         let dScale = resolvedWingDepthScale
-        let iconLeadingPad: CGFloat = 14 * wScale
+        let iconLeadingPad: CGFloat = 14 * wScale + wingLeadingNudge
         let iconWidth: CGFloat = 20
         let cameraBlockWidth = notchHalfWidth * 2   // the FULL excluded span, centered on the notch's true center
         let barWidth: CGFloat = 90
-        let trailingPad: CGFloat = 20 * wScale
+        let trailingPad: CGFloat = 20 * wScale + wingTrailingNudge
         // `wingsShape`'s `alignmentGuide` pins local x=`leftWidth` to the notch's TRUE center — so
         // `leftWidth` must land exactly at the camera block's own midpoint (icon pad + icon width,
         // then half the camera block), which is what makes the block's fixed width actually line up
@@ -3626,15 +3626,15 @@ struct NotchPillView: View {
     // minimum that both clears the camera and keeps the pill's width in line with other wings.
     private func capsLockWings(for activity: CapsLockActivity) -> some View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 65
+        let margin: CGFloat = 65 + wingMarginNudge
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
         // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
         let wScale = resolvedWingWidthScale
         let dScale = resolvedWingDepthScale
-        let iconLeadingPad: CGFloat = 12 * wScale
+        let iconLeadingPad: CGFloat = 12 * wScale + wingLeadingNudge
         let iconWidth: CGFloat = 20
-        let trailingPad: CGFloat = 12 * wScale
+        let trailingPad: CGFloat = 12 * wScale + wingTrailingNudge
         let textWidth: CGFloat = 110
         let leftWidth = iconLeadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = iconLeadingPad + iconWidth + cameraBlockWidth + textWidth + trailingPad
@@ -3682,18 +3682,18 @@ struct NotchPillView: View {
         // camera block, its position depends only on leadingPad/iconWidth/gap/labelWidth (kept at
         // this round's tighter values), never on margin/cameraBlockWidth. Only the pill side
         // (margin + pillWidth) needed reverting.
-        let margin: CGFloat = 30
+        let margin: CGFloat = 30 + wingMarginNudge
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
         // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
         let wScale = resolvedWingWidthScale
         let dScale = resolvedWingDepthScale
-        let leadingPad: CGFloat = 8 * wScale
+        let leadingPad: CGFloat = 8 * wScale + wingLeadingNudge
         let iconWidth: CGFloat = 20
-        let iconLabelGap: CGFloat = 2
+        let iconLabelGap: CGFloat = 2 + wingGapNudge
         let labelWidth: CGFloat = 38    // "Update" (6 chars) at 12pt semibold rounded
         let pillWidth: CGFloat = 52     // UpdateVersionPill ("v1.99"-class content) at 11pt
-        let trailingPad: CGFloat = 8 * wScale
+        let trailingPad: CGFloat = 8 * wScale + wingTrailingNudge
         let leftWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth + pillWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
@@ -3746,15 +3746,15 @@ struct NotchPillView: View {
     // as capsLockWings.
     private func downloadWings(for activity: DownloadActivity) -> some View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 20
+        let margin: CGFloat = 20 + wingMarginNudge
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
         // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
         let wScale = resolvedWingWidthScale
         let dScale = resolvedWingDepthScale
-        let leadingPad: CGFloat = 16 * wScale
+        let leadingPad: CGFloat = 16 * wScale + wingLeadingNudge
         let iconWidth: CGFloat = 20
-        let trailingPad: CGFloat = 16 * wScale
+        let trailingPad: CGFloat = 16 * wScale + wingTrailingNudge
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth + iconWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
@@ -3830,18 +3830,18 @@ struct NotchPillView: View {
         case .segmentDone: isPomodoro = true    // only ever reached for a Pomodoro session
         case .completed: isPomodoro = false     // only ever reached for a plain Countdown session
         }
-        let margin: CGFloat = isPomodoro ? 65 : 20
+        let margin: CGFloat = (isPomodoro ? 65 : 20) + wingMarginNudge
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
         // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
         let wScale = resolvedWingWidthScale
         let dScale = resolvedWingDepthScale
-        let leadingPad: CGFloat = 16 * wScale
+        let leadingPad: CGFloat = 16 * wScale + wingLeadingNudge
         let iconWidth: CGFloat = 20
         // Was 16; trimmed to 12 (matches capsLockWings' own trailingPad exactly) to reclaim
         // a few points of the ~325pt ceiling for the wider Pomodoro margin below — harmless
         // for Countdown (its own budget has plenty of slack either way).
-        let trailingPad: CGFloat = 12 * wScale
+        let trailingPad: CGFloat = 12 * wScale + wingTrailingNudge
         // Countdown: just the mm:ss digits (up to "999:00", 6 chars, per the 999-minute cap)
         // plus a small breathing margin -- deliberately TIGHT so the Spacer below has little
         // slack to push through (item H).
@@ -3895,7 +3895,7 @@ struct NotchPillView: View {
                             // (was 4pt uniformly) — the exact values the 144pt budget above
                             // was measured against. Digits stay at 13pt (the primary
                             // glanceable value, unchanged).
-                            HStack(spacing: 2) {
+                            HStack(spacing: 2 + wingGapNudge) {
                                 if let label {
                                     if timerContext.phase == .work {
                                         Circle().fill(Color.green)   // D-07 live-session dot — Work segment only, not Break
@@ -3978,7 +3978,7 @@ struct NotchPillView: View {
         // NotchWindowController's click-through zone (WR-05 invariant).
         let wScale = resolvedWingWidthScale
         let dScale = resolvedWingDepthScale
-        let leadingPad: CGFloat = 16 * wScale
+        let leadingPad: CGFloat = 16 * wScale + wingLeadingNudge
         let iconWidth: CGFloat = 20
         // mm:ss text box 60 (timerWings' own non-Pomodoro countdown budget — same digit-count
         // class) + 4 gap + 20 mute icon = meetingWingRightContentWidth (84).
@@ -3990,7 +3990,7 @@ struct NotchPillView: View {
         // three numbers above that would silently desync the clickable region from the glyph.
         assert(muteIconWidth == Self.meetingMuteIconWidth,
                "Meeting mute icon width (\(muteIconWidth)) must match NotchPillView.meetingMuteIconWidth (\(Self.meetingMuteIconWidth)) — the click-through zone is sized from the static")
-        let trailingPad: CGFloat = 12 * wScale
+        let trailingPad: CGFloat = 12 * wScale + wingTrailingNudge
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth
             + Self.meetingWingRightContentWidth + trailingPad
