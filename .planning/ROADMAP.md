@@ -1224,11 +1224,11 @@ Plans:
 Plans:
 **Wave 0**
 
-- [ ] 66-01-PLAN.md — Spike (checkpoint): MenuBarOverflowBridging.swift private CGS*/CGEvent-move shim + MenuBarOverflowManualSpike.swift, reading Ice's real source directly — GO/NO-GO + RECLAIMED-vs-OCCLUDED verdict gates every plan below — **NO-GO (2026-07-27): private CGS enumeration doesn't reliably find real menu-bar windows on this hardware/macOS; see 66-01-SUMMARY.md. Needs /gsd:discuss-phase 66 before continuing.**
+- [x] 66-01-PLAN.md — Spike (checkpoint): MenuBarOverflowBridging.swift private CGS*/CGEvent-move shim + MenuBarOverflowManualSpike.swift, reading Ice's real source directly — GO/NO-GO + RECLAIMED-vs-OCCLUDED verdict gates every plan below — **NO-GO (2026-07-27): private CGS enumeration doesn't reliably find real menu-bar windows on this hardware/macOS; see 66-01-SUMMARY.md. Needs /gsd:discuss-phase 66 before continuing.**
 
 **Wave 1** *(replans from scratch after 66-01's NO-GO — targets the pivoted spacer technique, not the original mechanism)*
 
-- [ ] 66-02-PLAN.md — MenuBarOverflowController.swift: chevron+spacer NSStatusItem construction, click-toggle logic, autosaveName persistence (D-03), screen-width clamp (TDD) + AppDelegate unconditional wiring (D-02) + ActivitySettings.swift key swap (menuBarOverflowKey → menuBarOverflowRevealedKey)
+- [x] 66-02-PLAN.md — MenuBarOverflowController.swift: chevron+spacer NSStatusItem construction, click-toggle logic, autosaveName persistence (D-03), screen-width clamp (TDD) + AppDelegate unconditional wiring (D-02) + ActivitySettings.swift key swap (menuBarOverflowKey → menuBarOverflowRevealedKey)
 
 **Wave 2** *(blocked on 66-02 — shares project.pbxproj regeneration, no source-level dependency)*
 

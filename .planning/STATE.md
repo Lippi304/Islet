@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 66 UI-SPEC approved
-last_updated: "2026-07-28T00:30:27.830Z"
-last_activity: 2026-07-28 -- Phase 66 planning complete
+stopped_at: Completed 66-02-PLAN.md
+last_updated: "2026-07-28T07:07:51.250Z"
+last_activity: 2026-07-28
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 66 — men-bar-overflow-ice-style-mvp (BLOCKED — needs re-discussion)
+**Current focus:** Phase 66 — men-bar-overflow-ice-style-mvp
 
 ## Current Position
 
-Phase: 66 (men-bar-overflow-ice-style-mvp) — BLOCKED
-Plan: 1 of 6 — checkpoint closed with NO-GO verdict; execution halted per plan's own rule
+Phase: 66 (men-bar-overflow-ice-style-mvp) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-28 -- Phase 66 planning complete
+Last activity: 2026-07-28
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
@@ -239,6 +239,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 67.1 P08 | 73min | 2 tasks | 1 files |
 | Phase 67.1 P09 | 12min | 2 tasks | 1 files |
 | Phase 67.1 P10 | 35min | 1 tasks | 2 files |
+| Phase 66 P02 | 25min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -375,6 +376,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 67.1]: Wing width floor applied via max(1.0, resolvedWingWidthScale) at each of the 4 Plan 08 wing call sites (not clamped inside wingsShape), depth uses full range
 - [Phase 67.1]: Plan 09: 6 hardware-camera-block wings scale only leadingPad/trailingPad (unclamped wScale/dScale), never cameraBlockWidth/margin/content — unlike Plan 08's Spacer()-based wings which floor at max(1.0, ...) on leftWidth/rightWidth directly
 - [Phase 67.1]: [Phase 67.1-10] mediaWingContentWidth() returns a 3-tuple (left, right, cameraBlockWidth) instead of the plan's sketched 2-tuple, so mediaWingsRow never recomputes the camera-clearance formula independently (single source of truth); plan explicitly allowed either option.
+- [Phase 66]: MenuBarOverflowController wired unconditionally into AppDelegate (no Settings toggle, D-02); public spacer-NSStatusItem technique replaces the NO-GO private-CGS approach from Plan 66-01
 
 ### Roadmap Evolution
 
@@ -517,9 +519,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-27T20:57:26.119Z
-Stopped at: Phase 66 UI-SPEC approved
-Resume file: .planning/phases/66-men-bar-overflow-ice-style-mvp/66-UI-SPEC.md
+Last session: 2026-07-28T07:07:51.243Z
+Stopped at: Completed 66-02-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

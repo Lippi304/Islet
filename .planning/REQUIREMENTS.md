@@ -129,9 +129,9 @@ Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plu
 
 ### Menübar-Overflow
 
-- [ ] **MENUBAR-01**: A chevron icon in the menu bar separates a "visible" and a "hidden" section of menu-bar icons, mirroring Ice's MVP mechanic
-- [ ] **MENUBAR-02**: The user can drag other apps' menu-bar icons across the chevron (standard macOS Cmd-drag) to assign them to the hidden section
-- [ ] **MENUBAR-03**: Clicking the chevron reveals/hides the hidden section's icons; hidden icons are genuinely absent from the visible menu-bar strip when hidden, not just repositioned off-screen while occupying visual space
+- [x] **MENUBAR-01**: A chevron icon in the menu bar separates a "visible" and a "hidden" section of menu-bar icons, mirroring Ice's MVP mechanic
+- [x] **MENUBAR-02**: The user can drag other apps' menu-bar icons across the chevron (standard macOS Cmd-drag) to assign them to the hidden section
+- [x] **MENUBAR-03**: Clicking the chevron reveals/hides the hidden section's icons; hidden icons are genuinely absent from the visible menu-bar strip when hidden, not just repositioned off-screen while occupying visual space
 - [ ] **MENUBAR-04**: This feature requires a new Accessibility permission grant, requested with a clear one-time explanation — distinct from Islet's existing WeatherKit/EventKit/Bluetooth permission prompts
 
 ## v2 Requirements
@@ -231,9 +231,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QACTION-01 | Phase 65 | Complete |
 | QACTION-02 | Phase 65 | Complete |
 | QACTION-03 | Phase 65 | Complete |
-| MENUBAR-01 | Phase 66 | Pending |
-| MENUBAR-02 | Phase 66 | Pending |
-| MENUBAR-03 | Phase 66 | Pending |
+| MENUBAR-01 | Phase 66 | Complete |
+| MENUBAR-02 | Phase 66 | Complete |
+| MENUBAR-03 | Phase 66 | Complete |
 | MENUBAR-04 | Phase 66 | Pending |
 | CODE-01 | Phase 67 | Pending |
 | CODE-02 | Phase 67 | Pending |
