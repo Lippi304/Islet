@@ -106,6 +106,16 @@ enum ActivitySettings {
     // islandWidthScaleOffsetKey above, for the depth axis.
     static let islandDepthScaleOffsetKey = "island.depthScaleOffset"
 
+    // Quick task 260728-wg7 — DEBUG-only "Wing Tuner" live-nudge keys for the collapsed-state
+    // HUD wings. Dev-tool keys only, never Release-facing — gated so they cannot appear in a
+    // Release `defaults` dump.
+    #if DEBUG
+    static let debugWingLeadingNudgeKey = "debug.wingTuner.leadingNudge"
+    static let debugWingTrailingNudgeKey = "debug.wingTuner.trailingNudge"
+    static let debugWingMarginNudgeKey = "debug.wingTuner.marginNudge"
+    static let debugWingGapNudgeKey = "debug.wingTuner.gapNudge"
+    #endif
+
     // Phase 52 / SWITCH-03/04 — the view switcher's layout: today's pill-below-the-island
     // (default) or the alternate compact top-edge row. Corrupted/unknown UserDefaults values
     // parse to nil; every read site applies `?? .pill` (mirrors WeatherStyle's convention).

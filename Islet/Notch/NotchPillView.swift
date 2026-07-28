@@ -175,6 +175,48 @@ struct NotchPillView: View {
     @AppStorage(ActivitySettings.islandWidthScaleOffsetKey) private var islandWidthScaleOffset: Double = 0
     @AppStorage(ActivitySettings.islandDepthScaleOffsetKey) private var islandDepthScaleOffset: Double = 0
 
+    // Quick task 260728-wg7 — DEBUG-only "Wing Tuner" live-nudge storage, mirroring the
+    // islandWidthScaleOffset/islandDepthScaleOffset live-tuning mechanism above. Always-0 at
+    // rest; only ever mutated from AppDelegate's debug menu.
+    #if DEBUG
+    @AppStorage(ActivitySettings.debugWingLeadingNudgeKey) private var debugWingLeadingNudge: Double = 0
+    @AppStorage(ActivitySettings.debugWingTrailingNudgeKey) private var debugWingTrailingNudge: Double = 0
+    @AppStorage(ActivitySettings.debugWingMarginNudgeKey) private var debugWingMarginNudge: Double = 0
+    @AppStorage(ActivitySettings.debugWingGapNudgeKey) private var debugWingGapNudge: Double = 0
+    #endif
+
+    // Always-compiled read points so every wing function can call these unconditionally.
+    // Release branch always returns 0 -> `+ wingLeadingNudge` etc. is a no-op `+ 0` literal
+    // in Release builds, zero behavior change.
+    private var wingLeadingNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugWingLeadingNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var wingTrailingNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugWingTrailingNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var wingMarginNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugWingMarginNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var wingGapNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugWingGapNudge)
+        #else
+        return 0
+        #endif
+    }
+
     // Phase 62 / TIMER-01 (D-01) — the Timer/Pomodoro activity toggle (Settings default OFF,
     // per v1.10's own "new activities default OFF" convention). Read directly here, same
     // existing-key/existing-pattern as switcherLayout above — the switcher's 5th Timer icon is gated
