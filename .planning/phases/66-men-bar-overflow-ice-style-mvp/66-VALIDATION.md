@@ -31,7 +31,7 @@ created: 2026-07-28
 
 - **After every task commit:** `xcodebuild build -scheme Islet -configuration Release -destination 'platform=macOS'`
 - **After every plan wave:** Same build command
-- **Before `/gsd:verify-work`:** A full on-device debugging/UAT checkpoint (enumeration + move + persistence + permission gate together) — RESEARCH.md's Pattern 1 (cheapest-first elimination: reinstall Ice → explicit permission gate → real-launch-vs-test-host comparison → deeper Ice comparison) must complete before production Controller rewiring, mirroring Plan 66-01's original blocking-spike-checkpoint structure. This phase is back to needing that structure — the now-superseded spacer-era validation's lighter "no spike gate" call no longer applies.
+- **Before `/gsd:verify-work`:** A full on-device debugging/UAT checkpoint (enumeration + move + persistence + permission gate + sleep/wake together) — RESEARCH.md's Pattern 1 (cheapest-first elimination: reinstall Ice → explicit permission gate → real-launch-vs-test-host comparison → deeper Ice comparison) must complete before production Controller rewiring, mirroring Plan 66-01's original blocking-spike-checkpoint structure. This phase is back to needing that structure — the now-superseded spacer-era validation's lighter "no spike gate" call no longer applies.
 - **Max feedback latency:** ~120s (build) — on-device UAT and the CGS/Ice comparison work is human-paced, not latency-bounded
 
 ---
@@ -45,6 +45,7 @@ created: 2026-07-28
 | 66-0X-0X | TBD | TBD | MENUBAR-02 | — | Restored CGS move mechanism succeeds against live Ice comparison | manual on-device UAT | End-of-debugging-plan checkpoint | ❌ Depends on restoring + fixing the CGS mechanism first | ⬜ pending |
 | 66-0X-0X | TBD | TBD | MENUBAR-03 | — | Hidden icons genuinely absent (reclamation, not occlusion) | manual on-device UAT | End-of-debugging-plan checkpoint | ❌ Same dependency as MENUBAR-02 | ⬜ pending |
 | 66-0X-0X | TBD | TBD | D-03 | — | Third-party hidden/visible assignment persists across relaunch via Islet's own store + active re-apply | manual on-device UAT (kill/relaunch) | On-device relaunch check | ❌ `MenuBarOverflowAssignmentStore.swift` does not exist yet | ⬜ pending |
+| 66-0X-0X | TBD | 0/4 | ROADMAP SC#1 | T-66-01 | CGS connection/enumeration survives one sleep/wake cycle without requiring a relaunch | manual on-device UAT (sleep/wake) | 66-05-PLAN.md Task 2 Step 5 (Wave 0 spike) + 66-08-PLAN.md Task 1 Step 9 (full mechanism) | ❌ Not exercised until these checkpoints run | ⬜ pending |
 
 *(Full per-task map will be finalized once the planner assigns concrete task IDs.)*
 
@@ -69,6 +70,7 @@ created: 2026-07-28
 | Cmd-drag another app's icon across the chevron | MENUBAR-02 | Native OS drag gesture — cannot be scripted via XCTest | Cmd-drag a real third-party menu-bar icon across the chevron, confirm it moves to the hidden section |
 | Click chevron reveals/hides; hidden icons genuinely absent (not occluded) | MENUBAR-03 | Space-reclamation judgment requires human visual confirmation of true AppKit layout removal, not mere occlusion | Click chevron, confirm hidden icons appear inline and disappear again on re-click; confirm other icons shift into reclaimed space |
 | Position persistence across relaunch (D-03, Islet's own store) | MENUBAR-01/02/03 | Requires killing/relaunching a hidden app — not scriptable | Hide an app's icon, quit and relaunch that app, confirm its icon reappears in the same hidden/visible grouping |
+| CGS enumeration/move survives one sleep/wake cycle without a relaunch | ROADMAP SC#1 (permission-denied / sleep-wake / relaunch triad) | Requires physically sleeping/waking the real machine — not scriptable, and this project's own Phase 9 precedent (PROJECT.md) flags lock-screen/sleep-wake as a standard fragility point for CGS/WindowServer-adjacent mechanisms in this exact codebase | 66-05-PLAN.md Task 2 Step 5: sleep/wake mid-session, re-run the enumeration debug action, confirm gate still passes with a non-empty result. 66-08-PLAN.md Task 1 Step 9: sleep/wake mid-session with the full mechanism running, confirm hide/reveal still works without a relaunch |
 
 ---
 

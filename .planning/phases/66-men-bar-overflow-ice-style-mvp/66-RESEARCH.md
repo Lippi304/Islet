@@ -397,22 +397,25 @@ xcodegen generate   # re-register both files, removed from project.pbxproj by 66
 
 **If this table is empty:** N/A — see entries above. None of A1-A5 block planning; each is cheap to test on-device and the debugging plan (Pattern 1) is explicitly sequenced to surface a wrong assumption quickly and cheaply rather than requiring it to be resolved up front.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Was Accessibility actually trusted for `com.lippi304.islet` at the exact moment of Plan 66-01's on-device NO-GO?**
    - What we know: The spike printed `AXIsProcessTrusted()` but 66-01-SUMMARY.md never records the printed value; TCC.db is not readable from this research session (protected, requires Full Disk Access) to check retroactively.
    - What's unclear: Whether the answer is recoverable at all (if the console log from that Cmd-U session wasn't saved) or must be re-tested fresh.
    - Recommendation: Don't try to reconstruct the past — just re-test cleanly per Pattern 1, Step 2, with the state deliberately controlled (`tccutil reset Accessibility com.lippi304.islet` then re-grant) so the answer is unambiguous going forward.
+   - → **Resolved by 66-05-PLAN.md Task 2** (on-device Pattern 1 elimination checkpoint, Steps 1-4 deliberately control and re-test the trust state fresh rather than reconstructing the past).
 
 2. **Does the user's account of "Ice currently works on this machine" still hold, given Ice.app was found missing from `/Applications`?**
    - What we know: The Homebrew cask receipt is intact (installed 2026-04-13) and the user's account (2026-07-28 discussion) describes daily use, but the actual `.app` bundle is not present now — only a dangling Caskroom symlink.
    - What's unclear: Whether the app was recently removed (e.g., during disk cleanup) after the user's account was given, or whether the user's mental model of "installed" was already inaccurate at discussion time.
    - Recommendation: Reinstall (`brew reinstall --cask jordanbaird-ice`) as Wave 0, then have the user directly re-confirm real Ice hides/shows icons today, before investing further debugging effort on the assumption that a working reference definitely exists on this exact machine right now.
+   - → **Resolved by 66-05-PLAN.md Task 1** (reinstalls Ice via `brew reinstall --cask jordanbaird-ice` as the first Wave-0 action, before any spike restoration work).
 
 3. **What is the correct stable identity key for D-03's persisted third-party assignment — bundle ID alone, or Ice's fuller `namespace + title` shape?**
    - What we know: Ice uses `namespace + title` because some single apps expose more than one distinct menu-bar item.
    - What's unclear: Whether any app in this user's actual menu bar has more than one status item (if not, bundle-ID-only is suffient and simpler for this MVP).
    - Recommendation: Cheap to check during the same on-device session that validates enumeration (Pattern 1) — log each enumerated item's owning bundle ID and count duplicates. Not a blocker for starting the plan; can be resolved as part of Step 2's on-device pass.
+   - → **Resolved by 66-06-PLAN.md Task 1** (documented discretionary choice: bundle-identifier-only granularity for this MVP, with an inline comment referencing this Open Question).
 
 ## Environment Availability
 
