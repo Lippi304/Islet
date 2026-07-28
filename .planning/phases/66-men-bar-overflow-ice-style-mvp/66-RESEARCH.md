@@ -347,17 +347,19 @@ The new chevron and spacer items follow this same construction call, added along
 
 **If this table is empty:** N/A — see entries above. None of A1-A3 need to block planning; A2's resolution is exactly what an end-of-task UAT checkpoint (Pitfall 3's recommendation) is designed to catch early and cheaply.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does macOS's own `autosaveName`-based position persistence hold reliably for the actual set of third-party menu-bar apps this user runs, or will some subset of them lack a stable identity and require manual re-hiding after every relaunch?**
    - What we know: The mechanism is real, documented, and Hidden Bar's own manual describes it as generally reliable in production.
    - What's unclear: Whether *every* app the user actually runs sets up its own status item in a way that participates cleanly in this system behavior — some apps are known (from general community reports) to behave inconsistently here.
    - Recommendation: Not a blocker for planning or implementation — this is inherent, pre-existing macOS behavior outside Islet's control either way, and the UX cost of an occasional manual re-hide is low. Worth a one-line mention in user-facing copy/documentation, not engineering work.
+   - RESOLVED: self-flagged non-blocking (see Recommendation above) — no further action required; nothing in Plan 66-02/66-03/66-04 depends on this question's answer.
 
 2. **Should Islet's own status items be literally undraggable, or is the "exempt by default positioning + optional self-heal" answer (Pitfall 2) sufficient for this MVP?**
    - What we know: True prevention isn't possible via public API (Pitfall 2).
    - What's unclear: Whether the self-heal pattern (Pattern 4) is worth the extra code for an MVP, or whether "exempt by default construction order" alone is good enough until a user actually reports the edge case.
    - Recommendation: Claude's Discretion per CONTEXT.md — lean toward skipping the self-heal check for MVP scope (YAGNI) unless the planner judges it trivially cheap to add alongside the core toggle logic; document the limitation either way.
+   - RESOLVED: skipped self-heal for MVP scope (YAGNI), per this recommendation — codified in 66-UI-SPEC.md's "Islet's own items — exempt by construction, not enforcement" section, and reflected in 66-02-PLAN.md's must_haves (exempt via construction order only, no self-heal/enforcement code).
 
 ## Environment Availability
 

@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: "Blocked, awaiting /gsd:discuss-phase 66"
-stopped_at: Phase 66 context revised — mechanism pivot (spacer technique, MENUBAR-04 dropped)
-last_updated: "2026-07-27T20:31:26.430Z"
-last_activity: "2026-07-27 -- Phase 66 Plan 01 checkpoint NO-GO; halted pending /gsd:discuss-phase 66"
+status: executing
+stopped_at: Phase 66 UI-SPEC approved
+last_updated: "2026-07-28T00:30:27.830Z"
+last_activity: 2026-07-28 -- Phase 66 planning complete
 progress:
   total_phases: 19
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 66 (men-bar-overflow-ice-style-mvp) — BLOCKED
 Plan: 1 of 6 — checkpoint closed with NO-GO verdict; execution halted per plan's own rule
-Status: Blocked, awaiting /gsd:discuss-phase 66
-Last activity: 2026-07-27 -- Phase 66 Plan 01 checkpoint NO-GO; halted pending /gsd:discuss-phase 66
+Status: Ready to execute
+Last activity: 2026-07-28 -- Phase 66 planning complete
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
@@ -517,9 +517,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-27T20:31:26.423Z
-Stopped at: Phase 66 context revised — mechanism pivot (spacer technique, MENUBAR-04 dropped)
-Resume file: .planning/phases/66-men-bar-overflow-ice-style-mvp/66-CONTEXT.md
+Last session: 2026-07-27T20:57:26.119Z
+Stopped at: Phase 66 UI-SPEC approved
+Resume file: .planning/phases/66-men-bar-overflow-ice-style-mvp/66-UI-SPEC.md
 
 ## Operator Next Steps
 
