@@ -518,7 +518,16 @@ struct NotchPillView: View {
     //   margin 20 — the "short, icon-adjacent" camera-clearance class (downloadWings/plain
     //     countdownWings), NOT capsLockWings'/Pomodoro's 65.
     //   rightContentWidth 84 — mm:ss text box 60 + 4pt gap + 20pt mute icon.
-    static let meetingWingMargin: CGFloat = 20
+    // Quick task 260729-0zh — fixes the documented no-op: reuses the existing Wing Tuner Margin
+    // nudge key (debugWingMarginNudgeKey) so the Meeting wing's Margin axis actually moves the
+    // rendered icon AND the click-through zone together, since both read this single property.
+    static var meetingWingMargin: CGFloat {
+        #if DEBUG
+        return 20 + UserDefaults.standard.double(forKey: ActivitySettings.debugWingMarginNudgeKey)
+        #else
+        return 20
+        #endif
+    }
     static let meetingWingRightContentWidth: CGFloat = 84
     // WR-05 (63-REVIEW.md) — the mute icon's OWN width, hoisted for the same reason as the two
     // above: the click-through zone must now cover just the icon's footprint rather than the
