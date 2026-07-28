@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 66 UI-SPEC approved (CGS-debug pivot)
-last_updated: "2026-07-28T13:20:33.812Z"
-last_activity: 2026-07-28 -- Phase 66 planning complete
+stopped_at: Phase 66 Plan 05 Task 2 checkpoint NO-GO — halted, pending /gsd:discuss-phase 66
+last_updated: "2026-07-28T15:45:00.000Z"
+last_activity: 2026-07-28 -- Phase 66 Plan 05 NO-GO, third consecutive checkpoint failure
 progress:
   total_phases: 19
   completed_phases: 15
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 66 (men-bar-overflow-ice-style-mvp) — BLOCKED (NO-GO)
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-07-28 -- Phase 66 planning complete
+Phase: 66 (men-bar-overflow-ice-style-mvp) — BLOCKED (NO-GO, third consecutive)
+Plan: 5 of 8
+Status: Halted — needs /gsd:discuss-phase 66
+Last activity: 2026-07-28 -- Phase 66 Plan 05 Task 2 checkpoint NO-GO
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
@@ -72,6 +72,32 @@ Per the plan's own rule, **Phase 66 does not proceed/close under current scope.*
 Next step: `/gsd:discuss-phase 66` to decide direction (investigate spacer-item configuration,
 test on non-beta macOS, revisit private-CGS with different symbols, or descope SC#4/MENUBAR-01..03
 for this milestone). Full detail in `66-04-SUMMARY.md`.
+
+### Phase 66 Plan 05 result (2026-07-28) — NO-GO (third consecutive)
+
+Task 1 (reinstall real Ice.app, restore the 66-01 spike from git history verbatim, add a genuine
+`AXIsProcessTrusted()` gate — was previously print-only — plus a DEBUG-only real-launch
+enumeration hook) completed and committed (`7e8fadd`), Release build verified clean, all 6
+acceptance criteria confirmed via grep/build output.
+
+**On-device checkpoint verdict: NO-GO.** Task 2's how-to-verify sequence failed at **Step 1**
+("Re-validate the live reference") — real Ice.app's own Cmd-drag menu-bar-icon hide/reveal does
+not function on this machine at all. Islet's own restored/gated CGS mechanism (Steps 2-5,
+permission-gate and launch-context hypotheses) was never reached or tested, since the live
+comparison reference itself is broken.
+
+**Root cause: UNKNOWN.** Neither of this phase's two leading hypotheses (missing permission gate,
+Cmd-U launch-context artifact) was tested. A third possibility neither 66-01 nor 66-04 considered:
+the private-CGS menu-bar-item mechanism class itself may no longer function on this macOS version
+for any app, not just Islet — since even the reference implementation fails identically. User's own
+hypothesis (unconfirmed, not independently verified): the macOS 27 "Golden Gate" update and/or this
+machine's Developer Mode setting. This also invalidates the "Ice currently works here" premise
+`66-CONTEXT.md`'s D-07 pivot was built on.
+
+Per the plan's own rule, **Plans 66-06/66-07/66-08 do not proceed under current scope.**
+Next step: `/gsd:discuss-phase 66` to investigate the Golden Gate/Developer Mode hypothesis,
+check whether Ice's mechanism ever genuinely worked on this OS build, or descope
+Menübar-Overflow (SC#2-5) from v1.10 entirely. Full detail in `66-05-SUMMARY.md`.
 
 ### Phase 67.1 Plan 05 Task 1 result (2026-07-26)
 

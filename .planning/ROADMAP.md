@@ -1218,7 +1218,7 @@ Plans:
   4. Clicking the chevron reveals or hides the hidden section's icons — hidden icons are genuinely absent from the visible menu-bar strip (real screen space reclaimed), not just repositioned off-screen while still occupying visual space.
   5. The feature requests a new Accessibility permission grant with a clear one-time explanation, distinct from Islet's existing WeatherKit/EventKit/Bluetooth prompts, and degrades visibly (not silently, chevron absent + Settings row) if that permission is denied.
 
-**Plans**: 8 plans total. 66-01 spiked the original private-CGS mechanism, NO-GO 2026-07-27 (66-01-SUMMARY.md). 66-02/66-03/66-04 replanned the pivoted public-spacer technique, also NO-GO 2026-07-28 (66-04-SUMMARY.md). 66-01..66-04 are historical record, superseded, not resumed. CONTEXT.md's second revision (D-07) reverts to debugging the original private-CGS mechanism against real, working Ice — 66-05..66-08 are the active plan set.
+**Plans**: 8 plans total. 66-01 spiked the original private-CGS mechanism, NO-GO 2026-07-27 (66-01-SUMMARY.md). 66-02/66-03/66-04 replanned the pivoted public-spacer technique, also NO-GO 2026-07-28 (66-04-SUMMARY.md). 66-01..66-04 are historical record, superseded, not resumed. CONTEXT.md's second revision (D-07) reverts to debugging the original private-CGS mechanism against real, working Ice — 66-05 executed 2026-07-28, also NO-GO (66-05-SUMMARY.md): the live Ice.app reference itself is broken on this machine, root cause unknown. **Phase HALTED — 66-06/66-07/66-08 do not proceed until `/gsd:discuss-phase 66`.**
 **UI hint**: yes
 
 Plans:
@@ -1231,9 +1231,9 @@ Plans:
 
 **Wave 1** *(D-07 second pivot: debug 66-01's private-CGS spike against real, working Ice — not a third blind mechanism)*
 
-- [ ] 66-05-PLAN.md — Reinstall real Ice.app, restore the 66-01 spike from git history, add the missing `AXIsProcessTrusted()` gate (was print-only), add a real-launch debug hook — on-device Pattern-1 cheapest-first elimination checkpoint (GO/NO-GO gates every plan below)
+- [x] 66-05-PLAN.md — Reinstall real Ice.app, restore the 66-01 spike from git history, add the missing `AXIsProcessTrusted()` gate (was print-only), add a real-launch debug hook — on-device Pattern-1 cheapest-first elimination checkpoint — **NO-GO 2026-07-28**: the live Ice.app reference itself does not work on this machine (Cmd-drag hide/reveal non-functional), Islet's own gate never reached/tested; root cause unknown (see 66-05-SUMMARY.md)
 
-**Wave 2** *(blocked on 66-05's GO verdict)*
+**Wave 2** *(BLOCKED — 66-05 returned NO-GO, not GO; do not proceed without /gsd:discuss-phase 66)*
 
 - [ ] 66-06-PLAN.md — MenuBarOverflowAssignmentStore.swift (D-03 persisted third-party hidden assignment, TDD) + MenuBarOverflowController.swift rewired onto the gated CGS mechanism (position-based hide/reveal, active re-apply on launch), spacer apparatus fully removed (MENUBAR-01/02/03)
 
