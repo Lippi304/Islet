@@ -2530,6 +2530,32 @@ final class NotchWindowController {
         downloadCoordinator.handle(DownloadReading(path: "/tmp/DebugPreview.crdownload", kind: .created, fileID: nil, renamedTo: nil))
     }
 
+    #if DEBUG
+    // Quick task 260729-0zh — cancels whatever ~1.5-3s auto-dismiss timer scheduleActivityDismiss()
+    // just armed for a debug-preview-triggered NON-persistent category (Charging/Device/Caps Lock/
+    // OSD/Update/Countdown), so the just-faked wing stays visible indefinitely instead of vanishing
+    // on its own. Must not exist in Release: unlike a widened access level, calling this actually
+    // changes production dismiss behavior.
+    func debugCancelPendingDismiss() {
+        dismissWorkItem?.cancel()
+    }
+
+    // Quick task 260729-0zh — "Reset Wing Tuner" also force-clears whatever is currently being
+    // previewed, back to idle/ambient. Mirrors scheduleActivityDismiss()'s own work-item body
+    // (advance/clear -> syncActivityModels -> renderPresentation -> updateVisibility) exactly, but
+    // clears the ENTIRE queue instead of advancing by one, and does not re-arm the dismiss timer
+    // (there is nothing left to promote).
+    func debugClearAllPreviews() {
+        dismissWorkItem?.cancel()
+        transientQueue.removeAll(where: { _ in true })
+        withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
+            syncActivityModels()
+            renderPresentation()
+        }
+        updateVisibility()
+    }
+    #endif
+
     // MARK: - Phase 63 / MEET-01/MEET-02 (Plan 04) — Meeting HUD handlers
 
     // MeetingMonitor's once-per-transition onChange lands here (already on main; the monitor's

@@ -606,11 +606,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func debugWingGapMinus() { adjustWingNudge(ActivitySettings.debugWingGapNudgeKey, by: -1) }
     @objc private func debugWingGapPlus() { adjustWingNudge(ActivitySettings.debugWingGapNudgeKey, by: 1) }
 
-    @objc private func debugWingTunerReset() {
+    @MainActor @objc private func debugWingTunerReset() {
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingLeadingNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingTrailingNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingMarginNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingGapNudgeKey)
+        notchController?.debugClearAllPreviews()
     }
 
     @objc private func debugWingTunerPrint() {
@@ -629,24 +630,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @MainActor @objc private func debugPreviewOSDVolume() {
         notchController?.handleOSDKeyPress(.volume)
+        notchController?.debugCancelPendingDismiss()
     }
     @MainActor @objc private func debugPreviewOSDBrightness() {
         notchController?.handleOSDKeyPress(.brightness)
+        notchController?.debugCancelPendingDismiss()
     }
     @MainActor @objc private func debugPreviewFocus() {
         notchController?.handleFocusChange(true)
     }
     @MainActor @objc private func debugPreviewCapsLock() {
         notchController?.handleCapsLockChange(true)
+        notchController?.debugCancelPendingDismiss()
     }
     @MainActor @objc private func debugPreviewCharging() {
         notchController?.handlePower(PowerReading(isPresent: true, isOnAC: true, isCharging: true, isCharged: false, percent: 63))
+        notchController?.debugCancelPendingDismiss()
     }
     @MainActor @objc private func debugPreviewDevice() {
         notchController?.debugPreviewDevice()
+        notchController?.debugCancelPendingDismiss()
     }
     @MainActor @objc private func debugPreviewUpdate() {
         notchController?.handleUpdateAvailable(version: "1.99")
+        notchController?.debugCancelPendingDismiss()
     }
     @MainActor @objc private func debugPreviewDownload() {
         notchController?.debugPreviewDownload()
@@ -656,6 +663,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @MainActor @objc private func debugPreviewCountdown() {
         notchController?.handleCalendarCountdownChange(CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60)))
+        notchController?.debugCancelPendingDismiss()
     }
     @MainActor @objc private func debugPreviewMeeting() {
         notchController?.handleMeetingActivityChange(MeetingReading(detectedAt: Date(), isMuted: false))
