@@ -545,8 +545,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wingTunerMenu.addItem(withTitle: "Leading +2", action: #selector(debugWingLeadingPlus), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Trailing -2", action: #selector(debugWingTrailingMinus), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Trailing +2", action: #selector(debugWingTrailingPlus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Margin -20", action: #selector(debugWingMarginMinus20), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Margin -10", action: #selector(debugWingMarginMinus10), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Margin -5", action: #selector(debugWingMarginMinus), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Margin +5", action: #selector(debugWingMarginPlus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Margin +10", action: #selector(debugWingMarginPlus10), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Margin +20", action: #selector(debugWingMarginPlus20), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Gap -1", action: #selector(debugWingGapMinus), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Gap +1", action: #selector(debugWingGapPlus), keyEquivalent: "")
         wingTunerMenu.addItem(.separator())
@@ -690,8 +694,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func debugWingLeadingPlus() { adjustWingNudge(ActivitySettings.debugWingLeadingNudgeKey, by: 2) }
     @objc private func debugWingTrailingMinus() { adjustWingNudge(ActivitySettings.debugWingTrailingNudgeKey, by: -2) }
     @objc private func debugWingTrailingPlus() { adjustWingNudge(ActivitySettings.debugWingTrailingNudgeKey, by: 2) }
+    @objc private func debugWingMarginMinus20() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: -20) }
+    @objc private func debugWingMarginMinus10() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: -10) }
     @objc private func debugWingMarginMinus() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: -5) }
     @objc private func debugWingMarginPlus() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: 5) }
+    @objc private func debugWingMarginPlus10() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: 10) }
+    @objc private func debugWingMarginPlus20() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: 20) }
     @objc private func debugWingGapMinus() { adjustWingNudge(ActivitySettings.debugWingGapNudgeKey, by: -1) }
     @objc private func debugWingGapPlus() { adjustWingNudge(ActivitySettings.debugWingGapNudgeKey, by: 1) }
 
