@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
-status: executing
+status: "On-device checkpoint returned NO-GO — needs /gsd:discuss-phase 66 before phase can close"
 stopped_at: Completed 66-03-PLAN.md
-last_updated: "2026-07-28T07:13:23.017Z"
+last_updated: "2026-07-28T08:21:32.509Z"
 last_activity: 2026-07-28
 progress:
   total_phases: 19
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 ## Current Position
 
-Phase: 66 (men-bar-overflow-ice-style-mvp) — EXECUTING
-Plan: 3 of 4
-Status: Ready to execute
+Phase: 66 (men-bar-overflow-ice-style-mvp) — BLOCKED (NO-GO)
+Plan: 4 of 4
+Status: On-device checkpoint returned NO-GO — needs /gsd:discuss-phase 66 before phase can close
 Last activity: 2026-07-28
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
@@ -51,6 +51,27 @@ Next step: `/gsd:discuss-phase 66` to decide direction (different private symbol
 reference implementation, or descoping SC#4). Diagnostic instrumentation added during the
 checkpoint (commits `5f231f3`, `6136d7f`, `68bb5a2`) is left in place for whoever picks this up.
 Full detail in `66-01-SUMMARY.md`.
+
+### Phase 66 Plan 04 result (2026-07-28) — NO-GO
+
+On-device UAT checkpoint (`checkpoint:human-verify`, gate=blocking, no code changes) ran the
+8-step verification checklist from `66-04-PLAN.md` against Plan 66-02's public `NSStatusItem`
+chevron+spacer mechanism (built to replace Plan 66-01's failed private-CGS approach). Steps 1-3
+(build, chevron appears leftmost, no Settings surface) passed; steps 4-6 failed.
+
+**On-device checkpoint verdict: NO-GO.** Cmd-dragging a real third-party menu-bar icon across
+the chevron does not work at all — the icon cannot be grabbed/moved across it (MENUBAR-02).
+Clicking the chevron correctly toggles the glyph (`chevron.left` <-> `chevron.right`) but causes
+NO icon to appear or disappear on either side, in any configuration tested across two independent
+rounds (MENUBAR-03) — the spacer `NSStatusItem.length` toggle has no observable reclaim/hide
+effect on real menu-bar layout on this macOS 27 Tahoe beta hardware. This is a second, independent
+mechanism failure after Plan 66-01's private-CGS NO-GO — this time on the public API RESEARCH.md
+assumed was stable (Assumption A2/A3).
+
+Per the plan's own rule, **Phase 66 does not proceed/close under current scope.**
+Next step: `/gsd:discuss-phase 66` to decide direction (investigate spacer-item configuration,
+test on non-beta macOS, revisit private-CGS with different symbols, or descope SC#4/MENUBAR-01..03
+for this milestone). Full detail in `66-04-SUMMARY.md`.
 
 ### Phase 67.1 Plan 05 Task 1 result (2026-07-26)
 
@@ -428,6 +449,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [v1.7, from research] Apple Music's `current track` AppleScript reference is documented-broken for streamed (not-yet-in-library) tracks — Phase 49 must spike against a library track, a streaming-only track, and both play/pause states before Phase 50 builds the star button around it.
 - [Phase 43 regression gate, pre-existing, unrelated] `DragApproachGeometryTests.testOffsetIsIdenticalOnNonZeroOriginCard` (Phase 34) fails deterministically (not flaky — reproduces identically every run) due to floating-point catastrophic cancellation when subtracting two large near-equal `CGFloat`s (`150.66666666666674` vs `...69`). Confirmed unrelated to Phase 43 — `computeQuickActionButtonFrames` was never touched by this phase. Fix (when picked up): use `XCTAssertEqual(..., accuracy: 0.01)` like the file's other geometry tests already do, instead of exact equality.
 - [Quick debug, 2026-07-19] Old Islet instance occasionally survives Xcode's Stop button (documented Apple Developer Forums limitation for LSUIElement/background-agent apps, thread 47777), producing a duplicate menu-bar icon needing manual quit. Fixed via a single-instance guard in `AppDelegate.applicationDidFinishLaunching` (force-terminates any other process sharing Islet's bundle ID as the first action on launch) — build-verified but **on-device Xcode stop/restart verification is pending**. User explicitly deferred a dedicated test pass, will confirm organically during upcoming phase work. Session: `.planning/debug/old-islet-instance-stays-open.md`.
+- Phase 66 BLOCKED: 66-04 on-device checkpoint NO-GO — public NSStatusItem spacer mechanism does not reclaim/hide layout space and Cmd-drag does not engage the chevron on real macOS 27 Tahoe beta hardware. Needs /gsd:discuss-phase 66 before phase closes.
 
 ### Quick Tasks Completed
 
@@ -520,7 +542,7 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-28T07:13:23.011Z
+Last session: 2026-07-28T08:20:58.755Z
 Stopped at: Completed 66-03-PLAN.md
 Resume file: None
 

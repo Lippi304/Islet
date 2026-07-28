@@ -163,7 +163,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike (all 4 plans executed 2026-07-25; awaiting orchestrator phase-level gates)
 - [x] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
 - [x] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController` (completed 2026-07-26)
-- [ ] **Phase 66: Menübar-Overflow (Ice-Style MVP)** - Chevron-hide for other apps' menu-bar icons, own feasibility spike first
+- [ ] **Phase 66: Menübar-Overflow (Ice-Style MVP)** - Chevron-hide for other apps' menu-bar icons, own feasibility spike first — **BLOCKED (NO-GO 2026-07-28): all 4 plans executed but on-device checkpoint 66-04 failed MENUBAR-02/03; needs /gsd:discuss-phase 66**
 - [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern
 
 ## Phase Details
@@ -1218,7 +1218,7 @@ Plans:
   4. Clicking the chevron reveals or hides the hidden section's icons — hidden icons are genuinely absent from the visible menu-bar strip (real screen space reclaimed), not just repositioned off-screen while still occupying visual space.
   5. The feature requests a new Accessibility permission grant with a clear one-time explanation, distinct from Islet's existing WeatherKit/EventKit/Bluetooth prompts, and degrades visibly (not silently) if that permission is denied.
 
-**Plans**: 4 plans (66-01 spike returned NO-GO on the original Ice private-API mechanism 2026-07-27 — see 66-01-SUMMARY.md; 66-02/66-03/66-04 replan the pivoted public-API spacer-`NSStatusItem` technique per 66-CONTEXT.md's mechanism pivot)
+**Plans**: 4 plans (66-01 spike returned NO-GO on the original Ice private-API mechanism 2026-07-27 — see 66-01-SUMMARY.md; 66-02/66-03/66-04 replan the pivoted public-API spacer-`NSStatusItem` technique per 66-CONTEXT.md's mechanism pivot — 66-04's on-device checkpoint also returned NO-GO 2026-07-28, see 66-04-SUMMARY.md)
 **UI hint**: yes
 
 Plans:
@@ -1236,7 +1236,7 @@ Plans:
 
 **Wave 3** *(blocked on 66-02, 66-03)*
 
-- [ ] 66-04-PLAN.md — On-device UAT checkpoint: chevron placement, Cmd-drag hide, click reveal/hide genuine space reclamation (not occlusion), relaunch persistence (MENUBAR-01/02/03)
+- [x] 66-04-PLAN.md — On-device UAT checkpoint: chevron placement, Cmd-drag hide, click reveal/hide genuine space reclamation (not occlusion), relaunch persistence (MENUBAR-01/02/03) — **NO-GO (2026-07-28): click glyph-swap works, but Cmd-drag across the chevron does not engage, and the spacer's `.length` toggle has no visible reclaim/hide effect on real hardware; see 66-04-SUMMARY.md. Needs /gsd:discuss-phase 66 before continuing.**
 
 ### Phase 67: Coding-Progress
 
