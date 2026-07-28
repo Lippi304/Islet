@@ -941,7 +941,7 @@ final class NotchWindowController {
     // toggle exactly like every other activity's guard.
     // Phase 62-04 UAT round 5 feature (item I) — widened minutes -> seconds, mirroring
     // TimerActivityState's own startCountdown/startPomodoro signature change.
-    private func handleStartCountdown(seconds: Int) {
+    func handleStartCountdown(seconds: Int) {
         guard activityEnabled(ActivitySettings.timerKey) else { return }
         timerActivityState.startCountdown(seconds: seconds)
         presentNewTimerSession()
@@ -2401,7 +2401,7 @@ final class NotchWindowController {
     // callback hopped). Maps the raw reading to a presentation via the PURE Plan-01 seam,
     // gates re-display to category transitions (Pitfall 4), and routes the splash through the
     // SINGLE updateVisibility() so it inherits the fullscreen / clamshell hide for free.
-    private func handlePower(_ reading: PowerReading) {
+    func handlePower(_ reading: PowerReading) {
         let next = powerActivity(from: reading)   // pure (Plan 01); nil on no-battery → no splash
 
         // The launch reading must NOT pop a splash (the user did not just plug in). Seed
@@ -2463,7 +2463,7 @@ final class NotchWindowController {
     // correctly queues behind an already-standing Charging/Device head. Turning Focus off flushes
     // it silently (D-09), reusing the exact same removeAll(where:) mechanism the Charging/Device
     // disable-in-Settings path already uses.
-    private func handleFocusChange(_ isFocused: Bool) {
+    func handleFocusChange(_ isFocused: Bool) {
         if isFocused {
             guard let activity = focusActivity(from: true) else { return }
             let changed = transientQueue.enqueue(.focus(activity))
@@ -2486,7 +2486,7 @@ final class NotchWindowController {
     // handleOSDKeyPress's preempt-if-focus-else-enqueue shape (Interfaces block,
     // NotchWindowController.swift:2170-2195 excerpt) — never updateHead (no in-place scrub
     // case for Caps Lock).
-    private func handleCapsLockChange(_ isOn: Bool) {
+    func handleCapsLockChange(_ isOn: Bool) {
         let activity = capsLockActivity(isOn: isOn)
         // Phase 63-04 UAT round 1 (Rule 3) — unconditional preempt, see handlePower's own note.
         let changed = transientQueue.preempt(.capsLock(activity))
@@ -2518,6 +2518,18 @@ final class NotchWindowController {
         onUpdateInstallRequested?()
     }
 
+    // Quick task 260729-0b5 — Device/Download have no NotchWindowController-level handler of
+    // their own (real entry points are DeviceCoordinator.handle/DownloadCoordinator.handle,
+    // both private var properties, unreachable from AppDelegate). Thin internal wrappers for
+    // the "Preview Wing" debug menu, mirroring handleUpdateAvailable's own "internal wrapper
+    // for a debug call site" shape.
+    func debugPreviewDevice() {
+        deviceCoordinator.handle(DeviceReading(name: "AirPods Pro", classMajor: 0x04, address: "DE:BU:G0:00:00:01", connected: true, battery: 72))
+    }
+    func debugPreviewDownload() {
+        downloadCoordinator.handle(DownloadReading(path: "/tmp/DebugPreview.crdownload", kind: .created, fileID: nil, renamedTo: nil))
+    }
+
     // MARK: - Phase 63 / MEET-01/MEET-02 (Plan 04) — Meeting HUD handlers
 
     // MeetingMonitor's once-per-transition onChange lands here (already on main; the monitor's
@@ -2529,7 +2541,7 @@ final class NotchWindowController {
     // T-63-09) — never re-preempting an already-standing .meeting head.
     //
     // D-07/D-08: immediate show AND immediate hide, no debounce in either direction.
-    private func handleMeetingActivityChange(_ reading: MeetingReading?) {
+    func handleMeetingActivityChange(_ reading: MeetingReading?) {
         let changed: Bool
         if let reading {
             // Read-after-write discipline (63-UI-SPEC.md): the muted state comes from the real
@@ -2674,7 +2686,7 @@ final class NotchWindowController {
     // transientQueue.enqueue/preempt, flushTransients, or scheduleActivityDismiss (Pitfall 5 —
     // the countdown is ambient, not an ActiveTransient); it only mutates the plain stored
     // property currentPresentation() reads fresh on every call.
-    private func handleCalendarCountdownChange(_ activity: CalendarCountdownActivity?) {
+    func handleCalendarCountdownChange(_ activity: CalendarCountdownActivity?) {
         calendarCountdownActivity = activity
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             renderPresentation()
@@ -2695,7 +2707,7 @@ final class NotchWindowController {
     //     (handlePower's charging branch above): preempt a standing Focus head, else plain
     //     enqueue; presentTransientChange() already wraps the spring + arms the dismiss, so no
     //     separate re-arm is needed on this branch.
-    private func handleOSDKeyPress(_ kind: OSDKeyKind) {
+    func handleOSDKeyPress(_ kind: OSDKeyKind) {
         #if DEBUG
         // 39-07 gap closure ROUND 5 timing instrumentation (temporary, remove once responsiveness
         // is confirmed fixed) — point (c) entry: this runs INSIDE OSDInterceptor's main.async
@@ -3136,7 +3148,7 @@ final class NotchWindowController {
     // animation is attached AT the mutation; the view drives no animation except the gated
     // bars), routes show/hide through the SINGLE updateVisibility() gate (so media inherits the
     // fullscreen + clamshell hide for free), and arms/cancels the D-06/D-07 one-shot dismiss.
-    private func handleNowPlaying(_ snapshot: TrackSnapshot?, _ art: NSImage?) {
+    func handleNowPlaying(_ snapshot: TrackSnapshot?, _ art: NSImage?) {
         let p = nowPlayingPresentation(from: snapshot)   // pure (Plan 01) — D-01 allowlist + .playing/.paused/.none
         // Finding 8: capture the OUTGOING presentation before it's overwritten below, so the
         // .paused branch can debounce a repeated identical emission (the documented artwork-

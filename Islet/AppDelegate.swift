@@ -561,6 +561,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wingTunerItem.submenu = wingTunerMenu
         debugMenu.addItem(wingTunerItem)
 
+        // Quick task 260729-0b5 — DEBUG-only "Preview Wing": fake-triggers every
+        // collapsed-state HUD wing on demand (no need to actually play music, press volume
+        // keys, toggle real DND, plug in a charger, connect a device, start a download,
+        // etc.), mirroring debugSpikeSimulateUpdateAvailable()'s existing per-activity
+        // fake-trigger precedent — one function, one menu item, per activity.
+        let previewWingMenu = NSMenu()
+        previewWingMenu.addItem(withTitle: "Preview: Now Playing", action: #selector(debugPreviewNowPlaying), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: OSD (Volume)", action: #selector(debugPreviewOSDVolume), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: OSD (Brightness)", action: #selector(debugPreviewOSDBrightness), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Focus/DND", action: #selector(debugPreviewFocus), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Caps Lock", action: #selector(debugPreviewCapsLock), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Charging", action: #selector(debugPreviewCharging), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Device", action: #selector(debugPreviewDevice), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Update", action: #selector(debugPreviewUpdate), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Download", action: #selector(debugPreviewDownload), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Timer", action: #selector(debugPreviewTimer), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Countdown", action: #selector(debugPreviewCountdown), keyEquivalent: "")
+        previewWingMenu.addItem(withTitle: "Preview: Meeting", action: #selector(debugPreviewMeeting), keyEquivalent: "")
+        for item in previewWingMenu.items { item.target = self }
+        let previewWingItem = NSMenuItem(title: "Preview Wing", action: nil, keyEquivalent: "")
+        previewWingItem.submenu = previewWingMenu
+        debugMenu.addItem(previewWingItem)
+
         for item in debugMenu.items { item.target = self }
         debugStatusItem.menu = debugMenu
     }
@@ -716,6 +739,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let margin = UserDefaults.standard.double(forKey: ActivitySettings.debugWingMarginNudgeKey)
         let gap = UserDefaults.standard.double(forKey: ActivitySettings.debugWingGapNudgeKey)
         print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) — add these deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift, then click Reset Wing Tuner before tuning the next wing.")
+    }
+
+    // Quick task 260729-0b5 — "Preview Wing" fake-trigger actions. Each mirrors
+    // debugSpikeSimulateUpdateAvailable()'s exact one-line-body @MainActor @objc private shape.
+    @MainActor @objc private func debugPreviewNowPlaying() {
+        notchController?.handleNowPlaying(TrackSnapshot(bundleIdentifier: "com.spotify.client", isPlaying: true, title: "Preview Track", artist: "Preview Artist"), nil)
+    }
+    @MainActor @objc private func debugPreviewOSDVolume() {
+        notchController?.handleOSDKeyPress(.volume)
+    }
+    @MainActor @objc private func debugPreviewOSDBrightness() {
+        notchController?.handleOSDKeyPress(.brightness)
+    }
+    @MainActor @objc private func debugPreviewFocus() {
+        notchController?.handleFocusChange(true)
+    }
+    @MainActor @objc private func debugPreviewCapsLock() {
+        notchController?.handleCapsLockChange(true)
+    }
+    @MainActor @objc private func debugPreviewCharging() {
+        notchController?.handlePower(PowerReading(isPresent: true, isOnAC: true, isCharging: true, isCharged: false, percent: 63))
+    }
+    @MainActor @objc private func debugPreviewDevice() {
+        notchController?.debugPreviewDevice()
+    }
+    @MainActor @objc private func debugPreviewUpdate() {
+        notchController?.handleUpdateAvailable(version: "1.99")
+    }
+    @MainActor @objc private func debugPreviewDownload() {
+        notchController?.debugPreviewDownload()
+    }
+    @MainActor @objc private func debugPreviewTimer() {
+        notchController?.handleStartCountdown(seconds: 60)
+    }
+    @MainActor @objc private func debugPreviewCountdown() {
+        notchController?.handleCalendarCountdownChange(CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60)))
+    }
+    @MainActor @objc private func debugPreviewMeeting() {
+        notchController?.handleMeetingActivityChange(MeetingReading(detectedAt: Date(), isMuted: false))
     }
     #endif
 }
