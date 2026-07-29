@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: "Completed 70-01-PLAN.md — build deliberately left broken (NotchWindowController.swift:1446), Plan 70-03 must land next"
-last_updated: "2026-07-29T16:24:59.371Z"
+stopped_at: "Completed 70-02-PLAN.md — Convert chip + format-tile row landed in NotchPillView.swift; build still deliberately broken (NotchWindowController.swift:1446), Plan 70-03 must land next"
+last_updated: "2026-07-29T16:45:33.113Z"
 last_activity: 2026-07-29
 progress:
   total_phases: 19
@@ -51,9 +51,21 @@ Idea #1 added to ROADMAP.md as Phase 70 (2026-07-29, `.planning/phases/70-file-t
 Next action: `/gsd-discuss-phase 70`.
 
 Phase: 70 (file-tray-convert-button) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
 Last activity: 2026-07-29
+
+### Phase 70 Plan 02 result (2026-07-29)
+
+`NotchPillView.swift`'s Quick Action Picker now renders the Convert chip (main row, 4th button,
+`enabled:` computed inline from `pendingDrop.items` every render per D-05) and the JPG/PNG/HEIC/TIFF
+format-tile row (`formatTileRow()`, shared `photo` icon), branching on the controller-owned
+`presentationState.isShowingConvertFormats` flag inside the same unchanged card geometry. Both
+tasks committed (`c95a37c`, `a742169`). `NotchPillView.swift` compiles clean — the project-wide
+build still stops at the single, plan-70-01-documented deferred error
+(`NotchWindowController.swift:1446`, missing `count` argument), unchanged in count before/after
+this plan, exactly as expected since that call site is explicitly Plan 70-03's job. See
+`70-02-SUMMARY.md` for full detail.
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
@@ -331,6 +343,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 66 P02 | 25min | 2 tasks | 7 files |
 | Phase 66 P03 | 10min | 2 tasks | 2 files |
 | Phase 70 P01 | 25min | 3 tasks | 7 files |
+| Phase 70 P02 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -470,6 +483,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 66]: MenuBarOverflowController wired unconditionally into AppDelegate (no Settings toggle, D-02); public spacer-NSStatusItem technique replaces the NO-GO private-CGS approach from Plan 66-01
 - [Phase 70]: isImageFile falls back to ImageIO header-byte sniffing (CGImageSourceGetType) for extensionless files, since LaunchServices resourceValues alone reports a generic type for them — Live-verified: plan's literal resourceValues-only sketch failed the required extensionless-image detection test
 - [Phase 70]: NotchWindowController.swift:1446's stale 1-arg call site left deliberately broken after Plan 70-01, matching the plan's documented deferral to Plan 70-03 — Confirmed via xcodebuild build that this is the sole compile error project-wide; project will not build/test until 70-03 lands
+- [Phase 70]: Convert's enabled: computed inline from pendingDrop.items every render — never a stored/threaded Bool, avoiding the airDropAvailable/mailAvailable dead-flag pattern (D-05, D-06)
 
 ### Roadmap Evolution
 
@@ -627,9 +641,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-29T16:24:59.364Z
+Last session: 2026-07-29T16:44:50.126Z
 Stopped at: Completed 70-01-PLAN.md — build deliberately left broken (NotchWindowController.swift:1446), Plan 70-03 must land next
-Resume file: .planning/phases/70-file-tray-convert-button/70-02-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
