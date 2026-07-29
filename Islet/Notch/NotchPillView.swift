@@ -3652,13 +3652,16 @@ struct NotchPillView: View {
         let iconWidth: CGFloat = 20
         let cameraBlockWidth = notchHalfWidth * 2   // the FULL excluded span, centered on the notch's true center
         let barWidth: CGFloat = 90
+        // Quick task 260729-5jc: plain percent number to the right of the bar (no "%" sign).
+        let percentGap: CGFloat = 4
+        let percentTextWidth: CGFloat = 22
         let trailingPad: CGFloat = 24 * wScale + wingTrailingNudge   // Quick task 260729-2td Round 4: baked in from on-device tuning
         // `wingsShape`'s `alignmentGuide` pins local x=`leftWidth` to the notch's TRUE center — so
         // `leftWidth` must land exactly at the camera block's own midpoint (icon pad + icon width,
         // then half the camera block), which is what makes the block's fixed width actually line up
         // with the real notch instead of just being "some extra space somewhere in the middle."
         let leftWidth = iconLeadingPad + iconWidth + cameraBlockWidth / 2
-        let totalWidth = iconLeadingPad + iconWidth + cameraBlockWidth + barWidth + trailingPad
+        let totalWidth = iconLeadingPad + iconWidth + cameraBlockWidth + barWidth + percentGap + percentTextWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
         // For the PASS/FAIL verdict logging only — not used for positioning (sequential HStack
         // layout makes explicit offset/position math unnecessary; these two values just describe
@@ -3700,6 +3703,11 @@ struct NotchPillView: View {
                             : "FAIL (bar starts at \(String(format: "%.1f", g.minX)), which is BEFORE excludedMaxX=\(String(format: "%.1f", excludedMaxX)) by \(String(format: "%.1f", excludedMaxX - g.minX))pt)"
                     }))
                     .modifier(OSDFrameLogger(label: "bar (global)", space: .global))
+                Color.clear.frame(width: percentGap)
+                Text("\(percent)")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.white)                         // D-02: never accent-tinted
+                    .frame(width: percentTextWidth, alignment: .leading)
                 Color.clear.frame(width: trailingPad)
             }
             .coordinateSpace(name: "osdWing")
