@@ -644,6 +644,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notchController?.debugCancelPendingDismiss()
     }
     @MainActor @objc private func debugPreviewCharging() {
+        // Quick task 260729-2td — force a genuine AC-edge transition first: on a dev machine
+        // already AC-connected, calling only the charging reading below is a same-category tick
+        // (isOnAC(next)==isOnAC(previous)==true) and shouldTriggerSplash silently no-ops. This
+        // .onBattery reading flips lastActivity away from charging first, so the real call after
+        // it is guaranteed to be detected as a fresh connect.
+        notchController?.handlePower(PowerReading(isPresent: true, isOnAC: false, isCharging: false, isCharged: false, percent: 63))
         notchController?.handlePower(PowerReading(isPresent: true, isOnAC: true, isCharging: true, isCharged: false, percent: 63))
         notchController?.debugCancelPendingDismiss()
     }
@@ -659,7 +665,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notchController?.debugPreviewDownload()
     }
     @MainActor @objc private func debugPreviewTimer() {
-        notchController?.handleStartCountdown(seconds: 60)
+        notchController?.debugPreviewStartCountdown(seconds: 60)
     }
     @MainActor @objc private func debugPreviewCountdown() {
         notchController?.handleCalendarCountdownChange(CalendarCountdownActivity(eventStart: Date().addingTimeInterval(20 * 60)))

@@ -3736,7 +3736,7 @@ struct NotchPillView: View {
         let leadingPad: CGFloat = 8 * wScale + wingLeadingNudge
         let iconWidth: CGFloat = 20
         let iconLabelGap: CGFloat = 2 + wingGapNudge
-        let labelWidth: CGFloat = 38    // "Update" (6 chars) at 12pt semibold rounded
+        let labelWidth: CGFloat = 54    // "Update" (6 chars) at 12pt semibold rounded — Quick task 260729-2td: widened, was clipping
         let pillWidth: CGFloat = 52     // UpdateVersionPill ("v1.99"-class content) at 11pt
         let trailingPad: CGFloat = 8 * wScale + wingTrailingNudge
         let leftWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth / 2

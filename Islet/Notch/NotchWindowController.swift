@@ -2554,6 +2554,16 @@ final class NotchWindowController {
         }
         updateVisibility()
     }
+
+    // Quick task 260729-2td — Timer preview bypass: handleStartCountdown(seconds:)'s own Settings
+    // guard (activityEnabled(ActivitySettings.timerKey)) silently no-ops when Timer is disabled in
+    // Settings (its default state, per defaultsToFalseKeys), so both real and preview triggers did
+    // nothing. This mirrors handleStartCountdown(seconds:)'s body minus that guard, for previews
+    // only — handleStartCountdown(seconds:) itself keeps its guard unchanged for real callers.
+    func debugPreviewStartCountdown(seconds: Int) {
+        timerActivityState.startCountdown(seconds: seconds)
+        presentNewTimerSession()
+    }
     #endif
 
     // MARK: - Phase 63 / MEET-01/MEET-02 (Plan 04) — Meeting HUD handlers
