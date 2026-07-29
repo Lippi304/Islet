@@ -1565,6 +1565,9 @@ final class NotchWindowController {
                 // auto-expand, not at release (handleDragApproachEnd). The session-copy MECHANISM
                 // itself is UNCHANGED (ShelfFileStore.makeSessionCopy) — only the call-site moved,
                 // so the picker's first-ever render already reflects the populated pendingDrop.
+                // Phase 70 — defensive reset: a brand-new drop must always start on the main row,
+                // never inherit a stale format-tile stage from a previous interrupted drop.
+                presentationState.isShowingConvertFormats = false
                 if !urls.isEmpty {
                     var items: [ShelfItem] = []
                     for url in urls {
@@ -1747,6 +1750,44 @@ final class NotchWindowController {
             ShelfFileStore.deleteSessionCopy(at: item.localURL)
         }
         pendingDrop = nil
+        presentationState.isShowingConvertFormats = false
+    }
+
+    // Phase 70 / D-03/D-04 — "Convert": re-encodes every item in the pending batch to ONE
+    // chosen format and lands the converted copies in Tray via shelfCoordinator.append, the
+    // SAME landing call handleQuickActionDrop() already uses. T-70-05 (mitigate): baseName is
+    // validated before any path component use, mirroring ShelfFileStore.makeSessionCopy's own
+    // `.`/`..`/empty guard. T-70-06 (mitigate): a single item's conversion failure is
+    // skip-and-continue, never aborting the rest of the batch.
+    private func handleQuickActionConvert(to format: ImageFormat) {
+        guard let pendingDrop else { return }
+        for item in pendingDrop.items {
+            let id = UUID()
+            let itemDir = URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent("IsletShelf", isDirectory: true)
+                .appendingPathComponent(id.uuidString, isDirectory: true)
+            guard (try? FileManager.default.createDirectory(at: itemDir, withIntermediateDirectories: true)) != nil else { continue }
+
+            let baseName = (item.filename as NSString).deletingPathExtension
+            guard !baseName.isEmpty, baseName != ".", baseName != ".." else { continue }
+            let newFilename = baseName + "." + format.fileExtension
+            let destinationURL = itemDir.appendingPathComponent(newFilename)
+
+            guard (try? ImageConversionService.convert(item.originalURL, to: format, destinationURL: destinationURL)) != nil else { continue }
+
+            let convertedItem = ShelfItem(id: id, originalURL: item.originalURL, localURL: destinationURL, filename: newFilename, addedAt: Date())
+            shelfCoordinator.append(convertedItem)
+        }
+        // The ORIGINAL (unconverted) session-temp copies were never landed — clean them up,
+        // mirroring finishQuickActionSharing()'s identical cleanup shape.
+        for item in pendingDrop.items {
+            ShelfFileStore.deleteSessionCopy(at: item.localURL)
+        }
+        resyncShelfViewState()
+        viewSwitcherState.selectedView = .tray
+        self.pendingDrop = nil
+        presentationState.isShowingConvertFormats = false
+        dismissExpandedImmediately()
     }
 
     // Pattern 1: every .mouseMoved tick hit-tests the GLOBAL pointer against the hot-zone.
