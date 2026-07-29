@@ -3085,42 +3085,36 @@ struct NotchPillView: View {
         // fixed-width trailing content), the closest existing analog to this wing's own simple
         // icon+battery layout.
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        // Starting value: 24 — an estimate chosen to land close to the OLD fixed-half footprint
-        // (Self.wingsSize.width / 2 = 145pt on BOTH flanks at widthGrowth=1, i.e. symmetric — unlike
-        // Focus/Device this wing has no asymmetric label content to size around). Not live-measured;
-        // re-tune with Wing Tuner's Margin buttons on-device — the checkpoint at the end of this plan
-        // is the real verification gate, not this number.
-        let margin: CGFloat = 24 + wingMarginNudge
+        // Quick task 260729-4oi Round 7: baked in from on-device tuning (margin -15, leading +6,
+        // trailing +6) — confirms round 6's margin/cameraBlockWidth conversion works.
+        let margin: CGFloat = 9 + wingMarginNudge
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
-        let leadingPad: CGFloat = 12 + wingLeadingNudge
+        let leadingPad: CGFloat = 18 + wingLeadingNudge
         let iconWidth: CGFloat = 20
-        // BatteryIndicator's own ~27pt body + 1.2pt spacing + 1.8pt nub (~30pt) — same fixed-content
-        // estimate deviceWings' own trailingContentWidth uses for the identical component.
-        let trailingContentWidth: CGFloat = 30
-        let trailingPad: CGFloat = 14 + wingTrailingNudge
+        // Quick task 260729-4oi Round 7 — user asked to consolidate the plug icon + separate
+        // BatteryIndicator+% into a single "battery, charging" glyph, with no percentage shown at
+        // all ("man lädt sowieso nur auf, braucht keine Prozentzahl"). Right flank no longer has any
+        // content — trailingPad alone provides breathing room past the camera block.
+        let trailingPad: CGFloat = 20 + wingTrailingNudge
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
-        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + trailingContentWidth + trailingPad
+        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
         assert(cameraBlockWidth > 0, "Charging camera block width (\(cameraBlockWidth)) must be positive")
         assert(rightWidth < 325 && leftWidth < 325,
                "Charging wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        _ = percent   // no longer displayed — see comment above
         return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: leadingPad)
-                Image(systemName: "powerplug.fill")
+                // Quick task 260729-4oi Round 7: replaced powerplug.fill + separate BatteryIndicator
+                // with ONE combined "charging battery" SF Symbol per the user's reference image —
+                // SF Symbol name not on-device-verified this round, flag if it renders blank/wrong.
+                Image(systemName: "battery.100.bolt")
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)
                     .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
                 Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
-                // Quick task 260729-47v Round 6: accent reverted from .white (260729-3pc Round 5) back
-                // to .green per the user's explicit follow-up request ("das Innere grün machen, nicht
-                // die äußere Linie") — the outline and % text are already hardcoded white inside
-                // BatteryIndicator itself (see BatteryIndicator.swift), untouched either way; only the
-                // fill color changes here. BatteryIndicator's own low-battery red/orange override
-                // (<=10%/<=20%) is unchanged.
-                BatteryIndicator(level: percent, accent: .green)
-                    .frame(width: trailingContentWidth, alignment: .leading)
                 Color.clear.frame(width: trailingPad)
             }
         }
@@ -3313,23 +3307,18 @@ struct NotchPillView: View {
     // apps (re-confirmed this round). FIRST-PASS APPROXIMATION — proportions are not pixel-verified
     // against Apple's/Bluetooth SIG's exact official glyph; flagged in this plan's checkpoint for the
     // user to confirm on real hardware or request tweaks.
+    // Quick task 260729-4oi Round 7 — replaced the hand-drawn Path approximation (Round 6) with
+    // the user's own supplied reference icon (icons8-bluetooth-48.png, Assets.xcassets/
+    // BluetoothGlyph.imageset, template-rendering-intent so it tints via .foregroundStyle like
+    // every other wing's SF Symbol icon).
     private func bluetoothGlyph(size s: CGFloat, opacity: Double) -> some View {
-        Path { path in
-            let top = CGPoint(x: s * 0.5, y: 0)
-            let upperRight = CGPoint(x: s, y: s * 0.25)
-            let center = CGPoint(x: s * 0.5, y: s * 0.5)
-            let lowerRight = CGPoint(x: s, y: s * 0.75)
-            let bottom = CGPoint(x: s * 0.5, y: s)
-            path.move(to: top)
-            path.addLine(to: upperRight)
-            path.addLine(to: center)
-            path.addLine(to: lowerRight)
-            path.addLine(to: bottom)
-            path.move(to: top)
-            path.addLine(to: bottom)
-        }
-        .stroke(Color.white.opacity(opacity), style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
-        .frame(width: s, height: s)
+        Image("BluetoothGlyph")
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(Color.white.opacity(opacity))
+            .frame(width: s * 0.7, height: s * 0.7)
+            .frame(width: s, height: s)
     }
 
     private func deviceWings(for activity: DeviceActivity) -> some View {
@@ -3466,29 +3455,44 @@ struct NotchPillView: View {
     // TimelineView (frozen color, never re-renders) and only the Text inside would desync
     // icon/text color, exactly what 41-UI-SPEC.md's Verification Notes warns against.
     private func countdownWings(for activity: CalendarCountdownActivity) -> some View {
-        // Bugfix (post-checkpoint, on-device report): rightWidth previously used the narrow
-        // wingsSize.width/2 (145pt) tuned for icon-only content (battery ring/xmark) — the
-        // mm:ss TEXT on this side needs the same label-clearing flank deviceWings already uses
-        // for its "Connected" text (wingsLabelWidth/2 = 200pt), or its leading digit renders
-        // under the physical camera housing (invisible), same root cause as the Round N label-
-        // clip fix documented on wingsLabelWidth above.
-        let widthGrowth = max(1.0, resolvedWingWidthScale)
-        return wingsShape(leftWidth: 118 * widthGrowth, rightWidth: Self.wingsLabelWidth / 2 * widthGrowth, depthScale: resolvedWingDepthScale) {
+        // Quick task 260729-4oi Round 8 — migrated OFF the fixed leftWidth/rightWidth + flexible
+        // Spacer() (this wing never had a margin concept, so wingMarginNudge had nothing to attach
+        // to) onto the same notch-cutout-derived margin+cameraBlockWidth formula every other wing
+        // now uses. Starting margin (20) mirrors timerWings' own plain-Countdown-class margin
+        // (short mm:ss digits, no adjacent label) — not live-measured for THIS wing specifically,
+        // re-tune with Wing Tuner if the footprint looks off.
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        let margin: CGFloat = 20 + wingMarginNudge
+        let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
+        let leadingPad: CGFloat = 14 + wingLeadingNudge
+        let iconWidth: CGFloat = 20
+        // mm:ss digits — same fixed-content estimate timerWings' own plain-Countdown branch uses.
+        let rightContentWidth: CGFloat = 60
+        let trailingPad: CGFloat = 20 + wingTrailingNudge
+        let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
+        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        assert(cameraBlockWidth > 0, "Countdown camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Countdown wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let remaining = max(0, activity.eventStart.timeIntervalSince(context.date))
                 let color = urgencyColor(for: activity.eventStart, at: context.date)
                 HStack(spacing: 0) {
+                    Color.clear.frame(width: leadingPad)
                     Image(systemName: "calendar")
                         .font(.system(size: 13, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(color)
-                        .padding(.leading, 14 + wingLeadingNudge)
-                    Spacer()                                      // clears the physical camera bridge
+                        .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
+                    Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                     Text(formatMMSS(remaining))
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(color)
-                        .padding(.trailing, 20 + wingTrailingNudge)
+                        .frame(width: rightContentWidth, alignment: .leading)
+                    Color.clear.frame(width: trailingPad)
                 }
             }
         }
@@ -3908,18 +3912,20 @@ struct NotchPillView: View {
         case .segmentDone: isPomodoro = true    // only ever reached for a Pomodoro session
         case .completed: isPomodoro = false     // only ever reached for a plain Countdown session
         }
-        let margin: CGFloat = (isPomodoro ? 65 : 20) + wingMarginNudge
+        // Quick task 260729-4oi Round 8: baked in from on-device tuning (margin -10, leading +4,
+        // trailing +10).
+        let margin: CGFloat = (isPomodoro ? 55 : 10) + wingMarginNudge
         let notchHalfWidth = rawNotchHalfWidth + margin
         let cameraBlockWidth = notchHalfWidth * 2
         // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
         let wScale = resolvedWingWidthScale
         let dScale = resolvedWingDepthScale
-        let leadingPad: CGFloat = 16 * wScale + wingLeadingNudge
+        let leadingPad: CGFloat = 20 * wScale + wingLeadingNudge
         let iconWidth: CGFloat = 20
         // Was 16; trimmed to 12 (matches capsLockWings' own trailingPad exactly) to reclaim
         // a few points of the ~325pt ceiling for the wider Pomodoro margin below — harmless
         // for Countdown (its own budget has plenty of slack either way).
-        let trailingPad: CGFloat = 12 * wScale + wingTrailingNudge
+        let trailingPad: CGFloat = 22 * wScale + wingTrailingNudge
         // Countdown: just the mm:ss digits (up to "999:00", 6 chars, per the 999-minute cap)
         // plus a small breathing margin -- deliberately TIGHT so the Spacer below has little
         // slack to push through (item H).
