@@ -1330,12 +1330,12 @@ Plans:
 **Goal:** Users can convert one or more dropped images to JPG/PNG/HEIC/TIFF via a 4th "Convert" button in the Quick Action Destination Picker (Drop/AirDrop/Mail/Convert), landing the converted copies in the Tray via the exact same mechanism "Drop" already uses — mirroring Finder's own "Convert Image" right-click menu. Convert is dimmed whenever the pending drop contains any non-image file. This phase also fixes a dormant D-06 controller-gate bug: a release on a dimmed AirDrop/Mail/Convert chip previously still fired its handler. See `.planning/seeds/filetray-convert-button.md` for original context and `.planning/phases/70-file-tray-convert-button/70-CONTEXT.md` for the full D-01..D-06 decision set. User priority: rank 1 of 5 queued ideas (2026-07-29), worked ahead of Phases 68/69.
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06 (source: 70-CONTEXT.md locked decisions — queued feature phase, no formal REQUIREMENTS.md IDs assigned yet)
 **Depends on:** Nothing (standalone feature, independent of Phases 68/69)
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 70-01-PLAN.md — Pure seams: ImageConversionService.swift (ImageIO convert + UTType isImageFile, D-02/D-05), generalized computeQuickActionButtonFrames(card:count:), IslandPresentationState.isShowingConvertFormats stage flag
+- [x] 70-01-PLAN.md — Pure seams: ImageConversionService.swift (ImageIO convert + UTType isImageFile, D-02/D-05), generalized computeQuickActionButtonFrames(card:count:), IslandPresentationState.isShowingConvertFormats stage flag
 
 **Wave 2** *(blocked on 70-01)*
 

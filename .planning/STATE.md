@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 70 context gathered
-last_updated: "2026-07-29T15:02:35.964Z"
-last_activity: "2026-07-29 -- Reviewed reference screenshots for all 5 queued feature-idea seeds (File Tray Convert, Island corner rounding, Calendar 1:1 redesign, Timer slider redesign, Music Next Up) and enriched each with concrete visual details — next session should run /gsd-discuss-phase on idea #1"
+stopped_at: "Completed 70-01-PLAN.md — build deliberately left broken (NotchWindowController.swift:1446), Plan 70-03 must land next"
+last_updated: "2026-07-29T16:24:59.371Z"
+last_activity: 2026-07-29
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** 5 new ideas queued ahead of Phase 67 (see below) — user wants these discussed/planned in order before returning to any open phase.
+**Current focus:** Phase 70 — file-tray-convert-button
 
 ## Current Position
 
@@ -50,9 +50,10 @@ baked into each seed file below (all inspired by an app called "Droppy"). Seed f
 Idea #1 added to ROADMAP.md as Phase 70 (2026-07-29, `.planning/phases/70-file-tray-convert-button/`).
 Next action: `/gsd-discuss-phase 70`.
 
-Phase: 67 (Coding-Progress) — not started, on hold behind the 5 queued ideas above.
+Phase: 70 (file-tray-convert-button) — EXECUTING
+Plan: 2 of 4
 Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
-Last activity: 2026-07-29 -- Reviewed reference screenshots for all 5 queued feature-idea seeds (File Tray Convert, Island corner rounding, Calendar 1:1 redesign, Timer slider redesign, Music Next Up) and enriched each with concrete visual details — next session should run /gsd-discuss-phase on idea #1
+Last activity: 2026-07-29
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
@@ -329,6 +330,7 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 67.1 P10 | 35min | 1 tasks | 2 files |
 | Phase 66 P02 | 25min | 2 tasks | 7 files |
 | Phase 66 P03 | 10min | 2 tasks | 2 files |
+| Phase 70 P01 | 25min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -466,6 +468,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 67.1]: Plan 09: 6 hardware-camera-block wings scale only leadingPad/trailingPad (unclamped wScale/dScale), never cameraBlockWidth/margin/content — unlike Plan 08's Spacer()-based wings which floor at max(1.0, ...) on leftWidth/rightWidth directly
 - [Phase 67.1]: [Phase 67.1-10] mediaWingContentWidth() returns a 3-tuple (left, right, cameraBlockWidth) instead of the plan's sketched 2-tuple, so mediaWingsRow never recomputes the camera-clearance formula independently (single source of truth); plan explicitly allowed either option.
 - [Phase 66]: MenuBarOverflowController wired unconditionally into AppDelegate (no Settings toggle, D-02); public spacer-NSStatusItem technique replaces the NO-GO private-CGS approach from Plan 66-01
+- [Phase 70]: isImageFile falls back to ImageIO header-byte sniffing (CGImageSourceGetType) for extensionless files, since LaunchServices resourceValues alone reports a generic type for them — Live-verified: plan's literal resourceValues-only sketch failed the required extensionless-image detection test
+- [Phase 70]: NotchWindowController.swift:1446's stale 1-arg call site left deliberately broken after Plan 70-01, matching the plan's documented deferral to Plan 70-03 — Confirmed via xcodebuild build that this is the sole compile error project-wide; project will not build/test until 70-03 lands
 
 ### Roadmap Evolution
 
@@ -623,9 +627,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-29T15:02:35.958Z
-Stopped at: Phase 70 context gathered
-Resume file: .planning/phases/70-file-tray-convert-button/70-CONTEXT.md
+Last session: 2026-07-29T16:24:59.364Z
+Stopped at: Completed 70-01-PLAN.md — build deliberately left broken (NotchWindowController.swift:1446), Plan 70-03 must land next
+Resume file: .planning/phases/70-file-tray-convert-button/70-02-PLAN.md
 
 ## Operator Next Steps
 
