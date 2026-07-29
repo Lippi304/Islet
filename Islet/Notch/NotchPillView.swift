@@ -3299,41 +3299,57 @@ struct NotchPillView: View {
         case .disconnected(_, let g):     glyph = g; isConnected = false; battery = nil
         }
         let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
-        // Round N (HUD-01 label-clip fix): widen only the LEFT flank while "Connected" is
-        // actually shown — the dimmed icon-only negative state keeps the original 145pt half
-        // (wingsLabelWidth comment above explains why 290pt total clips the label against the
-        // physical notch cutout). Round N+1 (user request): the RIGHT flank (battery/ring/
-        // xmark) never needed the extra room, so it stays fixed at the original half-width
-        // regardless of connection state — only the label-bearing left side grows/shrinks.
-        let widthGrowth = max(1.0, resolvedWingWidthScale)
-        return wingsShape(
-            leftWidth: (isConnected ? Self.wingsLabelWidth / 2 : Self.wingsSize.width / 2) * widthGrowth,
-            rightWidth: Self.wingsSize.width / 2 * widthGrowth,
-            depthScale: resolvedWingDepthScale
-        ) {
+        // Quick task 260729-2td — migrated from fixed leftWidth/rightWidth halves
+        // (isConnected ? wingsLabelWidth/2 : wingsSize.width/2, rightWidth always wingsSize.width/2)
+        // to the notch-cutout-derived margin+cameraBlockWidth formula every other wing already uses.
+        // User reported Margin nudge did nothing here at all (no margin concept existed). leftWidth
+        // still varies with isConnected exactly like before (label only shown when connected), just
+        // derived from content widths + the shared camera block instead of two hardcoded halves.
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        // Starting value: 30 — an estimate chosen to land close to the old fixed footprints
+        // (connected: leftWidth 200/rightWidth 145; disconnected: leftWidth 145/rightWidth 145 at
+        // widthGrowth=1), not a live-measured value. Re-tune with Wing Tuner's Margin buttons
+        // on-device; the checkpoint at the end of this plan is the real verification gate.
+        let margin: CGFloat = 30 + wingMarginNudge
+        let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
+        let leadingPad: CGFloat = 12 + wingLeadingNudge
+        let iconWidth: CGFloat = 20
+        let labelGap: CGFloat = 4 + wingGapNudge
+        // "Connected" (9 chars) at 12pt semibold rounded — same estimate-for-known-short-content
+        // style as updateWings' labelWidth / meetingWings' elapsedWidth. Only present when connected.
+        let labelWidth: CGFloat = 70
+        let leftContentWidth = leadingPad + iconWidth + (isConnected ? labelGap + labelWidth : 0)
+        // BatteryIndicator's own ~27pt body + 1.2pt spacing + 1.8pt nub (~30pt) — shared across all
+        // 3 trailing states (battery, ring, xmark) so the wing's width doesn't jump when a device's
+        // battery reading becomes available mid-session, mirroring downloadWings' own "one width
+        // regardless of state" comment.
+        let trailingContentWidth: CGFloat = 30
+        let trailingPad: CGFloat = 14 + wingTrailingNudge
+        let leftWidth = leftContentWidth + cameraBlockWidth / 2
+        let totalWidth = leftContentWidth + cameraBlockWidth + trailingContentWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        assert(cameraBlockWidth > 0, "Device camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Device wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale) {
             HStack(spacing: 0) {
-                // Round N (HUD-01 Droppy restyle, D-02/D-03/D-04) — left wing gains an
-                // icon+label pairing shown only in the positive (connected) state; the
-                // 12pt leading padding moves from the icon onto this wrapping HStack so
-                // total left inset stays 12pt.
+                Color.clear.frame(width: leadingPad)
                 HStack(spacing: 4 + wingGapNudge) {
-                    Image(systemName: deviceSymbol(for: glyph))   // LEFT wing — device glyph (D-02)
+                    Image(systemName: deviceSymbol(for: glyph))
                         .font(.system(size: 13, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
-                        // D-11 (Phase 6): the device glyph picks up the persisted accent. The
-                        // D-03 disconnected-dimming rides on top as opacity, so a disconnected
-                        // device still reads as dimmed regardless of the accent hue.
                         .foregroundStyle(deviceAccent.opacity(iconOpacity))
+                        .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
                     if isConnected {
                         Text("Connected")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                     }
                 }
-                .padding(.leading, 12 + wingLeadingNudge)
-                Spacer()                                      // clears the physical camera bridge
-                deviceTrailing(isConnected: isConnected, battery: battery)   // RIGHT wing
-                    .padding(.trailing, 14 + wingTrailingNudge)
+                Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
+                deviceTrailing(isConnected: isConnected, battery: battery)
+                    .frame(width: trailingContentWidth, alignment: .leading)
+                Color.clear.frame(width: trailingPad)
             }
         }
     }
@@ -3347,49 +3363,53 @@ struct NotchPillView: View {
     // deviceAccent/chargingAccent/any theme accent — a universal system-level state should
     // read consistently regardless of the user's chosen accent theme.
     private func focusWings(for activity: FocusActivity) -> some View {
-        // User request 2026-07-17: left flank (icon-only, no label) narrower than the
-        // standard wingsSize.width/2 half — same asymmetry exists on Charging/Device's
-        // icon-only side too, deferred as a general fix; this narrows Focus only for now.
-        // Floor is the physical notch half-width (~89.5pt, notch measured 179pt) + icon +
-        // its leading padding — going below that renders the icon under the camera housing
-        // (invisible/clipped), which is what leftWidth: 100 did.
-        let widthGrowth = max(1.0, resolvedWingWidthScale)
-        // Quick task 260729-0b5 — this wing was one of 4 (with wings(for: ChargingActivity)/
-        // deviceWings/resumePreviewWings) that used a plain Spacer() for camera clearance instead of
-        // an explicit margin constant, so 260728-wg7's wingMarginNudge wiring had nothing to attach
-        // to here (documented exclusion in that plan's own <interfaces> section). leftWidth (118) is
-        // already near the bare camera-clearance floor per this function's own header comment above
-        // (little slack on the left specifically), so this does NOT migrate to osdWings/
-        // capsLockWings' notch-cutout-derived cameraBlockWidth formula (that derives leftWidth/
-        // rightWidth FROM margin, which would make this wing noticeably wider than today — out of
-        // scope, and the opposite of "must not visually change"). Instead margin replaces the
-        // un-nudgeable Spacer() directly, keeping leftWidth/rightWidth byte-for-byte unchanged.
-        // Starting value (175) is a best-effort estimate of the Spacer's own current natural fill
-        // (icon+pad ~28pt from the left edge, dot+text+pad ~55pt from the right edge, out of this
-        // wing's 278pt total width) — not a live-measured value. Use "Margin -5/-10/-20" / "+5/+10/
-        // +20" in the Wing Tuner to confirm/correct live on real hardware; the on-device checkpoint
-        // at the end of this plan is the actual verification gate for "no visible regression."
-        let margin: CGFloat = 175 + wingMarginNudge
-        return wingsShape(
-            leftWidth: 118 * widthGrowth,
-            rightWidth: 160 * widthGrowth,
-            depthScale: resolvedWingDepthScale
-        ) {
+        // Quick task 260729-2td — migrated OFF the fixed-footprint mechanism (260729-0b5's fix:
+        // leftWidth/rightWidth held at fixed 118/160 * widthGrowth, margin only replacing an inner
+        // Spacer()) onto the SAME notch-cutout-derived margin+cameraBlockWidth formula every other
+        // wing already uses (osdWings/capsLockWings/mediaWingContentWidth). User reported Margin
+        // nudging moved icon/text but never resized the actual visible island — only deriving
+        // leftWidth/rightWidth FROM margin (not holding them constant) fixes that.
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        // Starting value: 0. Old leftWidth=118 sat almost exactly at "camera half-width (~89.5pt on
+        // the dev machine that measured it, per capsLockWings' own comment) + icon(20) + leading
+        // pad(14)" ≈ 123.5 — i.e. near-zero slack beyond the bare camera edge (this function's own
+        // prior header comment already documented that floor). margin=0 reproduces "no extra
+        // clearance beyond the bare floor". This is an ESTIMATE, not live-measured — re-tune with
+        // Wing Tuner's Margin buttons on-device; the checkpoint at the end of this plan is the real
+        // verification gate, not this number.
+        let margin: CGFloat = 0 + wingMarginNudge
+        let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
+        let leadingPad: CGFloat = 14 + wingLeadingNudge
+        let iconWidth: CGFloat = 20
+        // Circle(8) + gap(4 nominal) + "On" text (2 chars, 12pt semibold rounded, ~20pt) — same
+        // estimate-for-known-short-content style as updateWings' labelWidth / meetingWings'
+        // elapsedWidth. Not exact; live re-tuning is what the Wing Tuner itself is for.
+        let rightContentWidth: CGFloat = 34
+        let trailingPad: CGFloat = 20 + wingTrailingNudge
+        let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
+        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        assert(cameraBlockWidth > 0, "Focus camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Focus wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale) {
             HStack(spacing: 0) {
+                Color.clear.frame(width: leadingPad)
                 Image(systemName: "moon.fill")
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)
-                    .padding(.leading, 14 + wingLeadingNudge)
-                Color.clear.frame(width: max(0, margin))
+                    .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
+                Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                 HStack(spacing: 4 + wingGapNudge) {
-                    Circle().fill(Color.green)                 // fixed, universal active signal — never theme-tinted
+                    Circle().fill(Color.green)
                         .frame(width: 8, height: 8)
                     Text("On")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
                 }
-                .padding(.trailing, 20 + wingTrailingNudge)
+                .frame(width: rightContentWidth, alignment: .leading)
+                Color.clear.frame(width: trailingPad)
             }
         }
     }
