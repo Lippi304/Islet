@@ -1112,8 +1112,8 @@ struct NotchPillView: View {
         // continuously-identified subtree so `matchedGeometryEffect` morphs it directly.
         case .nowPlayingExpanded, .homeLastPlayed, .homeEmpty, .calendarExpanded, .weatherExpanded, .trayExpanded, .timerSetup, .quickActionsBarExpanded:
             tabContentView
-        case .quickActionPicker:
-            quickActionPickerView()                                          // Phase 34 / TRAY-02: destination picker
+        case .quickActionPicker(let pendingDrop):
+            quickActionPickerView(pendingDrop: pendingDrop)                  // Phase 34 / TRAY-02: destination picker
         // Phase 62 / TIMER-01..04 (62-03 Task 2, Pattern 4): the FIRST transient with its OWN
         // dedicated expanded presentation — NOT grouped into tabContentView's switcher-row arm
         // above, since .timerExpanded shows no switcher row (D-08's controls take exclusive
@@ -2317,12 +2317,15 @@ struct NotchPillView: View {
         timerValidationMessage = nil
     }
 
-    // UI-SPEC §5 — 3 equal-weight destination chips, no button reads as primary. AirDrop/Mail
-    // dim + disable per D-09's fallback flags; Drop is never disabled (TRAY-03 carries no
-    // such risk). isHovered reads presentationState.hoveredQuickActionButtonIndex (D-11) — the
-    // view never computes which button is hovered itself, the controller's release hit-test
-    // (Plan 02) does the actual selection.
-    private func quickActionButtonRow() -> some View {
+    // UI-SPEC §5 — 4 equal-weight destination chips (Phase 70 adds Convert as the 4th), no
+    // button reads as primary. AirDrop/Mail dim + disable per D-09's fallback flags; Drop is
+    // never disabled (TRAY-03 carries no such risk). isHovered reads
+    // presentationState.hoveredQuickActionButtonIndex (D-11) — the view never computes which
+    // button is hovered itself, the controller's release hit-test (Plan 02/70-03) does the
+    // actual selection. Convert's `enabled:` is computed fresh, inline, from the current
+    // pendingDrop on every render (D-05, 70-RESEARCH.md Pattern 3) — never a stored/threaded
+    // Bool, which is exactly the dead-flag bug class airDropAvailable/mailAvailable fell into.
+    private func quickActionButtonRow(_ pendingDrop: PendingDrop) -> some View {
         HStack(spacing: 16) {
             quickActionButton(icon: "tray.and.arrow.down.fill", label: "Drop", enabled: true,
                                isHovered: presentationState.hoveredQuickActionButtonIndex == 0)
@@ -2330,6 +2333,9 @@ struct NotchPillView: View {
                                isHovered: presentationState.hoveredQuickActionButtonIndex == 1)
             quickActionButton(icon: "envelope.fill", label: "Mail", enabled: mailAvailable,
                                isHovered: presentationState.hoveredQuickActionButtonIndex == 2)
+            quickActionButton(icon: "arrow.triangle.2.circlepath", label: "Convert",
+                               enabled: pendingDrop.items.allSatisfy { ImageConversionService.isImageFile($0.originalURL) },
+                               isHovered: presentationState.hoveredQuickActionButtonIndex == 3)
         }
     }
 
