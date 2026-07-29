@@ -3653,7 +3653,7 @@ struct NotchPillView: View {
         let cameraBlockWidth = notchHalfWidth * 2   // the FULL excluded span, centered on the notch's true center
         let barWidth: CGFloat = 90
         // Quick task 260729-5jc: plain percent number to the right of the bar (no "%" sign).
-        let percentGap: CGFloat = 4
+        let percentGap: CGFloat = 10   // Quick task 260729-5pv: 4 -> 10 per user request
         let percentTextWidth: CGFloat = 22
         let trailingPad: CGFloat = 24 * wScale + wingTrailingNudge   // Quick task 260729-2td Round 4: baked in from on-device tuning
         // `wingsShape`'s `alignmentGuide` pins local x=`leftWidth` to the notch's TRUE center — so
@@ -3708,6 +3708,12 @@ struct NotchPillView: View {
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.white)                         // D-02: never accent-tinted
                     .frame(width: percentTextWidth, alignment: .leading)
+                    // Quick task 260729-5pv: smooth roll+fade between old/new digits as percent
+                    // changes, mirroring OSDLevelBar's own local `.animation(value:)` convention
+                    // (D-16 spring constants) rather than relying on the outer wing's presence
+                    // transaction, which only animates appear/disappear, not in-place value changes.
+                    .contentTransition(.numericText(value: Double(percent)))
+                    .animation(.spring(response: 0.15, dampingFraction: 0.86), value: percent)
                 Color.clear.frame(width: trailingPad)
             }
             .coordinateSpace(name: "osdWing")
