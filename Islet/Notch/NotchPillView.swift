@@ -3075,37 +3075,34 @@ struct NotchPillView: View {
         case .full(let p):     isCharging = false; percent = p
         case .onBattery(let p):isCharging = false; percent = p
         }
-        // Round N (HUD-02 label-clip fix): widen only the LEFT flank while "Charging" is
-        // actually shown — the dimmed icon-only negative state keeps the original 145pt half
-        // (wingsLabelWidth comment above explains why 290pt total clips the label against the
-        // physical notch cutout). Round N+1 (user request): the RIGHT flank (BatteryIndicator)
-        // never needed the extra room, so it stays fixed at the original half-width regardless
-        // of charging state — only the label-bearing left side grows/shrinks.
+        // Quick task 260729-3pc Round 5 — redesign per the user's first on-device look at this wing
+        // (a round-4 bug had silently blocked it from ever appearing before now) + reference image (a
+        // minimal white/gray-on-black status strip, no colored icons at all). Removed the green
+        // bolt.fill + conditional "Charging" text entirely — left flank is now a single fixed plug
+        // icon regardless of isCharging. `isCharging` still selects nothing else here (percent's
+        // meaning is unchanged), kept only because callers still pass a full ChargingActivity.
         let widthGrowth = max(1.0, resolvedWingWidthScale)
         return wingsShape(
-            leftWidth: (isCharging ? Self.wingsLabelWidth / 2 : Self.wingsSize.width / 2) * widthGrowth,
+            // Quick task 260729-3pc Round 5: leftWidth no longer conditional on isCharging (no label
+            // to make room for anymore) — reuses this function's own existing icon-only-flank value
+            // (previously only the non-charging branch used it), now applied unconditionally.
+            leftWidth: Self.wingsSize.width / 2 * widthGrowth,
             rightWidth: Self.wingsSize.width / 2 * widthGrowth,
             depthScale: resolvedWingDepthScale
         ) {
             HStack(spacing: 0) {
-                // Round N (HUD-02 Droppy restyle, D-02/D-03/D-04) — left wing gains an
-                // icon+label pairing shown only in the positive (charging) state; the
-                // 12pt leading padding moves from the icon onto this wrapping HStack so
-                // total left inset stays 12pt.
-                HStack(spacing: 4 + wingGapNudge) {
-                    Image(systemName: "bolt.fill")                       // D-05 status symbol LEFT (charging cue)
-                        .font(.system(size: 13, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isCharging ? Color.green : Color.white.opacity(0.6))
-                    if isCharging {
-                        Text("Charging")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .padding(.leading, 12 + wingLeadingNudge)
-                Spacer()                                             // clears the physical camera bridge
-                BatteryIndicator(level: percent, accent: chargingAccent)     // RIGHT — same indicator as the device glance
+                Image(systemName: "powerplug.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white)
+                    .padding(.leading, 12 + wingLeadingNudge)
+                Spacer()
+                // Quick task 260729-3pc Round 5: accent switched from chargingAccent (theme color) to
+                // plain white per the user's explicit request ("battery white on the right with the
+                // percentage number in white inside it") and the reference image (no colored icons at
+                // all). BatteryIndicator's own low-battery red/orange override (<=10%/<=20%) is
+                // UNCHANGED — that safety cue lives inside the component itself, not touched here.
+                BatteryIndicator(level: percent, accent: .white)
                     .padding(.trailing, 14 + wingTrailingNudge)
             }
         }
