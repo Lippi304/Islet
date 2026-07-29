@@ -3075,35 +3075,53 @@ struct NotchPillView: View {
         case .full(let p):     isCharging = false; percent = p
         case .onBattery(let p):isCharging = false; percent = p
         }
-        // Quick task 260729-3pc Round 5 — redesign per the user's first on-device look at this wing
-        // (a round-4 bug had silently blocked it from ever appearing before now) + reference image (a
-        // minimal white/gray-on-black status strip, no colored icons at all). Removed the green
-        // bolt.fill + conditional "Charging" text entirely — left flank is now a single fixed plug
-        // icon regardless of isCharging. `isCharging` still selects nothing else here (percent's
-        // meaning is unchanged), kept only because callers still pass a full ChargingActivity.
-        let widthGrowth = max(1.0, resolvedWingWidthScale)
-        return wingsShape(
-            // Quick task 260729-3pc Round 5: leftWidth no longer conditional on isCharging (no label
-            // to make room for anymore) — reuses this function's own existing icon-only-flank value
-            // (previously only the non-charging branch used it), now applied unconditionally.
-            leftWidth: Self.wingsSize.width / 2 * widthGrowth,
-            rightWidth: Self.wingsSize.width / 2 * widthGrowth,
-            depthScale: resolvedWingDepthScale
-        ) {
+        // Quick task 260729-47v Round 6 — migrated OFF the fixed leftWidth/rightWidth halves +
+        // flexible Spacer() (260729-3pc Round 5's own simplification, itself inherited from before
+        // round 4's camera-clearance fix) onto the SAME notch-cutout-derived margin+cameraBlockWidth
+        // formula every other wing already uses (focusWings/deviceWings/osdWings/capsLockWings). User
+        // reported Margin (and Leading/Trailing) nudging did nothing here — this was the one
+        // remaining wing never converted in round 4; Charging's redesign (round 5) came after round 4
+        // and kept the old mechanism. Mirrors focusWings(for:)'s own structure (icon + camera block +
+        // fixed-width trailing content), the closest existing analog to this wing's own simple
+        // icon+battery layout.
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        // Starting value: 24 — an estimate chosen to land close to the OLD fixed-half footprint
+        // (Self.wingsSize.width / 2 = 145pt on BOTH flanks at widthGrowth=1, i.e. symmetric — unlike
+        // Focus/Device this wing has no asymmetric label content to size around). Not live-measured;
+        // re-tune with Wing Tuner's Margin buttons on-device — the checkpoint at the end of this plan
+        // is the real verification gate, not this number.
+        let margin: CGFloat = 24 + wingMarginNudge
+        let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
+        let leadingPad: CGFloat = 12 + wingLeadingNudge
+        let iconWidth: CGFloat = 20
+        // BatteryIndicator's own ~27pt body + 1.2pt spacing + 1.8pt nub (~30pt) — same fixed-content
+        // estimate deviceWings' own trailingContentWidth uses for the identical component.
+        let trailingContentWidth: CGFloat = 30
+        let trailingPad: CGFloat = 14 + wingTrailingNudge
+        let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
+        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + trailingContentWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        assert(cameraBlockWidth > 0, "Charging camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Charging wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale) {
             HStack(spacing: 0) {
+                Color.clear.frame(width: leadingPad)
                 Image(systemName: "powerplug.fill")
                     .font(.system(size: 13, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.white)
-                    .padding(.leading, 12 + wingLeadingNudge)
-                Spacer()
-                // Quick task 260729-3pc Round 5: accent switched from chargingAccent (theme color) to
-                // plain white per the user's explicit request ("battery white on the right with the
-                // percentage number in white inside it") and the reference image (no colored icons at
-                // all). BatteryIndicator's own low-battery red/orange override (<=10%/<=20%) is
-                // UNCHANGED — that safety cue lives inside the component itself, not touched here.
-                BatteryIndicator(level: percent, accent: .white)
-                    .padding(.trailing, 14 + wingTrailingNudge)
+                    .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
+                Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
+                // Quick task 260729-47v Round 6: accent reverted from .white (260729-3pc Round 5) back
+                // to .green per the user's explicit follow-up request ("das Innere grün machen, nicht
+                // die äußere Linie") — the outline and % text are already hardcoded white inside
+                // BatteryIndicator itself (see BatteryIndicator.swift), untouched either way; only the
+                // fill color changes here. BatteryIndicator's own low-battery red/orange override
+                // (<=10%/<=20%) is unchanged.
+                BatteryIndicator(level: percent, accent: .green)
+                    .frame(width: trailingContentWidth, alignment: .leading)
+                Color.clear.frame(width: trailingPad)
             }
         }
     }
