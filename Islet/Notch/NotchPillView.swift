@@ -3087,16 +3087,18 @@ struct NotchPillView: View {
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
         // Quick task 260729-4oi Round 7: baked in from on-device tuning (margin -15, leading +6,
         // trailing +6) — confirms round 6's margin/cameraBlockWidth conversion works.
-        let margin: CGFloat = 9 + wingMarginNudge
+        // Quick task 260729-54f Round 10: further tuned after the "Charging..." text was added back
+        // (margin +25, leading +6, trailing -14).
+        let margin: CGFloat = 34 + wingMarginNudge
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
-        let leadingPad: CGFloat = 18 + wingLeadingNudge
+        let leadingPad: CGFloat = 24 + wingLeadingNudge
         let iconWidth: CGFloat = 20
         // Quick task 260729-4yy Round 9 — user asked for a "Charging..." text back on the right
         // (the battery+bolt icon alone wasn't enough). "Charging..." (11 chars) at 12pt semibold
         // rounded — same estimate-for-known-short-content style as deviceWings' old "Connected"
         // (9 chars) -> 70pt; a couple points wider here for the 2 extra characters.
         let rightContentWidth: CGFloat = 80
-        let trailingPad: CGFloat = 20 + wingTrailingNudge
+        let trailingPad: CGFloat = 6 + wingTrailingNudge
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
@@ -3351,9 +3353,11 @@ struct NotchPillView: View {
         // (connected: leftWidth 200/rightWidth 145; disconnected: leftWidth 145/rightWidth 145 at
         // widthGrowth=1), not a live-measured value. Re-tune with Wing Tuner's Margin buttons
         // on-device; the checkpoint at the end of this plan is the real verification gate.
-        let margin: CGFloat = 30 + wingMarginNudge
+        // Quick task 260729-54f Round 10: baked in from on-device tuning after the Bluetooth icon
+        // was enlarged (margin -5, leading +4, trailing +6).
+        let margin: CGFloat = 25 + wingMarginNudge
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
-        let leadingPad: CGFloat = 12 + wingLeadingNudge
+        let leadingPad: CGFloat = 16 + wingLeadingNudge
         let iconWidth: CGFloat = 20
         // Quick task 260729-47v Round 6 — "Connected" text removed entirely (see the leading content
         // below, no more conditional label); leftContentWidth no longer varies with isConnected.
@@ -3365,7 +3369,7 @@ struct NotchPillView: View {
         // battery reading becomes available mid-session, mirroring downloadWings' own "one width
         // regardless of state" comment.
         let trailingContentWidth: CGFloat = 30
-        let trailingPad: CGFloat = 14 + wingTrailingNudge
+        let trailingPad: CGFloat = 20 + wingTrailingNudge
         let leftWidth = leftContentWidth + cameraBlockWidth / 2
         let totalWidth = leftContentWidth + cameraBlockWidth + trailingContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
