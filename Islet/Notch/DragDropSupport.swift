@@ -65,16 +65,16 @@ func isGenuineFileDrag(currentChangeCount: Int, gestureBaselineChangeCount: Int,
 // pads by, so hit-test and render can never drift apart again regardless of card height.
 // Horizontal layout mirrors quickActionButton's fixed `quickActionButtonWidth` (no longer flex-
 // fill), centered in the card exactly as `.frame(alignment: .top)` centers the HStack in SwiftUI.
-func computeQuickActionButtonFrames(card: CGRect) -> [CGRect] {
+func computeQuickActionButtonFrames(card: CGRect, count: Int) -> [CGRect] {
     let buttonRowHeight = NotchPillView.quickActionButtonRowHeight
     let gap: CGFloat = 16
     let chipWidth = NotchPillView.quickActionButtonWidth
-    let totalContentWidth = 3 * chipWidth + 2 * gap
+    let totalContentWidth = CGFloat(count) * chipWidth + CGFloat(count - 1) * gap
     let centeringInset = (card.width - totalContentWidth) / 2
     let rowRect = CGRect(x: card.minX + centeringInset,
                           y: card.maxY - NotchPillView.cameraClearance - buttonRowHeight,
                           width: totalContentWidth, height: buttonRowHeight)
-    return (0..<3).map { i in
+    return (0..<count).map { i in
         CGRect(x: rowRect.minX + CGFloat(i) * (chipWidth + gap), y: rowRect.minY,
                width: chipWidth, height: rowRect.height)
     }

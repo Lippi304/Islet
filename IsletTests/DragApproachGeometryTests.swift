@@ -50,11 +50,11 @@ final class DragApproachGeometryTests: XCTestCase {
                                                  height: NotchPillView.quickActionPickerContentHeight)
 
     func testReturnsExactlyThreeFrames() {
-        XCTAssertEqual(computeQuickActionButtonFrames(card: Self.productionCard).count, 3)
+        XCTAssertEqual(computeQuickActionButtonFrames(card: Self.productionCard, count: 3).count, 3)
     }
 
     func testAllThreeFramesHaveEqualWidth() {
-        let frames = computeQuickActionButtonFrames(card: Self.productionCard)
+        let frames = computeQuickActionButtonFrames(card: Self.productionCard, count: 3)
         for frame in frames {
             XCTAssertEqual(frame.width, NotchPillView.quickActionButtonWidth, accuracy: 0.01)
         }
@@ -62,7 +62,7 @@ final class DragApproachGeometryTests: XCTestCase {
 
     func testFramesAreCenteredWithEqualMargins() {
         let card = Self.productionCard
-        let frames = computeQuickActionButtonFrames(card: card)
+        let frames = computeQuickActionButtonFrames(card: card, count: 3)
         let leftMargin = frames[0].minX - card.minX
         let rightMargin = card.maxX - frames[2].maxX
         XCTAssertEqual(leftMargin, rightMargin, accuracy: 0.01)
@@ -70,22 +70,22 @@ final class DragApproachGeometryTests: XCTestCase {
 
     func testFramesStayWithinHorizontalBounds() {
         let card = Self.productionCard
-        let frames = computeQuickActionButtonFrames(card: card)
+        let frames = computeQuickActionButtonFrames(card: card, count: 3)
         XCTAssertGreaterThanOrEqual(frames[0].minX, card.minX)
         XCTAssertLessThanOrEqual(frames[2].maxX, card.maxX)
     }
 
     func testFirstFrameTopEdgeSitsCameraClearanceBelowCardTop() {
         let card = Self.productionCard
-        let frames = computeQuickActionButtonFrames(card: card)
+        let frames = computeQuickActionButtonFrames(card: card, count: 3)
         XCTAssertEqual(frames[0].maxY, card.maxY - NotchPillView.cameraClearance, accuracy: 0.01)
     }
 
     func testOffsetIsIdenticalOnNonZeroOriginCard() {
         let zeroOriginCard = Self.productionCard
         let offsetCard = zeroOriginCard.offsetBy(dx: 1000, dy: 500)
-        let zeroFrames = computeQuickActionButtonFrames(card: zeroOriginCard)
-        let offsetFrames = computeQuickActionButtonFrames(card: offsetCard)
+        let zeroFrames = computeQuickActionButtonFrames(card: zeroOriginCard, count: 3)
+        let offsetFrames = computeQuickActionButtonFrames(card: offsetCard, count: 3)
         XCTAssertEqual(offsetFrames[1].minX - offsetCard.minX, zeroFrames[1].minX - zeroOriginCard.minX)
         XCTAssertEqual(offsetFrames[1].minY - offsetCard.minY, zeroFrames[1].minY - zeroOriginCard.minY)
     }
@@ -98,7 +98,7 @@ final class DragApproachGeometryTests: XCTestCase {
     // they ever change again, rather than silently going stale against a fixed number.
     func testQuickActionButtonFramesFitWithinPickerCard() {
         let card = Self.productionCard
-        let frames = computeQuickActionButtonFrames(card: card)
+        let frames = computeQuickActionButtonFrames(card: card, count: 3)
         XCTAssertEqual(frames.count, 3)
         for frame in frames {
             XCTAssertGreaterThanOrEqual(frame.minX, card.minX)

@@ -66,4 +66,44 @@ final class DragDropSupportTests: XCTestCase {
     func testShouldAcceptDropAcceptsCollapsedWithURLs() {
         XCTAssertTrue(shouldAcceptDrop(isExpanded: false, urls: [URL(fileURLWithPath: "/tmp/a.pdf")]))
     }
+
+    // Phase 70 / Task 2 — regression: count: 3 must produce frames numerically identical to
+    // the OLD hardcoded-3 function for the same card, hand-computed here.
+    func testComputeQuickActionButtonFramesCountThreeMatchesOldHardcodedBehavior() {
+        let card = CGRect(x: 0, y: 0, width: 650, height: 117)
+        let buttonRowHeight = NotchPillView.quickActionButtonRowHeight
+        let gap: CGFloat = 16
+        let chipWidth = NotchPillView.quickActionButtonWidth
+        let totalContentWidth = 3 * chipWidth + 2 * gap
+        let centeringInset = (card.width - totalContentWidth) / 2
+        let expectedY = card.maxY - NotchPillView.cameraClearance - buttonRowHeight
+        let expected = (0..<3).map { i in
+            CGRect(x: card.minX + centeringInset + CGFloat(i) * (chipWidth + gap), y: expectedY,
+                   width: chipWidth, height: buttonRowHeight)
+        }
+
+        XCTAssertEqual(computeQuickActionButtonFrames(card: card, count: 3), expected)
+    }
+
+    // Phase 70 / Task 2 — count: 4 produces exactly 4 frames, each quickActionButtonWidth wide,
+    // 16pt apart, centered within card, and mutually non-overlapping.
+    func testComputeQuickActionButtonFramesCountFourProducesFourNonOverlappingFrames() {
+        let card = CGRect(x: 0, y: 0, width: 650, height: 117)
+        let frames = computeQuickActionButtonFrames(card: card, count: 4)
+
+        XCTAssertEqual(frames.count, 4)
+        for frame in frames {
+            XCTAssertEqual(frame.width, NotchPillView.quickActionButtonWidth)
+        }
+
+        let sorted = frames.sorted { $0.minX < $1.minX }
+        for i in 0..<(sorted.count - 1) {
+            XCTAssertEqual(sorted[i + 1].minX - sorted[i].maxX, 16, accuracy: 0.001)
+            XCTAssertLessThanOrEqual(sorted[i].maxX, sorted[i + 1].minX)
+        }
+
+        let totalContentWidth = frames.last!.maxX - frames.first!.minX
+        let expectedCenteringInset = (card.width - totalContentWidth) / 2
+        XCTAssertEqual(frames.first!.minX - card.minX, expectedCenteringInset, accuracy: 0.001)
+    }
 }
