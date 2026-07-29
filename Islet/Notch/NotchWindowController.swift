@@ -1773,7 +1773,7 @@ final class NotchWindowController {
             let newFilename = baseName + "." + format.fileExtension
             let destinationURL = itemDir.appendingPathComponent(newFilename)
 
-            guard (try? ImageConversionService.convert(item.originalURL, to: format, destinationURL: destinationURL)) != nil else { continue }
+            guard (try? ImageConversionService.convert(item.localURL, to: format, destinationURL: destinationURL)) != nil else { continue }
 
             let convertedItem = ShelfItem(id: id, originalURL: item.originalURL, localURL: destinationURL, filename: newFilename, addedAt: Date())
             shelfCoordinator.append(convertedItem)
