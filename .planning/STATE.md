@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: Phase 66 discuss-phase (third revision) resolved as PAUSED, not descoped — next up is Phase 67
-last_updated: "2026-07-28T22:19:00.000Z"
-last_activity: 2026-07-28 -- Phase 66 discuss-phase (third revision): paused indefinitely after Developer-Mode diagnostic was judged too costly (would need a macOS 26 downgrade)
+stopped_at: 5 ordered feature-idea seeds captured (2026-07-29) — user wants to discuss/plan idea #1 (File Tray Convert Button) next session, ahead of resuming Phase 67
+last_updated: "2026-07-29T02:30:00.000Z"
+last_activity: 2026-07-29 -- Captured 5 ordered feature-idea seeds; next session should run /gsd-discuss-phase on idea #1 (filetray-convert-button)
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,13 +21,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 67 — coding-progress (Phase 66 paused, see below)
+**Current focus:** 5 new ideas queued ahead of Phase 67 (see below) — user wants these discussed/planned in order before returning to any open phase.
 
 ## Current Position
 
-Phase: 67 (Coding-Progress) — not started
+**NEXT SESSION START HERE:** User captured 5 new feature ideas (2026-07-29), ranked in the exact
+order they want to tackle them, explicitly ahead of resuming Phase 67 or any other open phase.
+Seed files (with reference-screenshot notes — screenshots were described but not transmitted/
+captured, re-ask the user to re-share when starting): `.planning/seeds/`
+
+1. [[filetray-convert-button]] — **start here** — File Tray gains a 4th "Convert" button for
+   dropped images (JPG↔PNG etc.), mirroring Finder's own "Convert Image" right-click menu.
+2. [[island-corner-rounding]] — more rounded corners on the collapsed-wide (wings) island state;
+   user also wants a new DEBUG live-tuning nudge axis for corner radius, same pattern as the
+   existing Wing Tuner.
+3. [[calendar-redesign-droppy]] — widen + redesign the expanded Calendar view to look truly 1:1
+   identical to macOS's native Calendar app (Droppy-inspired).
+4. [[timer-slider-redesign]] — remove Pomodoro mode from the code entirely; replace timer setup
+   with a ruler/slider duration picker + Start button + sound toggle (Droppy-inspired).
+5. [[music-next-up-queue]] — expand a "Next Up" list (next 5 songs, art/title/artist) from the
+   Now Playing view's existing 3-dots affordance.
+
+Next action: `/gsd-discuss-phase` on idea #1 (File Tray Convert Button) — likely needs adding as
+a new phase to ROADMAP.md first, since it isn't one yet.
+
+Phase: 67 (Coding-Progress) — not started, on hold behind the 5 queued ideas above.
 Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
-Last activity: 2026-07-29 -- Quick task 260729-5vl: baked in OSD wing on-device tuning deltas (margin +20, trailing -6), on-device tuned and confirmed
+Last activity: 2026-07-29 -- Captured 5 ordered feature-idea seeds (File Tray Convert, Island corner rounding, Calendar 1:1 redesign, Timer slider redesign, Music Next Up) — user wants these worked in order starting next session, ahead of Phase 67
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
