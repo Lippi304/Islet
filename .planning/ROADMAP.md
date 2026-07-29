@@ -1327,10 +1327,21 @@ Plans:
 
 ### Phase 70: File Tray Convert Button
 
-**Goal:** [To be planned] — add a 4th "Convert" action button to the File Tray view for dropped images, offering image-format conversion choices mirroring macOS Finder's own "Convert Image" right-click menu. See `.planning/seeds/filetray-convert-button.md` for full context and reviewed reference screenshot details. User priority: rank 1 of 5 queued ideas (2026-07-29), to be worked ahead of Phases 68/69.
-**Requirements**: TBD
+**Goal:** Users can convert one or more dropped images to JPG/PNG/HEIC/TIFF via a 4th "Convert" button in the Quick Action Destination Picker (Drop/AirDrop/Mail/Convert), landing the converted copies in the Tray via the exact same mechanism "Drop" already uses — mirroring Finder's own "Convert Image" right-click menu. Convert is dimmed whenever the pending drop contains any non-image file. This phase also fixes a dormant D-06 controller-gate bug: a release on a dimmed AirDrop/Mail/Convert chip previously still fired its handler. See `.planning/seeds/filetray-convert-button.md` for original context and `.planning/phases/70-file-tray-convert-button/70-CONTEXT.md` for the full D-01..D-06 decision set. User priority: rank 1 of 5 queued ideas (2026-07-29), worked ahead of Phases 68/69.
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06 (source: 70-CONTEXT.md locked decisions — queued feature phase, no formal REQUIREMENTS.md IDs assigned yet)
 **Depends on:** Nothing (standalone feature, independent of Phases 68/69)
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 70 to break down)
+**Wave 1**
+
+- [ ] 70-01-PLAN.md — Pure seams: ImageConversionService.swift (ImageIO convert + UTType isImageFile, D-02/D-05), generalized computeQuickActionButtonFrames(card:count:), IslandPresentationState.isShowingConvertFormats stage flag
+
+**Wave 2** *(blocked on 70-01)*
+
+- [ ] 70-02-PLAN.md — NotchPillView.swift: 4th Convert chip + format-tile row (JPG/PNG/HEIC/TIFF), PendingDrop bound at render switch (D-01/D-02/D-05)
+- [ ] 70-03-PLAN.md — NotchWindowController.swift: D-06 controller-gate fix for all 4 buttons, Convert stage dispatch, handleQuickActionConvert(to:) conversion-and-landing flow (D-01/D-03/D-04/D-05/D-06)
+
+**Wave 3** *(blocked on 70-02, 70-03)*
+
+- [ ] 70-04-PLAN.md — Full test suite + Release build gate, on-device UAT checkpoint covering D-01 through D-06
