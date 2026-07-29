@@ -275,13 +275,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupDebugMenu()
         #endif
 
-        // Phase 66 / MENUBAR-01/02/03 (D-01/D-02) — constructed + started AFTER statusItem
-        // (and debugStatusItem in DEBUG builds) above: RESEARCH.md Pitfall 1 — later-
-        // created status items land further left/outer, so the chevron+spacer (created
-        // inside start()) land left of both, satisfying D-01's "chevron is leftmost among
-        // Islet's own menu-bar items". Unconditional — no toggle, no gate.
-        menuBarOverflowController = MenuBarOverflowController()
-        menuBarOverflowController.start()
+        // Phase 66 / MENUBAR-01/02/03 — PAUSED 2026-07-28 after a third consecutive on-device
+        // NO-GO (see .planning/phases/66-.../66-CONTEXT.md third revision, project memory
+        // phase66_menubar_overflow_second_nogo). Even the reference implementation (real Ice.app)
+        // stopped working on this machine — the underlying mechanism itself is broken, not just
+        // this port of it. User still wants the feature eventually, just not right now, so the
+        // chevron construction+start is disabled here rather than deleted — no revisit trigger,
+        // resume via a fresh /gsd-discuss-phase 66 whenever there's appetite.
+        // menuBarOverflowController = MenuBarOverflowController()
+        // menuBarOverflowController.start()
     }
 
     // The SwiftUI Window(id:) NSWindow may not exist yet on the first run-loop
