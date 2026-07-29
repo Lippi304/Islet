@@ -23,6 +23,16 @@ final class IslandPresentationState: ObservableObject {
     // computer, of this value — mirrors `presentation` itself in that respect.
     @Published var hoveredQuickActionButtonIndex: Int? = nil
 
+    // Phase 70 / D-02, D-05 — which row the Quick Action picker card currently shows: the main
+    // Drop/AirDrop/Mail/Convert row (`false`) or the JPG/PNG/HEIC/TIFF format-tile row shown
+    // after Convert is tapped (`true`). Controller-owned: Plan 70-03's `NotchWindowController`
+    // is the only writer (set `true` on a gated Convert tap, reset `false` on every dismiss/
+    // discard path and on a fresh pendingDrop). Plan 70-02's `NotchPillView` is a pure reader
+    // deciding which row to render — mirrors `hoveredQuickActionButtonIndex`'s own controller-
+    // write/view-read split above. Defaults `false` so a freshly-populated pendingDrop always
+    // starts on the main row.
+    @Published var isShowingConvertFormats: Bool = false
+
     // Phase 42 / DUAL-01 — the live secondary-activity bubble carrier, alongside `presentation`
     // itself. Controller-owned: `NotchWindowController.renderPresentation()` (Plan 42-04) is the
     // only writer, computing it via the pure `resolveSecondary(primary:nowPlaying:)` reducer. The
