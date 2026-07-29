@@ -3288,12 +3288,13 @@ struct NotchPillView: View {
     // render surface, T-05-01). The view drives NO animation (D-08); the controller wraps the
     // mutation in its spring and clears it after ~3s (D-04 dismiss).
     private func deviceWings(for activity: DeviceActivity) -> some View {
-        let glyph: DeviceGlyph
+        // Quick task 260729-3pc Round 5 — `glyph` no longer read (icon is now a single fixed symbol
+        // regardless of device type, see below), so both switch cases drop their `let g` binding.
         let isConnected: Bool
         let battery: Int?
         switch activity {
-        case .connected(_, let g, let b): glyph = g; isConnected = true;  battery = b
-        case .disconnected(_, let g):     glyph = g; isConnected = false; battery = nil
+        case .connected(_, _, let b): isConnected = true;  battery = b
+        case .disconnected(_, _):     isConnected = false; battery = nil
         }
         let iconOpacity = isConnected ? 1.0 : 0.5   // D-03: disconnected dims the icon
         // Quick task 260729-2td — migrated from fixed leftWidth/rightWidth halves
@@ -3332,10 +3333,24 @@ struct NotchPillView: View {
             HStack(spacing: 0) {
                 Color.clear.frame(width: leadingPad)
                 HStack(spacing: 4 + wingGapNudge) {
-                    Image(systemName: deviceSymbol(for: glyph))
+                    // Quick task 260729-3pc Round 5 — replaced the per-device-type icon
+                    // (deviceSymbol(for: glyph): airpods/airpodspro/airpods.max/headphones/beats.headphones/
+                    // generic) with ONE fixed symbol for every device. Apple's SF Symbols set has no literal
+                    // Bluetooth-logo glyph available to third-party apps (a deliberate Apple omission); this
+                    // codebase's own existing `.generic` case already used "dot.radiowaves.left.and.right" as
+                    // its de-facto "unrecognized Bluetooth device" icon, so reusing that exact symbol for ALL
+                    // devices is the closest available "the Bluetooth icon" per the user's request, and matches
+                    // an existing in-codebase convention instead of inventing a new custom-drawn glyph. This
+                    // REPLACES the per-device-type icon distinction (AirPods/AirPods Pro/AirPods Max/Beats/
+                    // generic-headphones all now render identically) as a deliberate simplification — flagged
+                    // for the user; an easy follow-up if per-device icons should come back for some devices.
+                    Image(systemName: "dot.radiowaves.left.and.right")
                         .font(.system(size: 13, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(deviceAccent.opacity(iconOpacity))
+                        // Quick task 260729-3pc Round 5: plain white (was deviceAccent-tinted), matching
+                        // Charging's new plug icon and the reference image (no colored icons at all).
+                        // iconOpacity dimming for the disconnected state (D-03) is unchanged.
+                        .foregroundStyle(Color.white.opacity(iconOpacity))
                         .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
                     if isConnected {
                         Text("Connected")
@@ -4136,7 +4151,12 @@ struct NotchPillView: View {
     @ViewBuilder
     private func deviceTrailing(isConnected: Bool, battery: Int?) -> some View {
         if isConnected, let battery {
-            BatteryIndicator(level: battery)
+            // Quick task 260729-3pc Round 5: accent switched from the implicit default (.green) to
+            // .white, matching Charging's new white BatteryIndicator treatment exactly ("genau das
+            // gleiche" per the user's request). The other 2 fallback states (connected-without-battery
+            // green ring, disconnected xmark) are untouched — the user only asked about the
+            // battery-reading case.
+            BatteryIndicator(level: battery, accent: .white)
         } else if isConnected {
             Circle().strokeBorder(Color.green, lineWidth: 1.5)
                 .frame(width: 14, height: 14)
@@ -4167,19 +4187,6 @@ struct NotchPillView: View {
         }
     }
 
-    // D-02 — map the device glyph to an SF Symbol name. All chosen names are valid SF Symbols; a
-    // wrong name would only fall back gracefully (cosmetic — Pitfall 7). `.generic` covers mice,
-    // keyboards, controllers, and unknown devices with a neutral radiowaves glyph.
-    private func deviceSymbol(for glyph: DeviceGlyph) -> String {
-        switch glyph {
-        case .airpods:    return "airpods"
-        case .airpodsPro: return "airpodspro"
-        case .airpodsMax: return "airpods.max"
-        case .headphones: return "headphones"
-        case .beats:      return "beats.headphones"
-        case .generic:    return "dot.radiowaves.left.and.right"
-        }
-    }
 
     // Album art thumbnail with the nil → music-note placeholder (Open Question 3 / T-04-11).
     // Non-nil → the pre-decoded NSImage (Plan 02) scaled to fill a rounded square; nil → a
