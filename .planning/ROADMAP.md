@@ -1324,3 +1324,13 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 69 to break down)
+
+### Phase 70: File Tray Convert Button
+
+**Goal:** [To be planned] — add a 4th "Convert" action button to the File Tray view for dropped images, offering image-format conversion choices mirroring macOS Finder's own "Convert Image" right-click menu. See `.planning/seeds/filetray-convert-button.md` for full context and reviewed reference screenshot details. User priority: rank 1 of 5 queued ideas (2026-07-29), to be worked ahead of Phases 68/69.
+**Requirements**: TBD
+**Depends on:** Nothing (standalone feature, independent of Phases 68/69)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 70 to break down)

@@ -43,8 +43,8 @@ baked into each seed file below (all inspired by an app called "Droppy"). Seed f
 5. [[music-next-up-queue]] — expand a "Next Up" list (next 5 songs, art/title/artist) from the
    Now Playing view's existing 3-dots affordance.
 
-Next action: `/gsd-discuss-phase` on idea #1 (File Tray Convert Button) — likely needs adding as
-a new phase to ROADMAP.md first, since it isn't one yet.
+Idea #1 added to ROADMAP.md as Phase 70 (2026-07-29, `.planning/phases/70-file-tray-convert-button/`).
+Next action: `/gsd-discuss-phase 70`.
 
 Phase: 67 (Coding-Progress) — not started, on hold behind the 5 queued ideas above.
 Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
@@ -483,6 +483,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - Phase 68 added 2026-07-26: App Switcher / Window Previews — DockDoor-inspired (dockdoor.net) Windows-style Alt+Tab replacement with live per-app window thumbnails and minimized-window restore, via ScreenCaptureKit + Accessibility API. User-requested, sequenced as the last phase after all currently open v1.10 phases (59-67). No formal REQ-ID yet, not part of the milestone's original 27/27 requirement coverage — needs its own `/gsd-discuss-phase 68` before planning.
 - Phase 69 added 2026-07-26: Claude Session Usage Display — Now-Playing-style notch expansion showing live Claude Code usage when a session is active: 5-hour limit + reset countdown on the left, weekly limit fill/percentage on the right, configurable update interval (5-min poll or live). Data sourcing intended to build on a separate usage-tracking tool/script the user already started, source at `/Users/lippi304/AI-OS/OS/5. Claude Usage Tracker` — reuse/port its usage-fetching logic instead of rebuilding it. User-requested, sequenced as the last phase after Phase 68. No formal REQ-ID yet, not part of the milestone's original 27/27 requirement coverage — needs its own `/gsd-discuss-phase 69` before planning.
 - Phase 67.1 inserted after Phase 67: Notch Size Scaling — Resolution-Aware + Manual Override: user changed screen resolution and the notch island now looks too small; adds auto-scaling of island width/depth to display resolution/DPI plus a manual Settings fine-tune override. User-requested, sequenced before Phase 68. (URGENT)
+- Phase 70 added 2026-07-29: File Tray Convert Button — add a 4th "Convert" action button to the File Tray view for dropped images, mirroring macOS Finder's own "Convert Image" right-click menu. Rank 1 of 5 ideas the user queued 2026-07-29 (see `.planning/seeds/`) — user explicitly wants this and the other 4 queued ideas worked ahead of Phases 68/69, despite the numbering. No formal REQ-ID yet — needs its own `/gsd-discuss-phase 70` before planning.
 
 ### Pending Todos
 
