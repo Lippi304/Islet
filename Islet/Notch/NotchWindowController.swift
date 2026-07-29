@@ -1622,6 +1622,13 @@ final class NotchWindowController {
         // pendingDrop == nil is correctly a no-op by construction (a non-file drag, or an
         // already-discarded pending drop) — no release-time item-building fallback is reintroduced
         // here (34-RESEARCH.md Open Question 2).
+        //
+        // Phase 70 note — this whole function only ever runs for a REAL OS file-drag release
+        // (DropInterceptTap's onIntercept() + dragEndMonitor, both gated on isDragApproaching).
+        // The format-tile stage's SECOND click is an ordinary in-app click, not a drag release —
+        // NSEvent global monitors never see events delivered to the app's own window (confirmed
+        // on-device: dragEndMonitor never fired for it, only SwiftUI's onTapGesture did), so that
+        // click's dispatch lives in handleClick() instead, not here.
         let point = NSEvent.mouseLocation
         if pendingDrop != nil {
             if let hit = quickActionButtonFrames.firstIndex(where: { $0.contains(point) }) {
@@ -1642,7 +1649,9 @@ final class NotchWindowController {
                     case 3:
                         // Phase 70 / D-01 — entering the format stage is NOT a commit: no
                         // discardPendingDrop()/dismissExpandedImmediately() here.
-                        if isConvertEnabled { presentationState.isShowingConvertFormats = true }
+                        if isConvertEnabled {
+                            presentationState.isShowingConvertFormats = true
+                        }
                     default: break
                     }
                 }
@@ -1796,6 +1805,19 @@ final class NotchWindowController {
         // CR-01 — stash the raw pointer location for syncClickThrough()/visibleContentZone(),
         // which need it but receive no point parameter themselves.
         lastPointerLocation = point
+
+        // Phase 70 fix — mirrors handleDragApproachTick's own button-hover hit-test. That one
+        // only fires on .leftMouseDragged (an active OS file-drag), so it never runs for the
+        // format-tile stage's hover (no drag in progress by then). This always-on .mouseMoved
+        // monitor is the only tick that ever fires for that case.
+        if pendingDrop != nil {
+            let hit = quickActionButtonFrames.firstIndex { $0.contains(point) }
+            if hit != presentationState.hoveredQuickActionButtonIndex {
+                presentationState.hoveredQuickActionButtonIndex = hit
+            }
+        } else if presentationState.hoveredQuickActionButtonIndex != nil {
+            presentationState.hoveredQuickActionButtonIndex = nil
+        }
 
         // island-hover-exit-no-collapse fix — while expanded, the keep-open region used to be
         // the full static panel union (expandedZone), which stays much larger than any single
@@ -2133,6 +2155,16 @@ final class NotchWindowController {
             guard !self.isDraggingShelfItem else { return }
             // Phase 26 / ONBOARD-01 (D-09) — a forced onboarding session must never grace-collapse.
             guard !self.isOnboardingActive else { return }
+            // Phase 70 fix — the format-tile stage's pick is NOT a continuation of a real OS
+            // drag (unlike the main row, where the pointer never leaves the zone before the
+            // terminating release), so the pointer moving toward a tile ordinarily dips outside
+            // visibleContentZone briefly along the way (confirmed on-device). The main row's
+            // grace-collapse-discards-while-a-picker-shows behavior is correct for THAT case
+            // but actively fights this one: it would discard the pending drop mid-repositioning,
+            // before the user's actual click can ever land. Only a real click — hit a tile, or
+            // miss and hit handleDragApproachEnd's own D-13 discard branch — should end this
+            // stage; an ordinary hover-exit must not.
+            guard !self.presentationState.isShowingConvertFormats else { return }
             // Only collapse if the pointer is STILL outside (re-entry would have cancelled).
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                 self.interaction.phase = nextState(self.interaction.phase, .graceElapsed)
@@ -2185,6 +2217,41 @@ final class NotchWindowController {
         // the Next/Back/Grant/Finish buttons are real SwiftUI Buttons that already intercept
         // their own taps before this ancestor gesture fires.
         guard !isOnboardingActive else { return }
+        // Phase 70 fix — the format-tile stage's pick is an ordinary in-app click, not a real
+        // OS file-drag release, so it arrives HERE (SwiftUI's ancestor tap gesture), never at
+        // handleDragApproachEnd's global .leftMouseUp monitor (confirmed on-device: NSEvent
+        // global monitors never see events delivered to the app's own window — only clicks in
+        // OTHER apps). Dispatch it with the SAME hit-test/convert-or-discard logic
+        // handleDragApproachEnd uses for the main row's drag-release buttons, then return
+        // before the generic expand/collapse toggle below ever runs.
+        if presentationState.isShowingConvertFormats {
+            let point = NSEvent.mouseLocation
+            if let hit = quickActionButtonFrames.firstIndex(where: { $0.contains(point) }),
+               ImageFormat.allCases.indices.contains(hit) {
+                handleQuickActionConvert(to: ImageFormat.allCases[hit])
+            } else {
+                // D-13 — missed every tile: discard, matching the main row's own off-target
+                // release behavior.
+                presentationState.isShowingConvertFormats = false
+                discardPendingDrop()
+                dismissExpandedImmediately()
+            }
+            presentationState.hoveredQuickActionButtonIndex = nil
+            // Phase 70 fix — confirmed on-device: after this dispatch (reached via SwiftUI's
+            // onTapGesture, unlike the main row's dispatch from a raw AppKit event callback),
+            // the panel's click-through state could get stuck non-interactive across the
+            // WHOLE screen, only resolving itself on the next hover cycle. dismissExpandedImmediately()'s
+            // own handlePointer() call skips its syncClickThrough() branch here (it's gated on
+            // interaction.isExpanded, already false post-collapse) — force a fresh, explicit
+            // resync. syncClickThrough() is a pure recomputation from current state, so calling
+            // it again is always safe.
+            syncClickThrough()
+            return
+        }
+        // The main row's buttons are always clicked as part of a live OS drag release (handled
+        // entirely by handleDragApproachEnd), so an ordinary ancestor tap while pendingDrop is
+        // still set there is unreachable in practice — guarded defensively anyway.
+        guard pendingDrop == nil else { return }
         let wasExpanded = interaction.isExpanded
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             interaction.phase = nextState(interaction.phase, .clicked)

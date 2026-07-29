@@ -54,6 +54,39 @@ final class ShelfLogicTests: XCTestCase {
         XCTAssertEqual(logic.items, [first, second])
     }
 
+    func testAppendSameOriginalURLDifferentFilenameBothCoexist() {
+        // Phase 70 regression — Convert derives multiple DIFFERENT output files (different
+        // filename/extension) from the SAME originalURL. originalURL-only dedup rejected
+        // every conversion after the first from a given source as a false-positive
+        // duplicate; the compound (originalURL, filename) key must let them coexist.
+        var logic = ShelfLogic()
+        let png = ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/photo.jpg"),
+                             localURL: URL(fileURLWithPath: "/tmp/photo.png"), filename: "photo.png",
+                             addedAt: Date(timeIntervalSinceReferenceDate: 0))
+        let heic = ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/photo.jpg"),
+                              localURL: URL(fileURLWithPath: "/tmp/photo.heic"), filename: "photo.heic",
+                              addedAt: Date(timeIntervalSinceReferenceDate: 1))
+        XCTAssertTrue(logic.append(png))
+        XCTAssertTrue(logic.append(heic))
+        XCTAssertEqual(logic.items, [png, heic])
+    }
+
+    func testAppendSameOriginalURLAndFilenameStillRejectsDuplicate() {
+        // The compound key still blocks a genuine re-drop/re-convert-to-the-SAME-format:
+        // same originalURL AND same filename is unambiguously the same duplicate D-01/D-02
+        // always meant to reject.
+        var logic = ShelfLogic()
+        let original = ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/photo.jpg"),
+                                  localURL: URL(fileURLWithPath: "/tmp/photo.png"), filename: "photo.png",
+                                  addedAt: Date(timeIntervalSinceReferenceDate: 0))
+        let dupe = ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/photo.jpg"),
+                              localURL: URL(fileURLWithPath: "/tmp/photo-copy.png"), filename: "photo.png",
+                              addedAt: Date(timeIntervalSinceReferenceDate: 1))
+        XCTAssertTrue(logic.append(original))
+        XCTAssertFalse(logic.append(dupe))
+        XCTAssertEqual(logic.items, [original])
+    }
+
     func testRemoveByIdRemovesAndReturnsItem() {
         var logic = ShelfLogic()
         let a = ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/a.pdf"),
