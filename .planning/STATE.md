@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: executing
-stopped_at: "Completed 70-02-PLAN.md — Convert chip + format-tile row landed in NotchPillView.swift; build still deliberately broken (NotchWindowController.swift:1446), Plan 70-03 must land next"
-last_updated: "2026-07-29T16:45:33.113Z"
+stopped_at: "Completed 70-03-PLAN.md — Convert button controller wiring complete (D-06 gate fix, format-tile stage dispatch, real conversion-and-landing flow); NotchWindowController.swift:1446 deferred build error closed; full build + test suite green (7 pre-existing failures, 0 new). Plan 70-04 (on-device UAT checkpoint) next."
+last_updated: "2026-07-29T17:06:21.482Z"
 last_activity: 2026-07-29
 progress:
   total_phases: 19
@@ -51,7 +51,7 @@ Idea #1 added to ROADMAP.md as Phase 70 (2026-07-29, `.planning/phases/70-file-t
 Next action: `/gsd-discuss-phase 70`.
 
 Phase: 70 (file-tray-convert-button) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
 Last activity: 2026-07-29
 
@@ -344,6 +344,8 @@ Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — P
 | Phase 66 P03 | 10min | 2 tasks | 2 files |
 | Phase 70 P01 | 25min | 3 tasks | 7 files |
 | Phase 70 P02 | 15min | 2 tasks | 1 files |
+| Phase 70 P03 | 20 | - tasks | - files |
+| Phase 70 P03 | 20 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -484,6 +486,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 70]: isImageFile falls back to ImageIO header-byte sniffing (CGImageSourceGetType) for extensionless files, since LaunchServices resourceValues alone reports a generic type for them — Live-verified: plan's literal resourceValues-only sketch failed the required extensionless-image detection test
 - [Phase 70]: NotchWindowController.swift:1446's stale 1-arg call site left deliberately broken after Plan 70-01, matching the plan's documented deferral to Plan 70-03 — Confirmed via xcodebuild build that this is the sole compile error project-wide; project will not build/test until 70-03 lands
 - [Phase 70]: Convert's enabled: computed inline from pendingDrop.items every render — never a stored/threaded Bool, avoiding the airDropAvailable/mailAvailable dead-flag pattern (D-05, D-06)
+- [Phase 70]: computeQuickActionButtonFrames's call site updated to count: 4 — one call/array serves both main-row and format-tile stages, no second call site needed
+- [Phase 70]: handleQuickActionConvert stages converted files via ShelfFileStore's staging convention directly (not calling makeSessionCopy, which only byte-copies and cannot transcode)
 
 ### Roadmap Evolution
 
@@ -641,8 +645,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-29T16:44:50.126Z
-Stopped at: Completed 70-01-PLAN.md — build deliberately left broken (NotchWindowController.swift:1446), Plan 70-03 must land next
+Last session: 2026-07-29T17:06:21.475Z
+Stopped at: Completed 70-03-PLAN.md — Convert button controller wiring complete (D-06 gate fix, format-tile stage dispatch, real conversion-and-landing flow); NotchWindowController.swift:1446 deferred build error closed; full build + test suite green (7 pre-existing failures, 0 new). Plan 70-04 (on-device UAT checkpoint) next.
 Resume file: None
 
 ## Operator Next Steps
