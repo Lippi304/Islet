@@ -3641,7 +3641,7 @@ struct NotchPillView: View {
         // generously (8 -> 55, not another small nudge) — per explicit direction, erring toward
         // "plainly more margin than needed" over hunting for an exact minimal value after this much
         // effort already spent chasing precision that turned out to be built on a broken mechanism.
-        let margin: CGFloat = 40 + wingMarginNudge   // Quick task 260729-2td Round 4: baked in from on-device tuning
+        let margin: CGFloat = 60 + wingMarginNudge   // Quick task 260729-5vl: 40 -> 60 (+20 from on-device tuning, after adding percent number)
         let notchHalfWidth = rawNotchHalfWidth + margin
         // 67.1-09 (D-14) — resolvedWingWidthScale/resolvedWingDepthScale (Plan 08) scale ONLY the
         // outermost footprint padding here; margin/cameraBlockWidth above (and every content width
@@ -3655,7 +3655,7 @@ struct NotchPillView: View {
         // Quick task 260729-5jc: plain percent number to the right of the bar (no "%" sign).
         let percentGap: CGFloat = 10   // Quick task 260729-5pv: 4 -> 10 per user request
         let percentTextWidth: CGFloat = 22
-        let trailingPad: CGFloat = 24 * wScale + wingTrailingNudge   // Quick task 260729-2td Round 4: baked in from on-device tuning
+        let trailingPad: CGFloat = 18 * wScale + wingTrailingNudge   // Quick task 260729-5vl: 24 -> 18 (-6 from on-device tuning, after adding percent number)
         // `wingsShape`'s `alignmentGuide` pins local x=`leftWidth` to the notch's TRUE center — so
         // `leftWidth` must land exactly at the camera block's own midpoint (icon pad + icon width,
         // then half the camera block), which is what makes the block's fixed width actually line up
