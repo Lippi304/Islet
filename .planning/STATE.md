@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 Phase: 67 (Coding-Progress) — not started
 Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
-Last activity: 2026-07-29 -- Quick task 260729-5pv: smoothed OSD percent-number transition + widened bar-to-number gap to 10pt, awaiting on-device Wing Tuner pass
+Last activity: 2026-07-29 -- Quick task 260729-5vl: baked in OSD wing on-device tuning deltas (margin +20, trailing -6), on-device tuned and confirmed
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 
@@ -521,6 +521,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 | 260729-57h | Disabled Phase 66's (Menü-Bar-Overflow, paused) chevron — it was being constructed and started unconditionally at every launch (no Settings toggle, no gate) despite the phase's mechanism not working, so it kept appearing in the menu bar for no purpose. Commented out the 2-line construction+start in `AppDelegate.swift`, left `MenuBarOverflowController.swift`/`MenuBarOverflowBridging.swift` and the property declaration in place (paused, not dropped, matching the Phase 49/50 precedent) — a fresh `/gsd-discuss-phase 66` would just need to un-comment these 2 lines to resume. | 2026-07-29 | 743f2a7 | Complete — user declined checkpoint | [260729-57h-disable-phase-66-menu-bar-overflow-chevr](./quick/260729-57h-disable-phase-66-menu-bar-overflow-chevr/) |
 | 260729-5jc | Added a plain percent number (0-100, no "%" sign) to the right of the OSD (Brightness/Volume) collapsed wing's level bar in `osdWings(for:)`, reusing the already-computed `percent` value. New fixed `percentGap` (4pt) + `percentTextWidth` (22pt) constants widen `totalWidth`/`rightWidth` so the capsule grows to fit the text instead of squeezing it into the existing trailing pad; text is `.monospaced`, white, no new DEBUG nudge axis (reuses existing `wingTrailingNudge`-driven `trailingPad`). User will live-tune exact spacing/width on-device via the existing Wing Tuner debug menu. | 2026-07-29 | c068ce6 | Baseline in — pending on-device Wing Tuner pass | [260729-5jc-add-percent-number-text-no-sign-to-the-r](./quick/260729-5jc-add-percent-number-text-no-sign-to-the-r/) |
 | 260729-5pv | Follow-up polish on 260729-5jc: raised `percentGap` from 4pt to 10pt, and gave the percent `Text` a `.contentTransition(.numericText(value:))` plus its own local spring animation (reusing `OSDLevelBar`'s existing spring constants) so the digit swap between old/new values rolls+fades smoothly instead of a hard cut. | 2026-07-29 | 14be79a | Baseline in — pending on-device Wing Tuner pass | [260729-5pv-smooth-number-transition-10pt-gap-for-os](./quick/260729-5pv-smooth-number-transition-10pt-gap-for-os/) |
+| 260729-5vl | Baked in on-device Wing Tuner deltas for the OSD wing (post percent-number addition): `margin` 40→60 (+20), `trailingPad` base 24→18 (-6); `iconLeadingPad`/gap constants untouched (deltas were 0). | 2026-07-29 | ad29508 | Complete — on-device tuned | [260729-5vl-bake-in-osd-wing-tuning-deltas-margin-20](./quick/260729-5vl-bake-in-osd-wing-tuning-deltas-margin-20/) |
 
 ## Deferred Items
 
