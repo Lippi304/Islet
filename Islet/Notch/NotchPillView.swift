@@ -3377,15 +3377,15 @@ struct NotchPillView: View {
         // clearance beyond the bare floor". This is an ESTIMATE, not live-measured — re-tune with
         // Wing Tuner's Margin buttons on-device; the checkpoint at the end of this plan is the real
         // verification gate, not this number.
-        let margin: CGFloat = 0 + wingMarginNudge
+        let margin: CGFloat = 20 + wingMarginNudge   // Quick task 260729-3pc Round 5: baked in from on-device tuning
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
-        let leadingPad: CGFloat = 14 + wingLeadingNudge
+        let leadingPad: CGFloat = 18 + wingLeadingNudge   // Quick task 260729-3pc Round 5: baked in from on-device tuning
         let iconWidth: CGFloat = 20
         // Circle(8) + gap(4 nominal) + "On" text (2 chars, 12pt semibold rounded, ~20pt) — same
         // estimate-for-known-short-content style as updateWings' labelWidth / meetingWings'
         // elapsedWidth. Not exact; live re-tuning is what the Wing Tuner itself is for.
         let rightContentWidth: CGFloat = 34
-        let trailingPad: CGFloat = 20 + wingTrailingNudge
+        let trailingPad: CGFloat = 16 + wingTrailingNudge   // Quick task 260729-3pc Round 5: baked in from on-device tuning
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
@@ -3733,12 +3733,12 @@ struct NotchPillView: View {
         // 67.1-09 (D-14) — see osdWings' own comment above; only the outer padding scales.
         let wScale = resolvedWingWidthScale
         let dScale = resolvedWingDepthScale
-        let leadingPad: CGFloat = 8 * wScale + wingLeadingNudge
+        let leadingPad: CGFloat = 12 * wScale + wingLeadingNudge   // Quick task 260729-3pc Round 5: baked in from on-device tuning
         let iconWidth: CGFloat = 20
         let iconLabelGap: CGFloat = 2 + wingGapNudge
         let labelWidth: CGFloat = 54    // "Update" (6 chars) at 12pt semibold rounded — Quick task 260729-2td: widened, was clipping
         let pillWidth: CGFloat = 52     // UpdateVersionPill ("v1.99"-class content) at 11pt
-        let trailingPad: CGFloat = 8 * wScale + wingTrailingNudge
+        let trailingPad: CGFloat = 12 * wScale + wingTrailingNudge   // Quick task 260729-3pc Round 5: baked in from on-device tuning
         let leftWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + iconLabelGap + labelWidth + cameraBlockWidth + pillWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
