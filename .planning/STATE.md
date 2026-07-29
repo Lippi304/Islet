@@ -27,8 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 
 **NEXT SESSION START HERE:** User captured 5 new feature ideas (2026-07-29), ranked in the exact
 order they want to tackle them, explicitly ahead of resuming Phase 67 or any other open phase.
-Seed files (with reference-screenshot notes — screenshots were described but not transmitted/
-captured, re-ask the user to re-share when starting): `.planning/seeds/`
+Reference screenshots for all 5 have since been reviewed and their concrete visual details are
+baked into each seed file below (all inspired by an app called "Droppy"). Seed files:
+`.planning/seeds/`
 
 1. [[filetray-convert-button]] — **start here** — File Tray gains a 4th "Convert" button for
    dropped images (JPG↔PNG etc.), mirroring Finder's own "Convert Image" right-click menu.
@@ -47,7 +48,7 @@ a new phase to ROADMAP.md first, since it isn't one yet.
 
 Phase: 67 (Coding-Progress) — not started, on hold behind the 5 queued ideas above.
 Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
-Last activity: 2026-07-29 -- Captured 5 ordered feature-idea seeds (File Tray Convert, Island corner rounding, Calendar 1:1 redesign, Timer slider redesign, Music Next Up) — user wants these worked in order starting next session, ahead of Phase 67
+Last activity: 2026-07-29 -- Reviewed reference screenshots for all 5 queued feature-idea seeds (File Tray Convert, Island corner rounding, Calendar 1:1 redesign, Timer slider redesign, Music Next Up) and enriched each with concrete visual details — next session should run /gsd-discuss-phase on idea #1
 
 ### Phase 66 Plan 01 result (2026-07-27) — NO-GO
 

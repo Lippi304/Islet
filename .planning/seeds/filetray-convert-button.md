@@ -13,9 +13,14 @@ right-click → "Convert Image" menu offers (e.g. JPG ↔ PNG, and whatever othe
 system menu exposes), so the File Tray becomes a quick drag-and-drop version of that same
 conversion tool.
 
-User provided a reference screenshot in the original message (not captured/attached in this
-seed — re-share or re-describe the exact 3 existing buttons + desired Convert button placement
-when this is picked up).
+Reference screenshot reviewed (2026-07-29, `image-cache/.../15.png`, from the "Droppy" app):
+a row of 4 equal-width rounded-rect buttons inside the notch capsule, each with an icon above a
+text label below — "Keep" (tray/inbox-down icon), "Droppy Cloud" (droplet icon), "AirDrop"
+(wifi/broadcast icon), "Convert" (circular refresh-arrows icon), 4th/rightmost position. Islet's
+own existing 3 File Tray buttons are presumably named/iconed differently — confirm the actual
+current 3 button labels/icons/order in the codebase, then match this same "icon above, label
+below, 4th slot" layout pattern for the new Convert button, using a similarly simple
+refresh/convert-style icon.
 
 ## Why
 
