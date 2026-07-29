@@ -138,6 +138,21 @@ final class NotchWindowController {
     // handleQuickActionDrop/finishQuickActionSharing/discardPendingDrop.
     private var pendingDrop: PendingDrop?
 
+    // Phase 70 / D-06 — AirDrop/Mail are never dynamically toggled today (mirrors
+    // NotchPillView's own hardcoded defaults, 34-RESEARCH.md D-09 fallback rationale); kept as
+    // named constants (not inline `true`) so the hit-test gate below reads as an explicit,
+    // named enabled-check rather than a magic boolean.
+    private let airDropAvailable = true
+    private let mailAvailable = true
+
+    // Phase 70 / D-05 — the CONTROLLER's own independent enabled-gate for Convert, computed
+    // fresh at hit-test time (never a value threaded from the view) — mirrors NotchPillView's
+    // identical inline `allSatisfy` expression, but this side needs its own copy since it's the
+    // one place a release point is actually dispatched.
+    private var isConvertEnabled: Bool {
+        pendingDrop?.items.allSatisfy { ImageConversionService.isImageFile($0.originalURL) } ?? false
+    }
+
     // Phase 34 / TRAY-04 — the isolated NSSharingService seam (Plan 01). No window-activation
     // code lives here or in the service itself (D-08).
     private let quickActionSharingService = QuickActionSharingService()
@@ -1442,8 +1457,10 @@ final class NotchWindowController {
                                                          expandedSize: CGSize(width: NotchPillView.traySize.width,
                                                                                height: NotchPillView.quickActionPickerContentHeight))
         // Phase 34 (UAT revision, Pattern 3) — the 3 destination buttons' live global frames,
-        // computed once per positionAndShow() alongside quickActionPickerFrame itself.
-        quickActionButtonFrames = computeQuickActionButtonFrames(card: quickActionPickerFrame)
+        // computed once per positionAndShow() alongside quickActionPickerFrame itself. Phase 70:
+        // count: 4 covers BOTH stages (main row's 4 buttons and the format-tile row's 4 tiles) —
+        // both are exactly 4 equal-width items in the identical card, so one call suffices.
+        quickActionButtonFrames = computeQuickActionButtonFrames(card: quickActionPickerFrame, count: 4)
         // Phase 62-04 UAT design revision (item 6, geometry three-site rule, Site 2) — the
         // Timer tab's duration/mode picker needs its own bigger reservation (340pt content,
         // taller than expandedFrame's 296pt union member), mirroring weatherExpandedFrame's/
@@ -1605,11 +1622,26 @@ final class NotchWindowController {
         let point = NSEvent.mouseLocation
         if pendingDrop != nil {
             if let hit = quickActionButtonFrames.firstIndex(where: { $0.contains(point) }) {
-                switch hit {
-                case 0: handleQuickActionDrop()
-                case 1: handleQuickActionAirDrop()
-                case 2: handleQuickActionMail()
-                default: break
+                if presentationState.isShowingConvertFormats {
+                    // Phase 70 / D-03 — format-tile stage: a hit dispatches the real
+                    // convert-and-land flow for the chosen format.
+                    if ImageFormat.allCases.indices.contains(hit) {
+                        handleQuickActionConvert(to: ImageFormat.allCases[hit])
+                    }
+                } else {
+                    // D-06 — a release on a DIMMED/disabled button must never dispatch its
+                    // handler; the frame still exists (it's still hit-testable), it's the
+                    // handler call itself that's gated now, for all 4 main-row buttons.
+                    switch hit {
+                    case 0: handleQuickActionDrop()
+                    case 1: if airDropAvailable { handleQuickActionAirDrop() }
+                    case 2: if mailAvailable { handleQuickActionMail() }
+                    case 3:
+                        // Phase 70 / D-01 — entering the format stage is NOT a commit: no
+                        // discardPendingDrop()/dismissExpandedImmediately() here.
+                        if isConvertEnabled { presentationState.isShowingConvertFormats = true }
+                    default: break
+                    }
                 }
             } else {
                 // D-13: released inside the picker card but not on a button — discard, then
@@ -1617,7 +1649,10 @@ final class NotchWindowController {
                 // this release point is typically STILL inside expandedZone (the picker card the
                 // pointer just released in), so deferring through the normal hover-exit grace
                 // timer either never got an exit edge at all (stuck expanded, round 3) or briefly
-                // flashed the underlying content while waiting out the grace delay.
+                // flashed the underlying content while waiting out the grace delay. Phase 70:
+                // resets isShowingConvertFormats too, so an off-target release during either
+                // stage cleans up identically.
+                presentationState.isShowingConvertFormats = false
                 discardPendingDrop()
                 dismissExpandedImmediately()
             }
