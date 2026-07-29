@@ -24,11 +24,10 @@ tick marks between them, an orange fill from the left edge up to a small triangl
 sitting under the currently-selected tick (85 in the screenshot), unfilled/greyed ticks beyond
 the selection. Below the ruler, left-to-right: an orange pill-shaped "Start Timer" button, a
 circular speaker/sound-toggle icon button, a circular stopwatch/clock icon button, then a large
-orange total-duration readout `1:26:00` on the right. **Flag for discuss-phase:** the user's own
-description called the ruler units "Sekunden" (seconds), but `70–100` ticks paired with a total
-of `1:26:00` (1h26m) imply the ruler is actually in **minutes**, not seconds (100 seconds would
-be under 2 minutes total, not 1h26m) — confirm the intended unit with the user before building,
-don't assume from the German wording alone.
+orange total-duration readout `1:26:00` on the right. **Confirmed (2026-07-29):** the ruler unit
+is **minutes**, not seconds — user's initial "Sekunden" wording was a slip, caught via the
+`70–100` ticks vs. `1:26:00` total-duration math not adding up in seconds. Locked decision for
+planning: build the ruler/slider in minutes.
 
 ## Why
 
