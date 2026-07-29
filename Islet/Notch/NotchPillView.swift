@@ -3091,13 +3091,14 @@ struct NotchPillView: View {
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
         let leadingPad: CGFloat = 18 + wingLeadingNudge
         let iconWidth: CGFloat = 20
-        // Quick task 260729-4oi Round 7 — user asked to consolidate the plug icon + separate
-        // BatteryIndicator+% into a single "battery, charging" glyph, with no percentage shown at
-        // all ("man lädt sowieso nur auf, braucht keine Prozentzahl"). Right flank no longer has any
-        // content — trailingPad alone provides breathing room past the camera block.
+        // Quick task 260729-4yy Round 9 — user asked for a "Charging..." text back on the right
+        // (the battery+bolt icon alone wasn't enough). "Charging..." (11 chars) at 12pt semibold
+        // rounded — same estimate-for-known-short-content style as deviceWings' old "Connected"
+        // (9 chars) -> 70pt; a couple points wider here for the 2 extra characters.
+        let rightContentWidth: CGFloat = 80
         let trailingPad: CGFloat = 20 + wingTrailingNudge
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
-        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + trailingPad
+        let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
         assert(cameraBlockWidth > 0, "Charging camera block width (\(cameraBlockWidth)) must be positive")
         assert(rightWidth < 325 && leftWidth < 325,
@@ -3115,6 +3116,12 @@ struct NotchPillView: View {
                     .foregroundStyle(.white)
                     .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
                 Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
+                // Quick task 260729-4yy Round 9 — "Charging..." text re-added per user request.
+                Text("Charging...")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .frame(width: rightContentWidth, alignment: .leading)
                 Color.clear.frame(width: trailingPad)
             }
         }
@@ -3312,12 +3319,14 @@ struct NotchPillView: View {
     // BluetoothGlyph.imageset, template-rendering-intent so it tints via .foregroundStyle like
     // every other wing's SF Symbol icon).
     private func bluetoothGlyph(size s: CGFloat, opacity: Double) -> some View {
+        // Quick task 260729-4yy Round 9: inner scale 0.7 -> 0.98 (user: "0.4 nochmal größer", i.e.
+        // current size * 1.4 = 0.7 * 1.4 = 0.98) per on-device feedback that the icon read too small.
         Image("BluetoothGlyph")
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
             .foregroundStyle(Color.white.opacity(opacity))
-            .frame(width: s * 0.7, height: s * 0.7)
+            .frame(width: s * 0.98, height: s * 0.98)
             .frame(width: s, height: s)
     }
 
@@ -3462,13 +3471,15 @@ struct NotchPillView: View {
         // (short mm:ss digits, no adjacent label) — not live-measured for THIS wing specifically,
         // re-tune with Wing Tuner if the footprint looks off.
         let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
-        let margin: CGFloat = 20 + wingMarginNudge
+        // Quick task 260729-4yy Round 9: baked in from on-device tuning (margin +25, leading +6,
+        // trailing -18) — confirms round 8's margin/cameraBlockWidth conversion works.
+        let margin: CGFloat = 45 + wingMarginNudge
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
-        let leadingPad: CGFloat = 14 + wingLeadingNudge
+        let leadingPad: CGFloat = 20 + wingLeadingNudge
         let iconWidth: CGFloat = 20
         // mm:ss digits — same fixed-content estimate timerWings' own plain-Countdown branch uses.
         let rightContentWidth: CGFloat = 60
-        let trailingPad: CGFloat = 20 + wingTrailingNudge
+        let trailingPad: CGFloat = 2 + wingTrailingNudge
         let leftWidth = leadingPad + iconWidth + cameraBlockWidth / 2
         let totalWidth = leadingPad + iconWidth + cameraBlockWidth + rightContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
