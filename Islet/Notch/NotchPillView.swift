@@ -2050,16 +2050,25 @@ struct NotchPillView: View {
     // Phase 34 (UAT revision, D-14/D-15) / 34-UI-SPEC.md Layout & Interaction Contract §1/§3 —
     // the Quick Action Destination Picker: a full-takeover presentation (switcher HIDDEN,
     // showSwitcher: false -- the picker is behaviorally analogous to the Charging/Device wings
-    // splash, not a switcher-row tab) showing ONLY the 3 equal-weight Drop/AirDrop/Mail buttons
-    // -- no file preview, uniformly for single- and multi-file drops (D-14). Mirrors
-    // trayFullView's exact blobShape call shape. No parameter: the view has no remaining use
-    // for the PendingDrop payload (the CONTROLLER's PendingDrop.items remains fully used,
-    // unchanged, by Plan 02's button handlers).
-    private func quickActionPickerView() -> some View {
+    // splash, not a switcher-row tab) -- no file preview, uniformly for single- and multi-file
+    // drops (D-14). Mirrors trayFullView's exact blobShape call shape.
+    // Phase 70 / D-01 — now a 2-stage card: the main Drop/AirDrop/Mail/Convert row, or (once
+    // presentationState.isShowingConvertFormats is set true by the controller, Plan 70-03) the
+    // JPG/PNG/HEIC/TIFF format-tile row, swapped in-place inside the SAME blobShape call with
+    // NO card resize (Self.traySize.width / Self.quickActionPickerContentHeight unchanged for
+    // either stage) — reuses the "Group{if/else}.padding(.top, cameraClearance)" conditional-
+    // rendering shape already proven elsewhere in this file.
+    private func quickActionPickerView(pendingDrop: PendingDrop) -> some View {
         blobShape(topCornerRadius: 24, bottomCornerRadius: 32, alignment: .top,
                   width: Self.traySize.width, height: Self.quickActionPickerContentHeight,
                   shelfItems: [], shelfVisible: false, showSwitcher: false) {
-            quickActionButtonRow()
+            Group {
+                if presentationState.isShowingConvertFormats {
+                    formatTileRow()
+                } else {
+                    quickActionButtonRow(pendingDrop)
+                }
+            }
                 .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches every other full-view
                 // Phase 44 UAT gap-closure (round 1) — quickActionButtonRow() had zero horizontal
                 // padding, so its `.frame(maxWidth: .infinity)` chips filled the card edge-to-edge.
@@ -2071,6 +2080,19 @@ struct NotchPillView: View {
                 // 420pt-wide box because the chips still filled edge-to-edge either way; the wider
                 // 650pt box (Plan 44-01) just made the resulting overflow easier to see.
                 .padding(.horizontal, 24)
+        }
+    }
+
+    // Phase 70 / D-02 — the second-step format-tile row (Convert tapped): 4 equal-weight tiles,
+    // JPG/PNG/HEIC/TIFF, ALL always enabled (the gate already happened at the main row's Convert
+    // chip, D-05). One shared icon ("photo") across all 4 tiles per 70-UI-SPEC.md's resolved
+    // Open Question 1 — label text alone differentiates them. Reuses quickActionButton verbatim.
+    private func formatTileRow() -> some View {
+        HStack(spacing: 16) {
+            ForEach(Array(ImageFormat.allCases.enumerated()), id: \.offset) { index, format in
+                quickActionButton(icon: "photo", label: format.label, enabled: true,
+                                   isHovered: presentationState.hoveredQuickActionButtonIndex == index)
+            }
         }
     }
 
