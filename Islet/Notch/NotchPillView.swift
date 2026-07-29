@@ -3305,6 +3305,33 @@ struct NotchPillView: View {
     // connected / dimmed xmark on disconnect — D-03). NO device name (drops the untrusted-name
     // render surface, T-05-01). The view drives NO animation (D-08); the controller wraps the
     // mutation in its spring and clears it after ~3s (D-04 dismiss).
+    // Quick task 260729-47v Round 6 — hand-drawn Bluetooth bind-rune glyph (vertical spine + two
+    // right-pointing "flag" triangles), the standard way to construct this shape from a square of
+    // side `s`. Replaces the "dot.radiowaves.left.and.right" SF Symbol stand-in (260729-3pc Round 5)
+    // per the user's explicit request + reference image showing the real recognizable Bluetooth logo.
+    // Apple's SF Symbols set genuinely has no literal Bluetooth-logo glyph available to third-party
+    // apps (re-confirmed this round). FIRST-PASS APPROXIMATION — proportions are not pixel-verified
+    // against Apple's/Bluetooth SIG's exact official glyph; flagged in this plan's checkpoint for the
+    // user to confirm on real hardware or request tweaks.
+    private func bluetoothGlyph(size s: CGFloat, opacity: Double) -> some View {
+        Path { path in
+            let top = CGPoint(x: s * 0.5, y: 0)
+            let upperRight = CGPoint(x: s, y: s * 0.25)
+            let center = CGPoint(x: s * 0.5, y: s * 0.5)
+            let lowerRight = CGPoint(x: s, y: s * 0.75)
+            let bottom = CGPoint(x: s * 0.5, y: s)
+            path.move(to: top)
+            path.addLine(to: upperRight)
+            path.addLine(to: center)
+            path.addLine(to: lowerRight)
+            path.addLine(to: bottom)
+            path.move(to: top)
+            path.addLine(to: bottom)
+        }
+        .stroke(Color.white.opacity(opacity), style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
+        .frame(width: s, height: s)
+    }
+
     private func deviceWings(for activity: DeviceActivity) -> some View {
         // Quick task 260729-3pc Round 5 — `glyph` no longer read (icon is now a single fixed symbol
         // regardless of device type, see below), so both switch cases drop their `let g` binding.
@@ -3330,11 +3357,11 @@ struct NotchPillView: View {
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
         let leadingPad: CGFloat = 12 + wingLeadingNudge
         let iconWidth: CGFloat = 20
-        let labelGap: CGFloat = 4 + wingGapNudge
-        // "Connected" (9 chars) at 12pt semibold rounded — same estimate-for-known-short-content
-        // style as updateWings' labelWidth / meetingWings' elapsedWidth. Only present when connected.
-        let labelWidth: CGFloat = 70
-        let leftContentWidth = leadingPad + iconWidth + (isConnected ? labelGap + labelWidth : 0)
+        // Quick task 260729-47v Round 6 — "Connected" text removed entirely (see the leading content
+        // below, no more conditional label); leftContentWidth no longer varies with isConnected.
+        // labelGap/labelWidth locals (only ever sized to reserve room for that text) are removed —
+        // nothing else in this function referenced them.
+        let leftContentWidth = leadingPad + iconWidth
         // BatteryIndicator's own ~27pt body + 1.2pt spacing + 1.8pt nub (~30pt) — shared across all
         // 3 trailing states (battery, ring, xmark) so the wing's width doesn't jump when a device's
         // battery reading becomes available mid-session, mirroring downloadWings' own "one width
@@ -3350,32 +3377,8 @@ struct NotchPillView: View {
         return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: leadingPad)
-                HStack(spacing: 4 + wingGapNudge) {
-                    // Quick task 260729-3pc Round 5 — replaced the per-device-type icon
-                    // (deviceSymbol(for: glyph): airpods/airpodspro/airpods.max/headphones/beats.headphones/
-                    // generic) with ONE fixed symbol for every device. Apple's SF Symbols set has no literal
-                    // Bluetooth-logo glyph available to third-party apps (a deliberate Apple omission); this
-                    // codebase's own existing `.generic` case already used "dot.radiowaves.left.and.right" as
-                    // its de-facto "unrecognized Bluetooth device" icon, so reusing that exact symbol for ALL
-                    // devices is the closest available "the Bluetooth icon" per the user's request, and matches
-                    // an existing in-codebase convention instead of inventing a new custom-drawn glyph. This
-                    // REPLACES the per-device-type icon distinction (AirPods/AirPods Pro/AirPods Max/Beats/
-                    // generic-headphones all now render identically) as a deliberate simplification — flagged
-                    // for the user; an easy follow-up if per-device icons should come back for some devices.
-                    Image(systemName: "dot.radiowaves.left.and.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        // Quick task 260729-3pc Round 5: plain white (was deviceAccent-tinted), matching
-                        // Charging's new plug icon and the reference image (no colored icons at all).
-                        // iconOpacity dimming for the disconnected state (D-03) is unchanged.
-                        .foregroundStyle(Color.white.opacity(iconOpacity))
-                        .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
-                    if isConnected {
-                        Text("Connected")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
-                    }
-                }
+                bluetoothGlyph(size: iconWidth, opacity: iconOpacity)
+                    .frame(width: iconWidth, height: Self.wingsSize.height * resolvedWingDepthScale, alignment: .center)
                 Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
                 deviceTrailing(isConnected: isConnected, battery: battery)
                     .frame(width: trailingContentWidth, alignment: .leading)
@@ -4169,12 +4172,9 @@ struct NotchPillView: View {
     @ViewBuilder
     private func deviceTrailing(isConnected: Bool, battery: Int?) -> some View {
         if isConnected, let battery {
-            // Quick task 260729-3pc Round 5: accent switched from the implicit default (.green) to
-            // .white, matching Charging's new white BatteryIndicator treatment exactly ("genau das
-            // gleiche" per the user's request). The other 2 fallback states (connected-without-battery
-            // green ring, disconnected xmark) are untouched — the user only asked about the
-            // battery-reading case.
-            BatteryIndicator(level: battery, accent: .white)
+            // Quick task 260729-47v Round 6: accent reverted from .white (260729-3pc Round 5) back to
+            // .green — same rationale as Charging's revert above, matching exactly.
+            BatteryIndicator(level: battery, accent: .green)
         } else if isConnected {
             Circle().strokeBorder(Color.green, lineWidth: 1.5)
                 .frame(width: 14, height: 14)
