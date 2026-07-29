@@ -428,6 +428,10 @@ final class NotchWindowController {
     // .leftMouseUp (handleDragApproachEnd's literal first action) so a geometrically-ambiguous
     // Escape-cancel can never leave the island stuck expanded.
     private var isDragApproaching = false
+    // Phase 70 fix (code review CR-01) — timestamp of entering the format-tile stage, bounding
+    // how long handleHoverExit's grace-collapse stays suppressed for it (see that guard).
+    private var formatStageEnteredAt: CFAbsoluteTime = 0
+    private let formatStageAbandonWindow: CFAbsoluteTime = 3.0
 
     // WR-01: the pointer-in-hot-zone edge, tracked from RAW geometry — NOT derived from
     // `interaction.isHovering` (which is true for BOTH .hovering AND .expanded, so a
@@ -1632,28 +1636,31 @@ final class NotchWindowController {
         let point = NSEvent.mouseLocation
         if pendingDrop != nil {
             if let hit = quickActionButtonFrames.firstIndex(where: { $0.contains(point) }) {
-                if presentationState.isShowingConvertFormats {
-                    // Phase 70 / D-03 — format-tile stage: a hit dispatches the real
-                    // convert-and-land flow for the chosen format.
-                    if ImageFormat.allCases.indices.contains(hit) {
-                        handleQuickActionConvert(to: ImageFormat.allCases[hit])
+                // Phase 70 fix (code review WR-01) — this dispatch only ever runs for the
+                // main row: presentationState.isShowingConvertFormats is provably false here.
+                // It's set true by case 3 below, only AFTER this switch already ran; and once
+                // true, interaction.isExpanded blocks recheckDragAcceptRegion's arm condition
+                // from ever setting isDragApproaching = true again, so a second real drag
+                // (the only other way to reach this function) can't arm while the format-tile
+                // stage shows. That stage's own click is an ordinary in-app one, dispatched
+                // from handleClick() instead (NSEvent global monitors don't see it here) — no
+                // isShowingConvertFormats branch is needed in this function at all.
+                //
+                // D-06 — a release on a DIMMED/disabled button must never dispatch its
+                // handler; the frame still exists (it's still hit-testable), it's the
+                // handler call itself that's gated now, for all 4 main-row buttons.
+                switch hit {
+                case 0: handleQuickActionDrop()
+                case 1: if airDropAvailable { handleQuickActionAirDrop() }
+                case 2: if mailAvailable { handleQuickActionMail() }
+                case 3:
+                    // Phase 70 / D-01 — entering the format stage is NOT a commit: no
+                    // discardPendingDrop()/dismissExpandedImmediately() here.
+                    if isConvertEnabled {
+                        presentationState.isShowingConvertFormats = true
+                        formatStageEnteredAt = CFAbsoluteTimeGetCurrent()
                     }
-                } else {
-                    // D-06 — a release on a DIMMED/disabled button must never dispatch its
-                    // handler; the frame still exists (it's still hit-testable), it's the
-                    // handler call itself that's gated now, for all 4 main-row buttons.
-                    switch hit {
-                    case 0: handleQuickActionDrop()
-                    case 1: if airDropAvailable { handleQuickActionAirDrop() }
-                    case 2: if mailAvailable { handleQuickActionMail() }
-                    case 3:
-                        // Phase 70 / D-01 — entering the format stage is NOT a commit: no
-                        // discardPendingDrop()/dismissExpandedImmediately() here.
-                        if isConvertEnabled {
-                            presentationState.isShowingConvertFormats = true
-                        }
-                    default: break
-                    }
+                default: break
                 }
             } else {
                 // D-13: released inside the picker card but not on a button — discard, then
@@ -1778,11 +1785,21 @@ final class NotchWindowController {
             guard (try? FileManager.default.createDirectory(at: itemDir, withIntermediateDirectories: true)) != nil else { continue }
 
             let baseName = (item.filename as NSString).deletingPathExtension
-            guard !baseName.isEmpty, baseName != ".", baseName != ".." else { continue }
+            // Phase 70 fix (code review WR-02) — itemDir already exists by this point; a
+            // rejected baseName or a failed convert() below must not leave it orphaned on
+            // disk (no ShelfItem is ever created for a skipped item, so nothing else would
+            // ever reclaim it).
+            guard !baseName.isEmpty, baseName != ".", baseName != ".." else {
+                try? FileManager.default.removeItem(at: itemDir)
+                continue
+            }
             let newFilename = baseName + "." + format.fileExtension
             let destinationURL = itemDir.appendingPathComponent(newFilename)
 
-            guard (try? ImageConversionService.convert(item.localURL, to: format, destinationURL: destinationURL)) != nil else { continue }
+            guard (try? ImageConversionService.convert(item.localURL, to: format, destinationURL: destinationURL)) != nil else {
+                try? FileManager.default.removeItem(at: itemDir)
+                continue
+            }
 
             let convertedItem = ShelfItem(id: id, originalURL: item.originalURL, localURL: destinationURL, filename: newFilename, addedAt: Date())
             shelfCoordinator.append(convertedItem)
@@ -2161,10 +2178,17 @@ final class NotchWindowController {
             // visibleContentZone briefly along the way (confirmed on-device). The main row's
             // grace-collapse-discards-while-a-picker-shows behavior is correct for THAT case
             // but actively fights this one: it would discard the pending drop mid-repositioning,
-            // before the user's actual click can ever land. Only a real click — hit a tile, or
-            // miss and hit handleDragApproachEnd's own D-13 discard branch — should end this
-            // stage; an ordinary hover-exit must not.
-            guard !self.presentationState.isShowingConvertFormats else { return }
+            // before the user's actual click can ever land.
+            //
+            // Phase 70 fix (code review CR-01) — an UNCONDITIONAL suppression here left the
+            // island stuck expanded forever if the user abandoned the picker without ever
+            // clicking anywhere in it (walked away, switched apps) — nothing else re-arms this
+            // stage's path back to collapsed. Bounded to formatStageAbandonWindow after
+            // entering the stage: long enough for any plausible pointer travel toward a tile,
+            // short enough that a genuine walk-away still self-heals instead of hanging.
+            let inFormatStageGracePeriod = self.presentationState.isShowingConvertFormats
+                && (CFAbsoluteTimeGetCurrent() - self.formatStageEnteredAt) < self.formatStageAbandonWindow
+            guard !inFormatStageGracePeriod else { return }
             // Only collapse if the pointer is STILL outside (re-entry would have cancelled).
             withAnimation(.spring(response: self.springResponse, dampingFraction: self.springDamping)) {
                 self.interaction.phase = nextState(self.interaction.phase, .graceElapsed)

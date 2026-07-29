@@ -40,8 +40,9 @@ final class ShelfLogicTests: XCTestCase {
     }
 
     func testAppendSameFilenameDifferentOriginalURLBothCoexist() {
-        // D-01: dedupe key is originalURL only, never filename — two files named the same
-        // but sourced from different paths both remain in the shelf.
+        // D-01: the dedup key includes filename, but originalURL alone already differs
+        // here, so these are never considered duplicates regardless — two files named the
+        // same but sourced from different paths both remain in the shelf.
         var logic = ShelfLogic()
         let first = ShelfItem(id: UUID(), originalURL: URL(fileURLWithPath: "/folderA/report.pdf"),
                                localURL: URL(fileURLWithPath: "/tmp/report-1.pdf"), filename: "report.pdf",
