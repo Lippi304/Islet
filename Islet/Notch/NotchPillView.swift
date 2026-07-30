@@ -1627,27 +1627,53 @@ struct NotchPillView: View {
     // reference. Shrunk to `calendarCellSize`/`calendarCellGap` (18pt/2pt) below, which both
     // matches the reference density AND frees width for `dayListColumn` for free (see those
     // constants' own doc comment).
+    // 72-02 (D-10) — locale-aware weekday letters for weekdayHeaderRow below, rotated so index 0
+    // matches Calendar.current.firstWeekday instead of always Sunday. Foundation Calendar API
+    // only — never a hardcoded weekday-letter array (RESEARCH.md Pitfall 2).
+    private var rotatedWeekdaySymbols: [String] {
+        let calendar = Calendar.current
+        let symbols = calendar.veryShortWeekdaySymbols   // index 0 = Sunday, always
+        let firstWeekdayIndex = calendar.firstWeekday - 1 // Calendar.firstWeekday is 1-based
+        return Array(symbols[firstWeekdayIndex...] + symbols[..<firstWeekdayIndex])
+    }
+
+    // 72-02 (D-10) — net-new weekday-letter header row above the day grid; column-aligned to the
+    // LazyVGrid below via the same Self.calendarCellSize/calendarCellGap constants.
+    private var weekdayHeaderRow: some View {
+        HStack(spacing: Self.calendarCellGap) {
+            ForEach(Array(rotatedWeekdaySymbols.enumerated()), id: \.offset) { _, symbol in
+                Text(symbol)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .frame(width: Self.calendarCellSize)
+            }
+        }
+    }
+
     private var monthGridColumn: some View {
         VStack(spacing: 8) {
             HStack {
-                Button(action: { onCalendarMonthChange(-1) }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-                .buttonStyle(.plain)
                 Spacer()
-                Text(calendarViewState.visibleMonth, format: .dateTime.month(.wide).year())
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
-                Spacer()
-                Button(action: { onCalendarMonthChange(1) }) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.7))
+                HStack(spacing: 8) {
+                    Button(action: { onCalendarMonthChange(-1) }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    Text(calendarViewState.visibleMonth, format: .dateTime.month(.wide).year())
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                    Button(action: { onCalendarMonthChange(1) }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                Spacer()
             }
+            weekdayHeaderRow
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(Self.calendarCellSize), spacing: Self.calendarCellGap), count: 7),
                       spacing: Self.calendarCellGap) {
                 ForEach(Array(daysInMonth(for: calendarViewState.visibleMonth).enumerated()), id: \.offset) { _, day in
