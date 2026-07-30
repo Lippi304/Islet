@@ -1208,8 +1208,22 @@ Plans:
   4. Existing quick-add functionality (CALVIEW-05/06/07's date+time picker, add-button placement, event-row padding) continues to work unchanged inside the redesigned two-column layout.
   5. The island widens to fit the two-column layout without clipping content, reusing the existing per-tab width-scaling pattern (Phase 32/67.1) rather than a one-off hardcoded width.
 
-**Plans**: TBD (run `/gsd:plan-phase 72` to break down)
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 72-01-PLAN.md — Data layer: EventInput.id + eventsByDay(events:calendar:) pure grouping function (TDD) + CalendarService.updateEvent/deleteEvent (D-09)
+- [ ] 72-02-PLAN.md — Month grid visual redesign: weekday header row (net-new), chevron spacing (D-10), badge swap (D-03), red month-label/font/cell-size bump (D-05/D-11)
+
+**Wave 2** *(blocked on 72-01, 72-02 — same-file sequencing)*
+
+- [ ] 72-03-PLAN.md — Whole-month day-grouped scrollable agenda (D-01/D-02) + hover-delete EventRow + EventEditPopover (D-07/D-08/D-12)
+
+**Wave 3** *(blocked on 72-01, 72-03)*
+
+- [ ] 72-04-PLAN.md — NotchWindowController wiring (handleEventEdit/handleEventDelete) + consolidated on-device UAT checkpoint
 
 ### Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider
 
