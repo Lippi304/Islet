@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
-status: planning
-last_updated: "2026-07-30T02:07:00.000Z"
-last_activity: 2026-07-30
+status: Roadmap created (4 phases, 71-74, 8/8 requirements mapped) — ready for `/gsd-discuss-phase 71`
+stopped_at: Phase 71 context gathered
+last_updated: "2026-07-30T02:42:43.751Z"
+last_activity: 2026-07-30 — v1.11 ROADMAP.md/STATE.md/REQUIREMENTS.md created (Phases 71-74)
 progress:
-  total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 42
+  completed_phases: 26
+  total_plans: 99
+  completed_plans: 91
+  percent: 62
 ---
 
 # Project State
@@ -635,9 +636,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-29T17:06:21.475Z
-Stopped at: Completed 70-03-PLAN.md — Convert button controller wiring complete (D-06 gate fix, format-tile stage dispatch, real conversion-and-landing flow); NotchWindowController.swift:1446 deferred build error closed; full build + test suite green (7 pre-existing failures, 0 new). Plan 70-04 (on-device UAT checkpoint) next.
-Resume file: None
+Last session: 2026-07-30T02:42:43.741Z
+Stopped at: Phase 71 context gathered
+Resume file: .planning/phases/71-island-corner-rounding/71-CONTEXT.md
 
 ## Operator Next Steps
 
