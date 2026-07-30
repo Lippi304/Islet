@@ -1707,13 +1707,12 @@ struct NotchPillView: View {
         }
     }
 
-    // RIGHT column — the selected day's event list. `dayEvents == nil` (monthEvents not yet
-    // fetched) renders nothing — NEVER the empty state (Pitfall 4: distinguishes loading from a
-    // confirmed-zero-events day so CALVIEW-02's "No events today" never flashes before the
-    // first EventKit fetch settles).
+    // RIGHT column — the whole-month, day-grouped agenda (CALVIEW-08, D-01/D-02). `monthEvents
+    // == nil` (not yet fetched) renders nothing — NEVER the empty state (Pitfall 4: distinguishes
+    // loading from a confirmed-zero-events month so "No events this month" never flashes before
+    // the first EventKit fetch settles).
     private var dayListColumn: some View {
-        let dayEvents = calendarViewState.monthEvents.map { events(on: calendarViewState.selectedDay, events: $0) }
-        return VStack(alignment: .trailing, spacing: 4) {
+        VStack(alignment: .trailing, spacing: 4) {
             // CALVIEW-06 / D-06 — the "+ Add" trigger, LEFT edge of the day-list column, next
             // to the month-grid/day-list divider (was right edge, previously visually clipped).
             HStack {
@@ -1721,11 +1720,12 @@ struct NotchPillView: View {
                 Spacer()
             }
             Group {
-                if let dayEvents {
-                    if dayEvents.isEmpty {
+                if let monthEvents = calendarViewState.monthEvents {
+                    let groups = eventsByDay(events: monthEvents, calendar: .current)
+                    if groups.isEmpty {
                         calendarEmptyState
                     } else {
-                        dayEventsList(dayEvents)
+                        dayGroupedAgenda(groups)
                     }
                 }
             }
@@ -1736,9 +1736,11 @@ struct NotchPillView: View {
 
     // CALVIEW-02 — the explicit empty state (Copywriting Contract: exact strings; bold "+ Add"
     // matches the real quick-add trigger label added in Task 3, "point at the real control").
+    // Phase 72 / CALVIEW-08 — scope widened from single-day to whole-month (D-01): the heading
+    // now reads "No events this month" since the agenda covers the whole visible month.
     private var calendarEmptyState: some View {
         VStack(spacing: 4) {
-            Text("No events today")
+            Text("No events this month")
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             (Text("Tap ") + Text("+ Add").fontWeight(.bold) + Text(" to create one."))
@@ -1749,45 +1751,45 @@ struct NotchPillView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // The scrollable event rows, reusing `calendarColumn`'s exact title/color-dot/time
-    // convention (T-14-06 MANDATORY: `.lineLimit(1)`/`.truncationMode(.tail)` on untrusted
-    // EventKit titles). `ScrollView(.vertical)` so >3-4 rows scroll instead of overflowing the
-    // 144pt content box (28-UI-SPEC.md Layout Contract "Day-list scroll").
-    // 28-04 round 4 visual pass — each row now sits in a subtle rounded card
-    // (Color.white.opacity(0.06) + 8pt corner radius), matching Droppy's own ubiquitous
-    // rounded-card container language (every Droplet/setting row in the reference screenshots
-    // is a rounded translucent card) — purely additive per-row styling, no height/scroll math
-    // changed.
-    private func dayEventsList(_ dayEvents: [EventInput]) -> some View {
-        ScrollView(.vertical) {
-            // CALVIEW-07 / D-09 — roomier row padding/spacing (was 8h/5v/6-spacing).
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(dayEvents.enumerated()), id: \.offset) { _, event in
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(Color(red: event.colorRed, green: event.colorGreen, blue: event.colorBlue))
-                            .frame(width: 6, height: 6)
-                        Text(event.title)
-                            .font(.system(size: 12, weight: .regular, design: .rounded))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Spacer(minLength: 4)
-                        Text(event.start, format: .dateTime.hour().minute())
-                            .font(.system(size: 11, weight: .regular, design: .rounded))
+    // Phase 72 / CALVIEW-08 (D-01/D-02) — the whole-month, day-grouped, scrollable agenda.
+    // Replaces the old single-selected-day `dayEventsList`. Reuses `calendarColumn`'s exact
+    // title/color-dot/time row convention (T-14-06 MANDATORY: `.lineLimit(1)`/`.truncationMode
+    // (.tail)` on untrusted EventKit titles) via the new `EventRow` (below, mirrors
+    // `TransportButton`'s local-hover pattern per RESEARCH.md Pitfall 4).
+    // A `ScrollViewReader` lets a grid tap (D-02) scroll to the tapped day's header via its
+    // `.id(group.day)` WITHOUT re-fetching/re-filtering `monthEvents` (Anti-Pattern) — the
+    // `.onChange` below only calls `scrollTo`, `handleCalendarDaySelect` still only sets
+    // `selectedDay`, unchanged.
+    private func dayGroupedAgenda(_ groups: [(day: Date, events: [EventInput])]) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    ForEach(groups, id: \.day) { group in
+                        Text(group.day, format: .dateTime.weekday(.wide).day().month(.abbreviated))
+                            .id(group.day)   // scroll target — the grouping Date, never a formatted String (Pitfall 5)
+                            .textCase(.uppercase)
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
                             .foregroundStyle(.secondary)
-                            .monospacedDigit()
+                        // CALVIEW-07 / D-09 — roomier row padding/spacing (was 8h/5v/6-spacing).
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(group.events, id: \.id) { event in
+                                EventRow(
+                                    event: event,
+                                    onEdit: {},   // interim no-op — Task 2 wires the real edit popover
+                                    onDelete: {}   // interim no-op — Task 2 wires the real onEventDelete forward
+                                )
+                            }
+                        }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
-                    )
+                }
+            }
+            .scrollIndicators(.never)
+            .onChange(of: calendarViewState.selectedDay) { _, newDay in
+                withAnimation {
+                    proxy.scrollTo(Calendar.current.startOfDay(for: newDay), anchor: .top)
                 }
             }
         }
-        .scrollIndicators(.never)
     }
 
     // 28-04 round 4 (user-confirmed scope expansion) — the Weather full view. IMPORTANT
@@ -4596,6 +4598,57 @@ struct NotchPillView: View {
             .frame(width: 32, height: 32)
             .buttonStyle(.plain)
             .onHover { isHovering = $0 }
+        }
+    }
+
+    // Phase 72 / CALVIEW-08 (D-07/D-08/D-12, Pitfall 4) — one agenda event row. Local
+    // `@State private var isHovering` mirrors `TransportButton` above exactly — NOT the
+    // controller-owned `presentationState.hoveredQuickActionButtonIndex` pattern, since this is
+    // an unbounded, refetch-changing `ForEach` list. Reuses the existing rounded-card row visual
+    // (color-dot + title + time) plus a hover-reveal trailing trash icon (D-08: immediate
+    // delete, no confirm dialog) and a `.help()` full-title tooltip (D-12, native OS tooltip —
+    // T-72-05: the untrusted `event.title` only ever renders via a plain `Text`/native tooltip).
+    private struct EventRow: View {
+        let event: EventInput
+        let onEdit: () -> Void
+        let onDelete: () -> Void
+        @State private var isHovering = false
+
+        var body: some View {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color(red: event.colorRed, green: event.colorGreen, blue: event.colorBlue))
+                    .frame(width: 6, height: 6)
+                Text(event.title)
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(event.title)   // D-12 — full untruncated title, native tooltip only
+                Spacer(minLength: 4)
+                Text(event.start, format: .dateTime.hour().minute())
+                    .font(.system(size: 11, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                // D-08 — its own tappable region so a trash tap never also fires the row's edit
+                // tap gesture below.
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(Color.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .opacity(isHovering ? 1 : 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .contentShape(Rectangle())
+            .onHover { isHovering = $0 }
+            .onTapGesture(perform: onEdit)   // D-07 — trash Button above takes tap priority over this
         }
     }
 
