@@ -2462,6 +2462,22 @@ final class NotchWindowController {
         }
     }
 
+    // Phase 72-04 / D-09 — wires the redesigned Calendar view's edit/delete report-intent
+    // closures (Plan 72-03) to the real CalendarService update/delete calls (Plan 72-01),
+    // mirroring handleQuickAdd's exact shape: refresh the month on completion regardless of
+    // success/failure (T-28-05 settle-silently-on-failure discipline).
+    private func handleEventEdit(id: String, title: String, start: Date, end: Date) {
+        calendarService.updateEvent(id: id, title: title, start: start, end: end) { [weak self] _ in
+            self?.refreshCalendarMonth()
+        }
+    }
+
+    private func handleEventDelete(id: String) {
+        calendarService.deleteEvent(id: id) { [weak self] _ in
+            self?.refreshCalendarMonth()
+        }
+    }
+
     // MARK: - Phase 26 / ONBOARD-01/02/03 — onboarding session handlers
 
     // ONBOARD-01 (D-09) — the ONLY path Next/Back use. Mirrors handleClick's own
@@ -3125,6 +3141,10 @@ final class NotchWindowController {
                       // Phase 46-02 / CALVIEW-05 — forwards QuickAddPopover's real picked Start/End
                       // (Event) or Due (Reminder) Date(s) into handleQuickAdd.
                       onQuickAdd: { [weak self] kind, title, start, end in self?.handleQuickAdd(kind, title: title, start: start, end: end) },
+                      // Phase 72-04 / D-09 — forwards NotchPillView's onEventEdit/onEventDelete
+                      // report-intent closures (Plan 72-03) to the real CalendarService calls.
+                      onEventEdit: { [weak self] id, title, start, end in self?.handleEventEdit(id: id, title: title, start: start, end: end) },
+                      onEventDelete: { [weak self] id in self?.handleEventDelete(id: id) },
                       // Phase 62 / TIMER-01..04 (Plan 04) — forwards NotchPillView's 6 Timer/
                       // Pomodoro closures to the real handlers built later in this plan.
                       onTimerPauseResume: { [weak self] in self?.handleTimerPauseResume() },
