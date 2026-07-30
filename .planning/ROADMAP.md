@@ -1219,7 +1219,7 @@ Plans:
 
 **Wave 2** *(blocked on 72-01, 72-02 — same-file sequencing)*
 
-- [ ] 72-03-PLAN.md — Whole-month day-grouped scrollable agenda (D-01/D-02) + hover-delete EventRow + EventEditPopover (D-07/D-08/D-12)
+- [x] 72-03-PLAN.md — Whole-month day-grouped scrollable agenda (D-01/D-02) + hover-delete EventRow + EventEditPopover (D-07/D-08/D-12)
 
 **Wave 3** *(blocked on 72-01, 72-03)*
 

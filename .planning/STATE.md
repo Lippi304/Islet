@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: executing
-stopped_at: Completed 72-02-PLAN.md
-last_updated: "2026-07-30T21:03:21.256Z"
+stopped_at: Completed 72-03-PLAN.md
+last_updated: "2026-07-30T21:28:03.989Z"
 last_activity: 2026-07-30
 progress:
   total_phases: 42
   completed_phases: 27
   total_plans: 105
-  completed_plans: 95
+  completed_plans: 96
   percent: 64
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 ## Current Position
 
 Phase: 72 (calendar-redesign-native-calendar-clone) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-30
 
@@ -329,6 +329,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 71 P02 | multi-session | 3 tasks | 4 files |
 | Phase 72 P01 | 16min | 2 tasks | 3 files |
 | Phase 72 P02 | 25min | 2 tasks | 1 files |
+| Phase 72 P03 | 40min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -475,6 +476,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 71]: Corner-radius nudge clamped structurally in wingCornerRadiusNudge to prevent self-intersecting NotchShape paths (durable fix, not a one-time reset)
 - [Phase 71]: clipShape(shape) added to wingsShape()/mediaWingsOrToast()/resumePreviewWings() content overlays to stop content bleeding past the rounder 16/8 corners
 - [Phase 72]: mapToEventInput's id-populating fix landed in Task 1's commit (not Task 2's) to unblock Task 1's own whole-target test build — Swift compiles the whole IsletTests target for any single test filter; CalendarService.swift also constructs EventInput, so it needed the id fix before Task 1's own tests could run
+- [Phase 72]: 72-03: EventEditPopover built content-only (no own isShowing/trigger) — EventRow owns the .popover(isPresented:) binding and presents it as content, seeded via .onAppear; diverges from the plan's literal wording to avoid a broken nested-popover shape
 
 ### Roadmap Evolution
 
@@ -645,8 +647,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-30T21:03:21.249Z
-Stopped at: Completed 72-02-PLAN.md
+Last session: 2026-07-30T21:28:03.980Z
+Stopped at: Completed 72-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
