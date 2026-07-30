@@ -11,7 +11,7 @@ final class CalendarGlanceTests: XCTestCase {
         // Given one event today that started 10 min ago and ends in 20 min (now is between
         // start and end -- in-progress), nextRelevantEvent returns it with isToday == true.
         let now = Date()
-        let event = EventInput(title: "Standup",
+        let event = EventInput(id: "test-id", title: "Standup",
                                 start: now.addingTimeInterval(-10 * 60),
                                 end: now.addingTimeInterval(20 * 60),
                                 colorRed: 1, colorGreen: 0, colorBlue: 0)
@@ -24,11 +24,11 @@ final class CalendarGlanceTests: XCTestCase {
         // Given two events today, one already ended (end <= now) and one starting in 1 hour,
         // nextRelevantEvent returns the one starting in 1 hour (the ended one is skipped).
         let now = Date()
-        let ended = EventInput(title: "Ended Meeting",
+        let ended = EventInput(id: "test-id", title: "Ended Meeting",
                                 start: now.addingTimeInterval(-2 * 3600),
                                 end: now.addingTimeInterval(-1 * 3600),
                                 colorRed: 0, colorGreen: 1, colorBlue: 0)
-        let upcoming = EventInput(title: "Upcoming Meeting",
+        let upcoming = EventInput(id: "test-id", title: "Upcoming Meeting",
                                    start: now.addingTimeInterval(3600),
                                    end: now.addingTimeInterval(2 * 3600),
                                    colorRed: 0, colorGreen: 0, colorBlue: 1)
@@ -43,7 +43,7 @@ final class CalendarGlanceTests: XCTestCase {
         let now = Date()
         let calendar = Calendar.current
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: now)!
-        let event = EventInput(title: "Tomorrow Event", start: tomorrow, end: tomorrow.addingTimeInterval(3600),
+        let event = EventInput(id: "test-id", title: "Tomorrow Event", start: tomorrow, end: tomorrow.addingTimeInterval(3600),
                                 colorRed: 0.5, colorGreen: 0.5, colorBlue: 0.5)
         let result = nextRelevantEvent(events: [event], now: now)
         XCTAssertEqual(result, CalendarGlance(title: "Tomorrow Event", startDate: tomorrow, isToday: false,
@@ -56,7 +56,7 @@ final class CalendarGlanceTests: XCTestCase {
         let now = Date()
         let calendar = Calendar.current
         let threeDaysOut = calendar.date(byAdding: .day, value: 3, to: now)!
-        let event = EventInput(title: "Far Future Event", start: threeDaysOut, end: threeDaysOut.addingTimeInterval(3600),
+        let event = EventInput(id: "test-id", title: "Far Future Event", start: threeDaysOut, end: threeDaysOut.addingTimeInterval(3600),
                                 colorRed: 0, colorGreen: 0, colorBlue: 0)
         let result = nextRelevantEvent(events: [event], now: now)
         XCTAssertNil(result)
@@ -66,9 +66,9 @@ final class CalendarGlanceTests: XCTestCase {
         // Given multiple events today all still relevant, nextRelevantEvent returns the
         // EARLIEST-starting one (sorted by start).
         let now = Date()
-        let later = EventInput(title: "Later Event", start: now.addingTimeInterval(2 * 3600),
+        let later = EventInput(id: "test-id", title: "Later Event", start: now.addingTimeInterval(2 * 3600),
                                 end: now.addingTimeInterval(3 * 3600), colorRed: 1, colorGreen: 1, colorBlue: 0)
-        let earlier = EventInput(title: "Earlier Event", start: now.addingTimeInterval(3600),
+        let earlier = EventInput(id: "test-id", title: "Earlier Event", start: now.addingTimeInterval(3600),
                                   end: now.addingTimeInterval(2 * 3600), colorRed: 0, colorGreen: 1, colorBlue: 1)
         let result = nextRelevantEvent(events: [later, earlier], now: now)
         XCTAssertEqual(result, CalendarGlance(title: "Earlier Event", startDate: earlier.start, isToday: true,
@@ -115,13 +115,13 @@ final class CalendarGlanceTests: XCTestCase {
         calendar.timeZone = TimeZone(identifier: "UTC")!
         let day = calendar.date(from: DateComponents(year: 2026, month: 7, day: 15))!
         let otherDay = calendar.date(from: DateComponents(year: 2026, month: 7, day: 16))!
-        let later = EventInput(title: "Later", start: calendar.date(byAdding: .hour, value: 14, to: day)!,
+        let later = EventInput(id: "test-id", title: "Later", start: calendar.date(byAdding: .hour, value: 14, to: day)!,
                                 end: calendar.date(byAdding: .hour, value: 15, to: day)!,
                                 colorRed: 0, colorGreen: 0, colorBlue: 0)
-        let earlier = EventInput(title: "Earlier", start: calendar.date(byAdding: .hour, value: 9, to: day)!,
+        let earlier = EventInput(id: "test-id", title: "Earlier", start: calendar.date(byAdding: .hour, value: 9, to: day)!,
                                   end: calendar.date(byAdding: .hour, value: 10, to: day)!,
                                   colorRed: 0, colorGreen: 0, colorBlue: 0)
-        let otherDayEvent = EventInput(title: "Other Day", start: otherDay, end: otherDay.addingTimeInterval(3600),
+        let otherDayEvent = EventInput(id: "test-id", title: "Other Day", start: otherDay, end: otherDay.addingTimeInterval(3600),
                                         colorRed: 0, colorGreen: 0, colorBlue: 0)
         let result = events(on: day, events: [later, otherDayEvent, earlier], calendar: calendar)
         XCTAssertEqual(result, [earlier, later])
@@ -139,7 +139,7 @@ final class CalendarGlanceTests: XCTestCase {
     func testNextUpcomingEventReturnsEventStartingWithinLookahead() {
         // An event starting in 30 min (within the default 1hr lookahead) is returned.
         let now = Date()
-        let event = EventInput(title: "Standup", start: now.addingTimeInterval(30 * 60),
+        let event = EventInput(id: "test-id", title: "Standup", start: now.addingTimeInterval(30 * 60),
                                 end: now.addingTimeInterval(60 * 60),
                                 colorRed: 1, colorGreen: 0, colorBlue: 0)
         let result = nextUpcomingEvent(events: [event], now: now)
@@ -150,7 +150,7 @@ final class CalendarGlanceTests: XCTestCase {
         // An event that already started (start <= now, even though end > now) is EXCLUDED --
         // this is exactly the case nextRelevantEvent would include; proves the divergence.
         let now = Date()
-        let inProgress = EventInput(title: "In Progress", start: now.addingTimeInterval(-10 * 60),
+        let inProgress = EventInput(id: "test-id", title: "In Progress", start: now.addingTimeInterval(-10 * 60),
                                      end: now.addingTimeInterval(20 * 60),
                                      colorRed: 0, colorGreen: 1, colorBlue: 0)
         let result = nextUpcomingEvent(events: [inProgress], now: now)
@@ -161,7 +161,7 @@ final class CalendarGlanceTests: XCTestCase {
         // An event starting exactly at now + lookahead is INCLUDED (inclusive <=).
         let now = Date()
         let lookahead: TimeInterval = 3600
-        let event = EventInput(title: "Boundary", start: now.addingTimeInterval(lookahead),
+        let event = EventInput(id: "test-id", title: "Boundary", start: now.addingTimeInterval(lookahead),
                                 end: now.addingTimeInterval(lookahead + 3600),
                                 colorRed: 0, colorGreen: 0, colorBlue: 1)
         let result = nextUpcomingEvent(events: [event], now: now, lookahead: lookahead)
@@ -171,7 +171,7 @@ final class CalendarGlanceTests: XCTestCase {
     func testNextUpcomingEventExcludesEventOutsideLookaheadWindow() {
         // An event starting too far in the future (beyond the lookahead) is excluded.
         let now = Date()
-        let tooFar = EventInput(title: "Too Far", start: now.addingTimeInterval(2 * 3600),
+        let tooFar = EventInput(id: "test-id", title: "Too Far", start: now.addingTimeInterval(2 * 3600),
                                  end: now.addingTimeInterval(3 * 3600),
                                  colorRed: 0, colorGreen: 0, colorBlue: 0)
         let result = nextUpcomingEvent(events: [tooFar], now: now, lookahead: 3600)
@@ -188,9 +188,9 @@ final class CalendarGlanceTests: XCTestCase {
         // Multiple qualifying (not-yet-started, within lookahead) events -- the EARLIEST-
         // starting one is returned.
         let now = Date()
-        let later = EventInput(title: "Later", start: now.addingTimeInterval(50 * 60),
+        let later = EventInput(id: "test-id", title: "Later", start: now.addingTimeInterval(50 * 60),
                                 end: now.addingTimeInterval(70 * 60), colorRed: 1, colorGreen: 1, colorBlue: 0)
-        let earlier = EventInput(title: "Earlier", start: now.addingTimeInterval(10 * 60),
+        let earlier = EventInput(id: "test-id", title: "Earlier", start: now.addingTimeInterval(10 * 60),
                                   end: now.addingTimeInterval(20 * 60), colorRed: 0, colorGreen: 1, colorBlue: 1)
         let result = nextUpcomingEvent(events: [later, earlier], now: now)
         XCTAssertEqual(result, earlier)
@@ -228,5 +228,76 @@ final class CalendarGlanceTests: XCTestCase {
         let expected = calendar.date(from: DateComponents(year: 2026, month: 7, day: 20, hour: 0, minute: 0, second: 0))!
         let result = defaultQuickAddTime(selectedDay: now, now: now)
         XCTAssertEqual(result, expected)
+    }
+
+    // Phase 72 / CALVIEW-08: eventsByDay(events:calendar:) — the whole-month agenda's
+    // day-grouping seam. Foundation-only, total, groups by the exact startOfDay(for:) Date
+    // (never a formatted String, per Pitfall 5), sorted ascending by day and by start-time
+    // within each day.
+
+    func testEventsByDayReturnsEmptyArrayForEmptyEventsWithoutCrashing() {
+        // T-14-02: an empty events array must never crash -- returns [].
+        let result = eventsByDay(events: [])
+        XCTAssertEqual(result.count, 0)
+    }
+
+    func testEventsByDayGroupsEventsOnSameDaySortedByStartTime() {
+        // Given 2+ events all on the same day, eventsByDay returns a single group whose
+        // `events` array is sorted ascending by start.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let day = calendar.date(from: DateComponents(year: 2026, month: 7, day: 15))!
+        let later = EventInput(id: "test-id", title: "Later", start: calendar.date(byAdding: .hour, value: 14, to: day)!,
+                                end: calendar.date(byAdding: .hour, value: 15, to: day)!,
+                                colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let earlier = EventInput(id: "test-id", title: "Earlier", start: calendar.date(byAdding: .hour, value: 9, to: day)!,
+                                  end: calendar.date(byAdding: .hour, value: 10, to: day)!,
+                                  colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let result = eventsByDay(events: [later, earlier], calendar: calendar)
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result[0].day, calendar.startOfDay(for: day))
+        XCTAssertEqual(result[0].events, [earlier, later])
+    }
+
+    func testEventsByDayGroupsAcrossMultipleDaysSortedAscendingByDay() {
+        // Given events across two different days, eventsByDay returns two groups sorted
+        // ascending by day (earlier day first), each group's own events sorted ascending by
+        // start.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let day1 = calendar.date(from: DateComponents(year: 2026, month: 7, day: 15))!
+        let day2 = calendar.date(from: DateComponents(year: 2026, month: 7, day: 16))!
+        let day2Event = EventInput(id: "test-id", title: "Day 2", start: day2, end: day2.addingTimeInterval(3600),
+                                    colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let day1Later = EventInput(id: "test-id", title: "Day 1 Later", start: calendar.date(byAdding: .hour, value: 14, to: day1)!,
+                                    end: calendar.date(byAdding: .hour, value: 15, to: day1)!,
+                                    colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let day1Earlier = EventInput(id: "test-id", title: "Day 1 Earlier", start: calendar.date(byAdding: .hour, value: 9, to: day1)!,
+                                      end: calendar.date(byAdding: .hour, value: 10, to: day1)!,
+                                      colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let result = eventsByDay(events: [day2Event, day1Later, day1Earlier], calendar: calendar)
+        XCTAssertEqual(result.count, 2)
+        XCTAssertEqual(result[0].day, calendar.startOfDay(for: day1))
+        XCTAssertEqual(result[0].events, [day1Earlier, day1Later])
+        XCTAssertEqual(result[1].day, calendar.startOfDay(for: day2))
+        XCTAssertEqual(result[1].events, [day2Event])
+    }
+
+    func testEventsByDayDoesNotCollideAcrossMonthsWithSameDayOfMonth() {
+        // Given identical day-of-month events in two different months (July 15 vs August 15),
+        // eventsByDay must NOT collide them into one group -- the grouping key is the exact
+        // startOfDay(for:) Date, never a formatted day-of-month String (Pitfall 5).
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let julyFifteenth = calendar.date(from: DateComponents(year: 2026, month: 7, day: 15))!
+        let augustFifteenth = calendar.date(from: DateComponents(year: 2026, month: 8, day: 15))!
+        let julyEvent = EventInput(id: "test-id", title: "July 15", start: julyFifteenth, end: julyFifteenth.addingTimeInterval(3600),
+                                    colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let augustEvent = EventInput(id: "test-id", title: "August 15", start: augustFifteenth, end: augustFifteenth.addingTimeInterval(3600),
+                                      colorRed: 0, colorGreen: 0, colorBlue: 0)
+        let result = eventsByDay(events: [julyEvent, augustEvent], calendar: calendar)
+        XCTAssertEqual(result.count, 2)
+        XCTAssertEqual(result[0].day, calendar.startOfDay(for: julyFifteenth))
+        XCTAssertEqual(result[1].day, calendar.startOfDay(for: augustFifteenth))
     }
 }
