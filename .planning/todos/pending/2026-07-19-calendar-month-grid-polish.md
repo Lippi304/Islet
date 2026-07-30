@@ -2,6 +2,7 @@
 created: 2026-07-19T20:50:50.304Z
 title: Calendar month-grid polish (arrows, day numbers, event hover/edit)
 area: ui
+resolves_phase: 72
 files:
   - Islet/Notch/NotchPillView.swift
 ---
