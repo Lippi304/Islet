@@ -1215,7 +1215,7 @@ Plans:
 **Wave 1**
 
 - [x] 72-01-PLAN.md — Data layer: EventInput.id + eventsByDay(events:calendar:) pure grouping function (TDD) + CalendarService.updateEvent/deleteEvent (D-09)
-- [ ] 72-02-PLAN.md — Month grid visual redesign: weekday header row (net-new), chevron spacing (D-10), badge swap (D-03), red month-label/font/cell-size bump (D-05/D-11)
+- [x] 72-02-PLAN.md — Month grid visual redesign: weekday header row (net-new), chevron spacing (D-10), badge swap (D-03), red month-label/font/cell-size bump (D-05/D-11)
 
 **Wave 2** *(blocked on 72-01, 72-02 — same-file sequencing)*
 

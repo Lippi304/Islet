@@ -27,3 +27,12 @@ commit in this plan's history.
 
 Not fixed here. STATE.md's baseline note should be refreshed the next time someone
 touches these test files.
+
+## Plan 72-02 confirmation (2026-07-30)
+
+Re-ran the full suite after Plan 72-02's two tasks (`monthGridColumn`/`weekdayHeaderRow`
+changes in `Islet/Notch/NotchPillView.swift` only): identical 591 tests, 7 failures, same
+failure set listed above. Confirmed via `git log` that neither `SettingsViewTests.swift`
+nor `LicenseStateTests.swift` was touched by this plan (last touched by unrelated
+`cf17509`/`ba43bfa`/`3a1d14d` commits, all pre-Phase-72). Zero new failures from this
+plan's changes.

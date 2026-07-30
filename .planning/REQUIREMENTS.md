@@ -89,7 +89,7 @@ forward, not shipped) are archived in `.planning/milestones/v1.10-REQUIREMENTS.m
 ### Calendar
 
 - [x] **CALVIEW-08**: The expanded Calendar view is widened into a two-column layout — full month grid on the left, a scrollable day-grouped agenda list on the right
-- [ ] **CALVIEW-09**: The Calendar view's visual design (colors, date badges, event row styling, typography) matches macOS's native Calendar app as closely as technically possible
+- [x] **CALVIEW-09**: The Calendar view's visual design (colors, date badges, event row styling, typography) matches macOS's native Calendar app as closely as technically possible
 
 ### Timer
 
@@ -182,7 +182,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHAPE-02 | Phase 71 | Complete |
 | SHAPE-03 | Phase 71 | Complete |
 | CALVIEW-08 | Phase 72 | Complete |
-| CALVIEW-09 | Phase 72 | Pending |
+| CALVIEW-09 | Phase 72 | Complete |
 | TIMER-05 | Phase 73 | Pending |
 | TIMER-06 | Phase 73 | Pending |
 | TIMER-07 | Phase 73 | Pending |
