@@ -3218,7 +3218,7 @@ struct NotchPillView: View {
         let height = Self.wingsSize.height * resolvedWingDepthScale + (toast != nil ? Self.toastExtraHeight : 0)
         // WR-02 (35-REVIEW.md): hoisted so the visible fill and the rim-mask
         // overlay below always share one shape instance — see collapsedIsland.
-        let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: toast != nil ? 16 : 6)
+        let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius, bottomCornerRadius: toast != nil ? 16 : Self.wingBaseBottomCornerRadius)
         shape
             .fill(islandFill)
             // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order:
@@ -3284,7 +3284,7 @@ struct NotchPillView: View {
     // stays visible. Tap goes to the dedicated `onResumeTap` closure (NOT `onClick`, which
     // would expand to Home and violate D-01 — see 53-RESEARCH.md Pitfall 4/Anti-Pattern).
     private func resumePreviewWings(_ track: LastPlayedTrack) -> some View {
-        let shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 6)
+        let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius, bottomCornerRadius: Self.wingBaseBottomCornerRadius)
         return shape
             .fill(islandFill)
             .matchedGeometryEffect(id: "island", in: ns)
