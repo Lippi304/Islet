@@ -183,6 +183,7 @@ struct NotchPillView: View {
     @AppStorage(ActivitySettings.debugWingTrailingNudgeKey) private var debugWingTrailingNudge: Double = 0
     @AppStorage(ActivitySettings.debugWingMarginNudgeKey) private var debugWingMarginNudge: Double = 0
     @AppStorage(ActivitySettings.debugWingGapNudgeKey) private var debugWingGapNudge: Double = 0
+    @AppStorage(ActivitySettings.debugWingCornerRadiusNudgeKey) private var debugWingCornerRadiusNudge: Double = 0
     #endif
 
     // Always-compiled read points so every wing function can call these unconditionally.
@@ -212,6 +213,13 @@ struct NotchPillView: View {
     private var wingGapNudge: CGFloat {
         #if DEBUG
         return CGFloat(debugWingGapNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var wingCornerRadiusNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugWingCornerRadiusNudge)
         #else
         return 0
         #endif
@@ -3044,7 +3052,7 @@ struct NotchPillView: View {
         onTap: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius, bottomCornerRadius: Self.wingBaseBottomCornerRadius)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside an 8pt bottom radius without squeezing the wall to almost nothing (16/8 base, SHAPE-02)
+        let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius + wingCornerRadiusNudge, bottomCornerRadius: Self.wingBaseBottomCornerRadius + wingCornerRadiusNudge)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside an 8pt bottom radius without squeezing the wall to almost nothing (16/8 base, SHAPE-02)
         let size = CGSize(width: leftWidth + rightWidth, height: Self.wingsSize.height * depthScale)
         return shape
             .fill(islandFill)

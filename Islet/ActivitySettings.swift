@@ -114,6 +114,7 @@ enum ActivitySettings {
     static let debugWingTrailingNudgeKey = "debug.wingTuner.trailingNudge"
     static let debugWingMarginNudgeKey = "debug.wingTuner.marginNudge"
     static let debugWingGapNudgeKey = "debug.wingTuner.gapNudge"
+    static let debugWingCornerRadiusNudgeKey = "debug.wingTuner.cornerRadiusNudge"
     #endif
 
     // Phase 52 / SWITCH-03/04 — the view switcher's layout: today's pill-below-the-island

@@ -128,6 +128,10 @@ final class ActivitySettingsTests: XCTestCase {
         XCTAssertEqual(ActivitySettings.codingProgressKey, "activity.codingProgress")
     }
 
+    func testWingCornerRadiusNudgeKeyName() {
+        XCTAssertEqual(ActivitySettings.debugWingCornerRadiusNudgeKey, "debug.wingTuner.cornerRadiusNudge")
+    }
+
     func testExistingActivityKeyNamesUnchanged() {
         XCTAssertEqual(ActivitySettings.chargingKey, "activity.charging")
         XCTAssertEqual(ActivitySettings.nowPlayingKey, "activity.nowPlaying")
