@@ -36,7 +36,7 @@ v1.9 (Clipboard History) shipped 2026-07-23 — v1.10 (Live Activities Suite) st
 
 **Goal:** Add a suite of new Live Activities/HUDs inspired by Droppy and Ice, plus a Droppy-style Settings grid overview to manage them all — most new activities default OFF rather than opinionated-on.
 
-**Status:** Started 2026-07-23, from a brainstorming session, while v1.7 remains open in parallel (explicit user decision; v1.4 and v1.5 both shipped 2026-07-28).
+**Status:** Started 2026-07-23, from a brainstorming session, while v1.7 remains open in parallel (explicit user decision; v1.4 and v1.5 both shipped 2026-07-28). Phase 70 (File Tray Convert Button — Droppy-style Convert destination in the Quick Action Picker, JPG/PNG/HEIC/TIFF via ImageIO) shipped 2026-07-30, on-device verified after 5 real bugs found/fixed in UAT plus 1 more from post-UAT code review — all confirmed on real hardware. Per STATE.md this was the final phase of v1.10 (`status: milestone_complete`); formal milestone close-out (`/gsd-complete-milestone`) is still pending.
 
 **Target features:**
 - **Settings-Redesign (foundation)** — Droppy-style grid overview of all Live Activities (mini pill preview + title + description + toggle), built generically for existing AND new activities. New activities default OFF.
