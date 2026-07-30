@@ -77,6 +77,30 @@ v1.10's requirements (Live Activities Suite — SETTINGS-04/05, CAPS-01, UPDATE-
 DL-01/02, MEET-01..03, QACTION-01..03 shipped; NOTES-01..03, MENUBAR-01..04, CODE-01..04 carried
 forward, not shipped) are archived in `.planning/milestones/v1.10-REQUIREMENTS.md`.
 
+## v1.11 Requirements — Droppy-Inspired Polish Round 2
+
+4 remaining Droppy-inspired ideas from the 2026-07-29 brainstorming session, in the user's own stated priority order. No fresh domain research — all 4 are UI redesigns/additions to existing subsystems with reference screenshots and locked decisions already captured in their seed files (`.planning/seeds/`).
+
+### Island Shape
+
+- [ ] **SHAPE-02**: The collapsed-wide (wings) island state renders with noticeably more rounded corners at both ends of its outer silhouette, closer to a full pill shape than today's more rectangular corners
+- [ ] **SHAPE-03** (DEBUG only): A new live-tuning nudge control for the wing corner radius, wired the same way as the existing Wing Tuner (`@AppStorage`, DEBUG-menu-only)
+
+### Calendar
+
+- [ ] **CALVIEW-08**: The expanded Calendar view is widened into a two-column layout — full month grid on the left, a scrollable day-grouped agenda list on the right
+- [ ] **CALVIEW-09**: The Calendar view's visual design (colors, date badges, event row styling, typography) matches macOS's native Calendar app as closely as technically possible
+
+### Timer
+
+- [ ] **TIMER-05**: Pomodoro mode and all its persisted state/settings are removed from the codebase — no Pomodoro option remains anywhere in the UI or Settings
+- [ ] **TIMER-06**: The timer's duration is set via a ruler/slider control (minutes), scrubbed left-right, showing a running total-duration readout
+- [ ] **TIMER-07**: A "Start Timer" button starts the countdown using the selected duration, and a sound toggle controls whether an end-of-timer sound plays
+
+### Now Playing — Next Up Queue
+
+- [ ] **NOW-08**: Tapping the existing list-icon affordance (left of the transport controls) in the expanded Now Playing view opens a "Next Up" panel listing the next 5 queued tracks (album art, title, artist)
+
 ## v2 Requirements
 
 Deferred to a future milestone, not in this roadmap.
@@ -177,6 +201,7 @@ v1.10's traceability table (27 total, 16 shipped/59%, 11 carried forward — NOT
 
 ---
 *Requirements defined: 2026-07-13*
+*Last updated: 2026-07-30 — v1.11 (Droppy-Inspired Polish Round 2) requirements defined: 9 requirements (SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07, NOW-08), scoped directly from 4 already-detailed seed files, no research needed. Not yet mapped to phases — roadmap pending.*
 *Last updated: 2026-07-30 — v1.10 (Live Activities Suite) shipped and archived to `.planning/milestones/v1.10-REQUIREMENTS.md`/`.planning/milestones/v1.10-ROADMAP.md` — Phases 59-63/65, 16/27 requirements shipped; Phases 64/66/67 (NOTES-*, MENUBAR-*, CODE-*) carried forward, not descoped. Correction made at close: MENUBAR-01/02/03 had been incorrectly marked Complete despite Phase 66's 3 on-device NO-GOs — fixed to Not delivered. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
 *v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*
 *v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
