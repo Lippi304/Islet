@@ -469,6 +469,12 @@ struct NotchPillView: View {
     // (charging, media, device) so the island reads consistently regardless of activity.
     static let wingsSize = CGSize(width: 290, height: 32)
 
+    // SHAPE-02 (Phase 71) — wing-state base corner radii, scaled up 4/3x from the original
+    // 12/6 pair (16 = 12*4/3, 8 = 6*4/3), preserving the 2:1 top:bottom ratio. Sum (24) stays
+    // under the 25.6pt depth-scale-floor wings height (32 * 0.8 minimum depthScale).
+    static let wingBaseTopCornerRadius: CGFloat = 16
+    static let wingBaseBottomCornerRadius: CGFloat = 8
+
     // Round N (HUD-01/HUD-02 label-clip fix) — 290pt isn't wide enough once a "Charging"/
     // "Connected" text label sits next to the left icon. The wings strip is centered over the
     // PHYSICAL notch cutout (measured 179pt wide on this machine, see wingsSize comment above);
@@ -3038,7 +3044,7 @@ struct NotchPillView: View {
         onTap: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        let shape = NotchShape(topCornerRadius: 12, bottomCornerRadius: 6)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside a 6pt bottom radius without squeezing the wall to almost nothing
+        let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius, bottomCornerRadius: Self.wingBaseBottomCornerRadius)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside an 8pt bottom radius without squeezing the wall to almost nothing (16/8 base, SHAPE-02)
         let size = CGSize(width: leftWidth + rightWidth, height: Self.wingsSize.height * depthScale)
         return shape
             .fill(islandFill)
