@@ -851,7 +851,9 @@ struct NotchPillView: View {
     // for `dayListColumn` (an HStack sibling with no fixed width of its own — the grid's own
     // intrinsic width is exactly what LazyVGrid claims, so a smaller grid leaves more remainder
     // for the list).
-    static let calendarCellSize: CGFloat = 18
+    // 72-02 (D-11) — bumped from 18 to 22 to match reference-macos-calendar-widgets.png's larger
+    // day-number glyphs, without colliding with the has-events dot or the cell edge.
+    static let calendarCellSize: CGFloat = 22
     static let calendarCellGap: CGFloat = 2
 
     // 28-04 round 5 (on-device UAT, misclick/notch-close bug fix) — RENAMED from
@@ -1663,7 +1665,7 @@ struct NotchPillView: View {
                     .buttonStyle(.plain)
                     Text(calendarViewState.visibleMonth, format: .dateTime.month(.wide).year())
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.red)
                     Button(action: { onCalendarMonthChange(1) }) {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12))
@@ -1683,11 +1685,11 @@ struct NotchPillView: View {
                         let hasEvents = calendarViewState.monthEvents.map { !events(on: day, events: $0).isEmpty } ?? false
                         ZStack(alignment: .bottom) {
                             Text(day, format: .dateTime.day())
-                                .font(.system(size: 9, weight: isSelected ? .semibold : .regular, design: .rounded))
+                                .font(.system(size: 11, weight: isSelected ? .semibold : .regular, design: .rounded))
                                 .foregroundStyle(.white)
                                 .frame(width: Self.calendarCellSize, height: Self.calendarCellSize)
-                                .background(Circle().fill(Color.white.opacity(isSelected ? 0.18 : 0)))
-                                .overlay(Circle().strokeBorder(Color.white.opacity(isToday && !isSelected ? 0.6 : 0), lineWidth: 1))
+                                .background(Circle().fill(isToday ? Color.red : Color.clear))
+                                .overlay(Circle().strokeBorder(isSelected && !isToday ? Color.red : Color.clear, lineWidth: 1.5))
                             if hasEvents {
                                 Circle()
                                     .fill(Color.white.opacity(0.6))
