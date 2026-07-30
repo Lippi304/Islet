@@ -28,6 +28,9 @@ Every wing-state HUD that routes through `wingsShape()` in `NotchPillView.swift`
 - Exact final `topCornerRadius`/`bottomCornerRadius` starting values (D-02).
 - Exact menu item ordering/labels for the new tuner buttons, following the existing Wing Tuner menu's visual convention.
 
+### Now Playing Scope (post-research addendum)
+- **D-06:** Research (71-RESEARCH.md) found that `mediaWingsOrToast()`/`resumePreviewWings()` build their own separate `NotchShape` calls and do NOT route through `wingsShape()`, despite the phase goal naming "Now Playing glance" as covered. User confirmed: include Now Playing — bump its corner radius literals to match the new `wingsShape()` values (same target numbers from D-01/D-02), even though it requires a second edit site outside the single `wingsShape()` call. It does not need its own DEBUG tuner axis — it should track the same baked-in values as `wingsShape()`.
+
 </decisions>
 
 <canonical_refs>
