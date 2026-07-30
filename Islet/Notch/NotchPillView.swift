@@ -3091,9 +3091,16 @@ struct NotchPillView: View {
             // ZStack's un-shifted local x=0 to the box's own true leading edge, which is what
             // every one of ROUND 10's `excludedMinX`/`excludedMaxX`-relative offsets already
             // assumed was true.
+            // Gap closure (71-02 on-device UAT) — mirrors blobShape's clipShape safety net
+            // (line ~2822): SHAPE-02's larger 16/8 corner radii grew the concave top-corner
+            // "ear" cutout enough that content sitting near it (album art, wing icons) now
+            // painted through onto the desktop instead of stopping at the silhouette. The
+            // old 12/6 radii never exposed this — the cutout was too small for any content
+            // to reach. Without this, `.overlay` never clips to the parent's bounds by default.
             .overlay(
                 content()
                     .frame(width: size.width, height: size.height, alignment: .leading)
+                    .clipShape(shape)
             )
             .alignmentGuide(HorizontalAlignment.center) { _ in leftWidth }
             // Finding 15 (06-10): both remaining wing glances (wings(for:), deviceWings(for:))
@@ -3251,6 +3258,12 @@ struct NotchPillView: View {
                             .transition(.opacity)
                     }
                 }
+                // Gap closure (71-02 on-device UAT) — see wingsShape's identical comment:
+                // SHAPE-02's larger top-corner cutout now lets album art paint through onto
+                // the desktop without this clip. Explicit frame first so clipShape has the
+                // same rect the shape's own path was built against (mirrors blobShape).
+                .frame(width: width, height: height, alignment: .top)
+                .clipShape(shape)
             }
             // 67.1-10 (D-14): true center — not geometric width/2 — now that leftWidth/rightWidth
             // can be asymmetric; mirrors wingsShape's own alignmentGuide mechanism (line ~3005).
@@ -3317,6 +3330,9 @@ struct NotchPillView: View {
                     }
                 }
                 .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
+                // Gap closure (71-02 on-device UAT) — same clipShape safety net as
+                // wingsShape/mediaWingsOrToast above.
+                .clipShape(shape)
             }
             .onTapGesture { onResumeTap() }
     }
