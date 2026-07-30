@@ -273,7 +273,7 @@ No other claims in this document are assumed — every factual statement about c
 
 ## Open Questions
 
-1. **Does "Now Playing glance" (mentioned in the phase Goal) need its own `NotchShape` literals updated, given it does not route through `wingsShape()`?**
+1. **(RESOLVED: see CONTEXT.md D-06)** Does "Now Playing glance" (mentioned in the phase Goal) need its own `NotchShape` literals updated, given it does not route through `wingsShape()`?
    - What we know: `mediaWingsOrToast()` and `resumePreviewWings()` each build a separate `NotchShape` and are not touched by a `wingsShape()`-only edit. CONTEXT.md's own domain statement scopes strictly to `wingsShape()`.
    - What's unclear: Whether the user's mental model of "every HUD gets rounder" implicitly includes these two, or whether they were simply mis-described as routing through `wingsShape()` and are correctly out of scope.
    - Recommendation: Planner should ask this as a single confirming question before writing tasks (or the discuss-phase agent should have caught it — flagging here since this research happened after CONTEXT.md was already locked). If in scope, add 2 small extra call-site edits (no new mechanism, same literal-value bump) — cheap either way, but changes the task list and the SC#1 acceptance check.
