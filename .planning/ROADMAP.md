@@ -172,7 +172,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 64: Quick Notes + Obsidian Export** - NOT SHIPPED — 3 unfixed major UAT bugs + 2 approved-but-unbuilt scope changes; needs `/gsd:plan-phase 64 --gaps` (all 8 plans executed 2026-07-25)
 - [ ] **Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)** - PAUSED by user (2026-07-28) after 3 consecutive NO-GOs (see Phase Details) — even real Ice.app's own mechanism no longer works on this machine; root cause unconfirmed (Golden-Gate/Developer-Mode hypothesis, untestable without a full macOS 26 downgrade); feature still wanted, revisit unscheduled
 - [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern; never started
-- [ ] **Phase 71: Island Corner Rounding** - More rounded wing-state silhouette + DEBUG-only corner-radius tuner
+- [x] **Phase 71: Island Corner Rounding** - More rounded wing-state silhouette + DEBUG-only corner-radius tuner (completed 2026-07-30)
 - [ ] **Phase 72: Calendar Redesign — Native Calendar Clone** - Two-column month-grid + agenda layout, 1:1 visual match to macOS Calendar
 - [ ] **Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider** - Pomodoro fully removed; new minutes ruler/slider + Start Timer + sound toggle
 - [ ] **Phase 74: Music Next Up Queue** - List-icon affordance opens a Next Up panel (next 5 tracks: art/title/artist)
@@ -1191,7 +1191,7 @@ Plans:
 
 **Wave 2** *(blocked on 71-01)*
 
-- [ ] 71-02-PLAN.md — DEBUG-only Corner Radius Wing Tuner axis (SHAPE-03, D-03/D-04/D-05) + on-device UAT checkpoint
+- [x] 71-02-PLAN.md — DEBUG-only Corner Radius Wing Tuner axis (SHAPE-03, D-03/D-04/D-05) + on-device UAT checkpoint
 
 **UI hint**: yes
 

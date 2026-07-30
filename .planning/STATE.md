@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
-status: executing
-stopped_at: Completed 71-01-PLAN.md
-last_updated: "2026-07-30T12:41:08.103Z"
+status: verifying
+stopped_at: Completed 71-02-PLAN.md (Phase 71 fully complete)
+last_updated: "2026-07-30T16:49:21.331Z"
 last_activity: 2026-07-30
 progress:
   total_phases: 42
-  completed_phases: 26
+  completed_phases: 27
   total_plans: 101
-  completed_plans: 92
-  percent: 62
+  completed_plans: 93
+  percent: 64
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 
 ## Current Position
 
-Phase: 71 (island-corner-rounding) — EXECUTING
+Phase: 71 (island-corner-rounding) — COMPLETE, awaiting orchestrator phase-level verification
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-30
 
 ### Phase 70 Plan 02 result (2026-07-29)
@@ -325,6 +325,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 70 P03 | 20 | - tasks | - files |
 | Phase 70 P03 | 20 | 2 tasks | 1 files |
 | Phase 71 P01 | 12min | 3 tasks | 2 files |
+| Phase 71 P02 | multi-session | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -468,6 +469,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 70]: computeQuickActionButtonFrames's call site updated to count: 4 — one call/array serves both main-row and format-tile stages, no second call site needed
 - [Phase 70]: handleQuickActionConvert stages converted files via ShelfFileStore's staging convention directly (not calling makeSessionCopy, which only byte-copies and cannot transcode)
 - [Phase 71]: 16/8 chosen as the exact 4/3-scaled-up pair from 12/6, preserving the 2:1 top:bottom ratio (D-01/D-02)
+- [Phase 71]: Corner-radius nudge clamped structurally in wingCornerRadiusNudge to prevent self-intersecting NotchShape paths (durable fix, not a one-time reset)
+- [Phase 71]: clipShape(shape) added to wingsShape()/mediaWingsOrToast()/resumePreviewWings() content overlays to stop content bleeding past the rounder 16/8 corners
 
 ### Roadmap Evolution
 
@@ -638,8 +641,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-30T12:41:08.096Z
-Stopped at: Completed 71-01-PLAN.md
+Last session: 2026-07-30T16:49:21.323Z
+Stopped at: Completed 71-02-PLAN.md (Phase 71 fully complete)
 Resume file: None
 
 ## Operator Next Steps
