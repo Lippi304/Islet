@@ -4,13 +4,13 @@ milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: executing
 stopped_at: Phase 72 UI-SPEC approved
-last_updated: "2026-07-30T20:30:19.139Z"
-last_activity: 2026-07-30 -- Phase 72 planning complete
+last_updated: "2026-07-30T20:49:34.383Z"
+last_activity: 2026-07-30
 progress:
   total_phases: 42
   completed_phases: 27
   total_plans: 105
-  completed_plans: 93
+  completed_plans: 94
   percent: 64
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-30)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 72 — calendar redesign — native calendar clone
+**Current focus:** Phase 72 — calendar-redesign-native-calendar-clone
 
 ## Current Position
 
-Phase: 72
-Plan: Not started
+Phase: 72 (calendar-redesign-native-calendar-clone) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-30 -- Phase 72 planning complete
+Last activity: 2026-07-30
 
 ### Phase 70 Plan 02 result (2026-07-29)
 
@@ -327,6 +327,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 70 P03 | 20 | 2 tasks | 1 files |
 | Phase 71 P01 | 12min | 3 tasks | 2 files |
 | Phase 71 P02 | multi-session | 3 tasks | 4 files |
+| Phase 72 P01 | 16min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -472,6 +473,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 71]: 16/8 chosen as the exact 4/3-scaled-up pair from 12/6, preserving the 2:1 top:bottom ratio (D-01/D-02)
 - [Phase 71]: Corner-radius nudge clamped structurally in wingCornerRadiusNudge to prevent self-intersecting NotchShape paths (durable fix, not a one-time reset)
 - [Phase 71]: clipShape(shape) added to wingsShape()/mediaWingsOrToast()/resumePreviewWings() content overlays to stop content bleeding past the rounder 16/8 corners
+- [Phase 72]: mapToEventInput's id-populating fix landed in Task 1's commit (not Task 2's) to unblock Task 1's own whole-target test build — Swift compiles the whole IsletTests target for any single test filter; CalendarService.swift also constructs EventInput, so it needed the id fix before Task 1's own tests could run
 
 ### Roadmap Evolution
 
@@ -642,9 +644,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-30T20:00:18.437Z
+Last session: 2026-07-30T20:48:15.933Z
 Stopped at: Phase 72 UI-SPEC approved
-Resume file: .planning/phases/72-calendar-redesign-native-calendar-clone/72-UI-SPEC.md
+Resume file: None
 
 ## Operator Next Steps
 
