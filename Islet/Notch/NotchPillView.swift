@@ -405,6 +405,12 @@ struct NotchPillView: View {
     // Plan 46-02 Task 1) — the default no-op closure keeps every #Preview referencing
     // NotchPillView compiling unmodified in the meantime.
     var onQuickAdd: (QuickAddKind, String, Date, Date?) -> Void = { _, _, _, _ in }
+    // Phase 72 / CALVIEW-08 (D-07/D-08/D-09) — the agenda event row's edit/delete report-intent
+    // closures, matching onQuickAdd's exact defaulted-no-op style so every #Preview referencing
+    // NotchPillView keeps compiling unmodified. NotchWindowController (Plan 04) owns these,
+    // forwarding to CalendarService.updateEvent/deleteEvent.
+    var onEventEdit: (String, String, Date, Date) -> Void = { _, _, _, _ in }
+    var onEventDelete: (String) -> Void = { _ in }
 
     // Phase 62 / TIMER-01..04 (D-08) — the expanded-control-row callbacks, plain closures
     // mirroring the shelf-item/onboarding callbacks above: the view stays state-free, only
@@ -1775,8 +1781,8 @@ struct NotchPillView: View {
                             ForEach(group.events, id: \.id) { event in
                                 EventRow(
                                     event: event,
-                                    onEdit: {},   // interim no-op — Task 2 wires the real edit popover
-                                    onDelete: {}   // interim no-op — Task 2 wires the real onEventDelete forward
+                                    onEdit: onEventEdit,
+                                    onDelete: { onEventDelete(event.id) }
                                 )
                             }
                         }
@@ -4610,9 +4616,13 @@ struct NotchPillView: View {
     // T-72-05: the untrusted `event.title` only ever renders via a plain `Text`/native tooltip).
     private struct EventRow: View {
         let event: EventInput
-        let onEdit: () -> Void
+        // Phase 72 Task 2 (D-07) — forwards straight into EventEditPopover's own `onSave`
+        // signature; the row's tap gesture presents the popover (`isShowingEdit`) rather than
+        // calling this directly.
+        let onEdit: (String, String, Date, Date) -> Void
         let onDelete: () -> Void
         @State private var isHovering = false
+        @State private var isShowingEdit = false
 
         var body: some View {
             HStack(spacing: 6) {
@@ -4648,7 +4658,10 @@ struct NotchPillView: View {
             )
             .contentShape(Rectangle())
             .onHover { isHovering = $0 }
-            .onTapGesture(perform: onEdit)   // D-07 — trash Button above takes tap priority over this
+            .onTapGesture { isShowingEdit = true }   // D-07 — trash Button above takes tap priority over this
+            .popover(isPresented: $isShowingEdit) {
+                EventEditPopover(event: event, onSave: onEdit)
+            }
         }
     }
 
@@ -5111,7 +5124,9 @@ private struct QuickAddPopover: View {
                 Text(kind == .event
                      ? "Add Event"
                      : "Add Reminder")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    // Phase 72 / UI-SPEC.md Typography (4-size scale: 10/11/12/13px) — bumped
+                    // from 14 to 13 alongside EventEditPopover's new "Save" button below.
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -5183,6 +5198,85 @@ private struct QuickAddPopover: View {
                 .foregroundStyle(.white)
             Spacer()
             DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                .datePickerStyle(.compact)
+                .labelsHidden()
+        }
+    }
+}
+
+// Phase 72 / CALVIEW-08 (D-07) — the agenda row's edit popover CONTENT, a NEW sibling of
+// QuickAddPopover mirroring its exact visual chrome (240pt width, 12pt padding) but Event-only
+// (no kind/Type picker — editing a Reminder's due date isn't in this phase's scope). Unlike
+// QuickAddPopover, this struct owns no trigger/`isPresented` flag itself — `EventRow` (below)
+// already owns the popover's `isPresented` binding (`isShowingEdit`) and presents THIS struct as
+// its content, so seeding happens on `.onAppear` (fires exactly once per presentation, the
+// content-based-popover equivalent of QuickAddPopover's trigger-owned `.onChange(of: isShowing)`)
+// from the tapped EventInput's REAL existing values (never `defaultQuickAddTime`, a new-event
+// default). Dismisses itself via the standard SwiftUI `\.dismiss` environment action.
+private struct EventEditPopover: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @State private var startTime: Date = Date()
+    @State private var endTime: Date = Date()
+    let event: EventInput
+    let onSave: (String, String, Date, Date) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("What's this for?", text: $title)
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+            startRow
+            endRow
+            Button(action: {
+                // Same trimmed-empty-title guard as QuickAddPopover's submit action (T-72-07).
+                let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmedTitle.isEmpty else { return }
+                onSave(event.id, trimmedTitle, startTime, endTime)
+                dismiss()
+            }) {
+                Text("Save")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.white.opacity(0.12))
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .padding(12)
+        .frame(width: 240)
+        .onAppear {
+            title = event.title
+            startTime = event.start
+            endTime = event.end
+        }
+    }
+
+    // Mirrors QuickAddPopover's startRow/endRow exact DatePicker shape (no auto-follow-on-Start
+    // behavior here — both fields are independently pre-filled from the real event already).
+    private var startRow: some View {
+        HStack {
+            Text("Starts")
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.white)
+            Spacer()
+            DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                .datePickerStyle(.compact)
+                .labelsHidden()
+        }
+    }
+
+    private var endRow: some View {
+        HStack {
+            Text("Ends")
+                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .foregroundStyle(.white)
+            Spacer()
+            DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
                 .datePickerStyle(.compact)
                 .labelsHidden()
         }
