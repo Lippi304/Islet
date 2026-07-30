@@ -1182,7 +1182,17 @@ Plans:
   3. In DEBUG builds, a new "Corner Radius" nudge control appears alongside the existing Wing Tuner axes (leading/trailing/margin/gap), live-adjusts the wing corner radius on real hardware via `@AppStorage`, and the value persists across relaunch.
   4. Release builds expose no corner-radius tuning UI — DEBUG-only, consistent with the existing Wing Tuner's own gating.
 
-**Plans**: TBD (run `/gsd:plan-phase 71` to break down)
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 71-01-PLAN.md — wingsShape()/mediaWingsOrToast()/resumePreviewWings() corner-radius bump to 16/8 (SHAPE-02, D-01/D-02/D-06) + NotchShapeTests.swift regression tests
+
+**Wave 2** *(blocked on 71-01)*
+
+- [ ] 71-02-PLAN.md — DEBUG-only Corner Radius Wing Tuner axis (SHAPE-03, D-03/D-04/D-05) + on-device UAT checkpoint
+
 **UI hint**: yes
 
 ### Phase 72: Calendar Redesign — Native Calendar Clone
