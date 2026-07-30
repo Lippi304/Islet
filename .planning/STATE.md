@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: executing
-stopped_at: Phase 71 context gathered
-last_updated: "2026-07-30T12:25:28.285Z"
-last_activity: 2026-07-30 -- Phase 71 planning complete
+stopped_at: Completed 71-01-PLAN.md
+last_updated: "2026-07-30T12:41:08.103Z"
+last_activity: 2026-07-30
 progress:
   total_phases: 42
   completed_phases: 26
   total_plans: 101
-  completed_plans: 91
+  completed_plans: 92
   percent: 62
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-30)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** v1.11 (Droppy-Inspired Polish Round 2) roadmap created — Phase 71 (Island Corner Rounding) next via `/gsd-discuss-phase 71`
+**Current focus:** Phase 71 — island-corner-rounding
 
 ## Current Position
 
-Phase: 71 (Island Corner Rounding) — not started
-Plan: —
+Phase: 71 (island-corner-rounding) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-30 -- Phase 71 planning complete
+Last activity: 2026-07-30
 
 ### Phase 70 Plan 02 result (2026-07-29)
 
@@ -324,6 +324,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 70 P02 | 15min | 2 tasks | 1 files |
 | Phase 70 P03 | 20 | - tasks | - files |
 | Phase 70 P03 | 20 | 2 tasks | 1 files |
+| Phase 71 P01 | 12min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -466,6 +467,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 70]: Convert's enabled: computed inline from pendingDrop.items every render — never a stored/threaded Bool, avoiding the airDropAvailable/mailAvailable dead-flag pattern (D-05, D-06)
 - [Phase 70]: computeQuickActionButtonFrames's call site updated to count: 4 — one call/array serves both main-row and format-tile stages, no second call site needed
 - [Phase 70]: handleQuickActionConvert stages converted files via ShelfFileStore's staging convention directly (not calling makeSessionCopy, which only byte-copies and cannot transcode)
+- [Phase 71]: 16/8 chosen as the exact 4/3-scaled-up pair from 12/6, preserving the 2:1 top:bottom ratio (D-01/D-02)
 
 ### Roadmap Evolution
 
@@ -636,9 +638,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-30T02:42:43.741Z
-Stopped at: Phase 71 context gathered
-Resume file: .planning/phases/71-island-corner-rounding/71-CONTEXT.md
+Last session: 2026-07-30T12:41:08.096Z
+Stopped at: Completed 71-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

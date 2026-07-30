@@ -1187,7 +1187,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 71-01-PLAN.md — wingsShape()/mediaWingsOrToast()/resumePreviewWings() corner-radius bump to 16/8 (SHAPE-02, D-01/D-02/D-06) + NotchShapeTests.swift regression tests
+- [x] 71-01-PLAN.md — wingsShape()/mediaWingsOrToast()/resumePreviewWings() corner-radius bump to 16/8 (SHAPE-02, D-01/D-02/D-06) + NotchShapeTests.swift regression tests
 
 **Wave 2** *(blocked on 71-01)*
 

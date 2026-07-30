@@ -83,7 +83,7 @@ forward, not shipped) are archived in `.planning/milestones/v1.10-REQUIREMENTS.m
 
 ### Island Shape
 
-- [ ] **SHAPE-02**: The collapsed-wide (wings) island state renders with noticeably more rounded corners at both ends of its outer silhouette, closer to a full pill shape than today's more rectangular corners
+- [x] **SHAPE-02**: The collapsed-wide (wings) island state renders with noticeably more rounded corners at both ends of its outer silhouette, closer to a full pill shape than today's more rectangular corners
 - [ ] **SHAPE-03** (DEBUG only): A new live-tuning nudge control for the wing corner radius, wired the same way as the existing Wing Tuner (`@AppStorage`, DEBUG-menu-only)
 
 ### Calendar
@@ -179,7 +179,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
-| SHAPE-02 | Phase 71 | Pending |
+| SHAPE-02 | Phase 71 | Complete |
 | SHAPE-03 | Phase 71 | Pending |
 | CALVIEW-08 | Phase 72 | Pending |
 | CALVIEW-09 | Phase 72 | Pending |
