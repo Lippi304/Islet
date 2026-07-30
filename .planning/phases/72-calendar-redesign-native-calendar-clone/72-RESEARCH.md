@@ -405,7 +405,7 @@ this project's macOS 14.0 floor (`CLAUDE.md`).
 | A1 | `EKEvent.eventIdentifier` is guaranteed non-nil for any event returned from `store.events(matching:)` (only nil pre-save) | Pitfall 1, Code Examples | Low — even if occasionally nil in some edge case, the `?? ""` fallback degrades to a no-op update/delete (never crashes), consistent with this codebase's existing "settle false, never retry/nag" error discipline |
 | A2 | `store.event(withIdentifier:)` returns `EKCalendarItem?` requiring an `as? EKEvent` cast (not directly typed `EKEvent?`) | Code Examples | Low — verified via web search against Apple documentation search results (EventKit API surface, stable for over a decade); worst case is a compile error the planner/executor catches immediately, not a runtime risk |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact red accent color value for badges/labels (D-03/D-05)**
    - What we know: the reference PNG shows a specific red (system red, visually close to

@@ -1,8 +1,8 @@
 ---
 phase: 72
 slug: calendar-redesign-native-calendar-clone
-status: draft
-nyquist_compliant: false
+status: final
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-30
 ---
@@ -36,12 +36,16 @@ created: 2026-07-30
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD-01 | TBD | 0 | CALVIEW-08 | — | N/A | unit | `xcodebuild test -scheme Islet -destination 'platform=macOS' -only-testing:IsletTests/CalendarGlanceTests` | ❌ W0 (extend existing file) | ⬜ pending |
-| TBD-02 | TBD | TBD | CALVIEW-08 | — | N/A | manual-only | on-device checkpoint (two-column layout, agenda scroll-to-day, no clipping at new width) | — | ⬜ pending |
-| TBD-03 | TBD | TBD | CALVIEW-09 | — | N/A | manual-only | on-device checkpoint against `reference-macos-calendar-widgets.png` (badges, weekday header, chevrons, fonts) | — | ⬜ pending |
-| TBD-04 | TBD | TBD | D-09 (update/delete) | T-14-06 | Untrusted `EKEvent.title` never interpolated into non-Text rendering; always `.lineLimit(1)`/`.truncationMode(.tail)` | manual-only | requires live `EKEventStore` (Calendar permission) — no test double exists for `CalendarService`/`EventKitService` | ❌ — planner decides: add protocol stub, or leave manual/on-device (consistent with `createEvent`/`createReminder` precedent) | ⬜ pending |
+| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | Status |
+|---------|------|------|-------------|------------|-----------------|-----------|-------------------|--------|
+| 72-01 Task 1 | 72-01 | 1 | CALVIEW-08 (eventsByDay grouping) | — | N/A | unit (TDD) | `xcodebuild test -scheme Islet -destination 'platform=macOS' -only-testing:IsletTests/CalendarGlanceTests` | ⬜ pending |
+| 72-01 Task 2 | 72-01 | 1 | D-09 (CalendarService update/delete) | T-14-06 | Untrusted `EKEvent.title` never interpolated outside plain `Text`/native tooltip | build | `xcodebuild build -scheme Islet -destination 'platform=macOS'` | ⬜ pending |
+| 72-02 Task 1 | 72-02 | 1 | CALVIEW-09 (weekday header, D-10) | — | N/A | build + grep | `xcodebuild build ... && grep -c "private var rotatedWeekdaySymbols"/"weekdayHeaderRow"` | ⬜ pending |
+| 72-02 Task 2 | 72-02 | 1 | CALVIEW-09 (D-03 badge swap, D-05 red accent, D-11 font/cell) | — | N/A | build + grep | `xcodebuild build ... && grep -n "static let calendarCellSize"` | ⬜ pending |
+| 72-03 Task 1 | 72-03 | 2 | CALVIEW-08 (D-01/D-02 agenda), D-08 delete, D-12 tooltip | T-14-06 | `event.title` stays in plain `Text`/`.help()`, never interpolated elsewhere | build | `xcodebuild build -scheme Islet -destination 'platform=macOS'` | ⬜ pending |
+| 72-03 Task 2 | 72-03 | 2 | CALVIEW-09, D-07 edit popover | — | N/A | build | `xcodebuild build -scheme Islet -destination 'platform=macOS'` | ⬜ pending |
+| 72-04 Task 1 | 72-04 | 3 | D-09 (controller wiring) | — | N/A | build + full test | `xcodebuild build ... && xcodebuild test -scheme Islet -destination 'platform=macOS'` | ⬜ pending |
+| 72-04 Task 2 | 72-04 | 3 | CALVIEW-08, CALVIEW-09 (all, consolidated) | — | N/A | manual-only (checkpoint:human-verify, blocking) | on-device UAT against `reference-macos-calendar-widgets.png`: two-column layout, agenda scroll-to-day, badges/header/chevrons/fonts, event CRUD round-trip | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -67,11 +71,11 @@ created: 2026-07-30
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < seconds
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or are the exempt `checkpoint:human-verify` task (72-04 Task 2)
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify (only the final task, 72-04 Task 2, is manual-only)
+- [x] Wave 0 covers all MISSING references (72-01 Task 1 adds `eventsByDay` unit tests per Wave 0 Requirements above)
+- [x] No watch-mode flags
+- [x] Feedback latency < seconds for unit tests (full-suite `xcodebuild test` runs longer, inherent to the compiled-Swift toolchain — same precedent as Phase 67.1, not practically avoidable)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (post-planning, via gsd-plan-checker verification — 2026-07-30)
