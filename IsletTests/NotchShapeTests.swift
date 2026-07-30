@@ -51,4 +51,24 @@ final class NotchShapeTests: XCTestCase {
         XCTAssertGreaterThan(cgBounds.width, 0, "The closed path needs a positive-width bounding box.")
         XCTAssertGreaterThan(cgBounds.height, 0, "The closed path needs a positive-height bounding box.")
     }
+
+    // SHAPE-02 (v1.11, Phase 71) — the new wing-state base radii (16/8, up from 12/6) must
+    // still produce a valid, closed, non-empty path at the nominal wings rect...
+    func testWingBaseRadiiProduceAClosedNonEmptyPathAtNominalSize() {
+        let path = NotchShape(topCornerRadius: 16, bottomCornerRadius: 8).path(in: CGRect(x: 0, y: 0, width: 290, height: 32))
+        let cgBounds = path.cgPath.boundingBox
+        XCTAssertFalse(path.cgPath.isEmpty, "Wing base radii path must be non-empty at nominal size.")
+        XCTAssertGreaterThan(cgBounds.width, 0, "The closed path needs a positive-width bounding box.")
+        XCTAssertGreaterThan(cgBounds.height, 0, "The closed path needs a positive-height bounding box.")
+    }
+
+    // ...and at the worst-case resolvedWingDepthScale 0.8x floor (32 * 0.8 = 25.6pt), where
+    // the 24pt radii sum has the least headroom against the rect height (Pitfall 1).
+    func testWingBaseRadiiProduceAClosedNonEmptyPathAtDepthScaleFloor() {
+        let path = NotchShape(topCornerRadius: 16, bottomCornerRadius: 8).path(in: CGRect(x: 0, y: 0, width: 290, height: 25.6))
+        let cgBounds = path.cgPath.boundingBox
+        XCTAssertFalse(path.cgPath.isEmpty, "Wing base radii path must be non-empty at the depth-scale floor.")
+        XCTAssertGreaterThan(cgBounds.width, 0, "The closed path needs a positive-width bounding box.")
+        XCTAssertGreaterThan(cgBounds.height, 0, "The closed path needs a positive-height bounding box.")
+    }
 }
