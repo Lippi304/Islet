@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.10
-milestone_name: Live Activities Suite
-status: milestone_complete
-stopped_at: v1.10 formally closed via /gsd-complete-milestone (Phases 59-63/65 shipped, 16/27 requirements; Phase 64/66/67 carried forward, not descoped) — Phase 70 was a separate standalone backlog phase, not part of v1.10's own scope
-last_updated: 2026-07-30T02:45:00.000Z
+milestone: v1.11
+milestone_name: Droppy-Inspired Polish Round 2
+status: planning
+last_updated: "2026-07-30T01:51:56.796Z"
 last_activity: 2026-07-30
 progress:
-  total_phases: 19
-  completed_phases: 16
-  total_plans: 39
-  completed_plans: 127
-  percent: 84
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,35 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 
 ## Current Position
 
-**NEXT SESSION START HERE:** v1.10 (Live Activities Suite) formally closed 2026-07-30 via
-`/gsd-complete-milestone` — Phases 59-63/65 shipped (16/27 requirements), Phase 64/66/67 carried
-forward. Phase 70 (idea #1 below) also shipped 2026-07-30, on-device verified. Next action:
-`/gsd-new-milestone` to decide priority among the 3 v1.10 carried-forward gaps, v1.7's remaining
-items, Phase 68/69, and the 4 remaining queued Droppy ideas below (screenshots already reviewed,
-concrete visual details baked into each seed file). Seed files: `.planning/seeds/`
-
-2. [[island-corner-rounding]] — more rounded corners on the collapsed-wide (wings) island state;
-   user also wants a new DEBUG live-tuning nudge axis for corner radius, same pattern as the
-   existing Wing Tuner.
-
-3. [[calendar-redesign-droppy]] — widen + redesign the expanded Calendar view to look truly 1:1
-   identical to macOS's native Calendar app (Droppy-inspired).
-
-4. [[timer-slider-redesign]] — remove Pomodoro mode from the code entirely (NOTE: Pomodoro/TIMER-04
-   just shipped in Phase 62 — this idea would reverse it); replace timer setup with a ruler/slider
-   duration picker + Start button + sound toggle (Droppy-inspired).
-
-5. [[music-next-up-queue]] — expand a "Next Up" list (next 5 songs, art/title/artist) from the
-   Now Playing view's existing 3-dots affordance.
-
-(Idea #1, filetray-convert-button, shipped as Phase 70 — see above.)
-
-Phase: 70 (shipped) / v1.10 closed
-Plan: v1.10 closed — awaiting `/gsd-new-milestone`
-Phase 64 (quick-notes-obsidian-export) — carried forward from v1.10, 3 unfixed major UAT bugs, needs `/gsd:plan-phase 64 --gaps`.
-Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
-Phase 67 (coding-progress) — carried forward from v1.10, never started.
-Last activity: 2026-07-30
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-30 — Milestone v1.11 started
 
 ### Phase 70 Plan 02 result (2026-07-29)
 
