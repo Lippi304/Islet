@@ -2445,6 +2445,18 @@ final class NotchWindowController {
         calendarViewState.selectedDay = day
     }
 
+    // Phase 72-04 / D-13 — jump directly to a picked month/year (the month/year label popover),
+    // mirroring handleCalendarMonthChange's body exactly but skipping its delta arithmetic since
+    // MonthYearPickerButton already reports the exact absolute target month.
+    private func handleCalendarMonthYearSelect(_ month: Date) {
+        calendarViewState.visibleMonth = month
+        if !Calendar.current.isDate(calendarViewState.selectedDay, equalTo: month, toGranularity: .month) {
+            calendarViewState.selectedDay = month
+        }
+        calendarViewState.monthEvents = nil
+        refreshCalendarMonth()
+    }
+
     // Phase 28 / CALVIEW-03 — quick-add for both Event and Reminder, routed through the SAME
     // shared CalendarService (CALVIEW-04). Event/Reminder dates now come from QuickAddPopover's
     // real Start/End (Event) or Due (Reminder) DatePickers (Phase 46-02 / CALVIEW-05) — refreshes
@@ -3138,6 +3150,7 @@ final class NotchWindowController {
                       onSwitcherSelect: { [weak self] view in self?.handleSwitcherSelect(view) },
                       onCalendarMonthChange: { [weak self] delta in self?.handleCalendarMonthChange(delta) },
                       onCalendarDaySelect: { [weak self] day in self?.handleCalendarDaySelect(day) },
+                      onCalendarMonthYearSelect: { [weak self] month in self?.handleCalendarMonthYearSelect(month) },
                       // Phase 46-02 / CALVIEW-05 — forwards QuickAddPopover's real picked Start/End
                       // (Event) or Due (Reminder) Date(s) into handleQuickAdd.
                       onQuickAdd: { [weak self] kind, title, start, end in self?.handleQuickAdd(kind, title: title, start: start, end: end) },

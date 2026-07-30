@@ -16,8 +16,12 @@ The expanded Calendar view (Phase 28, already shipped) gets redesigned into a ge
 ## Implementation Decisions
 
 ### Agenda List Scope
-- **D-01:** The agenda list (right column) shows the **whole visible month** — every day with events in the currently-viewed month, grouped by day header (e.g. "WEDNESDAY, 15 JUL"). Navigating the month grid's prev/next chevrons changes what the agenda shows (not a fixed rolling window from today).
-- **D-02:** Tapping a day in the month grid **scrolls the agenda list** to that day's header — the grid becomes a jump-to-date shortcut into the already-populated agenda, not a separate single-day filter.
+- **D-01:** ~~The agenda list (right column) shows the **whole visible month** — every day with events in the currently-viewed month, grouped by day header (e.g. "WEDNESDAY, 15 JUL"). Navigating the month grid's prev/next chevrons changes what the agenda shows (not a fixed rolling window from today).~~ **SUPERSEDED — Revised 2026-07-31 (see D-01 revised below).**
+- **D-02:** ~~Tapping a day in the month grid **scrolls the agenda list** to that day's header — the grid becomes a jump-to-date shortcut into the already-populated agenda, not a separate single-day filter.~~ **SUPERSEDED — Revised 2026-07-31 (see D-02 revised below).**
+
+**Revised 2026-07-31** (real on-device UAT for Plan 72-04's Task 2 checkpoint found the whole-month agenda didn't match what the user actually wanted):
+- **D-01 (revised):** The agenda (right column) shows only **ONE day's events** at a time — either "today" (default) or whichever day is currently selected in the month grid — NOT the whole visible month.
+- **D-02 (revised):** Tapping a day in the month grid **REPLACES** the agenda's shown day with that day (no more scroll-to-day — there's nothing to scroll to since only one day's events render at a time).
 
 ### Today/Selected Badge Styling
 - **D-03:** Swap confirmed — **today** gets a solid filled red badge (matches the real macOS widget reference), **selected/viewed day** gets a thin **red outline ring** (not white/gray — same accent color as today, but outlined instead of filled). This reverses current code (today=ring, selected=filled).
@@ -34,6 +38,13 @@ The expanded Calendar view (Phase 28, already shipped) gets redesigned into a ge
 - **D-10 (from folded todo):** Chevron arrows in the month header sit too far apart today — move them closer together (pure layout constant change).
 - **D-11 (from folded todo):** Day-of-month numbers in the grid are too small — increase font size for legibility; check overall balance against Phase 46's row-padding bump once changed.
 - **D-12 (from folded todo):** Event rows need a hover tooltip revealing the full (currently truncated) title, in addition to the new edit/remove affordances from D-07/D-08.
+
+### New hover/navigation affordances (Revised 2026-07-31, from real on-device UAT feedback)
+- **D-13 (new):** Clicking the Month/Year label opens a popover (reusing `QuickAddPopover`'s chrome/pattern) containing Month and Year pickers, so the user can jump months/years quickly instead of only stepping one at a time via chevrons.
+- **D-14 (new):** Hovering a day cell in the month grid shows a white circle outline around that cell (visual hover affordance, distinct from the existing today/selected red badge styling — purely a hover indicator, applies to any cell being hovered).
+- **D-15 (new):** The prev/next month chevron buttons get a white, fully circular hover background — same visual language as the Play/Skip button hover treatment in the Now Playing widget (`TransportButton`), but circular instead of pill-shaped.
+- **D-16 (new):** Hovering an event row in the agenda shows a white outline/border around the row (outline only, not a filled background — distinct from the existing hover-reveal delete-icon behavior from Plan 72-03, which stays as-is).
+- **D-17 (new):** The "+ Add" button gets a white border on hover (same white-hover-affordance language as D-14/D-16, applied to this existing control).
 
 ### Claude's Discretion
 - Whether the "has events" dot indicator's exact styling changes (D-04).

@@ -398,6 +398,11 @@ struct NotchPillView: View {
     var onSwitcherSelect: (SelectedView) -> Void = { _ in }
     var onCalendarMonthChange: (Int) -> Void = { _ in }
     var onCalendarDaySelect: (Date) -> Void = { _ in }
+    // Phase 72-04 (D-13) — the month/year label popover's "jump to month" report closure,
+    // mirroring onCalendarDaySelect's exact "report an absolute Date, no math in the view"
+    // shape (NOT a delta like onCalendarMonthChange — the picker already knows the exact
+    // target month/year, so there is nothing to compute here).
+    var onCalendarMonthYearSelect: (Date) -> Void = { _ in }
     // Phase 28 / CALVIEW-03 — the quick-add report closure (Task 3): (kind, title) forwarded
     // unmodified, no EventKit/EKEventStore code in this view file.
     // Phase 46 / CALVIEW-05 — widened to carry the picked Start/Due (Date) and End (Date?,
@@ -1663,21 +1668,9 @@ struct NotchPillView: View {
             HStack {
                 Spacer()
                 HStack(spacing: 8) {
-                    Button(action: { onCalendarMonthChange(-1) }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-                    .buttonStyle(.plain)
-                    Text(calendarViewState.visibleMonth, format: .dateTime.month(.wide).year())
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color.red)
-                    Button(action: { onCalendarMonthChange(1) }) {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-                    .buttonStyle(.plain)
+                    ChevronHoverButton(systemName: "chevron.left", action: { onCalendarMonthChange(-1) })
+                    MonthYearPickerButton(visibleMonth: calendarViewState.visibleMonth, onSubmit: onCalendarMonthYearSelect)
+                    ChevronHoverButton(systemName: "chevron.right", action: { onCalendarMonthChange(1) })
                 }
                 Spacer()
             }
@@ -1689,22 +1682,8 @@ struct NotchPillView: View {
                         let isSelected = Calendar.current.isDate(day, inSameDayAs: calendarViewState.selectedDay)
                         let isToday = Calendar.current.isDateInToday(day)
                         let hasEvents = calendarViewState.monthEvents.map { !events(on: day, events: $0).isEmpty } ?? false
-                        ZStack(alignment: .bottom) {
-                            Text(day, format: .dateTime.day())
-                                .font(.system(size: 11, weight: isSelected ? .semibold : .regular, design: .rounded))
-                                .foregroundStyle(.white)
-                                .frame(width: Self.calendarCellSize, height: Self.calendarCellSize)
-                                .background(Circle().fill(isToday ? Color.red : Color.clear))
-                                .overlay(Circle().strokeBorder(isSelected && !isToday ? Color.red : Color.clear, lineWidth: 1.5))
-                            if hasEvents {
-                                Circle()
-                                    .fill(Color.white.opacity(0.6))
-                                    .frame(width: 2, height: 2)
-                                    .offset(y: -1)
-                            }
-                        }
-                        .frame(width: Self.calendarCellSize, height: Self.calendarCellSize)
-                        .onTapGesture { onCalendarDaySelect(day) }
+                        DayCell(day: day, isSelected: isSelected, isToday: isToday, hasEvents: hasEvents,
+                                onTap: { onCalendarDaySelect(day) })
                     } else {
                         Color.clear.frame(width: Self.calendarCellSize, height: Self.calendarCellSize)   // leading pad cell — no view
                     }
@@ -1713,12 +1692,146 @@ struct NotchPillView: View {
         }
     }
 
-    // RIGHT column — the whole-month, day-grouped agenda (CALVIEW-08, D-01/D-02). `monthEvents
-    // == nil` (not yet fetched) renders nothing — NEVER the empty state (Pitfall 4: distinguishes
-    // loading from a confirmed-zero-events month so "No events this month" never flashes before
-    // the first EventKit fetch settles).
+    // Phase 72-04 (D-14) — one month-grid day cell, extracted to a local view struct so it can
+    // own its own `@State isHovering` (mirrors `EventRow`/`TransportButton`'s established local-
+    // hover pattern — a `ForEach`-generated inline view can't hold `@State` itself). Adds a white
+    // hover-ring overlay, layered UNDER the existing today/selected red badge overlay so the two
+    // never visually compete (a hovered today/selected cell still reads primarily as
+    // today/selected; the white ring is a secondary, thinner affordance).
+    private struct DayCell: View {
+        let day: Date
+        let isSelected: Bool
+        let isToday: Bool
+        let hasEvents: Bool
+        let onTap: () -> Void
+        @State private var isHovering = false
+
+        var body: some View {
+            ZStack(alignment: .bottom) {
+                Text(day, format: .dateTime.day())
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(width: NotchPillView.calendarCellSize, height: NotchPillView.calendarCellSize)
+                    .background(Circle().fill(isToday ? Color.red : Color.clear))
+                    .overlay(Circle().strokeBorder(isHovering ? Color.white.opacity(0.8) : Color.clear, lineWidth: 1))
+                    .overlay(Circle().strokeBorder(isSelected && !isToday ? Color.red : Color.clear, lineWidth: 1.5))
+                if hasEvents {
+                    Circle()
+                        .fill(Color.white.opacity(0.6))
+                        .frame(width: 2, height: 2)
+                        .offset(y: -1)
+                }
+            }
+            .frame(width: NotchPillView.calendarCellSize, height: NotchPillView.calendarCellSize)
+            .contentShape(Rectangle())
+            .onHover { isHovering = $0 }
+            .onTapGesture(perform: onTap)
+        }
+    }
+
+    // Phase 72-04 (D-15) — prev/next month chevron, mirroring `TransportButton`'s exact local-
+    // hover pattern (Now Playing's play/skip button hover treatment) but with a CIRCLE background
+    // instead of a rounded rectangle, per the user's explicit "circular instead of pill-shaped"
+    // decision.
+    private struct ChevronHoverButton: View {
+        let systemName: String
+        let action: () -> Void
+        @State private var isHovering = false
+
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: systemName)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(width: 20, height: 20)
+                    .background(Circle().fill(isHovering ? Color.white.opacity(0.40) : Color.clear))
+            }
+            .buttonStyle(.plain)
+            .onHover { isHovering = $0 }
+        }
+    }
+
+    // Phase 72-04 (D-13) — the month/year label becomes a popover trigger (mirrors
+    // `QuickAddPopover`'s exact chrome: 240pt-wide content, 12pt padding, `.popover` off a plain
+    // `Button`) so the user can jump months/years directly instead of only stepping one at a
+    // time via the chevrons. Month/Year `Picker`s report a single combined Date on submit —
+    // `onSubmit` mirrors `onCalendarDaySelect`'s "report an absolute value, no math in the view"
+    // shape (D-13's own closure, `onCalendarMonthYearSelect`).
+    private struct MonthYearPickerButton: View {
+        let visibleMonth: Date
+        let onSubmit: (Date) -> Void
+        @State private var isShowing = false
+        @State private var pickedMonth = 1
+        @State private var pickedYear = 2026
+
+        var body: some View {
+            Button(action: { isShowing = true }) {
+                Text(visibleMonth, format: .dateTime.month(.wide).year())
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.red)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $isShowing) {
+                popoverContent
+            }
+            .onChange(of: isShowing) { _, newValue in
+                guard newValue else { return }
+                let calendar = Calendar.current
+                pickedMonth = calendar.component(.month, from: visibleMonth)
+                pickedYear = calendar.component(.year, from: visibleMonth)
+            }
+        }
+
+        private var popoverContent: some View {
+            let currentYear = Calendar.current.component(.year, from: Date())
+            return VStack(alignment: .leading, spacing: 8) {
+                Picker("Month", selection: $pickedMonth) {
+                    ForEach(1...12, id: \.self) { month in
+                        Text(Calendar.current.monthSymbols[month - 1]).tag(month)
+                    }
+                }
+                Picker("Year", selection: $pickedYear) {
+                    ForEach((currentYear - 10)...(currentYear + 10), id: \.self) { year in
+                        Text(String(year)).tag(year)
+                    }
+                }
+                Button(action: {
+                    var components = DateComponents()
+                    components.year = pickedYear
+                    components.month = pickedMonth
+                    components.day = 1
+                    if let newMonth = Calendar.current.date(from: components) {
+                        onSubmit(newMonth)
+                    }
+                    isShowing = false
+                }) {
+                    Text("Go")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.white.opacity(0.12))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .frame(width: 240)
+        }
+    }
+
+    // RIGHT column — the SELECTED DAY's event list (Phase 72-04 revision, D-01/D-02 superseded:
+    // the whole-month day-grouped agenda from Plan 72-03 is reverted back to a single-day list —
+    // "today" by default, or whichever day is tapped in the month grid, replacing what was shown
+    // rather than scrolling a whole-month list — see 72-CONTEXT.md's "Revised 2026-07-31" note).
+    // `monthEvents == nil` (not yet fetched) renders nothing — NEVER the empty state (Pitfall 4:
+    // distinguishes loading from a confirmed-zero-events day so "No events today" never flashes
+    // before the first EventKit fetch settles).
     private var dayListColumn: some View {
-        VStack(alignment: .trailing, spacing: 4) {
+        let dayEvents = calendarViewState.monthEvents.map { events(on: calendarViewState.selectedDay, events: $0) }
+        return VStack(alignment: .trailing, spacing: 4) {
             // CALVIEW-06 / D-06 — the "+ Add" trigger, LEFT edge of the day-list column, next
             // to the month-grid/day-list divider (was right edge, previously visually clipped).
             HStack {
@@ -1726,12 +1839,11 @@ struct NotchPillView: View {
                 Spacer()
             }
             Group {
-                if let monthEvents = calendarViewState.monthEvents {
-                    let groups = eventsByDay(events: monthEvents, calendar: .current)
-                    if groups.isEmpty {
+                if let dayEvents {
+                    if dayEvents.isEmpty {
                         calendarEmptyState
                     } else {
-                        dayGroupedAgenda(groups)
+                        dayEventsList(dayEvents)
                     }
                 }
             }
@@ -1742,11 +1854,10 @@ struct NotchPillView: View {
 
     // CALVIEW-02 — the explicit empty state (Copywriting Contract: exact strings; bold "+ Add"
     // matches the real quick-add trigger label added in Task 3, "point at the real control").
-    // Phase 72 / CALVIEW-08 — scope widened from single-day to whole-month (D-01): the heading
-    // now reads "No events this month" since the agenda covers the whole visible month.
+    // Phase 72-04 revision — reverted to "No events today" (single-day scope, D-01 revised).
     private var calendarEmptyState: some View {
         VStack(spacing: 4) {
-            Text("No events this month")
+            Text("No events today")
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             (Text("Tap ") + Text("+ Add").fontWeight(.bold) + Text(" to create one."))
@@ -1757,45 +1868,26 @@ struct NotchPillView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // Phase 72 / CALVIEW-08 (D-01/D-02) — the whole-month, day-grouped, scrollable agenda.
-    // Replaces the old single-selected-day `dayEventsList`. Reuses `calendarColumn`'s exact
-    // title/color-dot/time row convention (T-14-06 MANDATORY: `.lineLimit(1)`/`.truncationMode
-    // (.tail)` on untrusted EventKit titles) via the new `EventRow` (below, mirrors
-    // `TransportButton`'s local-hover pattern per RESEARCH.md Pitfall 4).
-    // A `ScrollViewReader` lets a grid tap (D-02) scroll to the tapped day's header via its
-    // `.id(group.day)` WITHOUT re-fetching/re-filtering `monthEvents` (Anti-Pattern) — the
-    // `.onChange` below only calls `scrollTo`, `handleCalendarDaySelect` still only sets
-    // `selectedDay`, unchanged.
-    private func dayGroupedAgenda(_ groups: [(day: Date, events: [EventInput])]) -> some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical) {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(groups, id: \.day) { group in
-                        Text(group.day, format: .dateTime.weekday(.wide).day().month(.abbreviated))
-                            .id(group.day)   // scroll target — the grouping Date, never a formatted String (Pitfall 5)
-                            .textCase(.uppercase)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.secondary)
-                        // CALVIEW-07 / D-09 — roomier row padding/spacing (was 8h/5v/6-spacing).
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(group.events, id: \.id) { event in
-                                EventRow(
-                                    event: event,
-                                    onEdit: onEventEdit,
-                                    onDelete: { onEventDelete(event.id) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            .scrollIndicators(.never)
-            .onChange(of: calendarViewState.selectedDay) { _, newDay in
-                withAnimation {
-                    proxy.scrollTo(Calendar.current.startOfDay(for: newDay), anchor: .top)
+    // Phase 72-04 revision (D-01/D-02 superseded) — the SELECTED DAY's scrollable event list.
+    // Replaces Plan 72-03's whole-month `dayGroupedAgenda`/`ScrollViewReader` jump-to-day
+    // mechanism: tapping a grid day now simply REPLACES which day's events render (controller
+    // just sets `selectedDay`, no scroll target needed since only one day's events are ever on
+    // screen at once). Reuses the same `EventRow` (hover-delete/edit-popover/tooltip from Plan
+    // 72-03, D-07/D-08/D-12) unchanged — only the "which day(s) render" mechanism changed.
+    private func dayEventsList(_ dayEvents: [EventInput]) -> some View {
+        ScrollView(.vertical) {
+            // CALVIEW-07 / D-09 — roomier row padding/spacing (was 8h/5v/6-spacing).
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(dayEvents, id: \.id) { event in
+                    EventRow(
+                        event: event,
+                        onEdit: onEventEdit,
+                        onDelete: { onEventDelete(event.id) }
+                    )
                 }
             }
         }
+        .scrollIndicators(.never)
     }
 
     // 28-04 round 4 (user-confirmed scope expansion) — the Weather full view. IMPORTANT
@@ -4656,6 +4748,12 @@ struct NotchPillView: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.white.opacity(0.06))
             )
+            // Phase 72-04 (D-16) — hover outline, distinct from the pre-existing hover-reveal
+            // delete icon above (outline only, never a filled background).
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(isHovering ? Color.white.opacity(0.6) : Color.clear, lineWidth: 1)
+            )
             .contentShape(Rectangle())
             .onHover { isHovering = $0 }
             .onTapGesture { isShowingEdit = true }   // D-07 — trash Button above takes tap priority over this
@@ -5059,6 +5157,8 @@ private struct QuickAddPopover: View {
     @State private var isProgrammaticEndUpdate = false
     let onSubmit: (QuickAddKind, String, Date, Date?) -> Void
     let selectedDay: Date
+    // Phase 72-04 (D-17) — hover-border state for the trigger button below.
+    @State private var isHovering = false
 
     // The trigger button. `chipButton`'s exact visual convention (RoundedRectangle +
     // Color.white.opacity(0.12) fill, 28-UI-SPEC.md "Quick-add control chrome") — mirrored here
@@ -5075,8 +5175,14 @@ private struct QuickAddPopover: View {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(Color.white.opacity(0.12))
                 )
+                // D-17 — white hover border, same hover-affordance language as D-14/D-16.
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(isHovering ? Color.white.opacity(0.6) : Color.clear, lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
         .popover(isPresented: $isShowing, arrowEdge: .trailing) {
             quickAddContent
         }

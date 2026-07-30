@@ -119,14 +119,3 @@ func events(on day: Date, events: [EventInput], calendar: Calendar = .current) -
         .sorted { $0.start < $1.start }
 }
 
-// Phase 72 / CALVIEW-08 — the whole-month agenda's day-grouping seam. Total function:
-// Foundation-only, never crashes, returns [] for an empty `events` array. Groups by the exact
-// `calendar.startOfDay(for:)` Date -- never a formatted day-of-month String -- so two different
-// months' identical day-of-month (e.g. July 15 vs August 15) never collide into one group.
-// Groups are sorted ascending by day; each group's own events are sorted ascending by start.
-func eventsByDay(events: [EventInput], calendar: Calendar = .current) -> [(day: Date, events: [EventInput])] {
-    let grouped = Dictionary(grouping: events) { calendar.startOfDay(for: $0.start) }
-    return grouped
-        .map { (day: $0.key, events: $0.value.sorted { $0.start < $1.start }) }
-        .sorted { $0.day < $1.day }
-}
