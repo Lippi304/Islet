@@ -38,6 +38,21 @@ protocol CalendarService: AnyObject {
     ///   `requestFullAccessToEvents()` elsewhere in this file. Settles `false` on any save error.
     func createEvent(title: String, start: Date, end: Date, completion: @escaping (Bool) -> Void)
 
+    /// Update an existing Calendar event's title/start/end.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   D-09: no new permission request here — Calendar write access is already covered by
+    ///   `requestFullAccessToEvents()` elsewhere in this file. Settles `false` if the event no
+    ///   longer exists (e.g. deleted externally) or on any save error — never retries, never
+    ///   re-prompts.
+    func updateEvent(id: String, title: String, start: Date, end: Date, completion: @escaping (Bool) -> Void)
+
+    /// Delete an existing Calendar event.
+    /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
+    ///   D-09: no new permission request here — Calendar write access is already covered by
+    ///   `requestFullAccessToEvents()` elsewhere in this file. Settles `false` if the event no
+    ///   longer exists or on any remove error — never retries, never re-prompts.
+    func deleteEvent(id: String, completion: @escaping (Bool) -> Void)
+
     /// Create a new Reminder via the quick-add UI.
     /// - Note: `completion` is ALWAYS delivered on the MAIN thread (contract — see file header).
     ///   D-04 (LOCKED): this is the ONLY call site in the codebase allowed to request Reminders
@@ -129,7 +144,9 @@ final class EventKitService: CalendarService {
             blue = Double(rgb.blueComponent)
         }
         // T-14-06: ek.title is UNTRUSTED — passed through as a plain String only.
-        return EventInput(title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
+        // Pitfall 1: ek.eventIdentifier is Optional -- "" is the documented safe fallback,
+        // degrading update/delete to a no-op via the guard-else in those methods, never a crash.
+        return EventInput(id: ek.eventIdentifier ?? "", title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
                           colorRed: red, colorGreen: green, colorBlue: blue)
     }
 
@@ -146,6 +163,37 @@ final class EventKitService: CalendarService {
             completion(true)
         } catch {
             completion(false) // T-28-05: never crash on a thrown save error.
+        }
+    }
+
+    func updateEvent(id: String, title: String, start: Date, end: Date, completion: @escaping (Bool) -> Void) {
+        // D-09: no new permission request needed — full write access to Events is already
+        // granted via requestFullAccessToEvents() (called from fetchUpcoming/fetchMonth).
+        guard let event = store.event(withIdentifier: id) else {
+            completion(false) // event no longer exists (e.g. deleted externally) — never crash.
+            return
+        }
+        event.title = title // T-14-06: plain String, never interpolated.
+        event.startDate = start
+        event.endDate = end
+        do {
+            try store.save(event, span: .thisEvent)
+            completion(true)
+        } catch {
+            completion(false) // T-28-05: never crash on a thrown save error.
+        }
+    }
+
+    func deleteEvent(id: String, completion: @escaping (Bool) -> Void) {
+        guard let event = store.event(withIdentifier: id) else {
+            completion(false) // event no longer exists (e.g. deleted externally) — never crash.
+            return
+        }
+        do {
+            try store.remove(event, span: .thisEvent)
+            completion(true)
+        } catch {
+            completion(false) // T-28-05: never crash on a thrown remove error.
         }
     }
 
