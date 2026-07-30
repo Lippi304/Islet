@@ -173,7 +173,7 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)** - PAUSED by user (2026-07-28) after 3 consecutive NO-GOs (see Phase Details) — even real Ice.app's own mechanism no longer works on this machine; root cause unconfirmed (Golden-Gate/Developer-Mode hypothesis, untestable without a full macOS 26 downgrade); feature still wanted, revisit unscheduled
 - [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern; never started
 - [x] **Phase 71: Island Corner Rounding** - More rounded wing-state silhouette + DEBUG-only corner-radius tuner (completed 2026-07-30)
-- [ ] **Phase 72: Calendar Redesign — Native Calendar Clone** - Two-column month-grid + agenda layout, 1:1 visual match to macOS Calendar
+- [x] **Phase 72: Calendar Redesign — Native Calendar Clone** - Two-column month-grid + agenda layout, 1:1 visual match to macOS Calendar (completed 2026-07-30)
 - [ ] **Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider** - Pomodoro fully removed; new minutes ruler/slider + Start Timer + sound toggle
 - [ ] **Phase 74: Music Next Up Queue** - List-icon affordance opens a Next Up panel (next 5 tracks: art/title/artist)
 
@@ -1223,7 +1223,7 @@ Plans:
 
 **Wave 3** *(blocked on 72-01, 72-03)*
 
-- [ ] 72-04-PLAN.md — NotchWindowController wiring (handleEventEdit/handleEventDelete) + consolidated on-device UAT checkpoint
+- [x] 72-04-PLAN.md — NotchWindowController wiring (handleEventEdit/handleEventDelete) + consolidated on-device UAT checkpoint
 
 ### Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider
 

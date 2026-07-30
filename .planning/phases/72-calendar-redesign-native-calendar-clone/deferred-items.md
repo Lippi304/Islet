@@ -61,3 +61,33 @@ Not fixed here (out of scope — Rule 1/Scope Boundary: this plan's own files ar
 separate file from a much earlier phase). Flagged for whoever next touches
 `CalendarGlanceTests.swift`: either inject a fixed `now` far from midnight, or clamp the
 `addingTimeInterval` offsets to stay within the same calendar day.
+
+## Plan 72-04 revision confirmation (2026-07-31) — same 7 pre-existing failures, 4 fewer tests
+
+Full suite run after the D-01/D-02 revision + D-13..D-17 hover-affordance commit
+(`xcodebuild test -scheme Islet -destination 'platform=macOS'`): 587 tests, 7 failures —
+identical failure set to the original 7 pre-existing baseline above. Test count dropped from
+591→587 because this revision removed the now-dead `eventsByDay(events:calendar:)` function
+(Plan 72-01) and its 4 unit tests — the whole-month agenda that called it was reverted back to
+a single-day list, and grep confirmed no other caller existed. Zero new failures from this
+revision.
+
+## Intermittent hover-detection latency on new calendar hover affordances (D-14/D-15/D-16/D-17)
+
+Reported during the real on-device UAT that approved Task 2 (2026-07-31): hover states
+(day-cell white ring, chevron circular hover, agenda-row outline, "+ Add" border) are
+sometimes detected with a slight delay rather than perfectly live — inconsistent, sometimes
+instant, sometimes laggy. The user specifically noted it feels worse when another app is
+running fullscreen, and smoother otherwise.
+
+**Not treated as a bug in this plan's hover-affordance code** — all 4 hover mechanics
+themselves are confirmed correct and were approved as-is. The symptom pattern (worse
+specifically when another app holds a fullscreen Space) points at Space-switch/mouse-tracking
+overhead for Islet's always-on-top overlay window while a fullscreen Space is active elsewhere
+— a known category of issue for notch-style panels (see this project's own `NotchWindowController`
+CGS-Space handling, Phase 9), not something specific to `onHover` usage in `NotchPillView.swift`.
+
+Needs investigation as a separate follow-up (likely a mouse-tracking/Space-switching
+performance issue at the window/panel level, not this plan's SwiftUI `.onHover` code). Not a
+blocker for this phase — flagged here for whoever next investigates fullscreen/Space-related
+overlay performance.
