@@ -144,9 +144,11 @@ final class EventKitService: CalendarService {
             blue = Double(rgb.blueComponent)
         }
         // T-14-06: ek.title is UNTRUSTED — passed through as a plain String only.
-        // Pitfall 1: ek.eventIdentifier is Optional -- "" is the documented safe fallback,
-        // degrading update/delete to a no-op via the guard-else in those methods, never a crash.
-        return EventInput(id: ek.eventIdentifier ?? "", title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
+        // T-72-02 fix (72-REVIEW.md WR-03): ek.eventIdentifier is Optional -- a shared ""
+        // fallback let two such events collide under ForEach(dayEvents, id: \.id)'s identity.
+        // A per-event-unique fallback still degrades update/delete to a no-op (the id won't
+        // match any real store identifier) but never collides with another event's id.
+        return EventInput(id: ek.eventIdentifier ?? UUID().uuidString, title: ek.title ?? "", start: ek.startDate, end: ek.endDate,
                           colorRed: red, colorGreen: green, colorBlue: blue)
     }
 
