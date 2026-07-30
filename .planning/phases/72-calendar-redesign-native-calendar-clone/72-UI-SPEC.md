@@ -48,18 +48,18 @@ Exceptions:
 
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
-| Month/year label | 13px | semibold, rounded | default (single line) | `monthGridColumn` header — turns red per D-05 (was white) |
 | Weekday header letters (NEW) | 10px | semibold, rounded | default | 7-column row above the day grid, `.secondary` opacity ~0.6, matches reference's dimmer weekday-letter row |
 | Day number (grid) | **11px** (was 9px, D-11) | regular / semibold when selected-or-today | default | Inside each day-badge circle |
 | Day-group agenda header (NEW) | 11px | semibold, rounded | default | e.g. "WEDNESDAY, 15 JUL" — `.secondary`, all-caps via `.textCase(.uppercase)` |
-| Event row title | 12px | regular, rounded | 1 line, `.truncationMode(.tail)` | Unchanged from Phase 28/46 |
 | Event row time | 11px | regular, rounded | 1 line, monospacedDigit | Unchanged |
-| Empty state heading | 13px | semibold, rounded | default | Unchanged ("No events today") |
 | Empty state body | 11px | regular, rounded | default, centered | Unchanged |
+| Event row title | 12px | regular, rounded | 1 line, `.truncationMode(.tail)` | Unchanged from Phase 28/46 |
 | Quick-add / Edit popover title field | 12px | regular, rounded | default | Unchanged (`QuickAddPopover` reused verbatim for edit) |
-| Quick-add / Edit popover submit button | 14px | semibold, rounded | default | Unchanged |
+| Month/year label | 13px | semibold, rounded | default (single line) | `monthGridColumn` header — turns red per D-05 (was white) |
+| Empty state heading | 13px | semibold, rounded | default | Unchanged ("No events today") |
+| Quick-add / Edit popover submit button | 13px (was 14px — collapsed into the month/year-label tier to keep the type scale at 4 sizes) | semibold, rounded | default | Only pixel value changed this phase; label/behavior unchanged |
 
-Exactly 4 distinct sizes at the "structural" tier (10/11/12/13px) plus the unchanged 14px submit-button size already established by `QuickAddPopover` — no new weight introduced beyond this file's existing regular/semibold pair.
+Exactly 4 distinct sizes across the whole scale: 10/11/12/13px — no new weight introduced beyond this file's existing regular/semibold pair.
 
 ---
 
