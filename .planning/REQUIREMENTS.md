@@ -179,6 +179,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
+| SHAPE-02 | Phase 71 | Pending |
+| SHAPE-03 | Phase 71 | Pending |
+| CALVIEW-08 | Phase 72 | Pending |
+| CALVIEW-09 | Phase 72 | Pending |
+| TIMER-05 | Phase 73 | Pending |
+| TIMER-06 | Phase 73 | Pending |
+| TIMER-07 | Phase 73 | Pending |
+| NOW-08 | Phase 74 | Pending |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
@@ -199,6 +207,11 @@ v1.9's traceability table (CLIP-01..05, PRIV-01/02 — 7/7 shipped) is archived 
 
 v1.10's traceability table (27 total, 16 shipped/59%, 11 carried forward — NOTES-*/MENUBAR-*/CODE-* not delivered) is archived in `.planning/milestones/v1.10-REQUIREMENTS.md`.
 
+**Coverage (v1.11):**
+- v1.11 requirements: 8 total
+- Mapped to phases: 8 (100%)
+- Unmapped: 0
+
 ---
 *Requirements defined: 2026-07-13*
 *Last updated: 2026-07-30 — v1.11 (Droppy-Inspired Polish Round 2) requirements defined: 9 requirements (SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07, NOW-08), scoped directly from 4 already-detailed seed files, no research needed. Not yet mapped to phases — roadmap pending.*
@@ -210,3 +223,5 @@ v1.10's traceability table (27 total, 16 shipped/59%, 11 carried forward — NOT
 *v1.8 (Settings Redesign & Island Navigation) shipped and archived to `.planning/milestones/v1.8-REQUIREMENTS.md`/`.planning/milestones/v1.8-ROADMAP.md` — 3 phases (51-53), 6/6 requirements shipped, including a mid-UAT design fix (D-02 superseded: static play glyph replaces the bouncing equalizer bars in the idle-hover preview, since animated bars implied live playback when nothing was actually playing).*
 
 *v1.10 (Live Activities Suite) roadmap created 2026-07-23: 9 phases (59-67), 100% coverage (27/27). Phase order: Settings-Redesign (59, foundation) → Caps Lock HUD + Update-Activity Restyle (60) → Download-Progress (61) → Timer/Pomodoro (62, generalizes `TransientQueue.preempt()`/`ActiveTransient.isPersistent` beyond the original Focus-Mode-only case) → Meeting-HUD (63, own detection spike, depends on 62's generalized persistent-transient path) → Quick Notes + Obsidian Export (64, resolves the 4-slot top-edge-switcher conflict in its own planning) → Quick Actions Bar (65, reuses Meeting-HUD's `MicMuteController`) → Menübar-Overflow (66, own feasibility spike, highest-novelty/zero-reuse feature) → Coding-Progress (67, reuses Phase 61's FileWatcher pattern) — per `.planning/research/SUMMARY.md`'s explicit foundation-first/ascending-risk build order. Phase numbering continues from Phase 58 (v1.9's last phase).*
+
+*v1.11 (Droppy-Inspired Polish Round 2) roadmap created 2026-07-30: 4 phases (71-74), 100% coverage (8/8). Phase order follows the user's own stated seed-ranking: Island Corner Rounding (71) → Calendar Redesign (72) → Timer Redesign (73) → Music Next Up Queue (74) — all 4 independent/parallel-safe, no cross-phase dependency forced a different order. Phase 73 (Timer) is the riskiest of the four (removes existing Pomodoro state) but kept as a single phase, not spike-first — the risk is a scope/removal decision for `/gsd-discuss-phase 73` to resolve, not a technical-feasibility unknown like Phase 22/24's or Phase 49/50's precedent. Phase numbering continues from Phase 70 (last phase before this milestone).*

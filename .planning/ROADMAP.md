@@ -14,6 +14,7 @@
 - ✅ **v1.8 Settings Redesign & Island Navigation** — Phases 51-53 (shipped 2026-07-21)
 - ✅ **v1.9 Clipboard History** — Phases 55-58 (shipped 2026-07-23)
 - ✅ **v1.10 Live Activities Suite** — Phases 59-63, 65 (shipped 2026-07-30, known gaps: Phase 64/66/67 carried forward)
+- 🚧 **v1.11 Droppy-Inspired Polish Round 2** — Phases 71-74 (planned)
 
 ## Phases
 
@@ -171,6 +172,10 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [ ] **Phase 64: Quick Notes + Obsidian Export** - NOT SHIPPED — 3 unfixed major UAT bugs + 2 approved-but-unbuilt scope changes; needs `/gsd:plan-phase 64 --gaps` (all 8 plans executed 2026-07-25)
 - [ ] **Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)** - PAUSED by user (2026-07-28) after 3 consecutive NO-GOs (see Phase Details) — even real Ice.app's own mechanism no longer works on this machine; root cause unconfirmed (Golden-Gate/Developer-Mode hypothesis, untestable without a full macOS 26 downgrade); feature still wanted, revisit unscheduled
 - [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern; never started
+- [ ] **Phase 71: Island Corner Rounding** - More rounded wing-state silhouette + DEBUG-only corner-radius tuner
+- [ ] **Phase 72: Calendar Redesign — Native Calendar Clone** - Two-column month-grid + agenda layout, 1:1 visual match to macOS Calendar
+- [ ] **Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider** - Pomodoro fully removed; new minutes ruler/slider + Start Timer + sound toggle
+- [ ] **Phase 74: Music Next Up Queue** - List-icon affordance opens a Next Up panel (next 5 tracks: art/title/artist)
 
 ## Phase Details
 
@@ -230,6 +235,8 @@ Plans:
 **v1.9:** 4/4 phases complete (100%) — see `.planning/milestones/v1.9-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-23; 7/7 requirements delivered.
 
 **v1.10:** 6/9 phases shipped (67%) — see `.planning/milestones/v1.10-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-30; 16/27 requirements delivered (Phases 59-63/65). Phase 64 (Quick Notes, 3 UAT bugs unfixed), Phase 66 (Menübar-Overflow, PAUSED after 3 NO-GOs), and Phase 67 (Coding-Progress, never started) carried forward, not descoped.
+
+**v1.11:** 0/4 phases complete (0%) — roadmap created 2026-07-30. Phases 71-74, 8/8 v1.11 requirements mapped (SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07, NOW-08). Phase order follows the user's own stated seed-ranking (Island Corner Rounding → Calendar Redesign → Timer Redesign → Music Next Up Queue) — all 4 are independent UI polish/redesign passes on already-shipped subsystems, no dependency forced a different order. Phase 73 (Timer) is flagged riskiest (removes existing Pomodoro state/settings) but kept as one phase, not spike-first — the open question is a scope/removal decision for `/gsd-discuss-phase 73` to resolve, not a technical-feasibility unknown in the Phase 22/24 or Phase 49/50 sense. Phase numbering continues from Phase 70 (last phase before this milestone).
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -1162,3 +1169,65 @@ Plans:
 **Wave 3** *(blocked on 70-02, 70-03)*
 
 - [x] 70-04-PLAN.md — Full test suite + Release build gate, on-device UAT checkpoint covering D-01 through D-06
+
+### Phase 71: Island Corner Rounding
+
+**Goal:** The collapsed-wide (wings) island silhouette — every HUD/activity routed through `wingsShape()` (Charging, Device, Now Playing glance, OSD, Timer, Meeting, etc.) — reads as a fully rounded pill shape instead of today's more rectangular corners, with a DEBUG-only live-tuning nudge for the new corner radius, mirroring the existing Wing Tuner mechanism. The idle/collapsed plain pill shape is explicitly unchanged.
+**Requirements**: SHAPE-02, SHAPE-03
+**Depends on:** Nothing structurally — independent of the Calendar/Timer/Music work below; sequenced first per the user's own stated priority order (rank 2 of the original 5-idea list, right after Phase 70's File Tray Convert Button).
+**Success Criteria** (what must be TRUE):
+
+  1. Every wing-state HUD that routes through `wingsShape()` renders with noticeably more rounded corners at both the notch-cutout-side corner and the outer-edge-side corner, matching the reference screenshot's bottom-left/top-right emphasis.
+  2. The idle/collapsed plain pill shape is pixel-identical to today — the rounding change applies only to the wide wing state, never the idle silhouette.
+  3. In DEBUG builds, a new "Corner Radius" nudge control appears alongside the existing Wing Tuner axes (leading/trailing/margin/gap), live-adjusts the wing corner radius on real hardware via `@AppStorage`, and the value persists across relaunch.
+  4. Release builds expose no corner-radius tuning UI — DEBUG-only, consistent with the existing Wing Tuner's own gating.
+
+**Plans**: TBD (run `/gsd:plan-phase 71` to break down)
+**UI hint**: yes
+
+### Phase 72: Calendar Redesign — Native Calendar Clone
+
+**Goal:** The expanded Calendar view (Phase 28, already shipped) is widened and redesigned into a genuine 1:1 visual clone of macOS's native Calendar app — full month grid on the left, a scrollable day-grouped agenda list on the right — not just Droppy-inspired, matching Calendar.app's own styling as closely as technically possible.
+**Requirements**: CALVIEW-08, CALVIEW-09
+**Depends on:** Nothing structurally — independent of Phase 71; sequenced second per the user's own stated priority order (rank 3 of the original 5-idea list).
+**Success Criteria** (what must be TRUE):
+
+  1. The expanded Calendar view renders as a two-column layout — full month grid left, scrollable day-grouped agenda list right — replacing today's single-column month-grid-then-day-list stack.
+  2. The month grid visually matches macOS Calendar's own styling as closely as technically possible: today marked with a solid filled date badge, the currently-viewed/selected date marked with an outlined badge, a weekday header row, and month label + prev/next navigation chevrons.
+  3. The agenda list groups events by day header (e.g. "WEDNESDAY, 15 JUL"), each event shown with a colored accent bar, title, and time, matching native Calendar's row styling as closely as technically possible.
+  4. Existing quick-add functionality (CALVIEW-05/06/07's date+time picker, add-button placement, event-row padding) continues to work unchanged inside the redesigned two-column layout.
+  5. The island widens to fit the two-column layout without clipping content, reusing the existing per-tab width-scaling pattern (Phase 32/67.1) rather than a one-off hardcoded width.
+
+**Plans**: TBD (run `/gsd:plan-phase 72` to break down)
+**UI hint**: yes
+
+### Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider
+
+**Goal:** Pomodoro mode and all its persisted state/settings are removed from the codebase entirely, and timer setup is replaced with a Droppy-style ruler/slider duration picker (minutes) + Start Timer button + sound toggle. This is the milestone's riskiest phase — it removes existing state, not just adds UI — so a careful `/gsd:discuss-phase 73` pass is expected before planning to confirm exactly what "remove Pomodoro" does to any already-persisted user settings tied to it.
+**Requirements**: TIMER-05, TIMER-06, TIMER-07
+**Depends on:** Nothing structurally — independent of Phases 71/72; sequenced third per the user's own stated priority order (rank 4 of the original 5-idea list). Not split into a separate spike phase: the open question is a scope/removal decision for discuss-phase to resolve (what happens to existing persisted Pomodoro settings), not a technical-feasibility unknown in the Phase 22/24 (drag-in) or Phase 49/50 (Favorite/Like) sense — the ruler/slider UI pattern itself is already proven by the existing Wing Tuner `@AppStorage` nudge controls.
+**Success Criteria** (what must be TRUE):
+
+  1. No Pomodoro option, toggle, or branch (e.g. `timerWings(for:)`'s `isPomodoro` flag) remains anywhere in the UI, Settings, or `@AppStorage` keys — confirmed by grep, not just hidden behind a flag.
+  2. Timer setup shows a horizontal ruler/slider the user can drag/scrub to pick a duration in minutes, with a live total-duration readout (e.g. "1:26:00") updating continuously as it's scrubbed.
+  3. A "Start Timer" button begins the countdown using the selected duration, reusing the existing Timer HUD's live countdown/pause/reset display already shipped in Phase 62.
+  4. A sound toggle controls whether an end-of-timer sound plays, persisted via `@AppStorage` and surviving relaunch.
+  5. A user upgrading from a build with Pomodoro settings already persisted sees no crash or stale/orphaned state — old Pomodoro-specific keys are cleanly migrated away or ignored, not left dangling.
+
+**Plans**: TBD (run `/gsd:plan-phase 73` to break down)
+**UI hint**: yes
+
+### Phase 74: Music Next Up Queue
+
+**Goal:** Tapping the existing list-icon affordance in the expanded Now Playing view opens a "Next Up" panel listing the next 5 queued tracks (album art, title, artist), matching Droppy's two-column expanded-player reference.
+**Requirements**: NOW-08
+**Depends on:** Nothing structurally — independent of Phases 71-73; sequenced fourth (last) per the user's own stated priority order (rank 5 of the original 5-idea list).
+**Success Criteria** (what must be TRUE):
+
+  1. Tapping the existing list-icon affordance (left of the transport controls) in the expanded Now Playing view opens a "Next Up" panel.
+  2. The panel lists the next 5 queued tracks, each row showing album art, title, and artist.
+  3. Tapping the same list-icon affordance again closes the panel (toggle, not a one-way reveal).
+  4. If the current source app exposes fewer than 5 upcoming tracks (or no queue at all), the panel degrades gracefully — fewer rows or an explicit empty state — rather than crashing or showing placeholder/stale data.
+
+**Plans**: TBD (run `/gsd:plan-phase 74` to break down)
+**UI hint**: yes

@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: planning
-last_updated: "2026-07-30T01:51:56.796Z"
+last_updated: "2026-07-30T02:07:00.000Z"
 last_activity: 2026-07-30
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-30)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** v1.10 closed — next milestone not yet started (`/gsd-new-milestone`)
+**Current focus:** v1.11 (Droppy-Inspired Polish Round 2) roadmap created — Phase 71 (Island Corner Rounding) next via `/gsd-discuss-phase 71`
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 71 (Island Corner Rounding) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-30 — Milestone v1.11 started
+Status: Roadmap created (4 phases, 71-74, 8/8 requirements mapped) — ready for `/gsd-discuss-phase 71`
+Last activity: 2026-07-30 — v1.11 ROADMAP.md/STATE.md/REQUIREMENTS.md created (Phases 71-74)
 
 ### Phase 70 Plan 02 result (2026-07-29)
 
@@ -171,6 +171,8 @@ Progress (v1.8): [██████████] 100% — SHIPPED 2026-07-21 (3
 Progress (v1.9): [██████████] 100% — SHIPPED 2026-07-23 (4/4 phases — Phases 55/56/57/58 complete)
 
 Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — Phase 59 Settings-Redesign, Phase 60 Caps Lock HUD + Update-Activity Restyle, Phase 61 Download-Progress, Phase 62 Timer/Pomodoro all shipped and on-device UAT approved; SETTINGS-04/05, CAPS-01, UPDATE-01, DL-01/02, TIMER-01/02/03/04 complete. **Phase 63 Meeting-HUD: all 4 plans executed, 2-round on-device UAT approved, MEET-01/02/03 complete — awaiting orchestrator phase-level gates (code review, regression, verify-work) before the phase counts as shipped.** Phases 64-68 not started)
+
+Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap created 2026-07-30: Phases 71-74, 8/8 requirements mapped — SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07, NOW-08. Order: Island Corner Rounding (71) → Calendar Redesign (72) → Timer Redesign (73) → Music Next Up Queue (74), per the user's own stated seed-ranking)
 
 ## Performance Metrics
 
