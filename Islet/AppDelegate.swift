@@ -532,6 +532,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wingTunerMenu.addItem(withTitle: "Margin +20", action: #selector(debugWingMarginPlus20), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Gap -1", action: #selector(debugWingGapMinus), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Gap +1", action: #selector(debugWingGapPlus), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Corner Radius -5", action: #selector(debugWingCornerRadiusMinus5), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Corner Radius -1", action: #selector(debugWingCornerRadiusMinus1), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Corner Radius +1", action: #selector(debugWingCornerRadiusPlus1), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Corner Radius +5", action: #selector(debugWingCornerRadiusPlus5), keyEquivalent: "")
         wingTunerMenu.addItem(.separator())
         wingTunerMenu.addItem(withTitle: "Reset Wing Tuner", action: #selector(debugWingTunerReset), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Print Wing Tuner Values", action: #selector(debugWingTunerPrint), keyEquivalent: "")
@@ -607,12 +611,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func debugWingMarginPlus20() { adjustWingNudge(ActivitySettings.debugWingMarginNudgeKey, by: 20) }
     @objc private func debugWingGapMinus() { adjustWingNudge(ActivitySettings.debugWingGapNudgeKey, by: -1) }
     @objc private func debugWingGapPlus() { adjustWingNudge(ActivitySettings.debugWingGapNudgeKey, by: 1) }
+    @objc private func debugWingCornerRadiusMinus5() { adjustWingNudge(ActivitySettings.debugWingCornerRadiusNudgeKey, by: -5) }
+    @objc private func debugWingCornerRadiusMinus1() { adjustWingNudge(ActivitySettings.debugWingCornerRadiusNudgeKey, by: -1) }
+    @objc private func debugWingCornerRadiusPlus1() { adjustWingNudge(ActivitySettings.debugWingCornerRadiusNudgeKey, by: 1) }
+    @objc private func debugWingCornerRadiusPlus5() { adjustWingNudge(ActivitySettings.debugWingCornerRadiusNudgeKey, by: 5) }
 
     @MainActor @objc private func debugWingTunerReset() {
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingLeadingNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingTrailingNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingMarginNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingGapNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingCornerRadiusNudgeKey)
         notchController?.debugClearAllPreviews()
     }
 
@@ -621,7 +630,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let trailing = UserDefaults.standard.double(forKey: ActivitySettings.debugWingTrailingNudgeKey)
         let margin = UserDefaults.standard.double(forKey: ActivitySettings.debugWingMarginNudgeKey)
         let gap = UserDefaults.standard.double(forKey: ActivitySettings.debugWingGapNudgeKey)
-        print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) — add these deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift, then click Reset Wing Tuner before tuning the next wing.")
+        let cornerRadius = UserDefaults.standard.double(forKey: ActivitySettings.debugWingCornerRadiusNudgeKey)
+        print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) cornerRadiusNudge=\(cornerRadius) — add these deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift, then click Reset Wing Tuner before tuning the next wing.")
     }
 
     // Quick task 260729-0b5 — "Preview Wing" fake-trigger actions. Each mirrors the
