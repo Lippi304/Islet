@@ -3052,16 +3052,13 @@ struct NotchPillView: View {
         onTap: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
+        // 71-REVIEW CR-01 gap closure — the self-intersecting-path freeze this nudge caused is
+        // now prevented inside NotchShape.path(in:) itself (scales both radii down together if
+        // their sum would exceed the rendered rect), so this call site no longer needs its own
+        // clamp — nor do the sibling leading/trailing/margin nudges, which reach the same shape
+        // via leftWidth/rightWidth below and were never clamped here either.
+        let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius + wingCornerRadiusNudge, bottomCornerRadius: Self.wingBaseBottomCornerRadius + wingCornerRadiusNudge)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside an 8pt bottom radius without squeezing the wall to almost nothing (16/8 base, SHAPE-02)
         let size = CGSize(width: leftWidth + rightWidth, height: Self.wingsSize.height * depthScale)
-        // Gap closure (freeze regression, post-71-02 on-device UAT) — clamp the corner-radius
-        // nudge so topCornerRadius+bottomCornerRadius can never reach/exceed this wing's actual
-        // rendered height. Unclamped, a leftover persisted DEBUG nudge (confirmed via
-        // `defaults read` at +10 during UAT) drove NotchShape into a self-intersecting path once
-        // base(16/8)+nudge summed past the depth-scaled strip height — `.clipShape(shape)`
-        // applying that broken path as a content mask froze the whole app's input handling.
-        let maxCornerRadiusNudge = (size.height - Self.wingBaseTopCornerRadius - Self.wingBaseBottomCornerRadius) / 2
-        let clampedCornerRadiusNudge = max(min(wingCornerRadiusNudge, maxCornerRadiusNudge), -Self.wingBaseBottomCornerRadius)
-        let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius + clampedCornerRadiusNudge, bottomCornerRadius: Self.wingBaseBottomCornerRadius + clampedCornerRadiusNudge)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside an 8pt bottom radius without squeezing the wall to almost nothing (16/8 base, SHAPE-02)
         return shape
             .fill(islandFill)
             // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order,

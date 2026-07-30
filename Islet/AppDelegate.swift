@@ -631,7 +631,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let margin = UserDefaults.standard.double(forKey: ActivitySettings.debugWingMarginNudgeKey)
         let gap = UserDefaults.standard.double(forKey: ActivitySettings.debugWingGapNudgeKey)
         let cornerRadius = UserDefaults.standard.double(forKey: ActivitySettings.debugWingCornerRadiusNudgeKey)
-        print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) cornerRadiusNudge=\(cornerRadius) — add these deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift, then click Reset Wing Tuner before tuning the next wing.")
+        print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) cornerRadiusNudge=\(cornerRadius) — add the leading/trailing/margin/gap deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift; cornerRadiusNudge has no per-wing home, it bakes into Self.wingBaseTopCornerRadius/wingBaseBottomCornerRadius instead — then click Reset Wing Tuner before tuning the next wing.")
     }
 
     // Quick task 260729-0b5 — "Preview Wing" fake-trigger actions. Each mirrors the

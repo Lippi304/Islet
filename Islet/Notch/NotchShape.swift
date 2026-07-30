@@ -14,19 +14,35 @@ struct NotchShape: Shape {
     var topCornerRadius: CGFloat = 6
     var bottomCornerRadius: CGFloat = 14
     func path(in rect: CGRect) -> Path {
+        // 71-REVIEW CR-01 gap closure — clamp both radii HERE, the one path builder every
+        // caller (blobShape/wingsShape/mediaWingsOrToast/resumePreviewWings) routes through,
+        // rather than at each call site. Unclamped, a radius pair whose sum exceeds rect.height
+        // (vertical self-intersection — the corner-radius-nudge freeze this phase's on-device
+        // UAT hit) or whose doubled sum exceeds rect.width (horizontal self-intersection,
+        // reachable via the sibling leading/trailing/margin Wing Tuner nudges, which have no
+        // floor) produces a path that folds back on itself. Scaling both radii by the same
+        // factor (rather than clamping the sum by shrinking just one) preserves the top:bottom
+        // ratio the shape is designed around.
+        let top = max(topCornerRadius, 0)
+        let bottom = max(bottomCornerRadius, 0)
+        let sum = top + bottom
+        let maxSum = max(min(rect.height, rect.width / 2), 0)
+        let scale = sum > 0 ? min(maxSum / sum, 1) : 1
+        let topR = top * scale
+        let bottomR = bottom * scale
         var p = Path()
         p.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        p.addQuadCurve(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius),
-                       control: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius))
-        p.addQuadCurve(to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY),
-                       control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY))
-        p.addQuadCurve(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius),
-                       control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius))
+        p.addQuadCurve(to: CGPoint(x: rect.minX + topR, y: rect.minY + topR),
+                       control: CGPoint(x: rect.minX + topR, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.minX + topR, y: rect.maxY - bottomR))
+        p.addQuadCurve(to: CGPoint(x: rect.minX + topR + bottomR, y: rect.maxY),
+                       control: CGPoint(x: rect.minX + topR, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.maxX - topR - bottomR, y: rect.maxY))
+        p.addQuadCurve(to: CGPoint(x: rect.maxX - topR, y: rect.maxY - bottomR),
+                       control: CGPoint(x: rect.maxX - topR, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.maxX - topR, y: rect.minY + topR))
         p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY),
-                       control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY))
+                       control: CGPoint(x: rect.maxX - topR, y: rect.minY))
         p.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
         return p
     }

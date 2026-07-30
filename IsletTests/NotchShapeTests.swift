@@ -71,4 +71,35 @@ final class NotchShapeTests: XCTestCase {
         XCTAssertGreaterThan(cgBounds.width, 0, "The closed path needs a positive-width bounding box.")
         XCTAssertGreaterThan(cgBounds.height, 0, "The closed path needs a positive-height bounding box.")
     }
+
+    // 71-REVIEW CR-01 gap closure — an unclamped DEBUG Wing Tuner nudge (corner-radius, or
+    // sibling leading/trailing/margin nudges shrinking the rect instead) can push a radius
+    // pair's sum past the rendered rect's height or (doubled) width, which froze the app once
+    // this self-intersecting path was used as a `.clipShape` content mask. NotchShape.path(in:)
+    // now scales both radii down together whenever they would overflow either axis — these
+    // pathological inputs (drastically exceeding both the strip's real height and width) must
+    // still produce a valid, closed, non-empty, in-bounds path.
+    func testPathologicalRadiiAreClampedToAValidPathAtWingSize() {
+        let rect = CGRect(x: 0, y: 0, width: 290, height: 32)
+        let path = NotchShape(topCornerRadius: 1000, bottomCornerRadius: 1000).path(in: rect)
+        let cgBounds = path.cgPath.boundingBox
+        XCTAssertFalse(path.cgPath.isEmpty, "Pathologically large radii must still produce a non-empty path.")
+        XCTAssertGreaterThan(cgBounds.width, 0, "The clamped path needs a positive-width bounding box.")
+        XCTAssertGreaterThan(cgBounds.height, 0, "The clamped path needs a positive-height bounding box.")
+        XCTAssertLessThanOrEqual(cgBounds.width, rect.width + 0.01, "The clamped path must not spill past the rect's width.")
+        XCTAssertLessThanOrEqual(cgBounds.height, rect.height + 0.01, "The clamped path must not spill past the rect's height.")
+    }
+
+    // Same failure mode reachable via a very NARROW rect (sibling margin/leading/trailing
+    // nudges shrinking leftWidth+rightWidth) instead of oversized radii — the width constraint
+    // (2 * (top+bottom) <= width) is the tighter bound here since default radii (16/8=24) alone
+    // already exceed half of a 20pt-wide rect.
+    func testDefaultRadiiAreClampedToAValidPathAtNarrowWidth() {
+        let rect = CGRect(x: 0, y: 0, width: 20, height: 32)
+        let path = NotchShape(topCornerRadius: 16, bottomCornerRadius: 8).path(in: rect)
+        let cgBounds = path.cgPath.boundingBox
+        XCTAssertFalse(path.cgPath.isEmpty, "A narrow rect must still produce a non-empty path.")
+        XCTAssertLessThanOrEqual(cgBounds.width, rect.width + 0.01, "The clamped path must not spill past the rect's width.")
+        XCTAssertLessThanOrEqual(cgBounds.height, rect.height + 0.01, "The clamped path must not spill past the rect's height.")
+    }
 }
