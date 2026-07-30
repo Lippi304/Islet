@@ -185,6 +185,46 @@
 
 ---
 
+## Milestone: v1.10 — Live Activities Suite
+
+**Shipped:** 2026-07-30 | **Scope corrected:** 6 of 9 originally-planned phases shipped
+**Phases:** 59, 60, 61, 62, 63, 65 (6 of 9) | **Plans:** 28 | **Sessions:** several across 2026-07-23 to 2026-07-30
+
+### What Was Built
+- A Droppy-style Settings grid replacing ad-hoc Activities rows, with a locked default-OFF convention for every new activity and a preserved-toggle-state upgrade guarantee (Phase 59, SETTINGS-04/05)
+- Caps Lock HUD (event-driven, no polling lag) + restyled Update-available HUD, proving the new card pattern cheaply before harder features landed (Phase 60, CAPS-01/UPDATE-01)
+- `DownloadMonitor`/`DownloadCoordinator` — the milestone's first new FSEvents-based file-watching subsystem — live download presence + completion signal (Phase 61, DL-01/02)
+- Timer/Pomodoro HUD that generalized `TransientQueue.preempt()`/`ActiveTransient.isPersistent` beyond its original single-case hardcode, proven on the simpler no-detection-risk case before Meeting-HUD reused it (Phase 62, TIMER-01..04)
+- Meeting-HUD: on-device spike confirmed a reliable Zoom/Teams detection heuristic before the full HUD was built; real call-timer + system-wide mute toggle via a shared `MicMuteController` later reused unmodified by Quick Actions (Phase 63, MEET-01..03)
+- Configurable 8-slot Quick Actions bar firing instantly from the notch (Phase 65, QACTION-01..03)
+
+### What Worked
+- **Generalizing `TransientQueue`'s persistent-transient concept on the low-risk case (Timer, Phase 62) before reusing it on the high-risk case (Meeting-HUD, Phase 63)** — the exact spike-first/simple-case-first discipline this project has used since Phase 22/38/39/49, and it worked again: Phase 63 needed zero rework of the generalized path, only a new `.meeting` case and a D-05a interruption-rule refinement discovered on-device.
+- **`MicMuteController` built once in Phase 63 and reused verbatim by Phase 65** — no duplicated CoreAudio mute helper, confirmed by both phases sharing one live system-mute state.
+- **On-device UAT catching real bugs no build/test gate could** — Phase 65 found and fixed 2 real DND-toggle bugs (missing self-requested Focus authorization, a one-way-not-toggling Shortcut) that were invisible to any automated check.
+
+### What Was Inefficient
+- **Phase 63 never triggered the orchestrator-level `/gsd:verify-work` gate at execution time** — its own final SUMMARY explicitly flagged this ("the orchestrator owns the phase-level gates that follow... this plan does not mark the phase itself complete in ROADMAP.md"), but no later session picked it up. It sat as an unchecked ROADMAP box for 5 days until this milestone's close forced the question. The gate needs to be enforced at phase-completion time, not left as a note for someone to notice later.
+- **A prior session incorrectly treated finishing Phase 70 — a standalone backlog phase not even part of v1.10's own declared Phase 59-67 range — as completing the entire v1.10 milestone**, apparently because Phase 70 happened to be the last thing worked on and STATE.md's `status: milestone_complete` field got set without cross-checking ROADMAP.md's actual phase list. This is the same failure class as v1.8's `gsd-sdk milestone.complete` scoping bug (Key Lesson 1 below), except the error originated from an AI/human judgment call this time, not tooling — worse, because there was no automated diff to catch it. Caught only because this close-out session actually read ROADMAP.md's declared phase range before running the archival workflow, rather than trusting the prior session's `milestone_complete` status flag.
+- **REQUIREMENTS.md's traceability table had MENUBAR-01/02/03 marked Complete despite Phase 66 never shipping** (3 consecutive on-device NO-GOs, including the reference app itself failing) — the same "phase's own completion run skips the REQUIREMENTS.md update, or in this case runs it incorrectly" pattern flagged as a recurring, worsening problem at v1.6 close (Key Lesson 1 there). Recurred a 5th time.
+- **Phase 64 (Quick Notes) had 3 major on-device UAT bugs and 2 approved scope changes sit unresolved for 5 days** (found 2026-07-25, still open at 2026-07-30 close) with no gap-closure plan run in between — the phase was left in a half-shipped state that only got resolved (by being honestly descoped, not force-closed) when the milestone close forced the question.
+
+### Patterns Established
+- **Before running `/gsd-complete-milestone`, always independently verify the milestone's actual phase completion against ROADMAP.md's declared phase range — never trust a `status: milestone_complete` flag in STATE.md at face value**, especially when a milestone runs in parallel with other work (a standalone/backlog phase finishing can look like "the last thing done" without being part of the milestone at all). Direct continuation of v1.8's Key Lesson 1, now confirmed to apply to human/session judgment calls, not just tooling.
+- **A phase whose own SUMMARY explicitly says "the orchestrator owns the phase-level gates that follow" is a flag to run `/gsd:verify-work` before the next milestone-adjacent event touches that phase** — don't let it silently ride until a milestone close forces the question 5 days later.
+- **When on-device UAT surfaces real, unfixed bugs (not just polish nits), don't force the phase into a milestone's shipped scope** — carrying it forward with an honest "not shipped" label (matching Phase 22/49/66's own established PAUSED-not-descoped precedent) keeps the archive accurate; a milestone that ships 6/9 phases honestly is worth more than one that claims 9/9 falsely.
+
+### Key Lessons
+1. **STATE.md's `status: milestone_complete` field is a claim, not a fact — verify it against ROADMAP.md's declared phase range before acting on it.** This is the human/session-judgment analog of v1.8's tooling-scoping bug (that milestone's Key Lesson 1): both times, something adjacent to the milestone's real scope (there: other open milestones' phases; here: a standalone backlog phase) got silently folded into "the milestone is done." The fix is the same in both cases — diff against the source-of-truth phase list before trusting any automated or self-reported completion signal.
+2. **REQUIREMENTS.md traceability drift is now a 5-time-recurring pattern** (first flagged at v1.6 close, recurred at least once per subsequent milestone) — a dedicated audit step comparing REQUIREMENTS.md's checkbox/traceability status against each phase's actual VERIFICATION.md/UAT outcome should run automatically at milestone-close time, not be caught ad hoc.
+3. **A phase's own SUMMARY.md can correctly flag missing follow-up work ("orchestrator owns the gates that follow") and still have that flag go unactioned for days** — closing the loop on self-reported deferred work needs a tracked mechanism (a todo, a STATE.md flag), not just a note buried in a plan's final summary that nobody re-reads until forced to.
+
+### Cost Observations
+- Sessions: several (2026-07-23 through 2026-07-30, spanning ~1 week of parallel work alongside v1.4/v1.5/v1.7)
+- Notable: the milestone-close investigation (verifying Phase 63, discovering Phase 64/66/67's real status, correcting REQUIREMENTS.md) took real, substantive effort — comparable in kind to v1.8's tooling-bug repair, but this time the root cause was an unverified completion claim rather than a tool defect. Confirms Key Lesson 1 above is now a load-bearing process gap, not a one-off.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -198,6 +238,7 @@
 | v1.3 | 2 | 3 shipped of 4 planned (19-21; Phase 22 blocked/aborted) | First milestone to close "shipped with a known gap" — blocked drag-in requirement carried forward instead of the milestone staying open indefinitely |
 | v1.6 | several | 8 shipped of 8 planned (35-42; Phase 37 abandoned/reverted) | First milestone where a spike's own negative finding was later reversed by a gap-closure plan (Phase 39 OSD suppression); REQUIREMENTS.md/PROJECT.md sync-drift recurred across 4 consecutive phases (38-41), worst instance of that pattern yet |
 | v1.8 | 1 | 3 shipped of 3 planned (51-53) | First milestone closed while 3 *other* milestones (v1.4, v1.5, v1.7) remained simultaneously open — exposed a real scoping bug in `gsd-sdk milestone.complete` that swept unrelated open milestones' phases into the v1.8 archive; caught and manually corrected before commit |
+| v1.10 | several | 6 shipped of 9 planned (59-63, 65; Phase 64/66/67 carried forward) | First milestone where the completion-scope error came from an unverified `status: milestone_complete` self-report (a standalone backlog phase mistaken for the milestone's own last phase), not from tooling — same failure class as v1.8's Key Change, now confirmed to recur via human/session judgment too |
 
 ### Cumulative Quality
 
@@ -210,12 +251,14 @@
 | v1.3 | 261 (XCTest) | Not measured | none |
 | v1.6 | Not re-tallied this close (16,212 total Swift LOC at close) | Not measured | Sparkle 2 (SPM) |
 | v1.8 | 403 (XCTest, per Phase 52's on-device gate) | Not measured | none |
+| v1.10 | 582 (XCTest, per Phase 63's independent re-run — 7 pre-existing failures, 0 new) | Not measured | none |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Planning-artifact bookkeeping (ROADMAP.md checkboxes, REQUIREMENTS.md checkboxes, PROJECT.md Validated Requirements, debug-session/UAT status fields) drifts silently unless actively audited — `gsd-sdk query audit-open` catches some of this, but not PROJECT.md drift, so a milestone-close read-through is still needed. **Recurred at v1.2 close** (NOW-04 sat unchecked after Phase 17), **again at v1.3 close** (Phase 20's Validated Requirements entry was never added), **and again, worse, at v1.6 close** (4 consecutive phases — 38, 39, 40, 41 — all skipped it). A confirmed repeat pattern across 4 milestones now, trending worse, not better — a workflow-level gate is needed, not another retrospective note (see v1.6 Key Lesson 1).
+1. Planning-artifact bookkeeping (ROADMAP.md checkboxes, REQUIREMENTS.md checkboxes, PROJECT.md Validated Requirements, debug-session/UAT status fields) drifts silently unless actively audited — `gsd-sdk query audit-open` catches some of this, but not PROJECT.md drift, so a milestone-close read-through is still needed. **Recurred at v1.2 close** (NOW-04 sat unchecked after Phase 17), **again at v1.3 close** (Phase 20's Validated Requirements entry was never added), **again, worse, at v1.6 close** (4 consecutive phases — 38, 39, 40, 41 — all skipped it), **and again at v1.10 close** (MENUBAR-01/02/03 marked Complete despite Phase 66 never shipping). A confirmed repeat pattern across 5 milestones now, trending worse, not better — a workflow-level gate is needed, not another retrospective note (see v1.6 Key Lesson 1).
 2. The retrospective-append step itself gets skipped under time pressure (v1.0.1 and v1.1 both shipped without a retrospective section, only backfilled retroactively at v1.2 close) — treat it as a required milestone-close step, not optional polish.
 3. When an on-device integration bug resists a plan's stated-assumption fix, diff against the last known-working reference implementation directly rather than reasoning further from the (possibly wrong) assumption — v1.3's Phase 22 spent two full UAT cycles reasoning from a disproven assumption before the user chose to abandon it for a broader architecture redesign.
 4. A negative spike finding deserves one targeted re-attempt with a more specific technique before being accepted as permanent — v1.3's Phase 22 (drag-in) never got this re-attempt and was abandoned, but v1.6's Phase 39 (OSD suppression) did and shipped a materially better feature as a result. The difference: Phase 39 had a concrete alternative technique to try (`.cghidEventTap`, sourced from a proven reference); Phase 22 didn't have an equivalent lead. Worth actively looking for one before abandoning a blocked integration point.
 5. Milestone-close automation (`gsd-sdk milestone.complete`) is not yet proven safe under this project's own established multi-milestone-parallel pattern — v1.8's close (the first close to happen while v1.4/v1.5/v1.7 were all still open) revealed it scopes accomplishments/archival content incorrectly, sweeping in unrelated open milestones' phases. Always diff its output against ROADMAP.md's/REQUIREMENTS.md's own milestone-to-phase mapping before committing, until the tool itself is fixed.
-5. The same fragility class can cause independent bugs in separate phases if the underlying gap isn't swept codebase-wide after the first fix — v1.6's click-through hot-zone bug hit Phase 40 (badge) and Phase 42 (wing-tier bubble) separately, months apart in phase-numbering terms but both within the same milestone.
+6. The same fragility class can cause independent bugs in separate phases if the underlying gap isn't swept codebase-wide after the first fix — v1.6's click-through hot-zone bug hit Phase 40 (badge) and Phase 42 (wing-tier bubble) separately, months apart in phase-numbering terms but both within the same milestone.
+7. A milestone's `status: milestone_complete` self-report in STATE.md is not itself evidence the milestone is done — v1.10's close found it had been set based on finishing Phase 70, a standalone backlog phase never part of v1.10's own declared Phase 59-67 range. Same root failure as Lesson 5 (unverified scope claim), but from a session/human judgment call rather than tooling — always diff against ROADMAP.md's declared phase range before trusting either kind of completion claim.

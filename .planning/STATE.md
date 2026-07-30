@@ -3,36 +3,34 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Live Activities Suite
 status: milestone_complete
-stopped_at: Milestone complete (Phase 70 was final phase)
-last_updated: 2026-07-30T00:06:50.953Z
-last_activity: 2026-07-29
+stopped_at: v1.10 formally closed via /gsd-complete-milestone (Phases 59-63/65 shipped, 16/27 requirements; Phase 64/66/67 carried forward, not descoped) — Phase 70 was a separate standalone backlog phase, not part of v1.10's own scope
+last_updated: 2026-07-30T02:45:00.000Z
+last_activity: 2026-07-30
 progress:
   total_phases: 19
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 39
-  completed_plans: 126
-  percent: 79
+  completed_plans: 127
+  percent: 84
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-19)
+See: .planning/PROJECT.md (updated 2026-07-30)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Milestone complete
+**Current focus:** v1.10 closed — next milestone not yet started (`/gsd-new-milestone`)
 
 ## Current Position
 
-**NEXT SESSION START HERE:** User captured 5 new feature ideas (2026-07-29), ranked in the exact
-order they want to tackle them, explicitly ahead of resuming Phase 67 or any other open phase.
-Reference screenshots for all 5 have since been reviewed and their concrete visual details are
-baked into each seed file below (all inspired by an app called "Droppy"). Seed files:
-`.planning/seeds/`
-
-1. [[filetray-convert-button]] — **start here** — File Tray gains a 4th "Convert" button for
-   dropped images (JPG↔PNG etc.), mirroring Finder's own "Convert Image" right-click menu.
+**NEXT SESSION START HERE:** v1.10 (Live Activities Suite) formally closed 2026-07-30 via
+`/gsd-complete-milestone` — Phases 59-63/65 shipped (16/27 requirements), Phase 64/66/67 carried
+forward. Phase 70 (idea #1 below) also shipped 2026-07-30, on-device verified. Next action:
+`/gsd-new-milestone` to decide priority among the 3 v1.10 carried-forward gaps, v1.7's remaining
+items, Phase 68/69, and the 4 remaining queued Droppy ideas below (screenshots already reviewed,
+concrete visual details baked into each seed file). Seed files: `.planning/seeds/`
 
 2. [[island-corner-rounding]] — more rounded corners on the collapsed-wide (wings) island state;
    user also wants a new DEBUG live-tuning nudge axis for corner radius, same pattern as the
@@ -41,18 +39,20 @@ baked into each seed file below (all inspired by an app called "Droppy"). Seed f
 3. [[calendar-redesign-droppy]] — widen + redesign the expanded Calendar view to look truly 1:1
    identical to macOS's native Calendar app (Droppy-inspired).
 
-4. [[timer-slider-redesign]] — remove Pomodoro mode from the code entirely; replace timer setup
-   with a ruler/slider duration picker + Start button + sound toggle (Droppy-inspired).
+4. [[timer-slider-redesign]] — remove Pomodoro mode from the code entirely (NOTE: Pomodoro/TIMER-04
+   just shipped in Phase 62 — this idea would reverse it); replace timer setup with a ruler/slider
+   duration picker + Start button + sound toggle (Droppy-inspired).
 
 5. [[music-next-up-queue]] — expand a "Next Up" list (next 5 songs, art/title/artist) from the
    Now Playing view's existing 3-dots affordance.
 
-Idea #1 added to ROADMAP.md as Phase 70 (2026-07-29, `.planning/phases/70-file-tray-convert-button/`).
-Next action: `/gsd-discuss-phase 70`.
+(Idea #1, filetray-convert-button, shipped as Phase 70 — see above.)
 
-Phase: 70
-Plan: Not started
+Phase: 70 (shipped) / v1.10 closed
+Plan: v1.10 closed — awaiting `/gsd-new-milestone`
+Phase 64 (quick-notes-obsidian-export) — carried forward from v1.10, 3 unfixed major UAT bugs, needs `/gsd:plan-phase 64 --gaps`.
 Phase 66 (men-bar-overflow-ice-style-mvp) — **PAUSED by user**, not descoped. No revisit trigger.
+Phase 67 (coding-progress) — carried forward from v1.10, never started.
 Last activity: 2026-07-30
 
 ### Phase 70 Plan 02 result (2026-07-29)
@@ -643,6 +643,19 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 | uat_gaps | Phase 28 | partial, 2 pending — pre-existing carry from v1.4, unrelated to v1.9 scope |
 | verification_gaps | Phase 20, Phase 27, Phase 28 | human_needed — pre-existing/unrelated to v1.9 scope, carried from earlier milestones |
 | verification_gaps | Phase 54 | gaps_found — Phase 54 (Permissions Overview & Onboarding Replay) is not part of any milestone yet; its own 54-04 on-device UAT checkpoint is still pending, unrelated to v1.9 |
+
+**v1.10 close (2026-07-30):** `gsd-sdk query audit-open` flagged 36 items. Items belonging to v1.10's own scope were investigated and resolved as part of the close itself, not just acknowledged: Phase 63's `human_needed` verification gap was resolved via a real `/gsd:verify-work 63` run (PASS, user override recorded); Phase 64's `diagnosed` UAT gap (4 open scenarios, 3 real bugs) led to Phase 64 being carried forward out of the shipped scope rather than force-closed; Phase 65's `partial` UAT gap (1 pending item, Screen Lock reliability) and `human_needed` verification gap were accepted as shipped, not blocking. The remaining items are pre-existing, unrelated to v1.10, and acknowledged:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug_session | knowledge-base | unknown — untriaged, no further detail available; acknowledged rather than investigated (recurring since v1.6 close) |
+| debug_session | old-islet-instance-stays-open | awaiting_human_verify — hypothesis CONFIRMED, fix already build-verified, on-device Xcode stop/restart re-check still deferred (recurring since v1.8 close) |
+| debug_session | v1.2-launch-fails-amfi-profile | awaiting_human_verify — new since v1.9 close, unrelated to v1.10 scope; not investigated |
+| quick_task | 260709-glz, 260709-gvy, 260714-3k6, 260715-vsd, 260725-hnu, 260728-wg7, 260729-0b5, 260729-0zh, 260729-2td, 260729-3pc, 260729-47v, 260729-4oi, 260729-4yy, 260729-54f, 260729-57h, 260729-5jc, 260729-5pv, 260729-5vl | missing (same recurring tool status-detection false positive as every prior milestone close) |
+| todos | 2026-07-19-calendar-month-grid-polish, 2026-07-19-island-briefly-disappears-during-click-through, 2026-07-19-quick-action-disabled-state-has-no-controller-gate, 2026-07-28-licensestatetests-fail-with-real-license, 2026-07-28-settingsviewtests-card-count-drift | pending — pre-existing UI polish/bug notes and the 2 known pre-existing test failures (independently re-confirmed as pre-existing during both Phase 63's and Phase 70's verification runs), all unrelated to v1.10 scope |
+| uat_gaps | Phase 21, Phase 27, Phase 70 | resolved, 0 pending scenarios — not real open work |
+| verification_gaps | Phase 20, Phase 28 | human_needed — pre-existing/unrelated to v1.10 scope, carried from earlier milestones |
+| verification_gaps | Phase 54 | gaps_found — pre-existing, Phase 54 not part of any milestone yet, unrelated to v1.10 |
 
 ## Session Continuity
 

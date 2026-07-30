@@ -73,66 +73,9 @@ Fixes 4 real-usage interaction/layout regressions surfaced since v1.4-v1.6 shipp
 
 > **v1.9 Requirements (Clipboard History) shipped 2026-07-23** — archived to `.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped.
 
-## v1.10 Requirements — Live Activities Suite
-
-Adds 9 new Live Activities/HUDs (inspired by Droppy and the open-source Ice) plus a Droppy-style Settings grid overview to manage all Live Activities (existing + new) in one place. Scoped via a `superpowers:brainstorming` session followed by `.planning/research/` (STACK/FEATURES/ARCHITECTURE/PITFALLS/SUMMARY.md). Started 2026-07-23 while v1.4, v1.5, and v1.7 all remain open in parallel.
-
-### Settings
-
-- [x] **SETTINGS-04**: The Activities-related Settings sections are replaced by one Droppy-style grid of cards — one card per Live Activity (existing + new), each showing a mini live-preview of that activity's pill, its title, a one-line description, and an on/off toggle
-- [x] **SETTINGS-05**: Every new Live Activity introduced this milestone defaults OFF; every already-shipped activity's existing default (mostly ON, Focus Mode OFF) is preserved exactly as-is by the migration — no existing user's persisted toggle state silently flips
-
-### Caps Lock
-
-- [x] **CAPS-01**: Toggling Caps Lock briefly shows an on/off HUD in the collapsed island (same transient wings pattern as Charging), auto-dismissing after ~1-2s
-
-### Update-Activity
-
-- [x] **UPDATE-01**: The existing Sparkle update-available HUD is reskinned to the Droppy look (leading icon, "Update" label, trailing version pill) — trigger logic and Sparkle plumbing unchanged
-
-### Timer/Pomodoro
-
-- [x] **TIMER-01**: User can start a countdown timer from the notch with a chosen duration; the collapsed island shows a live mm:ss countdown while running
-- [x] **TIMER-02**: The expanded island offers pause/reset/add-time controls for a running timer
-- [x] **TIMER-03**: When the timer completes, the island shows a completion HUD splash and the system plays a notification/sound
-- [x] **TIMER-04**: A Pomodoro mode cycles work/break durations with a session counter, selectable as an alternative to a plain one-shot countdown
-
-### Quick Notes
-
-- [x] **NOTES-01**: User can quickly capture a typed text note from the notch (menu-bar flyout, mirroring the existing Clipboard History submenu)
-- [x] **NOTES-02**: Each captured note is appended, with a timestamp, to one fixed .md file inside a user-chosen Obsidian vault folder — the file is created if missing, never overwritten/corrupted, and the append works even while Obsidian.app is closed
-- [x] **NOTES-03**: A local, unencrypted recent-notes list is shown in the same flyout, mirroring Clipboard History's most-recent-first list (decision: plaintext is fine since notes are destined for a plaintext vault file anyway — no AES-GCM parity with Clipboard History needed)
-
-### Quick Actions
-
-- [x] **QACTION-01**: Settings lets the user enable/reorder a Quick Actions bar shown in the notch, choosing from a fixed catalog: mic mute/unmute, display sleep now, dark/light mode toggle, screen lock, Do Not Disturb toggle (best-effort), caffeinate/keep-awake toggle, empty Trash, launch app/open URL
-- [x] **QACTION-02**: Tapping an enabled Quick Action performs it immediately without expanding the notch any further than the action bar itself
-- [x] **QACTION-03**: The Do Not Disturb/Focus action is documented as best-effort (no stable public macOS API) — a failure is visible to the user, not silently swallowed
-
-### Download-Progress
-
-- [x] **DL-01**: When a file starts downloading into ~/Downloads (browser temp-file convention), the notch shows a live "downloading" indicator
-- [x] **DL-02**: When the temp file is renamed to its final filename (download complete), the indicator shows a brief "done" state then clears — no exact-percentage guarantee across all browsers (presence + completion signal only)
-
-### Meeting-HUD
-
-- [x] **MEET-01**: While Zoom or Teams (native app) is running AND the microphone is active, the notch shows a call-timer HUD (elapsed mm:ss)
-- [x] **MEET-02**: Tapping the Meeting-HUD's mute control toggles the system-wide microphone mute (not the in-app mute state) via a shared `MicMuteController`
-- [x] **MEET-03**: Google Meet (browser-based) is explicitly not detected in v1.10 — documented as a known limitation, not silently missing
-
-### Coding-Progress
-
-- [ ] **CODE-01**: While a Claude Code CLI session with an active todo list is running (detected via a user-installed hook writing local status), the notch shows the todo completion fraction (e.g. "3/7")
-- [ ] **CODE-02**: When no todo list is active but a session is running, the notch falls back to a short current-status text instead of showing nothing
-- [ ] **CODE-03**: Islet ships (or generates via Settings) the hook script and documents the one-time setup step the user must perform in their own Claude Code config — an onboarding/documentation requirement, not just engineering
-- [ ] **CODE-04**: When the Claude Code session ends or goes stale (no update within a timeout), the Coding-Progress indicator clears rather than showing stale state indefinitely
-
-### Menübar-Overflow
-
-- [x] **MENUBAR-01**: A chevron icon in the menu bar separates a "visible" and a "hidden" section of menu-bar icons, mirroring Ice's MVP mechanic
-- [x] **MENUBAR-02**: The user can drag other apps' menu-bar icons across the chevron (standard macOS Cmd-drag) to assign them to the hidden section
-- [x] **MENUBAR-03**: Clicking the chevron reveals/hides the hidden section's icons; hidden icons are genuinely absent from the visible menu-bar strip when hidden, not just repositioned off-screen while occupying visual space
-- [ ] **MENUBAR-04**: This feature requires a new Accessibility permission grant, requested with a clear one-time explanation — distinct from Islet's existing WeatherKit/EventKit/Bluetooth permission prompts
+v1.10's requirements (Live Activities Suite — SETTINGS-04/05, CAPS-01, UPDATE-01, TIMER-01..04,
+DL-01/02, MEET-01..03, QACTION-01..03 shipped; NOTES-01..03, MENUBAR-01..04, CODE-01..04 carried
+forward, not shipped) are archived in `.planning/milestones/v1.10-REQUIREMENTS.md`.
 
 ## v2 Requirements
 
@@ -212,33 +155,6 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FAV-01 | Phase 50 | Pending |
 | FAV-02 | Phase 50 | Pending |
 | FAV-03 | Phase 50 | Pending |
-| SETTINGS-04 | Phase 59 | Complete |
-| SETTINGS-05 | Phase 59 | Complete |
-| CAPS-01 | Phase 60 | Complete |
-| UPDATE-01 | Phase 60 | Complete |
-| DL-01 | Phase 61 | Complete |
-| DL-02 | Phase 61 | Complete |
-| TIMER-01 | Phase 62 | Complete |
-| TIMER-02 | Phase 62 | Complete |
-| TIMER-03 | Phase 62 | Complete |
-| TIMER-04 | Phase 62 | Complete |
-| MEET-01 | Phase 63 | Complete |
-| MEET-02 | Phase 63 | Complete |
-| MEET-03 | Phase 63 | Complete |
-| NOTES-01 | Phase 64 | Complete |
-| NOTES-02 | Phase 64 | Complete |
-| NOTES-03 | Phase 64 | Complete |
-| QACTION-01 | Phase 65 | Complete |
-| QACTION-02 | Phase 65 | Complete |
-| QACTION-03 | Phase 65 | Complete |
-| MENUBAR-01 | Phase 66 | Complete |
-| MENUBAR-02 | Phase 66 | Complete |
-| MENUBAR-03 | Phase 66 | Complete |
-| MENUBAR-04 | Phase 66 | Pending |
-| CODE-01 | Phase 67 | Pending |
-| CODE-02 | Phase 67 | Pending |
-| CODE-03 | Phase 67 | Pending |
-| CODE-04 | Phase 67 | Pending |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
@@ -251,20 +167,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Unmapped: 0
 - Phase 47 (Audio Output — Pure Seam + Monitor) and Phase 49 (Favorite/Like — Spike) carry no formal REQ-ID themselves — they're infrastructure/spike phases preceding Phase 48/50's user-facing requirements, mirroring this project's own Phase 15/16/19 and Phase 22-01/24-01/38-01/39-01 precedent.
 
-**Coverage (v1.10):**
-- v1.10 requirements: 27 total
-- Mapped to phases: 27 (100%)
-- Unmapped: 0
-
 v1.6's traceability table (GLASS-01, HUD-01..08, EQ-01, ONBOARD-04, DUAL-01) is archived in `.planning/milestones/v1.6-REQUIREMENTS.md`.
 
 v1.8's traceability table (SETTINGS-02/03, SWITCH-03/04, RESUME-01/02 — 6/6 shipped) is archived in `.planning/milestones/v1.8-REQUIREMENTS.md`.
 
 v1.9's traceability table (CLIP-01..05, PRIV-01/02 — 7/7 shipped) is archived in `.planning/milestones/v1.9-REQUIREMENTS.md`.
 
+v1.10's traceability table (27 total, 16 shipped/59%, 11 carried forward — NOTES-*/MENUBAR-*/CODE-* not delivered) is archived in `.planning/milestones/v1.10-REQUIREMENTS.md`.
+
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-23 — v1.9 (Clipboard History) shipped and archived to `.planning/milestones/v1.9-REQUIREMENTS.md`/`.planning/milestones/v1.9-ROADMAP.md` — 4 phases (55-58), 7/7 requirements shipped. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
+*Last updated: 2026-07-30 — v1.10 (Live Activities Suite) shipped and archived to `.planning/milestones/v1.10-REQUIREMENTS.md`/`.planning/milestones/v1.10-ROADMAP.md` — Phases 59-63/65, 16/27 requirements shipped; Phases 64/66/67 (NOTES-*, MENUBAR-*, CODE-*) carried forward, not descoped. Correction made at close: MENUBAR-01/02/03 had been incorrectly marked Complete despite Phase 66's 3 on-device NO-GOs — fixed to Not delivered. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
 *v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*
 *v1.4 and v1.5 both remain open in parallel — v1.5's Phase 33 (Weather widget) on-device UAT still pending.*
 *v1.6 (Liquid Glass & System HUD Suite) shipped and archived to `.planning/milestones/v1.6-REQUIREMENTS.md`/`.planning/milestones/v1.6-ROADMAP.md`.*

@@ -1,5 +1,29 @@
 # Milestones
 
+## v1.10 Live Activities Suite (Shipped: 2026-07-30)
+
+**Phases completed:** 6 of 9 originally scoped (59, 60, 61, 62, 63, 65), 28 plans, 121 phase commits, 37 files changed (+4.7k/-129 lines). Phases 64, 66, 67 carried forward, not shipped — see Known Gaps.
+
+**Key accomplishments:**
+
+- Settings' Activities section rebuilt as one Droppy-style grid of Live-Activity cards (mini live-preview + title + description + on/off toggle per card), with a locked convention that every new activity defaults OFF while every pre-existing activity's toggle state survives the upgrade untouched (Phase 59).
+- A Caps Lock on/off HUD (event-driven, `flagsChanged` monitor, no polling lag) and a Droppy-restyled Sparkle update-available HUD both shipped as the cheapest possible pairing to prove the new Settings-grid card pattern (Phase 60).
+- `DownloadMonitor`/`DownloadCoordinator` (FSEvents) — the milestone's first genuinely new file-watching subsystem — shows a live "downloading" indicator that clears to "done" on completion, correlating matched temp-file suffixes so concurrent downloads don't double-fire (Phase 61).
+- A Timer/Pomodoro HUD with live countdown, pause/reset/add-time controls, and a completion splash generalized `TransientQueue.preempt()`/`ActiveTransient.isPersistent` beyond its original single-`.focus`-case hardcode — proven here first before Meeting-HUD reused the same path (Phase 62).
+- Meeting-HUD: an on-device spike confirmed a reliable Zoom/Teams-running + mic-active heuristic before the full HUD was built; a real call now shows a live call-timer with a working system-wide mute toggle via a shared `MicMuteController` (also reused unmodified by Quick Actions), and Google Meet correctly shows nothing (Phase 63) — retroactively goal-backward verified at this milestone's close, since the phase's own execution never triggered that gate.
+- A configurable 8-slot Quick Actions bar (mic mute, display sleep, dark mode, screen lock, best-effort DND, caffeinate, empty Trash, launch app/URL) fires instantly from the notch with no further expansion (Phase 65).
+
+**Known Gaps**
+
+- **Phase 64 (Quick Notes + Obsidian Export)** — all 8 plans executed, but on-device UAT found 3 unfixed major bugs (no keyboard focus on popover open, delete button unclickable once scrolled, empty-state popover doesn't close) plus 2 user-approved scope changes never built (vault-file delete, file browser/switcher). Carried forward, needs `/gsd:plan-phase 64 --gaps`.
+- **Phase 66 (Menübar-Overflow)** — PAUSED after 3 consecutive on-device NO-GOs across two mechanisms; even the reference app (Ice.app) failed identically on the third attempt. Root cause unconfirmed. Carried forward, no revisit trigger.
+- **Phase 67 (Coding-Progress)** — never started; no blocker, simply not reached before Phase 70 (a queued backlog idea) was worked ahead of it.
+- A prior session incorrectly treated finishing Phase 70 (a standalone backlog phase, not part of v1.10's own 59-67 scope) as completing v1.10 — corrected during this actual close-out.
+- A stale REQUIREMENTS.md bug was caught and fixed at close: MENUBAR-01/02/03 had been marked Complete despite Phase 66 never shipping.
+- Deferred at close (see STATE.md Deferred Items): 3 debug sessions, 18 quick tasks, 5 open todos unrelated to v1.10's own scope.
+
+---
+
 ## v1.9 Clipboard History (Shipped: 2026-07-23)
 
 **Phases completed:** 4 phases (55-58), 7 plans, 17 tasks, 68 phase commits, 61 files changed (+8.9k/-630 lines)

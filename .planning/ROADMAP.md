@@ -13,7 +13,7 @@
 - 🚧 **v1.7 Interaction & Calendar Polish** — Phases 43-50 (planned, left open in parallel)
 - ✅ **v1.8 Settings Redesign & Island Navigation** — Phases 51-53 (shipped 2026-07-21)
 - ✅ **v1.9 Clipboard History** — Phases 55-58 (shipped 2026-07-23)
-- 🚧 **v1.10 Live Activities Suite** — Phases 59-67 (in progress, started 2026-07-23, left open in parallel with v1.4/v1.5/v1.7)
+- ✅ **v1.10 Live Activities Suite** — Phases 59-63, 65 (shipped 2026-07-30, known gaps: Phase 64/66/67 carried forward)
 
 ## Phases
 
@@ -152,19 +152,25 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 
 </details>
 
-### 🚧 v1.10 Live Activities Suite (Planned)
+<details>
+<summary>✅ v1.10 Live Activities Suite (Phases 59-63, 65) — SHIPPED 2026-07-30</summary>
 
-**Milestone Goal:** Add a suite of new Live Activities/HUDs inspired by Droppy and Ice, plus a Droppy-style Settings grid overview to manage them all — most new activities default OFF rather than opinionated-on. Started 2026-07-23 while v1.4, v1.5, and v1.7 all remain open in parallel (explicit user decision).
+- [x] Phase 59: Settings-Redesign (2/2 plans) — completed 2026-07-23
+- [x] Phase 60: Caps Lock HUD + Update-Activity Restyle (5/5 plans) — completed 2026-07-23
+- [x] Phase 61: Download-Progress (5/5 plans) — completed 2026-07-24
+- [x] Phase 62: Timer/Pomodoro (4/4 plans) — completed 2026-07-24
+- [x] Phase 63: Meeting-HUD (4/4 plans) — completed 2026-07-30 (verified at milestone close; 3 post-UAT code-review fixes accepted as code-verified without live re-test)
+- [x] Phase 65: Quick Actions Bar (8/8 plans) — completed 2026-07-26
 
-- [x] **Phase 59: Settings-Redesign** - Droppy-style Live-Activity card grid replaces ad-hoc Activities settings; new-activity default-OFF convention locked in (completed 2026-07-23)
-- [x] **Phase 60: Caps Lock HUD + Update-Activity Restyle** - Cheapest new-activity pairing, proves the Settings-grid card pattern (completed 2026-07-23)
-- [x] **Phase 61: Download-Progress** - First FSEvents-based watcher; live download presence + completion signal (completed 2026-07-24)
-- [x] **Phase 62: Timer/Pomodoro** - Countdown/Pomodoro HUD; generalizes `TransientQueue.preempt()`/`isPersistent` beyond Focus Mode (completed 2026-07-24)
-- [ ] **Phase 63: Meeting-HUD** - Zoom/Teams call timer + system mic mute, gated behind its own detection spike (all 4 plans executed 2026-07-25; awaiting orchestrator phase-level gates)
-- [x] **Phase 64: Quick Notes + Obsidian Export** - Menu-bar note capture appended to a user's Obsidian vault file
-- [x] **Phase 65: Quick Actions Bar** - Configurable ~8-action row, reuses Meeting-HUD's `MicMuteController` (completed 2026-07-26)
+Full phase details, goals, success criteria, and plan lists: `.planning/milestones/v1.10-ROADMAP.md`
+
+</details>
+
+**Known gap:** Phase 64 (Quick Notes), Phase 66 (Menübar-Overflow), and Phase 67 (Coding-Progress) did not ship as part of v1.10 — carried forward, not descoped. See Phase Details below.
+
+- [ ] **Phase 64: Quick Notes + Obsidian Export** - NOT SHIPPED — 3 unfixed major UAT bugs + 2 approved-but-unbuilt scope changes; needs `/gsd:plan-phase 64 --gaps` (all 8 plans executed 2026-07-25)
 - [ ] **Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)** - PAUSED by user (2026-07-28) after 3 consecutive NO-GOs (see Phase Details) — even real Ice.app's own mechanism no longer works on this machine; root cause unconfirmed (Golden-Gate/Developer-Mode hypothesis, untestable without a full macOS 26 downgrade); feature still wanted, revisit unscheduled
-- [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern
+- [ ] **Phase 67: Coding-Progress** - Claude Code todo-progress readout via hook file, reuses Phase 61's FileWatcher pattern; never started
 
 ## Phase Details
 
@@ -223,7 +229,7 @@ Plans:
 
 **v1.9:** 4/4 phases complete (100%) — see `.planning/milestones/v1.9-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-23; 7/7 requirements delivered.
 
-**v1.10:** 0/9 phases complete (0%) — roadmap created 2026-07-23. Phases 59-67, 27/27 v1.10 requirements mapped (SETTINGS-04/05, CAPS-01, UPDATE-01, TIMER-01..04, NOTES-01..03, QACTION-01..03, DL-01/02, MEET-01..03, CODE-01..04, MENUBAR-01..04). Phase order: foundation (Settings-Redesign) first, then ascending technical risk per research — Caps Lock+Update restyle → Download-Progress → Timer/Pomodoro → Meeting-HUD → Quick Notes → Quick Actions bar → Menübar-Overflow → Coding-Progress. Phase numbering continues from Phase 58 (v1.9's last phase).
+**v1.10:** 6/9 phases shipped (67%) — see `.planning/milestones/v1.10-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-30; 16/27 requirements delivered (Phases 59-63/65). Phase 64 (Quick Notes, 3 UAT bugs unfixed), Phase 66 (Menübar-Overflow, PAUSED after 3 NO-GOs), and Phase 67 (Coding-Progress, never started) carried forward, not descoped.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -974,165 +980,13 @@ Plans:
 
 Phases 55-58 full detail (goals, success criteria, plans, on-device UAT history) archived to `.planning/milestones/v1.9-ROADMAP.md`. Requirements archived to `.planning/milestones/v1.9-REQUIREMENTS.md`. 7/7 requirements shipped (100%).
 
-## v1.10 Live Activities Suite — PLANNED
+## v1.10 Live Activities Suite — SHIPPED 2026-07-30
 
-### Phase 59: Settings-Redesign
-
-**Goal:** The Activities-related Settings sections become one Droppy-style grid of Live-Activity cards (existing + new), and every new Live Activity introduced this milestone is force-defaulted OFF without disturbing any already-shipped activity's current toggle state.
-**Depends on:** Nothing (first phase of this milestone)
-**Requirements**: SETTINGS-04, SETTINGS-05
-**Success Criteria** (what must be TRUE):
-
-  1. Opening Settings' Activities section shows one grid of cards — one per Live Activity (existing + new) — each showing a mini live-preview of that activity's pill, its title, a one-line description, and an on/off toggle, replacing today's ad-hoc per-activity settings rows.
-  2. Toggling a card's switch on/off immediately enables/disables that activity, exactly like today's existing toggles.
-  3. Every brand-new Live Activity introduced this milestone (Caps Lock, Timer/Pomodoro, Meeting-HUD, Quick Notes, Quick Actions bar, Menübar-Overflow, Coding-Progress, Download-Progress) appears in the grid defaulted OFF on first launch after the update.
-  4. An existing user upgrading from a pre-v1.10 build sees every already-shipped activity's current toggle state (mostly ON, Focus Mode OFF) preserved exactly as it was before the update — no silent flip, verified against a pre-seeded (upgrade-simulating) UserDefaults domain, not just a fresh install.
-  5. A reviewed resolver-priority table exists covering all v1.10 activities' place in `IslandResolver`/`TransientQueue`, so later phases slot in without silently reordering existing precedence.
-
-**Plans**: 2 plans
-**UI hint**: yes
-
-Plans:
-**Wave 1**
-
-- [x] 59-01-PLAN.md — ActivitySettings.swift +8 default-OFF keys, ActivityCard.swift (new reusable card component), IslandResolver.swift SC5 resolver-priority doc table
-
-**Wave 2** *(blocked on 59-01)*
-
-- [x] 59-02-PLAN.md — SettingsView.swift activitiesSection rebuilt as the categorized 15-card grid + on-device UAT checkpoint
-
-### Phase 60: Caps Lock HUD + Update-Activity Restyle
-
-**Goal:** Users get a lightweight Caps Lock on/off HUD matching the existing transient-wings pattern, and the existing Sparkle update-available HUD is reskinned to the same Droppy look — the cheapest possible pairing, proving the new Settings-grid card pattern before harder features land.
-**Depends on:** Phase 59 (needs the Settings-grid card model both features register against)
-**Requirements**: CAPS-01, UPDATE-01
-**Success Criteria** (what must be TRUE):
-
-  1. Toggling Caps Lock on shows a brief on-state HUD in the collapsed island; toggling it off shows a brief off-state HUD; both auto-dismiss after ~1-2s with no click needed.
-  2. The Caps Lock HUD is event-driven (fires immediately on every real toggle via `NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged)`, no polling lag) and appears as its own card in the Phase 59 Settings grid, default OFF.
-  3. The existing update-available HUD now shows the Droppy-style layout (leading icon, "Update" label, trailing version pill) in place of its current look — the underlying Sparkle trigger and tap-to-install behavior are unchanged.
-  4. Both activities respect the Settings grid's on/off toggle from Phase 59.
-
-**Plans**: 5 plans
-**UI hint**: yes
-
-Plans:
-**Wave 1**
-
-- [x] 60-01-PLAN.md — Pure seams: CapsLockActivity.swift/UpdateActivity.swift + IslandResolver.swift rank-5/6 cases + ActivitySettings.swift updateHudKey/defaultsToFalseKeys (Pitfall 1 fix)
-
-**Wave 2** *(blocked on 60-01)*
-
-- [x] 60-03-PLAN.md — Settings UI: Update Available card (Pitfall 5) + Caps Lock Accessibility permission popover (Pitfall 2)
-- [x] 60-04-PLAN.md — NotchPillView wing rendering: wingsShape(onTap:) + capsLockWings(for:)/updateWings(for:)/UpdateVersionPill
-
-**Wave 3** *(blocked on 60-01, 60-04)*
-
-- [x] 60-02-PLAN.md — CapsLockMonitor.swift (new) + NotchWindowController controller wiring + AppDelegate second Sparkle signal/DEBUG spike hook
-
-**Wave 4** *(blocked on 60-02, 60-03, 60-04)*
-
-- [x] 60-05-PLAN.md — Build/test gate + consolidated on-device UAT checkpoint (resolves RESEARCH.md Pitfall 3/4 open questions)
-
-### Phase 61: Download-Progress
-
-**Goal:** Dropping a file into ~/Downloads shows a live "downloading" indicator in the notch that clears to a brief "done" state on completion — the milestone's first genuinely new file-watching subsystem (FSEvents), proven once here before Coding-Progress reuses the same pattern.
-**Depends on:** Phase 59 (Settings-grid card registration)
-**Requirements**: DL-01, DL-02
-**Success Criteria** (what must be TRUE):
-
-  1. Starting a real browser download into ~/Downloads shows a live "downloading" indicator in the collapsed island within a couple seconds of the download starting.
-  2. When the browser's temp file is renamed to its final filename (download complete), the indicator shows a brief "done" state, then clears on its own — no exact-percentage guarantee across all browsers, presence + completion signal only.
-  3. Two downloads in quick succession are each detected as one logical download apiece — matched temp-file suffixes (`.crdownload`/`.download`/`.part`) and debounced create+rename correlation avoid a double-fire on a single file's own temp-file sequence.
-  4. The feature appears in the Settings grid, default OFF, and produces no indicator at all when disabled.
-
-**Plans**: 5 plans
-
-Plans:
-**Wave 1**
-
-- [x] 61-01-PLAN.md — Pure model (DownloadActivity/DownloadReading) + IslandResolver rank-5 wiring
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 61-02-PLAN.md — DownloadCoordinator: per-file stateful correlation (D-05/D-06/D-15)
-- [x] 61-03-PLAN.md — NotchPillView downloadWings(for:) rendering
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 61-04-PLAN.md — DownloadMonitor (FSEvents) + NotchWindowController wiring
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
-- [x] 61-05-PLAN.md — Build/test gate + on-device UAT checkpoint
-
-**UI hint**: yes
-
-### Phase 62: Timer/Pomodoro
-
-**Goal:** Users can start a countdown or Pomodoro session from the notch with live pause/reset/add-time controls and a completion splash — and `TransientQueue`/`ActiveTransient` gain the generalized "persistent transient" concept this and Meeting-HUD both need, validated here first on the simpler, no-detection-risk case.
-**Depends on:** Phase 59 (Settings grid)
-**Requirements**: TIMER-01, TIMER-02, TIMER-03, TIMER-04
-**Success Criteria** (what must be TRUE):
-
-  1. User can start a countdown timer from the notch with a chosen duration, and the collapsed island shows a live mm:ss countdown while it runs.
-  2. Expanding the island while a timer is running offers pause, reset, and add-time controls, all of which take effect immediately.
-  3. When the timer reaches zero, the island shows a completion HUD splash and the system plays a notification/sound, even if the user isn't looking at the screen.
-  4. User can start a Pomodoro session instead of a plain countdown — it cycles work/break durations automatically and shows a running session counter, selectable as an alternative to the one-shot countdown.
-  5. A running timer survives another activity (e.g. Charging) briefly interrupting the display and resumes showing its live countdown afterward — proving `TransientQueue.preempt()`/`ActiveTransient.isPersistent` now generalizes beyond the original Focus-Mode-only case (currently hardcoded to a single `.focus` case).
-
-**Plans**: 4 plans
-
-Plans:
-**Wave 1**
-
-- [x] 62-01-PLAN.md — Pure seams: TimerActivity model (TDD) + IslandResolver.swift SC5 generalization (isPersistent/preempt(), .timer/.timerExpanded cases)
-
-**Wave 2** *(blocked on 62-01)*
-
-- [x] 62-02-PLAN.md — TimerActivityState (pause/resume/reset/add-time/stop, TDD) + TimerMonitor (one-shot deadline scheduler)
-- [x] 62-03-PLAN.md — NotchPillView: collapsed pill + completion splash, D-08 expanded controls, duration/mode picker + Home "Start Timer" entry
-
-**Wave 3** *(blocked on 62-02, 62-03)*
-
-- [x] 62-04-PLAN.md — NotchWindowController wiring (construction, deadline-fire orchestration, SC5 call-site cleanup, geometry) + on-device UAT checkpoint
-
-**UI hint**: yes
-
-### Phase 63: Meeting-HUD
-
-**Goal:** While a native Zoom or Teams call is active with the microphone on, the notch shows a call timer with a working system-mute toggle — the milestone's first feature with genuine call-detection uncertainty (no public API), spiked on real hardware before the full HUD is built, reusing the now-generalized persistent-transient path from Phase 62.
-**Depends on:** Phase 62 (needs the generalized `TransientQueue.preempt()`/`ActiveTransient.isPersistent` path proven first, on the simpler no-detection-risk case)
-**Requirements**: MEET-01, MEET-02, MEET-03
-**Success Criteria** (what must be TRUE):
-
-  1. An on-device spike confirms (or narrows) a reliable heuristic for "a Zoom/Teams call is active" — process-running + mic-active — isolated behind one `MeetingMonitor` file, with a documented go/no-go recorded before the full HUD is built, not assumed.
-  2. Joining a real Zoom or Teams call with an active microphone shows a call-timer HUD (elapsed mm:ss) in the notch.
-  3. Tapping the HUD's mute control toggles the system-wide microphone mute (via a shared `MicMuteController`, not the in-app mute) and the HUD's own icon reflects the current mute state.
-  4. Opening a Google Meet call in a browser does not show the Meeting-HUD — documented as a known limitation, not silently missing.
-
-**Plans**: 4 plans
-
-Plans:
-**Wave 1**
-
-- [x] 63-01-PLAN.md — Pure seams: MeetingActivity model (TDD) + MicMuteController (shared system-wide input-mute primitive, D-02/D-04)
-
-**Wave 2** *(blocked on 63-01)*
-
-- [x] 63-02-PLAN.md — MeetingMonitor (detection risk isolated, D-03) + on-device spike checkpoint (go/no-go)
-
-**Wave 3** *(blocked on 63-01, 63-02 go/no-go)*
-
-- [x] 63-03-PLAN.md — IslandResolver .meeting case (rank 3, D-05/D-06) + NotchPillView meetingWings(for:) inline-tappable mute icon (D-09/D-10)
-
-**Wave 4** *(blocked on 63-02, 63-03)*
-
-- [x] 63-04-PLAN.md — NotchWindowController wiring (monitor lifecycle, mute-tap handler, Settings toggle) + on-device UAT checkpoint
-
-**UI hint**: yes
+Phases 59, 60, 61, 62, 63, 65 full detail (goals, success criteria, plans, on-device UAT history) archived to `.planning/milestones/v1.10-ROADMAP.md`. Requirements archived to `.planning/milestones/v1.10-REQUIREMENTS.md`. 16/27 requirements shipped (59%); Phases 64, 66, 67 carried forward, not descoped — see below.
 
 ### Phase 64: Quick Notes + Obsidian Export
+
+**STATUS: NOT SHIPPED, carried forward (2026-07-30).** All 8 plans executed, but on-device UAT (`64-UAT.md`) found 3 major bugs never fixed: no keyboard focus on popover open, delete button unclickable once the history list is scrolled, and the vault-not-set empty-state popover doesn't close. Two scope changes the user approved mid-UAT were also never built: deleting a note should also remove it from the vault file (reverses D-17), and the popover should let the user browse/select among vault files instead of always writing one fixed file (reverses D-08). **Needs `/gsd:plan-phase 64 --gaps`** before this can ship.
 
 **Goal:** Users can capture a typed note from a menu-bar flyout (mirroring Clipboard History) that's appended, timestamped, to one fixed .md file in a user-chosen Obsidian vault folder — resolving the real 4-slot top-edge-switcher conflict as part of this phase's own planning, not silently assumed away.
 **Depends on:** Phase 59 (Settings-grid card registration for the notes feature)
@@ -1167,43 +1021,6 @@ Plans:
 **UI hint**: yes
 
 **Closure note (2026-07-25):** User chose to skip a formal `/gsd-verify-work 64` pass — the phase's success criteria were already exercised end-to-end across 64-06's and 64-08's combined 7 on-device checkpoint rounds (focus/keyboard handling, TCC vault-folder access, append-only write survival, delete hit-target, multi-file targeting, vault-delete, crash-mid-rewrite safety, vault↔app reconciliation, and popover dismiss behavior all explicitly re-tested live), so a separate verification pass was judged redundant. Same precedent as Phases 29/36/38/39/45.
-
-### Phase 65: Quick Actions Bar
-
-**Goal:** A configurable row of quick actions (mic mute, display sleep, dark mode, screen lock, DND best-effort, caffeinate, empty Trash, launch app/URL) is enabled and reordered in Settings and fires instantly from the notch without further expansion.
-**Depends on:** Phase 63 (reuses the `MicMuteController` Meeting-HUD already built — do not build the CoreAudio mute helper twice)
-**Requirements**: QACTION-01, QACTION-02, QACTION-03
-**Success Criteria** (what must be TRUE):
-
-  1. In Settings, user can enable and reorder a Quick Actions bar from the fixed catalog: mic mute/unmute, display sleep now, dark/light mode toggle, screen lock, Do Not Disturb toggle, caffeinate/keep-awake toggle, empty Trash, launch app/open URL.
-  2. Tapping any enabled action in the notch performs it immediately — no further expansion beyond the action bar itself, and no unrelated activity interrupts it.
-  3. The mic-mute action reuses the same `MicMuteController` Meeting-HUD already established — toggling it from either surface reflects the same live system mute state.
-  4. The Do Not Disturb/Focus action visibly shows a failure state when it can't reliably act (documented best-effort, no stable public macOS API) rather than silently doing nothing.
-
-**Plans**: 8 plans
-
-Plans:
-**Wave 1**
-
-- [x] 65-01-PLAN.md — Pure seams: QuickActionsBarCatalog.swift (8-slot catalog + AppStorage keys) + .quickActionsBarExpanded resolver case, TDD
-- [x] 65-02-PLAN.md — DisplaySleepAction + ScreenLockAction + CaffeinateToggleAction (fire-and-forget/stateful system helpers)
-- [x] 65-03-PLAN.md — DarkModeToggleAction + EmptyTrashAction (AppleScript+errorDict) + LaunchAction (validated URL/app passthrough)
-- [x] 65-04-PLAN.md — FocusToggleAction: best-effort DND toggle + INFocusStatusCenter read-back verification (QACTION-03), TDD
-
-**Wave 2** *(blocked on 65-01; 65-05 also blocked on 65-02/65-04)*
-
-- [x] 65-05-PLAN.md — NotchPillView.swift quickActionsBarContent (8-tile grid, D-04 tap-pulse, live icon-state reads)
-- [x] 65-06-PLAN.md — SettingsView.swift Quick Actions card flip + 8-slot configuration popover + 5th switcher-slot option
-
-**Wave 3** *(blocked on 65-01..65-05)*
-
-- [x] 65-07-PLAN.md — NotchWindowController.swift dispatch wiring for all 8 catalog actions + quickActionsKey gating
-
-**Wave 4** *(blocked on 65-07)*
-
-- [x] 65-08-PLAN.md — Manual spike scaffold + on-device UAT checkpoint covering all 8 actions
-
-**UI hint**: yes
 
 ### Phase 66: Menübar-Overflow (Debug-the-CGS-Spike MVP)
 
