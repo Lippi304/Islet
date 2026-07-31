@@ -2073,6 +2073,20 @@ struct NotchPillView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .padding(12)
+        .background {
+            // Phase 72.1.1 Plan 05 (D-06 Tier 2) — new glass card background (previously
+            // no background at all), guarded per the file's existing #available convention.
+            if #available(macOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.clear)
+                    .glassEffect(.regular.tint(Color.white.opacity(0.06)),
+                                 in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+            }
+        }
         .frame(maxWidth: .infinity)
     }
 

@@ -22,6 +22,21 @@ struct ShelfItemView: View {
                 .truncationMode(.middle)   // V5 mitigation (T-20-01): item.filename is untrusted
                 .frame(maxWidth: 56)   // Phase 32 / TRAY-05: preserves the ~16pt icon-to-maxWidth margin at the larger icon size
         }
+        .padding(6)
+        .background {
+            // Phase 72.1.1 Plan 05 (D-06 Tier 2) — new glass tile background (previously
+            // no background at all), guarded per NotchPillView.swift's existing #available
+            // convention.
+            if #available(macOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.clear)
+                    .glassEffect(.regular.tint(Color.white.opacity(0.06)),
+                                 in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }   // D-04 own scoped gesture — click-to-open
         .onDrag {   // Phase 21 / SHELF-06 — SIBLING drag source, D-04 default system preview
