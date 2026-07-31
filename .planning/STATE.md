@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
-status: ready_to_plan
-stopped_at: Phase 72 complete (4/4) — ready to discuss Phase 73
-last_updated: 2026-07-30T22:42:13.087Z
+status: planning
+stopped_at: Phase 72.1 context gathered
+last_updated: "2026-07-31T00:29:31.475Z"
 last_activity: 2026-07-30
 progress:
-  total_phases: 42
+  total_phases: 44
   completed_phases: 28
   total_plans: 105
-  completed_plans: 132
-  percent: 67
+  completed_plans: 97
+  percent: 64
 ---
 
 # Project State
@@ -21,11 +21,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-30)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 73 — timer redesign — remove pomodoro + ruler slider
+**Current focus:** Phase 72.1 — volume/brightness bar redesign
 
 ## Current Position
 
-Phase: 73
+Phase: 72.1
 Plan: Not started
 Status: Ready to plan
 Last activity: 2026-07-30
@@ -503,6 +503,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - Phase 69 added 2026-07-26: Claude Session Usage Display — Now-Playing-style notch expansion showing live Claude Code usage when a session is active: 5-hour limit + reset countdown on the left, weekly limit fill/percentage on the right, configurable update interval (5-min poll or live). Data sourcing intended to build on a separate usage-tracking tool/script the user already started, source at `/Users/lippi304/AI-OS/OS/5. Claude Usage Tracker` — reuse/port its usage-fetching logic instead of rebuilding it. User-requested, sequenced as the last phase after Phase 68. No formal REQ-ID yet, not part of the milestone's original 27/27 requirement coverage — needs its own `/gsd-discuss-phase 69` before planning.
 - Phase 67.1 inserted after Phase 67: Notch Size Scaling — Resolution-Aware + Manual Override: user changed screen resolution and the notch island now looks too small; adds auto-scaling of island width/depth to display resolution/DPI plus a manual Settings fine-tune override. User-requested, sequenced before Phase 68. (URGENT)
 - Phase 70 added 2026-07-29: File Tray Convert Button — add a 4th "Convert" action button to the File Tray view for dropped images, mirroring macOS Finder's own "Convert Image" right-click menu. Rank 1 of 5 ideas the user queued 2026-07-29 (see `.planning/seeds/`) — user explicitly wants this and the other 4 queued ideas worked ahead of Phases 68/69, despite the numbering. No formal REQ-ID yet — needs its own `/gsd-discuss-phase 70` before planning.
+- Phase 72.1 inserted after Phase 72: Volume/Brightness Bar redesign — bar brightness scales with fill level, shadcn number-ticker style counter (URGENT)
+- Phase 72.1.1 inserted after Phase 72.1: Liquid Glass design rework for the island — shadcn liquid-glass component as reference (URGENT)
 
 ### Pending Todos
 
@@ -651,9 +653,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-30T22:29:08.661Z
-Stopped at: Completed 72-04-PLAN.md
-Resume file: None
+Last session: 2026-07-31T00:29:31.467Z
+Stopped at: Phase 72.1 context gathered
+Resume file: .planning/phases/72.1-volume-brightness-bar-redesign-bar-brightness-scales-with-fi/72.1-CONTEXT.md
 
 ## Operator Next Steps
 
