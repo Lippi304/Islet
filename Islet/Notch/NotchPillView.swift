@@ -3601,37 +3601,50 @@ struct NotchPillView: View {
     // Failure path (D-03) replaces ONLY that glyph slot with static failure text, album art
     // stays visible. Tap goes to the dedicated `onResumeTap` closure (NOT `onClick`, which
     // would expand to Home and violate D-01 — see 53-RESEARCH.md Pitfall 4/Anti-Pattern).
+    // Quick task 260801-0br (Fix #1) — converted from the old hardcoded-Self.wingsSize/
+    // Spacer()-based layout to the shared camera-safe, resolution-aware wingsShape formula
+    // every sibling wing already uses (modeled on deviceWings(for:), same margin as
+    // mediaWingContentWidth() since this is the same "Now Playing" wing family). This was the
+    // ONE wing never converted, so it never recomputed on resolution changes and was
+    // disconnected from both the Settings Width/Depth sliders and the Wing Tuner nudges.
     private func resumePreviewWings(_ track: LastPlayedTrack) -> some View {
-        let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius, bottomCornerRadius: Self.wingBaseBottomCornerRadius)
-        return shape
-            .fill(islandFill)
-            .matchedGeometryEffect(id: "island", in: ns)
-            .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
-            .overlay(liquidGlassEffectLayer(shape: shape, size: Self.wingsSize, parameters: .expanded))
-            .overlay {
-                HStack(spacing: 0) {
-                    artThumbnail(track.artwork, side: Self.wingsSize.height - 8, corner: 6)
-                        .padding(.leading, 28 + wingLeadingNudge)   // +6 baked in from on-device tuning, all wings, post-SHAPE-02
-                    Spacer()
+        let rawNotchHalfWidth = (interaction.collapsedNotchSize?.width ?? Self.collapsedSize.width) / 2
+        let margin: CGFloat = 5 + wingMarginNudge   // matches mediaWingContentWidth()'s own margin — same wing family
+        let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
+        let leadingPad: CGFloat = 28 * resolvedWingWidthScale + wingLeadingNudge
+        let trailingPad: CGFloat = 34 * resolvedWingWidthScale + wingTrailingNudge
+        let artSide = (Self.wingsSize.height - 8) * resolvedWingDepthScale
+        // Starting value: sized for the longer failure string ("Wiedergabe nicht möglich").
+        // Re-tune with Wing Tuner's Margin/Leading/Trailing buttons on-device like every other
+        // wing, per this codebase's established convention (see deviceWings' own comment).
+        let rightContentWidth: CGFloat = 160
+        let leftWidth = leadingPad + artSide + cameraBlockWidth / 2
+        let totalWidth = leadingPad + artSide + cameraBlockWidth + rightContentWidth + trailingPad
+        let rightWidth = totalWidth - leftWidth
+        assert(cameraBlockWidth > 0, "Resume preview camera block width (\(cameraBlockWidth)) must be positive")
+        assert(rightWidth < 325 && leftWidth < 325,
+               "Resume preview wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale, onTap: onResumeTap) {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: leadingPad)
+                artThumbnail(track.artwork, side: artSide, corner: 6)
+                Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
+                Group {
                     if nowPlaying.resumePreviewFailed {
                         Text("Wiedergabe nicht möglich")
                             .font(.system(size: 11, weight: .medium, design: .rounded))
                             .foregroundStyle(.white)
                             .lineLimit(1)
-                            .padding(.trailing, 34 + wingTrailingNudge)   // +10 baked in from on-device tuning, all wings, post-SHAPE-02
                     } else {
                         Image(systemName: "play.fill")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.white)
-                            .padding(.trailing, 34 + wingTrailingNudge)   // +10 baked in from on-device tuning, all wings, post-SHAPE-02
                     }
                 }
-                .frame(width: Self.wingsSize.width, height: Self.wingsSize.height)
-                // Gap closure (71-02 on-device UAT) — same clipShape safety net as
-                // wingsShape/mediaWingsOrToast above.
-                .clipShape(shape)
+                .frame(width: rightContentWidth, alignment: .leading)
+                Color.clear.frame(width: trailingPad)
             }
-            .onTapGesture { onResumeTap() }
+        }
     }
 
     // Row 2 (round 3, new) — the fading "Title — Artist" line under the wings row. TEXT ONLY:
