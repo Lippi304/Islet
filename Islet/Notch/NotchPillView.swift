@@ -679,16 +679,16 @@ struct NotchPillView: View {
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
-        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, round 3 — CAUTIOUS INCREMENTAL
-        // STEP, not a final answer) — round 1 (`Color.clear`, 96b8a3b) hung hover-to-expand,
-        // reverted (243db3d). Round 2 (`0.05`, 72b050f) confirmed SAFE on-device (no hang).
-        // Stepping down further per explicit user direction ("weiter testen es ganz transparent
-        // zu machen") — 0.01 is a 5x reduction from the confirmed-safe 0.05, still short of
-        // full `Color.clear`, to keep isolating whether there's a hard cliff near zero or a
-        // gradient of instability. If this hangs, 0.05 is the practical floor for this beta OS;
-        // if not, the next round steps down further (or attempts full `.clear` again as the
-        // final data point).
-        case .liquidGlass: return AnyShapeStyle(Color.black.opacity(0.01))
+        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, round 4 — genuine retest of full
+        // transparency) — round 1 (`Color.clear`, 96b8a3b) hung hover-to-expand, reverted
+        // (243db3d). Round 2 (`0.05`, 72b050f) and round 3 (`0.01`, 2977d3b) both confirmed SAFE
+        // on-device (no hang, and no meaningful visual gradient between them either). Per
+        // explicit user direction ("wirklich nochmal ganz transparent probieren") — since 0.01
+        // is already 1/5th of the confirmed-safe 0.05 with zero hang symptom, genuinely
+        // retesting full `Color.clear` now instead of inching down further asymptotically. If
+        // this STILL hangs, 0.01 becomes the practical floor for this beta OS; if not, this is
+        // the value for the D-01 gap-closure.
+        case .liquidGlass: return AnyShapeStyle(Color.clear)
         }
     }
 
