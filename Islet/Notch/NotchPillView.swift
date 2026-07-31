@@ -5205,7 +5205,19 @@ private struct OSDLevelBar: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.15))                       // empty track
-                Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled (D-02 fixed tint)
+                // Phase 72.1.1 Plan 06 (D-07, simplified) — glass on macOS 26+, guarded per the
+                // file's existing #available convention (see quickActionButton :2660). `.fill(Color.clear)`
+                // is REQUIRED before `.glassEffect()`: a bare Capsule renders opaquely filled with the
+                // current foreground style, which would hide the glass entirely. `tint` (green/orange,
+                // Phase 39 D-02 locked) passed straight through in both branches, never re-derived.
+                Group {
+                    if #available(macOS 26.0, *) {
+                        Capsule().fill(Color.clear).glassEffect(.regular.tint(tint), in: Capsule())
+                    } else {
+                        Capsule().fill(tint)
+                    }
+                }
+                .frame(width: geo.size.width * fraction)    // filled (D-02 fixed tint)
                     .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)   // D-16 retuned value
             }
         }
