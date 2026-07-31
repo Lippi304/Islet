@@ -5073,9 +5073,27 @@ private struct DigitRollText: View {
     let value: Int   // 0...100, already clamped upstream by OSDActivity.swift
     let rollResponse: Double
 
+    // Phase 72.1 gap-closure — a held/repeated volume/brightness key can fire `value`
+    // changes faster than any roll animation can finish, leaving a digit permanently
+    // stuck mid-.move(edge:.top) transition (never lands, never fades — just hangs).
+    // Below this gap, skip the animation entirely: an instant snap is imperceptible at
+    // that update rate anyway. Only a change that arrives after a pause (key released,
+    // or a single discrete press) gets the roll — ponytail: fixed 120ms threshold,
+    // expose as its own DEBUG nudge if on-device testing shows it needs adjusting.
+    private static let rapidRepeatThreshold: TimeInterval = 0.12
+
+    @State private var displayValue: Int
+    @State private var lastChangeTime = Date.distantPast
+
+    init(value: Int, rollResponse: Double) {
+        self.value = value
+        self.rollResponse = rollResponse
+        _displayValue = State(initialValue: value)
+    }
+
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Array(String(value).enumerated()), id: \.offset) { _, digit in
+            ForEach(Array(String(displayValue).enumerated()), id: \.offset) { _, digit in
                 ZStack {
                     Text(String(digit))
                         .id(digit)
@@ -5088,7 +5106,18 @@ private struct DigitRollText: View {
         }
         .font(.system(size: 11, weight: .semibold, design: .monospaced))
         .foregroundStyle(.white)   // D-02: never accent-tinted
-        .animation(.spring(response: rollResponse, dampingFraction: 0.86), value: value)
+        .onChange(of: value) { _, newValue in
+            let now = Date()
+            let isRapid = now.timeIntervalSince(lastChangeTime) < Self.rapidRepeatThreshold
+            lastChangeTime = now
+            if isRapid {
+                displayValue = newValue
+            } else {
+                withAnimation(.spring(response: rollResponse, dampingFraction: 0.86)) {
+                    displayValue = newValue
+                }
+            }
+        }
     }
 }
 
