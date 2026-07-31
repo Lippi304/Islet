@@ -2637,10 +2637,22 @@ struct NotchPillView: View {
         .foregroundStyle(.white.opacity(enabled ? 1.0 : 0.3))   // D-09 disabled dim
         .frame(maxWidth: Self.quickActionButtonWidth)   // Phase 44 gap-closure round 2 — was .infinity, see quickActionButtonWidth's own comment
         .padding(.vertical, 8)   // reused verbatim from chipButton's own .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.white.opacity(enabled ? (isHovered ? 0.22 : 0.12) : 0.06))   // D-11 hover step
-        )
+        .background {
+            // Phase 72.1.1 Plan 04 (D-06 Tier 1) — glass on macOS 26+, guarded per the
+            // file's existing #available convention (see :773 comment); legacy fallback
+            // below is the exact pre-existing plain fill, unchanged. Same opacity
+            // expression drives both the legacy fill AND the glass tint, so D-11's
+            // hover step / D-09's disabled dim are preserved verbatim either way.
+            if #available(macOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.clear)
+                    .glassEffect(.regular.tint(Color.white.opacity(enabled ? (isHovered ? 0.22 : 0.12) : 0.06)),
+                                 in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(enabled ? (isHovered ? 0.22 : 0.12) : 0.06))   // D-11 hover step
+            }
+        }
         .scaleEffect(isHovered ? 1.04 : 1.0)   // D-11 slight scale
     }
 
@@ -2901,7 +2913,21 @@ struct NotchPillView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(tint ?? (filled ? Color.black : Color.white))
                 .frame(width: Self.navCircleDiameter, height: Self.navCircleDiameter)
-                .background(Circle().fill(filled ? Color.white : Color.clear))
+                .background {
+                    // Phase 72.1.1 Plan 04 (D-06 Tier 1) — same guarded-glass convention as
+                    // quickActionButton above. filled ? 0 : 0.08 keeps the tint a no-op on the
+                    // selected/solid-white circle (that state's own fill already dominates) and
+                    // applies a light glass tint only to the unselected/idle circle; the
+                    // `filled ? Color.white : Color.clear` selected-state signal itself is
+                    // untouched in both branches (T-72.1.1-07).
+                    if #available(macOS 26.0, *) {
+                        Circle()
+                            .fill(filled ? Color.white : Color.clear)
+                            .glassEffect(.regular.tint(Color.white.opacity(filled ? 0 : 0.08)), in: Circle())
+                    } else {
+                        Circle().fill(filled ? Color.white : Color.clear)
+                    }
+                }
                 .overlay(Circle().strokeBorder(Color.white.opacity(filled ? 0 : 0.4), lineWidth: 1.5))
                 .contentShape(Circle())
         }
