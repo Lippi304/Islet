@@ -679,16 +679,21 @@ struct NotchPillView: View {
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
-        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, round 4 — genuine retest of full
-        // transparency) — round 1 (`Color.clear`, 96b8a3b) hung hover-to-expand, reverted
-        // (243db3d). Round 2 (`0.05`, 72b050f) and round 3 (`0.01`, 2977d3b) both confirmed SAFE
-        // on-device (no hang, and no meaningful visual gradient between them either). Per
-        // explicit user direction ("wirklich nochmal ganz transparent probieren") — since 0.01
-        // is already 1/5th of the confirmed-safe 0.05 with zero hang symptom, genuinely
-        // retesting full `Color.clear` now instead of inching down further asymptotically. If
-        // this STILL hangs, 0.01 becomes the practical floor for this beta OS; if not, this is
-        // the value for the D-01 gap-closure.
-        case .liquidGlass: return AnyShapeStyle(Color.clear)
+        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, round 5 — MECHANISM-ISOLATING
+        // TEST, not another blind bisection) — round 4 (literal `Color.clear`, eab8a24) hung
+        // hover-to-expand a SECOND time; round 3 (`0.01`, 2977d3b) did not, despite being
+        // visually indistinguishable from zero. A user-directed data point: that gap (0.01 fine,
+        // 0.0 hangs, no gradient in between) smells like a binary code-path special-case, not a
+        // gradual rendering-cost effect — plausibly SwiftUI (or `.glassEffect()`'s own backing
+        // implementation) special-casing the literal `Color.clear` value/type as "nothing to
+        // render," skipping a real backing layer for `.glassEffect()` to composite against,
+        // versus a genuinely non-zero (even if visually imperceptible) alpha still getting one.
+        // `0.0001` isolates exactly that: technically nonzero, visually identical to `.clear`.
+        // If this STILL hangs, the trigger isn't "how transparent" and needs a different theory
+        // (see checkpoint response); if it doesn't, this confirms the Color.clear-specific
+        // special-case hypothesis and this becomes the shipped value (indistinguishable from
+        // true transparency, but avoiding whatever `.clear` itself triggers).
+        case .liquidGlass: return AnyShapeStyle(Color.black.opacity(0.0001))
         }
     }
 
