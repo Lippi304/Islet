@@ -462,6 +462,12 @@ struct NotchPillView: View {
     // morph against this one geometry group via matchedGeometryEffect(id: "island").
     @Namespace private var ns
 
+    // Phase 72.1.1 Plan 01 (GLASS-04/GLASS-03) — dedicated namespace for the native
+    // .glassEffect() rim's GlassEffectContainer/.glassEffectID tracking, kept SEPARATE
+    // from `ns` above (which drives the shape's own matchedGeometryEffect morph) to
+    // avoid cross-interference between the two identity systems.
+    @Namespace private var glassNS
+
     // Size seeds (D-06: expanded is only modestly larger than the notch). Plan 03
     // sizes the panel to `expandedSize` up front (via expandedNotchFrame) so the
     // morph never clips mid-animation, and passes the SAME expandedSize so the
@@ -756,14 +762,21 @@ struct NotchPillView: View {
                 // than the original momentary flat-black-during-transition bug it targeted.
                 // Apple's docs say GlassEffectContainer should only style views tagged
                 // `.glassEffect(...)`, but wrapping the whole `presentationSwitch` in one
-                // empirically broke the rim-only clipping to `LiquidGlassRimRingShape`. Back to
-                // the bare, per-call-site `.glassEffect(_:in:)` that was already confirmed
-                // correct at idle/settled state; the brief flicker during transitions remains a
-                // known, lower-priority issue (see Resolution note in the debug file).
-                Color.clear
-                    .frame(width: size.width, height: size.height)
-                    .glassEffect(.regular.tint(Color.black.opacity(0.35)), in: LiquidGlassRimRingShape(base: shape, bandWidth: rimWidth))
-                    .allowsHitTesting(false)
+                // empirically broke the rim-only clipping to `LiquidGlassRimRingShape`. Reverted
+                // to the bare, per-call-site `.glassEffect(_:in:)` at the time.
+                //
+                // Phase 72.1.1 Plan 01 (GLASS-04) — re-attempted with a MUCH narrower scope than
+                // round 2's whole-presentationSwitch wrap: the container/ID now lives strictly
+                // inside this one function's native branch, using a dedicated `glassNS`
+                // namespace (not `ns`, which drives the shape's matchedGeometryEffect). This
+                // isolation is what round 2's regression was missing.
+                GlassEffectContainer {
+                    Color.clear
+                        .frame(width: size.width, height: size.height)
+                        .glassEffect(.regular.tint(Color.black.opacity(0.35)), in: LiquidGlassRimRingShape(base: shape, bandWidth: rimWidth))
+                        .glassEffectID("islandGlass", in: glassNS)
+                        .allowsHitTesting(false)
+                }
             } else {
                 legacyLiquidGlassEffectLayer(shape: shape, size: size, parameters: parameters)
             }
