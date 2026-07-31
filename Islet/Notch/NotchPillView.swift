@@ -3607,8 +3607,9 @@ struct NotchPillView: View {
     // confusing: nothing is actually playing yet, so animated bars read as a lie. Superseded
     // D-02: static "play.fill" glyph signals "tap to resume" without implying live playback.
     // Failure path (D-03) replaces ONLY that glyph slot with static failure text, album art
-    // stays visible. Tap goes to the dedicated `onResumeTap` closure (NOT `onClick`, which
-    // would expand to Home and violate D-01 — see 53-RESEARCH.md Pitfall 4/Anti-Pattern).
+    // stays visible. Quick task 260801-0br round 2 (on-device UAT) superseded D-01: the whole
+    // wing now taps like every other collapsed glance (onClick → expand to Home); ONLY the
+    // play-icon/failure-text slot has its own onResumeTap tap target.
     // Quick task 260801-0br (Fix #1) — converted from the old hardcoded-Self.wingsSize/
     // Spacer()-based layout to the shared camera-safe, resolution-aware wingsShape formula
     // every sibling wing already uses (modeled on deviceWings(for:), same margin as
@@ -3622,17 +3623,18 @@ struct NotchPillView: View {
         let leadingPad: CGFloat = 28 * resolvedWingWidthScale + wingLeadingNudge
         let trailingPad: CGFloat = 34 * resolvedWingWidthScale + wingTrailingNudge
         let artSide = (Self.wingsSize.height - 8) * resolvedWingDepthScale
-        // Starting value: sized for the longer failure string ("Wiedergabe nicht möglich").
-        // Re-tune with Wing Tuner's Margin/Leading/Trailing buttons on-device like every other
-        // wing, per this codebase's established convention (see deviceWings' own comment).
-        let rightContentWidth: CGFloat = 160
+        // Round 2 (on-device UAT) — matches mediaWingContentWidth()'s own eqBarsWidth for the
+        // common play-icon case, keeping this wing's margins pixel-identical to the live Now
+        // Playing wing; only the rare failure-text case needs the wider 160pt.
+        let eqBarsWidth: CGFloat = 21
+        let rightContentWidth: CGFloat = nowPlaying.resumePreviewFailed ? 160 : eqBarsWidth
         let leftWidth = leadingPad + artSide + cameraBlockWidth / 2
         let totalWidth = leadingPad + artSide + cameraBlockWidth + rightContentWidth + trailingPad
         let rightWidth = totalWidth - leftWidth
         assert(cameraBlockWidth > 0, "Resume preview camera block width (\(cameraBlockWidth)) must be positive")
         assert(rightWidth < 325 && leftWidth < 325,
                "Resume preview wing footprint (leftWidth=\(leftWidth), rightWidth=\(rightWidth)) must stay inside the ~325pt safe panel-frame budget")
-        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale, onTap: onResumeTap) {
+        return wingsShape(leftWidth: leftWidth, rightWidth: rightWidth, depthScale: resolvedWingDepthScale) {
             HStack(spacing: 0) {
                 Color.clear.frame(width: leadingPad)
                 artThumbnail(track.artwork, side: artSide, corner: 6)
@@ -3650,6 +3652,8 @@ struct NotchPillView: View {
                     }
                 }
                 .frame(width: rightContentWidth, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture { onResumeTap() }
                 Color.clear.frame(width: trailingPad)
             }
         }
