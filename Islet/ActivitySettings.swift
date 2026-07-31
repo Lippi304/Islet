@@ -116,12 +116,9 @@ enum ActivitySettings {
     static let debugWingGapNudgeKey = "debug.wingTuner.gapNudge"
     static let debugWingCornerRadiusNudgeKey = "debug.wingTuner.cornerRadiusNudge"
 
-    // Phase 72.1 / D-05 — DEBUG-only "OSD Bar/Counter Tuner" live-nudge keys for the new
-    // opacity-min/opacity-max/roll-speed values Plan 72.1-02's opacity ramp and digit-roll
-    // counter consume. Same dev-tool-only, never-Release-facing contract as the Wing Tuner
-    // keys above.
-    static let debugOSDOpacityMinNudgeKey = "debug.wingTuner.osdOpacityMinNudge"
-    static let debugOSDOpacityMaxNudgeKey = "debug.wingTuner.osdOpacityMaxNudge"
+    // Phase 72.1 / D-05 — DEBUG-only "OSD Counter Tuner" live-nudge key for the digit-roll
+    // counter's roll speed (the opacity-ramp keys were reverted by quick task 260731-61m).
+    // Same dev-tool-only, never-Release-facing contract as the Wing Tuner keys above.
     static let debugOSDRollSpeedNudgeKey = "debug.wingTuner.osdRollSpeedNudge"
     #endif
 

@@ -544,16 +544,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wingTunerItem.submenu = wingTunerMenu
         debugMenu.addItem(wingTunerItem)
 
-        // Phase 72.1 / D-05 — DEBUG-only "OSD Bar/Counter Tuner": 3 live nudge axes
-        // (Opacity Min/Opacity Max/Roll Speed) for Plan 72.1-02's OSD opacity ramp and
-        // digit-roll counter, same live-tune-then-bake-into-source workflow as Wing Tuner
+        // Phase 72.1 / D-05 — DEBUG-only "OSD Bar/Counter Tuner": Roll Speed live nudge axis
+        // for the digit-roll counter (the opacity ramp's Opacity Min/Max axes were reverted by
+        // quick task 260731-61m), same live-tune-then-bake-into-source workflow as Wing Tuner
         // above. Use the existing "Preview: OSD (Volume/Brightness)" items below to trigger
         // the OSD wing on-device while nudging.
         let osdTunerMenu = NSMenu()
-        osdTunerMenu.addItem(withTitle: "Opacity Min -0.05", action: #selector(debugOSDOpacityMinMinus), keyEquivalent: "")
-        osdTunerMenu.addItem(withTitle: "Opacity Min +0.05", action: #selector(debugOSDOpacityMinPlus), keyEquivalent: "")
-        osdTunerMenu.addItem(withTitle: "Opacity Max -0.05", action: #selector(debugOSDOpacityMaxMinus), keyEquivalent: "")
-        osdTunerMenu.addItem(withTitle: "Opacity Max +0.05", action: #selector(debugOSDOpacityMaxPlus), keyEquivalent: "")
         osdTunerMenu.addItem(withTitle: "Roll Speed -0.05", action: #selector(debugOSDRollSpeedMinus), keyEquivalent: "")
         osdTunerMenu.addItem(withTitle: "Roll Speed +0.05", action: #selector(debugOSDRollSpeedPlus), keyEquivalent: "")
         osdTunerMenu.addItem(.separator())
@@ -638,25 +634,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Phase 72.1 / D-05 — OSD Bar/Counter Tuner actions, reusing the existing
     // adjustWingNudge(_:by:) helper above (no new helper).
-    @objc private func debugOSDOpacityMinMinus() { adjustWingNudge(ActivitySettings.debugOSDOpacityMinNudgeKey, by: -0.05) }
-    @objc private func debugOSDOpacityMinPlus() { adjustWingNudge(ActivitySettings.debugOSDOpacityMinNudgeKey, by: 0.05) }
-    @objc private func debugOSDOpacityMaxMinus() { adjustWingNudge(ActivitySettings.debugOSDOpacityMaxNudgeKey, by: -0.05) }
-    @objc private func debugOSDOpacityMaxPlus() { adjustWingNudge(ActivitySettings.debugOSDOpacityMaxNudgeKey, by: 0.05) }
     @objc private func debugOSDRollSpeedMinus() { adjustWingNudge(ActivitySettings.debugOSDRollSpeedNudgeKey, by: -0.05) }
     @objc private func debugOSDRollSpeedPlus() { adjustWingNudge(ActivitySettings.debugOSDRollSpeedNudgeKey, by: 0.05) }
 
     @MainActor @objc private func debugOSDTunerReset() {
-        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugOSDOpacityMinNudgeKey)
-        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugOSDOpacityMaxNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugOSDRollSpeedNudgeKey)
         notchController?.debugClearAllPreviews()
     }
 
     @objc private func debugOSDTunerPrint() {
-        let opacityMin = UserDefaults.standard.double(forKey: ActivitySettings.debugOSDOpacityMinNudgeKey)
-        let opacityMax = UserDefaults.standard.double(forKey: ActivitySettings.debugOSDOpacityMaxNudgeKey)
         let rollSpeed = UserDefaults.standard.double(forKey: ActivitySettings.debugOSDRollSpeedNudgeKey)
-        print("[OSDTuner] opacityMinNudge=\(opacityMin) opacityMaxNudge=\(opacityMax) rollSpeedNudge=\(rollSpeed) — bake these confirmed deltas into OSDLevelBar/DigitRollText's own constants in NotchPillView.swift before clicking Reset OSD Tuner.")
+        print("[OSDTuner] rollSpeedNudge=\(rollSpeed) — bake this confirmed delta into DigitRollText's own rollResponse constant in NotchPillView.swift before clicking Reset OSD Tuner.")
     }
 
     @MainActor @objc private func debugWingTunerReset() {
