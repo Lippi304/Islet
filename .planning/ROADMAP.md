@@ -1227,13 +1227,23 @@ Plans:
 
 ### Phase 72.1: Volume/Brightness Bar redesign: bar brightness scales with fill level (near 0 = barely any brightness, up to 100% = full brightness), plus number counter driven like the shadcn number-ticker component (npx shadcn@latest add https://21st.dev/r/dillionverma/number-ticker) (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** The Volume/Brightness OSD bar's fill opacity scales with level — dim near 0%, near-invisible at the floor, full opacity at 100% — identically for both bars, and the percent counter uses a roll/slide (odometer-style) digit transition instead of the previous fade, staying fully legible during rapid successive key-repeat changes. Both new value sets (opacity min/max, roll speed) get a DEBUG-only live tuner, mirroring the existing Wing Tuner pattern.
+**Requirements**: D-01, D-02, D-03, D-04, D-04a, D-04b, D-05 (source: 72.1-CONTEXT.md locked decisions — no formal REQUIREMENTS.md IDs exist for this inserted phase)
 **Depends on:** Phase 72
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 72.1 to break down)
+**Wave 1**
+
+- [ ] 72.1-01-PLAN.md — D-05 DEBUG tuner infrastructure: ActivitySettings.swift keys + NotchPillView.swift read points + AppDelegate.swift OSD Bar/Counter Tuner menu + ActivitySettingsTests.swift
+
+**Wave 2** *(blocked on 72.1-01)*
+
+- [ ] 72.1-02-PLAN.md — OSDLevelBar opacity ramp (D-01/D-02/D-03) + DigitRollText roll/slide counter component (D-04/D-04a/D-04b)
+
+**Wave 3** *(blocked on 72.1-02)*
+
+- [ ] 72.1-03-PLAN.md — On-device UAT checkpoint: opacity ramp on both bars, digit-roll legibility under rapid key-repeat, 100% fit, DEBUG tuner end-to-end
 
 ### Phase 72.1.1: Liquid Glass design rework for the island — reference component: npx shadcn@latest add https://21st.dev/r/suraj-xd/liquid-glass (INSERTED)
 
