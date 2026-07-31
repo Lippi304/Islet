@@ -184,6 +184,7 @@ struct NotchPillView: View {
     @AppStorage(ActivitySettings.debugWingMarginNudgeKey) private var debugWingMarginNudge: Double = 0
     @AppStorage(ActivitySettings.debugWingGapNudgeKey) private var debugWingGapNudge: Double = 0
     @AppStorage(ActivitySettings.debugWingCornerRadiusNudgeKey) private var debugWingCornerRadiusNudge: Double = 0
+    @AppStorage(ActivitySettings.debugWingHeightNudgeKey) private var debugWingHeightNudge: Double = 0
 
     // Phase 72.1 / D-05 — OSD Counter Tuner storage (roll speed only; the opacity-ramp storage
     // was reverted by quick task 260731-61m), same always-0-at-rest contract as the Wing Tuner
@@ -233,6 +234,13 @@ struct NotchPillView: View {
     private var wingCornerRadiusNudge: CGFloat {
         #if DEBUG
         return CGFloat(debugWingCornerRadiusNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var wingHeightNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugWingHeightNudge)
         #else
         return 0
         #endif
@@ -3350,7 +3358,7 @@ struct NotchPillView: View {
         // clamp — nor do the sibling leading/trailing/margin nudges, which reach the same shape
         // via leftWidth/rightWidth below and were never clamped here either.
         let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius + wingCornerRadiusNudge, bottomCornerRadius: Self.wingBaseBottomCornerRadius + wingCornerRadiusNudge)   // flatter than the downward blob; smaller radius than blobShape's 24 — wings' 32pt-tall strip can't fit a 24pt top radius alongside an 8pt bottom radius without squeezing the wall to almost nothing (16/8 base, SHAPE-02)
-        let size = CGSize(width: leftWidth + rightWidth, height: Self.wingsSize.height * depthScale)
+        let size = CGSize(width: leftWidth + rightWidth, height: Self.wingsSize.height * depthScale + wingHeightNudge)
         return shape
             .fill(islandFill)
             // Bugfix (island-expand-diagonal-bounce, 2026-07-15 round 3) — CORRECTED order,
@@ -3527,7 +3535,7 @@ struct NotchPillView: View {
         let (leftWidth, rightWidth, cameraBlockWidth) = mediaWingContentWidth()
         let width = leftWidth + rightWidth
         // 67.1-10 (D-14): height now scales with resolvedWingDepthScale, like every other wing.
-        let height = Self.wingsSize.height * resolvedWingDepthScale + (toast != nil ? Self.toastExtraHeight : 0)
+        let height = Self.wingsSize.height * resolvedWingDepthScale + wingHeightNudge + (toast != nil ? Self.toastExtraHeight : 0)
         // WR-02 (35-REVIEW.md): hoisted so the visible fill and the rim-mask
         // overlay below always share one shape instance — see collapsedIsland.
         let shape = NotchShape(topCornerRadius: Self.wingBaseTopCornerRadius, bottomCornerRadius: toast != nil ? 16 : Self.wingBaseBottomCornerRadius)

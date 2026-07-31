@@ -536,6 +536,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wingTunerMenu.addItem(withTitle: "Corner Radius -1", action: #selector(debugWingCornerRadiusMinus1), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Corner Radius +1", action: #selector(debugWingCornerRadiusPlus1), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Corner Radius +5", action: #selector(debugWingCornerRadiusPlus5), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Height -5", action: #selector(debugWingHeightMinus5), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Height -1", action: #selector(debugWingHeightMinus1), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Height +1", action: #selector(debugWingHeightPlus1), keyEquivalent: "")
+        wingTunerMenu.addItem(withTitle: "Height +5", action: #selector(debugWingHeightPlus5), keyEquivalent: "")
         wingTunerMenu.addItem(.separator())
         wingTunerMenu.addItem(withTitle: "Reset Wing Tuner", action: #selector(debugWingTunerReset), keyEquivalent: "")
         wingTunerMenu.addItem(withTitle: "Print Wing Tuner Values", action: #selector(debugWingTunerPrint), keyEquivalent: "")
@@ -654,6 +658,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func debugWingCornerRadiusMinus1() { adjustWingNudge(ActivitySettings.debugWingCornerRadiusNudgeKey, by: -1) }
     @objc private func debugWingCornerRadiusPlus1() { adjustWingNudge(ActivitySettings.debugWingCornerRadiusNudgeKey, by: 1) }
     @objc private func debugWingCornerRadiusPlus5() { adjustWingNudge(ActivitySettings.debugWingCornerRadiusNudgeKey, by: 5) }
+    @objc private func debugWingHeightMinus5() { adjustWingNudge(ActivitySettings.debugWingHeightNudgeKey, by: -5) }
+    @objc private func debugWingHeightMinus1() { adjustWingNudge(ActivitySettings.debugWingHeightNudgeKey, by: -1) }
+    @objc private func debugWingHeightPlus1() { adjustWingNudge(ActivitySettings.debugWingHeightNudgeKey, by: 1) }
+    @objc private func debugWingHeightPlus5() { adjustWingNudge(ActivitySettings.debugWingHeightNudgeKey, by: 5) }
 
     // Phase 72.1 / D-05 — OSD Bar/Counter Tuner actions, reusing the existing
     // adjustWingNudge(_:by:) helper above (no new helper).
@@ -706,6 +714,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingMarginNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingGapNudgeKey)
         UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingCornerRadiusNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugWingHeightNudgeKey)
         notchController?.debugClearAllPreviews()
     }
 
@@ -715,7 +724,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let margin = UserDefaults.standard.double(forKey: ActivitySettings.debugWingMarginNudgeKey)
         let gap = UserDefaults.standard.double(forKey: ActivitySettings.debugWingGapNudgeKey)
         let cornerRadius = UserDefaults.standard.double(forKey: ActivitySettings.debugWingCornerRadiusNudgeKey)
-        print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) cornerRadiusNudge=\(cornerRadius) — add the leading/trailing/margin/gap deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift; cornerRadiusNudge has no per-wing home, it bakes into Self.wingBaseTopCornerRadius/wingBaseBottomCornerRadius instead — then click Reset Wing Tuner before tuning the next wing.")
+        let height = UserDefaults.standard.double(forKey: ActivitySettings.debugWingHeightNudgeKey)
+        print("[WingTuner] leadingNudge=\(leading) trailingNudge=\(trailing) marginNudge=\(margin) gapNudge=\(gap) cornerRadiusNudge=\(cornerRadius) heightNudge=\(height) — add the leading/trailing/margin/gap deltas to the ONE wing's own margin/leadingPad-or-.padding(.leading,)/trailingPad-or-.padding(.trailing,)/gap constants you were just tuning in NotchPillView.swift; cornerRadiusNudge has no per-wing home, it bakes into Self.wingBaseTopCornerRadius/wingBaseBottomCornerRadius instead; heightNudge also has no per-wing home, it bakes into wingsShape's own shared size.height line (and mediaWingsOrToast's own separate inline height calc) instead — then click Reset Wing Tuner before tuning the next wing.")
     }
 
     // Quick task 260729-0b5 — "Preview Wing" fake-trigger actions. Each mirrors the

@@ -115,6 +115,10 @@ enum ActivitySettings {
     static let debugWingMarginNudgeKey = "debug.wingTuner.marginNudge"
     static let debugWingGapNudgeKey = "debug.wingTuner.gapNudge"
     static let debugWingCornerRadiusNudgeKey = "debug.wingTuner.cornerRadiusNudge"
+    // Quick task 260801-0br — additive, vertical-only "how far the wing's black shape extends
+    // downward" nudge, separate from the width-axis nudges above and from the Settings-facing
+    // proportional Depth slider.
+    static let debugWingHeightNudgeKey = "debug.wingTuner.heightNudge"
 
     // Phase 72.1 / D-05 — DEBUG-only "OSD Counter Tuner" live-nudge key for the digit-roll
     // counter's roll speed (the opacity-ramp keys were reverted by quick task 260731-61m).
