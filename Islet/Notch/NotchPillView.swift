@@ -3916,7 +3916,7 @@ struct NotchPillView: View {
                     }))
                     .modifier(OSDFrameLogger(label: "icon (global)", space: .global))
                 Color.clear.frame(width: cameraBlockWidth)   // EXPLICIT fixed-width camera block — not a flexible Spacer()
-                OSDLevelBar(fraction: fraction, tint: tint)
+                OSDLevelBar(fraction: fraction, tint: tint, opacityMinNudge: osdOpacityMinNudge, opacityMaxNudge: osdOpacityMaxNudge)
                     .frame(width: barWidth, height: 5)
                     .modifier(OSDFrameLogger(label: "bar (named osdWing)", space: .named("osdWing"), verdict: { g in
                         g.minX >= excludedMaxX
@@ -5070,12 +5070,21 @@ struct EqualizerBars: View {
 private struct OSDLevelBar: View {
     let fraction: CGFloat
     let tint: Color
+    // Phase 72.1 / D-01/D-02/D-03 — DEBUG-tunable opacity ramp endpoints, wired from the
+    // parent NotchPillView's Plan 72.1-01 nudges. No floor: opacityMin defaults to 0.0, so the
+    // fill becomes fully invisible at fraction=0, identically for Volume/Brightness (D-02 tint
+    // itself stays untouched — alpha-only ramp, no hue/lightness interpolation per D-01).
+    let opacityMinNudge: Double
+    let opacityMaxNudge: Double
 
     var body: some View {
         GeometryReader { geo in
+            let opacityMin = 0.0 + opacityMinNudge
+            let opacityMax = 1.0 + opacityMaxNudge
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.15))                       // empty track
                 Capsule().fill(tint).frame(width: geo.size.width * fraction)    // filled (D-02 fixed tint)
+                    .opacity(opacityMin + (opacityMax - opacityMin) * Double(fraction))
                     .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)   // D-16 retuned value
             }
         }
