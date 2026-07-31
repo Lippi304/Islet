@@ -679,20 +679,17 @@ struct NotchPillView: View {
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
-        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, round 5 — MECHANISM-ISOLATING
-        // TEST, not another blind bisection) — round 4 (literal `Color.clear`, eab8a24) hung
-        // hover-to-expand a SECOND time; round 3 (`0.01`, 2977d3b) did not, despite being
-        // visually indistinguishable from zero. A user-directed data point: that gap (0.01 fine,
-        // 0.0 hangs, no gradient in between) smells like a binary code-path special-case, not a
-        // gradual rendering-cost effect — plausibly SwiftUI (or `.glassEffect()`'s own backing
-        // implementation) special-casing the literal `Color.clear` value/type as "nothing to
-        // render," skipping a real backing layer for `.glassEffect()` to composite against,
-        // versus a genuinely non-zero (even if visually imperceptible) alpha still getting one.
-        // `0.0001` isolates exactly that: technically nonzero, visually identical to `.clear`.
-        // If this STILL hangs, the trigger isn't "how transparent" and needs a different theory
-        // (see checkpoint response); if it doesn't, this confirms the Color.clear-specific
-        // special-case hypothesis and this becomes the shipped value (indistinguishable from
-        // true transparency, but avoiding whatever `.clear` itself triggers).
+        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, RESOLVED) — must NOT be the
+        // literal `Color.clear` constant: on-device testing hung hover-to-expand entirely, TWICE
+        // (commits 96b8a3b, eab8a24), while 0.01 and this 0.0001 value both worked fine — no
+        // hang at either nonzero alpha, only at exactly 0.0. That gap (fine at 0.01, fine at
+        // 0.0001, hangs only at literal 0.0) rules out "amount of transparency"/rendering-cost as
+        // the cause; it points at SwiftUI (or `.glassEffect()`'s own backing implementation)
+        // special-casing the literal `Color.clear` value/type as "nothing to render" and skipping
+        // a real backing layer for `.glassEffect()` to composite against — a genuinely nonzero
+        // alpha, however small, avoids whatever that special case is. `0.0001` is visually
+        // indistinguishable from true transparency and is the settled value — do not swap this
+        // back to `Color.clear` without a fix for the underlying special-case behavior.
         case .liquidGlass: return AnyShapeStyle(Color.black.opacity(0.0001))
         }
     }
