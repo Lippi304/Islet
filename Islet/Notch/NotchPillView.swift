@@ -758,29 +758,11 @@ struct NotchPillView: View {
         liquidGlassOpacityShader(shape: shape, size: size, parameters: parameters, edgeOpacity: 1.0, centerOpacity: 0.0)
     }
 
-    // Round-5 follow-up (2026-07-16, user: "Ja es soll nur der rand so sein minimal
-    // aber nicht alles so.") — the first native-glassEffect pass applied `.glassEffect`
-    // to the WHOLE shape, so the entire island read as translucent glass rather than
-    // D-12/D-13/D-14/D-15's "solid dark center, glass only at a narrow rim" contract.
-    // This ring shape confines the native glass to the same narrow rim band the legacy
-    // shader's `liquidGlassEdgeFalloff` already computes (`edgeSize = min(w,h) *
-    // borderWidth`, softened by `blurWidth` — see LiquidGlassShader.metal) by taking
-    // the base shape's outline, stroking it at 2x that band width, and intersecting
-    // with the base shape so only the INWARD half of the stroke survives — a ring
-    // hugging the inside edge, same width convention as the legacy fallback.
-    private struct LiquidGlassRimRingShape: Shape {
-        var base: NotchShape
-        var bandWidth: CGFloat
-        func path(in rect: CGRect) -> Path {
-            let basePath = base.path(in: rect)
-            let ring = basePath.strokedPath(StrokeStyle(lineWidth: bandWidth * 2))
-            return ring.intersection(basePath)
-        }
-    }
-
-    private func liquidGlassRimBandWidth(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> CGFloat {
-        min(size.width, size.height) * parameters.borderWidth + parameters.blurWidth
-    }
+    // Round-5's `LiquidGlassRimRingShape`/`liquidGlassRimBandWidth` (confined the native
+    // glass to a narrow rim band) were removed in Phase 72.1.1 Plan 03 (D-01) once the
+    // native branch below was scaled back to the bare full `shape` — this was their only
+    // consumer; see comments at the native branch and NotchShape.swift for the still-live
+    // `topCornerRadius`/`bottomCornerRadius` convention they used to reference.
 
     // Debug session `liquid-glass-grey-rim-regression` (round 3, 2026-07-16) — user
     // reviewed callstack/liquid-glass (a wrapper around Apple's real Liquid Glass API)
@@ -801,7 +783,6 @@ struct NotchPillView: View {
     private func liquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
         if materialStyle == .liquidGlass {
             if #available(macOS 26.0, *) {
-                let rimWidth = liquidGlassRimBandWidth(shape: shape, size: size, parameters: parameters)
                 // Debug session `liquid-glass-black-during-transition`, round 2 — reverted the
                 // GlassEffectContainer + .glassEffectID("islandRim", in: ns) cross-case morph
                 // attempt (bc04457/f107faa follow-up). On-device it made the ENTIRE island read
@@ -817,12 +798,33 @@ struct NotchPillView: View {
                 // inside this one function's native branch, using a dedicated `glassNS`
                 // namespace (not `ns`, which drives the shape's matchedGeometryEffect). This
                 // isolation is what round 2's regression was missing.
+                //
+                // Phase 72.1.1 Plan 03 (D-01) — scaled the glass region from the round-2
+                // `LiquidGlassRimRingShape` rim ring back to the bare full `shape`, superseding
+                // round 2's rim-only scope note above (that regression was about container
+                // SCOPE, not the shape's own extent — the narrow container scope from Plan 01 is
+                // kept, only the `in:` shape argument changes here). Tint deepened to
+                // `0.7 + glassTintNudge` (Plan 72.1.1-02's live nudge) so the wider surface still
+                // reads dark per D-15, and a tunable specular top-highlight stroke layered above
+                // makes the full surface read as glossy glass rather than flat tinted material.
                 GlassEffectContainer {
-                    Color.clear
-                        .frame(width: size.width, height: size.height)
-                        .glassEffect(.regular.tint(Color.black.opacity(0.35)), in: LiquidGlassRimRingShape(base: shape, bandWidth: rimWidth))
-                        .glassEffectID("islandGlass", in: glassNS)
-                        .allowsHitTesting(false)
+                    ZStack {
+                        Color.clear
+                            .frame(width: size.width, height: size.height)
+                            .glassEffect(.regular.tint(Color.black.opacity(0.7 + glassTintNudge)), in: shape)
+                            .glassEffectID("islandGlass", in: glassNS)
+                        shape
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.15 + glassGlossNudge), Color.clear],
+                                    startPoint: .top,
+                                    endPoint: .center
+                                ),
+                                lineWidth: 1.5
+                            )
+                            .clipShape(shape)
+                    }
+                    .allowsHitTesting(false)
                 }
             } else {
                 legacyLiquidGlassEffectLayer(shape: shape, size: size, parameters: parameters)
