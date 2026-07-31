@@ -5210,9 +5210,13 @@ private struct OSDLevelBar: View {
                 // is REQUIRED before `.glassEffect()`: a bare Capsule renders opaquely filled with the
                 // current foreground style, which would hide the glass entirely. `tint` (green/orange,
                 // Phase 39 D-02 locked) passed straight through in both branches, never re-derived.
+                // Uses `.clear` (not `.regular`) — same choice as the island shell (:836), made there
+                // specifically because `.regular` oversaturates/desaturates its tint color against the
+                // backdrop (Plan 03 finding). Here the tint IS the semantic signal (green=volume,
+                // orange=brightness), so accurate color reproduction matters even more than on the shell.
                 Group {
                     if #available(macOS 26.0, *) {
-                        Capsule().fill(Color.clear).glassEffect(.regular.tint(tint), in: Capsule())
+                        Capsule().fill(Color.clear).glassEffect(.clear.tint(tint), in: Capsule())
                     } else {
                         Capsule().fill(tint)
                     }
