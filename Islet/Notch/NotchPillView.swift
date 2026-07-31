@@ -3911,7 +3911,7 @@ struct NotchPillView: View {
                     }))
                     .modifier(OSDFrameLogger(label: "bar (global)", space: .global))
                 Color.clear.frame(width: percentGap)
-                DigitRollText(value: percent, rollResponse: 0.15 + osdRollSpeedNudge)
+                DigitRollText(value: percent, rollResponse: 0.30 + osdRollSpeedNudge)
                     .frame(width: percentTextWidth, alignment: .leading)
                 Color.clear.frame(width: trailingPad)
             }
