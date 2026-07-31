@@ -806,10 +806,23 @@ struct NotchPillView: View {
                 // `0.7 + glassTintNudge` (Plan 72.1.1-02's live nudge) so the wider surface still
                 // reads dark per D-15, and a tunable specular top-highlight stroke layered above
                 // makes the full surface read as glossy glass rather than flat tinted material.
+                // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure) — DROPPED the explicit
+                // `.frame(width: size.width, height: size.height)` this `Color.clear` used to
+                // carry. `size` is a plain computed CGSize (baseWidth/totalHeight etc., freshly
+                // recomputed per call site), never itself driven through `matchedGeometryEffect`
+                // — a hardcoded `.frame()` here SNAPPED this layer straight to that static target
+                // size every render instead of tracking the outer `.overlay()`'s parent frame
+                // (which SwiftUI proposes at the PARENT's live, matchedGeometryEffect-animated
+                // size at every intermediate animation tick). Root cause of the on-device finding
+                // that the collapse<->expand size morph turned into a plain cross-fade once the
+                // glass region grew to cover the whole shape (Task 1): the defect existed since
+                // Plan 01 too, just invisible on a thin rim. Removing the explicit frame lets
+                // `Color.clear` inherit `.overlay()`'s default sizing (fills whatever size the
+                // base shape resolves to at each moment), the same way the sibling specular
+                // highlight stroke below already does with no frame of its own.
                 GlassEffectContainer {
                     ZStack {
                         Color.clear
-                            .frame(width: size.width, height: size.height)
                             .glassEffect(.regular.tint(Color.black.opacity(0.7 + glassTintNudge)), in: shape)
                             .glassEffectID("islandGlass", in: glassNS)
                         shape
