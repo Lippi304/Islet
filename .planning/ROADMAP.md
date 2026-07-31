@@ -1247,13 +1247,35 @@ Plans:
 
 ### Phase 72.1.1: Liquid Glass design rework for the island — reference component: npx shadcn@latest add https://21st.dev/r/suraj-xd/liquid-glass (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** The island's Liquid Glass material reads as full-surface glossy glass — not rim-limited — consistently through every state and transition (collapsed pill, mid-animation, compact expanded, full expanded), and extends matching glass treatment to Quick Action buttons, switcher tabs, Calendar event cards, the Weather widget, Tray file tiles, and the OSD Volume/Brightness bars, without sacrificing text/icon readability. The known transition-flicker bug (glass dropping to flat black during collapse<->expand morph and tab switches) is resolved as part of this rework.
+**Requirements**: GLASS-01, GLASS-02, GLASS-03, GLASS-04, GLASS-05, GLASS-06, GLASS-07 (source: 72.1.1-CONTEXT.md decisions D-01..D-07 — ad-hoc GLASS-0x IDs, no formal REQUIREMENTS.md entries exist for this inserted phase, mirrors Phase 72.1 precedent; D-08 is an explicit non-scope boundary decision, not an implementable requirement — no plan needed)
 **Depends on:** Phase 72.1
-**Plans:** 0 plans
+**Plans:** 6 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 72.1.1 to break down)
+**Wave 1**
+
+- [ ] 72.1.1-01-PLAN.md — D-04 transition-continuity fix: GlassEffectContainer + shared glassEffectID scoped inside liquidGlassEffectLayer, on today's rim-only shape; on-device UAT before any surface-area change lands
+
+**Wave 2** *(blocked on 72.1.1-01)*
+
+- [ ] 72.1.1-02-PLAN.md — DEBUG "Liquid Glass Tuner" infrastructure: ActivitySettings.swift keys + NotchPillView.swift read points + AppDelegate.swift menu wiring (5 nudge axes)
+
+**Wave 3** *(blocked on 72.1.1-01, 72.1.1-02)*
+
+- [ ] 72.1.1-03-PLAN.md — D-01 full-surface glass coverage (native + legacy shader fallback retune) + D-02/D-03 on-device UAT
+
+**Wave 4** *(blocked on 72.1.1-03)*
+
+- [ ] 72.1.1-04-PLAN.md — D-06 Tier 1: Quick Action buttons + view-switcher tabs (controls) + on-device UAT
+
+**Wave 5** *(blocked on 72.1.1-04)*
+
+- [ ] 72.1.1-05-PLAN.md — D-06 Tier 2: Calendar event cards + Weather widget + Tray file tiles (content surfaces) + on-device UAT
+
+**Wave 6** *(blocked on 72.1.1-05)*
+
+- [ ] 72.1.1-06-PLAN.md — D-07 OSD Volume/Brightness bars (simplified) + structural/test invariant check + final phase-closing on-device UAT
 
 ### Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider
 
