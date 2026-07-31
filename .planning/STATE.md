@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
-status: executing
-stopped_at: Completed 72.1.1-04-PLAN.md, checkpoint approved (glass on Quick Action buttons + switcher tabs, no regressions)
-last_updated: "2026-07-31T21:26:28.983Z"
+status: verifying
+stopped_at: Completed 72.1.1-06-PLAN.md — Phase 72.1.1 CLOSED (on-device UAT approved, gap-closure fix for OSD glass color washout)
+last_updated: "2026-07-31T21:49:28.736Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 44
-  completed_phases: 29
+  completed_phases: 30
   total_plans: 114
-  completed_plans: 105
-  percent: 66
+  completed_plans: 106
+  percent: 68
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 
 Phase: 72.1.1 (liquid-glass-design-rework-for-the-island-reference-componen) — EXECUTING
 Plan: 6 of 6
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-31
 
 ### Phase 70 Plan 02 result (2026-07-29)
@@ -340,6 +340,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 72.1.1 P03 | multi-session (13 rounds) | 3 tasks | 2 files |
 | Phase 72.1.1 P04 | 15min | 2 tasks | 1 files |
 | Phase 72.1.1 P05 | ~20min | 3 tasks | 2 files |
+| Phase 72.1.1 P06 | 45min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -500,6 +501,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 72.1.1]: Dropped the native glass overlay's explicit .frame(width:height:) -- size is never matchedGeometryEffect-driven, and the fixed frame silently broke the collapse<->expand size morph into a cross-fade
 - [Phase 72.1.1]: 72.1.1-04: Quick Action buttons and switcher tabs reuse their existing D-11/D-09/D-02 opacity expressions verbatim as the .glassEffect(.regular.tint(...)) tint rather than new values — glass is a pure rendering-material change, zero change to visual state signals
 - [Phase 72.1.1-05]: Reuse EventRow's 0.06 tint verbatim across all 3 Tier 2 elements (Calendar/Weather/Tray) rather than picking new per-element values, per D-06 Tier 2's readability-first lower-intensity contract
+- [Phase 72.1.1-06]: OSDLevelBar glass tint uses Glass.clear not .regular (only D-06 element where the tint carries semantic meaning — green=volume, orange=brightness); .regular was found on-device to wash out the hue
 
 ### Roadmap Evolution
 
@@ -674,8 +676,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-31T21:25:48.761Z
-Stopped at: Completed 72.1.1-04-PLAN.md, checkpoint approved (glass on Quick Action buttons + switcher tabs, no regressions)
+Last session: 2026-07-31T21:49:28.729Z
+Stopped at: Completed 72.1.1-06-PLAN.md — Phase 72.1.1 CLOSED (on-device UAT approved, gap-closure fix for OSD glass color washout)
 Resume file: None
 
 ## Operator Next Steps

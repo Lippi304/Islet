@@ -1250,7 +1250,7 @@ Plans:
 **Goal:** The island's Liquid Glass material reads as full-surface glossy glass — not rim-limited — consistently through every state and transition (collapsed pill, mid-animation, compact expanded, full expanded), and extends matching glass treatment to Quick Action buttons, switcher tabs, Calendar event cards, the Weather widget, Tray file tiles, and the OSD Volume/Brightness bars, without sacrificing text/icon readability. The known transition-flicker bug (glass dropping to flat black during collapse<->expand morph and tab switches) is resolved as part of this rework.
 **Requirements**: GLASS-01, GLASS-02, GLASS-03, GLASS-04, GLASS-05, GLASS-06, GLASS-07 (source: 72.1.1-CONTEXT.md decisions D-01..D-07 — ad-hoc GLASS-0x IDs, no formal REQUIREMENTS.md entries exist for this inserted phase, mirrors Phase 72.1 precedent; D-08 is an explicit non-scope boundary decision, not an implementable requirement — no plan needed)
 **Depends on:** Phase 72.1
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 **Wave 1**
@@ -1275,7 +1275,7 @@ Plans:
 
 **Wave 6** *(blocked on 72.1.1-05)*
 
-- [ ] 72.1.1-06-PLAN.md — D-07 OSD Volume/Brightness bars (simplified) + structural/test invariant check + final phase-closing on-device UAT
+- [x] 72.1.1-06-PLAN.md — D-07 OSD Volume/Brightness bars (simplified) + structural/test invariant check + final phase-closing on-device UAT
 
 ### Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider
 
