@@ -132,6 +132,18 @@ final class ActivitySettingsTests: XCTestCase {
         XCTAssertEqual(ActivitySettings.debugWingCornerRadiusNudgeKey, "debug.wingTuner.cornerRadiusNudge")
     }
 
+    func testOSDOpacityMinNudgeKeyName() {
+        XCTAssertEqual(ActivitySettings.debugOSDOpacityMinNudgeKey, "debug.wingTuner.osdOpacityMinNudge")
+    }
+
+    func testOSDOpacityMaxNudgeKeyName() {
+        XCTAssertEqual(ActivitySettings.debugOSDOpacityMaxNudgeKey, "debug.wingTuner.osdOpacityMaxNudge")
+    }
+
+    func testOSDRollSpeedNudgeKeyName() {
+        XCTAssertEqual(ActivitySettings.debugOSDRollSpeedNudgeKey, "debug.wingTuner.osdRollSpeedNudge")
+    }
+
     func testExistingActivityKeyNamesUnchanged() {
         XCTAssertEqual(ActivitySettings.chargingKey, "activity.charging")
         XCTAssertEqual(ActivitySettings.nowPlayingKey, "activity.nowPlaying")

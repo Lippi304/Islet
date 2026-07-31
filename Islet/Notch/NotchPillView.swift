@@ -184,6 +184,12 @@ struct NotchPillView: View {
     @AppStorage(ActivitySettings.debugWingMarginNudgeKey) private var debugWingMarginNudge: Double = 0
     @AppStorage(ActivitySettings.debugWingGapNudgeKey) private var debugWingGapNudge: Double = 0
     @AppStorage(ActivitySettings.debugWingCornerRadiusNudgeKey) private var debugWingCornerRadiusNudge: Double = 0
+
+    // Phase 72.1 / D-05 — OSD Bar/Counter Tuner storage, same always-0-at-rest contract as
+    // the Wing Tuner keys above.
+    @AppStorage(ActivitySettings.debugOSDOpacityMinNudgeKey) private var debugOSDOpacityMinNudge: Double = 0
+    @AppStorage(ActivitySettings.debugOSDOpacityMaxNudgeKey) private var debugOSDOpacityMaxNudge: Double = 0
+    @AppStorage(ActivitySettings.debugOSDRollSpeedNudgeKey) private var debugOSDRollSpeedNudge: Double = 0
     #endif
 
     // Always-compiled read points so every wing function can call these unconditionally.
@@ -220,6 +226,30 @@ struct NotchPillView: View {
     private var wingCornerRadiusNudge: CGFloat {
         #if DEBUG
         return CGFloat(debugWingCornerRadiusNudge)
+        #else
+        return 0
+        #endif
+    }
+
+    // Phase 72.1 / D-05 — always-compiled OSD Bar/Counter Tuner read points. Double, not
+    // CGFloat: these feed a SwiftUI `.opacity(Double)` value and a spring `response` value.
+    private var osdOpacityMinNudge: Double {
+        #if DEBUG
+        return debugOSDOpacityMinNudge
+        #else
+        return 0
+        #endif
+    }
+    private var osdOpacityMaxNudge: Double {
+        #if DEBUG
+        return debugOSDOpacityMaxNudge
+        #else
+        return 0
+        #endif
+    }
+    private var osdRollSpeedNudge: Double {
+        #if DEBUG
+        return debugOSDRollSpeedNudge
         #else
         return 0
         #endif

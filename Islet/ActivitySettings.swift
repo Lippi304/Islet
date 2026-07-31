@@ -115,6 +115,14 @@ enum ActivitySettings {
     static let debugWingMarginNudgeKey = "debug.wingTuner.marginNudge"
     static let debugWingGapNudgeKey = "debug.wingTuner.gapNudge"
     static let debugWingCornerRadiusNudgeKey = "debug.wingTuner.cornerRadiusNudge"
+
+    // Phase 72.1 / D-05 — DEBUG-only "OSD Bar/Counter Tuner" live-nudge keys for the new
+    // opacity-min/opacity-max/roll-speed values Plan 72.1-02's opacity ramp and digit-roll
+    // counter consume. Same dev-tool-only, never-Release-facing contract as the Wing Tuner
+    // keys above.
+    static let debugOSDOpacityMinNudgeKey = "debug.wingTuner.osdOpacityMinNudge"
+    static let debugOSDOpacityMaxNudgeKey = "debug.wingTuner.osdOpacityMaxNudge"
+    static let debugOSDRollSpeedNudgeKey = "debug.wingTuner.osdRollSpeedNudge"
     #endif
 
     // Phase 52 / SWITCH-03/04 — the view switcher's layout: today's pill-below-the-island
