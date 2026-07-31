@@ -4880,10 +4880,20 @@ struct NotchPillView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
-            )
+            .background {
+                // Phase 72.1.1 Plan 05 (D-06 Tier 2) — glass on macOS 26+, guarded per the
+                // file's existing #available convention; legacy fallback below is the exact
+                // pre-existing plain fill, unchanged.
+                if #available(macOS 26.0, *) {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.clear)
+                        .glassEffect(.regular.tint(Color.white.opacity(0.06)),
+                                     in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                }
+            }
             // Phase 72-04 (D-16) — hover outline, distinct from the pre-existing hover-reveal
             // delete icon above (outline only, never a filled background).
             .overlay(
