@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: executing
-stopped_at: Completed 72.1.1-01-PLAN.md, checkpoint approved
-last_updated: "2026-07-31T19:35:37.796Z"
+stopped_at: Completed 72.1.1-03-PLAN.md, checkpoint approved (legacy-path black-rectangle artifact deferred as known issue)
+last_updated: "2026-07-31T21:06:19.338Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 44
   completed_phases: 29
   total_plans: 114
-  completed_plans: 102
+  completed_plans: 103
   percent: 66
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 ## Current Position
 
 Phase: 72.1.1 (liquid-glass-design-rework-for-the-island-reference-componen) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-07-31
 
@@ -337,6 +337,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 72.1 P02 | 15min | 2 tasks | 1 files |
 | Phase 72.1.1 P01 | 15min | 2 tasks | 1 files |
 | Phase 72.1.1 P02 | 15min | 2 tasks | 3 files |
+| Phase 72.1.1 P03 | multi-session (13 rounds) | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -492,6 +493,9 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 72.1.1]: Kept GlassEffectContainer/glassEffectID scope strictly inside liquidGlassEffectLayer (not presentationSwitch-wide) to fix D-04 without repeating the round-2 whole-island frosting regression — on-device confirmed: no flat-black frame, no wide-scope regression
 - [Phase 72.1.1]: Rim/base glass animation-curve desync ruled out of Plan 01 scope, logged as known issue for Plan 72.1.1-03 UAT to re-check — distinct from D-04 transition-continuity fix; full-surface coverage in Plan 03 will likely merge rim+base into one glass surface, structurally resolving it
 - [Phase 72.1.1]: Liquid Glass Tuner reuses adjustWingNudge(_:by:) directly for all 10 new actions (no duplicate helper), and uses a distinct debug.glassTuner.* namespace separate from debug.wingTuner.*
+- [Phase 72.1.1]: islandFill(.liquidGlass) = Color.black.opacity(0.0001), not Color.clear -- literal Color.clear hangs hover-to-expand on-device (reproduced twice); 0.0001 is visually identical and confirmed safe
+- [Phase 72.1.1]: Native glass base uses Glass.clear style, not .regular -- user-approved after on-device saturation comparison; Glass's public API exposes no independent saturation control
+- [Phase 72.1.1]: Dropped the native glass overlay's explicit .frame(width:height:) -- size is never matchedGeometryEffect-driven, and the fixed frame silently broke the collapse<->expand size morph into a cross-fade
 
 ### Roadmap Evolution
 
@@ -546,6 +550,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 43 regression gate, pre-existing, unrelated] `DragApproachGeometryTests.testOffsetIsIdenticalOnNonZeroOriginCard` (Phase 34) fails deterministically (not flaky — reproduces identically every run) due to floating-point catastrophic cancellation when subtracting two large near-equal `CGFloat`s (`150.66666666666674` vs `...69`). Confirmed unrelated to Phase 43 — `computeQuickActionButtonFrames` was never touched by this phase. Fix (when picked up): use `XCTAssertEqual(..., accuracy: 0.01)` like the file's other geometry tests already do, instead of exact equality.
 - [Quick debug, 2026-07-19] Old Islet instance occasionally survives Xcode's Stop button (documented Apple Developer Forums limitation for LSUIElement/background-agent apps, thread 47777), producing a duplicate menu-bar icon needing manual quit. Fixed via a single-instance guard in `AppDelegate.applicationDidFinishLaunching` (force-terminates any other process sharing Islet's bundle ID as the first action on launch) — build-verified but **on-device Xcode stop/restart verification is pending**. User explicitly deferred a dedicated test pass, will confirm organically during upcoming phase work. Session: `.planning/debug/old-islet-instance-stays-open.md`.
 - Phase 66 BLOCKED: 66-04 on-device checkpoint NO-GO — public NSStatusItem spacer mechanism does not reclaim/hide layout space and Cmd-drag does not engage the chevron on real macOS 27 Tahoe beta hardware. Needs /gsd:discuss-phase 66 before phase closes.
+- Legacy (<macOS 26) Liquid Glass path renders a black-rectangle compositing artifact around expanded-view content when forced -- does not occur on the native macOS 26+ path that actually ships; deferred, needs GPU frame capture to diagnose further (see 72.1.1-03-SUMMARY.md Known Issues)
 
 ### Quick Tasks Completed
 
@@ -665,8 +670,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-31T19:35:29.651Z
-Stopped at: Completed 72.1.1-01-PLAN.md, checkpoint approved
+Last session: 2026-07-31T21:06:10.913Z
+Stopped at: Completed 72.1.1-03-PLAN.md, checkpoint approved (legacy-path black-rectangle artifact deferred as known issue)
 Resume file: None
 
 ## Operator Next Steps
