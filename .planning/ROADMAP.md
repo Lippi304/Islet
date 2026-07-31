@@ -1225,6 +1225,26 @@ Plans:
 
 - [x] 72-04-PLAN.md — NotchWindowController wiring (handleEventEdit/handleEventDelete) + consolidated on-device UAT checkpoint
 
+### Phase 72.1: Volume/Brightness Bar redesign: bar brightness scales with fill level (near 0 = barely any brightness, up to 100% = full brightness), plus number counter driven like the shadcn number-ticker component (npx shadcn@latest add https://21st.dev/r/dillionverma/number-ticker) (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 72
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 72.1 to break down)
+
+### Phase 72.1.1: Liquid Glass design rework for the island — reference component: npx shadcn@latest add https://21st.dev/r/suraj-xd/liquid-glass (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 72.1
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 72.1.1 to break down)
+
 ### Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider
 
 **Goal:** Pomodoro mode and all its persisted state/settings are removed from the codebase entirely, and timer setup is replaced with a Droppy-style ruler/slider duration picker (minutes) + Start Timer button + sound toggle. This is the milestone's riskiest phase — it removes existing state, not just adds UI — so a careful `/gsd:discuss-phase 73` pass is expected before planning to confirm exactly what "remove Pomodoro" does to any already-persisted user settings tied to it.
