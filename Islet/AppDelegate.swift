@@ -560,6 +560,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         osdTunerItem.submenu = osdTunerMenu
         debugMenu.addItem(osdTunerItem)
 
+        // Phase 72.1.1 / GLASS-01 — DEBUG-only "Liquid Glass Tuner": 5 live nudge axes
+        // (native tint/gloss + legacy-shader edgeOpacity/centerOpacity/borderWidth), same
+        // live-tune-then-bake-into-source workflow as Wing Tuner/OSD Tuner above. Pure
+        // scaffolding — nothing reads these nudges until Plan 72.1.1-03 wires them in.
+        let glassTunerMenu = NSMenu()
+        glassTunerMenu.addItem(withTitle: "Glass Tint -0.05", action: #selector(debugGlassTintMinus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Glass Tint +0.05", action: #selector(debugGlassTintPlus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Glass Gloss -0.05", action: #selector(debugGlassGlossMinus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Glass Gloss +0.05", action: #selector(debugGlassGlossPlus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Legacy Edge Opacity -0.05", action: #selector(debugGlassLegacyEdgeOpacityMinus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Legacy Edge Opacity +0.05", action: #selector(debugGlassLegacyEdgeOpacityPlus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Legacy Center Opacity -0.05", action: #selector(debugGlassLegacyCenterOpacityMinus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Legacy Center Opacity +0.05", action: #selector(debugGlassLegacyCenterOpacityPlus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Legacy Border Width -0.02", action: #selector(debugGlassLegacyBorderWidthMinus), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Legacy Border Width +0.02", action: #selector(debugGlassLegacyBorderWidthPlus), keyEquivalent: "")
+        glassTunerMenu.addItem(.separator())
+        glassTunerMenu.addItem(withTitle: "Reset Liquid Glass Tuner", action: #selector(debugGlassTunerReset), keyEquivalent: "")
+        glassTunerMenu.addItem(withTitle: "Print Liquid Glass Tuner Values", action: #selector(debugGlassTunerPrint), keyEquivalent: "")
+        for item in glassTunerMenu.items { item.target = self }
+        let glassTunerItem = NSMenuItem(title: "Liquid Glass Tuner", action: nil, keyEquivalent: "")
+        glassTunerItem.submenu = glassTunerMenu
+        debugMenu.addItem(glassTunerItem)
+
         // Quick task 260729-0b5 — DEBUG-only "Preview Wing": fake-triggers every
         // collapsed-state HUD wing on demand (no need to actually play music, press volume
         // keys, toggle real DND, plug in a charger, connect a device, start a download,
@@ -645,6 +668,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func debugOSDTunerPrint() {
         let rollSpeed = UserDefaults.standard.double(forKey: ActivitySettings.debugOSDRollSpeedNudgeKey)
         print("[OSDTuner] rollSpeedNudge=\(rollSpeed) — bake this confirmed delta into DigitRollText's own rollResponse constant in NotchPillView.swift before clicking Reset OSD Tuner.")
+    }
+
+    // Phase 72.1.1 / GLASS-01 — Liquid Glass Tuner actions, reusing the existing
+    // adjustWingNudge(_:by:) helper above (no new helper).
+    @objc private func debugGlassTintMinus() { adjustWingNudge(ActivitySettings.debugGlassTintNudgeKey, by: -0.05) }
+    @objc private func debugGlassTintPlus() { adjustWingNudge(ActivitySettings.debugGlassTintNudgeKey, by: 0.05) }
+    @objc private func debugGlassGlossMinus() { adjustWingNudge(ActivitySettings.debugGlassGlossNudgeKey, by: -0.05) }
+    @objc private func debugGlassGlossPlus() { adjustWingNudge(ActivitySettings.debugGlassGlossNudgeKey, by: 0.05) }
+    @objc private func debugGlassLegacyEdgeOpacityMinus() { adjustWingNudge(ActivitySettings.debugGlassLegacyEdgeOpacityNudgeKey, by: -0.05) }
+    @objc private func debugGlassLegacyEdgeOpacityPlus() { adjustWingNudge(ActivitySettings.debugGlassLegacyEdgeOpacityNudgeKey, by: 0.05) }
+    @objc private func debugGlassLegacyCenterOpacityMinus() { adjustWingNudge(ActivitySettings.debugGlassLegacyCenterOpacityNudgeKey, by: -0.05) }
+    @objc private func debugGlassLegacyCenterOpacityPlus() { adjustWingNudge(ActivitySettings.debugGlassLegacyCenterOpacityNudgeKey, by: 0.05) }
+    @objc private func debugGlassLegacyBorderWidthMinus() { adjustWingNudge(ActivitySettings.debugGlassLegacyBorderWidthNudgeKey, by: -0.02) }
+    @objc private func debugGlassLegacyBorderWidthPlus() { adjustWingNudge(ActivitySettings.debugGlassLegacyBorderWidthNudgeKey, by: 0.02) }
+
+    @MainActor @objc private func debugGlassTunerReset() {
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugGlassTintNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugGlassGlossNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugGlassLegacyEdgeOpacityNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugGlassLegacyCenterOpacityNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugGlassLegacyBorderWidthNudgeKey)
+    }
+
+    @objc private func debugGlassTunerPrint() {
+        let tint = UserDefaults.standard.double(forKey: ActivitySettings.debugGlassTintNudgeKey)
+        let gloss = UserDefaults.standard.double(forKey: ActivitySettings.debugGlassGlossNudgeKey)
+        let edgeOpacity = UserDefaults.standard.double(forKey: ActivitySettings.debugGlassLegacyEdgeOpacityNudgeKey)
+        let centerOpacity = UserDefaults.standard.double(forKey: ActivitySettings.debugGlassLegacyCenterOpacityNudgeKey)
+        let borderWidth = UserDefaults.standard.double(forKey: ActivitySettings.debugGlassLegacyBorderWidthNudgeKey)
+        print("[GlassTuner] tintNudge=\(tint) glossNudge=\(gloss) legacyEdgeOpacityNudge=\(edgeOpacity) legacyCenterOpacityNudge=\(centerOpacity) legacyBorderWidthNudge=\(borderWidth) — bake tintNudge/glossNudge into the native tint/gloss literals in liquidGlassEffectLayer, and legacyEdgeOpacityNudge/legacyCenterOpacityNudge/legacyBorderWidthNudge into LiquidGlassParameters.collapsed/.expanded's edgeOpacity/centerOpacity/borderWidth in LiquidGlassShader.swift, then click Reset Liquid Glass Tuner.")
     }
 
     @MainActor @objc private func debugWingTunerReset() {
