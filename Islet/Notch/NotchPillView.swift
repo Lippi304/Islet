@@ -679,17 +679,20 @@ struct NotchPillView: View {
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
-        // Phase 35 / GLASS-01 (D-12, supersedes D-10): back to the identical
-        // gradientMaterial literal the .gradient case above returns — round 2's
-        // raw .ultraThinMaterial base (D-10) read as uniformly bright with no
-        // dark tint of its own (35-UAT.md Test 1 Round 2: "Es ist immer noch so
-        // hell."). D-12 reinstates a genuine solid dark "frost" as the always-
-        // present base; the visible reveal-through-material effect is composited
-        // by liquidGlassEffectLayer's overlay below, which fully covers this
-        // branch on-screen — visually redundant but kept consistent for
-        // defensiveness (same relationship Plan 35-07 established, just with the
-        // opposite fill value this round).
-        case .liquidGlass: return AnyShapeStyle(Self.gradientMaterial)
+        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure) — SUPERSEDES the Phase 35/
+        // D-12 comment this replaced, which assumed painting an opaque gradientMaterial base
+        // here was "visually redundant" because liquidGlassEffectLayer's overlay "fully
+        // covers this branch on-screen." That assumption was wrong: `.overlay(...)` composites
+        // ON TOP of this fill within the SAME view/window, so the native `.glassEffect()`'s
+        // real backdrop-sample (this app's NSPanel is genuinely `isOpaque = false` /
+        // `backgroundColor = .clear`, see NotchPanel.swift) was hitting this opaque black
+        // fill immediately behind it instead of the real desktop content the transparent
+        // window would otherwise reveal — root cause of "immer nur das schwarze zu sehen"
+        // (always just black) regardless of tint/gloss tuning. `.liquidGlass` mode must NOT
+        // paint an opaque base here so `.glassEffect()`/the legacy shader stack (which paints
+        // its own complete frost independently, see legacyLiquidGlassEffectLayer) are the
+        // only surfaces present.
+        case .liquidGlass: return AnyShapeStyle(Color.clear)
         }
     }
 
