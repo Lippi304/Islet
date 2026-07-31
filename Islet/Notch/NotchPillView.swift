@@ -679,20 +679,22 @@ struct NotchPillView: View {
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
-        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure) — SUPERSEDES the Phase 35/
-        // D-12 comment this replaced, which assumed painting an opaque gradientMaterial base
-        // here was "visually redundant" because liquidGlassEffectLayer's overlay "fully
-        // covers this branch on-screen." That assumption was wrong: `.overlay(...)` composites
-        // ON TOP of this fill within the SAME view/window, so the native `.glassEffect()`'s
-        // real backdrop-sample (this app's NSPanel is genuinely `isOpaque = false` /
-        // `backgroundColor = .clear`, see NotchPanel.swift) was hitting this opaque black
-        // fill immediately behind it instead of the real desktop content the transparent
-        // window would otherwise reveal — root cause of "immer nur das schwarze zu sehen"
-        // (always just black) regardless of tint/gloss tuning. `.liquidGlass` mode must NOT
-        // paint an opaque base here so `.glassEffect()`/the legacy shader stack (which paints
-        // its own complete frost independently, see legacyLiquidGlassEffectLayer) are the
-        // only surfaces present.
-        case .liquidGlass: return AnyShapeStyle(Color.clear)
+        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, REVERTED) — briefly changed to
+        // `Color.clear` (commit 96b8a3b) on the diagnosis that this opaque fill was blocking
+        // `.glassEffect()`'s real backdrop-sample, since the NSPanel is genuinely
+        // `isOpaque = false` / `backgroundColor = .clear` (NotchPanel.swift). That diagnosis
+        // may still be directionally correct, but on-device testing found `Color.clear` here
+        // hangs hover-to-expand entirely (confirmed reproducible after a full app restart, not
+        // scoped to any one presentation) — most likely `.glassEffect()`'s live backdrop
+        // compositing against a truly empty/transparent layer misbehaving on this macOS 27
+        // beta build, not a SwiftUI hit-testing regression (the hover/click-through mechanism
+        // in NotchWindowController is 100% driven by a global NSEvent monitor + geometric rect
+        // math — it never touches this view's rendered content or hit-testing at all). Reverted
+        // to the known-working opaque gradientMaterial fill until a safer approach (e.g. a
+        // near-opaque-but-not-fully-clear fill, or restructuring so `.glassEffect()` isn't asked
+        // to sample a literally empty backdrop) can be verified on-device without blocking the
+        // user's ability to use the app — see the checkpoint response for the open question.
+        case .liquidGlass: return AnyShapeStyle(Self.gradientMaterial)
         }
     }
 
