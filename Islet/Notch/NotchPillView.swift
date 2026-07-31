@@ -822,19 +822,14 @@ struct NotchPillView: View {
                 // `Color.clear` inherit `.overlay()`'s default sizing (fills whatever size the
                 // base shape resolves to at each moment), the same way the sibling specular
                 // highlight stroke below already does with no frame of its own.
-                // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, saturation test) —
-                // confirmed via SwiftUICore's own textual .swiftinterface (SDK MacOSX26.5) that
-                // `Glass` exposes exactly 3 static styles (`.regular`/`.clear`/`.identity`) and
-                // only 2 modifiers (`.tint(_:)`/`.interactive(_:)`) — NO saturation/vibrancy
-                // knob anywhere in the public API. The perceived color-boost the user reported
-                // (glass reads MORE saturated than the real backdrop) is therefore not
-                // controllable via a parameter this app can set; the one legitimate alternative
-                // exposed by the API is trying the `.clear` style instead of `.regular` — Apple
-                // documents `.clear` as a visually distinct, more transparent style, so it may
-                // carry different (or no) vibrancy adaptation. This is a genuine on-device data
-                // point, not a blind workaround guess: if `.regular` and `.clear` look the same,
-                // the saturation boost is confirmed as unavoidable system-material behavior to
-                // accept, not fix.
+                // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, saturation, RESOLVED) —
+                // `Glass` exposes exactly 3 static styles (`.regular`/`.clear`/`.identity`,
+                // confirmed via SwiftUICore's own textual .swiftinterface, SDK MacOSX26.5) and
+                // only 2 modifiers (`.tint(_:)`/`.interactive(_:)`) — no saturation/vibrancy knob
+                // anywhere in the public API, so the color-boost Apple's Liquid Glass applies to
+                // backdrop content isn't independently tunable from this app. `.clear` (tested
+                // on-device against `.regular`) is the user-approved style — confirmed look is
+                // acceptable as-is.
                 GlassEffectContainer {
                     ZStack {
                         Color.clear
