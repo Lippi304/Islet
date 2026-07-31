@@ -3621,7 +3621,7 @@ struct NotchPillView: View {
         let margin: CGFloat = 5 + wingMarginNudge   // matches mediaWingContentWidth()'s own margin — same wing family
         let cameraBlockWidth = (rawNotchHalfWidth + margin) * 2
         let leadingPad: CGFloat = 28 * resolvedWingWidthScale + wingLeadingNudge
-        let trailingPad: CGFloat = 34 * resolvedWingWidthScale + wingTrailingNudge
+        let trailingPad: CGFloat = 26 * resolvedWingWidthScale + wingTrailingNudge   // -8 baked in from on-device tuning, resume-preview wing only, quick task 260801-0br round 3 (was 34)
         let artSide = (Self.wingsSize.height - 8) * resolvedWingDepthScale
         // Round 2 (on-device UAT) — matches mediaWingContentWidth()'s own eqBarsWidth for the
         // common play-icon case, keeping this wing's margins pixel-identical to the live Now
