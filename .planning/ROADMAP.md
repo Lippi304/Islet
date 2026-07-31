@@ -1250,12 +1250,12 @@ Plans:
 **Goal:** The island's Liquid Glass material reads as full-surface glossy glass — not rim-limited — consistently through every state and transition (collapsed pill, mid-animation, compact expanded, full expanded), and extends matching glass treatment to Quick Action buttons, switcher tabs, Calendar event cards, the Weather widget, Tray file tiles, and the OSD Volume/Brightness bars, without sacrificing text/icon readability. The known transition-flicker bug (glass dropping to flat black during collapse<->expand morph and tab switches) is resolved as part of this rework.
 **Requirements**: GLASS-01, GLASS-02, GLASS-03, GLASS-04, GLASS-05, GLASS-06, GLASS-07 (source: 72.1.1-CONTEXT.md decisions D-01..D-07 — ad-hoc GLASS-0x IDs, no formal REQUIREMENTS.md entries exist for this inserted phase, mirrors Phase 72.1 precedent; D-08 is an explicit non-scope boundary decision, not an implementable requirement — no plan needed)
 **Depends on:** Phase 72.1
-**Plans:** 6 plans
+**Plans:** 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 72.1.1-01-PLAN.md — D-04 transition-continuity fix: GlassEffectContainer + shared glassEffectID scoped inside liquidGlassEffectLayer, on today's rim-only shape; on-device UAT before any surface-area change lands
+- [x] 72.1.1-01-PLAN.md — D-04 transition-continuity fix: GlassEffectContainer + shared glassEffectID scoped inside liquidGlassEffectLayer, on today's rim-only shape; on-device UAT before any surface-area change lands
 
 **Wave 2** *(blocked on 72.1.1-01)*
 

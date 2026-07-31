@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: executing
-stopped_at: Phase 72.1.1 UI-SPEC approved
-last_updated: "2026-07-31T19:13:24.324Z"
-last_activity: 2026-07-31 -- Phase 72.1.1 planning complete
+stopped_at: Completed 72.1.1-01-PLAN.md, checkpoint approved
+last_updated: "2026-07-31T19:29:27.265Z"
+last_activity: 2026-07-31
 progress:
   total_phases: 44
   completed_phases: 29
   total_plans: 114
-  completed_plans: 100
+  completed_plans: 101
   percent: 66
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-30)
 
 **Core value:** The notch becomes a beautiful, reliable island that shows now-playing media and reacts when you plug in the charger or connect a device — native, smooth, and as polished as the iPhone Dynamic Island.
-**Current focus:** Phase 72.1.1 — liquid glass design rework for the island reference componen
+**Current focus:** Phase 72.1.1 — liquid-glass-design-rework-for-the-island-reference-componen
 
 ## Current Position
 
-Phase: 72.1.1
-Plan: Not started
+Phase: 72.1.1 (liquid-glass-design-rework-for-the-island-reference-componen) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-07-31 -- Phase 72.1.1 planning complete
+Last activity: 2026-07-31
 
 ### Phase 70 Plan 02 result (2026-07-29)
 
@@ -335,6 +335,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 72 P04 | 53min | 2 tasks | 5 files |
 | Phase 72.1 P01 | 12min | 2 tasks | 4 files |
 | Phase 72.1 P02 | 15min | 2 tasks | 1 files |
+| Phase 72.1.1 P01 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -487,6 +488,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase ?]: 72.1-01: Used Double (not CGFloat) for OSD tuner read points since they feed .opacity(Double) and spring response, unlike existing CGFloat geometry nudges
 - [Phase ?]: opacityMin/opacityMax computed locally inside OSDLevelBar's body, not pre-computed by caller
 - [Phase ?]: Reworded DigitRollText header comment to avoid literal push(from:)/contentTransition(.numericText substrings so plan's grep-based acceptance checks don't false-positive on documentation prose
+- [Phase 72.1.1]: Kept GlassEffectContainer/glassEffectID scope strictly inside liquidGlassEffectLayer (not presentationSwitch-wide) to fix D-04 without repeating the round-2 whole-island frosting regression — on-device confirmed: no flat-black frame, no wide-scope regression
+- [Phase 72.1.1]: Rim/base glass animation-curve desync ruled out of Plan 01 scope, logged as known issue for Plan 72.1.1-03 UAT to re-check — distinct from D-04 transition-continuity fix; full-surface coverage in Plan 03 will likely merge rim+base into one glass surface, structurally resolving it
 
 ### Roadmap Evolution
 
@@ -660,9 +663,9 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-31T17:48:15.626Z
-Stopped at: Phase 72.1.1 UI-SPEC approved
-Resume file: .planning/phases/72.1.1-liquid-glass-design-rework-for-the-island-reference-componen/72.1.1-UI-SPEC.md
+Last session: 2026-07-31T19:29:27.257Z
+Stopped at: Completed 72.1.1-01-PLAN.md, checkpoint approved
+Resume file: None
 
 ## Operator Next Steps
 
