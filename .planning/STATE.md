@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: executing
-stopped_at: Completed 72.1.1-03-PLAN.md, checkpoint approved (legacy-path black-rectangle artifact deferred as known issue)
-last_updated: "2026-07-31T21:06:19.338Z"
+stopped_at: Completed 72.1.1-04-PLAN.md, checkpoint approved (glass on Quick Action buttons + switcher tabs, no regressions)
+last_updated: "2026-07-31T21:13:47.815Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 44
   completed_phases: 29
   total_plans: 114
-  completed_plans: 103
+  completed_plans: 104
   percent: 66
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 ## Current Position
 
 Phase: 72.1.1 (liquid-glass-design-rework-for-the-island-reference-componen) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-07-31
 
@@ -338,6 +338,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 72.1.1 P01 | 15min | 2 tasks | 1 files |
 | Phase 72.1.1 P02 | 15min | 2 tasks | 3 files |
 | Phase 72.1.1 P03 | multi-session (13 rounds) | 3 tasks | 2 files |
+| Phase 72.1.1 P04 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -496,6 +497,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 72.1.1]: islandFill(.liquidGlass) = Color.black.opacity(0.0001), not Color.clear -- literal Color.clear hangs hover-to-expand on-device (reproduced twice); 0.0001 is visually identical and confirmed safe
 - [Phase 72.1.1]: Native glass base uses Glass.clear style, not .regular -- user-approved after on-device saturation comparison; Glass's public API exposes no independent saturation control
 - [Phase 72.1.1]: Dropped the native glass overlay's explicit .frame(width:height:) -- size is never matchedGeometryEffect-driven, and the fixed frame silently broke the collapse<->expand size morph into a cross-fade
+- [Phase 72.1.1]: 72.1.1-04: Quick Action buttons and switcher tabs reuse their existing D-11/D-09/D-02 opacity expressions verbatim as the .glassEffect(.regular.tint(...)) tint rather than new values — glass is a pure rendering-material change, zero change to visual state signals
 
 ### Roadmap Evolution
 
@@ -670,8 +672,8 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-31T21:06:10.913Z
-Stopped at: Completed 72.1.1-03-PLAN.md, checkpoint approved (legacy-path black-rectangle artifact deferred as known issue)
+Last session: 2026-07-31T21:13:47.807Z
+Stopped at: Completed 72.1.1-04-PLAN.md, checkpoint approved (glass on Quick Action buttons + switcher tabs, no regressions)
 Resume file: None
 
 ## Operator Next Steps
