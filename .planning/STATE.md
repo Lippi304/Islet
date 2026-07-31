@@ -4,13 +4,13 @@ milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: executing
 stopped_at: Completed 72.1.1-01-PLAN.md, checkpoint approved
-last_updated: "2026-07-31T19:29:27.265Z"
+last_updated: "2026-07-31T19:35:37.796Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 44
   completed_phases: 29
   total_plans: 114
-  completed_plans: 101
+  completed_plans: 102
   percent: 66
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 ## Current Position
 
 Phase: 72.1.1 (liquid-glass-design-rework-for-the-island-reference-componen) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-07-31
 
@@ -336,6 +336,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 72.1 P01 | 12min | 2 tasks | 4 files |
 | Phase 72.1 P02 | 15min | 2 tasks | 1 files |
 | Phase 72.1.1 P01 | 15min | 2 tasks | 1 files |
+| Phase 72.1.1 P02 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -490,6 +491,7 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase ?]: Reworded DigitRollText header comment to avoid literal push(from:)/contentTransition(.numericText substrings so plan's grep-based acceptance checks don't false-positive on documentation prose
 - [Phase 72.1.1]: Kept GlassEffectContainer/glassEffectID scope strictly inside liquidGlassEffectLayer (not presentationSwitch-wide) to fix D-04 without repeating the round-2 whole-island frosting regression — on-device confirmed: no flat-black frame, no wide-scope regression
 - [Phase 72.1.1]: Rim/base glass animation-curve desync ruled out of Plan 01 scope, logged as known issue for Plan 72.1.1-03 UAT to re-check — distinct from D-04 transition-continuity fix; full-surface coverage in Plan 03 will likely merge rim+base into one glass surface, structurally resolving it
+- [Phase 72.1.1]: Liquid Glass Tuner reuses adjustWingNudge(_:by:) directly for all 10 new actions (no duplicate helper), and uses a distinct debug.glassTuner.* namespace separate from debug.wingTuner.*
 
 ### Roadmap Evolution
 
@@ -663,7 +665,7 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-31T19:29:27.257Z
+Last session: 2026-07-31T19:35:29.651Z
 Stopped at: Completed 72.1.1-01-PLAN.md, checkpoint approved
 Resume file: None
 
