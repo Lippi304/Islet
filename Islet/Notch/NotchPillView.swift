@@ -5092,11 +5092,21 @@ private struct DigitRollText: View {
     }
 
     var body: some View {
+        // WR-01 fix: identity must be anchored by place VALUE (from the right), not
+        // left-to-right array offset. Offset-based identity made the ones digit appear
+        // to "morph" into the tens digit whenever a boundary was crossed (9->10, 99->100),
+        // because the old leftmost offset got reused for the new leftmost place. Keying by
+        // place value keeps existing places (ones, tens, ...) stable in their own in-place
+        // roll, and only ever inserts/removes the newly-appearing/disappearing highest place.
+        let digits = Array(String(displayValue))
+        let places = digits.enumerated().map { offset, digit in
+            (placeValue: digits.count - 1 - offset, digit: digit)
+        }
         HStack(spacing: 0) {
-            ForEach(Array(String(displayValue).enumerated()), id: \.offset) { _, digit in
+            ForEach(places, id: \.placeValue) { place in
                 ZStack {
-                    Text(String(digit))
-                        .id(digit)
+                    Text(String(place.digit))
+                        .id(place.digit)
                         .transition(.move(edge: .top))
                 }
                 .frame(width: 8)
