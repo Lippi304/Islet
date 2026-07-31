@@ -4,13 +4,13 @@ milestone: v1.11
 milestone_name: Droppy-Inspired Polish Round 2
 status: executing
 stopped_at: Completed 72.1-01-PLAN.md
-last_updated: "2026-07-31T01:39:06.410Z"
+last_updated: "2026-07-31T01:47:17.814Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 44
   completed_phases: 28
   total_plans: 108
-  completed_plans: 98
+  completed_plans: 99
   percent: 64
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 ## Current Position
 
 Phase: 72.1 (volume-brightness-bar-redesign-bar-brightness-scales-with-fi) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-31
 
@@ -333,6 +333,7 @@ Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap cr
 | Phase 72 P03 | 40min | 2 tasks | 1 files |
 | Phase 72 P04 | 53min | 2 tasks | 5 files |
 | Phase 72.1 P01 | 12min | 2 tasks | 4 files |
+| Phase 72.1 P02 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -483,6 +484,8 @@ Full decision log is in PROJECT.md Key Decisions table (v1.1 decisions archived 
 - [Phase 72]: D-01/D-02 superseded (72-04): agenda reverted from whole-month day-grouped to single-day (today/selected), after real on-device UAT
 - [Phase 72]: D-13-D-17 (72-04): Month/Year picker popover + 4 white hover affordances (day-cell ring, circular chevron hover, agenda-row outline, + Add border)
 - [Phase ?]: 72.1-01: Used Double (not CGFloat) for OSD tuner read points since they feed .opacity(Double) and spring response, unlike existing CGFloat geometry nudges
+- [Phase ?]: opacityMin/opacityMax computed locally inside OSDLevelBar's body, not pre-computed by caller
+- [Phase ?]: Reworded DigitRollText header comment to avoid literal push(from:)/contentTransition(.numericText substrings so plan's grep-based acceptance checks don't false-positive on documentation prose
 
 ### Roadmap Evolution
 
@@ -655,7 +658,7 @@ Additionally, REQUIREMENTS.md traceability was corrected during v1.6 close: HUD-
 
 ## Session Continuity
 
-Last session: 2026-07-31T01:39:06.402Z
+Last session: 2026-07-31T01:45:08.783Z
 Stopped at: Completed 72.1-01-PLAN.md
 Resume file: None
 
