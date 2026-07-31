@@ -9,6 +9,9 @@ struct ShelfItemView: View {
     let onTap: () -> Void
     let onDelete: () -> Void
     let onDragStarted: () -> Void
+    // CR-01 fix (72.1.1 review) — needed to gate the glass background below on the user's
+    // actual Material Style preference, matching every other `.glassEffect()` call site.
+    @Environment(\.islandMaterialStyle) private var materialStyle
 
     var body: some View {
         VStack(spacing: 2) {   // UI-SPEC icon-gap
@@ -26,8 +29,9 @@ struct ShelfItemView: View {
         .background {
             // Phase 72.1.1 Plan 05 (D-06 Tier 2) — new glass tile background (previously
             // no background at all), guarded per NotchPillView.swift's existing #available
-            // convention.
-            if #available(macOS 26.0, *) {
+            // convention. CR-01 fix (72.1.1 review) — also gated on materialStyle ==
+            // .liquidGlass, matching every other .glassEffect() call site in the codebase.
+            if materialStyle == .liquidGlass, #available(macOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.clear)
                     .glassEffect(.regular.tint(Color.white.opacity(0.06)),

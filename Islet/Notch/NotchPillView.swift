@@ -2077,7 +2077,9 @@ struct NotchPillView: View {
         .background {
             // Phase 72.1.1 Plan 05 (D-06 Tier 2) — new glass card background (previously
             // no background at all), guarded per the file's existing #available convention.
-            if #available(macOS 26.0, *) {
+            // CR-01 fix (72.1.1 review) — also gated on materialStyle == .liquidGlass,
+            // matching every other .glassEffect() call site in the codebase.
+            if materialStyle == .liquidGlass, #available(macOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.clear)
                     .glassEffect(.regular.tint(Color.white.opacity(0.06)),
@@ -2657,7 +2659,9 @@ struct NotchPillView: View {
             // below is the exact pre-existing plain fill, unchanged. Same opacity
             // expression drives both the legacy fill AND the glass tint, so D-11's
             // hover step / D-09's disabled dim are preserved verbatim either way.
-            if #available(macOS 26.0, *) {
+            // CR-01 fix (72.1.1 review) — also gated on materialStyle == .liquidGlass,
+            // matching every other .glassEffect() call site in the codebase.
+            if materialStyle == .liquidGlass, #available(macOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.clear)
                     .glassEffect(.regular.tint(Color.white.opacity(enabled ? (isHovered ? 0.22 : 0.12) : 0.06)),
@@ -2934,7 +2938,9 @@ struct NotchPillView: View {
                     // applies a light glass tint only to the unselected/idle circle; the
                     // `filled ? Color.white : Color.clear` selected-state signal itself is
                     // untouched in both branches (T-72.1.1-07).
-                    if #available(macOS 26.0, *) {
+                    // CR-01 fix (72.1.1 review) — also gated on materialStyle ==
+                    // .liquidGlass, matching every other .glassEffect() call site.
+                    if materialStyle == .liquidGlass, #available(macOS 26.0, *) {
                         Circle()
                             .fill(filled ? Color.white : Color.clear)
                             .glassEffect(.regular.tint(Color.white.opacity(filled ? 0 : 0.08)), in: Circle())
@@ -4865,6 +4871,10 @@ struct NotchPillView: View {
         let onDelete: () -> Void
         @State private var isHovering = false
         @State private var isShowingEdit = false
+        // CR-01 fix (72.1.1 review) — needed to gate the glass background below on the
+        // user's actual Material Style preference, matching every other .glassEffect()
+        // call site.
+        @Environment(\.islandMaterialStyle) private var materialStyle
 
         var body: some View {
             HStack(spacing: 6) {
@@ -4897,8 +4907,10 @@ struct NotchPillView: View {
             .background {
                 // Phase 72.1.1 Plan 05 (D-06 Tier 2) — glass on macOS 26+, guarded per the
                 // file's existing #available convention; legacy fallback below is the exact
-                // pre-existing plain fill, unchanged.
-                if #available(macOS 26.0, *) {
+                // pre-existing plain fill, unchanged. CR-01 fix (72.1.1 review) — also gated
+                // on materialStyle == .liquidGlass, matching every other .glassEffect() call
+                // site in the codebase.
+                if materialStyle == .liquidGlass, #available(macOS 26.0, *) {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(Color.clear)
                         .glassEffect(.regular.tint(Color.white.opacity(0.06)),
@@ -5200,6 +5212,9 @@ struct EqualizerBars: View {
 private struct OSDLevelBar: View {
     let fraction: CGFloat
     let tint: Color
+    // CR-01 fix (72.1.1 review) — needed to gate the glass fill below on the user's actual
+    // Material Style preference, matching every other .glassEffect() call site.
+    @Environment(\.islandMaterialStyle) private var materialStyle
 
     var body: some View {
         GeometryReader { geo in
@@ -5215,7 +5230,9 @@ private struct OSDLevelBar: View {
                 // backdrop (Plan 03 finding). Here the tint IS the semantic signal (green=volume,
                 // orange=brightness), so accurate color reproduction matters even more than on the shell.
                 Group {
-                    if #available(macOS 26.0, *) {
+                    // CR-01 fix (72.1.1 review) — also gated on materialStyle ==
+                    // .liquidGlass, matching every other .glassEffect() call site.
+                    if materialStyle == .liquidGlass, #available(macOS 26.0, *) {
                         Capsule().fill(Color.clear).glassEffect(.clear.tint(tint), in: Capsule())
                     } else {
                         Capsule().fill(tint)
