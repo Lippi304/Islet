@@ -679,19 +679,16 @@ struct NotchPillView: View {
         switch materialStyle {
         case .gradient: return AnyShapeStyle(Self.gradientMaterial)
         case .solidBlack: return AnyShapeStyle(Self.solidBlackMaterial)
-        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, round 2 — CAUTIOUS INCREMENTAL
-        // STEP, not a final answer) — round 1 (`Color.clear`, commit 96b8a3b) diagnosed the
-        // opaque gradientMaterial fill as blocking `.glassEffect()`'s real backdrop-sample
-        // (NSPanel is genuinely `isOpaque = false`/`backgroundColor = .clear`, NotchPanel.swift),
-        // but on-device testing found full `Color.clear` hangs hover-to-expand entirely —
-        // reverted (commit 243db3d). No Apple documentation was reachable confirming whether
-        // `.glassEffect()` requires SOME non-empty content behind it to composite against on
-        // this macOS 27 beta. Per explicit user direction, testing a small non-zero step instead
-        // of jumping straight back to full transparency: near-black at low alpha, NOT literally
-        // `.clear`, as one on-device data point — if this ALSO hangs, the trigger is likely
-        // `.glassEffect()` itself against reduced backdrop opacity (any amount), not "how close
-        // to zero"; if it doesn't hang, further steps down can be tried in later rounds.
-        case .liquidGlass: return AnyShapeStyle(Color.black.opacity(0.05))
+        // Phase 72.1.1 Plan 03 on-device UAT (D-01 gap-closure, round 3 — CAUTIOUS INCREMENTAL
+        // STEP, not a final answer) — round 1 (`Color.clear`, 96b8a3b) hung hover-to-expand,
+        // reverted (243db3d). Round 2 (`0.05`, 72b050f) confirmed SAFE on-device (no hang).
+        // Stepping down further per explicit user direction ("weiter testen es ganz transparent
+        // zu machen") — 0.01 is a 5x reduction from the confirmed-safe 0.05, still short of
+        // full `Color.clear`, to keep isolating whether there's a hard cliff near zero or a
+        // gradient of instability. If this hangs, 0.05 is the practical floor for this beta OS;
+        // if not, the next round steps down further (or attempts full `.clear` again as the
+        // final data point).
+        case .liquidGlass: return AnyShapeStyle(Color.black.opacity(0.01))
         }
     }
 
