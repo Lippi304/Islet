@@ -3925,16 +3925,8 @@ struct NotchPillView: View {
                     }))
                     .modifier(OSDFrameLogger(label: "bar (global)", space: .global))
                 Color.clear.frame(width: percentGap)
-                Text("\(percent)")
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.white)                         // D-02: never accent-tinted
+                DigitRollText(value: percent, rollResponse: 0.15 + osdRollSpeedNudge)
                     .frame(width: percentTextWidth, alignment: .leading)
-                    // Quick task 260729-5pv: smooth roll+fade between old/new digits as percent
-                    // changes, mirroring OSDLevelBar's own local `.animation(value:)` convention
-                    // (D-16 spring constants) rather than relying on the outer wing's presence
-                    // transaction, which only animates appear/disappear, not in-place value changes.
-                    .contentTransition(.numericText(value: Double(percent)))
-                    .animation(.spring(response: 0.15, dampingFraction: 0.86), value: percent)
                 Color.clear.frame(width: trailingPad)
             }
             .coordinateSpace(name: "osdWing")
@@ -5088,6 +5080,38 @@ private struct OSDLevelBar: View {
                     .animation(.spring(response: 0.15, dampingFraction: 0.86), value: fraction)   // D-16 retuned value
             }
         }
+    }
+}
+
+// Phase 72.1 / D-04/D-04a/D-04b — replaces the old numeric-text content-transition percent
+// Text, which faded/blended digits during rapid key-repeat (confirmed unreadable on-device,
+// 72.1-CONTEXT.md D-04). Digits roll/slide via move-edge transitions only — never opacity,
+// never a push-style transition — including across digit-COUNT boundary crossings (9<->10,
+// 99<->100), where a whole digit position is inserted/removed by ForEach's identity, not just
+// its content. Two move-edge transition sites are required for that: the inner Text's own
+// id(digit) (in-place digit character swap, e.g. 4->5 at a fixed position) and the outer
+// per-digit wrapper (whole-position insert/remove) — without the outer one, SwiftUI falls back
+// to its default opacity-fade for the insert/remove, exactly the fade D-04a forbids.
+private struct DigitRollText: View {
+    let value: Int   // 0...100, already clamped upstream by OSDActivity.swift
+    let rollResponse: Double
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(String(value).enumerated()), id: \.offset) { _, digit in
+                ZStack {
+                    Text(String(digit))
+                        .id(digit)
+                        .transition(.move(edge: .top))
+                }
+                .frame(width: 8)
+                .clipped()
+                .transition(.move(edge: .top))
+            }
+        }
+        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+        .foregroundStyle(.white)   // D-02: never accent-tinted
+        .animation(.spring(response: rollResponse, dampingFraction: 0.86), value: value)
     }
 }
 
