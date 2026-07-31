@@ -120,6 +120,16 @@ enum ActivitySettings {
     // counter's roll speed (the opacity-ramp keys were reverted by quick task 260731-61m).
     // Same dev-tool-only, never-Release-facing contract as the Wing Tuner keys above.
     static let debugOSDRollSpeedNudgeKey = "debug.wingTuner.osdRollSpeedNudge"
+
+    // Phase 72.1.1 / GLASS-01 — DEBUG-only "Liquid Glass Tuner" live-nudge keys, same
+    // dev-tool-only, always-0-at-rest contract as the Wing/OSD Tuner keys above. Scaffolding
+    // only — nothing reads these until Plan 72.1.1-03 wires them into the native/legacy glass
+    // rendering paths.
+    static let debugGlassTintNudgeKey = "debug.glassTuner.tintNudge"
+    static let debugGlassGlossNudgeKey = "debug.glassTuner.glossNudge"
+    static let debugGlassLegacyEdgeOpacityNudgeKey = "debug.glassTuner.legacyEdgeOpacityNudge"
+    static let debugGlassLegacyCenterOpacityNudgeKey = "debug.glassTuner.legacyCenterOpacityNudge"
+    static let debugGlassLegacyBorderWidthNudgeKey = "debug.glassTuner.legacyBorderWidthNudge"
     #endif
 
     // Phase 52 / SWITCH-03/04 — the view switcher's layout: today's pill-below-the-island

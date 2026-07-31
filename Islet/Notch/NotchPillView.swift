@@ -189,6 +189,14 @@ struct NotchPillView: View {
     // was reverted by quick task 260731-61m), same always-0-at-rest contract as the Wing Tuner
     // keys above.
     @AppStorage(ActivitySettings.debugOSDRollSpeedNudgeKey) private var debugOSDRollSpeedNudge: Double = 0
+
+    // Phase 72.1.1 / GLASS-01 — Liquid Glass Tuner storage, same always-0-at-rest contract as
+    // the Wing/OSD Tuner keys above. Scaffolding only for Plan 72.1.1-03's full-surface work.
+    @AppStorage(ActivitySettings.debugGlassTintNudgeKey) private var debugGlassTintNudge: Double = 0
+    @AppStorage(ActivitySettings.debugGlassGlossNudgeKey) private var debugGlassGlossNudge: Double = 0
+    @AppStorage(ActivitySettings.debugGlassLegacyEdgeOpacityNudgeKey) private var debugGlassLegacyEdgeOpacityNudge: Double = 0
+    @AppStorage(ActivitySettings.debugGlassLegacyCenterOpacityNudgeKey) private var debugGlassLegacyCenterOpacityNudge: Double = 0
+    @AppStorage(ActivitySettings.debugGlassLegacyBorderWidthNudgeKey) private var debugGlassLegacyBorderWidthNudge: Double = 0
     #endif
 
     // Always-compiled read points so every wing function can call these unconditionally.
@@ -236,6 +244,45 @@ struct NotchPillView: View {
     private var osdRollSpeedNudge: Double {
         #if DEBUG
         return debugOSDRollSpeedNudge
+        #else
+        return 0
+        #endif
+    }
+
+    // Phase 72.1.1 / GLASS-01 — always-compiled Liquid Glass Tuner read points. Release branch
+    // always returns 0, matching wingLeadingNudge's zero-Release-cost contract. Not yet
+    // referenced by any call site — Plan 72.1.1-03 is the first consumer.
+    private var glassTintNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugGlassTintNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var glassGlossNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugGlassGlossNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var glassLegacyEdgeOpacityNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugGlassLegacyEdgeOpacityNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var glassLegacyCenterOpacityNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugGlassLegacyCenterOpacityNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var glassLegacyBorderWidthNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugGlassLegacyBorderWidthNudge)
         #else
         return 0
         #endif
