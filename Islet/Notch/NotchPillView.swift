@@ -837,59 +837,77 @@ struct NotchPillView: View {
     @ViewBuilder
     private func legacyLiquidGlassEffectLayer(shape: NotchShape, size: CGSize, parameters: LiquidGlassParameters) -> some View {
         if materialStyle == .liquidGlass {
+            // Phase 72.1.1 Plan 03 (D-01) — LiquidGlassParameters.collapsed/.expanded are
+            // `static let` and cannot read `@AppStorage`-backed instance properties directly
+            // (see this file's own islandWidthScaleOffset convention). Nudges are applied here,
+            // at the read site, into a local tunedParameters value consumed by everything below
+            // instead of the raw `parameters` argument.
+            let tunedParameters = LiquidGlassParameters(
+                borderWidth: parameters.borderWidth + glassLegacyBorderWidthNudge,
+                blurWidth: parameters.blurWidth,
+                distortionScale: parameters.distortionScale,
+                redOffset: parameters.redOffset,
+                greenOffset: parameters.greenOffset,
+                blueOffset: parameters.blueOffset,
+                saturation: parameters.saturation,
+                backgroundOpacity: parameters.backgroundOpacity,
+                edgeOpacity: parameters.edgeOpacity + glassLegacyEdgeOpacityNudge,
+                centerOpacity: parameters.centerOpacity + glassLegacyCenterOpacityNudge,
+                fringeOpacity: parameters.fringeOpacity
+            )
             let shaders = liquidGlassChannelShaders(
                 size: size,
                 topCornerRadius: shape.topCornerRadius,
                 bottomCornerRadius: shape.bottomCornerRadius,
-                parameters: parameters
+                parameters: tunedParameters
             )
-            let rimMask = liquidGlassRimMask(shape: shape, size: size, parameters: parameters)
+            let rimMask = liquidGlassRimMask(shape: shape, size: size, parameters: tunedParameters)
             ZStack {
                 shape.fill(.ultraThinMaterial)
                     .distortionEffect(
                         shaders.base,
-                        maxSampleOffset: CGSize(width: abs(parameters.distortionScale), height: abs(parameters.distortionScale))
+                        maxSampleOffset: CGSize(width: abs(tunedParameters.distortionScale), height: abs(tunedParameters.distortionScale))
                     )
                 shape.fill(Self.gradientMaterial)
                     .colorEffect(
                         liquidGlassOpacityShader(
-                            shape: shape, size: size, parameters: parameters,
-                            edgeOpacity: parameters.edgeOpacity, centerOpacity: parameters.centerOpacity
+                            shape: shape, size: size, parameters: tunedParameters,
+                            edgeOpacity: tunedParameters.edgeOpacity, centerOpacity: tunedParameters.centerOpacity
                         )
                     )
-                shape.fill(Color.red.opacity(parameters.fringeOpacity))
+                shape.fill(Color.red.opacity(tunedParameters.fringeOpacity))
                     .distortionEffect(
                         shaders.red,
                         maxSampleOffset: CGSize(
-                            width: abs(parameters.distortionScale) + parameters.redOffset,
-                            height: abs(parameters.distortionScale) + parameters.redOffset
+                            width: abs(tunedParameters.distortionScale) + tunedParameters.redOffset,
+                            height: abs(tunedParameters.distortionScale) + tunedParameters.redOffset
                         )
                     )
                     .colorEffect(rimMask)
                     .blendMode(.screen)
-                shape.fill(Color.green.opacity(parameters.fringeOpacity))
+                shape.fill(Color.green.opacity(tunedParameters.fringeOpacity))
                     .distortionEffect(
                         shaders.green,
                         maxSampleOffset: CGSize(
-                            width: abs(parameters.distortionScale) + parameters.greenOffset,
-                            height: abs(parameters.distortionScale) + parameters.greenOffset
+                            width: abs(tunedParameters.distortionScale) + tunedParameters.greenOffset,
+                            height: abs(tunedParameters.distortionScale) + tunedParameters.greenOffset
                         )
                     )
                     .colorEffect(rimMask)
                     .blendMode(.screen)
-                shape.fill(Color.blue.opacity(parameters.fringeOpacity))
+                shape.fill(Color.blue.opacity(tunedParameters.fringeOpacity))
                     .distortionEffect(
                         shaders.blue,
                         maxSampleOffset: CGSize(
-                            width: abs(parameters.distortionScale) + parameters.blueOffset,
-                            height: abs(parameters.distortionScale) + parameters.blueOffset
+                            width: abs(tunedParameters.distortionScale) + tunedParameters.blueOffset,
+                            height: abs(tunedParameters.distortionScale) + tunedParameters.blueOffset
                         )
                     )
                     .colorEffect(rimMask)
                     .blendMode(.screen)
             }
-            .saturation(parameters.saturation)
-            .overlay(Color.white.opacity(parameters.backgroundOpacity).colorEffect(rimMask))
+            .saturation(tunedParameters.saturation)
+            .overlay(Color.white.opacity(tunedParameters.backgroundOpacity).colorEffect(rimMask))
             .clipShape(shape)
             .allowsHitTesting(false)
         } else {

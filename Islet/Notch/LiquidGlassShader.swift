@@ -68,28 +68,33 @@ struct LiquidGlassParameters {
     // the innermost sliver near the mask's falloff as a white highlight (matches
     // D-17's "white wash reads as rim highlight" intent). fringeOpacity nudged up
     // to keep the now-thinner per-channel color visible against the dark frost.
+    // Phase 72.1.1 Plan 03 (D-01) — retuned borderWidth/blurWidth/edgeOpacity/centerOpacity
+    // on both presets so the legacy (<macOS 26) fallback reads as full-surface glass,
+    // matching the native branch's D-01 scope change: wider rim band, less dark-center-
+    // vs-edge contrast so the frost no longer reads as thin-rim-only. distortionScale,
+    // the R/G/B offsets, saturation, backgroundOpacity, and fringeOpacity are unchanged.
     static let collapsed = LiquidGlassParameters(
-        borderWidth: 0.07,
-        blurWidth: 1.2,
+        borderWidth: 0.30,
+        blurWidth: 5.0,
         distortionScale: -5,
         redOffset: 0,
         greenOffset: 1.4,
         blueOffset: 2.8,
         saturation: 1.0,
         backgroundOpacity: 0.05,
-        edgeOpacity: 0.08, centerOpacity: 0.90, fringeOpacity: 0.20
+        edgeOpacity: 0.40, centerOpacity: 0.62, fringeOpacity: 0.20
     )
 
     static let expanded = LiquidGlassParameters(
-        borderWidth: 0.05,
-        blurWidth: 2.5,
+        borderWidth: 0.28,
+        blurWidth: 7.0,
         distortionScale: -13,
         redOffset: 0,
         greenOffset: 3.5,
         blueOffset: 7,
         saturation: 1.08,
         backgroundOpacity: 0.08,
-        edgeOpacity: 0.10, centerOpacity: 0.92, fringeOpacity: 0.25
+        edgeOpacity: 0.45, centerOpacity: 0.65, fringeOpacity: 0.25
     )
 }
 
