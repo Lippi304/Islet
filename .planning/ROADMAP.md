@@ -1230,12 +1230,12 @@ Plans:
 **Goal:** The Volume/Brightness OSD bar's fill opacity scales with level — dim near 0%, near-invisible at the floor, full opacity at 100% — identically for both bars, and the percent counter uses a roll/slide (odometer-style) digit transition instead of the previous fade, staying fully legible during rapid successive key-repeat changes. Both new value sets (opacity min/max, roll speed) get a DEBUG-only live tuner, mirroring the existing Wing Tuner pattern.
 **Requirements**: D-01, D-02, D-03, D-04, D-04a, D-04b, D-05 (source: 72.1-CONTEXT.md locked decisions — no formal REQUIREMENTS.md IDs exist for this inserted phase)
 **Depends on:** Phase 72
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 72.1-01-PLAN.md — D-05 DEBUG tuner infrastructure: ActivitySettings.swift keys + NotchPillView.swift read points + AppDelegate.swift OSD Bar/Counter Tuner menu + ActivitySettingsTests.swift
+- [x] 72.1-01-PLAN.md — D-05 DEBUG tuner infrastructure: ActivitySettings.swift keys + NotchPillView.swift read points + AppDelegate.swift OSD Bar/Counter Tuner menu + ActivitySettingsTests.swift
 
 **Wave 2** *(blocked on 72.1-01)*
 
