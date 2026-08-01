@@ -27,10 +27,9 @@
 		1A099891C9DC0C4BBD962245 /* VisibilityDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77325EA9B3F5E810D4ED70AC /* VisibilityDecisionTests.swift */; };
 		1A79C5E78E4DC4C99695D044 /* QuickActionsBarCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481203BD8903085A2FE8800A /* QuickActionsBarCatalog.swift */; };
 		1A819E7EE8B838940D127CA7 /* QuickNotesFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5398F7F2DA02EC8BC05BE0D1 /* QuickNotesFileStore.swift */; };
+		1B1A69C535FAD9847E800527 /* ImageConversionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7347714169F3782E01FDBA9 /* ImageConversionServiceTests.swift */; };
 		1BA8891F7920EC9DD6F9E2B2 /* DancingScript-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E47DF64E0B34AEF713CAB91D /* DancingScript-Variable.ttf */; };
 		1C34C1BD974D50396F6713F0 /* IslandPresentationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EEA35677CE1730669284423 /* IslandPresentationState.swift */; };
-		29868CCBDD7E467385109C78 /* ImageConversionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F94665915B94708A339CA30 /* ImageConversionService.swift */; };
-		7C1BD55472C74A5F8E86ED61 /* ImageConversionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5C6494A06FD46A499EF341E /* ImageConversionServiceTests.swift */; };
 		1D57D6ADAD469EE733EC18AA /* LaunchAtLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */; };
 		1E4766E3B83E3E06186D2154 /* ShelfCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518F37B1B7F2553405CF0926 /* ShelfCoordinator.swift */; };
 		1F2B2E8221BC9084BB4A839D /* PowerActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D869CDF80317230429414E1 /* PowerActivityTests.swift */; };
@@ -151,6 +150,7 @@
 		D1A563E4CD60F114A43CEF6A /* TimerActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875773B3A3AEBE51D51C06F4 /* TimerActivityState.swift */; };
 		D29EBA9C26F56C26B9E49CDE /* ShelfCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73675D5CB80DD6A2B9894C55 /* ShelfCoordinatorTests.swift */; };
 		D4C67684455C828A20F0AF6B /* AudioOutputMonitorManualSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA15A9291849B26F80AE0A3 /* AudioOutputMonitorManualSpike.swift */; };
+		D66A1EF495A8E2A92D79F546 /* ImageConversionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFFE8339F7F08ACD4E0BB7D /* ImageConversionService.swift */; };
 		D727136A82D2AE9B72CFE626 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46B181CF063D1999E055DD9B /* Assets.xcassets */; };
 		D7F2FFB86450FE73193492BB /* DownloadCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF3780F57677A92A7657FF41 /* DownloadCoordinatorTests.swift */; };
 		D92439B942125FBBD8A0B730 /* MenuBarOverflowBridging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBB9448C717B593D5CCE0FF /* MenuBarOverflowBridging.swift */; };
@@ -216,8 +216,6 @@
 		0C019020A88EE13E58DABA87 /* LaunchAtLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLogin.swift; sourceTree = "<group>"; };
 		0C997928190396DADC0ADA29 /* NotchWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindowController.swift; sourceTree = "<group>"; };
 		0EEA35677CE1730669284423 /* IslandPresentationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandPresentationState.swift; sourceTree = "<group>"; };
-		9F94665915B94708A339CA30 /* ImageConversionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageConversionService.swift; sourceTree = "<group>"; };
-		F5C6494A06FD46A499EF341E /* ImageConversionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageConversionServiceTests.swift; sourceTree = "<group>"; };
 		105CD467BE9B3711594B4232 /* TimerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerActivity.swift; sourceTree = "<group>"; };
 		11EDAEA183BDB83B0E678C41 /* TrialManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManagerTests.swift; sourceTree = "<group>"; };
 		143DD03B59EE64AE773112BD /* IsletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsletApp.swift; sourceTree = "<group>"; };
@@ -246,6 +244,7 @@
 		3386F9F8E7F82A15E06AA96A /* TimerActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerActivityTests.swift; sourceTree = "<group>"; };
 		353BC5A79583E82567AEE07F /* ShelfFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfFileStore.swift; sourceTree = "<group>"; };
 		3AA8943FF6A71F7546A800BD /* PolarLicenseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseService.swift; sourceTree = "<group>"; };
+		3AFFE8339F7F08ACD4E0BB7D /* ImageConversionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageConversionService.swift; sourceTree = "<group>"; };
 		3E6D591BFC3DCEBAFE23986B /* ActivityCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCard.swift; sourceTree = "<group>"; };
 		3FCDC1E75FAE6EAD6E3BE639 /* LaunchAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAction.swift; sourceTree = "<group>"; };
 		406030D1395E35FB24681FE8 /* InteractionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionStateTests.swift; sourceTree = "<group>"; };
@@ -372,6 +371,7 @@
 		F1460D18D7C0D64BFC9D310E /* ClipboardStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStoreTests.swift; sourceTree = "<group>"; };
 		F47ECDE27429D65F0FC0282A /* MeetingMonitorManualSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingMonitorManualSpike.swift; sourceTree = "<group>"; };
 		F5E229CD35A19E341118D6DE /* QuickNotesPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickNotesPopoverView.swift; sourceTree = "<group>"; };
+		F7347714169F3782E01FDBA9 /* ImageConversionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageConversionServiceTests.swift; sourceTree = "<group>"; };
 		F96A960BD3E29AEB11627FD5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F99A514914B21E05DB962A52 /* SettingsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewTests.swift; sourceTree = "<group>"; };
 		FA62CE81F6539C4490617038 /* OnboardingViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewState.swift; sourceTree = "<group>"; };
@@ -443,7 +443,7 @@
 				1B95E794C13DE3DAA7C2891B /* FocusActivityTests.swift */,
 				45E0101ADA32F0C14E218A55 /* FocusToggleActionTests.swift */,
 				E369D2ED7D49953AD66A560B /* FullscreenDetectorTests.swift */,
-				F5C6494A06FD46A499EF341E /* ImageConversionServiceTests.swift */,
+				F7347714169F3782E01FDBA9 /* ImageConversionServiceTests.swift */,
 				406030D1395E35FB24681FE8 /* InteractionStateTests.swift */,
 				4A3063E01FF76A78398606DF /* IslandResolverTests.swift */,
 				5224A9D0D55A9C335559EDBB /* LicenseManagerTests.swift */,
@@ -636,7 +636,7 @@
 				7266CC288F6F27EFA1B86451 /* FocusModeMonitor.swift */,
 				885DB8C610716B7530D89BDB /* FullscreenDetector.swift */,
 				71E7CA0C877A120B3717E0E4 /* FullscreenSpaceProbe.swift */,
-				9F94665915B94708A339CA30 /* ImageConversionService.swift */,
+				3AFFE8339F7F08ACD4E0BB7D /* ImageConversionService.swift */,
 				0EEA35677CE1730669284423 /* IslandPresentationState.swift */,
 				8AECFB326AA1C46FECE017D0 /* IslandResolver.swift */,
 				2B5A2F6E4109A7EDAF7E5405 /* LiquidGlassShader.metal */,
@@ -863,7 +863,7 @@
 				FE1D2DEF4C45CC076E547031 /* FocusToggleAction.swift in Sources */,
 				8CEEBDB51AC0041BDC1306AC /* FullscreenDetector.swift in Sources */,
 				6E7588C0E74ED25E45E3F1AE /* FullscreenSpaceProbe.swift in Sources */,
-				29868CCBDD7E467385109C78 /* ImageConversionService.swift in Sources */,
+				D66A1EF495A8E2A92D79F546 /* ImageConversionService.swift in Sources */,
 				1C34C1BD974D50396F6713F0 /* IslandPresentationState.swift in Sources */,
 				C0667FBB99D4EFB9F888FEE1 /* IslandResolver.swift in Sources */,
 				01168B5EC7AF98EE1ADA34D8 /* IsletApp.swift in Sources */,
@@ -955,7 +955,7 @@
 				57E10B87D7BD50703138D12D /* FocusActivityTests.swift in Sources */,
 				3C94A230BB06C599AC773DFC /* FocusToggleActionTests.swift in Sources */,
 				21D3560AA4C7B91581AA5272 /* FullscreenDetectorTests.swift in Sources */,
-				7C1BD55472C74A5F8E86ED61 /* ImageConversionServiceTests.swift in Sources */,
+				1B1A69C535FAD9847E800527 /* ImageConversionServiceTests.swift in Sources */,
 				0B5D7C9F97587BFE2049F7D7 /* InteractionStateTests.swift in Sources */,
 				F553863EC9FBAB880ED80376 /* IslandResolverTests.swift in Sources */,
 				7604855295CC6043B60954AF /* LicenseManagerTests.swift in Sources */,
@@ -1015,7 +1015,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Islet/Islet.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1036,7 +1036,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lippi304.islet;
 				PRODUCT_NAME = Islet;
 				SDKROOT = macosx;
@@ -1177,7 +1177,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Islet/Islet.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1198,7 +1198,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lippi304.islet;
 				PRODUCT_NAME = Islet;
 				SDKROOT = macosx;
