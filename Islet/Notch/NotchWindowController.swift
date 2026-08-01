@@ -2218,13 +2218,16 @@ final class NotchWindowController {
         #endif
         DispatchQueue.main.asyncAfter(deadline: .now() + graceDelay, execute: work)
 
-        // D-10: once the pointer leaves a STANDING charging splash, resume the ~3s
-        // auto-dismiss (handleHoverEnter cancelled it on entry). No-op when no splash stands.
-        // Click stays informational (D-10): the existing handleClick → expand is untouched and
-        // .clicked is never routed into the activity model.
-        if chargingState.activity != nil {
-            scheduleActivityDismiss()
-        }
+        // D-10: once the pointer leaves ANY standing transient splash, resume its auto-dismiss
+        // (handleHoverEnter cancelled it unconditionally on entry, for every category — see
+        // that function). Bug fix (osd-wing-stuck-after-expand, 2026-08-01): this used to be
+        // gated on `chargingState.activity != nil`, so only a charging splash's timer was ever
+        // resumed — .osd (and .device/.capsLock/.updateAvailable/.downloadProgress(.done)) never
+        // got their timer restarted once a hover-then-click cancelled it, leaving the head stuck
+        // forever with a frozen value. scheduleActivityDismiss() already no-ops safely when
+        // transientQueue.head is nil or isPersistent (see its own guard), so calling it
+        // unconditionally here is safe and mirrors handleHoverEnter's unconditional cancel.
+        scheduleActivityDismiss()
         // Finding 7: symmetric resume for the D-06 paused-media linger — only re-arm when a
         // paused glance is genuinely standing (mirrors handleNowPlaying's own .paused gating).
         if case .paused = nowPlayingState.presentation {
