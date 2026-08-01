@@ -12,6 +12,7 @@ discuss-phase (2026-08-01); flagged as a technical blocker that needs proving be
 
 - Apple Music cannot be a supported source for real "next 5 tracks" queue data via AppleScript — no queue API exists, and even playlist-order prediction is unreliable once Apple Music's autoplay layer takes over (Spike 001). The Next Up panel must have a defined behavior for players/sources with no usable queue data.
 - Spotify's AppleScript surface has no queue/playlist object at all (Spike 002) — a dead end, no partial trick possible. Its real queue API (`GET /me/player/queue`) requires registering a developer app under a Spotify Premium account (new Feb 2026 rule); blocked for this project until a Premium account is available to register it.
+- MediaRemote (the private framework Islet already links via MediaRemoteAdapter) tracks a queue *index* and fires a queue-changed notification, but never exposes queue *contents* — confirmed against the actively maintained library itself, not just old docs (Spike 003). No app-agnostic queue data source exists today. NOW-08 as specified ("next 5 queued tracks") cannot be built against any currently available data source — needs a scope decision before planning.
 
 ## Spikes
 
@@ -19,4 +20,4 @@ discuss-phase (2026-08-01); flagged as a technical blocker that needs proving be
 |---|------|------|-----------|---------|------|
 | 001 | apple-music-queue-scripting | standard | Given Music.app is playing, when queried via AppleScript, then the next 5 upcoming tracks (title/artist/artwork) are retrievable, including under shuffle | ✗ INVALIDATED | music, applescript, phase-74 |
 | 002 | spotify-queue-scripting | standard | Given Spotify is playing, when queried via AppleScript or the local Spotify Web API, then the next 5 queued tracks are retrievable | ✗ INVALIDATED | spotify, applescript, phase-74 |
-| 003 | private-mediaremote-queue-hook | standard | Given the private MediaRemote framework is already linked (via MediaRemoteAdapter), when probed for undocumented queue/upcoming-track selectors, then queue data is retrievable app-agnostically without per-app scripting | PENDING | mediaremote, private-api, phase-74 |
+| 003 | private-mediaremote-queue-hook | standard | Given the private MediaRemote framework is already linked (via MediaRemoteAdapter), when probed for undocumented queue/upcoming-track selectors, then queue data is retrievable app-agnostically without per-app scripting | ✗ INVALIDATED | mediaremote, private-api, phase-74 |
