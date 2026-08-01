@@ -99,7 +99,7 @@ forward, not shipped) are archived in `.planning/milestones/v1.10-REQUIREMENTS.m
 
 ### Now Playing — Next Up Queue
 
-- [ ] **NOW-08**: Tapping the existing list-icon affordance (left of the transport controls) in the expanded Now Playing view opens a "Next Up" panel listing the next 5 queued tracks (album art, title, artist)
+- [ ] ~~**NOW-08**: Tapping the existing list-icon affordance (left of the transport controls) in the expanded Now Playing view opens a "Next Up" panel listing the next 5 queued tracks (album art, title, artist)~~ — **DEFERRED to seed** (2026-08-01): 6 spikes (Phase 74, spikes 001-006) found no data source delivers this app-agnostically — Apple Music/Spotify AppleScript and the private MediaRemote framework are all invalidated; a Music.app-only Accessibility API route exists but requires silently manipulating Music.app's own UI in the background, judged too fragile to ship. See `.planning/seeds/music-next-up-queue.md`.
 
 ## v2 Requirements
 
@@ -186,7 +186,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TIMER-05 | Phase 73 | Pending |
 | TIMER-06 | Phase 73 | Pending |
 | TIMER-07 | Phase 73 | Pending |
-| NOW-08 | Phase 74 | Pending |
+| NOW-08 | Phase 74 | Deferred to seed (2026-08-01) |
 
 **Coverage (v1.5):**
 - v1.5 requirements: 11 total
@@ -208,12 +208,14 @@ v1.9's traceability table (CLIP-01..05, PRIV-01/02 — 7/7 shipped) is archived 
 v1.10's traceability table (27 total, 16 shipped/59%, 11 carried forward — NOTES-*/MENUBAR-*/CODE-* not delivered) is archived in `.planning/milestones/v1.10-REQUIREMENTS.md`.
 
 **Coverage (v1.11):**
-- v1.11 requirements: 8 total
-- Mapped to phases: 8 (100%)
+- v1.11 requirements: 8 total (7 active, 1 deferred to seed)
+- Mapped to phases: 7 (100% of active)
 - Unmapped: 0
+- NOW-08 (Phase 74) deferred to `.planning/seeds/music-next-up-queue.md` (2026-08-01) — not tracked toward this milestone's completion
 
 ---
 *Requirements defined: 2026-07-13*
+*Last updated: 2026-08-01 — NOW-08 (Phase 74, Music Next Up Queue) deferred to `.planning/seeds/music-next-up-queue.md` after 6 spikes (001-006) confirmed no data source delivers "next 5 queued tracks" app-agnostically; the one real alternative (Music.app-only Accessibility API) needs Music.app's own UI silently manipulated in the background, judged too fragile. v1.11 now 7/7 active requirements, 100% mapped.*
 *Last updated: 2026-07-30 — v1.11 (Droppy-Inspired Polish Round 2) requirements defined: 9 requirements (SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07, NOW-08), scoped directly from 4 already-detailed seed files, no research needed. Not yet mapped to phases — roadmap pending.*
 *Last updated: 2026-07-30 — v1.10 (Live Activities Suite) shipped and archived to `.planning/milestones/v1.10-REQUIREMENTS.md`/`.planning/milestones/v1.10-ROADMAP.md` — Phases 59-63/65, 16/27 requirements shipped; Phases 64/66/67 (NOTES-*, MENUBAR-*, CODE-*) carried forward, not descoped. Correction made at close: MENUBAR-01/02/03 had been incorrectly marked Complete despite Phase 66's 3 on-device NO-GOs — fixed to Not delivered. v1.4, v1.5, and v1.7 all remain open in parallel — v1.7 paused at Phase 49 (Favorite/Like spike aborted, Phase 50 undecided).*
 *v1.7 (Interaction & Calendar Polish) roadmap created: 8 phases (43-50), 100% coverage (15/15). Phase order: Drag Detection Hardening (43) → Tray & Quick Action Width Alignment (44, DRAG-02 bundled with TRAY-06 to avoid touching the shared width geometry twice) → View Switcher Morph Fix (45) → Calendar Quick-Add Improvements (46) — all 4 independent, no research dependency — then Audio Output Switcher split pure-seam-first (47) then UI wiring (48, hard dependency on 47), then Favorite/Like split spike-first (49) then implementation (50, hard dependency on 49), per research's explicit risk-isolation recommendation and this project's own Phase 22/24, Phase 38/39 spike-first precedent. Phase numbering continues from Phase 42 (v1.6's last phase).*

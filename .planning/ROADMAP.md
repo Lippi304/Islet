@@ -175,7 +175,6 @@ Full phase details, goals, success criteria, and plan lists: `.planning/mileston
 - [x] **Phase 71: Island Corner Rounding** - More rounded wing-state silhouette + DEBUG-only corner-radius tuner (completed 2026-07-30)
 - [x] **Phase 72: Calendar Redesign — Native Calendar Clone** - Two-column month-grid + agenda layout, 1:1 visual match to macOS Calendar (completed 2026-07-30)
 - [ ] **Phase 73: Timer Redesign — Remove Pomodoro + Ruler Slider** - Pomodoro fully removed; new minutes ruler/slider + Start Timer + sound toggle
-- [ ] **Phase 74: Music Next Up Queue** - List-icon affordance opens a Next Up panel (next 5 tracks: art/title/artist)
 
 ## Phase Details
 
@@ -236,7 +235,7 @@ Plans:
 
 **v1.10:** 6/9 phases shipped (67%) — see `.planning/milestones/v1.10-ROADMAP.md` for the full per-phase breakdown. Shipped 2026-07-30; 16/27 requirements delivered (Phases 59-63/65). Phase 64 (Quick Notes, 3 UAT bugs unfixed), Phase 66 (Menübar-Overflow, PAUSED after 3 NO-GOs), and Phase 67 (Coding-Progress, never started) carried forward, not descoped.
 
-**v1.11:** 0/4 phases complete (0%) — roadmap created 2026-07-30. Phases 71-74, 8/8 v1.11 requirements mapped (SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07, NOW-08). Phase order follows the user's own stated seed-ranking (Island Corner Rounding → Calendar Redesign → Timer Redesign → Music Next Up Queue) — all 4 are independent UI polish/redesign passes on already-shipped subsystems, no dependency forced a different order. Phase 73 (Timer) is flagged riskiest (removes existing Pomodoro state/settings) but kept as one phase, not spike-first — the open question is a scope/removal decision for `/gsd-discuss-phase 73` to resolve, not a technical-feasibility unknown in the Phase 22/24 or Phase 49/50 sense. Phase numbering continues from Phase 70 (last phase before this milestone).
+**v1.11:** 0/3 phases complete (0%) — roadmap created 2026-07-30. Phases 71-73, 7/7 v1.11 requirements mapped (SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07). Phase order follows the user's own stated seed-ranking (Island Corner Rounding → Calendar Redesign → Timer Redesign) — all 3 are independent UI polish/redesign passes on already-shipped subsystems, no dependency forced a different order. Phase 73 (Timer) is flagged riskiest (removes existing Pomodoro state/settings) but kept as one phase, not spike-first — the open question is a scope/removal decision for `/gsd-discuss-phase 73` to resolve, not a technical-feasibility unknown in the Phase 22/24 or Phase 49/50 sense. Phase numbering continues from Phase 70 (last phase before this milestone). Phase 74 (Music Next Up Queue, NOW-08) deferred to a seed (2026-08-01) after 6 spikes (001-006) found no data source can deliver "next 5 queued tracks" app-agnostically; see `.planning/seeds/music-next-up-queue.md`.
 
 ### Phase 15: Architecture Refactor — Mechanical Fixes & DI Seams
 
@@ -1291,19 +1290,4 @@ Plans:
   5. A user upgrading from a build with Pomodoro settings already persisted sees no crash or stale/orphaned state — old Pomodoro-specific keys are cleanly migrated away or ignored, not left dangling.
 
 **Plans**: TBD (run `/gsd:plan-phase 73` to break down)
-**UI hint**: yes
-
-### Phase 74: Music Next Up Queue
-
-**Goal:** Tapping the existing list-icon affordance in the expanded Now Playing view opens a "Next Up" panel listing the next 5 queued tracks (album art, title, artist), matching Droppy's two-column expanded-player reference.
-**Requirements**: NOW-08
-**Depends on:** Nothing structurally — independent of Phases 71-73; sequenced fourth (last) per the user's own stated priority order (rank 5 of the original 5-idea list).
-**Success Criteria** (what must be TRUE):
-
-  1. Tapping the existing list-icon affordance (left of the transport controls) in the expanded Now Playing view opens a "Next Up" panel.
-  2. The panel lists the next 5 queued tracks, each row showing album art, title, and artist.
-  3. Tapping the same list-icon affordance again closes the panel (toggle, not a one-way reveal).
-  4. If the current source app exposes fewer than 5 upcoming tracks (or no queue at all), the panel degrades gracefully — fewer rows or an explicit empty state — rather than crashing or showing placeholder/stale data.
-
-**Plans**: TBD (run `/gsd:plan-phase 74` to break down)
 **UI hint**: yes

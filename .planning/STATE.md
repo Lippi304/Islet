@@ -173,7 +173,7 @@ Progress (v1.9): [██████████] 100% — SHIPPED 2026-07-23 (4
 
 Progress (v1.10): [████░░░░░░] 44% (4/9 phases shipped — Phase 59 Settings-Redesign, Phase 60 Caps Lock HUD + Update-Activity Restyle, Phase 61 Download-Progress, Phase 62 Timer/Pomodoro all shipped and on-device UAT approved; SETTINGS-04/05, CAPS-01, UPDATE-01, DL-01/02, TIMER-01/02/03/04 complete. **Phase 63 Meeting-HUD: all 4 plans executed, 2-round on-device UAT approved, MEET-01/02/03 complete — awaiting orchestrator phase-level gates (code review, regression, verify-work) before the phase counts as shipped.** Phases 64-68 not started)
 
-Progress (v1.11): [░░░░░░░░░░] 0% (0/4 phases — roadmap created 2026-07-30: Phases 71-74, 8/8 requirements mapped — SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07, NOW-08. Order: Island Corner Rounding (71) → Calendar Redesign (72) → Timer Redesign (73) → Music Next Up Queue (74), per the user's own stated seed-ranking)
+Progress (v1.11): [░░░░░░░░░░] 0% (0/3 phases — roadmap created 2026-07-30: Phases 71-73, 7/7 requirements mapped — SHAPE-02/03, CALVIEW-08/09, TIMER-05/06/07. Order: Island Corner Rounding (71) → Calendar Redesign (72) → Timer Redesign (73), per the user's own stated seed-ranking. Phase 74 (Music Next Up Queue, NOW-08) deferred to a seed 2026-08-01 after 6 spikes found no viable app-agnostic data source)
 
 ## Performance Metrics
 

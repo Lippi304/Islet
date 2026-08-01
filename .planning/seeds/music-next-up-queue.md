@@ -1,6 +1,6 @@
 ---
 title: Music "Next Up" Queue Expansion
-trigger_condition: After timer-slider-redesign phase — rank 5 of 5 ideas captured 2026-07-29
+trigger_condition: Spotify Premium account becomes available to register a developer app (unblocks the official `GET /me/player/queue` Web API), OR Apple Music/Spotify ship a real public queue API, OR the user reconsiders the Music.app-only Accessibility API tradeoff (silently toggling Music.app's own "Playing Next" panel in the background)
 planted_date: 2026-07-29
 ---
 
@@ -30,3 +30,34 @@ User's own stated priority — rank 5 (last) of the ordered list.
 
 Rank 5 of 5 ideas captured 2026-07-29 (see also [[filetray-convert-button]],
 [[island-corner-rounding]], [[calendar-redesign-droppy]], [[timer-slider-redesign]]).
+
+## Status (2026-08-01): Deferred back to seed after Phase 74 spikes
+
+This became Phase 74 (NOW-08) in the v1.11 roadmap, then was spiked (6 experiments,
+`.planning/spikes/001` through `006`) before planning to prove feasibility. Findings, packaged
+into the `spike-findings-islet` project skill (`.claude/skills/spike-findings-islet/references/music-next-up-queue.md`):
+
+- **Apple Music AppleScript, Spotify AppleScript/Web API, and the private MediaRemote
+  framework are all invalidated** — none exposes real "next N queued tracks" data
+  (Spikes 001-003).
+- **A "recently played" history is buildable today**, app-agnostic, no new permission
+  (Spike 004, VALIDATED) — but the user confirmed (2026-08-01 explore session) this doesn't
+  satisfy the actual desire: he wants to see forward, what's coming up in the next skips, not
+  a backward-looking log. This option was explicitly rejected as not matching the original ask.
+- **Music.app's real "Playing Next" panel is readable via the Accessibility API** (Spike 005,
+  PARTIAL) — genuine forward-looking data (History + current + AutoPlay suggestions) for
+  Music.app, which is the user's primary player. But the AX tree only exists once that panel is
+  actually rendered on screen in Music.app itself — there's no way to query it "in the
+  background." Building this into Islet would require either the user manually opening
+  Music.app's own panel each time, or Islet silently toggling it open via UI-scripting behind
+  the scenes. The user explicitly rejected the "silently manipulate a foreign app's UI in the
+  background" approach as too fragile/hacky (2026-08-01) — decided to abandon rather than ship
+  it that way.
+- **Spotify's local IPC surface (port 7768) is real but completely undocumented** — reverse
+  engineering it is out of scope (Spike 006, INVALIDATED).
+
+**Net decision:** Phase 74 pulled from the active v1.11 roadmap (NOW-08 marked deferred in
+REQUIREMENTS.md). Revisit only if one of the trigger conditions above changes the calculus —
+don't re-attempt the history pivot (already explicitly rejected as not matching the ask) or the
+background-AX-toggle approach (already explicitly rejected as too fragile) without the user
+first indicating something changed their mind on those specific tradeoffs.
