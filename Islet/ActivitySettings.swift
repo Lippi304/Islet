@@ -134,6 +134,14 @@ enum ActivitySettings {
     static let debugGlassLegacyEdgeOpacityNudgeKey = "debug.glassTuner.legacyEdgeOpacityNudge"
     static let debugGlassLegacyCenterOpacityNudgeKey = "debug.glassTuner.legacyCenterOpacityNudge"
     static let debugGlassLegacyBorderWidthNudgeKey = "debug.glassTuner.legacyBorderWidthNudge"
+
+    // Quick task 260801 — DEBUG-only "Switcher Tuner" live-nudge keys: sizeNudge shrinks/grows
+    // the switcher row's navCircleButton diameter (both Pill and Top Edge layouts share this one
+    // axis), contentOffsetNudge shifts every switcher-row tab's content down/up by adding to the
+    // shared cameraClearance top-padding constant. Same dev-tool-only, always-0-at-rest contract
+    // as the Wing/OSD/Glass Tuner keys above.
+    static let debugSwitcherSizeNudgeKey = "debug.switcherTuner.sizeNudge"
+    static let debugSwitcherContentOffsetNudgeKey = "debug.switcherTuner.contentOffsetNudge"
     #endif
 
     // Phase 52 / SWITCH-03/04 — the view switcher's layout: today's pill-below-the-island

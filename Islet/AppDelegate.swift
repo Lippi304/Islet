@@ -587,6 +587,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         glassTunerItem.submenu = glassTunerMenu
         debugMenu.addItem(glassTunerItem)
 
+        // Quick task 260801 — DEBUG-only "Switcher Tuner": Size shrinks/grows the switcher
+        // row's icon circles (both Pill and Top Edge layouts share this one axis); Content
+        // Offset shifts every switcher-row tab's content down/up together (one shared value,
+        // not per-tab). Same live-tune-then-bake-into-source workflow as Wing Tuner above —
+        // switch to Settings > Layout > "Top Edge" to see the crowding this was built to fix.
+        let switcherTunerMenu = NSMenu()
+        switcherTunerMenu.addItem(withTitle: "Size -4", action: #selector(debugSwitcherSizeMinus), keyEquivalent: "")
+        switcherTunerMenu.addItem(withTitle: "Size -1", action: #selector(debugSwitcherSizeMinus1), keyEquivalent: "")
+        switcherTunerMenu.addItem(withTitle: "Size +1", action: #selector(debugSwitcherSizePlus1), keyEquivalent: "")
+        switcherTunerMenu.addItem(withTitle: "Size +4", action: #selector(debugSwitcherSizePlus), keyEquivalent: "")
+        switcherTunerMenu.addItem(.separator())
+        switcherTunerMenu.addItem(withTitle: "Content Offset -4", action: #selector(debugSwitcherOffsetMinus), keyEquivalent: "")
+        switcherTunerMenu.addItem(withTitle: "Content Offset -1", action: #selector(debugSwitcherOffsetMinus1), keyEquivalent: "")
+        switcherTunerMenu.addItem(withTitle: "Content Offset +1", action: #selector(debugSwitcherOffsetPlus1), keyEquivalent: "")
+        switcherTunerMenu.addItem(withTitle: "Content Offset +4", action: #selector(debugSwitcherOffsetPlus), keyEquivalent: "")
+        switcherTunerMenu.addItem(.separator())
+        switcherTunerMenu.addItem(withTitle: "Reset Switcher Tuner", action: #selector(debugSwitcherTunerReset), keyEquivalent: "")
+        switcherTunerMenu.addItem(withTitle: "Print Switcher Tuner Values", action: #selector(debugSwitcherTunerPrint), keyEquivalent: "")
+        for item in switcherTunerMenu.items { item.target = self }
+        let switcherTunerItem = NSMenuItem(title: "Switcher Tuner", action: nil, keyEquivalent: "")
+        switcherTunerItem.submenu = switcherTunerMenu
+        debugMenu.addItem(switcherTunerItem)
+
         // Quick task 260729-0b5 — DEBUG-only "Preview Wing": fake-triggers every
         // collapsed-state HUD wing on demand (no need to actually play music, press volume
         // keys, toggle real DND, plug in a charger, connect a device, start a download,
@@ -706,6 +729,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let centerOpacity = UserDefaults.standard.double(forKey: ActivitySettings.debugGlassLegacyCenterOpacityNudgeKey)
         let borderWidth = UserDefaults.standard.double(forKey: ActivitySettings.debugGlassLegacyBorderWidthNudgeKey)
         print("[GlassTuner] tintNudge=\(tint) glossNudge=\(gloss) legacyEdgeOpacityNudge=\(edgeOpacity) legacyCenterOpacityNudge=\(centerOpacity) legacyBorderWidthNudge=\(borderWidth) — bake tintNudge/glossNudge into the native tint/gloss literals in liquidGlassEffectLayer, and legacyEdgeOpacityNudge/legacyCenterOpacityNudge/legacyBorderWidthNudge into LiquidGlassParameters.collapsed/.expanded's edgeOpacity/centerOpacity/borderWidth in LiquidGlassShader.swift, then click Reset Liquid Glass Tuner.")
+    }
+
+    // Quick task 260801 — Switcher Tuner actions, reusing the existing adjustWingNudge(_:by:)
+    // helper above (no new helper).
+    @objc private func debugSwitcherSizeMinus() { adjustWingNudge(ActivitySettings.debugSwitcherSizeNudgeKey, by: -4) }
+    @objc private func debugSwitcherSizeMinus1() { adjustWingNudge(ActivitySettings.debugSwitcherSizeNudgeKey, by: -1) }
+    @objc private func debugSwitcherSizePlus1() { adjustWingNudge(ActivitySettings.debugSwitcherSizeNudgeKey, by: 1) }
+    @objc private func debugSwitcherSizePlus() { adjustWingNudge(ActivitySettings.debugSwitcherSizeNudgeKey, by: 4) }
+    @objc private func debugSwitcherOffsetMinus() { adjustWingNudge(ActivitySettings.debugSwitcherContentOffsetNudgeKey, by: -4) }
+    @objc private func debugSwitcherOffsetMinus1() { adjustWingNudge(ActivitySettings.debugSwitcherContentOffsetNudgeKey, by: -1) }
+    @objc private func debugSwitcherOffsetPlus1() { adjustWingNudge(ActivitySettings.debugSwitcherContentOffsetNudgeKey, by: 1) }
+    @objc private func debugSwitcherOffsetPlus() { adjustWingNudge(ActivitySettings.debugSwitcherContentOffsetNudgeKey, by: 4) }
+
+    @MainActor @objc private func debugSwitcherTunerReset() {
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugSwitcherSizeNudgeKey)
+        UserDefaults.standard.set(0.0, forKey: ActivitySettings.debugSwitcherContentOffsetNudgeKey)
+    }
+
+    @objc private func debugSwitcherTunerPrint() {
+        let size = UserDefaults.standard.double(forKey: ActivitySettings.debugSwitcherSizeNudgeKey)
+        let offset = UserDefaults.standard.double(forKey: ActivitySettings.debugSwitcherContentOffsetNudgeKey)
+        print("[SwitcherTuner] sizeNudge=\(size) contentOffsetNudge=\(offset) — bake sizeNudge into navCircleDiameter (NotchPillView.swift, only if you want it to apply everywhere — otherwise keep it as a switcher-only override) and contentOffsetNudge into cameraClearance, then click Reset Switcher Tuner.")
     }
 
     @MainActor @objc private func debugWingTunerReset() {

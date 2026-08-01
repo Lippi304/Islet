@@ -198,6 +198,11 @@ struct NotchPillView: View {
     @AppStorage(ActivitySettings.debugGlassLegacyEdgeOpacityNudgeKey) private var debugGlassLegacyEdgeOpacityNudge: Double = 0
     @AppStorage(ActivitySettings.debugGlassLegacyCenterOpacityNudgeKey) private var debugGlassLegacyCenterOpacityNudge: Double = 0
     @AppStorage(ActivitySettings.debugGlassLegacyBorderWidthNudgeKey) private var debugGlassLegacyBorderWidthNudge: Double = 0
+
+    // Quick task 260801 — Switcher Tuner storage, same always-0-at-rest contract as the
+    // Wing/OSD/Glass Tuner keys above.
+    @AppStorage(ActivitySettings.debugSwitcherSizeNudgeKey) private var debugSwitcherSizeNudge: Double = 0
+    @AppStorage(ActivitySettings.debugSwitcherContentOffsetNudgeKey) private var debugSwitcherContentOffsetNudge: Double = 0
     #endif
 
     // Always-compiled read points so every wing function can call these unconditionally.
@@ -295,6 +300,28 @@ struct NotchPillView: View {
         return 0
         #endif
     }
+
+    // Quick task 260801 — always-compiled Switcher Tuner read points, same zero-Release-cost
+    // contract as every other nudge above. switcherSizeNudge shifts navCircleDiameter for the
+    // switcher row's icons only (other navCircleButton callers — onboarding nav, Timer setup —
+    // pass no diameter override and stay byte-identical); resolvedCameraClearance feeds every
+    // `.padding(.top, ...)` call site that used to read `Self.cameraClearance` directly, so one
+    // nudge shifts every switcher-row tab's content down/up together.
+    private var switcherSizeNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugSwitcherSizeNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var switcherContentOffsetNudge: CGFloat {
+        #if DEBUG
+        return CGFloat(debugSwitcherContentOffsetNudge)
+        #else
+        return 0
+        #endif
+    }
+    private var resolvedCameraClearance: CGFloat { Self.cameraClearance + switcherContentOffsetNudge }
 
     // Phase 62 / TIMER-01 (D-01) — the Timer/Pomodoro activity toggle (Settings default OFF,
     // per v1.10's own "new activities default OFF" convention). Read directly here, same
@@ -880,13 +907,24 @@ struct NotchPillView: View {
                 // uses lets it continuously track the shape's own already-working animated frame
                 // every tick, instead of only snapping to the newly-inserted branch's static
                 // resolved size.
+                // Debug session `liquid-glass-release-black` (2026-08-01) — root cause of a
+                // Debug-vs-Release rendering divergence (Release showed near-opaque black,
+                // Debug showed correctly translucent glass): glassTintNudge/glassGlossNudge are
+                // `#if DEBUG`-gated by design (dev-tool-only nudges, see their declaration
+                // comment) — they'd been live-tuned to tintNudge=-0.7/glossNudge=+0.2 on-device
+                // and confirmed looking right in Debug, but never baked into these literals nor
+                // reset, so Release silently fell back to the stale pre-tuning 0.7/0.15 base
+                // values (the Debug build was reading the tuned UserDefaults nudge; Release
+                // always reads 0). D-15 (Phase 72.1.1, "tint deepened to 0.7 ... reads dark")
+                // is SUPERSEDED by this on-device re-tuning — confirmed by the user's own
+                // side-by-side comparison, Debug's untinted-clear look is the intended one now.
                 ZStack {
                     Color.clear
-                        .glassEffect(.clear.tint(Color.black.opacity(0.7 + glassTintNudge)), in: shape)
+                        .glassEffect(.clear.tint(Color.black.opacity(0.0 + glassTintNudge)), in: shape)
                     shape
                         .stroke(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.15 + glassGlossNudge), Color.clear],
+                                colors: [Color.white.opacity(0.35 + glassGlossNudge), Color.clear],
                                 startPoint: .top,
                                 endPoint: .center
                             ),
@@ -1018,6 +1056,23 @@ struct NotchPillView: View {
     // per user confirmation of a minor overlap with the physical camera in mediaExpanded's
     // art/title/transport content.
     static let cameraClearance: CGFloat = 42
+
+    // Quick task 260801 — baked-in confirmed on-device Switcher Tuner content-offset values,
+    // split by view group after live on-device comparison (mediaContent/"Music Play expanded"
+    // needed more clearance than the switcher-row tab group did). `+ switcherContentOffsetNudge`
+    // stays appended at each call site so both bases remain independently live-tunable, same
+    // convention as wingMarginNudge reused across every wing's own base margin constant.
+    // resolvedCameraClearance (below) stays the shared base for every other switcher-row tab
+    // not called out by name in this on-device pass (Home empty/unavailable states, Timer,
+    // Quick Action picker, onboarding).
+    static let mediaExpandedClearance: CGFloat = cameraClearance + 24   // 66 — mediaContent
+    static let switcherTabClearance: CGFloat = cameraClearance + 12     // 54 — Calendar/Quick Actions/Weather/Tray
+
+    // Quick task 260801 — baked-in confirmed on-device Switcher Tuner size value: user confirmed
+    // Pill and Top Edge switcher icons should match each other, sized smaller than every other
+    // navCircleButton caller (onboarding nav, Timer controls) — kept as its OWN constant per the
+    // tuner's own print-value guidance ("switcher-only override"), navCircleDiameter untouched.
+    static let switcherIconDiameter: CGFloat = navCircleDiameter - 9   // 27
 
     // 28-04 round 5 (on-device UAT, real Droppy reference screenshots) — the month-grid cell
     // size/gap, shrunk from round 4's 28×28pt/4pt (which round 4's own comment admitted were
@@ -1574,7 +1629,7 @@ struct NotchPillView: View {
         // `Self.cameraClearance` (42) constant. The mismatch sat this empty state's icon
         // noticeably higher/closer to the camera than the playing-state view. Matching the
         // same constant here aligns the vertical position with every sibling presentation.
-        .padding(.top, Self.cameraClearance)
+        .padding(.top, resolvedCameraClearance)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
@@ -1639,7 +1694,7 @@ struct NotchPillView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                .padding(.top, Self.cameraClearance)
+                .padding(.top, Self.switcherTabClearance + switcherContentOffsetNudge)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 VStack(spacing: 16) {
@@ -1649,7 +1704,7 @@ struct NotchPillView: View {
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, Self.cameraClearance)
+                .padding(.top, Self.switcherTabClearance + switcherContentOffsetNudge)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
         }
@@ -1784,7 +1839,7 @@ struct NotchPillView: View {
                 .frame(maxWidth: .infinity, alignment: .top)
         }
         .padding(.horizontal, 16)
-        .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
+        .padding(.top, Self.switcherTabClearance + switcherContentOffsetNudge)   // Quick task 260801 baked Switcher Tuner value
         // Quick task 260715-vsd — scales the whole padded HStack (month grid, divider, day
         // list + "+ Add" button) inward by 4% from its own center, pulling the Add button
         // further from the curved wall on top of the extra calendarWidth from step 1.
@@ -2094,7 +2149,7 @@ struct NotchPillView: View {
                 weatherFullUnavailable
             }
         }
-        .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
+        .padding(.top, Self.switcherTabClearance + switcherContentOffsetNudge)   // Quick task 260801 baked Switcher Tuner value
     }
 
     // The populated state: location name (or "Local" fallback) above the icon, then icon +
@@ -2334,7 +2389,7 @@ struct NotchPillView: View {
                 shelfRow(shelfViewState.items, rowHeight: Self.trayShelfRowHeight, topInset: Self.trayShelfRowTopInset)
             }
         }
-        .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches mediaExpanded's convention
+        .padding(.top, Self.switcherTabClearance + switcherContentOffsetNudge)   // Quick task 260801 baked Switcher Tuner value
     }
 
     // The empty state — mirrors `calendarEmptyState`'s tone/structure (heading + secondary
@@ -2397,7 +2452,7 @@ struct NotchPillView: View {
                     quickActionButtonRow(pendingDrop)
                 }
             }
-                .padding(.top, Self.cameraClearance)   // camera/notch clearance — matches every other full-view
+                .padding(.top, resolvedCameraClearance)   // camera/notch clearance — matches every other full-view
                 // Phase 44 UAT gap-closure (round 1) — quickActionButtonRow() had zero horizontal
                 // padding, so its `.frame(maxWidth: .infinity)` chips filled the card edge-to-edge.
                 // blobShape's content closure gets the FULL baseWidth with no inset of its own
@@ -2486,7 +2541,7 @@ struct NotchPillView: View {
                         .accessibilityLabel("Stop")
                 }
             }
-            .padding(.top, Self.cameraClearance)
+            .padding(.top, resolvedCameraClearance)
             // Phase 62-04 UAT round 3 fix (item D) — was 24, bumped to 32 matching
             // timerSetupPicker's own B/C fix, for the same "too close to the rounded corners"
             // reason (though with the row no longer edge-stretched above, this now only
@@ -2632,7 +2687,7 @@ struct NotchPillView: View {
                 navCircleButton(systemName: "checkmark", filled: true, action: startTimerSetup)
             }
         }
-        .padding(.top, Self.cameraClearance)
+        .padding(.top, resolvedCameraClearance)
         // Phase 62-04 UAT round 3 fix (items B/C) — was 24, too little clearance from the
         // bottomCornerRadius:32 curve: the X/checkmark buttons (and the Work/Break labels)
         // read as pinned into the rounded corners. 32 gives every element in this column
@@ -2748,7 +2803,7 @@ struct NotchPillView: View {
                     onboardingStepContent(step)
                     Spacer(minLength: 0)
                 }
-                .padding(.top, Self.cameraClearance)         // camera-clearance floor, matches mediaExpanded's convention
+                .padding(.top, resolvedCameraClearance)         // camera-clearance floor, matches mediaExpanded's convention
                 .padding(.horizontal, 28)  // screen content padding (round 2, Droppy comparison)
                 // Round 3 — reserves room below the centered content so it never visually
                 // overlaps the nav row overlay pinned below it.
@@ -2977,12 +3032,16 @@ struct NotchPillView: View {
     // green (active) / red (failure) icon-tint states 65-UI-SPEC.md's Icon Catalog requires —
     // states the plain filled/outlined duality alone can't express. Reuses this ONE primitive
     // rather than a parallel button type (PATTERNS.md: "not a new tile/button style").
-    private func navCircleButton(systemName: String, filled: Bool, tint: Color? = nil, action: @escaping () -> Void) -> some View {
+    // Quick task 260801 — `diameter` defaults to `navCircleDiameter` so every existing caller
+    // (onboarding nav, Timer setup, replay-close) compiles byte-identical; only switcherRow/
+    // topEdgeSwitcherRow pass an override, to apply the Switcher Tuner's size nudge without
+    // touching this shared primitive's other 20+ call sites.
+    private func navCircleButton(systemName: String, filled: Bool, tint: Color? = nil, diameter: CGFloat = navCircleDiameter, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(tint ?? (filled ? Color.black : Color.white))
-                .frame(width: Self.navCircleDiameter, height: Self.navCircleDiameter)
+                .frame(width: diameter, height: diameter)
                 .background {
                     // Phase 72.1.1 Plan 04 (D-06 Tier 1) — same guarded-glass convention as
                     // quickActionButton above. filled ? 0 : 0.08 keeps the tint a no-op on the
@@ -3140,7 +3199,7 @@ struct NotchPillView: View {
                     content()
                         .frame(width: baseWidth, height: baseHeight, alignment: alignment)
                         // Phase 52 / SWITCH-03 (D-04/D-05) — content() already reserves the
-                        // cameraClearance band via its own `.padding(.top, Self.cameraClearance)`
+                        // cameraClearance band via its own `.padding(.top, resolvedCameraClearance)`
                         // convention, so the top-edge icons render inside that already-reserved
                         // band with zero additional height reservation (D-06 preserved).
                         .overlay(alignment: .top) {
@@ -3202,6 +3261,7 @@ struct NotchPillView: View {
                 let mapping = icon(for: view)
                 navCircleButton(systemName: mapping.systemName,
                                  filled: viewSwitcherState.selectedView == view,
+                                 diameter: Self.switcherIconDiameter + switcherSizeNudge,
                                  action: mapping.action)
             }
             // Phase 62-04 UAT design revision (item 6) — Timer is a FIXED 5th tab, appended
@@ -3212,6 +3272,7 @@ struct NotchPillView: View {
                 let mapping = icon(for: .timer)
                 navCircleButton(systemName: mapping.systemName,
                                  filled: viewSwitcherState.selectedView == .timer,
+                                 diameter: Self.switcherIconDiameter + switcherSizeNudge,
                                  action: mapping.action)
             }
         }
@@ -3277,10 +3338,12 @@ struct NotchPillView: View {
                 let leftOuter = icon(for: orderedSlotViews[0])
                 navCircleButton(systemName: leftOuter.systemName,
                                  filled: viewSwitcherState.selectedView == orderedSlotViews[0],
+                                 diameter: Self.switcherIconDiameter + switcherSizeNudge,
                                  action: leftOuter.action)
                 let leftInner = icon(for: orderedSlotViews[1])
                 navCircleButton(systemName: leftInner.systemName,
                                  filled: viewSwitcherState.selectedView == orderedSlotViews[1],
+                                 diameter: Self.switcherIconDiameter + switcherSizeNudge,
                                  action: leftInner.action)
             }
             Color.clear.frame(width: topEdgeCutoutWidth)
@@ -3288,10 +3351,12 @@ struct NotchPillView: View {
                 let rightInner = icon(for: orderedSlotViews[2])
                 navCircleButton(systemName: rightInner.systemName,
                                  filled: viewSwitcherState.selectedView == orderedSlotViews[2],
+                                 diameter: Self.switcherIconDiameter + switcherSizeNudge,
                                  action: rightInner.action)
                 let rightOuter = icon(for: orderedSlotViews[3])
                 navCircleButton(systemName: rightOuter.systemName,
                                  filled: viewSwitcherState.selectedView == orderedSlotViews[3],
+                                 diameter: Self.switcherIconDiameter + switcherSizeNudge,
                                  action: rightOuter.action)
                 // Phase 62-04 UAT design revision (item 6) — same fixed 5th Timer icon as
                 // switcherRow (pill layout), appended to the right group here since there is
@@ -3300,6 +3365,7 @@ struct NotchPillView: View {
                     let timerMapping = icon(for: .timer)
                     navCircleButton(systemName: timerMapping.systemName,
                                      filled: viewSwitcherState.selectedView == .timer,
+                                     diameter: Self.switcherIconDiameter + switcherSizeNudge,
                                      action: timerMapping.action)
                 }
             }
@@ -4873,7 +4939,7 @@ struct NotchPillView: View {
                 outputPanel(devices: presentationState.outputDevices)
             }
         }
-        .padding(.top, Self.cameraClearance)        // notch/camera clearance — content starts below the band
+        .padding(.top, Self.mediaExpandedClearance + switcherContentOffsetNudge)        // Quick task 260801 baked Switcher Tuner value
         .padding(.bottom, 12)     // room for the bottomCornerRadius:20 curve (restored to its pre-260715-vsd value —
         // gap-closure round 3 finding: the switcher row's Y position is fixed by the shared
         // `switcherContentHeight` box height alone, NOT by this content's own internal
@@ -5164,7 +5230,7 @@ struct NotchPillView: View {
             .foregroundStyle(.white)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 16)
-            .padding(.top, Self.cameraClearance)
+            .padding(.top, resolvedCameraClearance)
     }
 
     // D-01 ships pure black (merges with the hardware notch → idle-invisible);
