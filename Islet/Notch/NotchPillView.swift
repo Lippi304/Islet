@@ -517,11 +517,16 @@ struct NotchPillView: View {
     // morph against this one geometry group via matchedGeometryEffect(id: "island").
     @Namespace private var ns
 
-    // Phase 72.1.1 Plan 01 (GLASS-04/GLASS-03) — dedicated namespace for the native
-    // .glassEffect() rim's GlassEffectContainer/.glassEffectID tracking, kept SEPARATE
-    // from `ns` above (which drives the shape's own matchedGeometryEffect morph) to
-    // avoid cross-interference between the two identity systems.
-    @Namespace private var glassNS
+    // Debug session `liquid-glass-anim-missing`, round 5 (2026-08-01) — round 4's
+    // `glassTransitionActive`/`.onChange(of: presentation)` shader-swap machinery lived here
+    // (removed; see `liquidGlassEffectLayer` for the full round-1..4 history and why on-device
+    // it changed nothing — the fallback legacy shader is JUST as GPU/Metal-shader-composited as
+    // native `.glassEffect()`, so swapping between them was never going to matter). Round 5's
+    // fix instead gives the glass overlay a `.matchedGeometryEffect(id: "island", in: ns,
+    // isSource: false)` FOLLOWER tag — same id/namespace the outer shape already uses as the
+    // (isSource: true, default) LEADER — so the glass content continuously tracks the shape's
+    // own animated frame every tick, instead of only being told the shape's CURRENT resolved
+    // size once at each insertion. No new state, no timers, no fallback renderer swap.
 
     // Size seeds (D-06: expanded is only modestly larger than the notch). Plan 03
     // sizes the panel to `expandedSize` up front (via expandedNotchFrame) so the
@@ -802,12 +807,6 @@ struct NotchPillView: View {
                 // empirically broke the rim-only clipping to `LiquidGlassRimRingShape`. Reverted
                 // to the bare, per-call-site `.glassEffect(_:in:)` at the time.
                 //
-                // Phase 72.1.1 Plan 01 (GLASS-04) — re-attempted with a MUCH narrower scope than
-                // round 2's whole-presentationSwitch wrap: the container/ID now lives strictly
-                // inside this one function's native branch, using a dedicated `glassNS`
-                // namespace (not `ns`, which drives the shape's matchedGeometryEffect). This
-                // isolation is what round 2's regression was missing.
-                //
                 // Phase 72.1.1 Plan 03 (D-01) — scaled the glass region from the round-2
                 // `LiquidGlassRimRingShape` rim ring back to the bare full `shape`, superseding
                 // round 2's rim-only scope note above (that regression was about container
@@ -838,24 +837,65 @@ struct NotchPillView: View {
                 // backdrop content isn't independently tunable from this app. `.clear` (tested
                 // on-device against `.regular`) is the user-approved style — confirmed look is
                 // acceptable as-is.
-                GlassEffectContainer {
-                    ZStack {
-                        Color.clear
-                            .glassEffect(.clear.tint(Color.black.opacity(0.7 + glassTintNudge)), in: shape)
-                            .glassEffectID("islandGlass", in: glassNS)
-                        shape
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.15 + glassGlossNudge), Color.clear],
-                                    startPoint: .top,
-                                    endPoint: .center
-                                ),
-                                lineWidth: 1.5
-                            )
-                            .clipShape(shape)
-                    }
-                    .allowsHitTesting(false)
+                //
+                // Debug session `liquid-glass-anim-missing`, round 2 (2026-08-01) — removed the
+                // `GlassEffectContainer` + `.glassEffectID("islandGlass", in: glassNS)` pairing
+                // Plan 01/03 above had added. Two independently-instantiated containers
+                // (collapsedIsland's vs blobShape's) never coexist in the tree, so the
+                // documented glassEffectID morph never actually engaged — on-device this was
+                // confirmed pure dead weight (zero observable change with it removed). Bare
+                // `.glassEffect()` now inherits `.overlay()`'s live per-frame parent size like
+                // any other view, same as Gradient/Solid Black already do.
+                //
+                // Round 3 (2026-08-01) — tried Apple's fully-documented mechanism instead:
+                // merged `.idle` into the 8-case switcher-row arm and wrapped that merged arm's
+                // REAL CONTENT (not just this decorative layer) in one shared, persisting
+                // `GlassEffectContainer`. On-device this was WORSE than round 2's hard-cut
+                // baseline: the entire expanded Home view's content stopped rendering (only 4
+                // small glyphs stayed visible), AND the previously-fine OSD wing-to-wing
+                // animation broke too. Reverted in full — GlassEffectContainer/glassEffectID is
+                // now a confirmed dead end at every scope tried (whole body, whole
+                // presentationSwitch, and this narrower 2-case merge) and should not be
+                // retried.
+                //
+                // Round 4 (2026-08-01, REVERTED round 5) — tried sidestepping the native glass
+                // compositor entirely during the transition by swapping to
+                // `legacyLiquidGlassEffectLayer`. On-device this changed nothing: the legacy
+                // shader is JUST as Metal/GPU-shader-composited (`.distortionEffect`/
+                // `.colorEffect`) as native `.glassEffect()` is — swapping between two
+                // GPU-shader-backed renderers was never going to fix anything, since NEITHER
+                // participates in the outer shape's `matchedGeometryEffect`-driven insert/remove
+                // morph on its own. Removed the `glassTransitionActive` state/timer/onChange
+                // entirely (see `ns`'s declaration comment above).
+                //
+                // Round 5 (2026-08-01) — the outer shape's OWN `matchedGeometryEffect(id:
+                // "island", in: ns)` (isSource: true, default) is PROVEN to smoothly bridge the
+                // collapsed<->home insert/remove morph (that's why Gradient/Solid Black, whose
+                // only visible content IS that shape's plain fill, already animate perfectly).
+                // The glass overlay never carried any tag of its own in that same system — every
+                // round 1-4 fix instead reached for Apple's SEPARATE glassEffectID/
+                // GlassEffectContainer morph mechanism, confirmed a dead end at every scope tried
+                // (round 2/3 Eliminated entries). Tagging this content as a FOLLOWER
+                // (`isSource: false`) in the SAME "island" id/`ns` namespace the shape already
+                // uses lets it continuously track the shape's own already-working animated frame
+                // every tick, instead of only snapping to the newly-inserted branch's static
+                // resolved size.
+                ZStack {
+                    Color.clear
+                        .glassEffect(.clear.tint(Color.black.opacity(0.7 + glassTintNudge)), in: shape)
+                    shape
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.15 + glassGlossNudge), Color.clear],
+                                startPoint: .top,
+                                endPoint: .center
+                            ),
+                            lineWidth: 1.5
+                        )
+                        .clipShape(shape)
                 }
+                .allowsHitTesting(false)
+                .matchedGeometryEffect(id: "island", in: ns, isSource: false)
             } else {
                 legacyLiquidGlassEffectLayer(shape: shape, size: size, parameters: parameters)
             }
@@ -1420,6 +1460,10 @@ struct NotchPillView: View {
         // the RENDERED position match the geometry the panel/click-through math already assumes,
         // for every presentation (D-07's top-pinning is preserved via `alignment: .top`).
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Debug session `liquid-glass-anim-missing`, round 4's `.onChange(of: presentation)`
+        // shader-swap trigger lived here — REVERTED round 5 (see `liquidGlassEffectLayer`'s
+        // native branch for the current fix: a `matchedGeometryEffect(isSource: false)` follower
+        // tag on the glass overlay itself, no state/timer needed at this level anymore).
         // Finding 15 fix (06-10): the tap-to-toggle gesture no longer lives at this
         // container level. A single ancestor .onTapGesture here would sit ABOVE the
         // transport Buttons nested inside mediaExpanded, and SwiftUI's gesture
@@ -5257,8 +5301,22 @@ private struct OSDLevelBar: View {
                 Group {
                     // CR-01 fix (72.1.1 review) — also gated on materialStyle ==
                     // .liquidGlass, matching every other .glassEffect() call site.
+                    //
+                    // Debug session `liquid-glass-anim-missing`, round 5 (2026-08-01) — this bare
+                    // `.glassEffect()` never animated its own `.frame(width:)` fill (the
+                    // "OSD-Animation" the level bar's fraction-driven fill is the ONLY animatable
+                    // property here, no matchedGeometryEffect/insert-remove involved at all — a
+                    // much simpler, isolated case than the collapsed<->home transition). Wrapping
+                    // it in its OWN persisting `GlassEffectContainer` (this view's single Capsule
+                    // instance never gets torn down/recreated across a fraction change, so the
+                    // container itself is always the SAME instance) tests whether ANY
+                    // `.glassEffect()` content needs a container to interpolate at all, or only
+                    // for cross-instance (insert/remove) morphs — same underlying question as the
+                    // main transition, in the cheapest possible isolated form.
                     if materialStyle == .liquidGlass, #available(macOS 26.0, *) {
-                        Capsule().fill(Color.clear).glassEffect(.clear.tint(tint), in: Capsule())
+                        GlassEffectContainer {
+                            Capsule().fill(Color.clear).glassEffect(.clear.tint(tint), in: Capsule())
+                        }
                     } else {
                         Capsule().fill(tint)
                     }
